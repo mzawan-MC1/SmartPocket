@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import VoiceRecorder from './VoiceRecorder';
-import type { ParsedFinancialInstruction, FinancialAction, FinancialContext, SuggestedAccount } from '@/lib/ai-types';
+import type { ParsedFinancialInstruction, FinancialAction, FinancialContext, SuggestedAccount, PersonResolution } from '@/lib/ai-types';
 import { buildAIContext } from '@/lib/ai-execution';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { createClientId } from '@/lib/uuid';
@@ -42,6 +42,20 @@ interface UnresolvedAccountRequirement {
   noAccounts: boolean;
 }
 
+interface PersonResolutionRequirement {
+  actionIndex: number;
+  actionIndexes: number[];
+  personName: string;
+  existingPeople: Array<{
+    id: string;
+    fullName: string;
+    relationship?: string;
+    moneyHeld?: number;
+  }>;
+  noPeople: boolean;
+  isResolved: boolean;
+}
+
 export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { isRTL } = useLanguage();
   const router = useRouter();
@@ -64,6 +78,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [flowRequestId, setFlowRequestId] = useState<string | null>(null);
   const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
   const [accountResolutions, setAccountResolutions] = useState<AccountResolutionChoice[]>([]);
+  const [personResolutions, setPersonResolutions] = useState<PersonResolution[]>([]);
+  const [personNameEdits, setPersonNameEdits] = useState<Record<number, string>>({});
   const [accountDraft, setAccountDraft] = useState<{
     actionIndex: number;
     field: 'account' | 'destinationAccount';
@@ -73,9 +89,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     openingBalance: number;
     includeInTotal: boolean;
   } | null>(null);
-  const [choosingExistingFor, setChoosingExistingFor] = useState<{
+  const [personDraft, setPersonDraft] = useState<{
     actionIndex: number;
-    field: 'account' | 'destinationAccount';
+    actionIndexes: number[];
+    name: string;
+    relationship: NonNullable<PersonResolution['relationship']>;
+    notes: string;
   } | null>(null);
 
   // Check AI configuration on mount
@@ -176,7 +195,57 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       return action.actionType === 'transfer';
     }
 
-    return ['income', 'expense', 'transfer', 'recurring_transaction', 'expense_paid_for_person'].includes(action.actionType);
+    return [
+      'income',
+      'expense',
+      'transfer',
+      'recurring_transaction',
+      'expense_paid_for_person',
+      'money_received_from_person',
+      'expense_from_held_balance',
+    ].includes(action.actionType);
+  };
+
+  const isPersonRequired = (action: FinancialAction) => {
+    return [
+      'money_received_from_person',
+      'money_returned_to_person',
+      'expense_from_held_balance',
+      'expense_paid_for_person',
+      'expense_paid_by_person',
+      'reimbursement_payment',
+      'settlement',
+    ].includes(action.actionType);
+  };
+
+  const resolvePersonOption = (
+    personId: string | undefined,
+    personName: string | undefined,
+    people: NonNullable<FinancialContext['people']>
+  ) => {
+    const normalized = normalizeName(personName);
+    return people.find((person) => {
+      if (personId && person.id === personId) return true;
+      if (!normalized) return false;
+      if (normalizeName(person.fullName) === normalized) return true;
+      return (person.aliases || []).some((alias) => normalizeName(alias) === normalized);
+    }) || null;
+  };
+
+  const findAccountOption = (
+    action: FinancialAction,
+    field: 'account' | 'destinationAccount'
+  ) => {
+    const accounts = contextSnapshot?.accounts || [];
+    const accountId = field === 'account' ? action.accountId : action.destinationAccountId;
+    const accountName = field === 'account' ? action.accountName : action.destinationAccountName;
+    if (accountId) {
+      const byId = accounts.find((account) => account.id === accountId);
+      if (byId) return byId;
+    }
+    const normalized = normalizeName(accountName);
+    if (!normalized) return null;
+    return accounts.find((account) => normalizeName(account.name) === normalized) || null;
   };
 
   const inferAccountType = (name: string): SuggestedAccount['type'] => {
@@ -195,6 +264,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     return currency.length === 3 ? currency : 'AED';
   };
 
+  const formatHeldBalance = (value: number | undefined, currency = 'AED') => {
+    const amount = Number(value || 0);
+    return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const getSuggestedAccount = (action: FinancialAction, field: 'account' | 'destinationAccount'): SuggestedAccount => {
     const name = field === 'account' ? action.accountName : action.destinationAccountName;
     const preferredName = (name || 'Cash').trim() || 'Cash';
@@ -211,6 +285,47 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     };
   };
 
+  const applyLocalPersonResolutions = useCallback((
+    instruction: ParsedFinancialInstruction,
+    resolutions: PersonResolution[]
+  ): ParsedFinancialInstruction => {
+    const nextInstruction: ParsedFinancialInstruction = {
+      ...instruction,
+      actions: instruction.actions.map((action) => ({ ...action, warnings: [...(action.warnings || [])] })),
+    };
+
+    for (const resolution of resolutions) {
+      const targetIndexes = Array.from(new Set([resolution.actionIndex, ...(resolution.actionIndexes || [])]));
+      for (const targetIndex of targetIndexes) {
+        const targetAction = nextInstruction.actions[targetIndex];
+        if (!targetAction || !isPersonRequired(targetAction)) continue;
+
+        if (resolution.mode === 'existing' && resolution.personId) {
+          const selectedPerson = resolvePersonOption(
+            resolution.personId,
+            resolution.personName,
+            contextSnapshot?.people || []
+          );
+          if (!selectedPerson) continue;
+          targetAction.personId = selectedPerson.id;
+          targetAction.personName = selectedPerson.fullName;
+          continue;
+        }
+
+        targetAction.personId = undefined;
+        targetAction.personName = resolution.personName;
+        if (resolution.relationship) {
+          targetAction.relationship = resolution.relationship;
+        }
+        if (resolution.notes) {
+          targetAction.notes = resolution.notes;
+        }
+      }
+    }
+
+    return nextInstruction;
+  }, [contextSnapshot, isPersonRequired, resolvePersonOption]);
+
   const applyLocalAccountResolutions = useCallback((
     instruction: ParsedFinancialInstruction,
     resolutions: AccountResolutionChoice[]
@@ -220,10 +335,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       actions: instruction.actions.map((action) => ({ ...action, warnings: [...(action.warnings || [])] })),
     };
 
-    let offset = 0;
     for (const resolution of [...resolutions].sort((a, b) => a.actionIndex - b.actionIndex)) {
-      const targetIndex = resolution.actionIndex + offset;
-      const targetAction = nextInstruction.actions[targetIndex];
+      const targetAction = nextInstruction.actions[resolution.actionIndex];
       if (!targetAction) continue;
 
       if (resolution.mode === 'select' && resolution.accountId) {
@@ -241,26 +354,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       }
 
       if (resolution.mode === 'create' && resolution.account) {
-        nextInstruction.actions.splice(targetIndex, 0, {
-          actionType: 'create_account',
-          accountName: resolution.account.name,
-          accountType: resolution.account.type,
-          currency: resolution.account.currency,
-          openingBalance: resolution.account.openingBalance,
-          includeInTotal: resolution.account.includeInTotal,
-          confidence: 1,
-          warnings: [],
-          description: `Create ${resolution.account.type.replace('_', ' ')} account: ${resolution.account.name}`,
-        });
-        offset += 1;
-
-        const adjustedTarget = nextInstruction.actions[targetIndex + 1];
         if (resolution.field === 'account') {
-          adjustedTarget.accountId = undefined;
-          adjustedTarget.accountName = resolution.account.name;
+          targetAction.accountId = undefined;
+          targetAction.accountName = resolution.account.name;
         } else {
-          adjustedTarget.destinationAccountId = undefined;
-          adjustedTarget.destinationAccountName = resolution.account.name;
+          targetAction.destinationAccountId = undefined;
+          targetAction.destinationAccountName = resolution.account.name;
         }
       }
     }
@@ -268,20 +367,68 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     return nextInstruction;
   }, [contextSnapshot]);
 
-  const previewInstruction = parsed ? applyLocalAccountResolutions(parsed, accountResolutions) : null;
+  const personAdjustedInstruction = parsed ? applyLocalPersonResolutions(parsed, personResolutions) : null;
+  const previewInstruction = personAdjustedInstruction
+    ? applyLocalAccountResolutions(personAdjustedInstruction, accountResolutions)
+    : null;
+
+  const personRequirements: PersonResolutionRequirement[] = personAdjustedInstruction
+    ? (() => {
+        const people = contextSnapshot?.people || [];
+        const grouped = new Map<string, PersonResolutionRequirement>();
+
+        personAdjustedInstruction.actions.forEach((action, actionIndex) => {
+          if (!isPersonRequired(action)) return;
+          const createResolution = personResolutions.find(
+            (resolution) =>
+              resolution.mode === 'create' &&
+              [resolution.actionIndex, ...(resolution.actionIndexes || [])].includes(actionIndex)
+          );
+          const resolvedPerson = resolvePersonOption(action.personId, action.personName, people);
+          const personName = createResolution?.personName || resolvedPerson?.fullName || action.personName || 'New Person';
+          const personKey = resolvedPerson?.id
+            ? `id:${resolvedPerson.id}`
+            : `name:${normalizeName(personName || `person-${actionIndex}`)}`;
+          const existing = grouped.get(personKey);
+          if (existing) {
+            existing.actionIndexes.push(actionIndex);
+            existing.isResolved = existing.isResolved || !!resolvedPerson || !!createResolution;
+            return;
+          }
+
+          grouped.set(personKey, {
+            actionIndex,
+            actionIndexes: [actionIndex],
+            personName,
+            existingPeople: people.map((person) => ({
+              id: person.id as string,
+              fullName: person.fullName as string,
+              relationship: typeof person.relationship === 'string' ? person.relationship : undefined,
+              moneyHeld: typeof person.moneyHeld === 'number' ? person.moneyHeld : undefined,
+            })),
+            noPeople: people.length === 0,
+            isResolved: !!resolvedPerson || !!createResolution,
+          });
+        });
+
+        return Array.from(grouped.values());
+      })()
+    : [];
+
+  const unresolvedPersonCount = personRequirements.filter((item) => !item.isResolved).length;
 
   const unresolvedAccounts: UnresolvedAccountRequirement[] = previewInstruction
     ? (() => {
         const accounts = contextSnapshot?.accounts || [];
         const availableNames = new Set(accounts.map((account) => normalizeName(account.name)));
+        accountResolutions.forEach((resolution) => {
+          if (resolution.mode === 'create' && resolution.account?.name) {
+            availableNames.add(normalizeName(resolution.account.name));
+          }
+        });
         const unresolved: UnresolvedAccountRequirement[] = [];
 
         previewInstruction.actions.forEach((action, actionIndex) => {
-          if (action.actionType === 'create_account' && action.accountName) {
-            availableNames.add(normalizeName(action.accountName));
-            return;
-          }
-
           (['account', 'destinationAccount'] as const).forEach((field) => {
             if (!isAccountRequired(action, field)) return;
             const accountId = field === 'account' ? action.accountId : action.destinationAccountId;
@@ -361,8 +508,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setParsed(instruction);
       setFlowRequestId(instruction.requestId || data.requestId || null);
       setAccountResolutions([]);
+      setPersonResolutions([]);
+      setPersonNameEdits({});
       setAccountDraft(null);
-      setChoosingExistingFor(null);
+      setPersonDraft(null);
 
       if (instruction.requiresClarification) {
         setStep('clarifying');
@@ -396,7 +545,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   }, [clarificationInput, clarificationAnswers, parsed, textInput, transcript, callParseAPI]);
 
   const handleConfirm = useCallback(async () => {
-    if (!parsed || unresolvedAccounts.length > 0) return;
+    if (!parsed || unresolvedAccounts.length > 0 || unresolvedPersonCount > 0) return;
     setStep('executing');
     setErrorMessage('');
 
@@ -409,6 +558,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         body: JSON.stringify({
           requestId: parsed.requestId,
           accountResolutions,
+          personResolutions,
         }),
       });
 
@@ -429,8 +579,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
 
       const result = await response.json();
       if (!response.ok || result.status === 'failed') {
-        if (result?.status === 'clarification_required' || result?.code === 'account_missing') {
-          setErrorMessage(result.message || 'This Smart Entry request still needs an account before it can be saved.');
+        if (result?.status === 'clarification_required' || result?.code === 'account_missing' || result?.code === 'person_missing') {
+          setErrorMessage(result.message || 'This Smart Entry request still needs more details before it can be saved.');
           setStep('confirming');
           return;
         }
@@ -451,7 +601,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save records.');
       setStep('failed');
     }
-  }, [accountResolutions, parsed, previewInstruction?.actions.length, router, unresolvedAccounts.length]);
+  }, [accountResolutions, parsed, personResolutions, previewInstruction?.actions.length, router, unresolvedAccounts.length, unresolvedPersonCount]);
 
   const handleReset = useCallback(() => {
     setStep('entry');
@@ -466,8 +616,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setFlowRequestId(null);
     setFlowId(createClientId());
     setAccountResolutions([]);
+    setPersonResolutions([]);
+    setPersonNameEdits({});
     setAccountDraft(null);
-    setChoosingExistingFor(null);
+    setPersonDraft(null);
   }, []);
 
   const upsertAccountResolution = useCallback((resolution: AccountResolutionChoice) => {
@@ -480,10 +632,15 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     });
   }, []);
 
-  const activeUnresolvedAccount = unresolvedAccounts[0] || null;
+  const upsertPersonResolution = useCallback((resolution: PersonResolution) => {
+    setPersonResolutions((current) => {
+      const next = current.filter((item) => item.actionIndex !== resolution.actionIndex);
+      next.push(resolution);
+      return next;
+    });
+  }, []);
 
   const handleStartCreateAccount = useCallback((requirement: UnresolvedAccountRequirement) => {
-    setChoosingExistingFor(null);
     setAccountDraft({
       actionIndex: requirement.actionIndex,
       field: requirement.field,
@@ -512,24 +669,102 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setAccountDraft(null);
   }, [accountDraft, upsertAccountResolution]);
 
-  const handleStartChooseExisting = useCallback((requirement: UnresolvedAccountRequirement) => {
-    setAccountDraft(null);
-    setChoosingExistingFor({
+  const handleStartCreatePerson = useCallback((requirement: PersonResolutionRequirement) => {
+    setPersonDraft({
       actionIndex: requirement.actionIndex,
-      field: requirement.field,
+      actionIndexes: requirement.actionIndexes,
+      name: (personNameEdits[requirement.actionIndex] || requirement.personName).trim() || requirement.personName,
+      relationship: 'other',
+      notes: '',
     });
-  }, []);
+  }, [personNameEdits]);
 
-  const handleChooseExistingAccount = useCallback((accountId: string) => {
-    if (!choosingExistingFor) return;
-    upsertAccountResolution({
-      actionIndex: choosingExistingFor.actionIndex,
-      field: choosingExistingFor.field,
-      mode: 'select',
-      accountId,
+  const handleApplyCreatePerson = useCallback(() => {
+    if (!personDraft || !personDraft.name.trim()) return;
+    upsertPersonResolution({
+      actionIndex: personDraft.actionIndex,
+      actionIndexes: personDraft.actionIndexes,
+      mode: 'create',
+      personName: personDraft.name.trim(),
+      relationship: personDraft.relationship,
+      notes: personDraft.notes.trim() || undefined,
     });
-    setChoosingExistingFor(null);
-  }, [choosingExistingFor, upsertAccountResolution]);
+    setPersonNameEdits((current) => {
+      const next = { ...current };
+      delete next[personDraft.actionIndex];
+      return next;
+    });
+    setPersonDraft(null);
+  }, [personDraft, upsertPersonResolution]);
+
+  const handleAccountSelectionChange = useCallback((
+    actionIndex: number,
+    field: 'account' | 'destinationAccount',
+    value: string
+  ) => {
+    if (value === '__create__') {
+      const action = previewInstruction?.actions[actionIndex];
+      if (!action) return;
+      handleStartCreateAccount({
+        actionIndex,
+        field,
+        accountName: field === 'account' ? (action.accountName || 'Cash') : (action.destinationAccountName || 'Cash'),
+        suggestedAccount: getSuggestedAccount(action, field),
+        existingAccounts: (contextSnapshot?.accounts || []).map((account) => ({
+          id: account.id as string,
+          name: account.name as string,
+          type: account.type as string,
+          currency: account.currency as string,
+        })),
+        noAccounts: (contextSnapshot?.accounts || []).length === 0,
+      });
+      return;
+    }
+
+    if (!value) {
+      setAccountResolutions((current) => current.filter(
+        (item) => !(item.actionIndex === actionIndex && item.field === field)
+      ));
+      return;
+    }
+
+    upsertAccountResolution({
+      actionIndex,
+      field,
+      mode: 'select',
+      accountId: value,
+    });
+  }, [contextSnapshot, getSuggestedAccount, handleStartCreateAccount, previewInstruction, upsertAccountResolution]);
+
+  const handlePersonSelectionChange = useCallback((
+    requirement: PersonResolutionRequirement,
+    value: string
+  ) => {
+    if (value === '__create__') {
+      handleStartCreatePerson(requirement);
+      return;
+    }
+
+    if (!value) {
+      setPersonResolutions((current) => current.filter((item) => item.actionIndex !== requirement.actionIndex));
+      return;
+    }
+
+    const selectedPerson = (contextSnapshot?.people || []).find((person) => person.id === value);
+    if (!selectedPerson) return;
+
+    upsertPersonResolution({
+      actionIndex: requirement.actionIndex,
+      actionIndexes: requirement.actionIndexes,
+      mode: 'existing',
+      personId: selectedPerson.id as string,
+      personName: selectedPerson.fullName as string,
+      relationship: typeof selectedPerson.relationship === 'string'
+        ? selectedPerson.relationship as PersonResolution['relationship']
+        : undefined,
+    });
+    setPersonDraft(null);
+  }, [contextSnapshot, handleStartCreatePerson, upsertPersonResolution]);
 
   const formatActionSummary = (action: FinancialAction): string => {
     const amount = action.amount ? `${action.currency || 'AED'} ${action.amount.toLocaleString()}` : 'Amount unknown';
@@ -600,6 +835,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     }
     if (message.includes('unresolved account')) {
       return 'Please resolve the missing account before confirming.';
+    }
+    if (message.includes('unresolved managed people')) {
+      return 'Please resolve the managed person before confirming.';
     }
     return 'Unable to confirm this Smart Entry request.';
   };
@@ -902,6 +1140,17 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   const destinationRequirement = unresolvedAccounts.find(
                     (item) => item.actionIndex === i && item.field === 'destinationAccount'
                   );
+                  const personRequirement = personRequirements.find((item) => item.actionIndexes.includes(i));
+                  const resolvedPerson = resolvePersonOption(action.personId, action.personName, contextSnapshot?.people || []);
+                  const personCreateResolution = personRequirement
+                    ? personResolutions.find(
+                        (resolution) =>
+                          resolution.mode === 'create' &&
+                          resolution.actionIndex === personRequirement.actionIndex
+                      )
+                    : null;
+                  const selectedAccount = findAccountOption(action, 'account');
+                  const selectedDestinationAccount = findAccountOption(action, 'destinationAccount');
 
                   return (
                   <div key={i} className="p-3 bg-muted/30 border border-border rounded-xl">
@@ -922,35 +1171,251 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                               ))}
                             </div>
                           )}
-                          {(action.actionType === 'expense' || action.actionType === 'income') && (
-                            <div className="mt-2 space-y-1">
-                              <p className="text-xs text-muted-foreground">Category: {action.categoryName || 'Uncategorised'}</p>
-                              <p className={`text-xs ${accountRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                Account: {accountRequirement ? 'Missing' : (action.accountName || 'Not specified')}
+                          {action.categoryName && (
+                            <p className="mt-2 text-xs text-muted-foreground">Category: {action.categoryName}</p>
+                          )}
+                          {isPersonRequired(action) && (
+                            <div className="mt-2 space-y-2">
+                              <p className={`text-xs ${personRequirement && !personRequirement.isResolved ? 'text-warning font-600' : 'text-muted-foreground'}`}>
+                                Managed person: {resolvedPerson?.fullName || action.personName || 'Missing'}
                               </p>
+                              {resolvedPerson && (
+                                <p className="text-xs text-muted-foreground">
+                                  {resolvedPerson.relationship ? `${resolvedPerson.relationship} · ` : ''}
+                                  Held balance: {formatHeldBalance(
+                                    typeof resolvedPerson.moneyHeld === 'number' ? resolvedPerson.moneyHeld : 0,
+                                    action.currency || 'AED'
+                                  )}
+                                </p>
+                              )}
+                              {personRequirement && (
+                                <div className={`rounded-xl bg-card p-3 space-y-2 ${
+                                  personRequirement.isResolved ? 'border border-border' : 'border border-warning/20'
+                                }`}>
+                                  {!resolvedPerson && !personCreateResolution && (
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground">Detected name</p>
+                                      <input
+                                        value={personNameEdits[personRequirement.actionIndex] ?? personRequirement.personName}
+                                        onChange={(e) => setPersonNameEdits((current) => ({
+                                          ...current,
+                                          [personRequirement.actionIndex]: e.target.value,
+                                        }))}
+                                        className="input-base w-full text-sm"
+                                        placeholder="Managed person name"
+                                      />
+                                    </div>
+                                  )}
+                                  <select
+                                    value={resolvedPerson?.id || (personCreateResolution ? '__create__' : '')}
+                                    onChange={(e) => handlePersonSelectionChange(personRequirement, e.target.value)}
+                                    className="input-base w-full text-sm"
+                                  >
+                                    <option value="">Select managed person</option>
+                                    {personRequirement.existingPeople.map((person) => (
+                                      <option key={person.id} value={person.id}>
+                                        {person.fullName}
+                                        {person.relationship ? ` • ${person.relationship}` : ''}
+                                        {typeof person.moneyHeld === 'number' ? ` • Held ${formatHeldBalance(person.moneyHeld, action.currency || 'AED')}` : ''}
+                                      </option>
+                                    ))}
+                                    <option value="__create__">Create new managed person</option>
+                                  </select>
+                                  {!personRequirement.isResolved && (
+                                    <p className="text-xs text-warning">
+                                      {personRequirement.noPeople
+                                        ? 'No managed people exist yet. Create one before saving.'
+                                        : `${personNameEdits[personRequirement.actionIndex] || personRequirement.personName} still needs to be matched or created.`}
+                                    </p>
+                                  )}
+                                  {personDraft && personDraft.actionIndex === personRequirement.actionIndex && (
+                                    <div className="space-y-2">
+                                      <input
+                                        value={personDraft.name}
+                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                                        className="input-base w-full text-sm"
+                                        placeholder="Managed person name"
+                                      />
+                                      <select
+                                        value={personDraft.relationship}
+                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, relationship: e.target.value as NonNullable<PersonResolution['relationship']> } : current)}
+                                        className="input-base w-full text-sm"
+                                      >
+                                        <option value="other">Other</option>
+                                        <option value="friend">Friend</option>
+                                        <option value="client">Client</option>
+                                        <option value="relative">Relative</option>
+                                        <option value="colleague">Colleague</option>
+                                        <option value="spouse">Spouse</option>
+                                        <option value="child">Child</option>
+                                        <option value="parent">Parent</option>
+                                        <option value="sibling">Sibling</option>
+                                      </select>
+                                      <textarea
+                                        value={personDraft.notes}
+                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, notes: e.target.value } : current)}
+                                        className="input-base w-full text-sm h-20 resize-none"
+                                        placeholder="Notes (optional)"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={handleApplyCreatePerson}
+                                          disabled={!personDraft.name.trim()}
+                                          className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
+                                        >
+                                          Use This Person
+                                        </button>
+                                        <button
+                                          onClick={() => setPersonDraft(null)}
+                                          className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                                        >
+                                          Back
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {isAccountRequired(action, 'account') && (
+                            <div className="mt-2 space-y-2">
+                              <p className={`text-xs ${accountRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
+                                {action.actionType === 'transfer' ? 'From account' : 'Account'}: {selectedAccount?.name || action.accountName || 'Not specified'}
+                              </p>
+                              <select
+                                value={selectedAccount?.id || ''}
+                                onChange={(e) => handleAccountSelectionChange(i, 'account', e.target.value)}
+                                className="input-base w-full text-sm"
+                              >
+                                <option value="">Select account</option>
+                                {(contextSnapshot?.accounts || []).map((account) => (
+                                  <option key={account.id as string} value={account.id as string}>
+                                    {account.name} • {account.type} • {account.currency}
+                                  </option>
+                                ))}
+                                <option value="__create__">Create new account</option>
+                              </select>
                               {accountRequirement && (
-                                <p className="text-xs text-warning">Cash account not found</p>
+                                <p className="text-xs text-warning">{accountRequirement.accountName} account not found.</p>
+                              )}
+                              {accountDraft && accountDraft.actionIndex === i && accountDraft.field === 'account' && (
+                                <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                                  <input
+                                    value={accountDraft.name}
+                                    onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                                    className="input-base w-full text-sm"
+                                    placeholder="Account name"
+                                  />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <select
+                                      value={accountDraft.type}
+                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)}
+                                      className="input-base w-full text-sm"
+                                    >
+                                      <option value="cash">Cash</option>
+                                      <option value="bank">Bank</option>
+                                      <option value="credit_card">Credit Card</option>
+                                      <option value="savings">Savings</option>
+                                      <option value="digital_wallet">Digital Wallet</option>
+                                      <option value="investment">Investment</option>
+                                      <option value="other">Other</option>
+                                    </select>
+                                    <input
+                                      value={accountDraft.currency}
+                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
+                                      className="input-base w-full text-sm"
+                                      maxLength={3}
+                                      placeholder="Currency"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={handleApplyCreateAccount}
+                                      disabled={!accountDraft.name.trim()}
+                                      className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
+                                    >
+                                      Use This Account
+                                    </button>
+                                    <button
+                                      onClick={() => setAccountDraft(null)}
+                                      className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                                    >
+                                      Back
+                                    </button>
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}
-                          {action.actionType === 'transfer' && (
-                            <div className="mt-2 space-y-1">
-                              <p className={`text-xs ${accountRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                From: {accountRequirement ? 'Missing' : (action.accountName || 'Not specified')}
-                              </p>
+                          {isAccountRequired(action, 'destinationAccount') && (
+                            <div className="mt-2 space-y-2">
                               <p className={`text-xs ${destinationRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                To: {destinationRequirement ? 'Missing' : (action.destinationAccountName || 'Not specified')}
+                                To account: {selectedDestinationAccount?.name || action.destinationAccountName || 'Not specified'}
                               </p>
-                            </div>
-                          )}
-                          {(action.actionType === 'recurring_transaction' || action.actionType === 'expense_paid_for_person') && (
-                            <div className="mt-2 space-y-1">
-                              {action.categoryName && (
-                                <p className="text-xs text-muted-foreground">Category: {action.categoryName}</p>
+                              <select
+                                value={selectedDestinationAccount?.id || ''}
+                                onChange={(e) => handleAccountSelectionChange(i, 'destinationAccount', e.target.value)}
+                                className="input-base w-full text-sm"
+                              >
+                                <option value="">Select destination account</option>
+                                {(contextSnapshot?.accounts || []).map((account) => (
+                                  <option key={account.id as string} value={account.id as string}>
+                                    {account.name} • {account.type} • {account.currency}
+                                  </option>
+                                ))}
+                                <option value="__create__">Create new account</option>
+                              </select>
+                              {destinationRequirement && (
+                                <p className="text-xs text-warning">{destinationRequirement.accountName} account not found.</p>
                               )}
-                              <p className={`text-xs ${accountRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                Account: {accountRequirement ? 'Missing' : (action.accountName || 'Not specified')}
-                              </p>
+                              {accountDraft && accountDraft.actionIndex === i && accountDraft.field === 'destinationAccount' && (
+                                <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                                  <input
+                                    value={accountDraft.name}
+                                    onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                                    className="input-base w-full text-sm"
+                                    placeholder="Account name"
+                                  />
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <select
+                                      value={accountDraft.type}
+                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)}
+                                      className="input-base w-full text-sm"
+                                    >
+                                      <option value="cash">Cash</option>
+                                      <option value="bank">Bank</option>
+                                      <option value="credit_card">Credit Card</option>
+                                      <option value="savings">Savings</option>
+                                      <option value="digital_wallet">Digital Wallet</option>
+                                      <option value="investment">Investment</option>
+                                      <option value="other">Other</option>
+                                    </select>
+                                    <input
+                                      value={accountDraft.currency}
+                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
+                                      className="input-base w-full text-sm"
+                                      maxLength={3}
+                                      placeholder="Currency"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={handleApplyCreateAccount}
+                                      disabled={!accountDraft.name.trim()}
+                                      className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
+                                    >
+                                      Use This Account
+                                    </button>
+                                    <button
+                                      onClick={() => setAccountDraft(null)}
+                                      className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                                    >
+                                      Back
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                           <div className="mt-1">
@@ -970,113 +1435,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 )})}
               </div>
 
-              {activeUnresolvedAccount && (
-                <div className="rounded-2xl border border-warning/20 bg-warning-soft p-4 mb-4">
-                  <p className="text-sm font-700 text-foreground">
-                    You don&apos;t have a {activeUnresolvedAccount.suggestedAccount.name} account yet.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {activeUnresolvedAccount.noAccounts
-                      ? 'At least one account is needed before recording personal income, expenses, transfers, or recurring transactions.'
-                      : 'Resolve this account before confirming the Smart Entry request.'}
-                  </p>
-                  <p className="text-xs text-warning mt-2">Warning: {activeUnresolvedAccount.accountName} account not found.</p>
-
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleStartCreateAccount(activeUnresolvedAccount)}
-                      className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors"
-                    >
-                      Create {activeUnresolvedAccount.suggestedAccount.name} Account
-                    </button>
-                    <button
-                      onClick={() => handleStartChooseExisting(activeUnresolvedAccount)}
-                      className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors disabled:opacity-50"
-                      disabled={activeUnresolvedAccount.existingAccounts.length === 0}
-                    >
-                      Select Account
-                    </button>
-                    <button
-                      onClick={onClose}
-                      className="px-4 py-2.5 rounded-xl bg-card text-foreground text-sm font-600 border border-border hover:bg-muted/40 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-
-                  {accountDraft && accountDraft.actionIndex === activeUnresolvedAccount.actionIndex && accountDraft.field === activeUnresolvedAccount.field && (
-                    <div className="mt-3 space-y-3">
-                      <input
-                        value={accountDraft.name}
-                        onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
-                        className="input-base w-full text-sm"
-                        placeholder="Account name"
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        <select
-                          value={accountDraft.type}
-                          onChange={(e) => setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)}
-                          className="input-base w-full text-sm"
-                        >
-                          <option value="cash">Cash</option>
-                          <option value="bank">Bank</option>
-                          <option value="credit_card">Credit Card</option>
-                          <option value="savings">Savings</option>
-                          <option value="digital_wallet">Digital Wallet</option>
-                          <option value="investment">Investment</option>
-                          <option value="other">Other</option>
-                        </select>
-                        <input
-                          value={accountDraft.currency}
-                          onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
-                          className="input-base w-full text-sm"
-                          maxLength={3}
-                          placeholder="Currency"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleApplyCreateAccount}
-                          disabled={!accountDraft.name.trim()}
-                          className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
-                        >
-                          Use This Account
-                        </button>
-                        <button
-                          onClick={() => setAccountDraft(null)}
-                          className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                        >
-                          Back
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {choosingExistingFor && choosingExistingFor.actionIndex === activeUnresolvedAccount.actionIndex && choosingExistingFor.field === activeUnresolvedAccount.field && (
-                    <div className="mt-3 space-y-2">
-                      {activeUnresolvedAccount.existingAccounts.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No existing accounts are available yet.</p>
-                      ) : (
-                        activeUnresolvedAccount.existingAccounts.map((account) => (
-                          <button
-                            key={account.id}
-                            onClick={() => handleChooseExistingAccount(account.id)}
-                            className="w-full text-left p-3 rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors"
-                          >
-                            <p className="text-sm font-600 text-foreground">{account.name}</p>
-                            <p className="text-xs text-muted-foreground">{account.type.replace('_', ' ')} · {account.currency}</p>
-                          </button>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirm}
-                  disabled={unresolvedAccounts.length > 0}
+                  disabled={unresolvedAccounts.length > 0 || unresolvedPersonCount > 0}
                   className="flex-1 py-3 rounded-xl bg-positive text-white text-sm font-700 hover:bg-positive/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle size={16} />

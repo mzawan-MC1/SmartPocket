@@ -64,6 +64,7 @@ interface ServerPerson {
   id: string;
   owner_id: string;
   full_name: string;
+  aliases?: string[];
   relationship: RelationshipType;
   preferred_currency: string;
   is_active: boolean;
@@ -120,6 +121,7 @@ export interface ExecutionResultWithClarification extends ExecutionResult {
 }
 
 export interface ExecuteConfirmedActionsServerArgs {
+  requestId: string;
   instruction: ParsedFinancialInstruction;
   userId: string;
   supabase: SupabaseClient;
@@ -152,7 +154,7 @@ export async function loadExecutionContextServer(args: {
 }): Promise<ServerExecutionContext> {
   const needsPersonBalances = instructionNeedsPersonBalances(args.instruction);
 
-  const [accountsResult, categoriesResult, peopleResult, balancesResult] = await Promise.all([
+  const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult] = await Promise.all([
     args.supabase
       .from('financial_accounts')
       .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')
@@ -178,6 +180,9 @@ export async function loadExecutionContextServer(args: {
           .select('*')
           .eq('owner_id', args.userId)
       : Promise.resolve({ data: [], error: null }),
+    args.supabase
+      .from('person_aliases')
+      .select('person_id, alias'),
   ]);
 
   if (accountsResult.error) {
@@ -191,6 +196,9 @@ export async function loadExecutionContextServer(args: {
   }
   if (balancesResult.error) {
     throw new ContextLoadError('Failed to load person balances');
+  }
+  if (aliasesResult.error) {
+    throw new ContextLoadError('Failed to load person aliases');
   }
 
   const balanceMap = new Map(
@@ -207,8 +215,16 @@ export async function loadExecutionContextServer(args: {
     ])
   );
 
+  const aliasesByPersonId = new Map<string, string[]>();
+  for (const row of ((aliasesResult.data || []) as Array<{ person_id: string; alias: string }>)) {
+    const current = aliasesByPersonId.get(row.person_id) || [];
+    current.push(row.alias);
+    aliasesByPersonId.set(row.person_id, current);
+  }
+
   const people = ((peopleResult.data || []) as ServerPerson[]).map((person) => ({
     ...person,
+    aliases: aliasesByPersonId.get(person.id) || [],
     ...(balanceMap.get(person.id) || {}),
   }));
 
@@ -222,7 +238,26 @@ export async function loadExecutionContextServer(args: {
 export async function executeConfirmedActionsServer(
   args: ExecuteConfirmedActionsServerArgs
 ): Promise<ExecutionResultWithClarification> {
-  const executedActions: ExecutedAction[] = [];
+  try {
+    preflightInstruction(args.instruction, args.context);
+  } catch (error) {
+    if (error instanceof ExecutionClarificationError) {
+      return {
+        success: false,
+        executedActions: [],
+        failedActions: [{
+          actionIndex: error.clarification.actionIndex,
+          actionType: args.instruction.actions[error.clarification.actionIndex]?.actionType || 'unknown',
+          error: error.clarification.message,
+        }],
+        partialSuccess: false,
+        clarification: error.clarification,
+      };
+    }
+    throw error;
+  }
+
+  let executedActions: ExecutedAction[] = [];
   const failedActions: FailedAction[] = [];
 
   for (let index = 0; index < args.instruction.actions.length; index += 1) {
@@ -232,6 +267,7 @@ export async function executeConfirmedActionsServer(
       const result = await executeActionServer({
         action,
         index,
+        requestId: args.requestId,
         userId: args.userId,
         supabase: args.supabase,
         context: args.context,
@@ -261,6 +297,19 @@ export async function executeConfirmedActionsServer(
       });
 
       if (args.instruction.actions.length > 1) {
+        if (executedActions.length > 0) {
+          try {
+            await rollbackExecutedActions({
+              executedActions,
+              userId: args.userId,
+              supabase: args.supabase,
+              context: args.context,
+            });
+            executedActions = [];
+          } catch (rollbackError) {
+            failedActions[failedActions.length - 1].error = `${message} Rollback may be incomplete: ${getSafeExecutionErrorMessage(rollbackError)}`;
+          }
+        }
         break;
       }
     }
@@ -274,14 +323,106 @@ export async function executeConfirmedActionsServer(
   };
 }
 
+function preflightInstruction(
+  instruction: ParsedFinancialInstruction,
+  context: ServerExecutionContext
+) {
+  const previewContext: ServerExecutionContext = {
+    accounts: [...context.accounts],
+    categories: [...context.categories],
+    people: [...context.people],
+  };
+
+  instruction.actions.forEach((action, index) => {
+    switch (action.actionType) {
+      case 'create_account':
+        previewContext.accounts.push({
+          id: `preview-account-${index}`,
+          user_id: 'preview',
+          name: (action.accountName || '').trim(),
+          account_type: action.accountType || inferAccountType(action.accountName),
+          currency: sanitizeCurrency(action.currency || 'AED'),
+          opening_balance: Number(action.openingBalance ?? 0),
+          current_balance: Number(action.openingBalance ?? 0),
+          include_in_total: action.includeInTotal !== false,
+          is_active: true,
+        });
+        return;
+
+      case 'create_managed_person':
+        previewContext.people.push({
+          id: `preview-person-${index}`,
+          owner_id: 'preview',
+          full_name: (action.personName || '').trim(),
+          aliases: [],
+          relationship: action.relationship || 'other',
+          preferred_currency: sanitizeCurrency(action.currency || 'AED'),
+          is_active: true,
+          is_archived: false,
+        });
+        return;
+
+      case 'income':
+      case 'expense':
+      case 'recurring_transaction':
+      case 'money_received_from_person':
+      case 'expense_from_held_balance':
+      case 'expense_paid_for_person':
+        requireAccountResolution({
+          action,
+          actionIndex: index,
+          field: 'account',
+          context: previewContext,
+        });
+        break;
+      default:
+        break;
+    }
+
+    if (action.actionType === 'transfer') {
+      requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context: previewContext,
+      });
+      requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'destinationAccount',
+        context: previewContext,
+      });
+    }
+
+    if (actionNeedsPerson(action)) {
+      const person = resolvePersonByIdOrName(action.personId, action.personName, previewContext.people);
+      if (!person) {
+        throw new ExecutionClarificationError({
+          status: 'clarification_required',
+          code: 'person_missing',
+          message: `You do not have a matching managed person for ${action.personName || 'this entry'} yet.`,
+          question: 'Would you like me to create one?',
+          actionIndex: index,
+          field: 'person',
+          suggestedPerson: {
+            name: (action.personName || 'New Person').trim() || 'New Person',
+            relationship: action.relationship || 'other',
+          },
+        });
+      }
+    }
+  });
+}
+
 async function executeActionServer(args: {
   action: FinancialAction;
   index: number;
+  requestId: string;
   userId: string;
   supabase: SupabaseClient;
   context: ServerExecutionContext;
 }): Promise<ExecutedAction> {
-  const { action, index, userId, supabase, context } = args;
+  const { action, index, requestId, userId, supabase, context } = args;
   const today = new Date().toISOString().slice(0, 10);
   const date = !action.date || action.date === 'today' ? today : action.date;
   const currency = sanitizeCurrency(action.currency || 'AED');
@@ -340,6 +481,8 @@ async function executeActionServer(args: {
           paid_from: action.paidFrom || 'account',
           reimbursement_required: action.reimbursementRequired || false,
           reimbursement_status: action.reimbursementStatus || null,
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
@@ -380,6 +523,8 @@ async function executeActionServer(args: {
           description: action.description || 'Transfer',
           transfer_date: date,
           notes: action.notes || null,
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
@@ -395,27 +540,63 @@ async function executeActionServer(args: {
 
     case 'money_received_from_person': {
       const person = await requirePersonResolution({ action, actionIndex: index, context });
-      const entry = await addLedgerEntryServer(
+      const account = requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context,
+      });
+      const transaction = await createTransactionServer(
         {
-          person_id: person.id,
-          entry_type: 'money_received',
+          account_id: account.id,
+          category_id: null,
+          transaction_type: 'income',
           amount,
           currency,
-          description: action.description || `Money received from ${person.full_name}`,
-          entry_date: date,
-          transaction_id: null,
+          description: action.description || `Held money received from ${person.full_name}`,
+          merchant: action.merchant || null,
           notes: action.notes || null,
+          transaction_date: date,
+          person_id: person.id,
+          expense_owner: 'person',
+          paid_by: 'person',
+          paid_from: action.paidFrom || 'external',
+          reimbursement_required: false,
+          reimbursement_status: null,
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
       );
+      try {
+        const entry = await addLedgerEntryServer(
+          {
+            person_id: person.id,
+            entry_type: 'money_received',
+            amount,
+            currency,
+            description: action.description || `Money received from ${person.full_name}`,
+            entry_date: date,
+            transaction_id: transaction.id,
+            reference_id: requestId,
+            reference_type: 'ai_request',
+            notes: action.notes || null,
+          },
+          userId,
+          supabase
+        );
 
-      return {
-        actionIndex: index,
-        actionType: action.actionType,
-        recordId: entry.id,
-        recordTable: 'person_ledger_entries',
-      };
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: entry.id,
+          recordTable: 'person_ledger_entries',
+        };
+      } catch (error) {
+        await rollbackTransactionServer(transaction.id, account.id, userId, supabase);
+        throw error;
+      }
     }
 
     case 'money_returned_to_person': {
@@ -445,27 +626,65 @@ async function executeActionServer(args: {
 
     case 'expense_from_held_balance': {
       const person = await requirePersonResolution({ action, actionIndex: index, context });
-      const entry = await addLedgerEntryServer(
+      const account = requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context,
+      });
+      const category = resolveCategory(action.categoryId, action.categoryName, context.categories);
+      const transaction = await createTransactionServer(
         {
-          person_id: person.id,
-          entry_type: 'expense_from_held',
+          account_id: account.id,
+          category_id: category?.id || null,
+          transaction_type: 'expense',
           amount,
           currency,
-          description: action.description || action.categoryName || 'Expense from held balance',
-          entry_date: date,
-          transaction_id: null,
+          description: action.description || action.categoryName || `Expense from ${person.full_name}'s held balance`,
+          merchant: action.merchant || null,
           notes: action.notes || null,
+          transaction_date: date,
+          person_id: person.id,
+          expense_owner: 'person',
+          paid_by: 'person',
+          paid_from: 'held_balance',
+          use_held_balance: true,
+          reimbursement_required: false,
+          reimbursement_status: null,
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
       );
+      try {
+        const entry = await addLedgerEntryServer(
+          {
+            person_id: person.id,
+            entry_type: 'expense_from_held',
+            amount,
+            currency,
+            description: action.description || action.categoryName || 'Expense from held balance',
+            entry_date: date,
+            transaction_id: transaction.id,
+            reference_id: requestId,
+            reference_type: 'ai_request',
+            notes: action.notes || null,
+          },
+          userId,
+          supabase
+        );
 
-      return {
-        actionIndex: index,
-        actionType: action.actionType,
-        recordId: entry.id,
-        recordTable: 'person_ledger_entries',
-      };
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: entry.id,
+          recordTable: 'person_ledger_entries',
+        };
+      } catch (error) {
+        await rollbackTransactionServer(transaction.id, account.id, userId, supabase);
+        throw error;
+      }
     }
 
     case 'expense_paid_for_person': {
@@ -495,6 +714,8 @@ async function executeActionServer(args: {
           paid_from: action.paidFrom || 'account',
           reimbursement_required: action.reimbursementRequired !== false,
           reimbursement_status: action.reimbursementRequired === false ? null : 'pending',
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
@@ -708,6 +929,7 @@ async function executeActionServer(args: {
           relationship: action.relationship || 'other',
           preferred_currency: currency,
           notes: action.notes || null,
+          source_ai_request_id: requestId,
         },
         userId,
         supabase
@@ -756,6 +978,18 @@ function instructionNeedsPersonBalances(instruction?: ParsedFinancialInstruction
       'create_managed_person',
     ].includes(action.actionType)
   );
+}
+
+function actionNeedsPerson(action: FinancialAction): boolean {
+  return [
+    'money_received_from_person',
+    'money_returned_to_person',
+    'expense_from_held_balance',
+    'expense_paid_for_person',
+    'expense_paid_by_person',
+    'reimbursement_payment',
+    'settlement',
+  ].includes(action.actionType);
 }
 
 function normalizeName(value: string | undefined): string {
@@ -835,8 +1069,11 @@ function resolvePersonByIdOrName(
 
   return (
     people.find((person) => normalizeName(person.full_name) === normalized) ||
+    people.find((person) => (person.aliases || []).some((alias) => normalizeName(alias) === normalized)) ||
     people.find((person) => normalizeName(person.full_name).includes(normalized)) ||
+    people.find((person) => (person.aliases || []).some((alias) => normalizeName(alias).includes(normalized))) ||
     people.find((person) => normalized.includes(normalizeName(person.full_name))) ||
+    people.find((person) => (person.aliases || []).some((alias) => normalized.includes(normalizeName(alias)))) ||
     null
   );
 }
@@ -902,7 +1139,7 @@ async function requirePersonResolution(args: {
     field: 'person',
     suggestedPerson: {
       name: (args.action.personName || 'New Person').trim() || 'New Person',
-      relationship: 'other',
+      relationship: args.action.relationship || 'other',
     },
   });
 }
@@ -1041,6 +1278,21 @@ async function createTransactionServer(
   return data;
 }
 
+async function rollbackTransactionServer(
+  transactionId: string,
+  accountId: string,
+  userId: string,
+  supabase: SupabaseClient
+) {
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transactionId)
+    .eq('user_id', userId);
+
+  await recalculateAccountBalanceServer(accountId, userId, supabase);
+}
+
 async function createTransferServer(
   payload: {
     from_account_id: string;
@@ -1050,6 +1302,8 @@ async function createTransferServer(
     description: string;
     transfer_date: string;
     notes: string | null;
+    ai_request_id?: string;
+    ai_action_index?: number;
   },
   userId: string,
   supabase: SupabaseClient
@@ -1065,6 +1319,8 @@ async function createTransferServer(
       description: payload.description || 'Transfer out',
       transaction_date: payload.transfer_date,
       notes: payload.notes,
+      ai_request_id: payload.ai_request_id || null,
+      ai_action_index: payload.ai_action_index ?? null,
     })
     .select('id')
     .single();
@@ -1085,6 +1341,8 @@ async function createTransferServer(
       transaction_date: payload.transfer_date,
       notes: payload.notes,
       transfer_pair_id: fromTransaction.id,
+      ai_request_id: payload.ai_request_id || null,
+      ai_action_index: payload.ai_action_index ?? null,
     })
     .select('id')
     .single();
@@ -1126,6 +1384,229 @@ async function createTransferServer(
   ]);
 
   return transfer;
+}
+
+async function rollbackExecutedActions(args: {
+  executedActions: ExecutedAction[];
+  userId: string;
+  supabase: SupabaseClient;
+  context: ServerExecutionContext;
+}) {
+  const accountIdsToRecalculate = new Set<string>();
+
+  for (const executed of [...args.executedActions].reverse()) {
+    if (!executed.recordId || !executed.recordTable) continue;
+
+    switch (executed.recordTable) {
+      case 'person_ledger_entries': {
+        const { data: entry } = await args.supabase
+          .from('person_ledger_entries')
+          .select('id, transaction_id')
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId)
+          .maybeSingle();
+
+        if (entry?.transaction_id) {
+          await deleteTransactionAndTrackAccount(entry.transaction_id, args.userId, args.supabase, accountIdsToRecalculate);
+        }
+
+        await args.supabase
+          .from('person_ledger_entries')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId);
+        break;
+      }
+
+      case 'transactions': {
+        await deleteTransactionAndTrackAccount(executed.recordId, args.userId, args.supabase, accountIdsToRecalculate);
+        break;
+      }
+
+      case 'transfers': {
+        const { data: transfer } = await args.supabase
+          .from('transfers')
+          .select('id, from_transaction_id, to_transaction_id')
+          .eq('id', executed.recordId)
+          .eq('user_id', args.userId)
+          .maybeSingle();
+
+        await args.supabase
+          .from('transfers')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('user_id', args.userId);
+
+        if (transfer?.from_transaction_id) {
+          await deleteTransactionAndTrackAccount(transfer.from_transaction_id, args.userId, args.supabase, accountIdsToRecalculate);
+        }
+        if (transfer?.to_transaction_id) {
+          await deleteTransactionAndTrackAccount(transfer.to_transaction_id, args.userId, args.supabase, accountIdsToRecalculate);
+        }
+        break;
+      }
+
+      case 'reimbursements': {
+        const { data: reimbursement } = await args.supabase
+          .from('reimbursements')
+          .select('id, transaction_id')
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId)
+          .maybeSingle();
+
+        await args.supabase
+          .from('person_ledger_entries')
+          .delete()
+          .eq('owner_id', args.userId)
+          .eq('reference_id', executed.recordId)
+          .eq('reference_type', 'reimbursement');
+
+        await args.supabase
+          .from('reimbursements')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId);
+
+        if (reimbursement?.transaction_id) {
+          await deleteTransactionAndTrackAccount(reimbursement.transaction_id, args.userId, args.supabase, accountIdsToRecalculate);
+        }
+        break;
+      }
+
+      case 'reimbursement_payments': {
+        const { data: payment } = await args.supabase
+          .from('reimbursement_payments')
+          .select('id, reimbursement_id, amount')
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId)
+          .maybeSingle();
+
+        await args.supabase
+          .from('reimbursement_payments')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId);
+
+        if (payment?.reimbursement_id) {
+          const { data: reimbursement } = await args.supabase
+            .from('reimbursements')
+            .select('id, amount, amount_paid')
+            .eq('id', payment.reimbursement_id)
+            .eq('owner_id', args.userId)
+            .maybeSingle();
+
+          if (reimbursement) {
+            const nextAmountPaid = Math.max(0, Number(reimbursement.amount_paid || 0) - Number(payment.amount || 0));
+            const totalAmount = Number(reimbursement.amount || 0);
+            const nextStatus = nextAmountPaid <= 0
+              ? 'pending'
+              : nextAmountPaid >= totalAmount
+                ? 'settled'
+                : 'partially_paid';
+
+            await args.supabase
+              .from('reimbursements')
+              .update({
+                amount_paid: nextAmountPaid,
+                status: nextStatus,
+              })
+              .eq('id', reimbursement.id)
+              .eq('owner_id', args.userId);
+          }
+        }
+        break;
+      }
+
+      case 'settlements': {
+        await args.supabase
+          .from('person_ledger_entries')
+          .delete()
+          .eq('owner_id', args.userId)
+          .eq('reference_id', executed.recordId)
+          .eq('reference_type', 'settlement');
+
+        await args.supabase
+          .from('settlements')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId);
+        break;
+      }
+
+      case 'managed_people': {
+        await args.supabase
+          .from('managed_people')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('owner_id', args.userId);
+        break;
+      }
+
+      case 'financial_accounts': {
+        await args.supabase
+          .from('financial_accounts')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('user_id', args.userId);
+        break;
+      }
+
+      case 'budgets': {
+        await args.supabase
+          .from('budgets')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('user_id', args.userId);
+        break;
+      }
+
+      case 'recurring_transactions': {
+        await args.supabase
+          .from('recurring_transactions')
+          .delete()
+          .eq('id', executed.recordId)
+          .eq('user_id', args.userId);
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  for (const account of args.context.accounts) {
+    if (account.is_active) {
+      accountIdsToRecalculate.add(account.id);
+    }
+  }
+
+  for (const accountId of accountIdsToRecalculate) {
+    await recalculateAccountBalanceServer(accountId, args.userId, args.supabase);
+  }
+}
+
+async function deleteTransactionAndTrackAccount(
+  transactionId: string,
+  userId: string,
+  supabase: SupabaseClient,
+  accountIdsToRecalculate: Set<string>
+) {
+  const { data: transaction } = await supabase
+    .from('transactions')
+    .select('id, account_id')
+    .eq('id', transactionId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (transaction?.account_id) {
+    accountIdsToRecalculate.add(String(transaction.account_id));
+  }
+
+  await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transactionId)
+    .eq('user_id', userId);
 }
 
 async function createBudgetServer(
@@ -1170,6 +1651,7 @@ async function createManagedPersonServer(
     relationship: RelationshipType;
     preferred_currency: string;
     notes: string | null;
+    source_ai_request_id?: string | null;
   },
   userId: string,
   supabase: SupabaseClient
@@ -1186,10 +1668,11 @@ async function createManagedPersonServer(
       relationship: payload.relationship,
       preferred_currency: payload.preferred_currency,
       notes: payload.notes,
+      source_ai_request_id: payload.source_ai_request_id || null,
       is_active: true,
       is_archived: false,
     })
-    .select('id, owner_id, full_name, relationship, preferred_currency, is_active, is_archived')
+    .select('id, owner_id, full_name, relationship, preferred_currency, is_active, is_archived, source_ai_request_id')
     .single();
 
   if (error || !data) {

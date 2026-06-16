@@ -55,6 +55,7 @@ export default function SpendingCategoryChart() {
         .from('transactions')
         .select('amount, category:categories(id, name, color)')
         .eq('transaction_type', 'expense')
+        .neq('paid_by', 'person')
         .gte('transaction_date', start)
         .lte('transaction_date', end);
 

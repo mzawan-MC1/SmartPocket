@@ -36,7 +36,13 @@ export interface ParseRequest {
 
 export interface FinancialContext {
   accounts?: Array<{ id: string; name: string; type: string; currency: string }>;
-  people?: Array<{ id: string; fullName: string; aliases?: string[] }>;
+  people?: Array<{
+    id: string;
+    fullName: string;
+    aliases?: string[];
+    relationship?: 'spouse' | 'child' | 'parent' | 'sibling' | 'friend' | 'relative' | 'colleague' | 'client' | 'other';
+    moneyHeld?: number;
+  }>;
   categories?: Array<{ id: string; name: string; type: string }>;
   currencies?: string[];
   defaultCurrency?: string;
@@ -206,6 +212,16 @@ export interface ExecutionClarification {
   };
 }
 
+export interface PersonResolution {
+  actionIndex: number;
+  actionIndexes?: number[];
+  mode: 'create' | 'existing';
+  personId?: string;
+  personName: string;
+  relationship?: 'spouse' | 'child' | 'parent' | 'sibling' | 'friend' | 'relative' | 'colleague' | 'client' | 'other';
+  notes?: string;
+}
+
 // ─── Execution Types ──────────────────────────────────────────────────────────
 
 export interface ExecutionResult {
@@ -264,6 +280,7 @@ export function validateParsedInstruction(raw: unknown): ParsedFinancialInstruct
     'income', 'expense', 'money_received_from_person', 'money_returned_to_person',
     'expense_from_held_balance', 'expense_paid_for_person', 'expense_paid_by_person',
     'reimbursement_payment', 'settlement', 'transfer', 'budget', 'recurring_transaction',
+    'create_account', 'create_managed_person',
   ];
 
   for (const action of obj.actions as unknown[]) {
@@ -352,6 +369,11 @@ RULES:
 - "today" is acceptable for date when user says today/now
 - If amount is missing, add "amount"to missingFields - If account is ambiguous, add"account" to missingFields
 - Set requiresClarification: true if any critical field is missing or ambiguous
-- For "Ahmed gave me AED 2300": actionType = money_received_from_person - For"I spent from Ahmed's money": actionType = expense_from_held_balance, paidFrom = held_balance - For"I paid for Ahmed": actionType = expense_paid_for_person, reimbursementRequired = true
+- For "Ahmed gave me AED 2300": actionType = money_received_from_person
+- For "I spent from Ahmed's money": actionType = expense_from_held_balance, personName = Ahmed, paidFrom = held_balance
+- For "I paid for Ahmed": actionType = expense_paid_for_person, reimbursementRequired = true
+- When one connected statement says a person gave money and later expenses are clearly from that same money, keep the same personName and use expense_from_held_balance for those dependent expenses unless the user explicitly names another source
+- For dependent held-balance expenses, keep the same personName as the earlier received-money action and include accountName only when the source account is known or confidently inferred from context
+- Do not apply held-money inference to separate later expenses when the user explicitly says they used their own cash, another account, or another funding source
 - For transfers: use actionType = transfer with accountName and destinationAccountName
 - For recurring: include recurringFrequency and recurrenceDayOfMonth`;

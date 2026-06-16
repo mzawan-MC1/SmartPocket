@@ -55,6 +55,113 @@ class MockLanguageProvider implements LanguageProvider {
     // Deterministic mock responses for acceptance testing
     const text = input.text.toLowerCase();
 
+    if (
+      text.includes('received') &&
+      text.includes('from') &&
+      text.includes('spent') &&
+      (text.includes('transport') || text.includes('food'))
+    ) {
+      const personMatch = input.text.match(/from\s+([A-Za-z][A-Za-z\s'-]+)/i);
+      const personName = personMatch?.[1]?.split(/,|and/i)[0]?.trim() || 'Sarmad';
+      const accountName = input.context?.accounts?.[0]?.name || extractAccount(text) || 'Cash';
+
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.93,
+        overallIntent: 'managed_person_transaction',
+        actions: [
+          {
+            actionType: 'money_received_from_person',
+            amount: 3000,
+            currency: extractCurrency(text) || 'AED',
+            date: 'today',
+            personName,
+            accountName,
+            paidFrom: 'external',
+            confidence: 0.95,
+            warnings: [],
+          },
+          {
+            actionType: 'expense_from_held_balance',
+            amount: 45,
+            currency: extractCurrency(text) || 'AED',
+            date: 'today',
+            personName,
+            categoryName: 'Transport',
+            accountName,
+            paidFrom: 'held_balance',
+            confidence: 0.92,
+            warnings: [],
+          },
+          {
+            actionType: 'expense_from_held_balance',
+            amount: 30,
+            currency: extractCurrency(text) || 'AED',
+            date: 'today',
+            personName,
+            categoryName: 'Food & Dining',
+            accountName,
+            paidFrom: 'held_balance',
+            confidence: 0.92,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (
+      (text.includes('gave me') || text.includes('received')) &&
+      text.includes('own cash')
+    ) {
+      const personMatch =
+        input.text.match(/from\s+([A-Za-z][A-Za-z\s'-]+)/i) ||
+        input.text.match(/([A-Za-z][A-Za-z\s'-]+)\s+gave me/i);
+      const personName = personMatch?.[1]?.split(/,|\./i)[0]?.trim() || 'Sarmad';
+      const accountName = input.context?.accounts?.[0]?.name || extractAccount(text) || 'Cash';
+
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.9,
+        overallIntent: 'multiple_actions',
+        actions: [
+          {
+            actionType: 'money_received_from_person',
+            amount: 3000,
+            currency: extractCurrency(text) || 'AED',
+            date: 'today',
+            personName,
+            accountName,
+            paidFrom: 'external',
+            confidence: 0.93,
+            warnings: [],
+          },
+          {
+            actionType: 'expense',
+            amount: 30,
+            currency: extractCurrency(text) || 'AED',
+            date: 'today',
+            categoryName: 'Other',
+            accountName,
+            paidFrom: 'account',
+            confidence: 0.88,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
     if (text.includes('groceries') || text.includes('grocery')) {
       return {
         requestId: input.requestId || 'mock-req',
@@ -747,7 +854,10 @@ function buildUserMessage(input: ParseRequest): string {
       msg += `\n\nAvailable accounts: ${input.context.accounts.map(a => `${a.name} (${a.type}, ${a.currency})`).join(', ')}`;
     }
     if (input.context.people?.length) {
-      msg += `\nKnown people: ${input.context.people.map(p => p.fullName).join(', ')}`;
+      msg += `\nKnown people: ${input.context.people.map((p) => {
+        const aliases = p.aliases?.length ? ` [aliases: ${p.aliases.join(', ')}]` : '';
+        return `${p.fullName}${aliases}`;
+      }).join(', ')}`;
     }
     if (input.context.categories?.length) {
       msg += `\nAvailable categories: ${input.context.categories.map(c => c.name).join(', ')}`;

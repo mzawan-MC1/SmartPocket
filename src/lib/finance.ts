@@ -51,6 +51,10 @@ export interface Transaction {
   is_recurring: boolean;
   recurring_id: string | null;
   transfer_pair_id: string | null;
+  expense_owner?: string | null;
+  paid_by?: string | null;
+  paid_from?: string | null;
+  use_held_balance?: boolean;
   created_at: string;
   updated_at: string;
   // joined
@@ -456,6 +460,7 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
       .from('transactions')
       .select('amount')
       .eq('transaction_type', 'expense')
+      .neq('paid_by', 'person')
       .gte('transaction_date', start)
       .lte('transaction_date', end);
 
@@ -605,6 +610,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     .from('transactions')
     .select('amount')
     .eq('transaction_type', 'income')
+    .neq('paid_by', 'person')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
@@ -615,6 +621,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     .from('transactions')
     .select('amount')
     .eq('transaction_type', 'expense')
+    .neq('paid_by', 'person')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 

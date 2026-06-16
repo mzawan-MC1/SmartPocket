@@ -53,8 +53,9 @@ export default function ReportsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const income = transactions.filter((t) => t.transaction_type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = transactions.filter((t) => t.transaction_type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+  const reportingTransactions = transactions.filter((t) => t.paid_by !== 'person');
+  const income = reportingTransactions.filter((t) => t.transaction_type === 'income').reduce((s, t) => s + Number(t.amount), 0);
+  const expenses = reportingTransactions.filter((t) => t.transaction_type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
   const net = income - expenses;
   const savingsRate = income > 0 ? (net / income) * 100 : 0;
 
@@ -67,7 +68,7 @@ export default function ReportsScreen() {
     ],
     'spending-category': [
       { id: 'rpt-sc-total', label: 'Total Spent', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), sub: 'All categories' },
-      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => t.transaction_type === 'expense').length), sub: 'Records' },
+      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(reportingTransactions.filter((t) => t.transaction_type === 'expense').length), sub: 'Records' },
       { id: 'rpt-sc-income', label: 'Total Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), positive: true },
       { id: 'rpt-sc-net', label: 'Net', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
     ],

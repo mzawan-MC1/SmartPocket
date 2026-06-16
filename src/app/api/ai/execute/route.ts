@@ -201,6 +201,7 @@ export async function POST(req: NextRequest) {
     let executionResult;
     try {
       executionResult = await executeConfirmedActionsServer({
+        requestId,
         instruction: parsedResult,
         userId: user.id,
         supabase: serviceClient,

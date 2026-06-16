@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
-import type { FinancialAction, ParsedFinancialInstruction } from '@/lib/ai-types';
+import type { FinancialAction, ParsedFinancialInstruction, PersonResolution } from '@/lib/ai-types';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACCOUNT_TYPES = new Set(['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other']);
@@ -19,6 +19,14 @@ type AccountResolution = {
     includeInTotal?: boolean;
   };
 };
+
+type MutableAction = FinancialAction & { __sourceIndex?: number | null };
+type ManagedPersonSummary = {
+  id: string;
+  full_name: string;
+  aliases?: string[];
+};
+const RELATIONSHIPS = new Set(['spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other']);
 
 function jsonWithCookies(
   body: Record<string, unknown>,
@@ -67,12 +75,70 @@ function sanitizeAccountResolutions(value: unknown): AccountResolution[] {
     .filter((item): item is AccountResolution => item !== null);
 }
 
+function sanitizePersonResolutions(value: unknown): PersonResolution[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== 'object') return null;
+      const raw = item as Record<string, unknown>;
+      const mode = raw.mode === 'create' || raw.mode === 'existing' ? raw.mode : null;
+      const actionIndex = typeof raw.actionIndex === 'number' ? raw.actionIndex : NaN;
+      if (!mode || !Number.isInteger(actionIndex) || actionIndex < 0) return null;
+
+      const actionIndexes = Array.isArray(raw.actionIndexes)
+        ? raw.actionIndexes
+            .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0)
+        : undefined;
+
+      const relationship = typeof raw.relationship === 'string' && RELATIONSHIPS.has(raw.relationship)
+        ? raw.relationship as PersonResolution['relationship']
+        : undefined;
+
+      const personName = typeof raw.personName === 'string' ? raw.personName.trim() : '';
+      const personId = typeof raw.personId === 'string' && UUID_PATTERN.test(raw.personId) ? raw.personId : undefined;
+      if (!personName) return null;
+      if (mode === 'existing' && !personId) return null;
+
+      return {
+        actionIndex,
+        actionIndexes: actionIndexes && actionIndexes.length > 0 ? actionIndexes : undefined,
+        mode,
+        personId,
+        personName,
+        relationship,
+        notes: typeof raw.notes === 'string' ? raw.notes.trim() : undefined,
+      } satisfies PersonResolution;
+    })
+    .filter((item): item is PersonResolution => item !== null);
+}
+
 function isAccountRequired(action: FinancialAction, field: 'account' | 'destinationAccount') {
   if (field === 'destinationAccount') {
     return action.actionType === 'transfer';
   }
 
-  return ['income', 'expense', 'transfer', 'recurring_transaction', 'expense_paid_for_person'].includes(action.actionType);
+  return [
+    'income',
+    'expense',
+    'transfer',
+    'recurring_transaction',
+    'expense_paid_for_person',
+    'money_received_from_person',
+    'expense_from_held_balance',
+  ].includes(action.actionType);
+}
+
+function isPersonRequired(action: FinancialAction) {
+  return [
+    'money_received_from_person',
+    'money_returned_to_person',
+    'expense_from_held_balance',
+    'expense_paid_for_person',
+    'expense_paid_by_person',
+    'reimbursement_payment',
+    'settlement',
+  ].includes(action.actionType);
 }
 
 function normalizeName(value: string | undefined) {
@@ -84,20 +150,124 @@ function sanitizeCurrency(value: string | undefined) {
   return currency.length === 3 ? currency : 'AED';
 }
 
+function withSourceIndexes(instruction: ParsedFinancialInstruction): ParsedFinancialInstruction & { actions: MutableAction[] } {
+  return {
+    ...instruction,
+    actions: instruction.actions.map((action, index) => ({
+      ...action,
+      warnings: [...(action.warnings || [])],
+      __sourceIndex: index,
+    })),
+  };
+}
+
+function stripSourceIndexes(instruction: ParsedFinancialInstruction & { actions: MutableAction[] }): ParsedFinancialInstruction {
+  return {
+    ...instruction,
+    actions: instruction.actions.map((action) => {
+      const { __sourceIndex, ...cleanAction } = action;
+      return cleanAction;
+    }),
+  };
+}
+
+function findMutableActionIndex(actions: MutableAction[], sourceIndex: number) {
+  return actions.findIndex((action) => action.__sourceIndex === sourceIndex);
+}
+
+function resolvePersonByIdOrName(personId: string | undefined, personName: string | undefined, people: ManagedPersonSummary[]) {
+  const normalizedName = normalizeName(personName);
+
+  return people.find((person) => {
+    if (personId && person.id === personId) return true;
+    if (!normalizedName) return false;
+    if (normalizeName(person.full_name) === normalizedName) return true;
+    return (person.aliases || []).some((alias) => normalizeName(alias) === normalizedName);
+  }) || null;
+}
+
+function applyPersonResolutions(args: {
+  instruction: ParsedFinancialInstruction;
+  resolutions: PersonResolution[];
+  selectedPeople: ManagedPersonSummary[];
+}) {
+  const nextInstruction = withSourceIndexes(args.instruction);
+  const insertedCreates = new Set<string>();
+
+  for (const resolution of args.resolutions.sort((a, b) => a.actionIndex - b.actionIndex)) {
+    const targetIndexes = Array.from(new Set([resolution.actionIndex, ...(resolution.actionIndexes || [])])).sort((a, b) => a - b);
+    if (targetIndexes.length === 0) continue;
+
+    if (resolution.mode === 'existing') {
+      const selectedPerson = args.selectedPeople.find((person) => person.id === resolution.personId);
+      if (!selectedPerson) {
+        throw new Error('Selected managed person not found.');
+      }
+
+      for (const sourceIndex of targetIndexes) {
+        const actionIndex = findMutableActionIndex(nextInstruction.actions, sourceIndex);
+        const targetAction = actionIndex >= 0 ? nextInstruction.actions[actionIndex] : null;
+        if (!targetAction || !isPersonRequired(targetAction)) {
+          throw new Error('Invalid managed person resolution target.');
+        }
+        targetAction.personId = selectedPerson.id;
+        targetAction.personName = selectedPerson.full_name;
+      }
+      continue;
+    }
+
+    const personName = resolution.personName.trim();
+    if (!personName) {
+      throw new Error('Managed person name is required.');
+    }
+
+    const firstTargetIndex = findMutableActionIndex(nextInstruction.actions, targetIndexes[0]);
+    if (firstTargetIndex < 0) {
+      throw new Error('Invalid managed person resolution target.');
+    }
+
+    const createKey = `${normalizeName(personName)}:${targetIndexes.join(',')}`;
+    if (!insertedCreates.has(createKey)) {
+      const syntheticCreateAction: MutableAction = {
+        actionType: 'create_managed_person',
+        personName,
+        relationship: resolution.relationship || 'other',
+        notes: resolution.notes || undefined,
+        confidence: 1,
+        warnings: [],
+        description: `Create managed person: ${personName}`,
+        __sourceIndex: null,
+      };
+      nextInstruction.actions.splice(firstTargetIndex, 0, syntheticCreateAction);
+      insertedCreates.add(createKey);
+    }
+
+    for (const sourceIndex of targetIndexes) {
+      const actionIndex = findMutableActionIndex(nextInstruction.actions, sourceIndex);
+      const targetAction = actionIndex >= 0 ? nextInstruction.actions[actionIndex] : null;
+      if (!targetAction || !isPersonRequired(targetAction)) {
+        throw new Error('Invalid managed person resolution target.');
+      }
+      targetAction.personId = undefined;
+      targetAction.personName = personName;
+      if (resolution.relationship) {
+        targetAction.relationship = resolution.relationship;
+      }
+    }
+  }
+
+  return stripSourceIndexes(nextInstruction);
+}
+
 function applyAccountResolutions(args: {
   instruction: ParsedFinancialInstruction;
   resolutions: AccountResolution[];
   selectedAccounts: Array<{ id: string; name: string }>;
 }) {
-  const nextInstruction: ParsedFinancialInstruction = {
-    ...args.instruction,
-    actions: args.instruction.actions.map((action) => ({ ...action, warnings: [...(action.warnings || [])] })),
-  };
-
-  let offset = 0;
+  const nextInstruction = withSourceIndexes(args.instruction);
 
   for (const resolution of args.resolutions.sort((a, b) => a.actionIndex - b.actionIndex)) {
-    const targetIndex = resolution.actionIndex + offset;
+    const targetIndex = findMutableActionIndex(nextInstruction.actions, resolution.actionIndex);
     const targetAction = nextInstruction.actions[targetIndex];
     if (!targetAction || !isAccountRequired(targetAction, resolution.field)) {
       throw new Error('Invalid account resolution target.');
@@ -141,7 +311,6 @@ function applyAccountResolutions(args: {
     };
 
     nextInstruction.actions.splice(targetIndex, 0, syntheticCreateAction);
-    offset += 1;
 
     const adjustedTarget = nextInstruction.actions[targetIndex + 1];
     if (resolution.field === 'account') {
@@ -153,7 +322,7 @@ function applyAccountResolutions(args: {
     }
   }
 
-  return nextInstruction;
+  return stripSourceIndexes(nextInstruction);
 }
 
 function hasUnresolvedRequiredAccounts(
@@ -181,6 +350,30 @@ function hasUnresolvedRequiredAccounts(
         return true;
       }
     }
+  }
+
+  return false;
+}
+
+function hasUnresolvedRequiredPeople(
+  instruction: ParsedFinancialInstruction,
+  existingPeople: ManagedPersonSummary[]
+) {
+  const availablePeople = [...existingPeople];
+
+  for (const action of instruction.actions) {
+    if (action.actionType === 'create_managed_person' && action.personName) {
+      availablePeople.push({
+        id: `new:${normalizeName(action.personName)}`,
+        full_name: action.personName,
+        aliases: [],
+      });
+      continue;
+    }
+
+    if (!isPersonRequired(action)) continue;
+    if (resolvePersonByIdOrName(action.personId, action.personName, availablePeople)) continue;
+    return true;
   }
 
   return false;
@@ -241,6 +434,7 @@ export async function POST(req: NextRequest) {
       return jsonWithCookies({ error: 'Invalid request id' }, 400, cookieMutations);
     }
     const accountResolutions = sanitizeAccountResolutions(body.accountResolutions);
+    const personResolutions = sanitizePersonResolutions(body.personResolutions);
 
     const admin = createAdminClient();
     if (!admin) {
@@ -263,7 +457,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (aiRequest.status === 'confirmed' && aiRequest.confirmation_status === 'confirmed') {
-      if (accountResolutions.length > 0) {
+      if (accountResolutions.length > 0 || personResolutions.length > 0) {
         return jsonWithCookies(
           { error: 'This Smart Entry request is already confirmed and can no longer be edited.' },
           409,
@@ -302,6 +496,41 @@ export async function POST(req: NextRequest) {
     let nextInstruction = aiRequest.parsed_result as ParsedFinancialInstruction | null;
     if (!nextInstruction || !Array.isArray(nextInstruction.actions)) {
       return jsonWithCookies({ error: 'This Smart Entry request cannot be confirmed in its current state.' }, 409, cookieMutations);
+    }
+
+    if (personResolutions.length > 0) {
+      const selectedPersonIds = personResolutions
+        .filter((resolution) => resolution.mode === 'existing' && resolution.personId)
+        .map((resolution) => resolution.personId as string);
+
+      const { data: selectedPeopleRows, error: selectedPeopleError } = selectedPersonIds.length > 0
+        ? await admin
+            .from('managed_people')
+            .select('id, full_name')
+            .eq('owner_id', user.id)
+            .eq('is_active', true)
+            .eq('is_archived', false)
+            .in('id', selectedPersonIds)
+        : { data: [], error: null };
+
+      if (selectedPeopleError) {
+        console.error('[AI Confirm] Failed to load selected managed people:', selectedPeopleError.message);
+        return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+      }
+
+      try {
+        nextInstruction = applyPersonResolutions({
+          instruction: nextInstruction,
+          resolutions: personResolutions,
+          selectedPeople: (selectedPeopleRows || []) as ManagedPersonSummary[],
+        });
+      } catch (resolutionError) {
+        return jsonWithCookies(
+          { error: resolutionError instanceof Error ? resolutionError.message : 'Invalid managed person resolution.' },
+          409,
+          cookieMutations
+        );
+      }
     }
 
     if (accountResolutions.length > 0) {
@@ -343,10 +572,46 @@ export async function POST(req: NextRequest) {
       .eq('user_id', user.id)
       .eq('is_active', true);
 
+    const { data: currentPeopleRows, error: currentPeopleError } = await admin
+      .from('managed_people')
+      .select('id, full_name')
+      .eq('owner_id', user.id)
+      .eq('is_active', true)
+      .eq('is_archived', false);
+
+    const currentPeople = ((currentPeopleRows || []) as ManagedPersonSummary[]);
+
+    const { data: aliasRows, error: aliasError } = currentPeople.length > 0
+      ? await admin
+          .from('person_aliases')
+          .select('person_id, alias')
+          .in('person_id', currentPeople.map((person) => person.id))
+      : { data: [], error: null };
+
     if (currentAccountsError) {
       console.error('[AI Confirm] Failed to load current accounts:', currentAccountsError.message);
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
     }
+    if (currentPeopleError) {
+      console.error('[AI Confirm] Failed to load current managed people:', currentPeopleError.message);
+      return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+    }
+    if (aliasError) {
+      console.error('[AI Confirm] Failed to load managed person aliases:', aliasError.message);
+      return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+    }
+
+    const aliasesByPersonId = new Map<string, string[]>();
+    for (const row of (aliasRows || []) as Array<{ person_id: string; alias: string }>) {
+      const existingAliases = aliasesByPersonId.get(row.person_id) || [];
+      existingAliases.push(row.alias);
+      aliasesByPersonId.set(row.person_id, existingAliases);
+    }
+
+    const currentPeopleWithAliases = currentPeople.map((person) => ({
+      ...person,
+      aliases: aliasesByPersonId.get(person.id) || [],
+    }));
 
     if (hasUnresolvedRequiredAccounts(nextInstruction, (currentAccounts || []) as Array<{ id: string; name: string }>)) {
       return jsonWithCookies(
@@ -356,7 +621,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (accountResolutions.length > 0) {
+    if (hasUnresolvedRequiredPeople(nextInstruction, currentPeopleWithAliases)) {
+      return jsonWithCookies(
+        { error: 'This Smart Entry request still has unresolved managed people.' },
+        409,
+        cookieMutations
+      );
+    }
+
+    if (accountResolutions.length > 0 || personResolutions.length > 0) {
       const { error: resolutionUpdateError } = await admin
         .from('ai_requests')
         .update({

@@ -299,8 +299,13 @@ function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> 
     safe.people = (ctx.people as unknown[]).map((p) => {
       if (typeof p !== 'object' || !p) return null;
       const person = p as Record<string, unknown>;
-      // Only pass fullName — never IDs
-      return { fullName: person.fullName };
+      return {
+        fullName: person.fullName,
+        aliases: Array.isArray(person.aliases)
+          ? person.aliases.filter((alias): alias is string => typeof alias === 'string')
+          : undefined,
+        relationship: typeof person.relationship === 'string' ? person.relationship : undefined,
+      };
     }).filter(Boolean);
   }
   if (Array.isArray(ctx.categories)) {

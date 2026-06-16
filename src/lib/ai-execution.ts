@@ -31,7 +31,11 @@ export async function loadExecutionContext(): Promise<ResolvedContext> {
     getCategories(),
     getManagedPeople(),
   ]);
-  return { accounts, categories, people };
+  return {
+    accounts: accounts.filter((account) => account.is_active),
+    categories,
+    people: people.filter((person) => person.is_active && !person.is_archived),
+  };
 }
 
 function resolveAccount(
@@ -426,6 +430,9 @@ export async function buildAIContext() {
     people: ctx.people.map(p => ({
       id: p.id,
       fullName: p.full_name,
+      aliases: p.aliases || [],
+      relationship: p.relationship,
+      moneyHeld: Number(p.money_held || 0),
     })),
     categories: ctx.categories.map(c => ({
       id: c.id,

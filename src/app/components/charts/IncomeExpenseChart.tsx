@@ -62,6 +62,7 @@ export default function IncomeExpenseChart() {
       const { data: txns } = await supabase
         .from('transactions')
         .select('transaction_type, amount, transaction_date')
+        .neq('paid_by', 'person')
         .gte('transaction_date', start)
         .lte('transaction_date', end)
         .in('transaction_type', ['income', 'expense']);

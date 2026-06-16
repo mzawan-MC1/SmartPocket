@@ -15,6 +15,7 @@ export interface ManagedPerson {
   owner_id: string;
   space_id: string | null;
   full_name: string;
+  aliases?: string[];
   relationship: RelationshipType;
   email: string | null;
   phone: string | null;
@@ -173,15 +174,25 @@ export async function getManagedPeople(includeArchived = false): Promise<Managed
   const { data: balances } = await supabase
     .from('person_balances')
     .select('*');
+  const { data: aliases } = await supabase
+    .from('person_aliases')
+    .select('person_id, alias');
 
   const balanceMap = new Map(
     ((balances || []) as PersonBalance[]).map((b) => [b.person_id, b] as const)
   );
+  const aliasMap = new Map<string, string[]>();
+  for (const alias of ((aliases || []) as Array<{ person_id: string; alias: string }>)) {
+    const current = aliasMap.get(alias.person_id) || [];
+    current.push(alias.alias);
+    aliasMap.set(alias.person_id, current);
+  }
 
   return people.map((p) => {
     const bal: PersonBalance | undefined = balanceMap.get(p.id);
     return {
       ...p,
+      aliases: aliasMap.get(p.id) || [],
       money_held: bal?.money_held ?? 0,
       person_owes_user: bal?.person_owes_user ?? 0,
       user_owes_person: bal?.user_owes_person ?? 0,
