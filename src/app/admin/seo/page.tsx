@@ -2,12 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { Check, Loader2, Globe } from 'lucide-react';
 import { toast } from 'sonner';
+import MediaUploadCard from '@/components/ui/MediaUploadCard';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
+
+const OG_IMAGE_UPLOAD = {
+  accept: '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp',
+  acceptedFormatsLabel: 'PNG, JPG, JPEG, WEBP',
+  maxSizeBytes: 2 * 1024 * 1024,
+  maxSizeLabel: '2 MB',
+  allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+  allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+};
 
 export default function AdminSeoPage() {
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [ogImageFile, setOgImageFile] = useState<File | null>(null);
+  const [ogImageProgress, setOgImageProgress] = useState(0);
+  const [ogImageError, setOgImageError] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     site_title: 'Smart Pocket — Personal Finance, Simplified',
     site_description: 'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.',
@@ -39,10 +53,57 @@ export default function AdminSeoPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const handleOgImageSelection = (file: File | null) => {
+    if (!file) {
+      setOgImageFile(null);
+      setOgImageError(null);
+      setOgImageProgress(0);
+      return;
+    }
+
+    try {
+      isSupportedUploadFile({
+        file,
+        allowedMimeTypes: OG_IMAGE_UPLOAD.allowedMimeTypes,
+        allowedExtensions: OG_IMAGE_UPLOAD.allowedExtensions,
+        maxSizeBytes: OG_IMAGE_UPLOAD.maxSizeBytes,
+      });
+      setOgImageFile(file);
+      setOgImageError(null);
+    } catch (error) {
+      setOgImageFile(null);
+      setOgImageError(error instanceof Error ? error.message : 'Invalid file.');
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await savePlatformSettings(settings);
+      const nextSettings = { ...settings };
+
+      if (ogImageFile) {
+        try {
+          const result = await uploadPublicMedia({
+            file: ogImageFile,
+            folder: 'branding',
+            filePrefix: 'og-image',
+            maxSizeBytes: OG_IMAGE_UPLOAD.maxSizeBytes,
+            allowedMimeTypes: OG_IMAGE_UPLOAD.allowedMimeTypes,
+            allowedExtensions: OG_IMAGE_UPLOAD.allowedExtensions,
+            onProgress: setOgImageProgress,
+          });
+          nextSettings.og_image = result.publicUrl;
+          setOgImageError(null);
+        } catch (error) {
+          setOgImageError(error instanceof Error ? error.message : 'OG image upload failed.');
+          throw error;
+        }
+      }
+
+      await savePlatformSettings(nextSettings);
+      setSettings(nextSettings);
+      setOgImageFile(null);
+      setOgImageProgress(0);
       setSaved(true);
       toast.success('SEO settings saved');
       setTimeout(() => setSaved(false), 2500);
@@ -92,10 +153,21 @@ export default function AdminSeoPage() {
 
         <div className="card-elevated p-5 space-y-4">
           <h2 className="text-base font-600 text-foreground">Open Graph & Social</h2>
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">OG Image URL</label>
-            <input type="text" className="input-base" value={settings.og_image} onChange={(e) => setSettings((s) => ({ ...s, og_image: e.target.value }))} />
-          </div>
+          <MediaUploadCard
+            label="OG Image"
+            value={settings.og_image}
+            onValueChange={(value) => setSettings((s) => ({ ...s, og_image: value }))}
+            selectedFile={ogImageFile}
+            onFileSelect={handleOgImageSelection}
+            accept={OG_IMAGE_UPLOAD.accept}
+            acceptedFormatsLabel={OG_IMAGE_UPLOAD.acceptedFormatsLabel}
+            maxSizeLabel={OG_IMAGE_UPLOAD.maxSizeLabel}
+            isUploading={isSaving && !!ogImageFile}
+            uploadProgress={ogImageProgress}
+            error={ogImageError}
+            previewVariant="wide"
+            helperText="Used for social sharing previews."
+          />
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">Twitter Handle</label>
             <input type="text" className="input-base" placeholder="@yourhandle" value={settings.twitter_handle} onChange={(e) => setSettings((s) => ({ ...s, twitter_handle: e.target.value }))} />

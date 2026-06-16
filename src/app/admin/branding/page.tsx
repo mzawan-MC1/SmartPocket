@@ -2,12 +2,36 @@
 import React, { useState, useEffect } from 'react';
 import { Palette, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import MediaUploadCard from '@/components/ui/MediaUploadCard';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
+
+const LOGO_UPLOAD = {
+  accept: '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp',
+  acceptedFormatsLabel: 'PNG, JPG, JPEG, WEBP',
+  maxSizeBytes: 2 * 1024 * 1024,
+  maxSizeLabel: '2 MB',
+  allowedMimeTypes: ['image/png', 'image/jpeg', 'image/webp'],
+  allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+};
+
+const FAVICON_UPLOAD = {
+  accept: '.ico,.png,image/x-icon,image/vnd.microsoft.icon,image/png',
+  acceptedFormatsLabel: 'ICO, PNG',
+  maxSizeBytes: 512 * 1024,
+  maxSizeLabel: '512 KB',
+  allowedMimeTypes: ['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'],
+  allowedExtensions: ['ico', 'png'],
+};
 
 export default function AdminBrandingPage() {
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState({ logo: 0, favicon: 0 });
+  const [uploadErrors, setUploadErrors] = useState<{ logo?: string; favicon?: string }>({});
   const [settings, setSettings] = useState({
     app_name: 'Smart Pocket',
     tagline: 'Personal Finance, Simplified',
@@ -37,10 +61,94 @@ export default function AdminBrandingPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
+  const handleFileSelection = (
+    field: 'logo' | 'favicon',
+    file: File | null
+  ) => {
+    const config = field === 'logo' ? LOGO_UPLOAD : FAVICON_UPLOAD;
+
+    if (!file) {
+      if (field === 'logo') setLogoFile(null);
+      else setFaviconFile(null);
+      setUploadErrors((current) => ({ ...current, [field]: undefined }));
+      setUploadProgress((current) => ({ ...current, [field]: 0 }));
+      return;
+    }
+
+    try {
+      isSupportedUploadFile({
+        file,
+        allowedMimeTypes: config.allowedMimeTypes,
+        allowedExtensions: config.allowedExtensions,
+        maxSizeBytes: config.maxSizeBytes,
+      });
+      if (field === 'logo') setLogoFile(file);
+      else setFaviconFile(file);
+      setUploadErrors((current) => ({ ...current, [field]: undefined }));
+    } catch (error) {
+      if (field === 'logo') setLogoFile(null);
+      else setFaviconFile(null);
+      setUploadErrors((current) => ({
+        ...current,
+        [field]: error instanceof Error ? error.message : 'Invalid file.',
+      }));
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await savePlatformSettings(settings);
+      const nextSettings = { ...settings };
+
+      if (logoFile) {
+        try {
+          const result = await uploadPublicMedia({
+            file: logoFile,
+            folder: 'branding',
+            filePrefix: 'logo',
+            maxSizeBytes: LOGO_UPLOAD.maxSizeBytes,
+            allowedMimeTypes: LOGO_UPLOAD.allowedMimeTypes,
+            allowedExtensions: LOGO_UPLOAD.allowedExtensions,
+            onProgress: (progress) => setUploadProgress((current) => ({ ...current, logo: progress })),
+          });
+          nextSettings.logo_url = result.publicUrl;
+          setUploadErrors((current) => ({ ...current, logo: undefined }));
+        } catch (error) {
+          setUploadErrors((current) => ({
+            ...current,
+            logo: error instanceof Error ? error.message : 'Logo upload failed.',
+          }));
+          throw error;
+        }
+      }
+
+      if (faviconFile) {
+        try {
+          const result = await uploadPublicMedia({
+            file: faviconFile,
+            folder: 'branding',
+            filePrefix: 'favicon',
+            maxSizeBytes: FAVICON_UPLOAD.maxSizeBytes,
+            allowedMimeTypes: FAVICON_UPLOAD.allowedMimeTypes,
+            allowedExtensions: FAVICON_UPLOAD.allowedExtensions,
+            onProgress: (progress) => setUploadProgress((current) => ({ ...current, favicon: progress })),
+          });
+          nextSettings.favicon_url = result.publicUrl;
+          setUploadErrors((current) => ({ ...current, favicon: undefined }));
+        } catch (error) {
+          setUploadErrors((current) => ({
+            ...current,
+            favicon: error instanceof Error ? error.message : 'Favicon upload failed.',
+          }));
+          throw error;
+        }
+      }
+
+      await savePlatformSettings(nextSettings);
+      setSettings(nextSettings);
+      setLogoFile(null);
+      setFaviconFile(null);
+      setUploadProgress({ logo: 0, favicon: 0 });
       setSaved(true);
       toast.success('Branding settings saved');
       setTimeout(() => setSaved(false), 2500);
@@ -109,14 +217,36 @@ export default function AdminBrandingPage() {
         <div className="card-elevated p-5 space-y-4">
           <h2 className="text-base font-600 text-foreground">Logo & Favicon</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Logo URL</label>
-              <input type="text" className="input-base" value={settings.logo_url} onChange={(e) => setSettings((s) => ({ ...s, logo_url: e.target.value }))} />
-            </div>
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Favicon URL</label>
-              <input type="text" className="input-base" value={settings.favicon_url} onChange={(e) => setSettings((s) => ({ ...s, favicon_url: e.target.value }))} />
-            </div>
+            <MediaUploadCard
+              label="App Logo"
+              value={settings.logo_url}
+              onValueChange={(value) => setSettings((s) => ({ ...s, logo_url: value }))}
+              selectedFile={logoFile}
+              onFileSelect={(file) => handleFileSelection('logo', file)}
+              accept={LOGO_UPLOAD.accept}
+              acceptedFormatsLabel={LOGO_UPLOAD.acceptedFormatsLabel}
+              maxSizeLabel={LOGO_UPLOAD.maxSizeLabel}
+              isUploading={isSaving && !!logoFile}
+              uploadProgress={uploadProgress.logo}
+              error={uploadErrors.logo || null}
+              previewVariant="wide"
+              helperText="Shown across the app. Wide logos work best."
+            />
+            <MediaUploadCard
+              label="Favicon"
+              value={settings.favicon_url}
+              onValueChange={(value) => setSettings((s) => ({ ...s, favicon_url: value }))}
+              selectedFile={faviconFile}
+              onFileSelect={(file) => handleFileSelection('favicon', file)}
+              accept={FAVICON_UPLOAD.accept}
+              acceptedFormatsLabel={FAVICON_UPLOAD.acceptedFormatsLabel}
+              maxSizeLabel={FAVICON_UPLOAD.maxSizeLabel}
+              isUploading={isSaving && !!faviconFile}
+              uploadProgress={uploadProgress.favicon}
+              error={uploadErrors.favicon || null}
+              previewVariant="square"
+              helperText="Square files are recommended."
+            />
           </div>
         </div>
 
