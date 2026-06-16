@@ -147,6 +147,10 @@ class InvalidExecutionActionError extends Error {
   }
 }
 
+function actionRequiresAmount(action: FinancialAction) {
+  return action.actionType !== 'create_account' && action.actionType !== 'create_managed_person';
+}
+
 export async function loadExecutionContextServer(args: {
   userId: string;
   supabase: SupabaseClient;
@@ -334,6 +338,15 @@ function preflightInstruction(
   };
 
   instruction.actions.forEach((action, index) => {
+    if (actionRequiresAmount(action) && typeof action.amount !== 'number') {
+      throw new ExecutionClarificationError({
+        status: 'clarification_required',
+        code: 'invalid_action',
+        message: 'This Smart Entry request still needs an amount before it can be saved.',
+        actionIndex: index,
+      });
+    }
+
     switch (action.actionType) {
       case 'create_account':
         previewContext.accounts.push({
@@ -365,7 +378,10 @@ function preflightInstruction(
       case 'income':
       case 'expense':
       case 'recurring_transaction':
+      case 'loan_received':
+      case 'loan_repayment':
       case 'money_received_from_person':
+      case 'money_returned_to_person':
       case 'expense_from_held_balance':
       case 'expense_paid_for_person':
         requireAccountResolution({
@@ -426,7 +442,10 @@ async function executeActionServer(args: {
   const today = new Date().toISOString().slice(0, 10);
   const date = !action.date || action.date === 'today' ? today : action.date;
   const currency = sanitizeCurrency(action.currency || 'AED');
-  const amount = Number(action.amount ?? 0);
+  if (actionRequiresAmount(action) && typeof action.amount !== 'number') {
+    throw new InvalidExecutionActionError('Missing amount');
+  }
+  const amount = typeof action.amount === 'number' ? action.amount : Number(action.amount ?? 0);
 
   if (Number.isNaN(amount) || amount < 0) {
     throw new InvalidExecutionActionError('Invalid amount');
@@ -441,6 +460,7 @@ async function executeActionServer(args: {
           currency,
           opening_balance: Number(action.openingBalance ?? 0),
           include_in_total: action.includeInTotal !== false,
+          account_scope: action.accountScope,
         },
         userId,
         supabase
@@ -599,30 +619,190 @@ async function executeActionServer(args: {
       }
     }
 
-    case 'money_returned_to_person': {
+    case 'loan_received': {
       const person = await requirePersonResolution({ action, actionIndex: index, context });
-      const entry = await addLedgerEntryServer(
+      const account = requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context,
+      });
+      const transaction = await createTransactionServer(
         {
-          person_id: person.id,
-          entry_type: 'money_returned',
+          account_id: account.id,
+          category_id: null,
+          transaction_type: 'income',
           amount,
           currency,
-          description: action.description || `Money returned to ${person.full_name}`,
-          entry_date: date,
-          transaction_id: null,
+          description: action.description || `Borrowed from ${person.full_name}`,
+          merchant: action.merchant || null,
           notes: action.notes || null,
+          transaction_date: date,
+          person_id: person.id,
+          expense_owner: 'user',
+          paid_by: 'person',
+          paid_from: action.paidFrom || 'external',
+          reimbursement_required: false,
+          reimbursement_status: null,
+          ai_request_id: requestId,
+          ai_action_index: index,
         },
         userId,
         supabase
       );
+      try {
+        const entry = await addLedgerEntryServer(
+          {
+            person_id: person.id,
+            entry_type: 'reimbursement_due_to_person',
+            amount,
+            currency,
+            description: action.description || `Borrowed from ${person.full_name}`,
+            entry_date: date,
+            transaction_id: transaction.id,
+            reference_id: requestId,
+            reference_type: 'loan',
+            notes: action.notes || null,
+          },
+          userId,
+          supabase
+        );
 
-      return {
-        actionIndex: index,
-        actionType: action.actionType,
-        recordId: entry.id,
-        recordTable: 'person_ledger_entries',
-      };
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: entry.id,
+          recordTable: 'person_ledger_entries',
+        };
+      } catch (error) {
+        await rollbackTransactionServer(transaction.id, account.id, userId, supabase);
+        throw error;
+      }
     }
+
+    case 'money_returned_to_person': {
+      const person = await requirePersonResolution({ action, actionIndex: index, context });
+      const account = requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context,
+      });
+      const transaction = await createTransactionServer(
+        {
+          account_id: account.id,
+          category_id: null,
+          transaction_type: 'expense',
+          amount,
+          currency,
+          description: action.description || `Returned to ${person.full_name}`,
+          merchant: action.merchant || null,
+          notes: action.notes || null,
+          transaction_date: date,
+          person_id: person.id,
+          expense_owner: 'person',
+          paid_by: 'person',
+          paid_from: 'held_balance',
+          use_held_balance: true,
+          reimbursement_required: false,
+          reimbursement_status: null,
+          ai_request_id: requestId,
+          ai_action_index: index,
+        },
+        userId,
+        supabase
+      );
+      try {
+        const entry = await addLedgerEntryServer(
+          {
+            person_id: person.id,
+            entry_type: 'money_returned',
+            amount,
+            currency,
+            description: action.description || `Money returned to ${person.full_name}`,
+            entry_date: date,
+            transaction_id: transaction.id,
+            reference_id: requestId,
+            reference_type: 'managed_return',
+            notes: action.notes || null,
+          },
+          userId,
+          supabase
+        );
+
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: entry.id,
+          recordTable: 'person_ledger_entries',
+        };
+      } catch (error) {
+        await rollbackTransactionServer(transaction.id, account.id, userId, supabase);
+        throw error;
+      }
+    }
+
+    case 'loan_repayment': {
+      const person = await requirePersonResolution({ action, actionIndex: index, context });
+      const account = requireAccountResolution({
+        action,
+        actionIndex: index,
+        field: 'account',
+        context,
+      });
+      const transaction = await createTransactionServer(
+        {
+          account_id: account.id,
+          category_id: null,
+          transaction_type: 'expense',
+          amount,
+          currency,
+          description: action.description || `Loan repayment to ${person.full_name}`,
+          merchant: action.merchant || null,
+          notes: action.notes || null,
+          transaction_date: date,
+          person_id: person.id,
+          expense_owner: 'user',
+          paid_by: 'user',
+          paid_from: action.paidFrom || 'account',
+          reimbursement_required: false,
+          reimbursement_status: null,
+          ai_request_id: requestId,
+          ai_action_index: index,
+        },
+        userId,
+        supabase
+      );
+      try {
+        const entry = await addLedgerEntryServer(
+          {
+            person_id: person.id,
+            entry_type: 'reimbursement_paid',
+            amount,
+            currency,
+            description: action.description || `Loan repayment to ${person.full_name}`,
+            entry_date: date,
+            transaction_id: transaction.id,
+            reference_id: requestId,
+            reference_type: 'loan',
+            notes: action.notes || null,
+          },
+          userId,
+          supabase
+        );
+
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: entry.id,
+          recordTable: 'person_ledger_entries',
+        };
+      } catch (error) {
+        await rollbackTransactionServer(transaction.id, account.id, userId, supabase);
+        throw error;
+      }
+    }
+
 
     case 'expense_from_held_balance': {
       const person = await requirePersonResolution({ action, actionIndex: index, context });
@@ -975,6 +1155,8 @@ function instructionNeedsPersonBalances(instruction?: ParsedFinancialInstruction
       'expense_paid_for_person',
       'reimbursement_payment',
       'settlement',
+      'loan_received',
+      'loan_repayment',
       'create_managed_person',
     ].includes(action.actionType)
   );
@@ -989,6 +1171,8 @@ function actionNeedsPerson(action: FinancialAction): boolean {
     'expense_paid_by_person',
     'reimbursement_payment',
     'settlement',
+    'loan_received',
+    'loan_repayment',
   ].includes(action.actionType);
 }
 
@@ -1163,24 +1347,47 @@ async function createAccountServer(
     currency: string;
     opening_balance: number;
     include_in_total: boolean;
+    account_scope?: 'personal' | 'managed';
   },
   userId: string,
   supabase: SupabaseClient
 ): Promise<ServerAccount> {
-  if (!payload.name.trim()) {
+  const normalizedName = payload.name.trim();
+  if (!normalizedName) {
     throw new InvalidExecutionActionError('Account name is required');
+  }
+  const includeInTotal = payload.account_scope === 'managed' ? false : payload.include_in_total;
+
+  const { data: existingAccounts, error: existingAccountsError } = await supabase
+    .from('financial_accounts')
+    .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .eq('account_type', payload.account_type)
+    .eq('currency', payload.currency)
+    .eq('include_in_total', includeInTotal);
+
+  if (existingAccountsError) {
+    throw new Error('Failed to check for an existing account');
+  }
+
+  const existingAccount = ((existingAccounts || []) as ServerAccount[]).find(
+    (account) => normalizeName(account.name) === normalizeName(normalizedName)
+  );
+  if (existingAccount) {
+    return existingAccount;
   }
 
   const { data, error } = await supabase
     .from('financial_accounts')
     .insert({
       user_id: userId,
-      name: payload.name.trim(),
+      name: normalizedName,
       account_type: payload.account_type,
       currency: payload.currency,
       opening_balance: payload.opening_balance,
       current_balance: payload.opening_balance,
-      include_in_total: payload.include_in_total,
+      include_in_total: includeInTotal,
       is_active: true,
     })
     .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')

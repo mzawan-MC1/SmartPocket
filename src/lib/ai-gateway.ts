@@ -54,6 +54,285 @@ class MockLanguageProvider implements LanguageProvider {
   async parseFinancialInstruction(input: ParseRequest): Promise<ParsedFinancialInstruction> {
     // Deterministic mock responses for acceptance testing
     const text = input.text.toLowerCase();
+    const primaryCurrency = extractCurrency(text) || 'AED';
+    const personFromReceipt =
+      input.text.match(/from\s+([A-Za-z][A-Za-z\s'-]+)/i) ||
+      input.text.match(/([A-Za-z][A-Za-z\s'-]+)\s+(?:gave me|paid me|reimbursed me|lent me|sent me)/i);
+    const parsedPersonName = personFromReceipt?.[1]?.split(/,|and|for/i)[0]?.trim() || 'Ayesha';
+    const firstAccountName = input.context?.accounts?.[0]?.name || extractAccount(text) || 'Cash';
+
+    if (
+      (text.includes('received money from') || text.includes('received') || text.includes('got money from') || text.includes('sent me')) &&
+      (text.includes('used it') || text.includes('used some of it') || text.includes('used the money') || text.includes('pay '))
+    ) {
+      const receivedAmount = extractAmount(text) || 2000;
+      const explicitExpenseAmount = extractExplicitExpenseAmount(text, receivedAmount);
+      const fullAmountExplicit =
+        text.includes('used all of it') ||
+        text.includes('used the full amount') ||
+        text.includes('spent the full amount');
+      const expenseAmount = explicitExpenseAmount ?? (fullAmountExplicit ? receivedAmount : undefined);
+      const expenseCategory = inferExpenseCategory(text);
+
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.58,
+        overallIntent: 'unclear',
+        actions: [
+          {
+            actionType: 'money_received_from_person',
+            amount: receivedAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            personName: parsedPersonName,
+            confidence: 0.7,
+            warnings: ['The purpose of this money is unclear.'],
+          },
+          {
+            actionType: 'expense',
+            amount: expenseAmount,
+            amountNeedsConfirmation: typeof expenseAmount !== 'number',
+            currency: primaryCurrency,
+            date: 'today',
+            categoryName: expenseCategory,
+            accountName: firstAccountName,
+            paidFrom: 'account',
+            confidence: 0.61,
+            warnings: typeof expenseAmount === 'number' ? [] : ['The expense amount is not explicit yet.'],
+          },
+        ],
+        warnings: [
+          'The purpose of this money is unclear.',
+          ...(typeof expenseAmount === 'number' ? [] : ['The expense amount needs confirmation.']),
+        ],
+        missingFields: typeof expenseAmount === 'number' ? ['purpose'] : ['purpose', 'amount'],
+        requiresClarification: true,
+        clarificationQuestions: typeof expenseAmount === 'number'
+          ? ['How should this money be treated?']
+          : ['How should this money be treated?', 'How much was used?'],
+        inferredPurpose: 'unclear',
+        purposeConfidence: 0.35,
+        purposeNeedsConfirmation: true,
+        receivedAmount,
+        spentAmount: expenseAmount,
+        spentAmountKnown: typeof expenseAmount === 'number',
+        amountNeedsConfirmation: typeof expenseAmount !== 'number',
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (
+      text.includes('paid me') &&
+      (text.includes('consulting') || text.includes('for work')) &&
+      text.includes('rent')
+    ) {
+      const amounts = input.text.match(/\d+(?:[.,]\d+)?/g) || [];
+      const incomeAmount = Number(amounts[0] || 2000);
+      const rentAmount = Number(amounts[1] || 800);
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.95,
+        overallIntent: 'multiple_actions',
+        actions: [
+          {
+            actionType: 'income',
+            amount: incomeAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            personName: parsedPersonName,
+            accountName: firstAccountName,
+            confidence: 0.95,
+            warnings: [],
+          },
+          {
+            actionType: 'expense',
+            amount: rentAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            categoryName: 'Housing & Rent',
+            accountName: firstAccountName,
+            paidFrom: 'account',
+            confidence: 0.94,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (
+      (text.includes('borrowed') || text.includes('lent me') || text.includes('loan from') || text.includes('as a loan')) &&
+      (text.includes('paid') || text.includes('spent')) &&
+      text.includes('rent')
+    ) {
+      const amounts = input.text.match(/\d+(?:[.,]\d+)?/g) || [];
+      const borrowedAmount = Number(amounts[0] || 2000);
+      const rentAmount = Number(amounts[1] || (text.includes('all of it') ? borrowedAmount : 800));
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.95,
+        overallIntent: 'multiple_actions',
+        actions: [
+          {
+            actionType: 'loan_received',
+            amount: borrowedAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            personName: parsedPersonName,
+            accountName: firstAccountName,
+            paidFrom: 'external',
+            confidence: 0.95,
+            warnings: [],
+          },
+          {
+            actionType: 'expense',
+            amount: rentAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            categoryName: 'Housing & Rent',
+            accountName: firstAccountName,
+            paidFrom: 'account',
+            confidence: 0.93,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (
+      text.includes('gave me') &&
+      (text.includes('to pay her rent') || text.includes('to pay his rent') || text.includes('to pay their rent') || text.includes('on her behalf'))
+    ) {
+      const receivedAmount = extractAmount(text) || 2000;
+      const managedAccountName = `${parsedPersonName} Cash`;
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.95,
+        overallIntent: 'managed_person_transaction',
+        actions: [
+          {
+            actionType: 'money_received_from_person',
+            amount: receivedAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            personName: parsedPersonName,
+            accountName: managedAccountName,
+            paidFrom: 'external',
+            confidence: 0.95,
+            warnings: [],
+          },
+          {
+            actionType: 'expense_from_held_balance',
+            amount: receivedAmount,
+            currency: primaryCurrency,
+            date: 'today',
+            personName: parsedPersonName,
+            categoryName: 'Housing & Rent',
+            accountName: managedAccountName,
+            paidFrom: 'held_balance',
+            confidence: 0.93,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (text.includes('reimbursed me') && text.includes('hotel')) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.94,
+        overallIntent: 'reimbursement',
+        actions: [{
+          actionType: 'reimbursement_payment',
+          amount: extractAmount(text) || 500,
+          currency: primaryCurrency,
+          date: 'today',
+          personName: parsedPersonName,
+          confidence: 0.94,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (
+      (text.includes('borrowed') || text.includes('lent me') || text.includes('loan from')) &&
+      text.includes('spent')
+    ) {
+      const personName = parsedPersonName || 'Sarmad';
+      const accountName = firstAccountName;
+
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.94,
+        overallIntent: 'multiple_actions',
+        actions: [
+          {
+            actionType: 'loan_received',
+            amount: 3000,
+            currency: primaryCurrency,
+            date: 'today',
+            personName,
+            accountName,
+            paidFrom: 'external',
+            confidence: 0.95,
+            warnings: [],
+          },
+          {
+            actionType: 'expense',
+            amount: 45,
+            currency: primaryCurrency,
+            date: 'today',
+            categoryName: 'Transport',
+            accountName,
+            paidFrom: 'account',
+            confidence: 0.92,
+            warnings: [],
+          },
+          {
+            actionType: 'expense',
+            amount: 30,
+            currency: primaryCurrency,
+            date: 'today',
+            categoryName: 'Food & Dining',
+            accountName,
+            paidFrom: 'account',
+            confidence: 0.92,
+            warnings: [],
+          },
+        ],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
 
     if (
       text.includes('received') &&
@@ -61,9 +340,8 @@ class MockLanguageProvider implements LanguageProvider {
       text.includes('spent') &&
       (text.includes('transport') || text.includes('food'))
     ) {
-      const personMatch = input.text.match(/from\s+([A-Za-z][A-Za-z\s'-]+)/i);
-      const personName = personMatch?.[1]?.split(/,|and/i)[0]?.trim() || 'Sarmad';
-      const accountName = input.context?.accounts?.[0]?.name || extractAccount(text) || 'Cash';
+      const personName = parsedPersonName || 'Sarmad';
+      const accountName = firstAccountName;
 
       return {
         requestId: input.requestId || 'mock-req',
@@ -74,7 +352,7 @@ class MockLanguageProvider implements LanguageProvider {
           {
             actionType: 'money_received_from_person',
             amount: 3000,
-            currency: extractCurrency(text) || 'AED',
+            currency: primaryCurrency,
             date: 'today',
             personName,
             accountName,
@@ -85,7 +363,7 @@ class MockLanguageProvider implements LanguageProvider {
           {
             actionType: 'expense_from_held_balance',
             amount: 45,
-            currency: extractCurrency(text) || 'AED',
+            currency: primaryCurrency,
             date: 'today',
             personName,
             categoryName: 'Transport',
@@ -97,7 +375,7 @@ class MockLanguageProvider implements LanguageProvider {
           {
             actionType: 'expense_from_held_balance',
             amount: 30,
-            currency: extractCurrency(text) || 'AED',
+            currency: primaryCurrency,
             date: 'today',
             personName,
             categoryName: 'Food & Dining',
@@ -206,6 +484,79 @@ class MockLanguageProvider implements LanguageProvider {
         warnings: [],
         missingFields: [],
         requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (text.includes('paid sarmad') && (text.includes('back') || text.includes('loan'))) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.91,
+        overallIntent: 'multiple_actions',
+        actions: [{
+          actionType: 'loan_repayment',
+          amount: extractAmount(text) || 500,
+          currency: extractCurrency(text) || 'AED',
+          date: 'today',
+          personName: 'Sarmad',
+          accountName: extractAccount(text) || 'Cash',
+          confidence: 0.91,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (text.includes('returned') && text.includes('remaining money')) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.9,
+        overallIntent: 'managed_person_transaction',
+        actions: [{
+          actionType: 'money_returned_to_person',
+          amount: extractAmount(text) || 500,
+          currency: extractCurrency(text) || 'AED',
+          date: 'today',
+          personName: 'Sarmad',
+          confidence: 0.9,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (text.includes('gave me')) {
+      const personMatch = input.text.match(/([A-Za-z][A-Za-z\s'-]+)\s+gave me/i);
+      const personName = personMatch?.[1]?.trim() || 'Sarmad';
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.72,
+        overallIntent: 'unclear',
+        actions: [{
+          actionType: 'money_received_from_person',
+          amount: extractAmount(text) || 3000,
+          currency: extractCurrency(text) || 'AED',
+          date: 'today',
+          personName,
+          confidence: 0.72,
+          warnings: [],
+        }],
+        warnings: ['The purpose of this money is unclear.'],
+        missingFields: ['purpose'],
+        requiresClarification: true,
+        clarificationQuestions: ['How should this money be treated?'],
         providerUsed: 'mock',
         fallbackUsed: false,
       };
@@ -799,7 +1150,7 @@ export async function processAIRequest(
 
     return {
       requestId: parsed.requestId,
-      status: parsed.requiresClarification ? 'clarifying' : 'parsed',
+      status: 'parsed',
       parsed: {
         ...parsed,
         transcript,
@@ -893,6 +1244,44 @@ function categorizeError(msg: string): string {
 function extractAmount(text: string): number | null {
   const m = text.match(/(\d+(?:\.\d+)?)/);
   return m ? parseFloat(m[1]) : null;
+}
+
+function extractExplicitExpenseAmount(text: string, receivedAmount?: number | null): number | null {
+  const patterns = [
+    /bill\s+of\s+(?:aed\s*)?(\d+(?:\.\d+)?)/i,
+    /paid\s+(?:aed\s*)?(\d+(?:\.\d+)?)\s+(?:for|on)\b/i,
+    /spent\s+(?:aed\s*)?(\d+(?:\.\d+)?)\s+(?:for|on)\b/i,
+    /used\s+(?:aed\s*)?(\d+(?:\.\d+)?)\s+(?:for|on)\b/i,
+    /pay\s+.+?\s+of\s+(?:aed\s*)?(\d+(?:\.\d+)?)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match?.[1]) {
+      return parseFloat(match[1]);
+    }
+  }
+
+  const allAmounts = text.match(/\d+(?:\.\d+)?/g)?.map((value) => parseFloat(value)) || [];
+  if (allAmounts.length >= 2) {
+    const candidate = allAmounts[1];
+    if (typeof receivedAmount === 'number' && candidate === receivedAmount && allAmounts.length === 2) {
+      return null;
+    }
+    return candidate;
+  }
+
+  return null;
+}
+
+function inferExpenseCategory(text: string): string {
+  if (text.includes('sewa') || text.includes('utility') || text.includes('utilities') || text.includes('bill')) {
+    return 'Utilities';
+  }
+  if (text.includes('rent')) {
+    return 'Housing & Rent';
+  }
+  return 'Expense';
 }
 
 function extractCurrency(text: string): string | null {

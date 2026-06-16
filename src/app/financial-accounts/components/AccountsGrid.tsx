@@ -142,9 +142,10 @@ export default function AccountsGrid() {
 
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
-  const totalBalance = activeAccounts.filter((a) => a.include_in_total).reduce((s, a) => s + Number(a.current_balance), 0);
-  const totalAssets = activeAccounts.filter((a) => a.current_balance > 0).reduce((s, a) => s + Number(a.current_balance), 0);
-  const totalLiabilities = Math.abs(activeAccounts.filter((a) => a.current_balance < 0).reduce((s, a) => s + Number(a.current_balance), 0));
+  const personalAccounts = activeAccounts.filter((a) => a.include_in_total);
+  const totalBalance = personalAccounts.reduce((s, a) => s + Number(a.current_balance), 0);
+  const totalAssets = personalAccounts.filter((a) => a.current_balance > 0).reduce((s, a) => s + Number(a.current_balance), 0);
+  const totalLiabilities = Math.abs(personalAccounts.filter((a) => a.current_balance < 0).reduce((s, a) => s + Number(a.current_balance), 0));
 
   if (loading) {
     return (

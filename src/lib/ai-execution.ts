@@ -426,6 +426,7 @@ export async function buildAIContext() {
       name: a.name,
       type: a.account_type,
       currency: a.currency,
+      includeInTotal: a.include_in_total,
     })),
     people: ctx.people.map(p => ({
       id: p.id,

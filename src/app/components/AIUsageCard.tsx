@@ -286,7 +286,7 @@ export default function AIUsageCard() {
           </Link>
         )}
         {(summary.plan_code === 'free_trial' || summary.status !== 'active') && (
-          <Link href="/(public)/pricing" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
+          <Link href="/pricing" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
             <TrendingUp size={12} />
             Upgrade
           </Link>

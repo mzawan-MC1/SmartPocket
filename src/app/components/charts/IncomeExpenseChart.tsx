@@ -1,6 +1,13 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  isPersonalExpenseTransaction,
+  isPersonalIncomeTransaction,
+  loadAccountInclusionMap,
+  loadTransactionLedgerSummaryMap,
+  type Transaction,
+} from '@/lib/finance';
+import {
   AreaChart,
   Area,
   XAxis,
@@ -19,11 +26,7 @@ interface MonthlyPoint {
   expenses: number;
 }
 
-interface TransactionAmountRow {
-  transaction_type: 'income' | 'expense';
-  amount: number | string;
-  transaction_date: string;
-}
+type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -59,13 +62,16 @@ export default function IncomeExpenseChart() {
       const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
-      const { data: txns } = await supabase
-        .from('transactions')
-        .select('transaction_type, amount, transaction_date')
-        .neq('paid_by', 'person')
-        .gte('transaction_date', start)
-        .lte('transaction_date', end)
-        .in('transaction_type', ['income', 'expense']);
+      const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('id, account_id, transaction_type, amount, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
+          .gte('transaction_date', start)
+          .lte('transaction_date', end)
+          .in('transaction_type', ['income', 'expense']),
+        loadTransactionLedgerSummaryMap(supabase),
+        loadAccountInclusionMap(supabase),
+      ]);
 
       const monthMap = new Map<string, MonthlyPoint>();
       for (let i = 5; i >= 0; i -= 1) {
@@ -82,8 +88,12 @@ export default function IncomeExpenseChart() {
         const key = txn.transaction_date.slice(0, 7);
         const month = monthMap.get(key);
         if (!month) continue;
-        if (txn.transaction_type === 'income') month.income += Number(txn.amount);
-        if (txn.transaction_type === 'expense') month.expenses += Number(txn.amount);
+        if (isPersonalIncomeTransaction(txn, ledgerSummaryByTransactionId, accountInclusionById)) {
+          month.income += Number(txn.amount);
+        }
+        if (isPersonalExpenseTransaction(txn, ledgerSummaryByTransactionId, accountInclusionById)) {
+          month.expenses += Number(txn.amount);
+        }
       }
 
       setData(Array.from(monthMap.values()));

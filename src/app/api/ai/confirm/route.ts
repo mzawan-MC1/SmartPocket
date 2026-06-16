@@ -1,32 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
-import type { FinancialAction, ParsedFinancialInstruction, PersonResolution } from '@/lib/ai-types';
+import type { FinancialAction, ParsedFinancialInstruction, SmartEntryReview } from '@/lib/ai-types';
+import { applySmartEntryReviewToInstruction, getSmartEntryMissingFields, isAccountEligibleForPurpose, isManagedPurpose } from '@/lib/smart-entry';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACCOUNT_TYPES = new Set(['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other']);
-
-type AccountResolution = {
-  actionIndex: number;
-  field: 'account' | 'destinationAccount';
-  mode: 'create' | 'select';
-  accountId?: string;
-  account?: {
-    name?: string;
-    type?: string;
-    currency?: string;
-    openingBalance?: number;
-    includeInTotal?: boolean;
-  };
-};
-
-type MutableAction = FinancialAction & { __sourceIndex?: number | null };
-type ManagedPersonSummary = {
-  id: string;
-  full_name: string;
-  aliases?: string[];
-};
 const RELATIONSHIPS = new Set(['spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other']);
+const PURPOSES = new Set([
+  'personal_expense',
+  'personal_income',
+  'borrowed_money',
+  'managed_money',
+  'loan_repayment',
+  'managed_return',
+  'transfer',
+  'reimbursement',
+  'unclear',
+]);
+const REVIEW_MISSING_FIELDS = new Set(['purpose', 'amount', 'currency', 'person', 'account', 'destinationAccount']);
+const ACCOUNT_SCOPES = new Set(['personal', 'managed']);
 
 function jsonWithCookies(
   body: Record<string, unknown>,
@@ -40,352 +33,157 @@ function isExecutingOrExecuted(status: string) {
   return status === 'executing' || status === 'executed' || status === 'partially_executed';
 }
 
-function sanitizeAccountResolutions(value: unknown): AccountResolution[] {
-  if (!Array.isArray(value)) return [];
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null;
-      const raw = item as Record<string, unknown>;
-      const mode = raw.mode === 'create' || raw.mode === 'select' ? raw.mode : null;
-      const field = raw.field === 'account' || raw.field === 'destinationAccount' ? raw.field : null;
-      const actionIndex = typeof raw.actionIndex === 'number' ? raw.actionIndex : NaN;
-      if (!mode || !field || !Number.isInteger(actionIndex) || actionIndex < 0) return null;
-
-      const account = raw.account && typeof raw.account === 'object'
-        ? raw.account as Record<string, unknown>
-        : null;
-
-      return {
-        actionIndex,
-        field,
-        mode,
-        accountId: typeof raw.accountId === 'string' && UUID_PATTERN.test(raw.accountId) ? raw.accountId : undefined,
-        account: account
-          ? {
-              name: typeof account.name === 'string' ? account.name.trim() : undefined,
-              type: typeof account.type === 'string' ? account.type : undefined,
-              currency: typeof account.currency === 'string' ? account.currency : undefined,
-              openingBalance: typeof account.openingBalance === 'number' ? account.openingBalance : undefined,
-              includeInTotal: typeof account.includeInTotal === 'boolean' ? account.includeInTotal : undefined,
-            }
-          : undefined,
-      } satisfies AccountResolution;
-    })
-    .filter((item): item is AccountResolution => item !== null);
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
-function sanitizePersonResolutions(value: unknown): PersonResolution[] {
-  if (!Array.isArray(value)) return [];
+function sanitizeReview(value: unknown): SmartEntryReview | null {
+  if (!isObject(value)) return null;
 
-  return value
-    .map((item) => {
-      if (!item || typeof item !== 'object') return null;
-      const raw = item as Record<string, unknown>;
-      const mode = raw.mode === 'create' || raw.mode === 'existing' ? raw.mode : null;
-      const actionIndex = typeof raw.actionIndex === 'number' ? raw.actionIndex : NaN;
-      if (!mode || !Number.isInteger(actionIndex) || actionIndex < 0) return null;
-
-      const actionIndexes = Array.isArray(raw.actionIndexes)
-        ? raw.actionIndexes
-            .filter((value): value is number => typeof value === 'number' && Number.isInteger(value) && value >= 0)
-        : undefined;
-
-      const relationship = typeof raw.relationship === 'string' && RELATIONSHIPS.has(raw.relationship)
-        ? raw.relationship as PersonResolution['relationship']
-        : undefined;
-
-      const personName = typeof raw.personName === 'string' ? raw.personName.trim() : '';
-      const personId = typeof raw.personId === 'string' && UUID_PATTERN.test(raw.personId) ? raw.personId : undefined;
-      if (!personName) return null;
-      if (mode === 'existing' && !personId) return null;
-
-      return {
-        actionIndex,
-        actionIndexes: actionIndexes && actionIndexes.length > 0 ? actionIndexes : undefined,
-        mode,
-        personId,
-        personName,
-        relationship,
-        notes: typeof raw.notes === 'string' ? raw.notes.trim() : undefined,
-      } satisfies PersonResolution;
-    })
-    .filter((item): item is PersonResolution => item !== null);
-}
-
-function isAccountRequired(action: FinancialAction, field: 'account' | 'destinationAccount') {
-  if (field === 'destinationAccount') {
-    return action.actionType === 'transfer';
-  }
-
-  return [
-    'income',
-    'expense',
-    'transfer',
-    'recurring_transaction',
-    'expense_paid_for_person',
-    'money_received_from_person',
-    'expense_from_held_balance',
-  ].includes(action.actionType);
-}
-
-function isPersonRequired(action: FinancialAction) {
-  return [
-    'money_received_from_person',
-    'money_returned_to_person',
-    'expense_from_held_balance',
-    'expense_paid_for_person',
-    'expense_paid_by_person',
-    'reimbursement_payment',
-    'settlement',
-  ].includes(action.actionType);
-}
-
-function normalizeName(value: string | undefined) {
-  return (value || '').trim().toLowerCase();
-}
-
-function sanitizeCurrency(value: string | undefined) {
-  const currency = (value || 'AED').trim().toUpperCase().replace(/[^A-Z]/g, '');
-  return currency.length === 3 ? currency : 'AED';
-}
-
-function withSourceIndexes(instruction: ParsedFinancialInstruction): ParsedFinancialInstruction & { actions: MutableAction[] } {
-  return {
-    ...instruction,
-    actions: instruction.actions.map((action, index) => ({
-      ...action,
-      warnings: [...(action.warnings || [])],
-      __sourceIndex: index,
-    })),
-  };
-}
-
-function stripSourceIndexes(instruction: ParsedFinancialInstruction & { actions: MutableAction[] }): ParsedFinancialInstruction {
-  return {
-    ...instruction,
-    actions: instruction.actions.map((action) => {
-      const { __sourceIndex, ...cleanAction } = action;
-      return cleanAction;
-    }),
-  };
-}
-
-function findMutableActionIndex(actions: MutableAction[], sourceIndex: number) {
-  return actions.findIndex((action) => action.__sourceIndex === sourceIndex);
-}
-
-function resolvePersonByIdOrName(personId: string | undefined, personName: string | undefined, people: ManagedPersonSummary[]) {
-  const normalizedName = normalizeName(personName);
-
-  return people.find((person) => {
-    if (personId && person.id === personId) return true;
-    if (!normalizedName) return false;
-    if (normalizeName(person.full_name) === normalizedName) return true;
-    return (person.aliases || []).some((alias) => normalizeName(alias) === normalizedName);
-  }) || null;
-}
-
-function applyPersonResolutions(args: {
-  instruction: ParsedFinancialInstruction;
-  resolutions: PersonResolution[];
-  selectedPeople: ManagedPersonSummary[];
-}) {
-  const nextInstruction = withSourceIndexes(args.instruction);
-  const insertedCreates = new Set<string>();
-
-  for (const resolution of args.resolutions.sort((a, b) => a.actionIndex - b.actionIndex)) {
-    const targetIndexes = Array.from(new Set([resolution.actionIndex, ...(resolution.actionIndexes || [])])).sort((a, b) => a - b);
-    if (targetIndexes.length === 0) continue;
-
-    if (resolution.mode === 'existing') {
-      const selectedPerson = args.selectedPeople.find((person) => person.id === resolution.personId);
-      if (!selectedPerson) {
-        throw new Error('Selected managed person not found.');
-      }
-
-      for (const sourceIndex of targetIndexes) {
-        const actionIndex = findMutableActionIndex(nextInstruction.actions, sourceIndex);
-        const targetAction = actionIndex >= 0 ? nextInstruction.actions[actionIndex] : null;
-        if (!targetAction || !isPersonRequired(targetAction)) {
-          throw new Error('Invalid managed person resolution target.');
-        }
-        targetAction.personId = selectedPerson.id;
-        targetAction.personName = selectedPerson.full_name;
-      }
-      continue;
-    }
-
-    const personName = resolution.personName.trim();
-    if (!personName) {
-      throw new Error('Managed person name is required.');
-    }
-
-    const firstTargetIndex = findMutableActionIndex(nextInstruction.actions, targetIndexes[0]);
-    if (firstTargetIndex < 0) {
-      throw new Error('Invalid managed person resolution target.');
-    }
-
-    const createKey = `${normalizeName(personName)}:${targetIndexes.join(',')}`;
-    if (!insertedCreates.has(createKey)) {
-      const syntheticCreateAction: MutableAction = {
-        actionType: 'create_managed_person',
-        personName,
-        relationship: resolution.relationship || 'other',
-        notes: resolution.notes || undefined,
-        confidence: 1,
-        warnings: [],
-        description: `Create managed person: ${personName}`,
-        __sourceIndex: null,
-      };
-      nextInstruction.actions.splice(firstTargetIndex, 0, syntheticCreateAction);
-      insertedCreates.add(createKey);
-    }
-
-    for (const sourceIndex of targetIndexes) {
-      const actionIndex = findMutableActionIndex(nextInstruction.actions, sourceIndex);
-      const targetAction = actionIndex >= 0 ? nextInstruction.actions[actionIndex] : null;
-      if (!targetAction || !isPersonRequired(targetAction)) {
-        throw new Error('Invalid managed person resolution target.');
-      }
-      targetAction.personId = undefined;
-      targetAction.personName = personName;
-      if (resolution.relationship) {
-        targetAction.relationship = resolution.relationship;
-      }
-    }
-  }
-
-  return stripSourceIndexes(nextInstruction);
-}
-
-function applyAccountResolutions(args: {
-  instruction: ParsedFinancialInstruction;
-  resolutions: AccountResolution[];
-  selectedAccounts: Array<{ id: string; name: string }>;
-}) {
-  const nextInstruction = withSourceIndexes(args.instruction);
-
-  for (const resolution of args.resolutions.sort((a, b) => a.actionIndex - b.actionIndex)) {
-    const targetIndex = findMutableActionIndex(nextInstruction.actions, resolution.actionIndex);
-    const targetAction = nextInstruction.actions[targetIndex];
-    if (!targetAction || !isAccountRequired(targetAction, resolution.field)) {
-      throw new Error('Invalid account resolution target.');
-    }
-
-    if (resolution.mode === 'select') {
-      const selectedAccount = args.selectedAccounts.find((account) => account.id === resolution.accountId);
-      if (!selectedAccount) {
-        throw new Error('Selected account not found.');
-      }
-
-      if (resolution.field === 'account') {
-        targetAction.accountId = selectedAccount.id;
-        targetAction.accountName = selectedAccount.name;
-      } else {
-        targetAction.destinationAccountId = selectedAccount.id;
-        targetAction.destinationAccountName = selectedAccount.name;
-      }
-      continue;
-    }
-
-    const accountName = resolution.account?.name?.trim();
-    if (!accountName) {
-      throw new Error('Account name is required.');
-    }
-
-    const accountType = resolution.account?.type && ACCOUNT_TYPES.has(resolution.account.type)
-      ? resolution.account.type
-      : 'cash';
-
-    const syntheticCreateAction: FinancialAction = {
-      actionType: 'create_account',
-      accountName,
-      accountType: accountType as FinancialAction['accountType'],
-      currency: sanitizeCurrency(resolution.account?.currency),
-      openingBalance: typeof resolution.account?.openingBalance === 'number' ? resolution.account.openingBalance : 0,
-      includeInTotal: resolution.account?.includeInTotal !== false,
-      confidence: 1,
-      warnings: [],
-      description: `Create ${accountType.replace('_', ' ')} account: ${accountName}`,
+  const sanitizePerson = (input: unknown): SmartEntryReview['person'] => {
+    if (!isObject(input)) return undefined;
+    return {
+      required: input.required === true,
+      mode: input.mode === 'existing' || input.mode === 'create' ? input.mode : undefined,
+      personId: typeof input.personId === 'string' && UUID_PATTERN.test(input.personId) ? input.personId : undefined,
+      name: typeof input.name === 'string' ? input.name.trim() || undefined : undefined,
+      relationship: typeof input.relationship === 'string' && RELATIONSHIPS.has(input.relationship)
+        ? input.relationship as NonNullable<SmartEntryReview['person']>['relationship']
+        : undefined,
+      notes: typeof input.notes === 'string' ? input.notes.trim() || undefined : undefined,
     };
+  };
 
-    nextInstruction.actions.splice(targetIndex, 0, syntheticCreateAction);
+  const sanitizeAccount = (input: unknown): SmartEntryReview['account'] => {
+    if (!isObject(input)) return undefined;
+    return {
+      required: input.required === true,
+      mode: input.mode === 'existing' || input.mode === 'create' ? input.mode : undefined,
+      accountId: typeof input.accountId === 'string' && UUID_PATTERN.test(input.accountId) ? input.accountId : undefined,
+      name: typeof input.name === 'string' ? input.name.trim() || undefined : undefined,
+      type: typeof input.type === 'string' && ACCOUNT_TYPES.has(input.type)
+        ? input.type as NonNullable<SmartEntryReview['account']>['type']
+        : undefined,
+      currency: typeof input.currency === 'string' ? input.currency.trim().toUpperCase() : undefined,
+      includeInTotal: typeof input.includeInTotal === 'boolean' ? input.includeInTotal : undefined,
+      scope: typeof input.scope === 'string' && ACCOUNT_SCOPES.has(input.scope)
+        ? input.scope as NonNullable<SmartEntryReview['account']>['scope']
+        : undefined,
+      managedPersonId: typeof input.managedPersonId === 'string' && UUID_PATTERN.test(input.managedPersonId) ? input.managedPersonId : undefined,
+      managedPersonName: typeof input.managedPersonName === 'string' ? input.managedPersonName.trim() || undefined : undefined,
+    };
+  };
 
-    const adjustedTarget = nextInstruction.actions[targetIndex + 1];
-    if (resolution.field === 'account') {
-      adjustedTarget.accountId = undefined;
-      adjustedTarget.accountName = accountName;
-    } else {
-      adjustedTarget.destinationAccountId = undefined;
-      adjustedTarget.destinationAccountName = accountName;
-    }
-  }
-
-  return stripSourceIndexes(nextInstruction);
+  return {
+    understanding: Array.isArray(value.understanding)
+      ? value.understanding.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
+      : [],
+    missing: Array.isArray(value.missing)
+      ? value.missing.filter((item): item is SmartEntryReview['missing'][number] => typeof item === 'string' && REVIEW_MISSING_FIELDS.has(item))
+      : [],
+    purpose: typeof value.purpose === 'string' && PURPOSES.has(value.purpose)
+      ? value.purpose as SmartEntryReview['purpose']
+      : undefined,
+    purposeConfidence: typeof value.purposeConfidence === 'number' && Number.isFinite(value.purposeConfidence)
+      ? value.purposeConfidence
+      : undefined,
+    purposeNeedsConfirmation: value.purposeNeedsConfirmation === true,
+    purposeOptions: Array.isArray(value.purposeOptions)
+      ? value.purposeOptions
+          .filter(isObject)
+          .map((item) => ({
+            id: typeof item.id === 'string' && PURPOSES.has(item.id) ? item.id : undefined,
+            label: typeof item.label === 'string' ? item.label.trim() : '',
+            description: typeof item.description === 'string' ? item.description.trim() : '',
+          }))
+          .filter((item): item is NonNullable<SmartEntryReview['purposeOptions']>[number] => !!item.id && !!item.label)
+      : undefined,
+    amount: typeof value.amount === 'number' && Number.isFinite(value.amount) ? value.amount : undefined,
+    receivedAmount: typeof value.receivedAmount === 'number' && Number.isFinite(value.receivedAmount) ? value.receivedAmount : undefined,
+    amountActionIndex: typeof value.amountActionIndex === 'number' && Number.isInteger(value.amountActionIndex) && value.amountActionIndex >= 0
+      ? value.amountActionIndex
+      : undefined,
+    amountLabel: typeof value.amountLabel === 'string' ? value.amountLabel.trim() || undefined : undefined,
+    amountQuickOptionValue: typeof value.amountQuickOptionValue === 'number' && Number.isFinite(value.amountQuickOptionValue)
+      ? value.amountQuickOptionValue
+      : undefined,
+    amountNeedsConfirmation: value.amountNeedsConfirmation === true,
+    currency: typeof value.currency === 'string' ? value.currency.trim().toUpperCase() : undefined,
+    person: sanitizePerson(value.person),
+    account: sanitizeAccount(value.account),
+    destinationAccount: sanitizeAccount(value.destinationAccount),
+  };
 }
 
-function hasUnresolvedRequiredAccounts(
-  instruction: ParsedFinancialInstruction,
-  existingAccounts: Array<{ id: string; name: string }>
-) {
-  const availableNames = new Set(existingAccounts.map((account) => normalizeName(account.name)));
-
-  for (const action of instruction.actions) {
-    if (action.actionType === 'create_account' && action.accountName) {
-      availableNames.add(normalizeName(action.accountName));
-      continue;
-    }
-
-    if (isAccountRequired(action, 'account')) {
-      if (action.accountId) continue;
-      if (!action.accountName || !availableNames.has(normalizeName(action.accountName))) {
-        return true;
-      }
-    }
-
-    if (isAccountRequired(action, 'destinationAccount')) {
-      if (action.destinationAccountId) continue;
-      if (!action.destinationAccountName || !availableNames.has(normalizeName(action.destinationAccountName))) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+function mergeReview(base: SmartEntryReview | undefined, next: SmartEntryReview): SmartEntryReview {
+  return {
+    understanding: next.understanding.length > 0 ? next.understanding : base?.understanding || [],
+    missing: next.missing,
+    purpose: next.purpose || base?.purpose,
+    purposeConfidence: typeof next.purposeConfidence === 'number' ? next.purposeConfidence : base?.purposeConfidence,
+    purposeNeedsConfirmation: typeof next.purposeNeedsConfirmation === 'boolean' ? next.purposeNeedsConfirmation : base?.purposeNeedsConfirmation,
+    purposeOptions: next.purposeOptions || base?.purposeOptions,
+    amount: typeof next.amount === 'number' ? next.amount : base?.amount,
+    receivedAmount: typeof next.receivedAmount === 'number' ? next.receivedAmount : base?.receivedAmount,
+    amountActionIndex: typeof next.amountActionIndex === 'number' ? next.amountActionIndex : base?.amountActionIndex,
+    amountLabel: next.amountLabel || base?.amountLabel,
+    amountQuickOptionValue: typeof next.amountQuickOptionValue === 'number' ? next.amountQuickOptionValue : base?.amountQuickOptionValue,
+    amountNeedsConfirmation: typeof next.amountNeedsConfirmation === 'boolean' ? next.amountNeedsConfirmation : base?.amountNeedsConfirmation,
+    currency: next.currency || base?.currency,
+    person: { ...(base?.person || {}), ...(next.person || {}) },
+    account: { ...(base?.account || {}), ...(next.account || {}) },
+    destinationAccount: { ...(base?.destinationAccount || {}), ...(next.destinationAccount || {}) },
+  };
 }
 
-function hasUnresolvedRequiredPeople(
-  instruction: ParsedFinancialInstruction,
-  existingPeople: ManagedPersonSummary[]
-) {
-  const availablePeople = [...existingPeople];
-
-  for (const action of instruction.actions) {
-    if (action.actionType === 'create_managed_person' && action.personName) {
-      availablePeople.push({
-        id: `new:${normalizeName(action.personName)}`,
-        full_name: action.personName,
-        aliases: [],
-      });
-      continue;
+function validateReviewSelection(review: SmartEntryReview): string | null {
+  if (!review.purpose || review.purpose === 'unclear' || review.purposeNeedsConfirmation) {
+    return 'Please confirm how this money should be treated.';
+  }
+  if (review.amountNeedsConfirmation && typeof review.amount !== 'number') {
+    return review.amountLabel || 'Please confirm the missing amount.';
+  }
+  if (review.person?.required) {
+    if (review.person.mode === 'existing' && !review.person.personId) {
+      return 'Please choose an existing person.';
     }
-
-    if (!isPersonRequired(action)) continue;
-    if (resolvePersonByIdOrName(action.personId, action.personName, availablePeople)) continue;
-    return true;
+    if (review.person.mode === 'create' && !review.person.name?.trim()) {
+      return 'Please enter a name for the new person.';
+    }
+    if (!review.person.mode) {
+      return 'Please complete the person details.';
+    }
   }
 
-  return false;
+  const validateAccount = (
+    selection: SmartEntryReview['account'] | SmartEntryReview['destinationAccount'],
+    label: string
+  ) => {
+    if (!selection?.required) return null;
+    if (selection.mode === 'existing' && !selection.accountId) {
+      return `Please choose an existing ${label}.`;
+    }
+    if (selection.mode === 'create' && !selection.name?.trim()) {
+      return `Please enter a name for the new ${label}.`;
+    }
+    if (!selection.mode) {
+      return `Please complete the ${label} details.`;
+    }
+    return null;
+  };
+
+  return validateAccount(review.account, 'account') || validateAccount(review.destinationAccount, 'destination account');
 }
 
 async function replacePendingActions(args: {
-  admin: ReturnType<typeof createAdminClient>;
+  admin: NonNullable<ReturnType<typeof createAdminClient>>;
   requestId: string;
   userId: string;
   actions: FinancialAction[];
 }) {
-  await args.admin
+  const admin = args.admin;
+
+  await admin
     .from('ai_pending_actions')
     .delete()
     .eq('request_id', args.requestId)
@@ -395,7 +193,7 @@ async function replacePendingActions(args: {
     return;
   }
 
-  await args.admin
+  await admin
     .from('ai_pending_actions')
     .insert(
       args.actions.map((action, index) => ({
@@ -433,8 +231,10 @@ export async function POST(req: NextRequest) {
     if (!UUID_PATTERN.test(requestId)) {
       return jsonWithCookies({ error: 'Invalid request id' }, 400, cookieMutations);
     }
-    const accountResolutions = sanitizeAccountResolutions(body.accountResolutions);
-    const personResolutions = sanitizePersonResolutions(body.personResolutions);
+    const review = sanitizeReview(body.review);
+    if (!review) {
+      return jsonWithCookies({ error: 'Invalid Smart Entry review data.' }, 400, cookieMutations);
+    }
 
     const admin = createAdminClient();
     if (!admin) {
@@ -457,13 +257,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (aiRequest.status === 'confirmed' && aiRequest.confirmation_status === 'confirmed') {
-      if (accountResolutions.length > 0 || personResolutions.length > 0) {
-        return jsonWithCookies(
-          { error: 'This Smart Entry request is already confirmed and can no longer be edited.' },
-          409,
-          cookieMutations
-        );
-      }
       return jsonWithCookies(
         {
           success: true,
@@ -493,174 +286,192 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let nextInstruction = aiRequest.parsed_result as ParsedFinancialInstruction | null;
-    if (!nextInstruction || !Array.isArray(nextInstruction.actions)) {
+    const storedInstruction = aiRequest.parsed_result as ParsedFinancialInstruction | null;
+    if (!storedInstruction || !Array.isArray(storedInstruction.actions)) {
       return jsonWithCookies({ error: 'This Smart Entry request cannot be confirmed in its current state.' }, 409, cookieMutations);
     }
-
-    if (personResolutions.length > 0) {
-      const selectedPersonIds = personResolutions
-        .filter((resolution) => resolution.mode === 'existing' && resolution.personId)
-        .map((resolution) => resolution.personId as string);
-
-      const { data: selectedPeopleRows, error: selectedPeopleError } = selectedPersonIds.length > 0
-        ? await admin
-            .from('managed_people')
-            .select('id, full_name')
-            .eq('owner_id', user.id)
-            .eq('is_active', true)
-            .eq('is_archived', false)
-            .in('id', selectedPersonIds)
-        : { data: [], error: null };
-
-      if (selectedPeopleError) {
-        console.error('[AI Confirm] Failed to load selected managed people:', selectedPeopleError.message);
-        return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
-      }
-
-      try {
-        nextInstruction = applyPersonResolutions({
-          instruction: nextInstruction,
-          resolutions: personResolutions,
-          selectedPeople: (selectedPeopleRows || []) as ManagedPersonSummary[],
-        });
-      } catch (resolutionError) {
-        return jsonWithCookies(
-          { error: resolutionError instanceof Error ? resolutionError.message : 'Invalid managed person resolution.' },
-          409,
-          cookieMutations
-        );
-      }
+    const mergedReview = mergeReview(storedInstruction.review, review);
+    const reviewSelectionError = validateReviewSelection(mergedReview);
+    if (reviewSelectionError) {
+      return jsonWithCookies({ error: reviewSelectionError }, 409, cookieMutations);
     }
+    const selectedPersonIds = mergedReview.person?.personId ? [mergedReview.person.personId] : [];
+    const selectedAccountIds = [
+      mergedReview.account?.accountId,
+      mergedReview.destinationAccount?.accountId,
+    ].filter((value): value is string => !!value);
 
-    if (accountResolutions.length > 0) {
-      const selectedAccountIds = accountResolutions
-        .filter((resolution) => resolution.mode === 'select' && resolution.accountId)
-        .map((resolution) => resolution.accountId as string);
-
-      const { data: selectedAccounts, error: selectedAccountsError } = selectedAccountIds.length > 0
-        ? await admin
-            .from('financial_accounts')
-            .select('id, name')
-            .eq('user_id', user.id)
-            .in('id', selectedAccountIds)
-        : { data: [], error: null };
-
-      if (selectedAccountsError) {
-        console.error('[AI Confirm] Failed to load selected accounts:', selectedAccountsError.message);
-        return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
-      }
-
-      try {
-        nextInstruction = applyAccountResolutions({
-          instruction: nextInstruction,
-          resolutions: accountResolutions,
-          selectedAccounts: (selectedAccounts || []) as Array<{ id: string; name: string }>,
-        });
-      } catch (resolutionError) {
-        return jsonWithCookies(
-          { error: resolutionError instanceof Error ? resolutionError.message : 'Invalid account resolution.' },
-          409,
-          cookieMutations
-        );
-      }
-    }
-
-    const { data: currentAccounts, error: currentAccountsError } = await admin
-      .from('financial_accounts')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .eq('is_active', true);
-
-    const { data: currentPeopleRows, error: currentPeopleError } = await admin
+    const { data: selectedPeopleRows, error: selectedPeopleError } = selectedPersonIds.length > 0
+      ? await admin
+          .from('managed_people')
+          .select('id, full_name, relationship')
+          .eq('owner_id', user.id)
+          .eq('is_active', true)
+          .eq('is_archived', false)
+          .in('id', selectedPersonIds)
+      : { data: [], error: null };
+    const { data: selectedAccountsRows, error: selectedAccountsError } = selectedAccountIds.length > 0
+      ? await admin
+          .from('financial_accounts')
+          .select('id, name, account_type, currency, include_in_total')
+          .eq('user_id', user.id)
+          .in('id', selectedAccountIds)
+      : { data: [], error: null };
+    const { data: allPeopleRows, error: allPeopleError } = await admin
       .from('managed_people')
       .select('id, full_name')
       .eq('owner_id', user.id)
       .eq('is_active', true)
       .eq('is_archived', false);
 
-    const currentPeople = ((currentPeopleRows || []) as ManagedPersonSummary[]);
-
-    const { data: aliasRows, error: aliasError } = currentPeople.length > 0
-      ? await admin
-          .from('person_aliases')
-          .select('person_id, alias')
-          .in('person_id', currentPeople.map((person) => person.id))
-      : { data: [], error: null };
-
-    if (currentAccountsError) {
-      console.error('[AI Confirm] Failed to load current accounts:', currentAccountsError.message);
+    if (selectedPeopleError) {
+      console.error('[AI Confirm] Failed to load selected people:', selectedPeopleError.message);
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
     }
-    if (currentPeopleError) {
-      console.error('[AI Confirm] Failed to load current managed people:', currentPeopleError.message);
+    if (selectedAccountsError) {
+      console.error('[AI Confirm] Failed to load selected accounts:', selectedAccountsError.message);
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
     }
-    if (aliasError) {
-      console.error('[AI Confirm] Failed to load managed person aliases:', aliasError.message);
+    if (allPeopleError) {
+      console.error('[AI Confirm] Failed to load people for account eligibility:', allPeopleError.message);
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
     }
 
-    const aliasesByPersonId = new Map<string, string[]>();
-    for (const row of (aliasRows || []) as Array<{ person_id: string; alias: string }>) {
-      const existingAliases = aliasesByPersonId.get(row.person_id) || [];
-      existingAliases.push(row.alias);
-      aliasesByPersonId.set(row.person_id, existingAliases);
+    const selectedPerson = mergedReview.person?.personId
+      ? (selectedPeopleRows || []).find((row) => row.id === mergedReview.person?.personId)
+      : null;
+    if (mergedReview.person?.mode === 'existing' && !selectedPerson) {
+      return jsonWithCookies({ error: 'Selected person not found.' }, 409, cookieMutations);
     }
 
-    const currentPeopleWithAliases = currentPeople.map((person) => ({
-      ...person,
-      aliases: aliasesByPersonId.get(person.id) || [],
-    }));
+    const selectedPrimaryAccount = mergedReview.account?.accountId
+      ? (selectedAccountsRows || []).find((row) => row.id === mergedReview.account?.accountId)
+      : null;
+    if (mergedReview.account?.mode === 'existing' && !selectedPrimaryAccount) {
+      return jsonWithCookies({ error: 'Selected account not found.' }, 409, cookieMutations);
+    }
+    if (
+      mergedReview.account?.mode === 'existing' &&
+      selectedPrimaryAccount &&
+      !isAccountEligibleForPurpose({
+        purpose: mergedReview.purpose,
+        field: 'account',
+        personName: selectedPerson?.full_name || mergedReview.person?.name,
+        account: {
+          id: selectedPrimaryAccount.id,
+          name: selectedPrimaryAccount.name,
+          type: selectedPrimaryAccount.account_type,
+          currency: selectedPrimaryAccount.currency,
+          includeInTotal: selectedPrimaryAccount.include_in_total,
+        },
+        people: (allPeopleRows || []).map((row) => ({
+          id: row.id,
+          fullName: row.full_name,
+        })),
+      })
+    ) {
+      return jsonWithCookies({ error: 'Selected account does not match this Smart Entry purpose.' }, 409, cookieMutations);
+    }
 
-    if (hasUnresolvedRequiredAccounts(nextInstruction, (currentAccounts || []) as Array<{ id: string; name: string }>)) {
+    const selectedDestinationAccount = mergedReview.destinationAccount?.accountId
+      ? (selectedAccountsRows || []).find((row) => row.id === mergedReview.destinationAccount?.accountId)
+      : null;
+    if (mergedReview.destinationAccount?.mode === 'existing' && !selectedDestinationAccount) {
+      return jsonWithCookies({ error: 'Selected destination account not found.' }, 409, cookieMutations);
+    }
+    if (
+      mergedReview.destinationAccount?.mode === 'existing' &&
+      selectedDestinationAccount &&
+      !isAccountEligibleForPurpose({
+        purpose: mergedReview.purpose,
+        field: 'destinationAccount',
+        personName: selectedPerson?.full_name || mergedReview.person?.name,
+        account: {
+          id: selectedDestinationAccount.id,
+          name: selectedDestinationAccount.name,
+          type: selectedDestinationAccount.account_type,
+          currency: selectedDestinationAccount.currency,
+          includeInTotal: selectedDestinationAccount.include_in_total,
+        },
+        people: (allPeopleRows || []).map((row) => ({
+          id: row.id,
+          fullName: row.full_name,
+        })),
+      })
+    ) {
+      return jsonWithCookies({ error: 'Selected destination account does not match this Smart Entry purpose.' }, 409, cookieMutations);
+    }
+
+    const nextInstruction = applySmartEntryReviewToInstruction({
+      ...storedInstruction,
+      review: {
+        ...mergedReview,
+        person: mergedReview.person
+          ? {
+              ...mergedReview.person,
+              personId: selectedPerson?.id,
+              name: selectedPerson?.full_name || mergedReview.person.name,
+              relationship: (selectedPerson?.relationship as NonNullable<NonNullable<SmartEntryReview['person']>['relationship']>) || mergedReview.person.relationship,
+            }
+          : undefined,
+        account: mergedReview.account
+          ? {
+              ...mergedReview.account,
+              accountId: selectedPrimaryAccount?.id,
+              name: selectedPrimaryAccount?.name || mergedReview.account.name,
+              type: (selectedPrimaryAccount?.account_type as NonNullable<NonNullable<SmartEntryReview['account']>['type']>) || mergedReview.account.type,
+              currency: selectedPrimaryAccount?.currency || mergedReview.account.currency,
+              includeInTotal: isManagedPurpose(mergedReview.purpose)
+                ? false
+                : mergedReview.account.includeInTotal !== false,
+              managedPersonId: selectedPerson?.id || mergedReview.account.managedPersonId,
+              managedPersonName: selectedPerson?.full_name || mergedReview.account.managedPersonName,
+            }
+          : undefined,
+        destinationAccount: mergedReview.destinationAccount
+          ? {
+              ...mergedReview.destinationAccount,
+              accountId: selectedDestinationAccount?.id,
+              name: selectedDestinationAccount?.name || mergedReview.destinationAccount.name,
+              type: (selectedDestinationAccount?.account_type as NonNullable<NonNullable<SmartEntryReview['destinationAccount']>['type']>) || mergedReview.destinationAccount.type,
+              currency: selectedDestinationAccount?.currency || mergedReview.destinationAccount.currency,
+            }
+          : undefined,
+      },
+    });
+
+    const missing = getSmartEntryMissingFields(nextInstruction);
+    nextInstruction.review = {
+      ...(nextInstruction.review as SmartEntryReview),
+      missing,
+    };
+    nextInstruction.missingFields = [...missing];
+    nextInstruction.requiresClarification = false;
+    nextInstruction.clarificationQuestions = [];
+
+    if (missing.length > 0) {
       return jsonWithCookies(
-        { error: 'This Smart Entry request still has unresolved account references.' },
+        { error: `This Smart Entry request still needs: ${missing.join(', ')}.` },
         409,
         cookieMutations
       );
     }
 
-    if (hasUnresolvedRequiredPeople(nextInstruction, currentPeopleWithAliases)) {
-      return jsonWithCookies(
-        { error: 'This Smart Entry request still has unresolved managed people.' },
-        409,
-        cookieMutations
-      );
-    }
-
-    if (accountResolutions.length > 0 || personResolutions.length > 0) {
-      const { error: resolutionUpdateError } = await admin
-        .from('ai_requests')
-        .update({
-          parsed_result: nextInstruction,
-          pending_actions: nextInstruction.actions,
-          missing_fields: [],
-          requires_clarification: false,
-          error_category: null,
-          error_message: null,
-        })
-        .eq('id', requestId)
-        .eq('user_id', user.id)
-        .eq('status', 'parsed')
-        .is('confirmation_status', null);
-
-      if (resolutionUpdateError) {
-        console.error('[AI Confirm] Failed to persist resolutions:', resolutionUpdateError.message);
-        return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
-      }
-
-      await replacePendingActions({
-        admin,
-        requestId,
-        userId: user.id,
-        actions: nextInstruction.actions,
-      });
-    }
+    await replacePendingActions({
+      admin,
+      requestId,
+      userId: user.id,
+      actions: nextInstruction.actions,
+    });
 
     const { data: updatedRows, error: updateError } = await admin
       .from('ai_requests')
       .update({
+        parsed_result: nextInstruction,
+        pending_actions: nextInstruction.actions,
+        missing_fields: [],
+        requires_clarification: false,
+        clarification_context: null,
         status: 'confirmed',
         confirmation_status: 'confirmed',
         error_category: null,
@@ -690,45 +501,7 @@ export async function POST(req: NextRequest) {
         cookieMutations
       );
     }
-
-    const { data: refreshedRequest, error: refreshError } = await admin
-      .from('ai_requests')
-      .select('status, confirmation_status')
-      .eq('id', requestId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (refreshError || !refreshedRequest) {
-      return jsonWithCookies({ error: 'Request not found' }, 404, cookieMutations);
-    }
-
-    if (refreshedRequest.status === 'confirmed' && refreshedRequest.confirmation_status === 'confirmed') {
-      return jsonWithCookies(
-        {
-          success: true,
-          requestId,
-          status: 'confirmed',
-          confirmationStatus: 'confirmed',
-          alreadyConfirmed: true,
-        },
-        200,
-        cookieMutations
-      );
-    }
-
-    if (isExecutingOrExecuted(refreshedRequest.status)) {
-      return jsonWithCookies(
-        { error: 'This Smart Entry request is already being processed.' },
-        409,
-        cookieMutations
-      );
-    }
-
-    return jsonWithCookies(
-      { error: 'This Smart Entry request cannot be confirmed in its current state.' },
-      409,
-      cookieMutations
-    );
+    return jsonWithCookies({ error: 'This Smart Entry request cannot be confirmed in its current state.' }, 409, cookieMutations);
   } catch (error) {
     console.error('[AI Confirm] Unexpected error:', error instanceof Error ? error.message : error);
     return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);

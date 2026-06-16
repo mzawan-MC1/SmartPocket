@@ -1,11 +1,22 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, PieChart, TrendingUp, FileText, Target, Download, FileDown, Printer, Calendar, Filter, Loader2 } from 'lucide-react';
+import { BarChart3, PieChart, TrendingUp, FileText, Target, FileDown, Printer, Calendar, Filter, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { getReportData, generateCSV, getAccounts, type Transaction, type FinancialAccount } from '@/lib/finance';
+import { createClient } from '@/lib/supabase/client';
+import {
+  generateCSV,
+  getAccounts,
+  getReportData,
+  loadAccountInclusionMap,
+  isPersonalExpenseTransaction,
+  isPersonalIncomeTransaction,
+  loadTransactionLedgerSummaryMap,
+  shouldIncludeInPersonalCashFlow,
+  type FinancialAccount,
+  type Transaction,
+} from '@/lib/finance';
 import EmptyState from '@/components/ui/EmptyState';
-import Icon from '@/components/ui/AppIcon';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 
@@ -35,17 +46,24 @@ export default function ReportsScreen() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [ledgerSummaryByTransactionId, setLedgerSummaryByTransactionId] = useState<Map<string, { entryTypes: Set<string>; referenceTypes: Set<string> }>>(new Map());
+  const [accountInclusionById, setAccountInclusionById] = useState<Map<string, boolean>>(new Map());
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
+    const supabase = createClient();
     Promise.all([
       getReportData(dateFrom, dateTo, selectedAccount),
       getAccounts(),
+      loadTransactionLedgerSummaryMap(supabase),
+      loadAccountInclusionMap(supabase),
     ])
-      .then(([txns, accts]) => {
+      .then(([txns, accts, ledgerSummary, accountInclusion]) => {
         setTransactions(txns);
         setAccounts(accts.filter((a) => a.is_active));
+        setLedgerSummaryByTransactionId(ledgerSummary);
+        setAccountInclusionById(accountInclusion);
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
@@ -53,10 +71,19 @@ export default function ReportsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const reportingTransactions = transactions.filter((t) => t.paid_by !== 'person');
-  const income = reportingTransactions.filter((t) => t.transaction_type === 'income').reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = reportingTransactions.filter((t) => t.transaction_type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
-  const net = income - expenses;
+  const income = transactions
+    .filter((t) => isPersonalIncomeTransaction(t, ledgerSummaryByTransactionId, accountInclusionById))
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const expenses = transactions
+    .filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById))
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const net = transactions.reduce((sum, transaction) => {
+    if (!shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)) {
+      return sum;
+    }
+    const amount = Number(transaction.amount || 0);
+    return transaction.transaction_type === 'income' ? sum + amount : transaction.transaction_type === 'expense' ? sum - amount : sum;
+  }, 0);
   const savingsRate = income > 0 ? (net / income) * 100 : 0;
 
   const summaryByType: Record<ReportType, Array<{ id: string; label: string; value: string; sub?: string; positive?: boolean }>> = {
@@ -68,7 +95,7 @@ export default function ReportsScreen() {
     ],
     'spending-category': [
       { id: 'rpt-sc-total', label: 'Total Spent', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), sub: 'All categories' },
-      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(reportingTransactions.filter((t) => t.transaction_type === 'expense').length), sub: 'Records' },
+      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)).length), sub: 'Records' },
       { id: 'rpt-sc-income', label: 'Total Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), positive: true },
       { id: 'rpt-sc-net', label: 'Net', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
     ],

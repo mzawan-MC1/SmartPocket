@@ -3,6 +3,46 @@ import { createClient } from '@/lib/supabase/client';
 
 type AmountRow = { amount: number | string };
 type BalanceRow = { current_balance: number | string; include_in_total: boolean };
+type TransactionMetricRow = {
+  id: string;
+  account_id: string;
+  transaction_type: 'income' | 'expense' | 'transfer';
+  amount: number | string;
+  expense_owner?: string | null;
+  paid_by?: string | null;
+  paid_from?: string | null;
+  use_held_balance?: boolean | null;
+};
+type LedgerLinkedTransactionRow = {
+  transaction_id: string | null;
+  entry_type: string;
+  reference_type: string | null;
+};
+type PersonBalanceMetricRow = { full_name: string; money_held: number | string };
+type LoanLedgerRow = {
+  amount: number | string;
+  entry_type: string;
+  entry_date: string;
+  reference_type: string | null;
+};
+type TransactionLedgerSummary = {
+  entryTypes: Set<string>;
+  referenceTypes: Set<string>;
+};
+type AccountInclusionRow = {
+  id: string;
+  include_in_total: boolean;
+};
+export type TransactionClassification =
+  | 'personal_income'
+  | 'personal_expense'
+  | 'loan_proceeds'
+  | 'loan_repayment'
+  | 'managed_receipt'
+  | 'managed_expense'
+  | 'managed_return'
+  | 'transfer'
+  | 'other';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,6 +180,253 @@ export interface DashboardMetrics {
   budgetSpent: number;
   upcomingPaymentsTotal: number;
   upcomingPaymentsCount: number;
+  managedMoneyTotal: number;
+  managedPeopleCount: number;
+  outstandingLoanBalance: number;
+  loanBorrowedThisMonth: number;
+  loanRepaidThisMonth: number;
+}
+
+export async function loadTransactionLedgerSummaryMap(
+  supabase: ReturnType<typeof createClient>
+): Promise<Map<string, TransactionLedgerSummary>> {
+  const { data, error } = await supabase
+    .from('person_ledger_entries')
+    .select('transaction_id, entry_type, reference_type')
+    .eq('is_deleted', false)
+    .not('transaction_id', 'is', null);
+
+  if (error) throw error;
+
+  const summaryByTransactionId = new Map<string, TransactionLedgerSummary>();
+
+  for (const row of ((data || []) as LedgerLinkedTransactionRow[])) {
+    if (typeof row.transaction_id !== 'string' || row.transaction_id.length === 0) continue;
+    const current = summaryByTransactionId.get(row.transaction_id) || {
+      entryTypes: new Set<string>(),
+      referenceTypes: new Set<string>(),
+    };
+    if (typeof row.entry_type === 'string' && row.entry_type.length > 0) {
+      current.entryTypes.add(row.entry_type);
+    }
+    if (typeof row.reference_type === 'string' && row.reference_type.length > 0) {
+      current.referenceTypes.add(row.reference_type);
+    }
+    summaryByTransactionId.set(row.transaction_id, current);
+  }
+
+  return summaryByTransactionId;
+}
+
+export async function loadAccountInclusionMap(
+  supabase: ReturnType<typeof createClient>
+): Promise<Map<string, boolean>> {
+  const { data, error } = await supabase
+    .from('financial_accounts')
+    .select('id, include_in_total');
+
+  if (error) throw error;
+
+  return new Map(
+    ((data || []) as AccountInclusionRow[]).map((row) => [row.id, row.include_in_total])
+  );
+}
+
+function hasEntryType(summary: TransactionLedgerSummary | undefined, ...entryTypes: string[]) {
+  return entryTypes.some((entryType) => !!summary?.entryTypes.has(entryType));
+}
+
+function hasReferenceType(summary: TransactionLedgerSummary | undefined, ...referenceTypes: string[]) {
+  return referenceTypes.some((referenceType) => !!summary?.referenceTypes.has(referenceType));
+}
+
+function isManagedAccountTransaction(
+  row: Pick<TransactionMetricRow, 'account_id'>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return accountInclusionById.get(row.account_id) === false;
+}
+
+export function classifyTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+): TransactionClassification {
+  const summary = ledgerSummaryByTransactionId.get(row.id);
+  const isManagedAccount = isManagedAccountTransaction(row, accountInclusionById);
+
+  if (row.transaction_type === 'transfer') return 'transfer';
+  if (hasEntryType(summary, 'reimbursement_due_to_person') && hasReferenceType(summary, 'loan')) {
+    return 'loan_proceeds';
+  }
+  if (hasEntryType(summary, 'reimbursement_paid') && hasReferenceType(summary, 'loan')) {
+    return 'loan_repayment';
+  }
+  if (hasEntryType(summary, 'money_returned') && hasReferenceType(summary, 'managed_return')) {
+    return 'managed_return';
+  }
+  if (
+    hasEntryType(summary, 'expense_from_held') ||
+    row.use_held_balance === true ||
+    row.paid_from === 'held_balance'
+  ) {
+    return 'managed_expense';
+  }
+  if (
+    hasEntryType(summary, 'money_received') ||
+    (isManagedAccount && row.transaction_type === 'income') ||
+    (row.transaction_type === 'income' && row.expense_owner === 'person' && row.paid_by === 'person')
+  ) {
+    return 'managed_receipt';
+  }
+  if (isManagedAccount && row.transaction_type === 'expense') {
+    return 'managed_expense';
+  }
+  if (row.transaction_type === 'income') return 'personal_income';
+  if (row.transaction_type === 'expense') return 'personal_expense';
+  return 'other';
+}
+
+export function isLoanProceedsTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById) === 'loan_proceeds';
+}
+
+export function isLoanRepaymentTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById) === 'loan_repayment';
+}
+
+export function isManagedMoneyTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  const classification = classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
+  return classification === 'managed_receipt' || classification === 'managed_expense' || classification === 'managed_return';
+}
+
+export function isPersonalIncomeTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById) === 'personal_income';
+}
+
+export function isPersonalExpenseTransaction(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById) === 'personal_expense';
+}
+
+export function shouldIncludeInPersonalCashFlow(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  const classification = classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
+  return classification !== 'transfer' &&
+    classification !== 'managed_receipt' &&
+    classification !== 'managed_expense' &&
+    classification !== 'managed_return';
+}
+
+export function shouldIncludeInPersonalReports(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  const classification = classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
+  return classification !== 'transfer' &&
+    classification !== 'managed_receipt' &&
+    classification !== 'managed_expense' &&
+    classification !== 'managed_return';
+}
+
+export function shouldIncludeInBudgetSpending(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>
+) {
+  return isPersonalExpenseTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
+}
+
+function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>>(
+  rows: T[],
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>,
+  predicate: (
+    row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+    ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+    accountInclusionById: Map<string, boolean>
+  ) => boolean
+) {
+  return rows.filter((row) => predicate(row, ledgerSummaryByTransactionId, accountInclusionById));
+}
+
+async function getManagedMoneyMetrics(supabase: ReturnType<typeof createClient>) {
+  const { data, error } = await supabase
+    .from('person_balances')
+    .select('full_name, money_held');
+
+  if (error) throw error;
+
+  const balances = (data || []) as PersonBalanceMetricRow[];
+  return {
+    managedMoneyTotal: balances.reduce((sum, row) => sum + Math.max(0, Number(row.money_held || 0)), 0),
+    managedPeopleCount: balances.filter((row) => Number(row.money_held || 0) > 0).length,
+  };
+}
+
+async function getLoanMetrics(
+  supabase: ReturnType<typeof createClient>,
+  monthStart: string,
+  monthEnd: string
+) {
+  const { data, error } = await supabase
+    .from('person_ledger_entries')
+    .select('amount, entry_type, entry_date, reference_type')
+    .eq('is_deleted', false)
+    .eq('reference_type', 'loan');
+
+  if (error) throw error;
+
+  const rows = (data || []) as LoanLedgerRow[];
+
+  let outstandingLoanBalance = 0;
+  let loanBorrowedThisMonth = 0;
+  let loanRepaidThisMonth = 0;
+
+  for (const row of rows) {
+    const amount = Number(row.amount || 0);
+    if (row.entry_type === 'reimbursement_due_to_person') {
+      outstandingLoanBalance += amount;
+      if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
+        loanBorrowedThisMonth += amount;
+      }
+    }
+    if (row.entry_type === 'reimbursement_paid') {
+      outstandingLoanBalance -= amount;
+      if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
+        loanRepaidThisMonth += amount;
+      }
+    }
+  }
+
+  return {
+    outstandingLoanBalance: Math.max(0, outstandingLoanBalance),
+    loanBorrowedThisMonth,
+    loanRepaidThisMonth,
+  };
 }
 
 // ─── Accounts ─────────────────────────────────────────────────────────────────
@@ -442,6 +729,10 @@ export async function createTransfer(payload: {
 export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   const supabase = createClient();
   const start = periodStart || new Date().toISOString().slice(0, 7) + '-01';
+  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+  ]);
   const { data, error } = await supabase
     .from('budgets')
     .select(`*, category:categories(name, color, icon)`)
@@ -458,9 +749,8 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   for (const budget of budgets) {
     let spentQuery = supabase
       .from('transactions')
-      .select('amount')
+      .select('id, account_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance')
       .eq('transaction_type', 'expense')
-      .neq('paid_by', 'person')
       .gte('transaction_date', start)
       .lte('transaction_date', end);
 
@@ -469,7 +759,13 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
     }
 
     const { data: txns } = await spentQuery;
-    budget.spent = ((txns || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
+    budget.spent = filterTransactionsByRule(
+      (txns || []) as TransactionMetricRow[],
+      ledgerSummaryByTransactionId,
+      accountInclusionById,
+      shouldIncludeInBudgetSpending
+    )
+      .reduce((s: number, t) => s + Number(t.amount), 0);
   }
 
   return budgets;
@@ -594,6 +890,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
   const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
+  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+  ]);
 
   // Total balance from active accounts that include_in_total
   const { data: accounts } = await supabase
@@ -608,24 +908,46 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   // Monthly income
   const { data: incomeData } = await supabase
     .from('transactions')
-    .select('amount')
+    .select('id, account_id, transaction_type, amount, expense_owner, paid_by, paid_from, use_held_balance')
     .eq('transaction_type', 'income')
-    .neq('paid_by', 'person')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
-  const monthlyIncome = ((incomeData || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
+  const monthlyIncome = filterTransactionsByRule(
+    (incomeData || []) as TransactionMetricRow[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    isPersonalIncomeTransaction
+  )
+    .reduce((s: number, t) => s + Number(t.amount), 0);
 
   // Monthly expenses
   const { data: expenseData } = await supabase
     .from('transactions')
-    .select('amount')
+    .select('id, account_id, transaction_type, amount, expense_owner, paid_by, paid_from, use_held_balance')
     .eq('transaction_type', 'expense')
-    .neq('paid_by', 'person')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
-  const monthlyExpenses = ((expenseData || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
+  const monthlyExpenses = filterTransactionsByRule(
+    (expenseData || []) as TransactionMetricRow[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    isPersonalExpenseTransaction
+  )
+    .reduce((s: number, t) => s + Number(t.amount), 0);
+
+  const cashFlowTransactions = [
+    ...((incomeData || []) as TransactionMetricRow[]),
+    ...((expenseData || []) as TransactionMetricRow[]),
+  ];
+  const netCashFlow = cashFlowTransactions.reduce((sum, transaction) => {
+    if (!shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)) {
+      return sum;
+    }
+    const amount = Number(transaction.amount || 0);
+    return transaction.transaction_type === 'income' ? sum + amount : sum - amount;
+  }, 0);
 
   // Budget totals
   const { data: budgets } = await supabase
@@ -645,16 +967,23 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     .lte('next_due_date', next7Days);
 
   const upcomingPaymentsTotal = ((upcoming || []) as AmountRow[]).reduce((s: number, r) => s + Number(r.amount), 0);
+  const managedMetrics = await getManagedMoneyMetrics(supabase);
+  const loanMetrics = await getLoanMetrics(supabase, monthStart, monthEnd);
 
   return {
     totalBalance,
     monthlyIncome,
     monthlyExpenses,
-    netCashFlow: monthlyIncome - monthlyExpenses,
+    netCashFlow,
     totalBudget,
     budgetSpent: monthlyExpenses,
     upcomingPaymentsTotal,
     upcomingPaymentsCount: (upcoming || []).length,
+    managedMoneyTotal: managedMetrics.managedMoneyTotal,
+    managedPeopleCount: managedMetrics.managedPeopleCount,
+    outstandingLoanBalance: loanMetrics.outstandingLoanBalance,
+    loanBorrowedThisMonth: loanMetrics.loanBorrowedThisMonth,
+    loanRepaidThisMonth: loanMetrics.loanRepaidThisMonth,
   };
 }
 
@@ -662,6 +991,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
 export async function getReportData(dateFrom: string, dateTo: string, accountId?: string) {
   const supabase = createClient();
+  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+  ]);
 
   let query = supabase
     .from('transactions')
@@ -680,7 +1013,12 @@ export async function getReportData(dateFrom: string, dateTo: string, accountId?
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as Transaction[];
+  return filterTransactionsByRule(
+    (data || []) as Transaction[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    shouldIncludeInPersonalReports
+  );
 }
 
 export function generateCSV(transactions: Transaction[]): string {

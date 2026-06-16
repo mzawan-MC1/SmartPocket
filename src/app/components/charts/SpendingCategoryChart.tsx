@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { loadAccountInclusionMap, loadTransactionLedgerSummaryMap, shouldIncludeInBudgetSpending, type Transaction } from '@/lib/finance';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
 
@@ -17,6 +18,10 @@ interface CategorySpend {
   name: string;
   value: number;
   color: string;
+}
+
+interface ExpenseTransactionRow extends Pick<Transaction, 'id' | 'account_id' | 'amount' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'> {
+  category: { id: string; name: string; color: string | null } | Array<{ id: string; name: string; color: string | null }> | null;
 }
 
 function CustomTooltip({ active, payload }: any) {
@@ -51,13 +56,16 @@ export default function SpendingCategoryChart() {
       const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
       const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
 
-      const { data: txns } = await supabase
-        .from('transactions')
-        .select('amount, category:categories(id, name, color)')
-        .eq('transaction_type', 'expense')
-        .neq('paid_by', 'person')
-        .gte('transaction_date', start)
-        .lte('transaction_date', end);
+      const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+        supabase
+          .from('transactions')
+          .select('id, account_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance, category:categories(id, name, color)')
+          .eq('transaction_type', 'expense')
+          .gte('transaction_date', start)
+          .lte('transaction_date', end),
+        loadTransactionLedgerSummaryMap(supabase),
+        loadAccountInclusionMap(supabase),
+      ]);
 
       if (!txns?.length) {
         setData([]);
@@ -66,7 +74,8 @@ export default function SpendingCategoryChart() {
       }
 
       const categoryMap = new Map<string, { name: string; value: number; color: string | null }>();
-      for (const transaction of txns) {
+      for (const transaction of (txns || []) as ExpenseTransactionRow[]) {
+        if (!shouldIncludeInBudgetSpending(transaction, ledgerSummaryByTransactionId, accountInclusionById)) continue;
         const category = Array.isArray(transaction.category) ? transaction.category[0] : transaction.category;
         const key = category?.id ?? 'uncategorized';
         const name = category?.name ?? 'Uncategorized';

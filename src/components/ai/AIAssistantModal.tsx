@@ -1,101 +1,124 @@
-'use client';
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, Mic, Type, AlertTriangle, CheckCircle, Loader2, RotateCcw, MessageSquare, Sparkles } from 'lucide-react';
-import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import VoiceRecorder from './VoiceRecorder';
-import type { ParsedFinancialInstruction, FinancialAction, FinancialContext, SuggestedAccount, PersonResolution } from '@/lib/ai-types';
-import { buildAIContext } from '@/lib/ai-execution';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
-import { createClientId } from '@/lib/uuid';
-import { useLanguage } from '@/contexts/LanguageContext';
+ 'use client';
+ import React, { useState, useCallback, useEffect, useRef } from 'react';
+ import {
+   X,
+   Mic,
+   Type,
+   AlertTriangle,
+   CheckCircle,
+   Loader2,
+   RotateCcw,
+   Sparkles,
+   Clock,
+   Calendar,
+   ArrowUpRight,
+   Zap,
+ } from 'lucide-react';
+ import { createPortal } from 'react-dom';
+ import { useRouter } from 'next/navigation';
+ import { createClient } from '@/lib/supabase/client';
+ import VoiceRecorder from './VoiceRecorder';
+ import type {
+   ParsedFinancialInstruction,
+   FinancialContext,
+   AIErrorPayload,
+   AIUsageSummary,
+   SmartEntryReview,
+   SuggestedAccount,
+   SmartEntryPurpose,
+ } from '@/lib/ai-types';
+ import { buildAIContext } from '@/lib/ai-execution';
+ import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+ import { createClientId } from '@/lib/uuid';
+ import { useLanguage } from '@/contexts/LanguageContext';
+ import {
+   applySmartEntryReviewToInstruction,
+   buildInitialSmartEntryReview,
+  getEligibleAccountsForPurpose,
+   getCompactSummaryRows,
+  getManagedAccountName,
+   getSmartEntryMissingFields,
+   getSmartEntryTotals,
+  hydrateSmartEntryReviewWithContext,
+   inferAccountType,
+  isManagedPurpose,
+   sanitizeCurrency,
+ } from '@/lib/smart-entry';
 
-type AssistantStep =
-  | 'entry'          // text or voice input
-  | 'processing'     // waiting for AI
-  | 'clarifying'     // asking follow-up questions
-  | 'confirming'     // showing confirmation preview
-  | 'executing'      // saving records
-  | 'success'        // done
-  | 'failed';        // error
+ type AssistantStep =
+   | 'entry'
+   | 'processing'
+   | 'confirming'
+   | 'executing'
+   | 'limit'
+   | 'success'
+   | 'failed';
 
-interface AIAssistantModalProps {
-  onClose: () => void;
-  defaultMode?: 'voice' | 'text';
-}
+ interface AIAssistantModalProps {
+   onClose: () => void;
+   defaultMode?: 'voice' | 'text';
+ }
 
-interface AccountResolutionChoice {
-  actionIndex: number;
-  field: 'account' | 'destinationAccount';
-  mode: 'create' | 'select';
-  accountId?: string;
-  account?: SuggestedAccount;
-}
+ function formatMoney(value: number | undefined, currency = 'AED') {
+   if (typeof value !== 'number' || !Number.isFinite(value)) return `${currency} 0.00`;
+   return `${currency} ${value.toLocaleString(undefined, {
+     minimumFractionDigits: 2,
+     maximumFractionDigits: 2,
+   })}`;
+ }
 
-interface UnresolvedAccountRequirement {
-  actionIndex: number;
-  field: 'account' | 'destinationAccount';
-  accountName: string;
-  suggestedAccount: SuggestedAccount;
-  existingAccounts: Array<{ id: string; name: string; type: string; currency: string }>;
-  noAccounts: boolean;
-}
+ function getPrimaryAccountLabel(purpose: SmartEntryPurpose | undefined) {
+   switch (purpose) {
+    case 'personal_expense':
+      return 'Spend from';
+     case 'borrowed_money':
+       return 'Add borrowed money to';
+     case 'managed_money':
+       return 'Track their money in';
+     case 'managed_return':
+       return 'Return money from';
+     case 'loan_repayment':
+       return 'Pay back from';
+     case 'transfer':
+       return 'Move money from';
+     default:
+       return 'Add money to';
+   }
+ }
 
-interface PersonResolutionRequirement {
-  actionIndex: number;
-  actionIndexes: number[];
-  personName: string;
-  existingPeople: Array<{
-    id: string;
-    fullName: string;
-    relationship?: string;
-    moneyHeld?: number;
-  }>;
-  noPeople: boolean;
-  isResolved: boolean;
-}
-
-export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
-  const { isRTL } = useLanguage();
-  const router = useRouter();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const lastFocusedRef = useRef<HTMLElement | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [step, setStep] = useState<AssistantStep>('entry');
-  const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
-  const [textInput, setTextInput] = useState('');
-  const [language, setLanguage] = useState('en');
-  const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
-  const [transcript, setTranscript] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [clarificationAnswers, setClarificationAnswers] = useState<string[]>([]);
-  const [clarificationInput, setClarificationInput] = useState('');
-  const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
-  const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
-  const [flowId, setFlowId] = useState(() => createClientId());
-  const [flowRequestId, setFlowRequestId] = useState<string | null>(null);
-  const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
-  const [accountResolutions, setAccountResolutions] = useState<AccountResolutionChoice[]>([]);
-  const [personResolutions, setPersonResolutions] = useState<PersonResolution[]>([]);
-  const [personNameEdits, setPersonNameEdits] = useState<Record<number, string>>({});
-  const [accountDraft, setAccountDraft] = useState<{
-    actionIndex: number;
-    field: 'account' | 'destinationAccount';
-    name: string;
-    type: SuggestedAccount['type'];
-    currency: string;
-    openingBalance: number;
-    includeInTotal: boolean;
-  } | null>(null);
-  const [personDraft, setPersonDraft] = useState<{
-    actionIndex: number;
-    actionIndexes: number[];
-    name: string;
-    relationship: NonNullable<PersonResolution['relationship']>;
-    notes: string;
-  } | null>(null);
+ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
+   const { isRTL } = useLanguage();
+   const router = useRouter();
+   const dialogRef = useRef<HTMLDivElement>(null);
+   const closeButtonRef = useRef<HTMLButtonElement>(null);
+   const lastFocusedRef = useRef<HTMLElement | null>(null);
+   const [mounted, setMounted] = useState(false);
+   const [step, setStep] = useState<AssistantStep>('entry');
+   const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
+   const [textInput, setTextInput] = useState('');
+   const [language, setLanguage] = useState('en');
+   const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
+   const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
+   const [transcript, setTranscript] = useState('');
+   const [errorMessage, setErrorMessage] = useState('');
+   const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
+   const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
+   const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
+   const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
+   const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
+   const [accountDraftTarget, setAccountDraftTarget] = useState<'account' | 'destinationAccount' | null>(null);
+   const [accountDraft, setAccountDraft] = useState<{
+     field: 'account' | 'destinationAccount';
+     name: string;
+     type: SuggestedAccount['type'];
+     currency: string;
+     includeInTotal: boolean;
+   } | null>(null);
+   const [personDraft, setPersonDraft] = useState<{
+     name: string;
+     relationship: NonNullable<NonNullable<SmartEntryReview['person']>['relationship']>;
+     notes: string;
+   } | null>(null);
 
   // Check AI configuration on mount
   useEffect(() => {
@@ -188,281 +211,627 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     return session.access_token;
   };
 
-  const normalizeName = (value: string | undefined) => (value || '').trim().toLowerCase();
+  const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
-  const isAccountRequired = (action: FinancialAction, field: 'account' | 'destinationAccount') => {
-    if (field === 'destinationAccount') {
-      return action.actionType === 'transfer';
-    }
-
-    return [
-      'income',
-      'expense',
-      'transfer',
-      'recurring_transaction',
-      'expense_paid_for_person',
-      'money_received_from_person',
-      'expense_from_held_balance',
-    ].includes(action.actionType);
+  const getErrorText = (value: unknown) => {
+    if (typeof value === 'string') return value;
+    if (isObject(value) && typeof value.message === 'string') return value.message;
+    return '';
   };
 
-  const isPersonRequired = (action: FinancialAction) => {
-    return [
-      'money_received_from_person',
-      'money_returned_to_person',
-      'expense_from_held_balance',
-      'expense_paid_for_person',
-      'expense_paid_by_person',
-      'reimbursement_payment',
-      'settlement',
-    ].includes(action.actionType);
-  };
+  const parseUsageSummary = (value: unknown): AIUsageSummary | null => {
+    if (!isObject(value)) return null;
 
-  const resolvePersonOption = (
-    personId: string | undefined,
-    personName: string | undefined,
-    people: NonNullable<FinancialContext['people']>
-  ) => {
-    const normalized = normalizeName(personName);
-    return people.find((person) => {
-      if (personId && person.id === personId) return true;
-      if (!normalized) return false;
-      if (normalizeName(person.fullName) === normalized) return true;
-      return (person.aliases || []).some((alias) => normalizeName(alias) === normalized);
-    }) || null;
-  };
+    const asNumber = (input: unknown) => typeof input === 'number' && Number.isFinite(input) ? input : undefined;
+    const asString = (input: unknown) => typeof input === 'string' ? input : undefined;
 
-  const findAccountOption = (
-    action: FinancialAction,
-    field: 'account' | 'destinationAccount'
-  ) => {
-    const accounts = contextSnapshot?.accounts || [];
-    const accountId = field === 'account' ? action.accountId : action.destinationAccountId;
-    const accountName = field === 'account' ? action.accountName : action.destinationAccountName;
-    if (accountId) {
-      const byId = accounts.find((account) => account.id === accountId);
-      if (byId) return byId;
-    }
-    const normalized = normalizeName(accountName);
-    if (!normalized) return null;
-    return accounts.find((account) => normalizeName(account.name) === normalized) || null;
-  };
-
-  const inferAccountType = (name: string): SuggestedAccount['type'] => {
-    const normalized = normalizeName(name);
-    if (normalized.includes('cash')) return 'cash';
-    if (normalized.includes('credit')) return 'credit_card';
-    if (normalized.includes('saving')) return 'savings';
-    if (normalized.includes('wallet')) return 'digital_wallet';
-    if (normalized.includes('invest')) return 'investment';
-    if (normalized.includes('bank')) return 'bank';
-    return 'other';
-  };
-
-  const sanitizeCurrency = (value: string | undefined) => {
-    const currency = (value || 'AED').trim().toUpperCase().replace(/[^A-Z]/g, '');
-    return currency.length === 3 ? currency : 'AED';
-  };
-
-  const formatHeldBalance = (value: number | undefined, currency = 'AED') => {
-    const amount = Number(value || 0);
-    return `${currency} ${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const getSuggestedAccount = (action: FinancialAction, field: 'account' | 'destinationAccount'): SuggestedAccount => {
-    const name = field === 'account' ? action.accountName : action.destinationAccountName;
-    const preferredName = (name || 'Cash').trim() || 'Cash';
     return {
-      name: preferredName
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-        .join(' '),
-      type: inferAccountType(preferredName),
-      currency: sanitizeCurrency(action.currency),
-      openingBalance: 0,
-      includeInTotal: true,
+      planName: asString(value.planName),
+      planCode: asString(value.planCode),
+      subscriptionStatus: asString(value.subscriptionStatus),
+      requestsToday: asNumber(value.requestsToday),
+      dailyRequestLimit: asNumber(value.dailyRequestLimit),
+      creditsAllocated: asNumber(value.creditsAllocated),
+      creditsConsumed: asNumber(value.creditsConsumed),
+      creditsReserved: asNumber(value.creditsReserved),
+      creditsRemaining: asNumber(value.creditsRemaining),
+      cycleStart: asString(value.cycleStart),
+      cycleEnd: asString(value.cycleEnd),
+      trialEndsAt: asString(value.trialEndsAt),
+      currentPeriodEnd: asString(value.currentPeriodEnd),
+      monthlyVoiceSeconds: asNumber(value.monthlyVoiceSeconds),
+      voiceSecondsUsed: asNumber(value.voiceSecondsUsed),
     };
   };
 
-  const applyLocalPersonResolutions = useCallback((
-    instruction: ParsedFinancialInstruction,
-    resolutions: PersonResolution[]
-  ): ParsedFinancialInstruction => {
-    const nextInstruction: ParsedFinancialInstruction = {
-      ...instruction,
-      actions: instruction.actions.map((action) => ({ ...action, warnings: [...(action.warnings || [])] })),
-    };
-
-    for (const resolution of resolutions) {
-      const targetIndexes = Array.from(new Set([resolution.actionIndex, ...(resolution.actionIndexes || [])]));
-      for (const targetIndex of targetIndexes) {
-        const targetAction = nextInstruction.actions[targetIndex];
-        if (!targetAction || !isPersonRequired(targetAction)) continue;
-
-        if (resolution.mode === 'existing' && resolution.personId) {
-          const selectedPerson = resolvePersonOption(
-            resolution.personId,
-            resolution.personName,
-            contextSnapshot?.people || []
-          );
-          if (!selectedPerson) continue;
-          targetAction.personId = selectedPerson.id;
-          targetAction.personName = selectedPerson.fullName;
-          continue;
-        }
-
-        targetAction.personId = undefined;
-        targetAction.personName = resolution.personName;
-        if (resolution.relationship) {
-          targetAction.relationship = resolution.relationship;
-        }
-        if (resolution.notes) {
-          targetAction.notes = resolution.notes;
-        }
-      }
+  const parseErrorPayload = (value: unknown): AIErrorPayload | null => {
+    if (!isObject(value) || typeof value.message !== 'string' || typeof value.code !== 'string' || typeof value.category !== 'string') {
+      return null;
     }
 
-    return nextInstruction;
-  }, [contextSnapshot, isPersonRequired, resolvePersonOption]);
-
-  const applyLocalAccountResolutions = useCallback((
-    instruction: ParsedFinancialInstruction,
-    resolutions: AccountResolutionChoice[]
-  ): ParsedFinancialInstruction => {
-    const nextInstruction: ParsedFinancialInstruction = {
-      ...instruction,
-      actions: instruction.actions.map((action) => ({ ...action, warnings: [...(action.warnings || [])] })),
+    return {
+      code: value.code,
+      category: value.category as AIErrorPayload['category'],
+      message: value.message,
+      limitType: typeof value.limitType === 'string' ? value.limitType as AIErrorPayload['limitType'] : undefined,
+      requestId: typeof value.requestId === 'string' ? value.requestId : undefined,
+      retryAfterSeconds: typeof value.retryAfterSeconds === 'number' ? value.retryAfterSeconds : undefined,
+      requiredCredits: typeof value.requiredCredits === 'number' ? value.requiredCredits : undefined,
+      remainingCredits: typeof value.remainingCredits === 'number' ? value.remainingCredits : undefined,
     };
+  };
 
-    for (const resolution of [...resolutions].sort((a, b) => a.actionIndex - b.actionIndex)) {
-      const targetAction = nextInstruction.actions[resolution.actionIndex];
-      if (!targetAction) continue;
+  const handleApiFailure = useCallback((payload: unknown, fallbackMessage: string) => {
+    const responseBody = isObject(payload) ? payload : {};
+    const structuredError = parseErrorPayload(responseBody.error);
+    const usage = parseUsageSummary(responseBody.usage);
 
-      if (resolution.mode === 'select' && resolution.accountId) {
-        const selectedAccount = contextSnapshot?.accounts?.find((account) => account.id === resolution.accountId);
-        if (!selectedAccount) continue;
+    setApiError(structuredError);
+    setUsageSummary(usage);
 
-        if (resolution.field === 'account') {
-          targetAction.accountId = selectedAccount.id;
-          targetAction.accountName = selectedAccount.name;
-        } else {
-          targetAction.destinationAccountId = selectedAccount.id;
-          targetAction.destinationAccountName = selectedAccount.name;
-        }
-        continue;
-      }
-
-      if (resolution.mode === 'create' && resolution.account) {
-        if (resolution.field === 'account') {
-          targetAction.accountId = undefined;
-          targetAction.accountName = resolution.account.name;
-        } else {
-          targetAction.destinationAccountId = undefined;
-          targetAction.destinationAccountName = resolution.account.name;
-        }
-      }
+    if (structuredError && (structuredError.category === 'usage_limit' || structuredError.category === 'subscription')) {
+      setErrorMessage('');
+      setStep('limit');
+      return;
     }
 
-    return nextInstruction;
-  }, [contextSnapshot]);
+    setErrorMessage(
+      structuredError?.message ||
+      (typeof responseBody.errorMessage === 'string' ? responseBody.errorMessage : '') ||
+      getErrorText(responseBody.error) ||
+      fallbackMessage
+    );
+    setStep('failed');
+  }, []);
 
-  const personAdjustedInstruction = parsed ? applyLocalPersonResolutions(parsed, personResolutions) : null;
-  const previewInstruction = personAdjustedInstruction
-    ? applyLocalAccountResolutions(personAdjustedInstruction, accountResolutions)
-    : null;
+  const formatShortDateTime = (value: string | undefined) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
 
-  const personRequirements: PersonResolutionRequirement[] = personAdjustedInstruction
-    ? (() => {
-        const people = contextSnapshot?.people || [];
-        const grouped = new Map<string, PersonResolutionRequirement>();
+  const formatRelativeHours = (seconds: number | undefined) => {
+    if (typeof seconds !== 'number' || seconds <= 0) return null;
+    const hours = Math.max(1, Math.ceil(seconds / 3600));
+    return `Available again in ${hours} hour${hours === 1 ? '' : 's'}`;
+  };
 
-        personAdjustedInstruction.actions.forEach((action, actionIndex) => {
-          if (!isPersonRequired(action)) return;
-          const createResolution = personResolutions.find(
-            (resolution) =>
-              resolution.mode === 'create' &&
-              [resolution.actionIndex, ...(resolution.actionIndexes || [])].includes(actionIndex)
-          );
-          const resolvedPerson = resolvePersonOption(action.personId, action.personName, people);
-          const personName = createResolution?.personName || resolvedPerson?.fullName || action.personName || 'New Person';
-          const personKey = resolvedPerson?.id
-            ? `id:${resolvedPerson.id}`
-            : `name:${normalizeName(personName || `person-${actionIndex}`)}`;
-          const existing = grouped.get(personKey);
-          if (existing) {
-            existing.actionIndexes.push(actionIndex);
-            existing.isResolved = existing.isResolved || !!resolvedPerson || !!createResolution;
-            return;
-          }
+  const UsageProgressBar = ({
+    label,
+    used,
+    total,
+  }: {
+    label: string;
+    used: number;
+    total: number;
+  }) => {
+    const safeUsed = Math.max(0, used);
+    const safeTotal = Math.max(0, total);
+    const pct = safeTotal > 0 ? Math.min(100, Math.round((safeUsed / safeTotal) * 100)) : 0;
 
-          grouped.set(personKey, {
-            actionIndex,
-            actionIndexes: [actionIndex],
-            personName,
-            existingPeople: people.map((person) => ({
-              id: person.id as string,
-              fullName: person.fullName as string,
-              relationship: typeof person.relationship === 'string' ? person.relationship : undefined,
-              moneyHeld: typeof person.moneyHeld === 'number' ? person.moneyHeld : undefined,
-            })),
-            noPeople: people.length === 0,
-            isResolved: !!resolvedPerson || !!createResolution,
-          });
-        });
+    return (
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{label}</span>
+          <span className="font-600 text-foreground">{safeUsed} of {safeTotal}</span>
+        </div>
+        <div className="h-2 rounded-full bg-secondary overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${
+              pct >= 100 ? 'bg-negative' : pct >= 80 ? 'bg-warning' : 'bg-accent'
+            }`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
 
-        return Array.from(grouped.values());
-      })()
-    : [];
+  const limitView = (() => {
+    const error = apiError;
+    const usage = usageSummary;
+    const creditsAllocated = Math.max(0, usage?.creditsAllocated || 0);
+    const creditsConsumed = Math.max(0, usage?.creditsConsumed || 0);
+    const creditsReserved = Math.max(0, usage?.creditsReserved || 0);
+    const creditsUsed = creditsConsumed + creditsReserved;
+    const creditsRemaining = typeof error?.remainingCredits === 'number'
+      ? error.remainingCredits
+      : Math.max(0, usage?.creditsRemaining ?? creditsAllocated - creditsUsed);
+    const requestsToday = Math.max(0, usage?.requestsToday || 0);
+    const dailyLimit = Math.max(0, usage?.dailyRequestLimit || 0);
 
-  const unresolvedPersonCount = personRequirements.filter((item) => !item.isResolved).length;
+    if (!error) {
+      return {
+        title: 'AI unavailable',
+        description: 'AI access is temporarily unavailable.',
+        primaryLabel: 'View Plans',
+      };
+    }
 
-  const unresolvedAccounts: UnresolvedAccountRequirement[] = previewInstruction
-    ? (() => {
-        const accounts = contextSnapshot?.accounts || [];
-        const availableNames = new Set(accounts.map((account) => normalizeName(account.name)));
-        accountResolutions.forEach((resolution) => {
-          if (resolution.mode === 'create' && resolution.account?.name) {
-            availableNames.add(normalizeName(resolution.account.name));
-          }
-        });
-        const unresolved: UnresolvedAccountRequirement[] = [];
+    if (error.code === 'DAILY_REQUEST_LIMIT_REACHED' || error.limitType === 'daily_requests') {
+      return {
+        title: 'Daily AI Request Limit Reached',
+        description: `You have used all ${dailyLimit || requestsToday} AI requests available today.`,
+        primaryLabel: 'View Plan',
+        requestsToday,
+        dailyLimit,
+        creditsUsed,
+        creditsAllocated,
+        creditsRemaining,
+        resetLabel: formatRelativeHours(error.retryAfterSeconds),
+      };
+    }
 
-        previewInstruction.actions.forEach((action, actionIndex) => {
-          (['account', 'destinationAccount'] as const).forEach((field) => {
-            if (!isAccountRequired(action, field)) return;
-            const accountId = field === 'account' ? action.accountId : action.destinationAccountId;
-            const accountName = field === 'account' ? action.accountName : action.destinationAccountName;
-            if (accountId) return;
-            if (accountName && availableNames.has(normalizeName(accountName))) return;
+    if (error.code === 'MONTHLY_CREDIT_LIMIT_REACHED' || error.limitType === 'monthly_credits') {
+      return {
+        title: 'Monthly AI Credits Used',
+        description: `You have used all ${creditsAllocated || creditsUsed} AI credits for this billing period.`,
+        primaryLabel: 'View Plans',
+        creditsUsed,
+        creditsAllocated,
+        creditsRemaining,
+        renewalLabel: formatShortDateTime(usage?.cycleEnd),
+      };
+    }
 
-            unresolved.push({
-              actionIndex,
-              field,
-              accountName: accountName || 'Cash',
-              suggestedAccount: getSuggestedAccount(action, field),
-              existingAccounts: accounts.map((account) => ({
-                id: account.id as string,
-                name: account.name as string,
-                type: account.type as string,
-                currency: account.currency as string,
-              })),
-              noAccounts: accounts.length === 0,
-            });
-          });
-        });
+    if (error.code === 'INSUFFICIENT_AI_CREDITS' || error.limitType === 'insufficient_credits') {
+      return {
+        title: 'Not Enough AI Credits',
+        description: `This action requires ${error.requiredCredits || 0} credits, but you have ${creditsRemaining} remaining.`,
+        primaryLabel: 'View Plans',
+        creditsUsed,
+        creditsAllocated,
+        creditsRemaining,
+        requiredCredits: error.requiredCredits,
+        renewalLabel: formatShortDateTime(usage?.cycleEnd),
+      };
+    }
 
-        return unresolved;
-      })()
-    : [];
+    if (error.code === 'TRIAL_EXPIRED' || error.limitType === 'trial_expired') {
+      return {
+        title: 'Trial Expired',
+        description: error.message,
+        primaryLabel: 'View Plans',
+        creditsUsed,
+        creditsAllocated,
+        creditsRemaining,
+        renewalLabel: formatShortDateTime(usage?.trialEndsAt || usage?.cycleEnd),
+      };
+    }
+
+    return {
+      title: 'Subscription Expired',
+      description: error.message,
+      primaryLabel: 'View Plans',
+      creditsUsed,
+      creditsAllocated,
+      creditsRemaining,
+      renewalLabel: formatShortDateTime(usage?.currentPeriodEnd || usage?.cycleEnd),
+    };
+  })();
+
+   const previewInstruction = parsed && reviewState
+     ? applySmartEntryReviewToInstruction({
+         ...parsed,
+         review: reviewState,
+       })
+     : null;
+   const unresolvedReviewFields = previewInstruction ? getSmartEntryMissingFields(previewInstruction) : [];
+   const compactSummaryRows = previewInstruction ? getCompactSummaryRows(previewInstruction) : [];
+   const totals = previewInstruction ? getSmartEntryTotals(previewInstruction) : null;
+   const accounts = contextSnapshot?.accounts || [];
+   const people = contextSnapshot?.people || [];
+  const eligiblePrimaryAccounts = getEligibleAccountsForPurpose({
+    purpose: reviewState?.purpose,
+    accounts,
+    field: 'account',
+    personName: reviewState?.person?.name,
+    people,
+  });
+  const eligibleDestinationAccounts = getEligibleAccountsForPurpose({
+    purpose: reviewState?.purpose,
+    accounts,
+    field: 'destinationAccount',
+    personName: reviewState?.person?.name,
+    people,
+  });
+   const personSelectValue = reviewState?.person?.mode === 'existing'
+     ? reviewState.person.personId || ''
+     : reviewState?.person?.mode === 'create'
+       ? '__create__'
+       : '';
+   const primaryAccountSelectValue = reviewState?.account?.mode === 'existing'
+     ? reviewState.account.accountId || ''
+     : reviewState?.account?.mode === 'create'
+       ? '__create__'
+       : '';
+   const destinationAccountSelectValue = reviewState?.destinationAccount?.mode === 'existing'
+     ? reviewState.destinationAccount.accountId || ''
+     : reviewState?.destinationAccount?.mode === 'create'
+       ? '__create__'
+       : '';
+   const selectedPerson = reviewState?.person?.personId
+     ? people.find((person) => person.id === reviewState.person?.personId) || null
+     : (
+         people.find(
+           (person) =>
+             (person.fullName || '').trim().toLowerCase() === (reviewState?.person?.name || '').trim().toLowerCase()
+         ) || null
+       );
+   const selectedAccount = reviewState?.account?.accountId
+    ? eligiblePrimaryAccounts.find((account) => account.id === reviewState.account?.accountId) || null
+     : (
+        eligiblePrimaryAccounts.find(
+           (account) => (account.name || '').trim().toLowerCase() === (reviewState?.account?.name || '').trim().toLowerCase()
+         ) || null
+       );
+   const selectedDestinationAccount = reviewState?.destinationAccount?.accountId
+    ? eligibleDestinationAccounts.find((account) => account.id === reviewState.destinationAccount?.accountId) || null
+     : (
+        eligibleDestinationAccounts.find(
+           (account) =>
+             (account.name || '').trim().toLowerCase() ===
+             (reviewState?.destinationAccount?.name || '').trim().toLowerCase()
+         ) || null
+       );
+
+   const updateReview = useCallback((updater: (current: SmartEntryReview) => SmartEntryReview) => {
+     setReviewState((current) => {
+       if (!current || !parsed) return current;
+       const next = updater(current);
+       const reviewedInstruction = applySmartEntryReviewToInstruction({
+         ...parsed,
+         review: next,
+       });
+       return {
+         ...next,
+         missing: getSmartEntryMissingFields(reviewedInstruction),
+       };
+     });
+   }, [parsed]);
+
+  const handleReviewAmountChange = useCallback((value: string) => {
+    const trimmed = value.trim();
+    const parsedAmount = trimmed ? Number(trimmed) : undefined;
+    updateReview((current) => ({
+      ...current,
+      amount: typeof parsedAmount === 'number' && Number.isFinite(parsedAmount) ? parsedAmount : undefined,
+      amountNeedsConfirmation: !(typeof parsedAmount === 'number' && Number.isFinite(parsedAmount)),
+    }));
+  }, [updateReview]);
+
+  const handleUseFullAmount = useCallback(() => {
+    if (typeof reviewState?.amountQuickOptionValue !== 'number') return;
+    updateReview((current) => ({
+      ...current,
+      amount: current.amountQuickOptionValue,
+      amountNeedsConfirmation: false,
+    }));
+  }, [reviewState?.amountQuickOptionValue, updateReview]);
+
+  const syncManagedAccount = useCallback((
+     current: SmartEntryReview,
+     personName: string | undefined,
+     personId: string | undefined
+   ): SmartEntryReview['account'] => {
+     if (!current.account?.required) return current.account;
+    const suggestedName = getManagedAccountName(personName);
+    const matchedAccount = getEligibleAccountsForPurpose({
+      purpose: current.purpose,
+      accounts,
+      field: 'account',
+      personName,
+      people,
+    }).find(
+      (account) => (account.name || '').trim().toLowerCase() === suggestedName.trim().toLowerCase()
+    );
+     const nextSelection: NonNullable<SmartEntryReview['account']> = {
+       ...current.account,
+      mode: matchedAccount ? 'existing' : undefined,
+      accountId: matchedAccount?.id,
+      name: matchedAccount?.name || suggestedName,
+      type: (matchedAccount?.type as SuggestedAccount['type']) || inferAccountType(suggestedName),
+      currency: sanitizeCurrency(matchedAccount?.currency || current.account.currency || current.currency),
+       includeInTotal: false,
+       scope: 'managed' as const,
+       managedPersonId: personId,
+       managedPersonName: personName,
+     };
+     return nextSelection;
+  }, [accounts, people]);
+
+  const resetRequestState = useCallback((options?: { preserveInput?: boolean; preserveMode?: boolean; preserveLanguage?: boolean }) => {
+    setStep('entry');
+    setTextInput(options?.preserveInput ? textInput : '');
+    setTranscript('');
+    setParsed(null);
+    setReviewState(null);
+    setErrorMessage('');
+    setApiError(null);
+    setUsageSummary(null);
+    setExecutionResult(null);
+    setContextSnapshot(null);
+    setAccountDraft(null);
+    setPersonDraft(null);
+    setAccountDraftTarget(null);
+    if (!options?.preserveMode) {
+      setMode(defaultMode);
+    }
+    if (!options?.preserveLanguage) {
+      setLanguage('en');
+    }
+  }, [defaultMode, textInput]);
+
+   const handlePurposeChange = useCallback((purpose: SmartEntryPurpose) => {
+     updateReview((current) => {
+       const next: SmartEntryReview = {
+         ...current,
+         purpose,
+         purposeNeedsConfirmation: false,
+       };
+
+       if (!next.account?.required) return next;
+
+       if (isManagedPurpose(purpose)) {
+         next.account = syncManagedAccount(next, next.person?.name, next.person?.personId);
+       } else {
+        const fallbackPersonalAccount = getEligibleAccountsForPurpose({
+          purpose,
+          accounts,
+          field: 'account',
+          personName: next.person?.name,
+          people,
+        })[0];
+        const currentMatchesPersonal = next.account.accountId
+          ? getEligibleAccountsForPurpose({
+              purpose,
+              accounts,
+              field: 'account',
+              personName: next.person?.name,
+              people,
+            }).some((account) => account.id === next.account?.accountId)
+          : false;
+        const nextMode: NonNullable<SmartEntryReview['account']>['mode'] =
+          currentMatchesPersonal ? 'existing' : (fallbackPersonalAccount ? 'existing' : undefined);
+        const nextSelection: NonNullable<SmartEntryReview['account']> = {
+           ...next.account,
+          mode: nextMode,
+          accountId: currentMatchesPersonal ? next.account.accountId : fallbackPersonalAccount?.id,
+          name: currentMatchesPersonal ? next.account.name : fallbackPersonalAccount?.name,
+          type: currentMatchesPersonal
+            ? next.account.type
+            : (fallbackPersonalAccount?.type as SuggestedAccount['type'] | undefined) || next.account.type,
+          currency: sanitizeCurrency(
+            (currentMatchesPersonal ? next.account.currency : fallbackPersonalAccount?.currency) || next.currency
+          ),
+           scope: 'personal',
+           includeInTotal: true,
+           managedPersonId: undefined,
+           managedPersonName: undefined,
+         };
+        next.account = nextSelection;
+       }
+
+       return next;
+     });
+   }, [accounts, people, syncManagedAccount, updateReview]);
+
+   const handleStartCreatePerson = useCallback(() => {
+     setPersonDraft({
+       name: (reviewState?.person?.name || '').trim(),
+       relationship: reviewState?.person?.relationship || 'other',
+       notes: reviewState?.person?.notes || '',
+     });
+   }, [reviewState]);
+
+   const handleApplyCreatePerson = useCallback(() => {
+     if (!personDraft?.name.trim()) return;
+
+     updateReview((current) => {
+       const next: SmartEntryReview = {
+         ...current,
+         person: {
+           required: true,
+           mode: 'create',
+           name: personDraft.name.trim(),
+           relationship: personDraft.relationship,
+           notes: personDraft.notes.trim() || undefined,
+         },
+       };
+
+       if (isManagedPurpose(next.purpose)) {
+         next.account = syncManagedAccount(next, personDraft.name.trim(), undefined);
+       }
+
+       return next;
+     });
+
+     setPersonDraft(null);
+   }, [personDraft, syncManagedAccount, updateReview]);
+
+   const handlePersonSelectionChange = useCallback((value: string) => {
+     if (value === '__create__') {
+       handleStartCreatePerson();
+       return;
+     }
+
+     if (!value) {
+      updateReview((current) => {
+        const next: SmartEntryReview = {
+          ...current,
+          person: {
+            ...(current.person || {}),
+            required: true,
+            mode: undefined,
+            personId: undefined,
+            name: undefined,
+          },
+        };
+
+        if (isManagedPurpose(next.purpose)) {
+          next.account = syncManagedAccount(next, undefined, undefined);
+        }
+
+        return next;
+      });
+       return;
+     }
+
+     const person = people.find((item) => item.id === value);
+     if (!person) return;
+
+     updateReview((current) => {
+       const next: SmartEntryReview = {
+         ...current,
+         person: {
+           required: true,
+           mode: 'existing',
+           personId: person.id,
+           name: person.fullName,
+           relationship: person.relationship,
+         },
+       };
+
+       if (isManagedPurpose(next.purpose)) {
+         next.account = syncManagedAccount(next, person.fullName, person.id);
+       }
+
+       return next;
+     });
+     setPersonDraft(null);
+   }, [handleStartCreatePerson, people, syncManagedAccount, updateReview]);
+
+   const handleStartCreateAccount = useCallback((field: 'account' | 'destinationAccount') => {
+     const selection = field === 'destinationAccount' ? reviewState?.destinationAccount : reviewState?.account;
+     const personName = reviewState?.person?.name;
+     const suggestedName =
+       field === 'account' && isManagedPurpose(reviewState?.purpose)
+        ? getManagedAccountName(personName)
+         : selection?.name || 'Cash';
+
+     setAccountDraftTarget(field);
+     setAccountDraft({
+       field,
+       name: suggestedName,
+       type: selection?.type || inferAccountType(suggestedName),
+       currency: sanitizeCurrency(selection?.currency || reviewState?.currency),
+       includeInTotal: field === 'account' ? !isManagedPurpose(reviewState?.purpose) : true,
+     });
+  }, [reviewState]);
+
+   const handleApplyCreateAccount = useCallback(() => {
+     if (!accountDraft?.name.trim()) return;
+
+     updateReview((current) => {
+        const selection: NonNullable<SmartEntryReview['account']> = {
+         required: true,
+         mode: 'create' as const,
+         accountId: undefined,
+         name: accountDraft.name.trim(),
+         type: accountDraft.type,
+         currency: sanitizeCurrency(accountDraft.currency),
+         includeInTotal: accountDraft.field === 'account' ? accountDraft.includeInTotal : true,
+         scope: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
+         managedPersonId: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
+         managedPersonName: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? current.person?.name : undefined,
+       };
+
+       return accountDraft.field === 'destinationAccount'
+         ? { ...current, destinationAccount: selection }
+         : { ...current, account: selection };
+     });
+
+     setAccountDraft(null);
+     setAccountDraftTarget(null);
+   }, [accountDraft, updateReview]);
+
+   const handleAccountSelectionChange = useCallback((field: 'account' | 'destinationAccount', value: string) => {
+     if (value === '__create__') {
+       handleStartCreateAccount(field);
+       return;
+     }
+
+     if (!value) {
+       updateReview((current) =>
+         field === 'destinationAccount'
+           ? {
+               ...current,
+               destinationAccount: {
+                 ...(current.destinationAccount || {}),
+                 required: true,
+                 mode: undefined,
+                 accountId: undefined,
+                name: undefined,
+               },
+             }
+           : {
+               ...current,
+               account: {
+                 ...(current.account || {}),
+                 required: true,
+                 mode: undefined,
+                 accountId: undefined,
+                name: undefined,
+                managedPersonId: undefined,
+                managedPersonName: undefined,
+               },
+             }
+       );
+       return;
+     }
+
+    const pool = field === 'destinationAccount' ? eligibleDestinationAccounts : eligiblePrimaryAccounts;
+    const account = pool.find((item) => item.id === value);
+     if (!account) return;
+
+     updateReview((current) => {
+      const selection: NonNullable<SmartEntryReview['account']> = {
+         required: true,
+         mode: 'existing' as const,
+         accountId: account.id,
+         name: account.name,
+         type: account.type as SuggestedAccount['type'],
+         currency: sanitizeCurrency(account.currency),
+         includeInTotal: field === 'account' ? !isManagedPurpose(current.purpose) : true,
+         scope: field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
+         managedPersonId: field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
+         managedPersonName: field === 'account' && isManagedPurpose(current.purpose) ? current.person?.name : undefined,
+       };
+
+       return field === 'destinationAccount'
+         ? { ...current, destinationAccount: selection }
+         : { ...current, account: selection };
+     });
+
+     setAccountDraft(null);
+     setAccountDraftTarget(null);
+  }, [eligibleDestinationAccounts, eligiblePrimaryAccounts, handleStartCreateAccount, updateReview]);
 
   const callParseAPI = useCallback(async (
     type: 'text' | 'voice',
     text?: string,
     audio?: { audioBase64: string; mimeType: string; durationSeconds: number }
   ) => {
+    const nextFlowId = createClientId();
+    resetRequestState({
+      preserveInput: false,
+      preserveMode: true,
+      preserveLanguage: true,
+    });
     setStep('processing');
+    if (type === 'text' && text) {
+      setTranscript(text);
+    }
     setErrorMessage('');
+    setApiError(null);
+    setUsageSummary(null);
 
     try {
       const token = await getAuthToken();
@@ -473,9 +842,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         inputType: type,
         language,
         context,
-        idempotencyKey: flowId,
+        idempotencyKey: nextFlowId,
       };
-      if (flowRequestId) body.requestId = flowRequestId;
 
       if (type === 'text') body.text = text;
       if (type === 'voice') body.audio = audio;
@@ -489,7 +857,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         body: JSON.stringify(body),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (data.status === 'not_configured') {
         setIsAIConfigured(false);
         setStep('entry');
@@ -497,8 +865,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       }
 
       if (data.status === 'failed' || !response.ok) {
-        setErrorMessage(data.errorMessage || data.error || 'AI processing failed. Please try again.');
-        setStep('failed');
+        handleApiFailure(data, 'AI processing failed. Please try again.');
         return;
       }
 
@@ -506,23 +873,26 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
 
       const instruction = data.parsed as ParsedFinancialInstruction;
       setParsed(instruction);
-      setFlowRequestId(instruction.requestId || data.requestId || null);
-      setAccountResolutions([]);
-      setPersonResolutions([]);
-      setPersonNameEdits({});
+      const baseReview =
+        instruction.review ||
+        buildInitialSmartEntryReview({
+          instruction,
+          sourceText: (text || transcript || '').trim(),
+          context,
+        });
+      setReviewState(hydrateSmartEntryReviewWithContext({ review: baseReview, context }));
       setAccountDraft(null);
       setPersonDraft(null);
+      setAccountDraftTarget(null);
 
-      if (instruction.requiresClarification) {
-        setStep('clarifying');
-      } else {
-        setStep('confirming');
-      }
+      setStep('confirming');
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Network error. Please try again.');
+      setApiError(null);
+      setUsageSummary(null);
       setStep('failed');
     }
-  }, [flowId, flowRequestId, language]);
+  }, [language, handleApiFailure, resetRequestState]);
 
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
@@ -533,21 +903,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     callParseAPI('voice', undefined, { audioBase64, mimeType, durationSeconds });
   }, [callParseAPI]);
 
-  const handleClarificationSubmit = useCallback(() => {
-    if (!clarificationInput.trim() || !parsed) return;
-    const newAnswers = [...clarificationAnswers, clarificationInput.trim()];
-    setClarificationAnswers(newAnswers);
-    setClarificationInput('');
-
-    // Re-submit with clarification context appended
-    const enrichedText = `${textInput || transcript}\n\nClarification: ${newAnswers.join('; ')}`;
-    callParseAPI('text', enrichedText);
-  }, [clarificationInput, clarificationAnswers, parsed, textInput, transcript, callParseAPI]);
-
   const handleConfirm = useCallback(async () => {
-    if (!parsed || unresolvedAccounts.length > 0 || unresolvedPersonCount > 0) return;
+    if (!parsed || !reviewState || unresolvedReviewFields.length > 0) return;
     setStep('executing');
     setErrorMessage('');
+    setApiError(null);
+    setUsageSummary(null);
 
     try {
       const confirmResponse = await fetch('/api/ai/confirm', {
@@ -557,14 +918,17 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         },
         body: JSON.stringify({
           requestId: parsed.requestId,
-          accountResolutions,
-          personResolutions,
+          review: reviewState,
         }),
       });
 
       const confirmResult = await confirmResponse.json().catch(() => ({}));
       if (!confirmResponse.ok) {
-        throw new Error(getFriendlyConfirmErrorMessage(confirmResult.error));
+        const message = getFriendlyConfirmErrorMessage(
+          isObject(confirmResult) && 'error' in confirmResult ? (confirmResult as Record<string, unknown>).error : undefined
+        );
+        handleApiFailure(confirmResult, message);
+        return;
       }
 
       const token = await getAuthToken();
@@ -577,14 +941,15 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         body: JSON.stringify({ requestId: parsed.requestId }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => ({}));
       if (!response.ok || result.status === 'failed') {
         if (result?.status === 'clarification_required' || result?.code === 'account_missing' || result?.code === 'person_missing') {
           setErrorMessage(result.message || 'This Smart Entry request still needs more details before it can be saved.');
           setStep('confirming');
           return;
         }
-        throw new Error(getFriendlyExecutionErrorMessage(result.error));
+        handleApiFailure(result, getFriendlyExecutionErrorMessage(result.error));
+        return;
       }
 
       setExecutionResult({
@@ -599,211 +964,15 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       router.refresh();
     } catch (err) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to save records.');
+      setApiError(null);
+      setUsageSummary(null);
       setStep('failed');
     }
-  }, [accountResolutions, parsed, personResolutions, previewInstruction?.actions.length, router, unresolvedAccounts.length, unresolvedPersonCount]);
+  }, [parsed, reviewState, previewInstruction?.actions.length, router, unresolvedReviewFields.length, handleApiFailure]);
 
   const handleReset = useCallback(() => {
-    setStep('entry');
-    setTextInput('');
-    setTranscript('');
-    setParsed(null);
-    setErrorMessage('');
-    setClarificationAnswers([]);
-    setClarificationInput('');
-    setExecutionResult(null);
-    setContextSnapshot(null);
-    setFlowRequestId(null);
-    setFlowId(createClientId());
-    setAccountResolutions([]);
-    setPersonResolutions([]);
-    setPersonNameEdits({});
-    setAccountDraft(null);
-    setPersonDraft(null);
-  }, []);
-
-  const upsertAccountResolution = useCallback((resolution: AccountResolutionChoice) => {
-    setAccountResolutions((current) => {
-      const next = current.filter(
-        (item) => !(item.actionIndex === resolution.actionIndex && item.field === resolution.field)
-      );
-      next.push(resolution);
-      return next;
-    });
-  }, []);
-
-  const upsertPersonResolution = useCallback((resolution: PersonResolution) => {
-    setPersonResolutions((current) => {
-      const next = current.filter((item) => item.actionIndex !== resolution.actionIndex);
-      next.push(resolution);
-      return next;
-    });
-  }, []);
-
-  const handleStartCreateAccount = useCallback((requirement: UnresolvedAccountRequirement) => {
-    setAccountDraft({
-      actionIndex: requirement.actionIndex,
-      field: requirement.field,
-      name: requirement.suggestedAccount.name,
-      type: requirement.suggestedAccount.type,
-      currency: requirement.suggestedAccount.currency,
-      openingBalance: requirement.suggestedAccount.openingBalance,
-      includeInTotal: requirement.suggestedAccount.includeInTotal,
-    });
-  }, []);
-
-  const handleApplyCreateAccount = useCallback(() => {
-    if (!accountDraft || !accountDraft.name.trim()) return;
-    upsertAccountResolution({
-      actionIndex: accountDraft.actionIndex,
-      field: accountDraft.field,
-      mode: 'create',
-      account: {
-        name: accountDraft.name.trim(),
-        type: accountDraft.type,
-        currency: sanitizeCurrency(accountDraft.currency),
-        openingBalance: Number(accountDraft.openingBalance || 0),
-        includeInTotal: accountDraft.includeInTotal,
-      },
-    });
-    setAccountDraft(null);
-  }, [accountDraft, upsertAccountResolution]);
-
-  const handleStartCreatePerson = useCallback((requirement: PersonResolutionRequirement) => {
-    setPersonDraft({
-      actionIndex: requirement.actionIndex,
-      actionIndexes: requirement.actionIndexes,
-      name: (personNameEdits[requirement.actionIndex] || requirement.personName).trim() || requirement.personName,
-      relationship: 'other',
-      notes: '',
-    });
-  }, [personNameEdits]);
-
-  const handleApplyCreatePerson = useCallback(() => {
-    if (!personDraft || !personDraft.name.trim()) return;
-    upsertPersonResolution({
-      actionIndex: personDraft.actionIndex,
-      actionIndexes: personDraft.actionIndexes,
-      mode: 'create',
-      personName: personDraft.name.trim(),
-      relationship: personDraft.relationship,
-      notes: personDraft.notes.trim() || undefined,
-    });
-    setPersonNameEdits((current) => {
-      const next = { ...current };
-      delete next[personDraft.actionIndex];
-      return next;
-    });
-    setPersonDraft(null);
-  }, [personDraft, upsertPersonResolution]);
-
-  const handleAccountSelectionChange = useCallback((
-    actionIndex: number,
-    field: 'account' | 'destinationAccount',
-    value: string
-  ) => {
-    if (value === '__create__') {
-      const action = previewInstruction?.actions[actionIndex];
-      if (!action) return;
-      handleStartCreateAccount({
-        actionIndex,
-        field,
-        accountName: field === 'account' ? (action.accountName || 'Cash') : (action.destinationAccountName || 'Cash'),
-        suggestedAccount: getSuggestedAccount(action, field),
-        existingAccounts: (contextSnapshot?.accounts || []).map((account) => ({
-          id: account.id as string,
-          name: account.name as string,
-          type: account.type as string,
-          currency: account.currency as string,
-        })),
-        noAccounts: (contextSnapshot?.accounts || []).length === 0,
-      });
-      return;
-    }
-
-    if (!value) {
-      setAccountResolutions((current) => current.filter(
-        (item) => !(item.actionIndex === actionIndex && item.field === field)
-      ));
-      return;
-    }
-
-    upsertAccountResolution({
-      actionIndex,
-      field,
-      mode: 'select',
-      accountId: value,
-    });
-  }, [contextSnapshot, getSuggestedAccount, handleStartCreateAccount, previewInstruction, upsertAccountResolution]);
-
-  const handlePersonSelectionChange = useCallback((
-    requirement: PersonResolutionRequirement,
-    value: string
-  ) => {
-    if (value === '__create__') {
-      handleStartCreatePerson(requirement);
-      return;
-    }
-
-    if (!value) {
-      setPersonResolutions((current) => current.filter((item) => item.actionIndex !== requirement.actionIndex));
-      return;
-    }
-
-    const selectedPerson = (contextSnapshot?.people || []).find((person) => person.id === value);
-    if (!selectedPerson) return;
-
-    upsertPersonResolution({
-      actionIndex: requirement.actionIndex,
-      actionIndexes: requirement.actionIndexes,
-      mode: 'existing',
-      personId: selectedPerson.id as string,
-      personName: selectedPerson.fullName as string,
-      relationship: typeof selectedPerson.relationship === 'string'
-        ? selectedPerson.relationship as PersonResolution['relationship']
-        : undefined,
-    });
-    setPersonDraft(null);
-  }, [contextSnapshot, handleStartCreatePerson, upsertPersonResolution]);
-
-  const formatActionSummary = (action: FinancialAction): string => {
-    const amount = action.amount ? `${action.currency || 'AED'} ${action.amount.toLocaleString()}` : 'Amount unknown';
-    switch (action.actionType) {
-      case 'create_account':            return `Create ${action.accountType?.replace('_', ' ') || 'account'} account: ${action.accountName || 'New Account'}`;
-      case 'create_managed_person':     return `Create managed person: ${action.personName || 'New Person'}`;
-      case 'income':                    return `Income: ${amount}`;
-      case 'expense':                   return `Expense: ${amount}${action.categoryName ? ` (${action.categoryName})` : ''}`;
-      case 'money_received_from_person':return `Money received from ${action.personName || 'person'}: ${amount}`;
-      case 'money_returned_to_person':  return `Money returned to ${action.personName || 'person'}: ${amount}`;
-      case 'expense_from_held_balance': return `Expense from ${action.personName || 'person'}'s held balance: ${amount}`;
-      case 'expense_paid_for_person':   return `Paid for ${action.personName || 'person'}: ${amount}`;
-      case 'reimbursement_payment':     return `Reimbursement from ${action.personName || 'person'}: ${amount}`;
-      case 'settlement':                return `Settlement with ${action.personName || 'person'}: ${amount}`;
-      case 'transfer':                  return `Transfer ${amount} from ${action.accountName || '?'} to ${action.destinationAccountName || '?'}`;
-      case 'budget':                    return `Budget: ${amount}${action.categoryName ? ` for ${action.categoryName}` : ''}`;
-      case 'recurring_transaction':     return `Recurring ${action.recurringFrequency || 'monthly'}: ${amount}`;
-      default:                          return `${action.actionType}: ${amount}`;
-    }
-  };
-
-  const getActionIcon = (action: FinancialAction): string => {
-    switch (action.actionType) {
-      case 'create_account':            return '🏦';
-      case 'create_managed_person':     return '👤';
-      case 'income':                    return '💰';
-      case 'expense':                   return '💸';
-      case 'money_received_from_person':return '📥';
-      case 'money_returned_to_person':  return '📤';
-      case 'expense_from_held_balance': return '🏦';
-      case 'expense_paid_for_person':   return '🤝';
-      case 'reimbursement_payment':     return '↩️';
-      case 'settlement':                return '✅';
-      case 'transfer':                  return '🔄';
-      case 'budget':                    return '📊';
-      case 'recurring_transaction':     return '🔁';
-      default:                          return '📋';
-    }
-  };
+    resetRequestState();
+  }, [resetRequestState]);
 
   const getFriendlyExecutionErrorMessage = (rawError: unknown): string => {
     const message = typeof rawError === 'string' ? rawError : '';
@@ -1040,64 +1209,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
             </div>
           )}
 
-          {/* Clarifying */}
-          {step === 'clarifying' && parsed && (
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageSquare size={18} className="text-warning" />
-                <p className="text-sm font-600 text-foreground">A few questions</p>
-              </div>
-
-              {transcript && (
-                <div className="p-3 bg-muted/50 rounded-xl mb-4">
-                  <p className="text-xs text-muted-foreground">You said:</p>
-                  <p className="text-sm text-foreground mt-0.5">"{transcript || textInput}"</p>
-                </div>
-              )}
-
-              <div className="space-y-3 mb-4">
-                {parsed.clarificationQuestions?.map((q, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="text-warning mt-0.5">•</span>
-                    <p className="text-sm text-foreground">{q}</p>
-                  </div>
-                ))}
-                {parsed.missingFields?.length > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Missing: {parsed.missingFields.join(', ')}
-                  </p>
-                )}
-              </div>
-
-              <textarea
-                value={clarificationInput}
-                onChange={e => setClarificationInput(e.target.value)}
-                placeholder="Type your answer..."
-                className="input-base w-full h-20 resize-none text-sm mb-3"
-                dir={language === 'ar' ? 'rtl' : 'ltr'}
-              />
-
-              <div className="flex gap-2">
-                <button
-                  onClick={handleClarificationSubmit}
-                  disabled={!clarificationInput.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 disabled:opacity-50 transition-colors"
-                >
-                  Continue
-                </button>
-                <button
-                  onClick={() => setStep('confirming')}
-                  className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                >
-                  Skip
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Confirming */}
-          {step === 'confirming' && parsed && previewInstruction && (
-            <div className="p-5">
+          {step === 'confirming' && parsed && reviewState && previewInstruction && (
+            <div className="space-y-4 p-5">
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle size={18} className="text-positive" />
                 <p className="text-sm font-600 text-foreground">Review before saving</p>
@@ -1119,7 +1233,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 </div>
               )}
 
-              {/* Warnings */}
               {previewInstruction.warnings?.length > 0 && (
                 <div className="p-3 bg-warning-soft border border-warning/20 rounded-xl mb-4">
                   {previewInstruction.warnings.map((w, i) => (
@@ -1131,314 +1244,323 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 </div>
               )}
 
-              {/* Actions list */}
-              <div className="space-y-3 mb-4">
-                {previewInstruction.actions.map((action, i) => {
-                  const accountRequirement = unresolvedAccounts.find(
-                    (item) => item.actionIndex === i && item.field === 'account'
-                  );
-                  const destinationRequirement = unresolvedAccounts.find(
-                    (item) => item.actionIndex === i && item.field === 'destinationAccount'
-                  );
-                  const personRequirement = personRequirements.find((item) => item.actionIndexes.includes(i));
-                  const resolvedPerson = resolvePersonOption(action.personId, action.personName, contextSnapshot?.people || []);
-                  const personCreateResolution = personRequirement
-                    ? personResolutions.find(
-                        (resolution) =>
-                          resolution.mode === 'create' &&
-                          resolution.actionIndex === personRequirement.actionIndex
-                      )
-                    : null;
-                  const selectedAccount = findAccountOption(action, 'account');
-                  const selectedDestinationAccount = findAccountOption(action, 'destinationAccount');
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Understanding</p>
+                  {reviewState.understanding.map((line, index) => (
+                    <p key={index} className="text-sm text-foreground">{line}</p>
+                  ))}
+                  {reviewState.purposeOptions && reviewState.purposeOptions.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      <p className="text-sm font-600 text-foreground">
+                        {typeof reviewState.receivedAmount === 'number' && reviewState.person?.name
+                          ? `How should the ${formatMoney(reviewState.receivedAmount, reviewState.currency || 'AED')} from ${reviewState.person.name} be treated?`
+                          : 'How should this money be treated?'}
+                      </p>
+                      {reviewState.purposeOptions.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => handlePurposeChange(option.id)}
+                          className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                            reviewState.purpose === option.id ? 'border-accent bg-accent/10' : 'border-border bg-card hover:border-accent/40'
+                          }`}
+                        >
+                          <p className="text-sm font-600 text-foreground">{option.label}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                  return (
-                  <div key={i} className="p-3 bg-muted/30 border border-border rounded-xl">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2 flex-1 min-w-0">
-                        <span className="text-lg flex-shrink-0">{getActionIcon(action)}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-600 text-foreground">{formatActionSummary(action)}</p>
-                          {action.date && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {action.date === 'today' ? 'Today' : action.date}
-                            </p>
-                          )}
-                          {action.warnings?.length > 0 && (
-                            <div className="mt-1">
-                              {action.warnings.map((w, wi) => (
-                                <p key={wi} className="text-xs text-warning">⚠ {w}</p>
-                              ))}
-                            </div>
-                          )}
-                          {action.categoryName && (
-                            <p className="mt-2 text-xs text-muted-foreground">Category: {action.categoryName}</p>
-                          )}
-                          {isPersonRequired(action) && (
-                            <div className="mt-2 space-y-2">
-                              <p className={`text-xs ${personRequirement && !personRequirement.isResolved ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                Managed person: {resolvedPerson?.fullName || action.personName || 'Missing'}
-                              </p>
-                              {resolvedPerson && (
-                                <p className="text-xs text-muted-foreground">
-                                  {resolvedPerson.relationship ? `${resolvedPerson.relationship} · ` : ''}
-                                  Held balance: {formatHeldBalance(
-                                    typeof resolvedPerson.moneyHeld === 'number' ? resolvedPerson.moneyHeld : 0,
-                                    action.currency || 'AED'
-                                  )}
-                                </p>
-                              )}
-                              {personRequirement && (
-                                <div className={`rounded-xl bg-card p-3 space-y-2 ${
-                                  personRequirement.isResolved ? 'border border-border' : 'border border-warning/20'
-                                }`}>
-                                  {!resolvedPerson && !personCreateResolution && (
-                                    <div className="space-y-1">
-                                      <p className="text-xs text-muted-foreground">Detected name</p>
-                                      <input
-                                        value={personNameEdits[personRequirement.actionIndex] ?? personRequirement.personName}
-                                        onChange={(e) => setPersonNameEdits((current) => ({
-                                          ...current,
-                                          [personRequirement.actionIndex]: e.target.value,
-                                        }))}
-                                        className="input-base w-full text-sm"
-                                        placeholder="Managed person name"
-                                      />
-                                    </div>
-                                  )}
-                                  <select
-                                    value={resolvedPerson?.id || (personCreateResolution ? '__create__' : '')}
-                                    onChange={(e) => handlePersonSelectionChange(personRequirement, e.target.value)}
-                                    className="input-base w-full text-sm"
-                                  >
-                                    <option value="">Select managed person</option>
-                                    {personRequirement.existingPeople.map((person) => (
-                                      <option key={person.id} value={person.id}>
-                                        {person.fullName}
-                                        {person.relationship ? ` • ${person.relationship}` : ''}
-                                        {typeof person.moneyHeld === 'number' ? ` • Held ${formatHeldBalance(person.moneyHeld, action.currency || 'AED')}` : ''}
-                                      </option>
-                                    ))}
-                                    <option value="__create__">Create new managed person</option>
-                                  </select>
-                                  {!personRequirement.isResolved && (
-                                    <p className="text-xs text-warning">
-                                      {personRequirement.noPeople
-                                        ? 'No managed people exist yet. Create one before saving.'
-                                        : `${personNameEdits[personRequirement.actionIndex] || personRequirement.personName} still needs to be matched or created.`}
-                                    </p>
-                                  )}
-                                  {personDraft && personDraft.actionIndex === personRequirement.actionIndex && (
-                                    <div className="space-y-2">
-                                      <input
-                                        value={personDraft.name}
-                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, name: e.target.value } : current)}
-                                        className="input-base w-full text-sm"
-                                        placeholder="Managed person name"
-                                      />
-                                      <select
-                                        value={personDraft.relationship}
-                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, relationship: e.target.value as NonNullable<PersonResolution['relationship']> } : current)}
-                                        className="input-base w-full text-sm"
-                                      >
-                                        <option value="other">Other</option>
-                                        <option value="friend">Friend</option>
-                                        <option value="client">Client</option>
-                                        <option value="relative">Relative</option>
-                                        <option value="colleague">Colleague</option>
-                                        <option value="spouse">Spouse</option>
-                                        <option value="child">Child</option>
-                                        <option value="parent">Parent</option>
-                                        <option value="sibling">Sibling</option>
-                                      </select>
-                                      <textarea
-                                        value={personDraft.notes}
-                                        onChange={(e) => setPersonDraft((current) => current ? { ...current, notes: e.target.value } : current)}
-                                        className="input-base w-full text-sm h-20 resize-none"
-                                        placeholder="Notes (optional)"
-                                      />
-                                      <div className="flex gap-2">
-                                        <button
-                                          onClick={handleApplyCreatePerson}
-                                          disabled={!personDraft.name.trim()}
-                                          className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
-                                        >
-                                          Use This Person
-                                        </button>
-                                        <button
-                                          onClick={() => setPersonDraft(null)}
-                                          className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                                        >
-                                          Back
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {isAccountRequired(action, 'account') && (
-                            <div className="mt-2 space-y-2">
-                              <p className={`text-xs ${accountRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                {action.actionType === 'transfer' ? 'From account' : 'Account'}: {selectedAccount?.name || action.accountName || 'Not specified'}
-                              </p>
-                              <select
-                                value={selectedAccount?.id || ''}
-                                onChange={(e) => handleAccountSelectionChange(i, 'account', e.target.value)}
-                                className="input-base w-full text-sm"
-                              >
-                                <option value="">Select account</option>
-                                {(contextSnapshot?.accounts || []).map((account) => (
-                                  <option key={account.id as string} value={account.id as string}>
-                                    {account.name} • {account.type} • {account.currency}
-                                  </option>
-                                ))}
-                                <option value="__create__">Create new account</option>
-                              </select>
-                              {accountRequirement && (
-                                <p className="text-xs text-warning">{accountRequirement.accountName} account not found.</p>
-                              )}
-                              {accountDraft && accountDraft.actionIndex === i && accountDraft.field === 'account' && (
-                                <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                                  <input
-                                    value={accountDraft.name}
-                                    onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
-                                    className="input-base w-full text-sm"
-                                    placeholder="Account name"
-                                  />
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <select
-                                      value={accountDraft.type}
-                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)}
-                                      className="input-base w-full text-sm"
-                                    >
-                                      <option value="cash">Cash</option>
-                                      <option value="bank">Bank</option>
-                                      <option value="credit_card">Credit Card</option>
-                                      <option value="savings">Savings</option>
-                                      <option value="digital_wallet">Digital Wallet</option>
-                                      <option value="investment">Investment</option>
-                                      <option value="other">Other</option>
-                                    </select>
-                                    <input
-                                      value={accountDraft.currency}
-                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
-                                      className="input-base w-full text-sm"
-                                      maxLength={3}
-                                      placeholder="Currency"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={handleApplyCreateAccount}
-                                      disabled={!accountDraft.name.trim()}
-                                      className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
-                                    >
-                                      Use This Account
-                                    </button>
-                                    <button
-                                      onClick={() => setAccountDraft(null)}
-                                      className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                                    >
-                                      Back
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          {isAccountRequired(action, 'destinationAccount') && (
-                            <div className="mt-2 space-y-2">
-                              <p className={`text-xs ${destinationRequirement ? 'text-warning font-600' : 'text-muted-foreground'}`}>
-                                To account: {selectedDestinationAccount?.name || action.destinationAccountName || 'Not specified'}
-                              </p>
-                              <select
-                                value={selectedDestinationAccount?.id || ''}
-                                onChange={(e) => handleAccountSelectionChange(i, 'destinationAccount', e.target.value)}
-                                className="input-base w-full text-sm"
-                              >
-                                <option value="">Select destination account</option>
-                                {(contextSnapshot?.accounts || []).map((account) => (
-                                  <option key={account.id as string} value={account.id as string}>
-                                    {account.name} • {account.type} • {account.currency}
-                                  </option>
-                                ))}
-                                <option value="__create__">Create new account</option>
-                              </select>
-                              {destinationRequirement && (
-                                <p className="text-xs text-warning">{destinationRequirement.accountName} account not found.</p>
-                              )}
-                              {accountDraft && accountDraft.actionIndex === i && accountDraft.field === 'destinationAccount' && (
-                                <div className="space-y-2 rounded-xl border border-border bg-card p-3">
-                                  <input
-                                    value={accountDraft.name}
-                                    onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
-                                    className="input-base w-full text-sm"
-                                    placeholder="Account name"
-                                  />
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <select
-                                      value={accountDraft.type}
-                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)}
-                                      className="input-base w-full text-sm"
-                                    >
-                                      <option value="cash">Cash</option>
-                                      <option value="bank">Bank</option>
-                                      <option value="credit_card">Credit Card</option>
-                                      <option value="savings">Savings</option>
-                                      <option value="digital_wallet">Digital Wallet</option>
-                                      <option value="investment">Investment</option>
-                                      <option value="other">Other</option>
-                                    </select>
-                                    <input
-                                      value={accountDraft.currency}
-                                      onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
-                                      className="input-base w-full text-sm"
-                                      maxLength={3}
-                                      placeholder="Currency"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <button
-                                      onClick={handleApplyCreateAccount}
-                                      disabled={!accountDraft.name.trim()}
-                                      className="flex-1 py-2.5 rounded-xl bg-positive text-white text-sm font-600 hover:bg-positive/90 disabled:opacity-50 transition-colors"
-                                    >
-                                      Use This Account
-                                    </button>
-                                    <button
-                                      onClick={() => setAccountDraft(null)}
-                                      className="px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                                    >
-                                      Back
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          <div className="mt-1">
-                            <span className={`text-xs px-1.5 py-0.5 rounded-md ${
-                              action.confidence >= 0.8
-                                ? 'bg-positive-soft text-positive'
-                                : action.confidence >= 0.6
-                                ? 'bg-warning-soft text-warning' :'bg-negative-soft text-negative'
-                            }`}>
-                              {Math.round(action.confidence * 100)}% confident
-                            </span>
-                          </div>
+                {reviewState.person?.required && (
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Person</p>
+                    <div className="rounded-xl bg-card p-3">
+                      <p className="text-xs text-muted-foreground">Person</p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {selectedPerson?.fullName || reviewState.person.name || 'Choose a person'}
+                      </p>
+                    </div>
+                    <select
+                      value={personSelectValue}
+                      onChange={(e) => handlePersonSelectionChange(e.target.value)}
+                      className="input-base w-full text-sm"
+                    >
+                      <option value="">Choose person</option>
+                      {people.map((person) => (
+                        <option key={person.id} value={person.id}>
+                          {person.fullName}
+                        </option>
+                      ))}
+                      <option value="__create__">Create {reviewState.person.name || 'person'}</option>
+                    </select>
+                    {personDraft && (
+                      <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                        <input
+                          value={personDraft.name}
+                          onChange={(e) => setPersonDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                          className="input-base w-full text-sm"
+                          placeholder="Person name"
+                        />
+                        <select
+                          value={personDraft.relationship}
+                          onChange={(e) =>
+                            setPersonDraft((current) =>
+                              current ? { ...current, relationship: e.target.value as typeof current.relationship } : current
+                            )
+                          }
+                          className="input-base w-full text-sm"
+                        >
+                          <option value="other">Other</option>
+                          <option value="friend">Friend</option>
+                          <option value="client">Client</option>
+                          <option value="relative">Relative</option>
+                          <option value="colleague">Colleague</option>
+                          <option value="spouse">Spouse</option>
+                          <option value="child">Child</option>
+                          <option value="parent">Parent</option>
+                          <option value="sibling">Sibling</option>
+                        </select>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleApplyCreatePerson}
+                            disabled={!personDraft.name.trim()}
+                            className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
+                          >
+                            Use This Person
+                          </button>
+                          <button
+                            onClick={() => setPersonDraft(null)}
+                            className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+                          >
+                            Back
+                          </button>
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear') && (
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Account</p>
+                    <div className="rounded-xl bg-card p-3">
+                      <p className="text-xs text-muted-foreground">{getPrimaryAccountLabel(reviewState.purpose)}</p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {selectedAccount?.name || reviewState.account.name || 'Choose an account'}
+                      </p>
+                    </div>
+                    <select
+                      value={primaryAccountSelectValue}
+                      onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
+                      className="input-base w-full text-sm"
+                    >
+                      <option value="">Choose account</option>
+                      {eligiblePrimaryAccounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} • {account.type} • {account.currency}
+                        </option>
+                      ))}
+                      <option value="__create__">Create {reviewState.account.name || 'account'}</option>
+                    </select>
+                    {accountDraft && accountDraftTarget === 'account' && (
+                      <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                        <input
+                          value={accountDraft.name}
+                          onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                          className="input-base w-full text-sm"
+                          placeholder="Account name"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={accountDraft.type}
+                            onChange={(e) =>
+                              setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)
+                            }
+                            className="input-base w-full text-sm"
+                          >
+                            <option value="cash">Cash</option>
+                            <option value="bank">Bank</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="savings">Savings</option>
+                            <option value="digital_wallet">Digital Wallet</option>
+                            <option value="investment">Investment</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <input
+                            value={accountDraft.currency}
+                            onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
+                            className="input-base w-full text-sm"
+                            maxLength={3}
+                            placeholder="Currency"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleApplyCreateAccount}
+                            disabled={!accountDraft.name.trim()}
+                            className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
+                          >
+                            Use This Account
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAccountDraft(null);
+                              setAccountDraftTarget(null);
+                            }}
+                            className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {reviewState.amountActionIndex !== undefined && (
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Amount</p>
+                    <div className="rounded-xl bg-card p-3 space-y-2">
+                      <p className="text-sm font-600 text-foreground">
+                        {reviewState.amountLabel || 'How much was used?'}
+                      </p>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={typeof reviewState.amount === 'number' ? String(reviewState.amount) : ''}
+                        onChange={(e) => handleReviewAmountChange(e.target.value)}
+                        className="input-base w-full text-sm"
+                        placeholder={`Enter amount in ${reviewState.currency || 'AED'}`}
+                      />
+                      {typeof reviewState.amountQuickOptionValue === 'number' && (
+                        <button
+                          type="button"
+                          onClick={handleUseFullAmount}
+                          className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-600 text-foreground transition-colors hover:border-accent/40"
+                        >
+                          Use full {formatMoney(reviewState.amountQuickOptionValue, reviewState.currency || 'AED')}
+                        </button>
+                      )}
                     </div>
                   </div>
-                )})}
+                )}
+
+                {reviewState.destinationAccount?.required && (
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Destination Account</p>
+                    <div className="rounded-xl bg-card p-3">
+                      <p className="text-xs text-muted-foreground">Move money to</p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {selectedDestinationAccount?.name || reviewState.destinationAccount.name || 'Choose a destination account'}
+                      </p>
+                    </div>
+                    <select
+                      value={destinationAccountSelectValue}
+                      onChange={(e) => handleAccountSelectionChange('destinationAccount', e.target.value)}
+                      className="input-base w-full text-sm"
+                    >
+                      <option value="">Choose destination account</option>
+                      {eligibleDestinationAccounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name} • {account.type} • {account.currency}
+                        </option>
+                      ))}
+                      <option value="__create__">Create {reviewState.destinationAccount.name || 'account'}</option>
+                    </select>
+                    {accountDraft && accountDraftTarget === 'destinationAccount' && (
+                      <div className="space-y-2 rounded-xl border border-border bg-card p-3">
+                        <input
+                          value={accountDraft.name}
+                          onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
+                          className="input-base w-full text-sm"
+                          placeholder="Account name"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={accountDraft.type}
+                            onChange={(e) =>
+                              setAccountDraft((current) => current ? { ...current, type: e.target.value as SuggestedAccount['type'] } : current)
+                            }
+                            className="input-base w-full text-sm"
+                          >
+                            <option value="cash">Cash</option>
+                            <option value="bank">Bank</option>
+                            <option value="credit_card">Credit Card</option>
+                            <option value="savings">Savings</option>
+                            <option value="digital_wallet">Digital Wallet</option>
+                            <option value="investment">Investment</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <input
+                            value={accountDraft.currency}
+                            onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
+                            className="input-base w-full text-sm"
+                            maxLength={3}
+                            placeholder="Currency"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleApplyCreateAccount}
+                            disabled={!accountDraft.name.trim()}
+                            className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
+                          >
+                            Use This Account
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAccountDraft(null);
+                              setAccountDraftTarget(null);
+                            }}
+                            className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+                          >
+                            Back
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Summary</p>
+                  <div className="space-y-2">
+                    {compactSummaryRows.map((row, index) => (
+                      <p key={index} className="text-sm text-foreground">{row}</p>
+                    ))}
+                  </div>
+                  {totals && reviewState.purpose === 'managed_money' && (
+                    <p className="text-sm font-600 text-foreground">
+                      Remaining for {reviewState.person?.name || 'them'}: {formatMoney(totals.net, reviewState.currency || 'AED')}
+                    </p>
+                  )}
+                  {totals && reviewState.purpose === 'borrowed_money' && (
+                    <div className="space-y-1 text-sm font-600 text-foreground">
+                      <p>Cash remaining after spending: {formatMoney(totals.net, reviewState.currency || 'AED')}</p>
+                      <p>Amount still owed to {reviewState.person?.name || 'them'}: {formatMoney(totals.loanAmount, reviewState.currency || 'AED')}</p>
+                    </div>
+                  )}
+                  {totals && reviewState.purpose === 'managed_return' && (
+                    <p className="text-sm font-600 text-foreground">
+                      Managed balance change: {formatMoney(totals.net, reviewState.currency || 'AED')}
+                    </p>
+                  )}
+                </div>
+
+                {unresolvedReviewFields.length > 0 && (
+                  <div className="rounded-xl border border-warning/20 bg-warning-soft p-3">
+                    <p className="text-xs font-600 text-warning">Still needed: {unresolvedReviewFields.join(', ')}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2">
                 <button
                   onClick={handleConfirm}
-                  disabled={unresolvedAccounts.length > 0 || unresolvedPersonCount > 0}
+                  disabled={unresolvedReviewFields.length > 0}
                   className="flex-1 py-3 rounded-xl bg-positive text-white text-sm font-700 hover:bg-positive/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle size={16} />
@@ -1451,6 +1573,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   <RotateCcw size={16} />
                 </button>
               </div>
+              {unresolvedReviewFields.length > 0 && (
+                <p className="text-xs text-muted-foreground">Please complete the required details above.</p>
+              )}
             </div>
           )}
 
@@ -1491,6 +1616,97 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
             </div>
           )}
 
+          {/* Known limit state */}
+          {step === 'limit' && (
+            <div className="p-6 space-y-5">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <div className="w-14 h-14 rounded-full bg-warning-soft flex items-center justify-center">
+                  <AlertTriangle size={28} className="text-warning" />
+                </div>
+                <div>
+                  <p className="text-base font-700 text-foreground">{limitView.title}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{limitView.description}</p>
+                </div>
+                {usageSummary?.planName && (
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-xs font-600 text-accent">
+                    <Zap size={12} />
+                    {usageSummary.planName}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
+                {typeof limitView.requestsToday === 'number' && typeof limitView.dailyLimit === 'number' && limitView.dailyLimit > 0 && (
+                  <UsageProgressBar
+                    label="Daily requests"
+                    used={limitView.requestsToday}
+                    total={limitView.dailyLimit}
+                  />
+                )}
+                {typeof limitView.creditsUsed === 'number' && typeof limitView.creditsAllocated === 'number' && limitView.creditsAllocated > 0 && (
+                  <UsageProgressBar
+                    label="Monthly AI credits"
+                    used={limitView.creditsUsed}
+                    total={limitView.creditsAllocated}
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-card p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Credits remaining</p>
+                    <p className="mt-1 text-lg font-700 text-foreground">{Math.max(0, limitView.creditsRemaining || 0)}</p>
+                  </div>
+                  <div className="rounded-xl bg-card p-3">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Credits reserved</p>
+                    <p className="mt-1 text-lg font-700 text-foreground">{Math.max(0, usageSummary?.creditsReserved || 0)}</p>
+                  </div>
+                </div>
+                {typeof limitView.requiredCredits === 'number' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-card p-3">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Required credits</p>
+                      <p className="mt-1 text-lg font-700 text-foreground">{limitView.requiredCredits}</p>
+                    </div>
+                    <div className="rounded-xl bg-card p-3">
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Renewal</p>
+                      <p className="mt-1 text-sm font-600 text-foreground flex items-center gap-1.5">
+                        <Calendar size={12} className="text-muted-foreground" />
+                        {limitView.renewalLabel || '—'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {limitView.resetLabel && (
+                  <div className="flex items-center gap-2 rounded-xl bg-card p-3 text-sm text-foreground">
+                    <Clock size={14} className="text-warning flex-shrink-0" />
+                    <span>{limitView.resetLabel}</span>
+                  </div>
+                )}
+                {!limitView.resetLabel && limitView.renewalLabel && (
+                  <div className="flex items-center gap-2 rounded-xl bg-card p-3 text-sm text-foreground">
+                    <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
+                    <span>Next renewal {limitView.renewalLabel}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => router.push('/pricing')}
+                  className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+                >
+                  {limitView.primaryLabel}
+                  <ArrowUpRight size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Failed */}
           {step === 'failed' && (
             <div className="p-6 flex flex-col items-center gap-4 text-center">
@@ -1500,6 +1716,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
               <div>
                 <p className="text-base font-700 text-foreground">Something went wrong</p>
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
+                {apiError?.requestId && (
+                  <p className="text-xs text-muted-foreground mt-2">Reference: {apiError.requestId}</p>
+                )}
               </div>
               <div className="flex gap-2 w-full">
                 <button

@@ -35,7 +35,7 @@ export interface ParseRequest {
 }
 
 export interface FinancialContext {
-  accounts?: Array<{ id: string; name: string; type: string; currency: string }>;
+  accounts?: Array<{ id: string; name: string; type: string; currency: string; includeInTotal?: boolean }>;
   people?: Array<{
     id: string;
     fullName: string;
@@ -54,7 +54,74 @@ export type OverallIntent =
   | 'personal_transaction' |'managed_person_transaction' |'transfer' |'reimbursement' |'settlement' |'budget' |'recurring_transaction' |'multiple_actions' |'unclear';
 
 export type ActionType =
-  | 'income' |'expense' |'money_received_from_person' |'money_returned_to_person' |'expense_from_held_balance' |'expense_paid_for_person' |'expense_paid_by_person' |'reimbursement_payment' |'settlement' |'transfer' |'budget' |'recurring_transaction' | 'create_account' | 'create_managed_person';
+  | 'income' |'expense' |'money_received_from_person' |'money_returned_to_person' |'expense_from_held_balance' |'expense_paid_for_person' |'expense_paid_by_person' |'reimbursement_payment' |'settlement' |'transfer' |'budget' |'recurring_transaction' | 'create_account' | 'create_managed_person' | 'loan_received' | 'loan_repayment';
+
+export type AccountScope = 'personal' | 'managed';
+export type SmartEntryPurpose =
+  | 'personal_expense'
+  | 'personal_income'
+  | 'borrowed_money'
+  | 'managed_money'
+  | 'loan_repayment'
+  | 'managed_return'
+  | 'transfer'
+  | 'reimbursement'
+  | 'unclear';
+
+export type SmartEntryMissingField =
+  | 'purpose'
+  | 'amount'
+  | 'currency'
+  | 'person'
+  | 'account'
+  | 'destinationAccount';
+
+export interface SmartEntryPurposeOption {
+  id: SmartEntryPurpose;
+  label: string;
+  description: string;
+}
+
+export interface SmartEntryPersonSelection {
+  required?: boolean;
+  mode?: 'existing' | 'create';
+  personId?: string;
+  name?: string;
+  relationship?: 'spouse' | 'child' | 'parent' | 'sibling' | 'friend' | 'relative' | 'colleague' | 'client' | 'other';
+  notes?: string;
+}
+
+export interface SmartEntryAccountSelection {
+  required?: boolean;
+  mode?: 'existing' | 'create';
+  accountId?: string;
+  name?: string;
+  type?: 'bank' | 'credit_card' | 'cash' | 'savings' | 'digital_wallet' | 'investment' | 'other';
+  currency?: string;
+  includeInTotal?: boolean;
+  scope?: AccountScope;
+  managedPersonId?: string;
+  managedPersonName?: string;
+}
+
+export interface SmartEntryReview {
+  understanding: string[];
+  missing: SmartEntryMissingField[];
+  purpose?: SmartEntryPurpose;
+  purposeConfidence?: number;
+  purposeNeedsConfirmation?: boolean;
+  purposeOptions?: SmartEntryPurposeOption[];
+  amount?: number;
+  receivedAmount?: number;
+  amountActionIndex?: number;
+  amountLabel?: string;
+  amountQuickOptionValue?: number;
+  amountNeedsConfirmation?: boolean;
+  currency?: string;
+  person?: SmartEntryPersonSelection;
+  account?: SmartEntryAccountSelection;
+  destinationAccount?: SmartEntryAccountSelection;
+}
 
 export interface FinancialAction {
   actionType: ActionType;
@@ -74,6 +141,8 @@ export interface FinancialAction {
   accountType?: 'bank' | 'credit_card' | 'cash' | 'savings' | 'digital_wallet' | 'investment' | 'other';
   openingBalance?: number;
   includeInTotal?: boolean;
+  accountScope?: AccountScope;
+  managedPersonId?: string;
   destinationAccountName?: string;
   destinationAccountId?: string;
 
@@ -95,8 +164,11 @@ export interface FinancialAction {
   recurrenceStartDate?: string;
   recurrenceDayOfMonth?: number;
 
+  amountNeedsConfirmation?: boolean;
+
   confidence: number;
   warnings: string[];
+  review?: SmartEntryReview;
 }
 
 export interface ParsedFinancialInstruction {
@@ -110,6 +182,14 @@ export interface ParsedFinancialInstruction {
   missingFields: string[];
   requiresClarification: boolean;
   clarificationQuestions?: string[];
+  inferredPurpose?: SmartEntryPurpose;
+  purposeConfidence?: number;
+  purposeNeedsConfirmation?: boolean;
+  receivedAmount?: number;
+  spentAmount?: number;
+  spentAmountKnown?: boolean;
+  amountNeedsConfirmation?: boolean;
+  review?: SmartEntryReview;
   providerUsed?: string;
   modelUsed?: string;
   fallbackUsed?: boolean;
@@ -182,6 +262,44 @@ export interface AIAssistantResponse {
   providerUsed?: string;
   fallbackUsed?: boolean;
   durationMs?: number;
+}
+
+export interface AIUsageSummary {
+  planName?: string;
+  planCode?: string;
+  subscriptionStatus?: string;
+  requestsToday?: number;
+  dailyRequestLimit?: number;
+  creditsAllocated?: number;
+  creditsConsumed?: number;
+  creditsReserved?: number;
+  creditsRemaining?: number;
+  cycleStart?: string;
+  cycleEnd?: string;
+  trialEndsAt?: string;
+  currentPeriodEnd?: string;
+  monthlyVoiceSeconds?: number;
+  voiceSecondsUsed?: number;
+}
+
+export interface AIErrorPayload {
+  code: string;
+  category: 'usage_limit' | 'subscription' | 'technical' | 'validation' | 'auth' | 'state' | 'configuration';
+  message: string;
+  limitType?: 'daily_requests' | 'monthly_credits' | 'insufficient_credits' | 'subscription_expired' | 'trial_expired' | 'feature_unavailable';
+  requestId?: string;
+  retryAfterSeconds?: number;
+  requiredCredits?: number;
+  remainingCredits?: number;
+}
+
+export interface AIErrorResponse {
+  success: false;
+  status?: 'failed';
+  requestId?: string;
+  error: AIErrorPayload;
+  errorMessage?: string;
+  usage?: AIUsageSummary;
 }
 
 export interface SuggestedAccount {
@@ -280,7 +398,7 @@ export function validateParsedInstruction(raw: unknown): ParsedFinancialInstruct
     'income', 'expense', 'money_received_from_person', 'money_returned_to_person',
     'expense_from_held_balance', 'expense_paid_for_person', 'expense_paid_by_person',
     'reimbursement_payment', 'settlement', 'transfer', 'budget', 'recurring_transaction',
-    'create_account', 'create_managed_person',
+    'create_account', 'create_managed_person', 'loan_received', 'loan_repayment',
   ];
 
   for (const action of obj.actions as unknown[]) {
@@ -336,7 +454,7 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
   "overallIntent": "<one of: personal_transaction|managed_person_transaction|transfer|reimbursement|settlement|budget|recurring_transaction|multiple_actions|unclear>",
   "actions": [
     {
-      "actionType": "<one of: income|expense|money_received_from_person|money_returned_to_person|expense_from_held_balance|expense_paid_for_person|expense_paid_by_person|reimbursement_payment|settlement|transfer|budget|recurring_transaction>",
+      "actionType": "<one of: income|expense|money_received_from_person|money_returned_to_person|expense_from_held_balance|expense_paid_for_person|expense_paid_by_person|reimbursement_payment|settlement|transfer|budget|recurring_transaction|loan_received|loan_repayment>",
       "amount": <number or null>,
       "currency": "<ISO 4217 code or null>",
       "date": "<YYYY-MM-DD or 'today' or null>",
@@ -359,7 +477,14 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
   "warnings": [],
   "missingFields": ["<field names that are ambiguous or missing>"],
   "requiresClarification": <true|false>,
-  "clarificationQuestions": ["<focused question if clarification needed>"]
+  "clarificationQuestions": ["<focused question if clarification needed>"],
+  "inferredPurpose": "<optional one of: personal_income|borrowed_money|managed_money|loan_repayment|managed_return|transfer|reimbursement|unclear>",
+  "purposeConfidence": <optional 0.0-1.0>,
+  "purposeNeedsConfirmation": <optional true|false>,
+  "receivedAmount": <optional number or null>,
+  "spentAmount": <optional number or null>,
+  "spentAmountKnown": <optional true|false>,
+  "amountNeedsConfirmation": <optional true|false>
 }
 
 RULES:
@@ -369,11 +494,22 @@ RULES:
 - "today" is acceptable for date when user says today/now
 - If amount is missing, add "amount"to missingFields - If account is ambiguous, add"account" to missingFields
 - Set requiresClarification: true if any critical field is missing or ambiguous
-- For "Ahmed gave me AED 2300": actionType = money_received_from_person
+- For "Ahmed paid me AED 2300 for my work": actionType = income
+- For "I borrowed AED 2300 from Ahmed" or "Ahmed lent me AED 2300": actionType = loan_received
+- For "I paid Ahmed AED 500 back" or "I repaid Ahmed AED 500": actionType = loan_repayment
+- For "Ahmed gave me AED 2300", "received AED 2300 from Ahmed", "got money from Ahmed", or "Ahmed sent/transferred AED 2300" when the purpose is unclear: actionType = money_received_from_person, inferredPurpose = "unclear", purposeNeedsConfirmation = true, and include "purpose" in missingFields
+- Never default an ambiguous person-to-user receipt to managed money unless the wording explicitly says the money is being held, managed, kept separate, or spent on that person's behalf
+- Strong borrowed-money wording includes: borrowed, lent me, loan from, owe back, repay later
+- Strong managed-money wording includes: on his behalf, on her behalf, manage this money, keep this for them, hold this money, belongs to Ahmed, pay their bills from this money
+- Strong personal-income wording includes: paid me, payment, salary, commission, income, for my work, gift
+- Strong reimbursement wording includes: reimbursed me, paid me back, returned what I spent, repaid me
 - For "I spent from Ahmed's money": actionType = expense_from_held_balance, personName = Ahmed, paidFrom = held_balance
 - For "I paid for Ahmed": actionType = expense_paid_for_person, reimbursementRequired = true
 - When one connected statement says a person gave money and later expenses are clearly from that same money, keep the same personName and use expense_from_held_balance for those dependent expenses unless the user explicitly names another source
 - For dependent held-balance expenses, keep the same personName as the earlier received-money action and include accountName only when the source account is known or confidently inferred from context
 - Do not apply held-money inference to separate later expenses when the user explicitly says they used their own cash, another account, or another funding source
+- If a later spend mentions "used it", "used some of it", "used the money", or "paid rent" without an explicit spend amount, create the expense action with amount = null, set amountNeedsConfirmation = true, spentAmountKnown = false, and include "amount" in missingFields
+- Only reuse the full received amount for a later expense when the wording is explicit, such as "used all of it", "spent the full amount", or "paid 2300 rent"
+- For borrowed money that is later spent personally, keep the spend as normal personal expense actions and do not reduce the amount owed by spending
 - For transfers: use actionType = transfer with accountName and destinationAccountName
 - For recurring: include recurringFrequency and recurrenceDayOfMonth`;

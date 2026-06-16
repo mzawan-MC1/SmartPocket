@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { loadAIConfig, processAIRequest } from '@/lib/ai-gateway';
-import type { AIAssistantRequest } from '@/lib/ai-types';
+import type { AIAssistantRequest, AIErrorPayload, AIErrorResponse, AIUsageSummary } from '@/lib/ai-types';
+import { applySmartEntryReviewToInstruction, buildInitialSmartEntryReview, getSmartEntryMissingFields } from '@/lib/smart-entry';
+import { ensureUserSubscriptionSummary, type SubscriptionSummary } from '@/lib/subscription/server';
 import { createClientId } from '@/lib/uuid';
 
 type RequestType = 'voice' | 'text';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const REQUEST_CREDIT_COST: Record<RequestType, number> = {
+  text: 1,
+  voice: 2,
+};
 
 // Server-side Supabase client — service role for SECURITY DEFINER RPC calls
 function createServerClient() {
@@ -115,10 +121,15 @@ export async function POST(req: NextRequest) {
       });
 
       if (accessError) {
-        return NextResponse.json({
-          error: getAccessErrorMessage(accessError),
-          accessError,
-        }, { status: 429 });
+        const usageResult = await ensureUserSubscriptionSummary(user.id);
+        const errorResponse = buildAccessErrorResponse({
+          accessError: String(accessError),
+          requestType,
+          requestId: requestId || undefined,
+          summary: usageResult.summary,
+        });
+
+        return NextResponse.json(errorResponse, { status: 429 });
       }
     }
 
@@ -142,11 +153,15 @@ export async function POST(req: NextRequest) {
       const reserveData = reserveResult as { ok: boolean; error?: string; cycle_id?: string; ledger_id?: string; credits_reserved?: number } | null;
 
       if (!reserveData?.ok) {
-        return NextResponse.json({
-          error: reserveData?.error === 'credits_exhausted'
-            ? 'You have reached your AI credit limit for this period.'
-            : 'Unable to reserve AI credits right now. Please try again.',
-        }, { status: 429 });
+        const usageResult = await ensureUserSubscriptionSummary(user.id);
+        const errorResponse = buildReserveErrorResponse({
+          reserveError: reserveData?.error,
+          requestType,
+          requestId: requestId || undefined,
+          summary: usageResult.summary,
+        });
+
+        return NextResponse.json(errorResponse, { status: errorResponse.error.category === 'technical' ? 500 : 429 });
       }
 
       creditCycleId = reserveData.cycle_id;
@@ -200,6 +215,33 @@ export async function POST(req: NextRequest) {
       errorMessage: getFriendlyParseFailureMessage(requestType, response.errorCategory, response.errorMessage),
       error: getFriendlyParseFailureMessage(requestType, response.errorCategory, response.errorMessage),
     };
+
+    if (responseBody.parsed) {
+      const review = buildInitialSmartEntryReview({
+        instruction: responseBody.parsed,
+        sourceText: textValue || responseBody.transcript,
+        context: safeContext as AIAssistantRequest['context'],
+      });
+      const reviewedInstruction = applySmartEntryReviewToInstruction({
+        ...responseBody.parsed,
+        review,
+        missingFields: [...review.missing],
+        requiresClarification: false,
+        clarificationQuestions: [],
+      });
+
+      responseBody.status = 'parsed';
+      responseBody.parsed = {
+        ...reviewedInstruction,
+        review: {
+          ...review,
+          missing: getSmartEntryMissingFields(reviewedInstruction),
+        },
+        missingFields: getSmartEntryMissingFields(reviewedInstruction),
+        requiresClarification: false,
+        clarificationQuestions: [],
+      };
+    }
 
     const persistedRequest = await persistAIRequest({
       supabase,
@@ -270,12 +312,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(responseBody);
   } catch (error) {
     console.error('[AI Parse] Error:', error instanceof Error ? error.message : error);
+    const requestId = createClientId();
     return NextResponse.json(
-      {
-        error: 'AI text processing is temporarily unavailable. Please try again.',
-        errorMessage: 'AI text processing is temporarily unavailable. Please try again.',
-        status: 'failed',
-      },
+      buildErrorResponse({
+        requestId,
+        error: {
+          code: 'AI_PARSE_TECHNICAL_ERROR',
+          category: 'technical',
+          message: 'AI text processing is temporarily unavailable. Please try again.',
+          requestId,
+        },
+      }),
       { status: 500 }
     );
   }
@@ -283,7 +330,7 @@ export async function POST(req: NextRequest) {
 
 // ─── Sanitization helpers ─────────────────────────────────────────────────────
 
-/** Strip any user_id, personId, accountId fields from context to prevent ID injection */
+/** Keep only safe context fields used for review hydration and provider hints. */
 function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> {
   const safe: Record<string, unknown> = {};
   // Only pass through known safe context keys
@@ -291,8 +338,13 @@ function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> 
     safe.accounts = (ctx.accounts as unknown[]).map((a) => {
       if (typeof a !== 'object' || !a) return null;
       const acc = a as Record<string, unknown>;
-      // Only pass name, type, currency — never IDs
-      return { name: acc.name, type: acc.type, currency: acc.currency };
+      return {
+        id: typeof acc.id === 'string' && UUID_PATTERN.test(acc.id) ? acc.id : undefined,
+        name: acc.name,
+        type: acc.type,
+        currency: acc.currency,
+        includeInTotal: typeof acc.includeInTotal === 'boolean' ? acc.includeInTotal : undefined,
+      };
     }).filter(Boolean);
   }
   if (Array.isArray(ctx.people)) {
@@ -300,6 +352,7 @@ function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> 
       if (typeof p !== 'object' || !p) return null;
       const person = p as Record<string, unknown>;
       return {
+        id: typeof person.id === 'string' && UUID_PATTERN.test(person.id) ? person.id : undefined,
         fullName: person.fullName,
         aliases: Array.isArray(person.aliases)
           ? person.aliases.filter((alias): alias is string => typeof alias === 'string')
@@ -419,6 +472,210 @@ function getAccessErrorMessage(accessError: unknown): string {
     voice_limit_reached: 'You have reached your AI credit limit for this period.',
   };
   return errorMessages[String(accessError)] || 'AI access is temporarily unavailable.';
+}
+
+function summarizeUsage(summary: SubscriptionSummary | null | undefined): AIUsageSummary | undefined {
+  if (!summary) return undefined;
+
+  const creditsAllocated = Number(summary.credits_allocated || 0);
+  const creditsConsumed = Number(summary.credits_consumed || 0);
+  const creditsReserved = Number(summary.credits_reserved || 0);
+
+  return {
+    planName: summary.plan_name,
+    planCode: summary.plan_code,
+    subscriptionStatus: summary.status,
+    requestsToday: Number(summary.requests_today || 0),
+    dailyRequestLimit: Number(summary.daily_ai_request_limit || 0),
+    creditsAllocated,
+    creditsConsumed,
+    creditsReserved,
+    creditsRemaining: Math.max(0, creditsAllocated - creditsConsumed - creditsReserved),
+    cycleStart: summary.cycle_start,
+    cycleEnd: summary.cycle_end,
+    trialEndsAt: summary.trial_ends_at,
+    currentPeriodEnd: summary.current_period_end,
+    monthlyVoiceSeconds: Number(summary.monthly_voice_seconds || 0),
+    voiceSecondsUsed: Number(summary.voice_seconds_used || 0),
+  };
+}
+
+function buildErrorResponse(args: {
+  requestId?: string;
+  error: AIErrorPayload;
+  usage?: AIUsageSummary;
+}): AIErrorResponse {
+  return {
+    success: false,
+    status: 'failed',
+    requestId: args.requestId,
+    error: args.error,
+    errorMessage: args.error.message,
+    usage: args.usage,
+  };
+}
+
+function secondsUntilNextUtcDay() {
+  const now = new Date();
+  const next = new Date(now);
+  next.setUTCHours(24, 0, 0, 0);
+  return Math.max(0, Math.ceil((next.getTime() - now.getTime()) / 1000));
+}
+
+function buildAccessErrorResponse(args: {
+  accessError: string;
+  requestType: RequestType;
+  requestId?: string;
+  summary?: SubscriptionSummary | null;
+}): AIErrorResponse {
+  const usage = summarizeUsage(args.summary);
+  const requiredCredits = REQUEST_CREDIT_COST[args.requestType];
+  const remainingCredits = usage?.creditsRemaining;
+
+  switch (args.accessError) {
+    case 'daily_limit_reached':
+      return buildErrorResponse({
+        requestId: args.requestId,
+        usage,
+        error: {
+          code: 'DAILY_REQUEST_LIMIT_REACHED',
+          category: 'usage_limit',
+          message: getAccessErrorMessage(args.accessError),
+          limitType: 'daily_requests',
+          requestId: args.requestId,
+          retryAfterSeconds: secondsUntilNextUtcDay(),
+        },
+      });
+    case 'credits_exhausted':
+    case 'voice_limit_reached':
+      return buildCreditLimitErrorResponse({
+        requestId: args.requestId,
+        usage,
+        requiredCredits,
+        fallbackMessage: getAccessErrorMessage(args.accessError),
+      });
+    case 'trial_expired':
+      return buildErrorResponse({
+        requestId: args.requestId,
+        usage,
+        error: {
+          code: 'TRIAL_EXPIRED',
+          category: 'subscription',
+          message: getAccessErrorMessage(args.accessError),
+          limitType: 'trial_expired',
+          requestId: args.requestId,
+          remainingCredits,
+        },
+      });
+    case 'subscription_expired':
+    case 'no_subscription':
+    case 'plan_inactive':
+      return buildErrorResponse({
+        requestId: args.requestId,
+        usage,
+        error: {
+          code: 'SUBSCRIPTION_EXPIRED',
+          category: 'subscription',
+          message: getAccessErrorMessage(args.accessError),
+          limitType: 'subscription_expired',
+          requestId: args.requestId,
+          remainingCredits,
+        },
+      });
+    case 'text_ai_disabled':
+    case 'voice_ai_disabled':
+      return buildErrorResponse({
+        requestId: args.requestId,
+        usage,
+        error: {
+          code: 'PLAN_FEATURE_UNAVAILABLE',
+          category: 'subscription',
+          message: getAccessErrorMessage(args.accessError),
+          limitType: 'feature_unavailable',
+          requestId: args.requestId,
+          remainingCredits,
+        },
+      });
+    default:
+      return buildErrorResponse({
+        requestId: args.requestId,
+        usage,
+        error: {
+          code: 'AI_ACCESS_UNAVAILABLE',
+          category: 'technical',
+          message: getAccessErrorMessage(args.accessError),
+          requestId: args.requestId,
+        },
+      });
+  }
+}
+
+function buildReserveErrorResponse(args: {
+  reserveError?: string;
+  requestType: RequestType;
+  requestId?: string;
+  summary?: SubscriptionSummary | null;
+}): AIErrorResponse {
+  const usage = summarizeUsage(args.summary);
+  const requiredCredits = REQUEST_CREDIT_COST[args.requestType];
+
+  if (args.reserveError === 'credits_exhausted') {
+    return buildCreditLimitErrorResponse({
+      requestId: args.requestId,
+      usage,
+      requiredCredits,
+      fallbackMessage: 'Unable to reserve AI credits right now.',
+    });
+  }
+
+  return buildErrorResponse({
+    requestId: args.requestId,
+    usage,
+    error: {
+      code: 'AI_CREDIT_RESERVATION_FAILED',
+      category: 'technical',
+      message: 'Unable to reserve AI credits right now. Please try again.',
+      requestId: args.requestId,
+    },
+  });
+}
+
+function buildCreditLimitErrorResponse(args: {
+  requestId?: string;
+  usage?: AIUsageSummary;
+  requiredCredits: number;
+  fallbackMessage: string;
+}): AIErrorResponse {
+  const remainingCredits = typeof args.usage?.creditsRemaining === 'number' ? args.usage.creditsRemaining : 0;
+  const creditsAllocated = typeof args.usage?.creditsAllocated === 'number' ? args.usage.creditsAllocated : 0;
+  const creditsConsumed = typeof args.usage?.creditsConsumed === 'number' ? args.usage.creditsConsumed : 0;
+  const creditsReserved = typeof args.usage?.creditsReserved === 'number' ? args.usage.creditsReserved : 0;
+  const creditsUsed = creditsConsumed + creditsReserved;
+  const exhausted = creditsAllocated > 0 && creditsUsed >= creditsAllocated;
+
+  return buildErrorResponse({
+    requestId: args.requestId,
+    usage: args.usage,
+    error: exhausted
+      ? {
+          code: 'MONTHLY_CREDIT_LIMIT_REACHED',
+          category: 'usage_limit',
+          message: 'You have used all available AI credits for this billing period.',
+          limitType: 'monthly_credits',
+          requestId: args.requestId,
+          requiredCredits: args.requiredCredits,
+          remainingCredits,
+        }
+      : {
+          code: 'INSUFFICIENT_AI_CREDITS',
+          category: 'usage_limit',
+          message: args.fallbackMessage || 'You do not have enough AI credits for this action.',
+          limitType: 'insufficient_credits',
+          requestId: args.requestId,
+          requiredCredits: args.requiredCredits,
+          remainingCredits,
+        },
+  });
 }
 
 function getFriendlyParseFailureMessage(
