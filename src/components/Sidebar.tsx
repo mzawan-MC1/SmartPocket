@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import { usePendingNavigation } from '@/lib/pending-navigation';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 
 interface SidebarProps {
@@ -26,6 +27,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const { user, signOut } = useAuth();
   const router = useRouter();
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
+  const { branding } = usePlatformSettings();
 
   const navItems = [
     { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
@@ -80,10 +82,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <AppLogo size={32} />
+          <AppLogo width={120} height={32} />
           {!collapsed && (
             <span className="font-bold text-base text-primary truncate tracking-tight">
-              Smart Pocket
+              {branding.appName}
             </span>
           )}
         </div>

@@ -1,9 +1,9 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
 import AppLogo from '@/components/ui/AppLogo';
-import { getPlatformSettings } from '@/lib/finance';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 // Social icon components using SVG to avoid lucide-react version issues
 function TwitterIcon({ size = 18 }: { size?: number }) {
@@ -30,135 +30,61 @@ function LinkedinIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-interface FooterLink {
-  id: string;
-  label: string;
-  href: string;
-}
-
-interface FooterSection {
-  id: string;
-  title: string;
-  links: FooterLink[];
-}
-
-interface FooterSettings {
-  app_name: string;
-  contact_email: string;
-  footer_sections: FooterSection[];
-  footer_tagline?: string;
-  social_twitter?: string;
-  social_github?: string;
-  social_linkedin?: string;
-}
-
-const DEFAULT_FOOTER: FooterSection[] = [
-  {
-    id: 'fs-product',
-    title: 'Product',
-    links: [
-      { id: 'fl-1', label: 'Features', href: '/features' },
-      { id: 'fl-2', label: 'Pricing', href: '/pricing' },
-      { id: 'fl-3', label: 'About', href: '/about' },
-    ],
-  },
-  {
-    id: 'fs-support',
-    title: 'Support',
-    links: [
-      { id: 'fl-4', label: 'Contact', href: '/contact' },
-      { id: 'fl-5', label: 'Help Center', href: '/help' },
-    ],
-  },
-  {
-    id: 'fs-legal',
-    title: 'Legal',
-    links: [
-      { id: 'fl-6', label: 'Privacy Policy', href: '/privacy' },
-      { id: 'fl-7', label: 'Terms of Service', href: '/terms' },
-    ],
-  },
-];
-
 export default function PublicFooter() {
-  const [settings, setSettings] = useState<FooterSettings>({
-    app_name: 'Smart Pocket',
-    contact_email: '',
-    footer_sections: DEFAULT_FOOTER,
-    footer_tagline: 'Personal finance, simplified.',
-  });
-
-  useEffect(() => {
-    getPlatformSettings()
-      .then((data) => {
-        if (data) {
-          setSettings({
-            app_name: data.app_name || 'Smart Pocket',
-            contact_email: data.contact_email || '',
-            footer_sections:
-              Array.isArray(data.footer_sections) && data.footer_sections.length > 0
-                ? (data.footer_sections as FooterSection[])
-                : DEFAULT_FOOTER,
-            footer_tagline: (data as Record<string, unknown>).footer_tagline as string || 'Personal finance, simplified.',
-            social_twitter: (data as Record<string, unknown>).social_twitter as string || '',
-            social_github: (data as Record<string, unknown>).social_github as string || '',
-            social_linkedin: (data as Record<string, unknown>).social_linkedin as string || '',
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { branding, publicUi } = usePlatformSettings();
 
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-card mt-16">
-      <div className="page-shell py-14">
-        {/* Top grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-          {/* Brand column */}
-          <div className="sm:col-span-2 md:col-span-1">
-            <Link href="/" className="flex items-center gap-2 mb-3">
-              <AppLogo size={28} />
-              <span className="font-800 text-sm tracking-tight text-primary">{settings.app_name}</span>
+    <footer className="border-t border-border bg-card/95 backdrop-blur-sm">
+      <div className="page-shell py-8 md:py-10">
+        <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]">
+          <div className="max-w-sm">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <AppLogo width={120} height={32} />
+              <div className="min-w-0">
+                <span className="block font-800 text-sm tracking-tight text-primary">
+                  {branding.appName}
+                </span>
+                <span className="block text-xs text-muted-foreground mt-1">
+                  {publicUi.footerTagline}
+                </span>
+              </div>
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-              {settings.footer_tagline}
-            </p>
-            {settings.contact_email && (
+            {publicUi.contactEmail && (
               <a
-                href={`mailto:${settings.contact_email}`}
-                className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
+                href={`mailto:${publicUi.contactEmail}`}
+                className="mt-4 inline-flex items-center gap-2 text-sm text-accent hover:underline"
               >
-                <Mail size={12} />
-                {settings.contact_email}
+                <Mail size={13} />
+                {publicUi.contactEmail}
               </a>
             )}
-            {/* Social links */}
-            <div className="flex items-center gap-2 mt-4">
-              {settings.social_twitter && (
-                <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Twitter">
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              {publicUi.socialTwitter && (
+                <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Twitter">
                   <TwitterIcon size={15} />
                 </a>
               )}
-              {settings.social_github && (
-                <a href={settings.social_github} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="GitHub">
+              {publicUi.socialGithub && (
+                <a href={publicUi.socialGithub} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="GitHub">
                   <GithubIcon size={15} />
                 </a>
               )}
-              {settings.social_linkedin && (
-                <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="LinkedIn">
+              {publicUi.socialLinkedin && (
+                <a href={publicUi.socialLinkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="LinkedIn">
                   <LinkedinIcon size={15} />
                 </a>
               )}
             </div>
           </div>
 
-          {/* Dynamic footer sections */}
-          {settings.footer_sections.map((section) => (
+          {publicUi.footerSections.map((section) => (
             <div key={section.id}>
-              <p className="text-xs font-800 uppercase tracking-[0.16em] text-foreground mb-4">{section.title}</p>
-              <ul className="space-y-2.5">
+              <p className="text-[11px] font-800 uppercase tracking-[0.16em] text-foreground mb-3">
+                {section.title}
+              </p>
+              <ul className="space-y-2">
                 {section.links.map((link) => (
                   <li key={link.id}>
                     <Link
@@ -174,12 +100,11 @@ export default function PublicFooter() {
           ))}
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground">
-            © {year} {settings.app_name}. All rights reserved.
+            © {year} {branding.appName}. All rights reserved.
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
             <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
           </div>

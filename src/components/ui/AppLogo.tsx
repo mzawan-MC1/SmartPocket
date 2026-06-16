@@ -3,22 +3,36 @@
 import React, { memo, useMemo } from 'react';
 import AppIcon from './AppIcon';
 import AppImage from './AppImage';
+import { getSettingsAssetUrl } from '@/lib/platform-settings';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 interface AppLogoProps {
   src?: string; // Image source (optional)
   iconName?: string; // Icon name when no image
   size?: number; // Size for icon/image
+  width?: number;
+  height?: number;
+  alt?: string;
   className?: string; // Additional classes
   onClick?: () => void; // Click handler
 }
 
 const AppLogo = memo(function AppLogo({
-  src = '/assets/images/app_logo.png',
+  src,
   iconName = 'SparklesIcon',
   size = 64,
+  width,
+  height,
+  alt,
   className = '',
   onClick,
 }: AppLogoProps) {
+  const { branding, updatedAt } = usePlatformSettings();
+  const resolvedSrc = src ?? getSettingsAssetUrl(branding.logoUrl, updatedAt);
+  const resolvedAlt = alt || `${branding.appName} logo`;
+  const logoWidth = width ?? size;
+  const logoHeight = height ?? size;
+
   // Memoize className calculation
   const containerClassName = useMemo(() => {
     const classes = ['flex items-center'];
@@ -30,18 +44,18 @@ const AppLogo = memo(function AppLogo({
   return (
     <div className={containerClassName} onClick={onClick}>
       {/* Show image if src provided, otherwise show icon */}
-      {src ? (
+      {resolvedSrc ? (
         <AppImage
-          src={src}
-          alt="Logo" 
-          width={size}
-          height={size}
-          className="flex-shrink-0"
+          src={resolvedSrc}
+          alt={resolvedAlt}
+          width={logoWidth}
+          height={logoHeight}
+          className="flex-shrink-0 object-contain"
           priority={true}
-          unoptimized={src.endsWith('.svg')}
+          unoptimized={/\.svg(?:\?|$)/i.test(resolvedSrc)}
         />
       ) : (
-        <AppIcon name={iconName} size={size} className="flex-shrink-0" />
+        <AppIcon name={iconName} size={Math.min(logoWidth, logoHeight)} className="flex-shrink-0" />
       )}
     </div>
   );

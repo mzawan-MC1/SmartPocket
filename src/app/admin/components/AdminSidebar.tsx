@@ -4,6 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { ArrowLeft, BarChart3, CreditCard, FileText, Globe, HeartPulse, Layout, Languages, Mail, Settings2, Shield, Sparkles, ToggleLeft, Users, Activity, ClipboardList, Loader2 } from 'lucide-react';
 import { usePendingNavigation } from '@/lib/pending-navigation';
+import AppLogo from '@/components/ui/AppLogo';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -74,6 +76,7 @@ const ADMIN_GROUPS: Array<{ id: string; label: string; items: AdminNavItem[] }> 
 
 export default function AdminSidebar({ collapsed, onToggle, activeRoute }: AdminSidebarProps) {
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
+  const { branding } = usePlatformSettings();
 
   return (
     <aside
@@ -84,7 +87,14 @@ export default function AdminSidebar({ collapsed, onToggle, activeRoute }: Admin
         className="flex items-center justify-between border-b border-border flex-shrink-0"
         style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
       >
-        {!collapsed && <span className="font-800 text-sm tracking-[0.16em] uppercase text-foreground">Admin Console</span>}
+        {!collapsed && (
+          <div className="flex items-center gap-3 min-w-0">
+            <AppLogo width={112} height={28} />
+            <span className="font-800 text-sm tracking-[0.12em] uppercase text-foreground truncate">
+              {branding.appName} Admin
+            </span>
+          </div>
+        )}
         <button onClick={onToggle} className="btn-ghost p-2" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           <ArrowLeft size={16} className={collapsed ? 'rotate-180' : ''} />
         </button>

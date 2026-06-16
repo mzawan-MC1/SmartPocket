@@ -6,7 +6,7 @@ import ForgotPasswordForm from './ForgotPasswordForm';
 import AppLogo from '@/components/ui/AppLogo';
 import { ShieldCheck, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import Icon from '@/components/ui/AppIcon';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 
 type AuthMode = 'login' | 'signup' | 'forgot';
@@ -14,6 +14,8 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const { t } = useTranslation('auth');
+  const { branding } = usePlatformSettings();
+  const year = new Date().getFullYear();
 
   const features = [
     { id: 'feat-track', icon: TrendingUp, text: 'Track every dollar across all accounts' },
@@ -35,15 +37,15 @@ export default function AuthScreen() {
 
         <div className="relative">
           <div className="flex items-center gap-3">
-            <AppLogo size={40} />
-            <span className="text-white text-xl font-700 tracking-tight">Smart Pocket</span>
+            <AppLogo width={140} height={40} />
+            <span className="text-white text-xl font-700 tracking-tight">{branding.appName}</span>
           </div>
         </div>
 
         <div className="relative space-y-6">
           <div className="max-w-xl">
             <h2 className="text-4xl xl:text-5xl font-800 text-white leading-[1.05] text-balance">
-              Take control of your finances
+              {branding.tagline}
             </h2>
             <p className="text-white/78 mt-4 text-lg leading-relaxed">
               One clean dashboard for all your accounts, budgets, and financial goals.
@@ -67,7 +69,7 @@ export default function AuthScreen() {
 
         <div className="relative">
           <p className="text-white/40 text-xs">
-            © 2026 Smart Pocket. Your data stays yours.
+            © {year} {branding.appName}. Your data stays yours.
           </p>
         </div>
       </div>
@@ -77,8 +79,11 @@ export default function AuthScreen() {
         {/* Mobile logo */}
         <div className="w-full max-w-[400px] flex justify-start items-center mb-6 lg:hidden">
           <div className="flex items-center gap-2">
-            <AppLogo size={32} />
-            <span className="font-700 text-lg text-primary">Smart Pocket</span>
+            <AppLogo width={124} height={32} />
+            <div className="min-w-0">
+              <span className="block font-700 text-lg text-primary">{branding.appName}</span>
+              <span className="block text-xs text-muted-foreground">{branding.tagline}</span>
+            </div>
           </div>
         </div>
 

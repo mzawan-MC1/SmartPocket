@@ -5,53 +5,13 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { getPlatformSettings } from '@/lib/finance';
-
-interface MenuItem {
-  id: string;
-  label: string;
-  href: string;
-}
-
-interface HeaderSettings {
-  app_name: string;
-  header_menu: MenuItem[];
-  sticky_header?: boolean;
-}
-
-const DEFAULT_MENU: MenuItem[] = [
-  { id: 'hm-about', label: 'About', href: '/about' },
-  { id: 'hm-features', label: 'Features', href: '/features' },
-  { id: 'hm-pricing', label: 'Pricing', href: '/pricing' },
-  { id: 'hm-contact', label: 'Contact', href: '/contact' },
-];
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 export default function PublicHeader() {
   const pathname = usePathname();
-  const [settings, setSettings] = useState<HeaderSettings>({
-    app_name: 'Smart Pocket',
-    header_menu: DEFAULT_MENU,
-    sticky_header: true,
-  });
+  const { branding, publicUi } = usePlatformSettings();
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    getPlatformSettings()
-      .then((data) => {
-        if (data) {
-          setSettings({
-            app_name: data.app_name || 'Smart Pocket',
-            header_menu:
-              Array.isArray(data.header_menu) && data.header_menu.length > 0
-                ? (data.header_menu as MenuItem[])
-                : DEFAULT_MENU,
-            sticky_header: data.sticky_header !== false,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Close mobile menu on outside click
   useEffect(() => {
@@ -74,21 +34,26 @@ export default function PublicHeader() {
     return pathname.startsWith(href);
   };
 
-  const headerClass = `border-b border-border bg-card/95 backdrop-blur-sm z-40 ${settings.sticky_header ? 'sticky top-0' : 'relative'}`;
+  const headerClass = `border-b border-border bg-card/95 backdrop-blur-sm z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
 
   return (
     <header className={headerClass} ref={mobileRef}>
       <div className="page-shell">
-        <div className="flex items-center justify-between h-[4.5rem]">
+        <div className="flex items-center justify-between gap-4 min-h-[4.5rem] py-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <AppLogo size={32} />
-            <span className="font-700 text-base text-primary">{settings.app_name}</span>
+          <Link href="/" className="flex items-center gap-3 flex-shrink-0 min-w-0">
+            <AppLogo width={124} height={32} />
+            <div className="min-w-0">
+              <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>
+              <span className="hidden lg:block text-xs text-muted-foreground truncate">
+                {branding.tagline}
+              </span>
+            </div>
           </Link>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1.5">
-            {settings.header_menu.map((item) => (
+            {publicUi.headerMenu.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
@@ -133,7 +98,11 @@ export default function PublicHeader() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-border py-4 space-y-1 pb-4">
-            {settings.header_menu.map((item) => (
+            <div className="px-3.5 pb-3">
+              <p className="text-sm font-700 text-primary">{branding.appName}</p>
+              <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
+            </div>
+            {publicUi.headerMenu.map((item) => (
               <Link
                 key={item.id}
                 href={item.href}
