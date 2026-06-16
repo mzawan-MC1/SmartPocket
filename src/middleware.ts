@@ -1,0 +1,122 @@
+import { NextResponse, type NextRequest } from 'next/server';
+import {
+  getPostAuthDestination,
+  isAuthPagePath,
+  isOnboardingPath,
+} from '@/lib/auth/redirects';
+import {
+  copySupabaseCookies,
+  createMiddlewareSupabaseClient,
+} from '@/lib/supabase/server';
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  const { supabase, getResponse } = createMiddlewareSupabaseClient(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const supabaseResponse = getResponse();
+
+  const shouldLogAuthDiagnostics =
+    isAuthPagePath(pathname) || pathname.startsWith('/onboarding') || pathname.startsWith('/dashboard');
+
+  if (process.env.NODE_ENV !== 'production' && shouldLogAuthDiagnostics) {
+    console.info('[middleware]', pathname, user ? 'user' : 'guest');
+  }
+
+  function redirectWithCookies(destination: string): NextResponse {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = destination;
+    return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+  }
+
+  const publicPrefixes = [
+    '/sign-up-login',
+    '/auth/',
+    '/home',
+    '/about',
+    '/features',
+    '/pricing',
+    '/contact',
+    '/privacy',
+    '/terms',
+    '/offline',
+  ];
+
+  const isPublicRoute = publicPrefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(prefix)
+  );
+
+  if (pathname === '/') {
+    if (!user) {
+      return redirectWithCookies('/home');
+    }
+
+    const { destination, profileError } = await getPostAuthDestination(supabase, user.id, null);
+    if (profileError) {
+      console.error('[middleware] profile lookup failed:', profileError);
+    }
+    return redirectWithCookies(destination);
+  }
+
+  if (!user && !isPublicRoute) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = '/sign-up-login';
+    redirectUrl.searchParams.set('next', pathname);
+    return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+  }
+
+  if (user) {
+    const loginNext = isAuthPagePath(pathname) ? request.nextUrl.searchParams.get('next') : null;
+    const { hasCompletedOnboarding, destination, profileError } = await getPostAuthDestination(
+      supabase,
+      user.id,
+      loginNext
+    );
+
+    if (profileError) {
+      console.error('[middleware] profile lookup failed:', profileError);
+    }
+
+    if (isAuthPagePath(pathname)) {
+      return redirectWithCookies(destination);
+    }
+
+    if (!hasCompletedOnboarding && !isOnboardingPath(pathname)) {
+      return redirectWithCookies('/onboarding');
+    }
+
+    if (hasCompletedOnboarding && isOnboardingPath(pathname)) {
+      return redirectWithCookies('/dashboard');
+    }
+  }
+
+  if (pathname.startsWith('/admin')) {
+    if (!user) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = '/sign-up-login';
+      redirectUrl.searchParams.set('next', pathname);
+      return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+    }
+
+    const appMetadata = user.app_metadata || {};
+    const isAdmin = appMetadata.role === 'admin';
+
+    if (!isAdmin) {
+      return redirectWithCookies('/dashboard');
+    }
+  }
+
+  return supabaseResponse;
+}
+
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|assets|currencies|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+};

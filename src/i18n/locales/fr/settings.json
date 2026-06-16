@@ -1,0 +1,45 @@
+{
+    "title": "Param\u00e8tres",
+    "sections": {
+        "profile": "Profil",
+        "preferences": "Pr\u00e9f\u00e9rences",
+        "security": "S\u00e9curit\u00e9",
+        "notifications": "Notifications",
+        "language": "Langue et r\u00e9gion",
+        "currency": "Devise",
+        "appearance": "Apparence",
+        "data": "Donn\u00e9es et confidentialit\u00e9"
+    },
+    "profile": {
+        "fullName": "Nom complet",
+        "email": "Adresse e-mail",
+        "phone": "Num\u00e9ro de t\u00e9l\u00e9phone",
+        "country": "Pays",
+        "avatar": "Photo de profil",
+        "changeAvatar": "Changer la photo",
+        "removeAvatar": "Supprimer la photo"
+    },
+    "preferences": {
+        "defaultCurrency": "Devise par d\u00e9faut",
+        "language": "Langue d'affichage",
+        "dateFormat": "Format de date",
+        "numberFormat": "Format des nombres",
+        "theme": "Th\u00e8me",
+        "themeLight": "Clair",
+        "themeDark": "Sombre",
+        "themeSystem": "Syst\u00e8me",
+        "monthStart": "Jour de d\u00e9but du mois",
+        "monthlyIncome": "Revenu mensuel"
+    },
+    "security": {
+        "changePassword": "Changer le mot de passe",
+        "currentPassword": "Mot de passe actuel",
+        "newPassword": "Nouveau mot de passe",
+        "confirmPassword": "Confirmer le mot de passe",
+        "twoFactor": "Authentification \u00e0 deux facteurs",
+        "sessions": "Sessions actives",
+        "signOutAll": "Se d\u00e9connecter de tous les appareils"
+    },
+    "saved": "Param\u00e8tres enregistr\u00e9s",
+    "saveError": "\u00c9chec de l'enregistrement des param\u00e8tres"
+}

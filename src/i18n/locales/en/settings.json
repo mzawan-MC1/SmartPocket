@@ -1,0 +1,45 @@
+{
+    "title": "Settings",
+    "sections": {
+        "profile": "Profile",
+        "preferences": "Preferences",
+        "security": "Security",
+        "notifications": "Notifications",
+        "language": "Language & Region",
+        "currency": "Currency",
+        "appearance": "Appearance",
+        "data": "Data & Privacy"
+    },
+    "profile": {
+        "fullName": "Full Name",
+        "email": "Email Address",
+        "phone": "Phone Number",
+        "country": "Country",
+        "avatar": "Profile Photo",
+        "changeAvatar": "Change Photo",
+        "removeAvatar": "Remove Photo"
+    },
+    "preferences": {
+        "defaultCurrency": "Default Currency",
+        "language": "Display Language",
+        "dateFormat": "Date Format",
+        "numberFormat": "Number Format",
+        "theme": "Theme",
+        "themeLight": "Light",
+        "themeDark": "Dark",
+        "themeSystem": "System",
+        "monthStart": "Month Start Day",
+        "monthlyIncome": "Monthly Income"
+    },
+    "security": {
+        "changePassword": "Change Password",
+        "currentPassword": "Current Password",
+        "newPassword": "New Password",
+        "confirmPassword": "Confirm Password",
+        "twoFactor": "Two-Factor Authentication",
+        "sessions": "Active Sessions",
+        "signOutAll": "Sign Out All Devices"
+    },
+    "saved": "Settings saved",
+    "saveError": "Failed to save settings"
+}

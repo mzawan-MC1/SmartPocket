@@ -1,0 +1,15 @@
+{
+    "required": "{{field}} is required",
+    "minLength": "{{field}} must be at least {{min}} characters",
+    "maxLength": "{{field}} must not exceed {{max}} characters",
+    "email": "Please enter a valid email address",
+    "passwordMatch": "Passwords do not match",
+    "passwordStrength": "Password must be at least 8 characters with a number and special character",
+    "positiveNumber": "Please enter a positive number",
+    "invalidAmount": "Please enter a valid amount",
+    "futureDate": "Date cannot be in the future",
+    "required_field": "This field is required",
+    "invalidCurrency": "Please select a valid currency",
+    "fileTooLarge": "File size must not exceed {{size}}MB",
+    "invalidFileType": "File type not supported. Allowed: {{types}}"
+}

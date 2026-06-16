@@ -1,0 +1,56 @@
+{
+    "title": "Transactions",
+    "addTransaction": "Ajouter une transaction",
+    "addExpense": "Ajouter une d\u00e9pense",
+    "addIncome": "Ajouter un revenu",
+    "transfer": "Virement",
+    "fields": {
+        "amount": "Montant",
+        "type": "Type",
+        "account": "Compte",
+        "category": "Cat\u00e9gorie",
+        "date": "Date",
+        "time": "Heure",
+        "merchant": "Marchand / Source",
+        "notes": "Notes",
+        "tags": "\u00c9tiquettes",
+        "receipt": "Re\u00e7u",
+        "recurring": "R\u00e9current"
+    },
+    "types": {
+        "income": "Revenu",
+        "expense": "D\u00e9pense",
+        "transfer": "Virement"
+    },
+    "filters": {
+        "all": "Tous",
+        "income": "Revenus",
+        "expense": "D\u00e9penses",
+        "transfer": "Virements",
+        "dateRange": "Plage de dates",
+        "account": "Compte",
+        "category": "Cat\u00e9gorie",
+        "search": "Rechercher des transactions..."
+    },
+    "sort": {
+        "dateDesc": "Plus r\u00e9cent d'abord",
+        "dateAsc": "Plus ancien d'abord",
+        "amountDesc": "Montant le plus \u00e9lev\u00e9",
+        "amountAsc": "Montant le plus bas"
+    },
+    "table": {
+        "date": "Date",
+        "description": "Description",
+        "category": "Cat\u00e9gorie",
+        "account": "Compte",
+        "amount": "Montant",
+        "actions": "Actions"
+    },
+    "empty": {
+        "title": "Aucune transaction pour l'instant",
+        "description": "Ajoutez votre premi\u00e8re transaction pour commencer"
+    },
+    "deleteConfirm": "\u00cates-vous s\u00fbr de vouloir supprimer cette transaction ?",
+    "deleted": "Transaction supprim\u00e9e",
+    "saved": "Transaction enregistr\u00e9e"
+}

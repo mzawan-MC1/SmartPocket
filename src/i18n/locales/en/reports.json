@@ -1,0 +1,45 @@
+{
+    "title": "Reports",
+    "generate": "Generate Report",
+    "download": "Download",
+    "downloadPDF": "Download PDF",
+    "downloadCSV": "Download CSV",
+    "print": "Print",
+    "types": {
+        "incomeExpense": "Income vs Expenses",
+        "spendingCategory": "Spending by Category",
+        "spendingAccount": "Spending by Account",
+        "monthlyTrends": "Monthly Trends",
+        "budgetPerformance": "Budget Performance",
+        "accountStatement": "Account Statement",
+        "transactionReport": "Transaction Report"
+    },
+    "filters": {
+        "dateRange": "Date Range",
+        "account": "Account",
+        "category": "Category",
+        "type": "Transaction Type",
+        "currency": "Currency"
+    },
+    "summary": {
+        "totalIncome": "Total Income",
+        "totalExpenses": "Total Expenses",
+        "netFlow": "Net Cash Flow",
+        "savingsRate": "Savings Rate",
+        "topCategory": "Top Spending Category",
+        "transactionCount": "Total Transactions"
+    },
+    "pdf": {
+        "generatedOn": "Generated on",
+        "reportPeriod": "Report Period",
+        "preparedFor": "Prepared for",
+        "page": "Page",
+        "of": "of",
+        "footer": "Smart Pocket \u2014 Personal Finance Report",
+        "disclaimer": "This report is for personal financial tracking purposes only."
+    },
+    "empty": {
+        "title": "No data for this period",
+        "description": "Try adjusting your date range or filters"
+    }
+}

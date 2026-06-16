@@ -1,0 +1,56 @@
+{
+    "title": "Transactions",
+    "addTransaction": "Add Transaction",
+    "addExpense": "Add Expense",
+    "addIncome": "Add Income",
+    "transfer": "Transfer",
+    "fields": {
+        "amount": "Amount",
+        "type": "Type",
+        "account": "Account",
+        "category": "Category",
+        "date": "Date",
+        "time": "Time",
+        "merchant": "Merchant / Source",
+        "notes": "Notes",
+        "tags": "Tags",
+        "receipt": "Receipt",
+        "recurring": "Recurring"
+    },
+    "types": {
+        "income": "Income",
+        "expense": "Expense",
+        "transfer": "Transfer"
+    },
+    "filters": {
+        "all": "All",
+        "income": "Income",
+        "expense": "Expense",
+        "transfer": "Transfer",
+        "dateRange": "Date Range",
+        "account": "Account",
+        "category": "Category",
+        "search": "Search transactions..."
+    },
+    "sort": {
+        "dateDesc": "Newest First",
+        "dateAsc": "Oldest First",
+        "amountDesc": "Highest Amount",
+        "amountAsc": "Lowest Amount"
+    },
+    "table": {
+        "date": "Date",
+        "description": "Description",
+        "category": "Category",
+        "account": "Account",
+        "amount": "Amount",
+        "actions": "Actions"
+    },
+    "empty": {
+        "title": "No transactions yet",
+        "description": "Add your first transaction to get started"
+    },
+    "deleteConfirm": "Are you sure you want to delete this transaction?",
+    "deleted": "Transaction deleted",
+    "saved": "Transaction saved"
+}

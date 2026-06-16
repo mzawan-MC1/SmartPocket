@@ -1,0 +1,76 @@
+{
+    "title": "People",
+    "subtitle": "Manage finances for family, friends, and others",
+    "addPerson": "Add Person",
+    "editProfile": "Edit Profile",
+    "nopeople": "No people yet",
+    "nopeopleDesc": "Add family members, friends, or anyone whose finances you manage",
+    "moneyHeld": "Money Held",
+    "owedToMe": "Owed to Me",
+    "iOwe": "I Owe",
+    "relationship": {
+        "spouse": "Spouse",
+        "child": "Child",
+        "parent": "Parent",
+        "sibling": "Sibling",
+        "friend": "Friend",
+        "relative": "Relative",
+        "colleague": "Colleague",
+        "client": "Client",
+        "other": "Other"
+    },
+    "tabs": {
+        "overview": "Overview",
+        "ledger": "Ledger",
+        "expenses": "Expenses",
+        "reimbursements": "Reimbursements",
+        "settlements": "Settlements",
+        "reports": "Reports",
+        "profile": "Profile"
+    },
+    "ledger": {
+        "title": "Ledger",
+        "noEntries": "No ledger entries yet",
+        "entryTypes": {
+            "money_received": "Money Received",
+            "money_returned": "Money Returned",
+            "expense_from_held": "Expense (Held Balance)",
+            "expense_paid_by_user": "Expense (Paid by Me)",
+            "expense_paid_by_person": "Expense (Paid by Person)",
+            "reimbursement_due_to_user": "Reimbursement Due to Me",
+            "reimbursement_due_to_person": "Reimbursement Due to Person",
+            "reimbursement_received": "Reimbursement Received",
+            "reimbursement_paid": "Reimbursement Paid",
+            "settlement": "Settlement",
+            "adjustment": "Adjustment"
+        }
+    },
+    "reimbursements": {
+        "title": "Reimbursements",
+        "noReimbursements": "No reimbursements yet",
+        "recordPayment": "Record Payment",
+        "outstanding": "Outstanding",
+        "statuses": {
+            "pending": "Pending",
+            "partially_paid": "Partially Paid",
+            "settled": "Settled",
+            "waived": "Waived",
+            "cancelled": "Cancelled"
+        }
+    },
+    "settlements": {
+        "title": "Settlements",
+        "noSettlements": "No settlements yet",
+        "newSettlement": "New Settlement",
+        "totalSettled": "Total Settled"
+    },
+    "spaces": {
+        "title": "Spaces",
+        "personal": "Personal",
+        "family": "Family",
+        "household": "Household",
+        "child": "Child",
+        "friend": "Friend",
+        "custom": "Custom"
+    }
+}

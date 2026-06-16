@@ -1,0 +1,76 @@
+{
+    "title": "Personnes",
+    "subtitle": "G\u00e9rer les finances pour la famille, les amis et autres",
+    "addPerson": "Ajouter une personne",
+    "editProfile": "Modifier le profil",
+    "nopeople": "Aucune personne pour l'instant",
+    "nopeopleDesc": "Ajoutez des membres de la famille, des amis ou toute personne dont vous g\u00e9rez les finances",
+    "moneyHeld": "Argent d\u00e9tenu",
+    "owedToMe": "D\u00fb \u00e0 moi",
+    "iOwe": "Je dois",
+    "relationship": {
+        "spouse": "Conjoint(e)",
+        "child": "Enfant",
+        "parent": "Parent",
+        "sibling": "Fr\u00e8re/S\u0153ur",
+        "friend": "Ami(e)",
+        "relative": "Proche",
+        "colleague": "Coll\u00e8gue",
+        "client": "Client",
+        "other": "Autre"
+    },
+    "tabs": {
+        "overview": "Aper\u00e7u",
+        "ledger": "Grand livre",
+        "expenses": "D\u00e9penses",
+        "reimbursements": "Remboursements",
+        "settlements": "R\u00e8glements",
+        "reports": "Rapports",
+        "profile": "Profil"
+    },
+    "ledger": {
+        "title": "Grand livre",
+        "noEntries": "Aucune entr\u00e9e pour l'instant",
+        "entryTypes": {
+            "money_received": "Argent re\u00e7u",
+            "money_returned": "Argent rendu",
+            "expense_from_held": "D\u00e9pense (solde d\u00e9tenu)",
+            "expense_paid_by_user": "D\u00e9pense (pay\u00e9e par moi)",
+            "expense_paid_by_person": "D\u00e9pense (pay\u00e9e par la personne)",
+            "reimbursement_due_to_user": "Remboursement d\u00fb \u00e0 moi",
+            "reimbursement_due_to_person": "Remboursement d\u00fb \u00e0 la personne",
+            "reimbursement_received": "Remboursement re\u00e7u",
+            "reimbursement_paid": "Remboursement pay\u00e9",
+            "settlement": "R\u00e8glement",
+            "adjustment": "Ajustement"
+        }
+    },
+    "reimbursements": {
+        "title": "Remboursements",
+        "noReimbursements": "Aucun remboursement pour l'instant",
+        "recordPayment": "Enregistrer le paiement",
+        "outstanding": "Montant restant",
+        "statuses": {
+            "pending": "En attente",
+            "partially_paid": "Partiellement pay\u00e9",
+            "settled": "R\u00e9gl\u00e9",
+            "waived": "Renonc\u00e9",
+            "cancelled": "Annul\u00e9"
+        }
+    },
+    "settlements": {
+        "title": "R\u00e8glements",
+        "noSettlements": "Aucun r\u00e8glement pour l'instant",
+        "newSettlement": "Nouveau r\u00e8glement",
+        "totalSettled": "Total r\u00e9gl\u00e9"
+    },
+    "spaces": {
+        "title": "Espaces",
+        "personal": "Personnel",
+        "family": "Famille",
+        "household": "M\u00e9nage",
+        "child": "Enfant",
+        "friend": "Ami",
+        "custom": "Personnalis\u00e9"
+    }
+}

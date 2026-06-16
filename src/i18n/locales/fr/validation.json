@@ -1,0 +1,15 @@
+{
+    "required": "{{field}} est requis",
+    "minLength": "{{field}} doit comporter au moins {{min}} caract\u00e8res",
+    "maxLength": "{{field}} ne doit pas d\u00e9passer {{max}} caract\u00e8res",
+    "email": "Veuillez entrer une adresse e-mail valide",
+    "passwordMatch": "Les mots de passe ne correspondent pas",
+    "passwordStrength": "Le mot de passe doit comporter au moins 8 caract\u00e8res avec un chiffre et un caract\u00e8re sp\u00e9cial",
+    "positiveNumber": "Veuillez entrer un nombre positif",
+    "invalidAmount": "Veuillez entrer un montant valide",
+    "futureDate": "La date ne peut pas \u00eatre dans le futur",
+    "required_field": "Ce champ est requis",
+    "invalidCurrency": "Veuillez s\u00e9lectionner une devise valide",
+    "fileTooLarge": "La taille du fichier ne doit pas d\u00e9passer {{size}} Mo",
+    "invalidFileType": "Type de fichier non pris en charge. Autoris\u00e9 : {{types}}"
+}

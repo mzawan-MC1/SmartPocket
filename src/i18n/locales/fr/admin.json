@@ -1,0 +1,47 @@
+{
+    "title": "Portail Admin",
+    "nav": {
+        "dashboard": "Tableau de bord",
+        "branding": "Marque",
+        "header": "En-t\u00eate",
+        "footer": "Pied de page",
+        "pages": "Pages",
+        "contact": "Param\u00e8tres de contact",
+        "email": "Param\u00e8tres e-mail",
+        "auth": "Param\u00e8tres d'authentification",
+        "payment": "Param\u00e8tres de paiement",
+        "reports": "Param\u00e8tres des rapports",
+        "seo": "Param\u00e8tres SEO",
+        "currency": "Param\u00e8tres de devise",
+        "users": "Utilisateurs",
+        "activity": "Journal d'activit\u00e9",
+        "general": "Param\u00e8tres g\u00e9n\u00e9raux"
+    },
+    "currency": {
+        "title": "Param\u00e8tres de devise",
+        "defaultCurrency": "Devise par d\u00e9faut de la plateforme",
+        "enabledCurrencies": "Devises activ\u00e9es",
+        "symbolDisplay": "Mode d'affichage du symbole",
+        "symbolMode": "Utiliser le symbole officiel",
+        "codeMode": "Utiliser le code ISO",
+        "preview": "Aper\u00e7u",
+        "decimalPlaces": "D\u00e9cimales",
+        "symbolPosition": "Position du symbole",
+        "before": "Avant le montant",
+        "after": "Apr\u00e8s le montant",
+        "spacing": "Espace entre le symbole et le montant",
+        "uploadSymbol": "T\u00e9l\u00e9verser un symbole",
+        "testPDF": "Tester le rendu PDF",
+        "saved": "Param\u00e8tres de devise enregistr\u00e9s",
+        "warning": "Modifier les codes ISO apr\u00e8s des transactions peut affecter les donn\u00e9es historiques."
+    },
+    "users": {
+        "title": "Utilisateurs",
+        "name": "Nom",
+        "email": "E-mail",
+        "role": "R\u00f4le",
+        "status": "Statut",
+        "joined": "Inscrit le",
+        "lastActive": "Derni\u00e8re activit\u00e9"
+    }
+}

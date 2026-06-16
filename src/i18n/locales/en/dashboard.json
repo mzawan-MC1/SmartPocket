@@ -1,0 +1,34 @@
+{
+    "title": "Dashboard",
+    "greeting": "Good {{time}}, {{name}}",
+    "greetingMorning": "morning",
+    "greetingAfternoon": "afternoon",
+    "greetingEvening": "evening",
+    "metrics": {
+        "totalBalance": "Total Balance",
+        "monthlyIncome": "Monthly Income",
+        "monthlyExpenses": "Monthly Expenses",
+        "netCashFlow": "Net Cash Flow",
+        "remainingBudget": "Remaining Budget",
+        "savingsRate": "Savings Rate"
+    },
+    "sections": {
+        "recentTransactions": "Recent Transactions",
+        "accountBalances": "Account Balances",
+        "upcomingRecurring": "Upcoming Recurring",
+        "spendingByCategory": "Spending by Category",
+        "incomeVsExpenses": "Income vs Expenses",
+        "quickAdd": "Quick Add"
+    },
+    "quickAdd": {
+        "expense": "Add Expense",
+        "income": "Add Income",
+        "transfer": "Transfer",
+        "account": "Add Account"
+    },
+    "noTransactions": "No transactions this month",
+    "noAccounts": "No accounts added yet",
+    "noUpcoming": "No upcoming payments",
+    "mixedCurrencies": "Multiple currencies \u2014 totals not combined",
+    "viewAll": "View all"
+}

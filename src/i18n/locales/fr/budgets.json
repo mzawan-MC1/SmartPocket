@@ -1,0 +1,34 @@
+{
+    "title": "Budgets",
+    "addBudget": "Ajouter un budget",
+    "editBudget": "Modifier le budget",
+    "overview": "Vue d'ensemble du budget",
+    "monthly": "Budget mensuel",
+    "fields": {
+        "name": "Nom du budget",
+        "amount": "Montant du budget",
+        "category": "Cat\u00e9gorie",
+        "period": "P\u00e9riode",
+        "startDate": "Date de d\u00e9but",
+        "endDate": "Date de fin"
+    },
+    "stats": {
+        "spent": "D\u00e9pens\u00e9",
+        "remaining": "Restant",
+        "usage": "Utilisation",
+        "total": "Budget total"
+    },
+    "status": {
+        "onTrack": "Dans les limites",
+        "warning": "Proche de la limite",
+        "exceeded": "D\u00e9pass\u00e9",
+        "unused": "Non commenc\u00e9"
+    },
+    "empty": {
+        "title": "Aucun budget d\u00e9fini",
+        "description": "Cr\u00e9ez un budget pour suivre vos d\u00e9penses"
+    },
+    "deleteConfirm": "\u00cates-vous s\u00fbr de vouloir supprimer ce budget ?",
+    "deleted": "Budget supprim\u00e9",
+    "saved": "Budget enregistr\u00e9"
+}

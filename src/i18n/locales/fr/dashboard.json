@@ -1,0 +1,34 @@
+{
+    "title": "Tableau de bord",
+    "greeting": "Bonjour {{name}}",
+    "greetingMorning": "matin",
+    "greetingAfternoon": "apr\u00e8s-midi",
+    "greetingEvening": "soir",
+    "metrics": {
+        "totalBalance": "Solde total",
+        "monthlyIncome": "Revenus mensuels",
+        "monthlyExpenses": "D\u00e9penses mensuelles",
+        "netCashFlow": "Flux de tr\u00e9sorerie net",
+        "remainingBudget": "Budget restant",
+        "savingsRate": "Taux d'\u00e9pargne"
+    },
+    "sections": {
+        "recentTransactions": "Transactions r\u00e9centes",
+        "accountBalances": "Soldes des comptes",
+        "upcomingRecurring": "Paiements \u00e0 venir",
+        "spendingByCategory": "D\u00e9penses par cat\u00e9gorie",
+        "incomeVsExpenses": "Revenus vs D\u00e9penses",
+        "quickAdd": "Ajout rapide"
+    },
+    "quickAdd": {
+        "expense": "Ajouter une d\u00e9pense",
+        "income": "Ajouter un revenu",
+        "transfer": "Virement",
+        "account": "Ajouter un compte"
+    },
+    "noTransactions": "Aucune transaction ce mois",
+    "noAccounts": "Aucun compte ajout\u00e9",
+    "noUpcoming": "Aucun paiement \u00e0 venir",
+    "mixedCurrencies": "Devises multiples \u2014 totaux non combin\u00e9s",
+    "viewAll": "Voir tout"
+}

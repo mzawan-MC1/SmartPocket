@@ -1,0 +1,47 @@
+{
+    "title": "Admin Portal",
+    "nav": {
+        "dashboard": "Dashboard",
+        "branding": "Branding",
+        "header": "Header",
+        "footer": "Footer",
+        "pages": "Pages",
+        "contact": "Contact Settings",
+        "email": "Email Settings",
+        "auth": "Auth Settings",
+        "payment": "Payment Settings",
+        "reports": "Report Settings",
+        "seo": "SEO Settings",
+        "currency": "Currency Settings",
+        "users": "Users",
+        "activity": "Activity Log",
+        "general": "General Settings"
+    },
+    "currency": {
+        "title": "Currency Settings",
+        "defaultCurrency": "Default Platform Currency",
+        "enabledCurrencies": "Enabled Currencies",
+        "symbolDisplay": "Symbol Display Mode",
+        "symbolMode": "Use Official Symbol",
+        "codeMode": "Use ISO Code",
+        "preview": "Preview",
+        "decimalPlaces": "Decimal Places",
+        "symbolPosition": "Symbol Position",
+        "before": "Before amount",
+        "after": "After amount",
+        "spacing": "Space between symbol and amount",
+        "uploadSymbol": "Upload Symbol Asset",
+        "testPDF": "Test PDF Rendering",
+        "saved": "Currency settings saved",
+        "warning": "Changing ISO codes after transactions exist may affect historical data."
+    },
+    "users": {
+        "title": "Users",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "status": "Status",
+        "joined": "Joined",
+        "lastActive": "Last Active"
+    }
+}

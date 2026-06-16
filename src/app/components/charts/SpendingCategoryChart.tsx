@@ -1,0 +1,173 @@
+'use client';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { createClient } from '@/lib/supabase/client';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
+
+const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
+
+interface CategorySpend {
+  id: string;
+  name: string;
+  value: number;
+  color: string;
+}
+
+function CustomTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  const total = item?.payload?.total ?? 1;
+  return (
+    <div className="card-elevated-md p-3">
+      <p className="text-xs font-600 text-foreground">{item.name}</p>
+      <p className="text-sm font-700 font-tabular text-foreground mt-0.5">
+        ${item.value.toLocaleString()}
+      </p>
+      <p className="text-xs text-muted-foreground">
+        {((item.value / total) * 100).toFixed(1)}% of total
+      </p>
+    </div>
+  );
+}
+
+export default function SpendingCategoryChart() {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [data, setData] = useState<CategorySpend[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const now = new Date();
+      const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+
+      const { data: txns } = await supabase
+        .from('transactions')
+        .select('amount, category:categories(id, name, color)')
+        .eq('transaction_type', 'expense')
+        .gte('transaction_date', start)
+        .lte('transaction_date', end);
+
+      if (!txns?.length) {
+        setData([]);
+        setTotal(0);
+        return;
+      }
+
+      const categoryMap = new Map<string, { name: string; value: number; color: string | null }>();
+      for (const transaction of txns) {
+        const category = Array.isArray(transaction.category) ? transaction.category[0] : transaction.category;
+        const key = category?.id ?? 'uncategorized';
+        const name = category?.name ?? 'Uncategorized';
+        const color = category?.color ?? null;
+        const existing = categoryMap.get(key);
+        if (existing) {
+          existing.value += Number(transaction.amount);
+        } else {
+          categoryMap.set(key, { name, value: Number(transaction.amount), color });
+        }
+      }
+
+      const sorted = Array.from(categoryMap.entries())
+        .map(([id, value], index) => ({
+          id,
+          name: value.name,
+          value: value.value,
+          color: value.color ?? COLORS[index % COLORS.length],
+        }))
+        .sort((left, right) => right.value - left.value)
+        .slice(0, 8);
+
+      const grandTotal = sorted.reduce((sum, item) => sum + item.value, 0);
+      setTotal(grandTotal);
+      setData(sorted.map((item) => ({ ...item, total: grandTotal } as CategorySpend)));
+    } catch (error) {
+      console.error('SpendingCategoryChart error:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useSmartPocketDataChanged(['dashboard', 'transactions'], 'SpendingCategoryChart', async () => {
+    await load();
+  });
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>;
+  }
+
+  if (!data.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-2">
+        <p className="text-sm text-muted-foreground">No expense data this month</p>
+        <p className="text-xs text-muted-foreground">Add expense transactions to see spending by category</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4 h-full">
+      <div className="w-[160px] h-full flex-shrink-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={50}
+              outerRadius={72}
+              paddingAngle={2}
+              dataKey="value"
+              onMouseEnter={(_, index) => setActiveId(data[index]?.id ?? null)}
+              onMouseLeave={() => setActiveId(null)}
+            >
+              {data.map((entry) => (
+                <Cell
+                  key={entry.id}
+                  fill={entry.color}
+                  opacity={activeId && activeId !== entry.id ? 0.4 : 1}
+                  stroke="none"
+                />
+              ))}
+            </Pie>
+            <Tooltip content={<CustomTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="flex-1 grid grid-cols-1 gap-1.5 overflow-y-auto max-h-[200px] scrollbar-thin pr-1">
+        {data.map((item) => (
+          <div
+            key={item.id}
+            className="flex items-center gap-2 cursor-default"
+            onMouseEnter={() => setActiveId(item.id)}
+            onMouseLeave={() => setActiveId(null)}
+          >
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+            <span className="text-xs text-muted-foreground flex-1 truncate">{item.name}</span>
+            <span className="text-xs font-600 font-tabular text-foreground">
+              ${item.value.toLocaleString()}
+            </span>
+            <span className="text-[10px] text-muted-foreground w-10 text-right">
+              {total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

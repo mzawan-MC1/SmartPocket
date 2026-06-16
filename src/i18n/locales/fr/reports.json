@@ -1,0 +1,45 @@
+{
+    "title": "Rapports",
+    "generate": "G\u00e9n\u00e9rer un rapport",
+    "download": "T\u00e9l\u00e9charger",
+    "downloadPDF": "T\u00e9l\u00e9charger PDF",
+    "downloadCSV": "T\u00e9l\u00e9charger CSV",
+    "print": "Imprimer",
+    "types": {
+        "incomeExpense": "Revenus vs D\u00e9penses",
+        "spendingCategory": "D\u00e9penses par cat\u00e9gorie",
+        "spendingAccount": "D\u00e9penses par compte",
+        "monthlyTrends": "Tendances mensuelles",
+        "budgetPerformance": "Performance budg\u00e9taire",
+        "accountStatement": "Relev\u00e9 de compte",
+        "transactionReport": "Rapport de transactions"
+    },
+    "filters": {
+        "dateRange": "Plage de dates",
+        "account": "Compte",
+        "category": "Cat\u00e9gorie",
+        "type": "Type de transaction",
+        "currency": "Devise"
+    },
+    "summary": {
+        "totalIncome": "Total des revenus",
+        "totalExpenses": "Total des d\u00e9penses",
+        "netFlow": "Flux de tr\u00e9sorerie net",
+        "savingsRate": "Taux d'\u00e9pargne",
+        "topCategory": "Cat\u00e9gorie de d\u00e9pense principale",
+        "transactionCount": "Total des transactions"
+    },
+    "pdf": {
+        "generatedOn": "G\u00e9n\u00e9r\u00e9 le",
+        "reportPeriod": "P\u00e9riode du rapport",
+        "preparedFor": "Pr\u00e9par\u00e9 pour",
+        "page": "Page",
+        "of": "sur",
+        "footer": "Smart Pocket \u2014 Rapport financier personnel",
+        "disclaimer": "Ce rapport est uniquement destin\u00e9 au suivi financier personnel."
+    },
+    "empty": {
+        "title": "Aucune donn\u00e9e pour cette p\u00e9riode",
+        "description": "Essayez d'ajuster la plage de dates ou les filtres"
+    }
+}
