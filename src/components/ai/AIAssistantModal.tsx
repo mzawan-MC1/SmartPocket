@@ -8,6 +8,7 @@ import VoiceRecorder from './VoiceRecorder';
 import type { ParsedFinancialInstruction, FinancialAction, FinancialContext, SuggestedAccount } from '@/lib/ai-types';
 import { buildAIContext } from '@/lib/ai-execution';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { createClientId } from '@/lib/uuid';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 type AssistantStep =
@@ -59,7 +60,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [clarificationInput, setClarificationInput] = useState('');
   const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
   const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
-  const [flowId, setFlowId] = useState(() => crypto.randomUUID());
+  const [flowId, setFlowId] = useState(() => createClientId());
   const [flowRequestId, setFlowRequestId] = useState<string | null>(null);
   const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
   const [accountResolutions, setAccountResolutions] = useState<AccountResolutionChoice[]>([]);
@@ -463,7 +464,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setExecutionResult(null);
     setContextSnapshot(null);
     setFlowRequestId(null);
-    setFlowId(crypto.randomUUID());
+    setFlowId(createClientId());
     setAccountResolutions([]);
     setAccountDraft(null);
     setChoosingExistingFor(null);

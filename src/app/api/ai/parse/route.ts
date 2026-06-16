@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { loadAIConfig, processAIRequest } from '@/lib/ai-gateway';
 import type { AIAssistantRequest } from '@/lib/ai-types';
+import { createClientId } from '@/lib/uuid';
 
 type RequestType = 'voice' | 'text';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     if (!config.aiEnabled) {
       return NextResponse.json({
-        requestId: crypto.randomUUID(),
+        requestId: createClientId(),
         status: 'not_configured',
         errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
       });

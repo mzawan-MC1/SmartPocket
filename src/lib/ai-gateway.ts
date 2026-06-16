@@ -8,6 +8,7 @@ import {
   safeParseJSON,
   FINANCIAL_SYSTEM_PROMPT,
 } from './ai-types';
+import { createClientId } from './uuid';
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
 
@@ -580,7 +581,7 @@ export async function processAIRequest(
 
   if (!config.aiEnabled) {
     return {
-      requestId: crypto.randomUUID(),
+      requestId: createClientId(),
       status: 'not_configured',
       errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
       errorCategory: 'not_configured',
@@ -591,7 +592,7 @@ export async function processAIRequest(
   if (request.type === 'text' && request.text) {
     if (request.text.length > config.maxTextLength) {
       return {
-        requestId: crypto.randomUUID(),
+        requestId: createClientId(),
         status: 'failed',
         errorMessage: `Input too long. Maximum ${config.maxTextLength} characters.`,
         errorCategory: 'input_too_long',
@@ -613,7 +614,7 @@ export async function processAIRequest(
         primarySTT = createSpeechProvider(config.primarySttProvider, config.requestTimeoutMs);
       } catch {
         return {
-          requestId: crypto.randomUUID(),
+          requestId: createClientId(),
           status: 'not_configured',
           errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
           errorCategory: 'not_configured',
@@ -642,7 +643,7 @@ export async function processAIRequest(
     const textToProcess = request.type === 'voice' ? transcript : request.text;
     if (!textToProcess?.trim()) {
       return {
-        requestId: crypto.randomUUID(),
+        requestId: createClientId(),
         status: 'failed',
         errorMessage: 'No text to process.',
         errorCategory: 'empty_input',
@@ -654,7 +655,7 @@ export async function processAIRequest(
       text: textToProcess,
       language: request.language || 'en',
       context: request.context,
-      requestId: crypto.randomUUID(),
+      requestId: createClientId(),
     };
 
     const [primaryLang, fallbackLang] = getProviderOrder(config);
@@ -666,7 +667,7 @@ export async function processAIRequest(
       primaryProvider = createLanguageProvider(primaryLang, config.requestTimeoutMs);
     } catch {
       return {
-        requestId: crypto.randomUUID(),
+        requestId: createClientId(),
         status: 'not_configured',
         errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
         errorCategory: 'not_configured',
@@ -705,7 +706,7 @@ export async function processAIRequest(
   } catch (error) {
     let msg = error instanceof Error ? error.message : 'Unknown error';
     return {
-      requestId: crypto.randomUUID(),
+      requestId: createClientId(),
       status: 'failed',
       errorMessage: sanitizeError(msg),
       errorCategory: categorizeError(msg),
