@@ -23,23 +23,26 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen w-full bg-background text-foreground">
       <div className="flex min-h-screen w-full items-stretch">
-        <div className="hidden lg:block lg:h-screen lg:flex-shrink-0">
+        <div
+          className="hidden self-stretch border-e border-border bg-card lg:flex lg:flex-shrink-0"
+          style={{ width: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+        >
           <AdminSidebar collapsed={sidebarCollapsed} onToggle={onToggleSidebar} activeRoute={pathname} />
         </div>
 
-      {mobileNavOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
-            onClick={() => setMobileNavOpen(false)}
-            aria-label="Close admin navigation"
-          />
-          <div className="absolute left-0 top-0 h-full w-[86vw] max-w-[320px]">
-            <AdminSidebar collapsed={false} onToggle={() => setMobileNavOpen(false)} activeRoute={pathname} />
+        {mobileNavOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <button
+              type="button"
+              className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close admin navigation"
+            />
+            <div className="absolute left-0 top-0 h-full w-[86vw] max-w-[320px]">
+              <AdminSidebar collapsed={false} onToggle={() => setMobileNavOpen(false)} activeRoute={pathname} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar onToggleSidebar={() => setMobileNavOpen((v) => !v)} />

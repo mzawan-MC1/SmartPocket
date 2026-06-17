@@ -81,8 +81,7 @@ export default function AdminSidebar({ collapsed, onToggle, activeRoute }: Admin
 
   return (
     <aside
-      className="relative flex h-full min-h-0 flex-col overflow-hidden border-e border-border bg-card sidebar-transition"
-      style={{ width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+      className="relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-card sidebar-transition lg:sticky lg:top-0 lg:min-h-screen lg:h-screen"
     >
       <div
         className="flex h-[76px] shrink-0 items-center gap-3 border-b border-border px-3"

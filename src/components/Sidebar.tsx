@@ -73,10 +73,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   return (
     <aside
-      className={`relative flex h-full min-h-0 flex-col overflow-hidden border-e border-border bg-card sidebar-transition ${
+      className={`relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-card sidebar-transition lg:sticky lg:top-0 lg:min-h-screen lg:h-screen ${
         isMobileDrawer ? 'w-[86vw] max-w-[320px] shadow-card-lg' : ''
       }`}
-      style={{ width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
     >
       {/* Logo */}
       <div
@@ -110,7 +109,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </div>
 
       {/* Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 pb-6 scrollbar-thin">
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 scrollbar-thin">
         {!collapsed && (
           <p className="px-5 mb-2 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Finance</p>
         )}
@@ -158,54 +157,54 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           })}
         </ul>
 
-        {/* Bottom Section */}
-        <div className="mt-6">
-          {!collapsed && (
-            <p className="px-5 mb-2 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Account</p>
-          )}
-          <ul className="space-y-1 px-2">
-            {bottomItems.map((item) => {
-              const Icon = item.icon;
-              const active = isRouteActive(item.href);
-              const pending = isRoutePending(item.href);
-              return (
-                <li key={item.id}>
-                  <Link
-                    href={item.href}
-                    onClick={(event) => {
-                      const shouldNavigate = handleNavigationIntent(item.href, event);
-                      if (shouldNavigate) {
-                        onNavigateItem?.();
-                      }
-                    }}
-                    className={`nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-500 text-muted-foreground relative group ${active ? 'nav-active font-600' : ''}`}
-                    aria-current={active ? 'page' : undefined}
-                    aria-busy={pending ? 'true' : undefined}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon size={18} className="flex-shrink-0" />
-                    {!collapsed && <span className="truncate flex-1">{item.label}</span>}
-                    {!collapsed && pending && (
-                      <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" />
-                    )}
-                    {collapsed && pending && (
-                      <span className="absolute top-2.5 end-2.5 w-2 h-2 rounded-full bg-accent" />
-                    )}
-                    {collapsed && (
-                      <span className={`absolute ${isRTL ? 'right-full me-3' : 'left-full ms-3'} px-2.5 py-1.5 bg-foreground text-card text-xs font-500 rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-card-md`}>
-                        {item.label}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
       </nav>
 
+      <div className="shrink-0 border-t border-border px-2 py-3">
+        {!collapsed && (
+          <p className="mb-2 px-3 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Account</p>
+        )}
+        <ul className="space-y-1">
+          {bottomItems.map((item) => {
+            const Icon = item.icon;
+            const active = isRouteActive(item.href);
+            const pending = isRoutePending(item.href);
+            return (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  onClick={(event) => {
+                    const shouldNavigate = handleNavigationIntent(item.href, event);
+                    if (shouldNavigate) {
+                      onNavigateItem?.();
+                    }
+                  }}
+                  className={`nav-item relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-500 text-muted-foreground group ${active ? 'nav-active font-600' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                  aria-busy={pending ? 'true' : undefined}
+                  title={collapsed ? item.label : undefined}
+                >
+                  <Icon size={18} className="flex-shrink-0" />
+                  {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                  {!collapsed && pending && (
+                    <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" />
+                  )}
+                  {collapsed && pending && (
+                    <span className="absolute top-2.5 end-2.5 w-2 h-2 rounded-full bg-accent" />
+                  )}
+                  {collapsed && (
+                    <span className={`absolute ${isRTL ? 'right-full me-3' : 'left-full ms-3'} whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 pointer-events-none group-hover:opacity-100 z-50`}>
+                      {item.label}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       {/* User Profile */}
-      <div className={`border-t border-border p-3 flex-shrink-0 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`shrink-0 border-t border-border p-3 ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
           <button
             onClick={handleSignOut}
