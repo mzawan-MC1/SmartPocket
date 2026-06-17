@@ -110,6 +110,7 @@ export default function AccountBalances() {
                   <FormattedCurrencyAmount
                     amount={Number(acct.current_balance)}
                     currencyCode={acct.currency}
+                    size="sm"
                     className={`text-sm font-700 font-tabular ${acct.current_balance < 0 ? 'text-negative' : 'text-foreground'}`}
                     showCode
                   />

@@ -102,6 +102,7 @@ export default function RecentTransactions() {
                   <FormattedCurrencyAmount
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}
+                    size="sm"
                     className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-foreground'}`}
                     showCode
                   />

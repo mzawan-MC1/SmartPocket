@@ -275,6 +275,7 @@ export default function ReportsScreen() {
                           key={`${item.id}-${row.currency}`}
                           amount={row.amount}
                           currencyCode={row.currency}
+                          size="sm"
                           className={`text-sm font-700 ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}
                         />
                       ))}

@@ -71,7 +71,10 @@ export default function DashboardMetrics() {
     ? (metrics.monthlyExpensesByCurrency[0]?.amount || 0) > (metrics.monthlyIncomeByCurrency[0]?.amount || 0)
     : false;
 
-  const renderCurrencyRows = (rows: Array<{ currency: string; amount: number }>) => {
+  const renderCurrencyRows = (
+    rows: Array<{ currency: string; amount: number }>,
+    size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md'
+  ) => {
     const safeRows = rows.length > 0
       ? rows
       : [{ currency: metrics.defaultCurrency, amount: 0 }];
@@ -83,6 +86,7 @@ export default function DashboardMetrics() {
             key={`${row.currency}-${row.amount}`}
             amount={row.amount}
             currencyCode={row.currency}
+            size={size}
             showCode
           />
         ))}
@@ -250,7 +254,7 @@ export default function DashboardMetrics() {
                   </div>
                 </div>
                 <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                  {renderCurrencyRows(metric.valueRows)}
+                  {renderCurrencyRows(metric.valueRows, isHero ? 'xl' : 'lg')}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
@@ -259,7 +263,7 @@ export default function DashboardMetrics() {
                     metric.changeDir === 'up' ? 'text-positive' :
                     metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
                   }`}>
-                    {metric.changeRows ? renderCurrencyRows(metric.changeRows) : metric.change}
+                    {metric.changeRows ? renderCurrencyRows(metric.changeRows, 'xs') : metric.change}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
@@ -295,7 +299,7 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows)}</div>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows, 'lg')}</div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-600 font-tabular text-muted-foreground">{metric.change}</span>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
@@ -322,10 +326,10 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows)}</div>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows, 'lg')}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="text-xs font-600 font-tabular text-muted-foreground">
-                    {renderCurrencyRows(metric.changeRows)}
+                    {renderCurrencyRows(metric.changeRows, 'xs')}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>

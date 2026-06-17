@@ -418,6 +418,7 @@ export default function TransactionsTable() {
                             <FormattedCurrencyAmount
                               amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
                               currencyCode={txn.currency}
+                              size="sm"
                               className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
                             />
                           </span>
