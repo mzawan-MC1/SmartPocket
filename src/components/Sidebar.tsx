@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
+import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const router = useRouter();
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const { branding } = usePlatformSettings();
+  const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
 
   const navItems = [
     { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
@@ -71,43 +73,44 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   return (
     <aside
-      className={`relative flex flex-col h-full bg-card border-e border-border sidebar-transition overflow-hidden ${
+      className={`relative flex h-full min-h-0 flex-col overflow-hidden border-e border-border bg-card sidebar-transition ${
         isMobileDrawer ? 'w-[86vw] max-w-[320px] shadow-card-lg' : ''
       }`}
       style={{ width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
     >
       {/* Logo */}
       <div
-        className="flex items-center border-b border-border flex-shrink-0 px-5"
-        style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
+        className="flex h-[76px] shrink-0 items-center gap-3 border-b border-border px-3"
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
-            collapsed ? 'h-10 w-10 px-1.5' : 'h-10 w-[132px] px-2.5'
-          }`}>
-            <AppLogo width={collapsed ? 28 : 112} height={collapsed ? 28 : 28} />
+        <div className="min-w-0 flex-1">
+          <div
+            className={`flex h-12 items-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
+              collapsed ? 'w-11 justify-center px-1' : 'max-w-[192px] px-3'
+            }`}
+          >
+            <AppLogo
+              width={collapsed ? 32 : 160}
+              height={36}
+              className={collapsed ? 'justify-center' : 'w-full justify-start'}
+            />
           </div>
-          {!collapsed && (
-            <span className="font-bold text-base text-primary truncate tracking-tight">
+          {!collapsed && showBrandText && (
+            <span className="mt-2 block truncate text-base font-bold tracking-tight text-primary">
               {branding.appName}
             </span>
           )}
         </div>
-      </div>
-
-      {/* Toggle Button */}
-      {!isMobileDrawer && (
         <button
           onClick={onToggle}
-          className={`absolute ${isRTL ? '-left-3' : '-right-3'} top-[72px] z-10 w-6 h-6 rounded-full bg-card border border-border flex items-center justify-center shadow-card hover:bg-muted transition-colors duration-150`}
+          className={`btn-ghost h-9 w-9 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <ToggleIcon size={12} className="text-muted-foreground" />
+          <ToggleIcon size={16} className="text-muted-foreground" />
         </button>
-      )}
+      </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin overflow-x-hidden">
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 pb-6 scrollbar-thin">
         {!collapsed && (
           <p className="px-5 mb-2 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Finance</p>
         )}

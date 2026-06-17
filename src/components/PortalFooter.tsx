@@ -11,9 +11,9 @@ export default function PortalFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="shrink-0 border-t border-border bg-background">
-      <div className="page-shell py-3">
-        <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs text-muted-foreground lg:justify-start">
+    <footer className="shrink-0 border-t border-border/90 bg-background/98 backdrop-blur-sm">
+      <div className="page-shell py-4 sm:py-4">
+        <p className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1 text-xs leading-6 text-muted-foreground lg:justify-start">
           <span>© {year} {branding.appName}. All rights reserved. Powered by</span>
           <Link
             href={MCS_URL}

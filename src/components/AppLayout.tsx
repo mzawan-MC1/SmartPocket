@@ -21,9 +21,10 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
   }, [activeRoute]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-background" dir={dir}>
+    <div className="min-h-screen bg-background" dir={dir}>
+      <div className="flex min-h-screen w-full items-stretch">
       {/* Desktop Sidebar — left for LTR, right for RTL */}
-      <div className={`hidden lg:flex flex-shrink-0 ${dir === 'rtl' ? 'order-last' : ''}`}>
+      <div className={`hidden lg:flex lg:h-screen lg:flex-shrink-0 ${dir === 'rtl' ? 'order-last' : ''}`}>
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -51,21 +52,20 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar
-          sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
         />
 
         <main
-          className="flex-1 overflow-y-auto scrollbar-thin"
+          className="min-h-0 flex-1 overflow-y-auto scrollbar-thin"
           style={{ background: 'var(--background)' }}
         >
           <div className="flex min-h-full flex-col">
-            <div className="page-shell page-shell-authenticated flex-1 pb-24 lg:pb-8">
+            <div className="page-shell flex-1 pt-[calc(var(--page-padding-y)+0.25rem)] pb-[calc(var(--page-padding-y)+1rem)] lg:pb-[calc(var(--page-padding-y)+1.25rem)]">
               {children}
             </div>
-            <div className="pb-24 lg:pb-0">
+            <div className="pb-[calc(var(--bottom-nav-height)+0.5rem)] lg:pb-0">
               <PortalFooter />
             </div>
           </div>
@@ -75,6 +75,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
       {/* Mobile Bottom Nav */}
       <div className="lg:hidden">
         <BottomNav activeRoute={activeRoute} />
+      </div>
       </div>
     </div>
   );
