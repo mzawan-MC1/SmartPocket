@@ -14,6 +14,7 @@ interface AppLogoProps {
   height?: number;
   alt?: string;
   className?: string; // Additional classes
+  imageClassName?: string;
   onClick?: () => void; // Click handler
 }
 
@@ -25,6 +26,7 @@ const AppLogo = memo(function AppLogo({
   height,
   alt,
   className = '',
+  imageClassName = '',
   onClick,
 }: AppLogoProps) {
   const { branding, updatedAt } = usePlatformSettings();
@@ -50,7 +52,7 @@ const AppLogo = memo(function AppLogo({
           alt={resolvedAlt}
           width={logoWidth}
           height={logoHeight}
-          className="flex-shrink-0 object-contain"
+          className={`flex-shrink-0 object-contain ${imageClassName}`.trim()}
           priority={true}
           unoptimized={/\.svg(?:\?|$)/i.test(resolvedSrc)}
         />

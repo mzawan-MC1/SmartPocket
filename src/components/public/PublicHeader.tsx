@@ -41,10 +41,14 @@ export default function PublicHeader() {
   return (
     <header className={headerClass} ref={mobileRef}>
       <div className="page-shell">
-        <div className="flex items-center justify-between gap-4 min-h-[4.5rem] py-3">
+        <div className="flex items-center justify-between gap-4 min-h-[5rem] py-3">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 flex-shrink-0 min-w-0">
-            <AppLogo width={124} height={32} />
+            <AppLogo
+              width={236}
+              height={56}
+              imageClassName="h-10 w-auto max-w-[172px] sm:h-11 sm:max-w-[208px] lg:h-12 lg:max-w-[236px]"
+            />
             {showBrandText && (
               <div className="min-w-0">
                 <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>

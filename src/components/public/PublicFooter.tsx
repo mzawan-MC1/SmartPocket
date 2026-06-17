@@ -47,7 +47,11 @@ export default function PublicFooter() {
         <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]">
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-3">
-              <AppLogo width={120} height={32} />
+              <AppLogo
+                width={224}
+                height={56}
+                imageClassName="h-11 w-auto max-w-[168px] sm:h-12 sm:max-w-[200px] lg:h-14 lg:max-w-[224px]"
+              />
               {showBrandText && (
                 <div className="min-w-0">
                   <span className="block font-800 text-sm tracking-tight text-primary">

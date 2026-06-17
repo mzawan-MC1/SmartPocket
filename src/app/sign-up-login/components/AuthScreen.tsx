@@ -7,6 +7,7 @@ import AppLogo from '@/components/ui/AppLogo';
 import { ShieldCheck, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
+import { getSettingsAssetUrl } from '@/lib/platform-settings';
 
 
 type AuthMode = 'login' | 'signup' | 'forgot';
@@ -14,8 +15,9 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 export default function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const { t } = useTranslation('auth');
-  const { branding } = usePlatformSettings();
+  const { branding, updatedAt } = usePlatformSettings();
   const year = new Date().getFullYear();
+  const faviconSrc = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
 
   const features = [
     { id: 'feat-track', icon: TrendingUp, text: 'Track every dollar across all accounts' },
@@ -37,7 +39,15 @@ export default function AuthScreen() {
 
         <div className="relative">
           <div className="flex items-center gap-3">
-            <AppLogo width={140} height={40} />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/12 bg-white/10">
+              <AppLogo
+                src={faviconSrc}
+                width={28}
+                height={28}
+                alt={`${branding.appName} icon`}
+                imageClassName="h-7 w-7"
+              />
+            </div>
             <span className="text-white text-xl font-700 tracking-tight">{branding.appName}</span>
           </div>
         </div>
@@ -78,8 +88,16 @@ export default function AuthScreen() {
       <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-y-auto">
         {/* Mobile logo */}
         <div className="w-full max-w-[400px] flex justify-start items-center mb-6 lg:hidden">
-          <div className="flex items-center gap-2">
-            <AppLogo width={124} height={32} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-card">
+              <AppLogo
+                src={faviconSrc}
+                width={28}
+                height={28}
+                alt={`${branding.appName} icon`}
+                imageClassName="h-7 w-7"
+              />
+            </div>
             <div className="min-w-0">
               <span className="block font-700 text-lg text-primary">{branding.appName}</span>
               <span className="block text-xs text-muted-foreground">{branding.tagline}</span>
