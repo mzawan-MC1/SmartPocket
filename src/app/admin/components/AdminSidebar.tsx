@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { ArrowLeft, BarChart3, CreditCard, FileText, Globe, HeartPulse, Layout, Languages, Mail, Settings2, Shield, Sparkles, ToggleLeft, Users, Activity, ClipboardList, Loader2 } from 'lucide-react';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import AppLogo from '@/components/ui/AppLogo';
-import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -76,43 +75,38 @@ const ADMIN_GROUPS: Array<{ id: string; label: string; items: AdminNavItem[] }> 
 
 export default function AdminSidebar({ collapsed, onToggle, activeRoute }: AdminSidebarProps) {
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
-  const { branding } = usePlatformSettings();
 
   return (
     <aside
-      className="relative flex flex-col h-full bg-card border-e border-border sidebar-transition overflow-hidden"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden border-e border-border bg-card sidebar-transition"
       style={{ width: collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
     >
       <div
-        className="flex items-center justify-between border-b border-border flex-shrink-0"
-        style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
+        className="flex h-[76px] shrink-0 items-center gap-3 border-b border-border px-3"
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
-            collapsed ? 'h-10 w-10 px-1.5' : 'h-10 w-[132px] px-2.5'
-          }`}>
+        <div className="min-w-0 flex-1">
+          <div
+            className={`flex h-11 items-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
+              collapsed ? 'w-10 justify-center px-1' : 'max-w-[168px] px-3'
+            }`}
+          >
             <AppLogo
-              width={collapsed ? 28 : 112}
-              height={collapsed ? 28 : 28}
+              width={collapsed ? 28 : 144}
+              height={32}
+              className={collapsed ? 'justify-center' : 'w-full justify-start'}
             />
           </div>
-          {!collapsed && (
-            <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground">
-                Admin Console
-              </p>
-              <p className="text-sm font-800 leading-tight text-foreground break-words">
-                {branding.appName}
-              </p>
-            </div>
-          )}
         </div>
-        <button onClick={onToggle} className="btn-ghost p-2" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+        <button
+          onClick={onToggle}
+          className="btn-ghost h-9 w-9 shrink-0 p-0"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
           <ArrowLeft size={16} className={collapsed ? 'rotate-180' : ''} />
         </button>
       </div>
 
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin overflow-x-hidden">
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 pb-6 scrollbar-thin">
         <ul className="space-y-1 px-2">
           <li>
             <Link

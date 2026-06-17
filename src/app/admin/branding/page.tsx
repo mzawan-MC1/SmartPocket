@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { Palette, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
 
@@ -27,6 +28,7 @@ const FAVICON_UPLOAD = {
 
 export default function AdminBrandingPage() {
   const router = useRouter();
+  const { branding } = usePlatformSettings();
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -171,16 +173,18 @@ export default function AdminBrandingPage() {
   }
 
   return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-700 text-foreground">Branding & Appearance</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Customize the look and feel of Smart Pocket</p>
+      <div className="space-y-6 pb-8 sm:pb-10">
+        <div className="page-header">
+          <div className="page-header-main">
+            <h1 className="page-title">Branding & Appearance</h1>
+            <p className="page-subtitle">Customize the look and feel of {branding.appName}</p>
           </div>
-          <button onClick={handleSave} disabled={isSaving} className={`btn-primary ${saved ? 'bg-positive' : ''}`}>
+          <div className="page-header-actions">
+            <button onClick={handleSave} disabled={isSaving} className={`btn-primary w-full sm:w-auto ${saved ? 'bg-positive' : ''}`}>
             {isSaving ? <Loader2 size={15} className="animate-spin" /> : saved ? <Check size={15} /> : <Palette size={15} />}
             {saved ? 'Saved' : 'Save Settings'}
-          </button>
+            </button>
+          </div>
         </div>
 
         <div className="card-elevated p-5 space-y-4">

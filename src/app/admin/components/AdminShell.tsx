@@ -21,10 +21,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const isAdmin = user?.app_metadata?.role === 'admin';
 
   return (
-    <div className="h-dvh w-full flex bg-background text-foreground">
-      <div className="hidden lg:block h-full">
-        <AdminSidebar collapsed={sidebarCollapsed} onToggle={onToggleSidebar} activeRoute={pathname} />
-      </div>
+    <div className="min-h-screen w-full bg-background text-foreground">
+      <div className="flex min-h-screen w-full items-stretch">
+        <div className="hidden lg:block lg:h-screen lg:flex-shrink-0">
+          <AdminSidebar collapsed={sidebarCollapsed} onToggle={onToggleSidebar} activeRoute={pathname} />
+        </div>
 
       {mobileNavOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
@@ -40,25 +41,26 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <div className="flex-1 min-w-0 flex flex-col h-full">
-        <AdminTopbar sidebarCollapsed={sidebarCollapsed} onToggleSidebar={() => setMobileNavOpen((v) => !v)} />
-        <main className="flex-1 min-w-0 overflow-y-auto">
-          <div className="flex min-h-full flex-col">
-            <div className="page-shell py-[var(--page-padding-y)] flex-1">
-              {!isAdmin ? (
-                <div className="card-elevated p-6 max-w-xl">
-                  <h1 className="text-lg font-700">Admin access required</h1>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Your account does not have permission to view the admin portal.
-                  </p>
-                </div>
-              ) : (
-                <div className="max-w-screen-2xl">{children}</div>
-              )}
+        <div className="flex min-w-0 flex-1 flex-col">
+          <AdminTopbar onToggleSidebar={() => setMobileNavOpen((v) => !v)} />
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin">
+            <div className="flex min-h-full flex-col">
+              <div className="page-shell flex-1 pt-[calc(var(--page-padding-y)+0.25rem)] pb-[calc(var(--page-padding-y)+1rem)]">
+                {!isAdmin ? (
+                  <div className="card-elevated max-w-xl p-6">
+                    <h1 className="text-lg font-700">Admin access required</h1>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Your account does not have permission to view the admin portal.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="max-w-screen-2xl">{children}</div>
+                )}
+              </div>
+              <PortalFooter />
             </div>
-            <PortalFooter />
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
     </div>
   );
