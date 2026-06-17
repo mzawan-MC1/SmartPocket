@@ -47,6 +47,8 @@ export interface PlatformPublicSettings {
   footerSections: PlatformFooterSection[];
   footerTagline: string;
   contactEmail: string;
+  contactPhone: string;
+  contactAddress: string;
   socialTwitter: string;
   socialGithub: string;
   socialLinkedin: string;
@@ -129,6 +131,8 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     footerSections: DEFAULT_FOOTER_SECTIONS,
     footerTagline: 'Personal finance, simplified.',
     contactEmail: '',
+    contactPhone: '',
+    contactAddress: '',
     socialTwitter: '',
     socialGithub: '',
     socialLinkedin: '',
@@ -293,6 +297,8 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
       footerSections: normalizeFooterSections(raw.footer_sections, DEFAULT_FOOTER_SECTIONS),
       footerTagline: sanitizeOptionalString(raw.footer_tagline) || branding.tagline,
       contactEmail: sanitizeOptionalString(raw.contact_email),
+      contactPhone: sanitizeOptionalString(raw.contact_phone),
+      contactAddress: sanitizeOptionalString(raw.contact_address),
       socialTwitter: sanitizeOptionalString(raw.social_twitter),
       socialGithub: sanitizeOptionalString(raw.social_github),
       socialLinkedin: sanitizeOptionalString(raw.social_linkedin),
@@ -307,6 +313,14 @@ export function getSettingsAssetUrl(url: string, updatedAt?: string) {
   if (!updatedAt) return url;
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}v=${encodeURIComponent(updatedAt)}`;
+}
+
+export function shouldShowBrandTextBesideLogo(logoUrl?: string) {
+  const normalized = typeof logoUrl === 'string' ? logoUrl.trim() : '';
+  if (!normalized) return true;
+
+  const defaultLogo = DEFAULT_PLATFORM_SETTINGS.branding.logoUrl;
+  return normalized === defaultLogo;
 }
 
 export function buildBrandingCssVariables(branding: PlatformBrandingSettings): CSSProperties {

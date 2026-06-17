@@ -1,9 +1,10 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
-import { Mail } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import AppLogo from '@/components/ui/AppLogo';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
+import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 
 // Social icon components using SVG to avoid lucide-react version issues
 function TwitterIcon({ size = 18 }: { size?: number }) {
@@ -32,8 +33,13 @@ function LinkedinIcon({ size = 18 }: { size?: number }) {
 
 export default function PublicFooter() {
   const { branding, publicUi } = usePlatformSettings();
-
+  const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const year = new Date().getFullYear();
+  const legalSection = publicUi.footerSections.find(
+    (section) => section.title.trim().toLowerCase() === 'legal'
+  );
+  const legalLinks = legalSection?.links ?? [];
+  const topSections = publicUi.footerSections.filter((section) => section.id !== legalSection?.id);
 
   return (
     <footer className="border-t border-border bg-card/95 backdrop-blur-sm">
@@ -42,24 +48,48 @@ export default function PublicFooter() {
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-3">
               <AppLogo width={120} height={32} />
-              <div className="min-w-0">
-                <span className="block font-800 text-sm tracking-tight text-primary">
-                  {branding.appName}
-                </span>
-                <span className="block text-xs text-muted-foreground mt-1">
-                  {publicUi.footerTagline}
-                </span>
-              </div>
+              {showBrandText && (
+                <div className="min-w-0">
+                  <span className="block font-800 text-sm tracking-tight text-primary">
+                    {branding.appName}
+                  </span>
+                  <span className="block text-xs text-muted-foreground mt-1">
+                    {publicUi.footerTagline}
+                  </span>
+                </div>
+              )}
             </Link>
-            {publicUi.contactEmail && (
-              <a
-                href={`mailto:${publicUi.contactEmail}`}
-                className="mt-4 inline-flex items-center gap-2 text-sm text-accent hover:underline"
-              >
-                <Mail size={13} />
-                {publicUi.contactEmail}
-              </a>
+            {!showBrandText && publicUi.footerTagline && (
+              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                {publicUi.footerTagline}
+              </p>
             )}
+            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+              {publicUi.contactEmail && (
+                <a
+                  href={`mailto:${publicUi.contactEmail}`}
+                  className="inline-flex items-center gap-2 text-accent hover:underline"
+                >
+                  <Mail size={13} />
+                  {publicUi.contactEmail}
+                </a>
+              )}
+              {publicUi.contactPhone && (
+                <a
+                  href={`tel:${publicUi.contactPhone}`}
+                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                >
+                  <Phone size={13} />
+                  {publicUi.contactPhone}
+                </a>
+              )}
+              {publicUi.contactAddress && (
+                <p className="flex items-start gap-2 leading-relaxed">
+                  <MapPin size={13} className="mt-0.5 shrink-0" />
+                  <span>{publicUi.contactAddress}</span>
+                </p>
+              )}
+            </div>
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {publicUi.socialTwitter && (
                 <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Twitter">
@@ -79,7 +109,7 @@ export default function PublicFooter() {
             </div>
           </div>
 
-          {publicUi.footerSections.map((section) => (
+          {topSections.map((section) => (
             <div key={section.id}>
               <p className="text-[11px] font-800 uppercase tracking-[0.16em] text-foreground mb-3">
                 {section.title}
@@ -101,12 +131,29 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            © {year} {branding.appName}. All rights reserved.
+          <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span>© {year} {branding.appName}. All rights reserved. Powered by</span>
+            <Link
+              href="https://www.mc1services.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-700 text-[#22c55e] hover:underline"
+            >
+              MCS Consultancy
+            </Link>
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
-            <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+            {legalLinks.map((link) => (
+              <Link key={link.id} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {link.label}
+              </Link>
+            ))}
+            {legalLinks.length === 0 && (
+              <>
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
+                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+              </>
+            )}
           </div>
         </div>
       </div>

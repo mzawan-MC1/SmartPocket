@@ -2,6 +2,7 @@
 import React from 'react';
 import PublicHeader from '@/components/public/PublicHeader';
 import PublicFooter from '@/components/public/PublicFooter';
+import PublicBackToTop from '@/components/public/PublicBackToTop';
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main className="flex-1">
         {children}
       </main>
+      <PublicBackToTop />
       <PublicFooter />
     </div>
   );

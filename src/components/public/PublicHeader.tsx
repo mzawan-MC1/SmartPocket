@@ -6,10 +6,12 @@ import { Menu, X } from 'lucide-react';
 import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
+import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 
 export default function PublicHeader() {
   const pathname = usePathname();
   const { branding, publicUi } = usePlatformSettings();
+  const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
 
@@ -43,12 +45,14 @@ export default function PublicHeader() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 flex-shrink-0 min-w-0">
             <AppLogo width={124} height={32} />
-            <div className="min-w-0">
-              <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>
-              <span className="hidden lg:block text-xs text-muted-foreground truncate">
-                {branding.tagline}
-              </span>
-            </div>
+            {showBrandText && (
+              <div className="min-w-0">
+                <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>
+                <span className="hidden lg:block text-xs text-muted-foreground truncate">
+                  {branding.tagline}
+                </span>
+              </div>
+            )}
           </Link>
 
           {/* Desktop nav */}
@@ -98,10 +102,12 @@ export default function PublicHeader() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden border-t border-border py-4 space-y-1 pb-4">
-            <div className="px-3.5 pb-3">
-              <p className="text-sm font-700 text-primary">{branding.appName}</p>
-              <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
-            </div>
+            {showBrandText && (
+              <div className="px-3.5 pb-3">
+                <p className="text-sm font-700 text-primary">{branding.appName}</p>
+                <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
+              </div>
+            )}
             {publicUi.headerMenu.map((item) => (
               <Link
                 key={item.id}

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import BottomNav from './BottomNav';
+import PortalFooter from './PortalFooter';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AppLayoutProps {
@@ -57,11 +58,16 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
         />
 
         <main
-          className="flex-1 overflow-y-auto scrollbar-thin pb-24 lg:pb-8"
+          className="flex-1 overflow-y-auto scrollbar-thin"
           style={{ background: 'var(--background)' }}
         >
-          <div className="page-shell page-shell-authenticated">
-            {children}
+          <div className="flex min-h-full flex-col">
+            <div className="page-shell page-shell-authenticated flex-1 pb-24 lg:pb-8">
+              {children}
+            </div>
+            <div className="pb-24 lg:pb-0">
+              <PortalFooter />
+            </div>
           </div>
         </main>
       </div>

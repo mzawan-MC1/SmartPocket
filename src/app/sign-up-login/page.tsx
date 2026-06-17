@@ -1,4 +1,5 @@
 import React from 'react';
+import PublicBackToTop from '@/components/public/PublicBackToTop';
 import PublicHeader from '@/components/public/PublicHeader';
 import PublicFooter from '@/components/public/PublicFooter';
 import AuthScreen from './components/AuthScreen';
@@ -14,6 +15,7 @@ export default function SignUpLoginPage() {
           </div>
         </div>
       </main>
+      <PublicBackToTop />
       <PublicFooter />
     </div>
   );
