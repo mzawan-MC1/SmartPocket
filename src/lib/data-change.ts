@@ -9,7 +9,8 @@ export type SmartPocketDataEntity =
   | 'transactions'
   | 'financial_accounts'
   | 'ai_usage'
-  | 'recurring_transactions';
+  | 'recurring_transactions'
+  | 'notifications';
 
 export interface SmartPocketDataChangedDetail {
   source: string;

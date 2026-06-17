@@ -76,6 +76,8 @@ export default function FormattedCurrencyAmount({
     return <span className={className}>{formatted.text}</span>;
   }
 
+  const shouldShowCode = showCode && currency.symbolType !== 'asset';
+
   return (
     <span className={`inline-flex items-center gap-1.5 ${className}`.trim()}>
       {formatted.sign ? <span className={numberClassName}>-</span> : null}
@@ -83,7 +85,7 @@ export default function FormattedCurrencyAmount({
       <bdi dir="ltr" className={numberClassName}>
         {formatted.numberText}
       </bdi>
-      {showCode ? (
+      {shouldShowCode ? (
         <span className={`text-[0.8em] text-muted-foreground ${codeClassName}`.trim()}>
           {formatted.code}
         </span>

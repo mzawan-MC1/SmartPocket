@@ -4,6 +4,7 @@ import {
   applySupabaseCookies,
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,45 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('[api/auth/login] profile lookup failed:', profileError);
+    }
+
+    try {
+      const admin = createAdminClient();
+      if (admin) {
+        const sourceKey = `security_login:${userId}:${new Date().toISOString().slice(0, 10)}`;
+        const { data: preferences } = await admin
+          .from('notification_preferences')
+          .select('in_app_enabled, account_security_notifications')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!preferences || (preferences.in_app_enabled && preferences.account_security_notifications)) {
+          const { data: existing } = await admin
+            .from('notifications')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('source_key', sourceKey)
+            .maybeSingle();
+
+          if (!existing) {
+            await admin
+              .from('notifications')
+              .insert({
+                user_id: userId,
+                type: 'account_security',
+                title: 'Successful sign-in',
+                message: 'Your account was accessed successfully.',
+                action_url: '/settings',
+                metadata: {
+                  event: 'login',
+                },
+                source_key: sourceKey,
+              });
+          }
+        }
+      }
+    } catch (notificationError: any) {
+      console.error('[api/auth/login] notification write skipped:', notificationError?.message);
     }
 
     const response = NextResponse.json(

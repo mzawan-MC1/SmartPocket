@@ -1,12 +1,13 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import SearchField from '@/components/ui/SearchField';
+import NotificationBell from '@/components/NotificationBell';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -100,11 +101,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* Language Switcher */}
           <LanguageSwitcher variant="compact" />
 
-          {/* Notifications */}
-          <button className="btn-ghost relative h-10 w-10 p-0" aria-label="Notifications">
-            <Bell size={18} />
-            <span className="absolute top-1.5 end-1.5 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
-          </button>
+          <NotificationBell />
 
           {/* User Menu */}
           <div className="relative" ref={menuRef}>

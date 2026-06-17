@@ -14,6 +14,7 @@ type BalanceRow = { current_balance: number | string; include_in_total: boolean;
 type TransactionMetricRow = {
   id: string;
   account_id: string;
+  category_id?: string | null;
   transaction_type: 'income' | 'expense' | 'transfer';
   amount: number | string;
   currency?: string | null;
@@ -34,6 +35,14 @@ type LoanLedgerRow = {
   entry_type: string;
   entry_date: string;
   reference_type: string | null;
+};
+type BudgetMetricRow = {
+  id: string;
+  category_id: string | null;
+  amount: number | string;
+  currency: string | null;
+  period_start: string;
+  period_end: string | null;
 };
 type TransactionLedgerSummary = {
   entryTypes: Set<string>;
@@ -189,6 +198,7 @@ export interface DashboardMetrics {
   netCashFlowByCurrency: Array<{ currency: string; amount: number }>;
   totalBudgetByCurrency: Array<{ currency: string; amount: number }>;
   budgetSpentByCurrency: Array<{ currency: string; amount: number }>;
+  activeBudgetCount: number;
   upcomingPaymentsByCurrency: Array<{ currency: string; amount: number }>;
   upcomingPaymentsCount: number;
   managedMoneyByCurrency: Array<{ currency: string; amount: number }>;
@@ -382,6 +392,14 @@ function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'a
   ) => boolean
 ) {
   return rows.filter((row) => predicate(row, ledgerSummaryByTransactionId, accountInclusionById));
+}
+
+function isBudgetActiveForWindow(
+  budget: Pick<BudgetMetricRow, 'period_start' | 'period_end'>,
+  periodStart: string,
+  periodEnd: string
+) {
+  return budget.period_start <= periodEnd && (!budget.period_end || budget.period_end >= periodStart);
 }
 
 async function getManagedMoneyMetrics(
@@ -767,6 +785,8 @@ export async function createTransfer(payload: {
 export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   const supabase = createClient();
   const start = periodStart || new Date().toISOString().slice(0, 7) + '-01';
+  const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0)
+    .toISOString().slice(0, 10);
   const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
@@ -775,19 +795,17 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
     .from('budgets')
     .select(`*, category:categories(name, color, icon)`)
     .eq('is_active', true)
+    .lte('period_start', end)
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  const budgets = (data || []) as Budget[];
+  const budgets = ((data || []) as Budget[]).filter((budget) => isBudgetActiveForWindow(budget, start, end));
 
   // Calculate spent for each budget
-  const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0)
-    .toISOString().slice(0, 10);
-
   for (const budget of budgets) {
     let spentQuery = supabase
       .from('transactions')
-      .select('id, account_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance')
+      .select('id, account_id, category_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance')
       .eq('transaction_type', 'expense')
       .gte('transaction_date', start)
       .lte('transaction_date', end);
@@ -966,18 +984,19 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   // Monthly expenses
   const { data: expenseData } = await supabase
     .from('transactions')
-    .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
+    .select('id, account_id, category_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
     .eq('transaction_type', 'expense')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
   const monthlyExpensesByCurrency = new Map<string, number>();
-  for (const transaction of filterTransactionsByRule(
+  const eligibleMonthlyExpenses = filterTransactionsByRule(
     (expenseData || []) as TransactionMetricRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     isPersonalExpenseTransaction
-  )) {
+  );
+  for (const transaction of eligibleMonthlyExpenses) {
     addCurrencyAmount(monthlyExpensesByCurrency, transaction.currency, Number(transaction.amount || 0), defaultCurrency);
   }
 
@@ -1002,12 +1021,22 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   // Budget totals
   const { data: budgets } = await supabase
     .from('budgets')
-    .select('amount, currency')
+    .select('id, category_id, amount, currency, period_start, period_end')
     .eq('is_active', true);
 
   const totalBudgetByCurrency = new Map<string, number>();
-  for (const budget of ((budgets || []) as CurrencyAmountRow[])) {
+  const budgetSpentByCurrency = new Map<string, number>();
+  const activeBudgetsForPeriod = ((budgets || []) as BudgetMetricRow[])
+    .filter((budget) => isBudgetActiveForWindow(budget, monthStart, monthEnd));
+
+  for (const budget of activeBudgetsForPeriod) {
     addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0), defaultCurrency);
+
+    const spent = eligibleMonthlyExpenses
+      .filter((transaction) => !budget.category_id || transaction.category_id === budget.category_id)
+      .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+
+    addCurrencyAmount(budgetSpentByCurrency, budget.currency, spent, defaultCurrency);
   }
 
   // Upcoming recurring
@@ -1033,7 +1062,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     monthlyExpensesByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyExpensesByCurrency), defaultCurrency),
     netCashFlowByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(netCashFlowByCurrency), defaultCurrency),
     totalBudgetByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(totalBudgetByCurrency), defaultCurrency),
-    budgetSpentByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyExpensesByCurrency), defaultCurrency),
+    budgetSpentByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(budgetSpentByCurrency), defaultCurrency),
+    activeBudgetCount: activeBudgetsForPeriod.length,
     upcomingPaymentsByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(upcomingPaymentsByCurrency), defaultCurrency),
     upcomingPaymentsCount: (upcoming || []).length,
     managedMoneyByCurrency: managedMetrics.managedMoneyByCurrency,

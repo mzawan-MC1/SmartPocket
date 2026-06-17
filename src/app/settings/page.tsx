@@ -17,6 +17,12 @@ import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
+import {
+  DEFAULT_NOTIFICATION_PREFERENCES,
+  getNotificationPreferences,
+  saveNotificationPreferences,
+  type NotificationPreferences,
+} from '@/lib/notifications';
 
 
 interface ProfileFormData {
@@ -40,6 +46,9 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsSaving, setNotificationsSaving] = useState(false);
   const { user } = useAuth();
   const { setLanguage } = useLanguage();
   const router = useRouter();
@@ -95,6 +104,24 @@ export default function SettingsPage() {
     setValue('default_currency', recommendedCurrency.code);
   }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const loadNotificationPreferences = async () => {
+      setNotificationsLoading(true);
+      try {
+        const prefs = await getNotificationPreferences();
+        setNotificationPreferences(prefs);
+      } catch (error: any) {
+        toast.error(error?.message || 'Failed to load notification settings');
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    void loadNotificationPreferences();
+  }, [user]);
+
   const onSubmit = async (data: ProfileFormData) => {
     if (!user) return;
     setIsSaving(true);
@@ -119,6 +146,27 @@ export default function SettingsPage() {
       toast.error(err?.message || 'Failed to save settings');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const toggleNotificationPreference = (key: keyof NotificationPreferences) => {
+    if (key === 'user_id' || key === 'updated_at') return;
+    setNotificationPreferences((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  };
+
+  const saveNotifications = async () => {
+    setNotificationsSaving(true);
+    try {
+      const savedPreferences = await saveNotificationPreferences(notificationPreferences);
+      setNotificationPreferences(savedPreferences);
+      toast.success('Notification settings saved successfully');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to save notification settings');
+    } finally {
+      setNotificationsSaving(false);
     }
   };
 
@@ -256,27 +304,82 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <SectionCard title="Notification Preferences" description="Manage alert types and weekly summaries.">
               <div className="space-y-4">
-              {[
-                { label: 'Budget alerts', desc: 'Notify when spending reaches alert threshold' },
-                { label: 'Upcoming payments', desc: 'Remind me 3 days before recurring payments' },
-                { label: 'Weekly summary', desc: 'Weekly email with spending overview' },
-                { label: 'Security alerts', desc: 'Notify on new sign-ins and password changes' },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between p-3 rounded-xl border border-border">
-                  <div>
-                    <p className="text-sm font-600 text-foreground">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => toast.info('Notification settings require email configuration')}
-                    className="relative w-10 h-5 rounded-full bg-muted cursor-pointer"
-                    aria-label={`Toggle ${item.label}`}
-                  >
-                    <span className="absolute top-0.5 start-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200" />
-                  </button>
+              {notificationsLoading ? (
+                <div className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
+                  Loading notification settings...
                 </div>
-              ))}
+              ) : (
+                [
+                  {
+                    key: 'in_app_enabled' as const,
+                    label: 'In-app notifications',
+                    desc: 'Show notifications in the bell menu across the app.',
+                  },
+                  {
+                    key: 'recurring_due_reminders' as const,
+                    label: 'Recurring payment reminders',
+                    desc: 'Create reminders when recurring expense payments are due soon.',
+                  },
+                  {
+                    key: 'budget_alerts' as const,
+                    label: 'Budget alerts',
+                    desc: 'Notify when spending reaches the saved alert threshold for active budgets.',
+                  },
+                  {
+                    key: 'reimbursement_updates' as const,
+                    label: 'Reimbursements and settlements',
+                    desc: 'Notify when reimbursements or settlements are created or updated.',
+                  },
+                  {
+                    key: 'account_security_notifications' as const,
+                    label: 'Account and security notifications',
+                    desc: 'Notify about important account access events.',
+                  },
+                  {
+                    key: 'ai_execution_failure_notifications' as const,
+                    label: 'AI execution failures',
+                    desc: 'Notify when Smart Entry cannot save confirmed records.',
+                  },
+                ].map((item) => {
+                  const enabled = Boolean(notificationPreferences[item.key]);
+                  return (
+                    <div key={item.key} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border">
+                      <div>
+                        <p className="text-sm font-600 text-foreground">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.desc}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => toggleNotificationPreference(item.key)}
+                        className={`relative h-5 w-10 rounded-full transition-colors ${
+                          enabled ? 'bg-accent' : 'bg-muted'
+                        }`}
+                        aria-label={`Toggle ${item.label}`}
+                        aria-pressed={enabled}
+                      >
+                        <span
+                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200 ${
+                            enabled ? 'start-5' : 'start-0.5'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+              <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                Email and browser push notifications are not implemented yet, so they are not shown as active settings.
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => void saveNotifications()}
+                  disabled={notificationsLoading || notificationsSaving}
+                  className="btn-primary"
+                >
+                  {notificationsSaving ? <><Loader2 size={15} className="animate-spin" />Saving...</> : 'Save Notification Settings'}
+                </button>
+              </div>
               </div>
             </SectionCard>
           )}

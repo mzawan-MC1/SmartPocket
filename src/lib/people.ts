@@ -7,6 +7,7 @@ import {
   resolveUserDefaultCurrency,
   sortCurrencyTotals,
 } from '@/lib/currency-totals';
+import { createNotificationIfEnabled } from '@/lib/notifications';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -544,6 +545,20 @@ export async function createReimbursement(payload: {
     owed_by: payload.owed_by,
   });
 
+  await createNotificationIfEnabled('reimbursement_updates', {
+    type: 'reimbursement_created',
+    title: 'Reimbursement created',
+    message: `${payload.description} was added for ${currency} ${Number(payload.amount).toFixed(2)}.`,
+    actionUrl: '/reimbursements',
+    metadata: {
+      reimbursement_id: data.id,
+      person_id: payload.person_id,
+      amount: payload.amount,
+      currency,
+    },
+    sourceKey: `reimbursement_created:${data.id}`,
+  });
+
   return data as Reimbursement;
 }
 
@@ -596,6 +611,20 @@ export async function recordReimbursementPayment(
     amount,
     new_status: newStatus,
   });
+
+  await createNotificationIfEnabled('reimbursement_updates', {
+    type: 'reimbursement_updated',
+    title: 'Reimbursement updated',
+    message: `A payment of ${reimb.currency} ${Number(amount).toFixed(2)} was recorded.`,
+    actionUrl: '/reimbursements',
+    metadata: {
+      reimbursement_id: reimbursementId,
+      amount,
+      currency: reimb.currency,
+      status: newStatus,
+    },
+    sourceKey: `reimbursement_payment:${reimbursementId}:${newAmountPaid}`,
+  });
 }
 
 export async function updateReimbursementStatus(id: string, status: ReimbursementStatus): Promise<void> {
@@ -605,6 +634,18 @@ export async function updateReimbursementStatus(id: string, status: Reimbursemen
     .update({ status })
     .eq('id', id);
   if (error) throw error;
+
+  await createNotificationIfEnabled('reimbursement_updates', {
+    type: 'reimbursement_status_updated',
+    title: 'Reimbursement status updated',
+    message: `A reimbursement is now marked as ${status.replace('_', ' ')}.`,
+    actionUrl: '/reimbursements',
+    metadata: {
+      reimbursement_id: id,
+      status,
+    },
+    sourceKey: `reimbursement_status:${id}:${status}`,
+  });
 }
 
 // ─── Settlements ──────────────────────────────────────────────────────────────
@@ -690,6 +731,20 @@ export async function createSettlement(payload: {
   await logActivity(user.id, 'settlement_created', 'settlements', data.id, null, {
     person_id: payload.person_id,
     amount: payload.amount,
+  });
+
+  await createNotificationIfEnabled('reimbursement_updates', {
+    type: 'settlement_completed',
+    title: 'Settlement completed',
+    message: `${payload.description} was recorded for ${currency} ${Number(payload.amount).toFixed(2)}.`,
+    actionUrl: '/settlements',
+    metadata: {
+      settlement_id: data.id,
+      person_id: payload.person_id,
+      amount: payload.amount,
+      currency,
+    },
+    sourceKey: `settlement_created:${data.id}`,
   });
 
   return data as Settlement;

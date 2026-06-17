@@ -49,9 +49,7 @@ export default function DashboardMetrics() {
 
   const budgetTotals = new Map(metrics.totalBudgetByCurrency.map((row) => [row.currency, row.amount]));
   const budgetSpent = new Map(metrics.budgetSpentByCurrency.map((row) => [row.currency, row.amount]));
-  const budgetRemaining = Array.from(
-    new Set([...budgetTotals.keys(), ...budgetSpent.keys()])
-  )
+  const budgetRemaining = Array.from(new Set([...budgetTotals.keys(), ...budgetSpent.keys()]))
     .map((currency) => ({
       currency,
       amount: (budgetTotals.get(currency) || 0) - (budgetSpent.get(currency) || 0),
@@ -73,7 +71,7 @@ export default function DashboardMetrics() {
     ? (metrics.monthlyExpensesByCurrency[0]?.amount || 0) > (metrics.monthlyIncomeByCurrency[0]?.amount || 0)
     : false;
 
-  const renderCurrencyRows = (rows: Array<{ currency: string; amount: number }>, signed = false) => {
+  const renderCurrencyRows = (rows: Array<{ currency: string; amount: number }>) => {
     const safeRows = rows.length > 0
       ? rows
       : [{ currency: metrics.defaultCurrency, amount: 0 }];
@@ -83,7 +81,7 @@ export default function DashboardMetrics() {
         {safeRows.map((row) => (
           <FormattedCurrencyAmount
             key={`${row.currency}-${row.amount}`}
-            amount={signed ? row.amount : Math.abs(row.amount)}
+            amount={row.amount}
             currencyCode={row.currency}
             showCode
           />
@@ -146,15 +144,23 @@ export default function DashboardMetrics() {
       id: 'metric-budget',
       label: 'Budget Remaining',
       valueRows: budgetRemaining.map((row) => ({ currency: row.currency, amount: row.amount })),
-      change: budgetRemaining.length === 1 ? `${budgetRemaining[0].usedPct.toFixed(1)}% used` : 'Grouped by currency',
+      change: metrics.activeBudgetCount === 0
+        ? 'No active budget'
+        : budgetRemaining.length === 1
+          ? `${budgetRemaining[0].usedPct.toFixed(1)}% used`
+          : 'Grouped by currency',
       changeDir: 'neutral' as const,
-      changeLabel: budgetRemaining.length === 1 ? 'of current budget' : 'budget usage differs by currency',
+      changeLabel: metrics.activeBudgetCount === 0
+        ? 'for this month'
+        : budgetRemaining.length === 1
+          ? 'of current budget'
+          : 'budget usage differs by currency',
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
       hero: false,
-      warningState: budgetRemaining.some((row) => row.usedPct >= 70),
-      budgetPct: budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
+      warningState: metrics.activeBudgetCount > 0 && budgetRemaining.some((row) => row.usedPct >= 70),
+      budgetPct: metrics.activeBudgetCount > 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
     },
     {
       id: 'metric-upcoming',
@@ -244,7 +250,7 @@ export default function DashboardMetrics() {
                   </div>
                 </div>
                 <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                  {renderCurrencyRows(metric.valueRows, metric.id === 'metric-netflow')}
+                  {renderCurrencyRows(metric.valueRows)}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
@@ -253,7 +259,7 @@ export default function DashboardMetrics() {
                     metric.changeDir === 'up' ? 'text-positive' :
                     metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
                   }`}>
-                    {metric.changeRows ? renderCurrencyRows(metric.changeRows, metric.id === 'metric-balance') : metric.change}
+                    {metric.changeRows ? renderCurrencyRows(metric.changeRows) : metric.change}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>

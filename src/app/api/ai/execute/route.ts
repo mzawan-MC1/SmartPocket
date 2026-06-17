@@ -44,6 +44,51 @@ function createUserClient(token: string) {
   );
 }
 
+async function createAiFailureNotification(args: {
+  serviceClient: ReturnType<typeof createServiceClient>;
+  userId: string;
+  requestId: string;
+  message: string;
+}) {
+  const { serviceClient, userId, requestId, message } = args;
+
+  const { data: preferences } = await serviceClient
+    .from('notification_preferences')
+    .select('in_app_enabled, ai_execution_failure_notifications')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (preferences && (!preferences.in_app_enabled || !preferences.ai_execution_failure_notifications)) {
+    return;
+  }
+
+  const sourceKey = `ai_execute_failure:${requestId}`;
+  const { data: existing } = await serviceClient
+    .from('notifications')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('source_key', sourceKey)
+    .maybeSingle();
+
+  if (existing) {
+    return;
+  }
+
+  await serviceClient
+    .from('notifications')
+    .insert({
+      user_id: userId,
+      type: 'ai_execution_failed',
+      title: 'Smart Entry could not save records',
+      message,
+      action_url: '/ai-history',
+      metadata: {
+        request_id: requestId,
+      },
+      source_key: sourceKey,
+    });
+}
+
 function jsonExecutionError(args: {
   code: string;
   message: string;
@@ -286,6 +331,12 @@ export async function POST(req: NextRequest) {
         supabase: serviceClient,
       });
     } catch (ctxError) {
+      await createAiFailureNotification({
+        serviceClient,
+        userId: user.id,
+        requestId,
+        message: 'Smart Entry could not load the required data. Please try again.',
+      }).catch(() => undefined);
       console.error('[AI Execute] Failed to load execution context', {
         requestId,
         userId: user.id,
@@ -321,6 +372,12 @@ export async function POST(req: NextRequest) {
       const errMsg = getSafeExecutionErrorMessage(execError);
       const errorCode = getExecutionErrorCode(execError);
       const errorCategory = getExecutionErrorCategory(execError);
+      await createAiFailureNotification({
+        serviceClient,
+        userId: user.id,
+        requestId,
+        message: errMsg,
+      }).catch(() => undefined);
       console.error('[AI Execute] Execution failed', {
         requestId,
         userId: user.id,
