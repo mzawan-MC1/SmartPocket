@@ -192,7 +192,7 @@ export default function CurrencySelector({
         {selectedCurrency ? (
           <>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/60">
-              <CurrencySymbol currency={selectedCurrency} size="compact" />
+              <CurrencySymbol currency={selectedCurrency} size="sm" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">

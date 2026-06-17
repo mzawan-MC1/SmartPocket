@@ -79,7 +79,7 @@ export default function CurrencySymbol({
 }: CurrencySymbolProps) {
   const [assetFailed, setAssetFailed] = useState(false);
 
-  const styles = SIZE_STYLES[size];
+  const styles = SIZE_STYLES[size] ?? SIZE_STYLES.md;
   const accessibleLabel = ariaLabel || getAccessibleLabel(currency);
   const fallbackText = useMemo(() => {
     return getRichCurrencyToken({

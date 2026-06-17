@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { getAccounts, createAccount, updateAccount, archiveAccount, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AccountDetailPanel from './AccountDetailPanel';
-import Icon from '@/components/ui/AppIcon';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
@@ -72,6 +71,10 @@ function groupAccountTotals(accounts: FinancialAccount[]) {
   return Array.from(grouped.entries()).map(([currency, totals]) => ({ currency, ...totals }));
 }
 
+type SummaryMetric =
+  | { id: string; label: string; isCount: true }
+  | { id: string; label: string; field: 'net' | 'assets' | 'liabilities'; isCount?: false };
+
 export default function AccountsGrid() {
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
@@ -97,8 +100,8 @@ export default function AccountsGrid() {
 
   useEffect(() => { load(); }, [load]);
 
-  useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountsGrid', async () => {
-    await load();
+  useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountsGrid', () => {
+    load();
   });
 
   const openAdd = () => {
@@ -213,12 +216,12 @@ export default function AccountsGrid() {
     <div className="space-y-6">
       {/* Summary Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
+        {([
           { id: 'sum-total', label: 'Total Net Worth', field: 'net' as const },
           { id: 'sum-assets', label: 'Total Assets', field: 'assets' as const },
           { id: 'sum-liabilities', label: 'Total Liabilities', field: 'liabilities' as const },
           { id: 'sum-count', label: 'Active Accounts', isCount: true },
-        ].map((item) => (
+        ] as SummaryMetric[]).map((item) => (
           <div key={item.id} className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
             {item.isCount ? (

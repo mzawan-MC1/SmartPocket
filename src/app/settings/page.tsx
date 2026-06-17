@@ -49,6 +49,7 @@ export default function SettingsPage() {
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsSaving, setNotificationsSaving] = useState(false);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const { user } = useAuth();
   const { setLanguage } = useLanguage();
   const router = useRouter();
@@ -104,21 +105,23 @@ export default function SettingsPage() {
     setValue('default_currency', recommendedCurrency.code);
   }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
+  const loadNotificationPreferences = async () => {
+    setNotificationsLoading(true);
+    setNotificationsError(null);
+    try {
+      const prefs = await getNotificationPreferences();
+      setNotificationPreferences(prefs);
+    } catch (error: any) {
+      const message = error?.message || 'Failed to load notification settings';
+      setNotificationsError(message);
+      toast.error(message);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) return;
-
-    const loadNotificationPreferences = async () => {
-      setNotificationsLoading(true);
-      try {
-        const prefs = await getNotificationPreferences();
-        setNotificationPreferences(prefs);
-      } catch (error: any) {
-        toast.error(error?.message || 'Failed to load notification settings');
-      } finally {
-        setNotificationsLoading(false);
-      }
-    };
-
     void loadNotificationPreferences();
   }, [user]);
 
@@ -162,6 +165,7 @@ export default function SettingsPage() {
     try {
       const savedPreferences = await saveNotificationPreferences(notificationPreferences);
       setNotificationPreferences(savedPreferences);
+      setNotificationsError(null);
       toast.success('Notification settings saved successfully');
     } catch (error: any) {
       toast.error(error?.message || 'Failed to save notification settings');
@@ -307,6 +311,20 @@ export default function SettingsPage() {
               {notificationsLoading ? (
                 <div className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
                   Loading notification settings...
+                </div>
+              ) : notificationsError ? (
+                <div className="rounded-xl border border-warning/30 bg-warning-soft/20 p-4">
+                  <p className="text-sm font-600 text-foreground">Notification settings could not be loaded.</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{notificationsError}</p>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void loadNotificationPreferences()}
+                      className="btn-secondary text-sm"
+                    >
+                      Retry
+                    </button>
+                  </div>
                 </div>
               ) : (
                 [
