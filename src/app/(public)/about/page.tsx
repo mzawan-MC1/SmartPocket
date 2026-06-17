@@ -21,7 +21,7 @@ export default function AboutPage() {
             <h2 className="text-xl font-700 text-foreground mb-4">What We Offer</h2>
             <ul className="space-y-3 text-muted-foreground">
               {[
-                'Multi-currency support with official AED dirham symbol',
+                'Multi-currency support with shared runtime formatting and official AED display support',
                 'Full Arabic RTL layout and 4-language support',
                 'Bank-level security with Supabase RLS',
                 'Professional PDF and CSV reports',

@@ -7,7 +7,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
 import AppLogo from '@/components/ui/AppLogo';
-import { CURRENCY_REGISTRY } from '@/lib/currency';
+import CountrySelector from '@/components/country/CountrySelector';
+import CurrencySelector from '@/components/CurrencySelector';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getDefaultCurrencyForCountry, getCountryByCode, getCurrencyByCode } from '@/lib/reference-data/lookups';
 
 const STEPS = [
   { id: 1, title: 'Welcome', icon: User },
@@ -25,20 +28,6 @@ interface OnboardingData {
   monthStartDay: string;
 }
 
-const COUNTRIES = [
-  { code: 'AE', name: 'United Arab Emirates' },
-  { code: 'SA', name: 'Saudi Arabia' },
-  { code: 'US', name: 'United States' },
-  { code: 'GB', name: 'United Kingdom' },
-  { code: 'IN', name: 'India' },
-  { code: 'PK', name: 'Pakistan' },
-  { code: 'FR', name: 'France' },
-  { code: 'RU', name: 'Russia' },
-  { code: 'CA', name: 'Canada' },
-  { code: 'AU', name: 'Australia' },
-  { code: 'Other', name: 'Other' },
-];
-
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇬🇧' },
   { code: 'ar', name: 'العربية', flag: '🇦🇪' },
@@ -49,23 +38,42 @@ const LANGUAGES = [
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
+  const { data: referenceData } = useClientReferenceData();
+  const snapshot = referenceData?.snapshot;
 
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OnboardingData>({
     defaultValues: {
       fullName: '',
-      country: 'AE',
+      country: '',
       preferredLanguage: 'en',
-      defaultCurrency: 'AED',
+      defaultCurrency: referenceData?.platformDefaultCurrency || '',
       monthlyIncome: '',
       monthStartDay: '1',
     },
   });
 
   const selectedLanguage = watch('preferredLanguage');
+  const selectedCountry = watch('country');
   const selectedCurrency = watch('defaultCurrency');
-  const currencies = Object.values(CURRENCY_REGISTRY);
+  const selectedCountryRecord = getCountryByCode(snapshot?.countries ?? [], selectedCountry);
+  const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
+  const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
+
+  React.useEffect(() => {
+    if (!snapshot) return;
+
+    if (!selectedCurrency && referenceData?.platformDefaultCurrency) {
+      setValue('defaultCurrency', referenceData.platformDefaultCurrency);
+    }
+  }, [referenceData?.platformDefaultCurrency, selectedCurrency, setValue, snapshot]);
+
+  React.useEffect(() => {
+    if (!recommendedCurrency || currencyManuallySelected) return;
+    setValue('defaultCurrency', recommendedCurrency.code);
+  }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
   const onFinish = async (data: OnboardingData) => {
     setIsLoading(true);
@@ -164,11 +172,13 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <label htmlFor="ob-country" className="block text-sm font-600 text-foreground mb-1.5">Country</label>
-                  <select id="ob-country" className="input-base" {...register('country')}>
-                    {COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.name}</option>
-                    ))}
-                  </select>
+                  <CountrySelector
+                    value={selectedCountry}
+                    onChange={(countryCode) => setValue('country', countryCode, { shouldDirty: true })}
+                    placeholder="Choose your country"
+                  />
+                  <input type="hidden" {...register('country', { required: 'Please select your country' })} />
+                  {errors.country && <p className="mt-1.5 text-xs text-negative font-500">{errors.country.message}</p>}
                 </div>
               </div>
             )}
@@ -212,23 +222,24 @@ export default function OnboardingPage() {
                   <h2 className="text-lg font-700 text-foreground mb-1">Default currency</h2>
                   <p className="text-sm text-muted-foreground">Used for all amounts and reports</p>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto scrollbar-thin">
-                  {currencies.map((c) => (
-                    <button
-                      key={c.code}
-                      type="button"
-                      onClick={() => setValue('defaultCurrency', c.code)}
-                      className={`flex items-center gap-2 p-3 rounded-xl border-2 text-sm transition-all ${
-                        selectedCurrency === c.code
-                          ? 'border-accent bg-accent/5 text-accent' :'border-border hover:border-accent/40 text-foreground'
-                      }`}
-                    >
-                      <span className="font-700 w-8 text-center">{c.code === 'AED' ? 'AED' : c.symbol}</span>
-                      <span className="font-600 truncate">{c.code}</span>
-                      {selectedCurrency === c.code && <CheckCircle2 size={12} className="ms-auto flex-shrink-0" />}
-                    </button>
-                  ))}
-                </div>
+                {selectedCountryRecord && recommendedCurrency ? (
+                  <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground">
+                    Recommended for {selectedCountryRecord.name}: {recommendedCurrency.name} ({recommendedCurrency.code})
+                  </div>
+                ) : null}
+                <CurrencySelector
+                  value={selectedCurrency}
+                  onChange={(currencyCode) => {
+                    setCurrencyManuallySelected(true);
+                    setValue('defaultCurrency', currencyCode, { shouldDirty: true });
+                  }}
+                  showCountryCount
+                  placeholder="Choose your default currency"
+                />
+                <input type="hidden" {...register('defaultCurrency', { required: 'Please select your currency' })} />
+                {errors.defaultCurrency ? (
+                  <p className="mt-1.5 text-xs text-negative font-500">{errors.defaultCurrency.message}</p>
+                ) : null}
               </div>
             )}
 
@@ -245,7 +256,7 @@ export default function OnboardingPage() {
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-600">
-                      {selectedCurrency}
+                      {selectedCurrencyRecord?.code || selectedCurrency || referenceData?.platformDefaultCurrency || 'CUR'}
                     </span>
                     <input
                       id="ob-income"

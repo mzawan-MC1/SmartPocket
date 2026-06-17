@@ -54,7 +54,8 @@ class MockLanguageProvider implements LanguageProvider {
   async parseFinancialInstruction(input: ParseRequest): Promise<ParsedFinancialInstruction> {
     // Deterministic mock responses for acceptance testing
     const text = input.text.toLowerCase();
-    const primaryCurrency = extractCurrency(text) || 'AED';
+    const defaultCurrency = input.context?.defaultCurrency || 'USD';
+    const primaryCurrency = extractCurrency(text) || defaultCurrency;
     const personFromReceipt =
       input.text.match(/from\s+([A-Za-z][A-Za-z\s'-]+)/i) ||
       input.text.match(/([A-Za-z][A-Za-z\s'-]+)\s+(?:gave me|paid me|reimbursed me|lent me|sent me)/i);
@@ -412,7 +413,7 @@ class MockLanguageProvider implements LanguageProvider {
           {
             actionType: 'money_received_from_person',
             amount: 3000,
-            currency: extractCurrency(text) || 'AED',
+            currency: extractCurrency(text) || defaultCurrency,
             date: 'today',
             personName,
             accountName,
@@ -423,7 +424,7 @@ class MockLanguageProvider implements LanguageProvider {
           {
             actionType: 'expense',
             amount: 30,
-            currency: extractCurrency(text) || 'AED',
+            currency: extractCurrency(text) || defaultCurrency,
             date: 'today',
             categoryName: 'Other',
             accountName,
@@ -449,7 +450,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'expense',
           amount: extractAmount(text) || 85,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
           categoryName: 'Groceries',
           accountName: extractAccount(text) || 'Cash',
@@ -474,7 +475,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'transfer',
           amount: extractAmount(text) || 1000,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
           accountName: extractFromAccount(text) || 'Bank',
           destinationAccountName: extractToAccount(text) || 'Cash',
@@ -498,7 +499,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'loan_repayment',
           amount: extractAmount(text) || 500,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
           personName: 'Sarmad',
           accountName: extractAccount(text) || 'Cash',
@@ -522,7 +523,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'money_returned_to_person',
           amount: extractAmount(text) || 500,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
           personName: 'Sarmad',
           confidence: 0.9,
@@ -547,7 +548,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'money_received_from_person',
           amount: extractAmount(text) || 3000,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
           personName,
           confidence: 0.72,
@@ -571,7 +572,7 @@ class MockLanguageProvider implements LanguageProvider {
         actions: [{
           actionType: 'recurring_transaction',
           amount: extractAmount(text) || 4500,
-          currency: extractCurrency(text) || 'AED',
+          currency: extractCurrency(text) || defaultCurrency,
           categoryName: 'Housing & Rent',
           description: 'Monthly rent',
           recurringFrequency: 'monthly',

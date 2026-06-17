@@ -19,6 +19,7 @@ import {
 import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
@@ -35,6 +36,20 @@ const reportTypes = [
   { id: 'budget-performance' as ReportType, label: 'Budget Performance', icon: Target, description: 'How well you stuck to your budgets' },
   { id: 'account-statement' as ReportType, label: 'Account Statement', icon: FileText, description: 'Full transaction history by account' },
 ];
+
+function groupTransactionsByCurrency(
+  transactions: Transaction[],
+  getSignedAmount: (transaction: Transaction) => number
+) {
+  const grouped = new Map<string, number>();
+
+  for (const transaction of transactions) {
+    const currency = transaction.currency || 'USD';
+    grouped.set(currency, (grouped.get(currency) ?? 0) + getSignedAmount(transaction));
+  }
+
+  return Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
+}
 
 export default function ReportsScreen() {
   const [activeReport, setActiveReport] = useState<ReportType>('income-expense');
@@ -71,51 +86,59 @@ export default function ReportsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const income = transactions
-    .filter((t) => isPersonalIncomeTransaction(t, ledgerSummaryByTransactionId, accountInclusionById))
-    .reduce((s, t) => s + Number(t.amount), 0);
-  const expenses = transactions
-    .filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById))
-    .reduce((s, t) => s + Number(t.amount), 0);
-  const net = transactions.reduce((sum, transaction) => {
-    if (!shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)) {
-      return sum;
-    }
-    const amount = Number(transaction.amount || 0);
-    return transaction.transaction_type === 'income' ? sum + amount : transaction.transaction_type === 'expense' ? sum - amount : sum;
-  }, 0);
-  const savingsRate = income > 0 ? (net / income) * 100 : 0;
+  const incomeTransactions = transactions.filter((t) =>
+    isPersonalIncomeTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
+  );
+  const expenseTransactions = transactions.filter((t) =>
+    isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
+  );
+  const cashFlowTransactions = transactions.filter((transaction) =>
+    shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)
+  );
 
-  const summaryByType: Record<ReportType, Array<{ id: string; label: string; value: string; sub?: string; positive?: boolean }>> = {
+  const incomeByCurrency = groupTransactionsByCurrency(incomeTransactions, (transaction) => Number(transaction.amount || 0));
+  const expensesByCurrency = groupTransactionsByCurrency(expenseTransactions, (transaction) => Number(transaction.amount || 0));
+  const netByCurrency = groupTransactionsByCurrency(cashFlowTransactions, (transaction) => {
+    const amount = Number(transaction.amount || 0);
+    return transaction.transaction_type === 'income' ? amount : transaction.transaction_type === 'expense' ? -amount : 0;
+  });
+  const canCalculateSavingsRate =
+    incomeByCurrency.length === 1 &&
+    netByCurrency.length === 1 &&
+    incomeByCurrency[0].currency === netByCurrency[0].currency &&
+    incomeByCurrency[0].amount > 0;
+  const savingsRate = canCalculateSavingsRate ? (netByCurrency[0].amount / incomeByCurrency[0].amount) * 100 : 0;
+
+  const summaryByType: Record<ReportType, Array<{ id: string; label: string; value?: string; groupedValues?: Array<{ currency: string; amount: number }>; sub?: string; positive?: boolean }>> = {
     'income-expense': [
-      { id: 'rpt-ie-income', label: 'Total Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), sub: `${dateFrom} – ${dateTo}`, positive: true },
-      { id: 'rpt-ie-expenses', label: 'Total Expenses', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), sub: `${dateFrom} – ${dateTo}`, positive: false },
-      { id: 'rpt-ie-net', label: 'Net Savings', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), sub: `${savingsRate.toFixed(1)}% savings rate`, positive: net >= 0 },
+      { id: 'rpt-ie-income', label: 'Total Income', groupedValues: incomeByCurrency, sub: `${dateFrom} – ${dateTo}`, positive: true },
+      { id: 'rpt-ie-expenses', label: 'Total Expenses', groupedValues: expensesByCurrency, sub: `${dateFrom} – ${dateTo}`, positive: false },
+      { id: 'rpt-ie-net', label: 'Net Savings', groupedValues: netByCurrency, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable for mixed currencies' },
       { id: 'rpt-ie-txns', label: 'Transactions', value: String(transactions.length), sub: 'Total records' },
     ],
     'spending-category': [
-      { id: 'rpt-sc-total', label: 'Total Spent', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), sub: 'All categories' },
+      { id: 'rpt-sc-total', label: 'Total Spent', groupedValues: expensesByCurrency, sub: 'All categories' },
       { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)).length), sub: 'Records' },
-      { id: 'rpt-sc-income', label: 'Total Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), positive: true },
-      { id: 'rpt-sc-net', label: 'Net', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
+      { id: 'rpt-sc-income', label: 'Total Income', groupedValues: incomeByCurrency, positive: true },
+      { id: 'rpt-sc-net', label: 'Net', groupedValues: netByCurrency },
     ],
     'monthly-trends': [
-      { id: 'rpt-mt-income', label: 'Period Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), positive: true },
-      { id: 'rpt-mt-expenses', label: 'Period Expenses', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), positive: false },
-      { id: 'rpt-mt-net', label: 'Net', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
+      { id: 'rpt-mt-income', label: 'Period Income', groupedValues: incomeByCurrency, positive: true },
+      { id: 'rpt-mt-expenses', label: 'Period Expenses', groupedValues: expensesByCurrency, positive: false },
+      { id: 'rpt-mt-net', label: 'Net', groupedValues: netByCurrency },
       { id: 'rpt-mt-txns', label: 'Transactions', value: String(transactions.length) },
     ],
     'budget-performance': [
-      { id: 'rpt-bp-income', label: 'Total Income', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), positive: true },
-      { id: 'rpt-bp-expenses', label: 'Total Expenses', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), positive: false },
-      { id: 'rpt-bp-net', label: 'Net Savings', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
-      { id: 'rpt-bp-rate', label: 'Savings Rate', value: `${savingsRate.toFixed(1)}%`, positive: savingsRate >= 20 },
+      { id: 'rpt-bp-income', label: 'Total Income', groupedValues: incomeByCurrency, positive: true },
+      { id: 'rpt-bp-expenses', label: 'Total Expenses', groupedValues: expensesByCurrency, positive: false },
+      { id: 'rpt-bp-net', label: 'Net Savings', groupedValues: netByCurrency },
+      { id: 'rpt-bp-rate', label: 'Savings Rate', value: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}%` : 'Mixed currencies', positive: canCalculateSavingsRate ? savingsRate >= 20 : undefined },
     ],
     'account-statement': [
       { id: 'rpt-as-txns', label: 'Total Transactions', value: String(transactions.length), sub: `${dateFrom} – ${dateTo}` },
-      { id: 'rpt-as-credits', label: 'Total Credits', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(income), sub: 'Inflows', positive: true },
-      { id: 'rpt-as-debits', label: 'Total Debits', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(expenses), sub: 'Outflows', positive: false },
-      { id: 'rpt-as-net', label: 'Net', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(net), positive: net >= 0 },
+      { id: 'rpt-as-credits', label: 'Total Credits', groupedValues: incomeByCurrency, sub: 'Inflows', positive: true },
+      { id: 'rpt-as-debits', label: 'Total Debits', groupedValues: expensesByCurrency, sub: 'Outflows', positive: false },
+      { id: 'rpt-as-net', label: 'Net', groupedValues: netByCurrency },
     ],
   };
 
@@ -241,7 +264,24 @@ export default function ReportsScreen() {
               <div key={item.id} className="card-elevated p-4">
                 <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
                 <p className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
-                  {loading ? <span className="animate-pulse bg-muted rounded w-20 h-5 inline-block" /> : item.value}
+                  {loading ? (
+                    <span className="animate-pulse bg-muted rounded w-20 h-5 inline-block" />
+                  ) : item.groupedValues ? (
+                    <div className="space-y-1">
+                      {item.groupedValues.length === 0 ? (
+                        <span className="text-sm text-muted-foreground">No data</span>
+                      ) : item.groupedValues.map((row) => (
+                        <FormattedCurrencyAmount
+                          key={`${item.id}-${row.currency}`}
+                          amount={row.amount}
+                          currencyCode={row.currency}
+                          className={`text-sm font-700 ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    item.value
+                  )}
                 </p>
                 {item.sub && <p className="text-[11px] text-muted-foreground mt-0.5">{item.sub}</p>}
               </div>
@@ -335,8 +375,11 @@ function AccountStatementTable({ transactions }: { transactions: Transaction[] }
               <td className="py-2.5 px-3 text-foreground truncate max-w-[200px]">{txn.merchant || txn.description}</td>
               <td className="py-2.5 px-3 text-muted-foreground">{txn.category?.name || '—'}</td>
               <td className={`py-2.5 px-3 text-right font-700 font-tabular whitespace-nowrap ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
-                {txn.transaction_type === 'income' ? '+' : '-'}
-                {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(txn.amount))}
+                <FormattedCurrencyAmount
+                  amount={txn.transaction_type === 'income' ? txn.amount : -Math.abs(txn.amount)}
+                  currencyCode={txn.currency}
+                  className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
+                />
               </td>
             </tr>
           ))}

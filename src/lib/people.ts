@@ -1,5 +1,6 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
+import { getClientReferenceData } from '@/lib/reference-data/client';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,6 +20,9 @@ export interface ManagedPerson {
   relationship: RelationshipType;
   email: string | null;
   phone: string | null;
+  phone_e164?: string | null;
+  phone_country_code?: string | null;
+  phone_display?: string | null;
   photo_url: string | null;
   notes: string | null;
   preferred_currency: string;
@@ -153,6 +157,29 @@ export interface PersonBalance {
   user_owes_person: number;
 }
 
+function normalizeCurrencyCode(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  return normalized.length === 3 ? normalized : null;
+}
+
+async function resolveFallbackCurrency(preferredCurrency?: string | null) {
+  const normalized = normalizeCurrencyCode(preferredCurrency);
+  if (normalized) {
+    return normalized;
+  }
+
+  try {
+    const referenceData = await getClientReferenceData();
+    if (referenceData.platformDefaultCurrency) {
+      return referenceData.platformDefaultCurrency;
+    }
+  } catch {
+    // Keep writes resilient even if shared reference data is temporarily unavailable.
+  }
+
+  return 'USD';
+}
+
 // ─── Managed People ───────────────────────────────────────────────────────────
 
 export async function getManagedPeople(includeArchived = false): Promise<ManagedPerson[]> {
@@ -234,15 +261,27 @@ export async function createManagedPerson(payload: Partial<ManagedPerson>): Prom
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  const insertPayload = { ...payload, owner_id: user.id };
+
+  let result = await supabase
     .from('managed_people')
-    .insert({ ...payload, owner_id: user.id })
+    .insert(insertPayload)
     .select()
     .single();
-  if (error) throw error;
 
-  await logActivity(user.id, 'person_created', 'managed_people', data.id, null, { full_name: data.full_name });
-  return data as ManagedPerson;
+  if (result.error && shouldRetryWithoutPhoneNormalizationColumns(result.error)) {
+    const { phone_e164, phone_country_code, phone_display, ...legacyPayload } = insertPayload;
+    result = await supabase
+      .from('managed_people')
+      .insert(legacyPayload)
+      .select()
+      .single();
+  }
+
+  if (result.error) throw result.error;
+
+  await logActivity(user.id, 'person_created', 'managed_people', result.data.id, null, { full_name: result.data.full_name });
+  return result.data as ManagedPerson;
 }
 
 export async function updateManagedPerson(id: string, payload: Partial<ManagedPerson>): Promise<ManagedPerson> {
@@ -250,16 +289,27 @@ export async function updateManagedPerson(id: string, payload: Partial<ManagedPe
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data, error } = await supabase
+  let result = await supabase
     .from('managed_people')
     .update(payload)
     .eq('id', id)
     .select()
     .single();
-  if (error) throw error;
+
+  if (result.error && shouldRetryWithoutPhoneNormalizationColumns(result.error)) {
+    const { phone_e164, phone_country_code, phone_display, ...legacyPayload } = payload;
+    result = await supabase
+      .from('managed_people')
+      .update(legacyPayload)
+      .eq('id', id)
+      .select()
+      .single();
+  }
+
+  if (result.error) throw result.error;
 
   await logActivity(user.id, 'person_updated', 'managed_people', id, null, payload);
-  return data as ManagedPerson;
+  return result.data as ManagedPerson;
 }
 
 export async function archiveManagedPerson(id: string): Promise<void> {
@@ -432,6 +482,7 @@ export async function addLedgerEntry(payload: {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+  const currency = await resolveFallbackCurrency(payload.currency);
 
   const { data, error } = await supabase
     .from('person_ledger_entries')
@@ -439,7 +490,7 @@ export async function addLedgerEntry(payload: {
       ...payload,
       owner_id: user.id,
       created_by: user.id,
-      currency: payload.currency || 'AED',
+      currency,
       entry_date: payload.entry_date || new Date().toISOString().slice(0, 10),
     })
     .select()
@@ -491,10 +542,11 @@ export async function createReimbursement(payload: {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+  const currency = await resolveFallbackCurrency(payload.currency);
 
   const { data, error } = await supabase
     .from('reimbursements')
-    .insert({ ...payload, owner_id: user.id, created_by: user.id, currency: payload.currency || 'AED' })
+    .insert({ ...payload, owner_id: user.id, created_by: user.id, currency })
     .select()
     .single();
   if (error) throw error;
@@ -603,6 +655,7 @@ export async function createSettlement(payload: {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+  const currency = await resolveFallbackCurrency(payload.currency);
 
   const { data, error } = await supabase
     .from('settlements')
@@ -611,7 +664,7 @@ export async function createSettlement(payload: {
       owner_id: user.id,
       created_by: user.id,
       amount: payload.amount,
-      currency: payload.currency || 'AED',
+      currency,
       settlement_date: payload.settlement_date,
       payment_method: payload.payment_method || 'cash',
       receiving_account_id: payload.receiving_account_id || null,
@@ -642,7 +695,7 @@ export async function createSettlement(payload: {
     person_id: payload.person_id,
     entry_type: 'settlement',
     amount: payload.amount,
-    currency: payload.currency || 'AED',
+    currency,
     description: payload.description || 'Settlement',
     entry_date: payload.settlement_date,
   });
@@ -756,6 +809,15 @@ export async function logActivity(
   }
 }
 
+function shouldRetryWithoutPhoneNormalizationColumns(error: { message?: string; details?: string | null }) {
+  const details = `${error.message || ''} ${error.details || ''}`.toLowerCase();
+  return (
+    details.includes('phone_e164') ||
+    details.includes('phone_country_code') ||
+    details.includes('phone_display')
+  );
+}
+
 // ─── Person Reports ───────────────────────────────────────────────────────────
 
 export async function getPersonReport(personId: string, dateFrom?: string, dateTo?: string) {
@@ -795,6 +857,13 @@ export async function getPersonReport(personId: string, dateFrom?: string, dateT
 
 export async function getPeopleDashboardSummary() {
   const supabase = createClient();
+  const {
+    data: platformSettings,
+  } = await supabase
+    .from('platform_settings')
+    .select('default_currency')
+    .maybeSingle();
+  const defaultCurrency = normalizeCurrencyCode(platformSettings?.default_currency) || 'USD';
 
   const { data: balances } = await supabase
     .from('person_balances')
@@ -802,27 +871,42 @@ export async function getPeopleDashboardSummary() {
 
   const allBalances = (balances || []) as PersonBalance[];
 
-  const totalHeld = allBalances.reduce((s, b) => s + Math.max(0, b.money_held), 0);
-  const totalOwedToUser = allBalances.reduce((s, b) => s + Math.max(0, b.person_owes_user), 0);
-  const totalOwedByUser = allBalances.reduce((s, b) => s + Math.max(0, b.user_owes_person), 0);
+  const groupByCurrency = (
+    getAmount: (balance: PersonBalance) => number
+  ) => {
+    const grouped = new Map<string, number>();
+    for (const balance of allBalances) {
+      const amount = Math.max(0, getAmount(balance));
+      if (!amount) continue;
+      const currency = normalizeCurrencyCode(balance.preferred_currency) || defaultCurrency;
+      grouped.set(currency, (grouped.get(currency) || 0) + amount);
+    }
+    return Array.from(grouped.entries())
+      .map(([currency, amount]) => ({ currency, amount }))
+      .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' }));
+  };
 
   const { data: pendingReimb } = await supabase
     .from('reimbursements')
-    .select('amount, amount_paid')
+    .select('amount, amount_paid, currency')
     .in('status', ['pending', 'partially_paid'])
     .eq('is_deleted', false);
 
-  const pendingReimbTotal = ((pendingReimb || []) as Array<{ amount: number | string; amount_paid: number | string }>)
-    .reduce(
-    (s: number, r) => s + (Number(r.amount) - Number(r.amount_paid)),
-    0
-  );
+  const pendingReimbGrouped = new Map<string, number>();
+  for (const reimbursement of ((pendingReimb || []) as Array<{ amount: number | string; amount_paid: number | string; currency: string | null }>)) {
+    const amount = Number(reimbursement.amount) - Number(reimbursement.amount_paid);
+    if (amount <= 0) continue;
+    const currency = normalizeCurrencyCode(reimbursement.currency) || defaultCurrency;
+    pendingReimbGrouped.set(currency, (pendingReimbGrouped.get(currency) || 0) + amount);
+  }
 
   return {
-    totalHeld,
-    totalOwedToUser,
-    totalOwedByUser,
-    pendingReimbTotal,
+    totalHeldByCurrency: groupByCurrency((balance) => Number(balance.money_held || 0)),
+    totalOwedToUserByCurrency: groupByCurrency((balance) => Number(balance.person_owes_user || 0)),
+    totalOwedByUserByCurrency: groupByCurrency((balance) => Number(balance.user_owes_person || 0)),
+    pendingReimbByCurrency: Array.from(pendingReimbGrouped.entries())
+      .map(([currency, amount]) => ({ currency, amount }))
+      .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' })),
     peopleCount: allBalances.length,
   };
 }

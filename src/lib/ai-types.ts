@@ -490,7 +490,7 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
 RULES:
 - Do not translate person names, merchant names, or user-entered descriptions
 - Use ISO 4217 currency codes (AED, USD, EUR, etc.)
-- Default currency is AED unless specified
+- Default currency is the provided context default currency when available; otherwise only use a clearly stated ISO currency
 - "today" is acceptable for date when user says today/now
 - If amount is missing, add "amount"to missingFields - If account is ambiguous, add"account" to missingFields
 - Set requiresClarification: true if any critical field is missing or ambiguous

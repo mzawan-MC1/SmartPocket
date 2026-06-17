@@ -6,6 +6,7 @@ import { getTransactions, type Transaction } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -98,9 +99,12 @@ export default function RecentTransactions() {
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <span className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-foreground'}`}>
-                    {isIncome ? '+' : '-'}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(txn.amount))}
-                  </span>
+                  <FormattedCurrencyAmount
+                    amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
+                    currencyCode={txn.currency}
+                    className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-foreground'}`}
+                    showCode
+                  />
                   <span className="text-[11px] text-muted-foreground">{formatDate(txn.transaction_date)}</span>
                 </div>
               </div>

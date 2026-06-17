@@ -1,16 +1,29 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
-import { getActiveCurrencies, getCurrencyDisplayInfo } from '@/lib/currency';
 import SearchField from '@/components/ui/SearchField';
+import CurrencyOptionRow from '@/components/currency/CurrencyOptionRow';
+import CurrencySymbol from '@/components/currency/CurrencySymbol';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getSelectableActiveCurrencies } from '@/lib/reference-data/collections';
+import {
+  buildCountryNamesByCurrency,
+  getCurrencyByCode,
+  normalizeCurrencyCode,
+  normalizeSearchValue,
+} from '@/lib/reference-data/lookups';
 
 interface CurrencySelectorProps {
-  value: string;
+  value?: string | null;
   onChange: (code: string) => void;
   label?: string;
   className?: string;
   disabled?: boolean;
+  placeholder?: string;
+  showCountryCount?: boolean;
+  allowInactiveSelection?: boolean;
+  helperText?: string | null;
 }
 
 export default function CurrencySelector({
@@ -19,38 +32,106 @@ export default function CurrencySelector({
   label,
   className = '',
   disabled = false,
+  placeholder = 'Select currency',
+  showCountryCount = false,
+  allowInactiveSelection = true,
+  helperText = null,
 }: CurrencySelectorProps) {
+  const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const ref = useRef<HTMLDivElement>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const currencies = getActiveCurrencies();
-  const selected = currencies.find((c) => c.code === value);
+  const snapshot = data?.snapshot;
+  const normalizedValue = normalizeCurrencyCode(value);
 
-  const filtered = currencies.filter(
-    (c) =>
-      c.code.toLowerCase().includes(search.toLowerCase()) ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.symbol.toLowerCase().includes(search.toLowerCase())
+  const countryNamesByCurrency = useMemo(
+    () =>
+      buildCountryNamesByCurrency(snapshot?.countries ?? [], snapshot?.countryCurrencies ?? []),
+    [snapshot?.countries, snapshot?.countryCurrencies]
   );
 
+  const allCurrencies = snapshot?.currencies ?? [];
+  const selectedCurrency = getCurrencyByCode(allCurrencies, normalizedValue);
+
+  const orderedCurrencies = useMemo(
+    () => getSelectableActiveCurrencies(allCurrencies),
+    [allCurrencies]
+  );
+
+  const filteredCurrencies = useMemo(() => {
+    const query = normalizeSearchValue(search);
+
+    const filtered = orderedCurrencies.filter((currency) => {
+      if (!query) return true;
+
+      const countryNames = countryNamesByCurrency.get(currency.code) ?? [];
+      return [
+        currency.code,
+        currency.name,
+        currency.symbol,
+        currency.fallbackSymbol,
+        ...countryNames,
+      ].some((entry) => normalizeSearchValue(entry).includes(query));
+    });
+
+    if (
+      allowInactiveSelection &&
+      selectedCurrency &&
+      !selectedCurrency.isActive &&
+      !filtered.some((currency) => currency.code === selectedCurrency.code)
+    ) {
+      const selectedMatches =
+        !query ||
+        [
+          selectedCurrency.code,
+          selectedCurrency.name,
+          selectedCurrency.symbol,
+          selectedCurrency.fallbackSymbol,
+          ...(countryNamesByCurrency.get(selectedCurrency.code) ?? []),
+        ].some((entry) => normalizeSearchValue(entry).includes(query));
+
+      if (selectedMatches) {
+        filtered.unshift(selectedCurrency);
+      }
+    }
+
+    return filtered;
+  }, [
+    allowInactiveSelection,
+    countryNamesByCurrency,
+    orderedCurrencies,
+    search,
+    selectedCurrency,
+  ]);
+
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setOpen(false);
         setSearch('');
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [open]);
 
   useEffect(() => {
-    if (open && searchRef.current) {
-      searchRef.current.focus();
-    }
+    if (!open) return;
+    searchRef.current?.focus();
+    setHighlightedIndex(0);
   }, [open]);
+
+  useEffect(() => {
+    if (highlightedIndex >= filteredCurrencies.length) {
+      setHighlightedIndex(Math.max(filteredCurrencies.length - 1, 0));
+    }
+  }, [filteredCurrencies.length, highlightedIndex]);
 
   const handleSelect = (code: string) => {
     onChange(code);
@@ -58,90 +139,135 @@ export default function CurrencySelector({
     setSearch('');
   };
 
-  const displayInfo = selected ? getCurrencyDisplayInfo(selected.code) : null;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (disabled) return;
+
+    if (!open && ['ArrowDown', 'Enter', ' '].includes(event.key)) {
+      event.preventDefault();
+      setOpen(true);
+      return;
+    }
+
+    if (!open) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      setSearch('');
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.min(current + 1, filteredCurrencies.length - 1));
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.max(current - 1, 0));
+      return;
+    }
+
+    if (event.key === 'Enter' && filteredCurrencies[highlightedIndex]) {
+      event.preventDefault();
+      handleSelect(filteredCurrencies[highlightedIndex].code);
+    }
+  };
 
   return (
-    <div ref={ref} className={`relative ${className}`}>
-      {label && (
-        <label className="block text-sm font-500 text-foreground mb-1.5">{label}</label>
-      )}
+    <div ref={containerRef} className={`relative ${className}`.trim()}>
+      {label ? <label className="mb-1.5 block text-sm font-600 text-foreground">{label}</label> : null}
       <button
         type="button"
-        onClick={() => !disabled && setOpen(!open)}
+        onClick={() => !disabled && setOpen((current) => !current)}
+        onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`w-full flex items-center gap-3 input-base px-3 py-2.5 text-sm text-start ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-accent/50'
+        className={`input-base flex w-full items-center gap-3 px-3 py-2.5 text-left ${
+          disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-accent/40'
         }`}
+        aria-expanded={open}
+        aria-haspopup="listbox"
       >
-        {displayInfo && (
-          <span className="font-700 text-base w-8 text-center flex-shrink-0 text-foreground">
-            {displayInfo.symbol}
-          </span>
+        {selectedCurrency ? (
+          <>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/60">
+              <CurrencySymbol currency={selectedCurrency} size="compact" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-700 text-foreground">{selectedCurrency.code}</span>
+                {!selectedCurrency.isActive ? (
+                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
+                    Inactive
+                  </span>
+                ) : null}
+              </div>
+              <p className="truncate text-sm text-muted-foreground">{selectedCurrency.name}</p>
+            </div>
+          </>
+        ) : (
+          <span className="text-sm text-muted-foreground">{loading ? 'Loading currencies...' : placeholder}</span>
         )}
-        <div className="flex-1 min-w-0">
-          {selected ? (
-            <span className="font-500 text-foreground">
-              {selected.code} — {selected.name}
-            </span>
-          ) : (
-            <span className="text-muted-foreground">Select currency</span>
-          )}
-        </div>
         <svg
-          className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-150 ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
+      {helperText ? <p className="mt-1.5 text-xs text-muted-foreground">{helperText}</p> : null}
 
-      {open && (
-        <div className="absolute top-full mt-1 left-0 right-0 bg-card border border-border rounded-xl shadow-card-md z-50 overflow-hidden">
-          {/* Search */}
-          <div className="p-2 border-b border-border">
+      {open ? (
+        <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg">
+          <div className="border-b border-border p-3">
             <SearchField
               ref={searchRef}
-              type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search currencies..."
-              inputClassName="h-8 py-2 text-sm"
-              iconClassName="start-3 text-[14px]"
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Search code, name, symbol, or country..."
+              inputClassName="h-9 text-sm"
             />
           </div>
-
-          {/* List */}
-          <div className="max-h-56 overflow-y-auto">
-            {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-sm text-muted-foreground text-center">No currencies found</div>
+          <div className="max-h-80 overflow-y-auto p-2">
+            {filteredCurrencies.length === 0 ? (
+              <div className="px-4 py-5 text-center text-sm text-muted-foreground">
+                No currencies found.
+              </div>
             ) : (
-              filtered.map((currency) => {
-                const info = getCurrencyDisplayInfo(currency.code);
-                const isSelected = currency.code === value;
-                return (
-                  <button
-                    key={currency.code}
-                    type="button"
-                    onClick={() => handleSelect(currency.code)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-muted ${
-                      isSelected ? 'bg-accent/5' : ''
-                    }`}
-                  >
-                    <span className="font-700 w-8 text-center flex-shrink-0 text-foreground">
-                      {info.symbol}
-                    </span>
-                    <span className="font-600 text-foreground w-10 flex-shrink-0">{currency.code}</span>
-                    <span className="flex-1 text-muted-foreground text-start truncate">{currency.name}</span>
-                    {isSelected && <Check size={14} className="text-accent flex-shrink-0" />}
-                  </button>
-                );
-              })
+              <div className="space-y-2">
+                {filteredCurrencies.map((currency, index) => {
+                  const countryCount = countryNamesByCurrency.get(currency.code)?.length ?? 0;
+                  return (
+                    <CurrencyOptionRow
+                      key={currency.code}
+                      currency={currency}
+                      countryCount={countryCount}
+                      showCountryCount={showCountryCount}
+                      selected={currency.code === normalizedValue}
+                      className={index === highlightedIndex ? 'border-accent/50 bg-muted/30' : ''}
+                      trailing={
+                        currency.code === normalizedValue ? (
+                          <Check size={14} className="text-accent" />
+                        ) : !currency.isActive ? (
+                          <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
+                            Inactive
+                          </span>
+                        ) : null
+                      }
+                      onClick={() => handleSelect(currency.code)}
+                    />
+                  );
+                })}
+              </div>
             )}
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

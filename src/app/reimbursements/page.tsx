@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-warning-soft text-warning border border-warning/20',
@@ -20,6 +21,11 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending', partially_paid: 'Partially Paid',
   settled: 'Settled', waived: 'Waived', cancelled: 'Cancelled',
 };
+
+function normalizeCurrencyCode(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  return normalized.length === 3 ? normalized : 'USD';
+}
 
 interface PaymentModalProps {
   reimbursement: Reimbursement;
@@ -62,9 +68,10 @@ function PaymentModal({ reimbursement, onClose, onSuccess }: PaymentModalProps) 
         </div>
         <div className="bg-muted rounded-xl p-3 text-sm">
           <p className="font-600 text-foreground">{reimbursement.description}</p>
-          <p className="text-muted-foreground mt-0.5">
-            Outstanding: {reimbursement.currency} {remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
+          <div className="text-muted-foreground mt-0.5 inline-flex items-center gap-1">
+            Outstanding:
+            <FormattedCurrencyAmount amount={remaining} currencyCode={reimbursement.currency} className="text-sm text-muted-foreground" showCode />
+          </div>
         </div>
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Payment Amount</label>
@@ -129,9 +136,15 @@ export default function ReimbursementsPage() {
     return matchStatus && matchPerson && matchSearch;
   });
 
-  const totalPending = reimbursements
-    .filter((r) => r.status === 'pending' || r.status === 'partially_paid')
-    .reduce((s, r) => s + (Number(r.amount) - Number(r.amount_paid)), 0);
+  const totalPendingByCurrency = Array.from(
+    reimbursements
+      .filter((r) => r.status === 'pending' || r.status === 'partially_paid')
+      .reduce((map, reimbursement) => {
+        const currency = normalizeCurrencyCode(reimbursement.currency);
+        map.set(currency, (map.get(currency) || 0) + (Number(reimbursement.amount) - Number(reimbursement.amount_paid)));
+        return map;
+      }, new Map<string, number>())
+  ).map(([currency, amount]) => ({ currency, amount }));
 
   return (
     <AppLayout activeRoute="/reimbursements">
@@ -152,9 +165,17 @@ export default function ReimbursementsPage() {
           </div>
           <div className="card p-4">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Outstanding</p>
-            <p className="text-lg font-700 text-foreground">
-              AED {totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
+            <div className="text-lg font-700 text-foreground">
+              {totalPendingByCurrency.map((row) => (
+                <FormattedCurrencyAmount
+                  key={row.currency}
+                  amount={row.amount}
+                  currencyCode={row.currency}
+                  className="text-lg font-700 text-foreground"
+                  showCode
+                />
+              ))}
+            </div>
           </div>
           <div className="card p-4">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Settled</p>
@@ -217,18 +238,16 @@ export default function ReimbursementsPage() {
                       <p className="text-xs text-muted-foreground">{r.created_at.slice(0, 10)}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-700 text-foreground">
-                        {r.currency} {Number(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </p>
+                      <FormattedCurrencyAmount amount={Number(r.amount)} currencyCode={r.currency} className="text-sm font-700 text-foreground" showCode />
                       {Number(r.amount_paid) > 0 && (
-                        <p className="text-xs text-positive">
-                          Paid: {r.currency} {Number(r.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </p>
+                        <div className="text-xs text-positive">
+                          Paid: <FormattedCurrencyAmount amount={Number(r.amount_paid)} currencyCode={r.currency} className="inline-flex text-xs text-positive" showCode />
+                        </div>
                       )}
                       {canPay && remaining > 0 && (
-                        <p className="text-xs text-warning">
-                          Remaining: {r.currency} {remaining.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </p>
+                        <div className="text-xs text-warning">
+                          Remaining: <FormattedCurrencyAmount amount={remaining} currencyCode={r.currency} className="inline-flex text-xs text-warning" showCode />
+                        </div>
                       )}
                       {canPay && (
                         <button

@@ -17,6 +17,7 @@
  import { createPortal } from 'react-dom';
  import { useRouter } from 'next/navigation';
  import { createClient } from '@/lib/supabase/client';
+import { formatCurrencyText } from '@/lib/currency-formatting';
  import VoiceRecorder from './VoiceRecorder';
  import type {
    ParsedFinancialInstruction,
@@ -59,12 +60,19 @@
    defaultMode?: 'voice' | 'text';
  }
 
- function formatMoney(value: number | undefined, currency = 'AED') {
-   if (typeof value !== 'number' || !Number.isFinite(value)) return `${currency} 0.00`;
-   return `${currency} ${value.toLocaleString(undefined, {
-     minimumFractionDigits: 2,
-     maximumFractionDigits: 2,
-   })}`;
+function formatMoney(value: number | undefined, currency?: string, fallbackCurrency?: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return formatCurrencyText(0, {
+      currencyCode: currency,
+      fallbackCurrencyCode: fallbackCurrency || 'USD',
+      textOnly: true,
+    });
+  }
+  return formatCurrencyText(value, {
+    currencyCode: currency,
+    fallbackCurrencyCode: fallbackCurrency || 'USD',
+    textOnly: true,
+  });
  }
 
  function getPrimaryAccountLabel(purpose: SmartEntryPurpose | undefined) {
@@ -482,6 +490,15 @@
          ) || null
        );
 
+  const normalizeReviewCurrency = useCallback(
+    (value?: string) =>
+      sanitizeCurrency(value, {
+        fallbackCurrency: contextSnapshot?.defaultCurrency,
+        allowedCurrencies: contextSnapshot?.currencies,
+      }),
+    [contextSnapshot?.currencies, contextSnapshot?.defaultCurrency]
+  );
+
    const updateReview = useCallback((updater: (current: SmartEntryReview) => SmartEntryReview) => {
      setReviewState((current) => {
        if (!current || !parsed) return current;
@@ -538,7 +555,7 @@
       accountId: matchedAccount?.id,
       name: matchedAccount?.name || suggestedName,
       type: (matchedAccount?.type as SuggestedAccount['type']) || inferAccountType(suggestedName),
-      currency: sanitizeCurrency(matchedAccount?.currency || current.account.currency || current.currency),
+      currency: normalizeReviewCurrency(matchedAccount?.currency || current.account.currency || current.currency),
        includeInTotal: false,
        scope: 'managed' as const,
        managedPersonId: personId,
@@ -608,7 +625,7 @@
           type: currentMatchesPersonal
             ? next.account.type
             : (fallbackPersonalAccount?.type as SuggestedAccount['type'] | undefined) || next.account.type,
-          currency: sanitizeCurrency(
+          currency: normalizeReviewCurrency(
             (currentMatchesPersonal ? next.account.currency : fallbackPersonalAccount?.currency) || next.currency
           ),
            scope: 'personal',
@@ -721,7 +738,7 @@
        field,
        name: suggestedName,
        type: selection?.type || inferAccountType(suggestedName),
-       currency: sanitizeCurrency(selection?.currency || reviewState?.currency),
+       currency: normalizeReviewCurrency(selection?.currency || reviewState?.currency),
        includeInTotal: field === 'account' ? !isManagedPurpose(reviewState?.purpose) : true,
      });
   }, [reviewState]);
@@ -736,7 +753,7 @@
          accountId: undefined,
          name: accountDraft.name.trim(),
          type: accountDraft.type,
-         currency: sanitizeCurrency(accountDraft.currency),
+         currency: normalizeReviewCurrency(accountDraft.currency),
          includeInTotal: accountDraft.field === 'account' ? accountDraft.includeInTotal : true,
          scope: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
          managedPersonId: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
@@ -798,7 +815,7 @@
          accountId: account.id,
          name: account.name,
          type: account.type as SuggestedAccount['type'],
-         currency: sanitizeCurrency(account.currency),
+         currency: normalizeReviewCurrency(account.currency),
          includeInTotal: field === 'account' ? !isManagedPurpose(current.purpose) : true,
          scope: field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
          managedPersonId: field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
@@ -812,7 +829,7 @@
 
      setAccountDraft(null);
      setAccountDraftTarget(null);
-  }, [eligibleDestinationAccounts, eligiblePrimaryAccounts, handleStartCreateAccount, updateReview]);
+  }, [eligibleDestinationAccounts, eligiblePrimaryAccounts, handleStartCreateAccount, normalizeReviewCurrency, updateReview]);
 
   const callParseAPI = useCallback(async (
     type: 'text' | 'voice',
@@ -1254,7 +1271,7 @@
                     <div className="space-y-2 pt-1">
                       <p className="text-sm font-600 text-foreground">
                         {typeof reviewState.receivedAmount === 'number' && reviewState.person?.name
-                          ? `How should the ${formatMoney(reviewState.receivedAmount, reviewState.currency || 'AED')} from ${reviewState.person.name} be treated?`
+                          ? `How should the ${formatMoney(reviewState.receivedAmount, reviewState.currency, contextSnapshot?.defaultCurrency)} from ${reviewState.person.name} be treated?`
                           : 'How should this money be treated?'}
                       </p>
                       {reviewState.purposeOptions.map((option) => (
@@ -1433,7 +1450,7 @@
                         value={typeof reviewState.amount === 'number' ? String(reviewState.amount) : ''}
                         onChange={(e) => handleReviewAmountChange(e.target.value)}
                         className="input-base w-full text-sm"
-                        placeholder={`Enter amount in ${reviewState.currency || 'AED'}`}
+                        placeholder={`Enter amount in ${normalizeReviewCurrency(reviewState.currency)}`}
                       />
                       {typeof reviewState.amountQuickOptionValue === 'number' && (
                         <button
@@ -1441,7 +1458,7 @@
                           onClick={handleUseFullAmount}
                           className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-600 text-foreground transition-colors hover:border-accent/40"
                         >
-                          Use full {formatMoney(reviewState.amountQuickOptionValue, reviewState.currency || 'AED')}
+                          Use full {formatMoney(reviewState.amountQuickOptionValue, reviewState.currency, contextSnapshot?.defaultCurrency)}
                         </button>
                       )}
                     </div>
@@ -1534,18 +1551,18 @@
                   </div>
                   {totals && reviewState.purpose === 'managed_money' && (
                     <p className="text-sm font-600 text-foreground">
-                      Remaining for {reviewState.person?.name || 'them'}: {formatMoney(totals.net, reviewState.currency || 'AED')}
+                      Remaining for {reviewState.person?.name || 'them'}: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}
                     </p>
                   )}
                   {totals && reviewState.purpose === 'borrowed_money' && (
                     <div className="space-y-1 text-sm font-600 text-foreground">
-                      <p>Cash remaining after spending: {formatMoney(totals.net, reviewState.currency || 'AED')}</p>
-                      <p>Amount still owed to {reviewState.person?.name || 'them'}: {formatMoney(totals.loanAmount, reviewState.currency || 'AED')}</p>
+                      <p>Cash remaining after spending: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}</p>
+                      <p>Amount still owed to {reviewState.person?.name || 'them'}: {formatMoney(totals.loanAmount, reviewState.currency, contextSnapshot?.defaultCurrency)}</p>
                     </div>
                   )}
                   {totals && reviewState.purpose === 'managed_return' && (
                     <p className="text-sm font-600 text-foreground">
-                      Managed balance change: {formatMoney(totals.net, reviewState.currency || 'AED')}
+                      Managed balance change: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}
                     </p>
                   )}
                 </div>

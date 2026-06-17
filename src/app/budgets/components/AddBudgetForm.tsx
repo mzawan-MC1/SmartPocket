@@ -4,6 +4,8 @@ import { Loader2 } from 'lucide-react';
 import { createBudget, getCategories, type Category } from '@/lib/finance';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import CurrencySelector from '@/components/CurrencySelector';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 interface AddBudgetFormProps {
   onSuccess: () => void;
@@ -11,13 +13,14 @@ interface AddBudgetFormProps {
 }
 
 export default function AddBudgetForm({ onSuccess, onCancel }: AddBudgetFormProps) {
+  const { data: referenceData } = useClientReferenceData();
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState({
     name: '',
     category_id: '',
     amount: '',
-    currency: 'AED',
+    currency: referenceData?.platformDefaultCurrency || '',
     period: 'monthly',
     alert_at_percent: '80',
   });
@@ -71,9 +74,11 @@ export default function AddBudgetForm({ onSuccess, onCancel }: AddBudgetFormProp
         </div>
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
-          <select className="input-base" value={form.currency} onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}>
-            {['AED', 'USD', 'EUR', 'GBP'].map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <CurrencySelector
+            value={form.currency}
+            onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
+            placeholder="Choose currency"
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-4">

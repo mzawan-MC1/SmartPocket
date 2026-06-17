@@ -1,13 +1,15 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
+import { formatCurrencyText } from '@/lib/currency-formatting';
 
-type AmountRow = { amount: number | string };
-type BalanceRow = { current_balance: number | string; include_in_total: boolean };
+type CurrencyAmountRow = { amount: number | string; currency: string | null };
+type BalanceRow = { current_balance: number | string; include_in_total: boolean; currency: string };
 type TransactionMetricRow = {
   id: string;
   account_id: string;
   transaction_type: 'income' | 'expense' | 'transfer';
   amount: number | string;
+  currency?: string | null;
   expense_owner?: string | null;
   paid_by?: string | null;
   paid_from?: string | null;
@@ -18,9 +20,10 @@ type LedgerLinkedTransactionRow = {
   entry_type: string;
   reference_type: string | null;
 };
-type PersonBalanceMetricRow = { full_name: string; money_held: number | string };
+type PersonBalanceMetricRow = { full_name: string; money_held: number | string; preferred_currency: string };
 type LoanLedgerRow = {
   amount: number | string;
+  currency: string;
   entry_type: string;
   entry_date: string;
   reference_type: string | null;
@@ -172,19 +175,19 @@ export interface Transfer {
 }
 
 export interface DashboardMetrics {
-  totalBalance: number;
-  monthlyIncome: number;
-  monthlyExpenses: number;
-  netCashFlow: number;
-  totalBudget: number;
-  budgetSpent: number;
-  upcomingPaymentsTotal: number;
+  totalBalanceByCurrency: Array<{ currency: string; amount: number }>;
+  monthlyIncomeByCurrency: Array<{ currency: string; amount: number }>;
+  monthlyExpensesByCurrency: Array<{ currency: string; amount: number }>;
+  netCashFlowByCurrency: Array<{ currency: string; amount: number }>;
+  totalBudgetByCurrency: Array<{ currency: string; amount: number }>;
+  budgetSpentByCurrency: Array<{ currency: string; amount: number }>;
+  upcomingPaymentsByCurrency: Array<{ currency: string; amount: number }>;
   upcomingPaymentsCount: number;
-  managedMoneyTotal: number;
+  managedMoneyByCurrency: Array<{ currency: string; amount: number }>;
   managedPeopleCount: number;
-  outstandingLoanBalance: number;
-  loanBorrowedThisMonth: number;
-  loanRepaidThisMonth: number;
+  outstandingLoanBalanceByCurrency: Array<{ currency: string; amount: number }>;
+  loanBorrowedThisMonthByCurrency: Array<{ currency: string; amount: number }>;
+  loanRepaidThisMonthByCurrency: Array<{ currency: string; amount: number }>;
 }
 
 export async function loadTransactionLedgerSummaryMap(
@@ -373,16 +376,41 @@ function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'a
   return rows.filter((row) => predicate(row, ledgerSummaryByTransactionId, accountInclusionById));
 }
 
+function sortCurrencyTotals(left: { currency: string }, right: { currency: string }) {
+  return left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' });
+}
+
+function addCurrencyAmount(
+  totals: Map<string, number>,
+  currency: string | null | undefined,
+  amount: number,
+  fallbackCurrency = 'USD'
+) {
+  if (!Number.isFinite(amount) || amount === 0) return;
+  const normalizedCurrency = (currency || fallbackCurrency).trim().toUpperCase();
+  totals.set(normalizedCurrency, (totals.get(normalizedCurrency) || 0) + amount);
+}
+
+function mapToCurrencyTotals(totals: Map<string, number>) {
+  return Array.from(totals.entries())
+    .map(([currency, amount]) => ({ currency, amount }))
+    .sort(sortCurrencyTotals);
+}
+
 async function getManagedMoneyMetrics(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase
     .from('person_balances')
-    .select('full_name, money_held');
+    .select('full_name, money_held, preferred_currency');
 
   if (error) throw error;
 
   const balances = (data || []) as PersonBalanceMetricRow[];
+  const managedMoneyByCurrency = new Map<string, number>();
+  for (const row of balances) {
+    addCurrencyAmount(managedMoneyByCurrency, row.preferred_currency, Math.max(0, Number(row.money_held || 0)));
+  }
   return {
-    managedMoneyTotal: balances.reduce((sum, row) => sum + Math.max(0, Number(row.money_held || 0)), 0),
+    managedMoneyByCurrency: mapToCurrencyTotals(managedMoneyByCurrency),
     managedPeopleCount: balances.filter((row) => Number(row.money_held || 0) > 0).length,
   };
 }
@@ -394,7 +422,7 @@ async function getLoanMetrics(
 ) {
   const { data, error } = await supabase
     .from('person_ledger_entries')
-    .select('amount, entry_type, entry_date, reference_type')
+    .select('amount, currency, entry_type, entry_date, reference_type')
     .eq('is_deleted', false)
     .eq('reference_type', 'loan');
 
@@ -402,30 +430,32 @@ async function getLoanMetrics(
 
   const rows = (data || []) as LoanLedgerRow[];
 
-  let outstandingLoanBalance = 0;
-  let loanBorrowedThisMonth = 0;
-  let loanRepaidThisMonth = 0;
+  const outstandingLoanBalanceByCurrency = new Map<string, number>();
+  const loanBorrowedThisMonthByCurrency = new Map<string, number>();
+  const loanRepaidThisMonthByCurrency = new Map<string, number>();
 
   for (const row of rows) {
     const amount = Number(row.amount || 0);
     if (row.entry_type === 'reimbursement_due_to_person') {
-      outstandingLoanBalance += amount;
+      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, amount);
       if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
-        loanBorrowedThisMonth += amount;
+        addCurrencyAmount(loanBorrowedThisMonthByCurrency, row.currency, amount);
       }
     }
     if (row.entry_type === 'reimbursement_paid') {
-      outstandingLoanBalance -= amount;
+      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, -amount);
       if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
-        loanRepaidThisMonth += amount;
+        addCurrencyAmount(loanRepaidThisMonthByCurrency, row.currency, amount);
       }
     }
   }
 
   return {
-    outstandingLoanBalance: Math.max(0, outstandingLoanBalance),
-    loanBorrowedThisMonth,
-    loanRepaidThisMonth,
+    outstandingLoanBalanceByCurrency: mapToCurrencyTotals(outstandingLoanBalanceByCurrency)
+      .map((row) => ({ ...row, amount: Math.max(0, row.amount) }))
+      .filter((row) => row.amount > 0),
+    loanBorrowedThisMonthByCurrency: mapToCurrencyTotals(loanBorrowedThisMonthByCurrency),
+    loanRepaidThisMonthByCurrency: mapToCurrencyTotals(loanRepaidThisMonthByCurrency),
   };
 }
 
@@ -898,92 +928,108 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   // Total balance from active accounts that include_in_total
   const { data: accounts } = await supabase
     .from('financial_accounts')
-    .select('current_balance, include_in_total')
+    .select('current_balance, include_in_total, currency')
     .eq('is_active', true);
 
-  const totalBalance = ((accounts || []) as BalanceRow[])
-    .filter((a) => a.include_in_total)
-    .reduce((s: number, a) => s + Number(a.current_balance), 0);
+  const totalBalanceByCurrency = new Map<string, number>();
+  for (const account of ((accounts || []) as BalanceRow[]).filter((row) => row.include_in_total)) {
+    addCurrencyAmount(totalBalanceByCurrency, account.currency, Number(account.current_balance || 0));
+  }
 
   // Monthly income
   const { data: incomeData } = await supabase
     .from('transactions')
-    .select('id, account_id, transaction_type, amount, expense_owner, paid_by, paid_from, use_held_balance')
+    .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
     .eq('transaction_type', 'income')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
-  const monthlyIncome = filterTransactionsByRule(
+  const monthlyIncomeByCurrency = new Map<string, number>();
+  for (const transaction of filterTransactionsByRule(
     (incomeData || []) as TransactionMetricRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     isPersonalIncomeTransaction
-  )
-    .reduce((s: number, t) => s + Number(t.amount), 0);
+  )) {
+    addCurrencyAmount(monthlyIncomeByCurrency, transaction.currency, Number(transaction.amount || 0));
+  }
 
   // Monthly expenses
   const { data: expenseData } = await supabase
     .from('transactions')
-    .select('id, account_id, transaction_type, amount, expense_owner, paid_by, paid_from, use_held_balance')
+    .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
     .eq('transaction_type', 'expense')
     .gte('transaction_date', monthStart)
     .lte('transaction_date', monthEnd);
 
-  const monthlyExpenses = filterTransactionsByRule(
+  const monthlyExpensesByCurrency = new Map<string, number>();
+  for (const transaction of filterTransactionsByRule(
     (expenseData || []) as TransactionMetricRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     isPersonalExpenseTransaction
-  )
-    .reduce((s: number, t) => s + Number(t.amount), 0);
+  )) {
+    addCurrencyAmount(monthlyExpensesByCurrency, transaction.currency, Number(transaction.amount || 0));
+  }
 
   const cashFlowTransactions = [
     ...((incomeData || []) as TransactionMetricRow[]),
     ...((expenseData || []) as TransactionMetricRow[]),
   ];
-  const netCashFlow = cashFlowTransactions.reduce((sum, transaction) => {
+  const netCashFlowByCurrency = new Map<string, number>();
+  for (const transaction of cashFlowTransactions) {
     if (!shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)) {
-      return sum;
+      continue;
     }
     const amount = Number(transaction.amount || 0);
-    return transaction.transaction_type === 'income' ? sum + amount : sum - amount;
-  }, 0);
+    addCurrencyAmount(
+      netCashFlowByCurrency,
+      transaction.currency,
+      transaction.transaction_type === 'income' ? amount : -amount
+    );
+  }
 
   // Budget totals
   const { data: budgets } = await supabase
     .from('budgets')
-    .select('amount')
+    .select('amount, currency')
     .eq('is_active', true);
 
-  const totalBudget = ((budgets || []) as AmountRow[]).reduce((s: number, b) => s + Number(b.amount), 0);
+  const totalBudgetByCurrency = new Map<string, number>();
+  for (const budget of ((budgets || []) as CurrencyAmountRow[])) {
+    addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0));
+  }
 
   // Upcoming recurring
   const { data: upcoming } = await supabase
     .from('recurring_transactions')
-    .select('amount')
+    .select('amount, currency')
     .eq('is_active', true)
     .eq('transaction_type', 'expense')
     .gte('next_due_date', today)
     .lte('next_due_date', next7Days);
 
-  const upcomingPaymentsTotal = ((upcoming || []) as AmountRow[]).reduce((s: number, r) => s + Number(r.amount), 0);
+  const upcomingPaymentsByCurrency = new Map<string, number>();
+  for (const recurring of ((upcoming || []) as CurrencyAmountRow[])) {
+    addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0));
+  }
   const managedMetrics = await getManagedMoneyMetrics(supabase);
   const loanMetrics = await getLoanMetrics(supabase, monthStart, monthEnd);
 
   return {
-    totalBalance,
-    monthlyIncome,
-    monthlyExpenses,
-    netCashFlow,
-    totalBudget,
-    budgetSpent: monthlyExpenses,
-    upcomingPaymentsTotal,
+    totalBalanceByCurrency: mapToCurrencyTotals(totalBalanceByCurrency),
+    monthlyIncomeByCurrency: mapToCurrencyTotals(monthlyIncomeByCurrency),
+    monthlyExpensesByCurrency: mapToCurrencyTotals(monthlyExpensesByCurrency),
+    netCashFlowByCurrency: mapToCurrencyTotals(netCashFlowByCurrency),
+    totalBudgetByCurrency: mapToCurrencyTotals(totalBudgetByCurrency),
+    budgetSpentByCurrency: mapToCurrencyTotals(monthlyExpensesByCurrency),
+    upcomingPaymentsByCurrency: mapToCurrencyTotals(upcomingPaymentsByCurrency),
     upcomingPaymentsCount: (upcoming || []).length,
-    managedMoneyTotal: managedMetrics.managedMoneyTotal,
+    managedMoneyByCurrency: managedMetrics.managedMoneyByCurrency,
     managedPeopleCount: managedMetrics.managedPeopleCount,
-    outstandingLoanBalance: loanMetrics.outstandingLoanBalance,
-    loanBorrowedThisMonth: loanMetrics.loanBorrowedThisMonth,
-    loanRepaidThisMonth: loanMetrics.loanRepaidThisMonth,
+    outstandingLoanBalanceByCurrency: loanMetrics.outstandingLoanBalanceByCurrency,
+    loanBorrowedThisMonthByCurrency: loanMetrics.loanBorrowedThisMonthByCurrency,
+    loanRepaidThisMonthByCurrency: loanMetrics.loanRepaidThisMonthByCurrency,
   };
 }
 
@@ -1022,7 +1068,7 @@ export async function getReportData(dateFrom: string, dateTo: string, accountId?
 }
 
 export function generateCSV(transactions: Transaction[]): string {
-  const headers = ['Date', 'Description', 'Merchant', 'Category', 'Account', 'Type', 'Amount', 'Currency', 'Tags', 'Notes'];
+  const headers = ['Date', 'Description', 'Merchant', 'Category', 'Account', 'Type', 'Amount Value', 'Currency Code', 'Formatted Amount', 'Tags', 'Notes'];
   const rows = transactions.map((t) => [
     t.transaction_date,
     `"${(t.description || '').replace(/"/g, '""')}"`,
@@ -1032,6 +1078,10 @@ export function generateCSV(transactions: Transaction[]): string {
     t.transaction_type,
     t.transaction_type === 'expense' ? `-${t.amount}` : `${t.amount}`,
     t.currency,
+    `"${formatCurrencyText(
+      t.transaction_type === 'expense' ? -Number(t.amount) : Number(t.amount),
+      { currencyCode: t.currency }
+    ).replace(/"/g, '""')}"`,
     `"${(t.tags || []).join(', ')}"`,
     `"${(t.notes || '').replace(/"/g, '""')}"`,
   ]);

@@ -94,6 +94,8 @@ export interface ServerExecutionContext {
   accounts: ServerAccount[];
   categories: ServerCategory[];
   people: ServerPerson[];
+  supportedCurrencies: string[];
+  defaultCurrency: string;
 }
 
 export interface AccountSuggestion {
@@ -151,6 +153,22 @@ function actionRequiresAmount(action: FinancialAction) {
   return action.actionType !== 'create_account' && action.actionType !== 'create_managed_person';
 }
 
+function resolveDefaultCurrency(
+  preferredCurrency: string | undefined,
+  supportedCurrencies: string[]
+) {
+  const normalizedPreferred = (preferredCurrency || '').trim().toUpperCase();
+  if (normalizedPreferred.length === 3 && supportedCurrencies.includes(normalizedPreferred)) {
+    return normalizedPreferred;
+  }
+
+  if (supportedCurrencies.includes('USD')) {
+    return 'USD';
+  }
+
+  return supportedCurrencies[0] || 'USD';
+}
+
 export async function loadExecutionContextServer(args: {
   userId: string;
   supabase: SupabaseClient;
@@ -158,7 +176,7 @@ export async function loadExecutionContextServer(args: {
 }): Promise<ServerExecutionContext> {
   const needsPersonBalances = instructionNeedsPersonBalances(args.instruction);
 
-  const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult] = await Promise.all([
+  const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult, currenciesResult, platformSettingsResult] = await Promise.all([
     args.supabase
       .from('financial_accounts')
       .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')
@@ -187,6 +205,14 @@ export async function loadExecutionContextServer(args: {
     args.supabase
       .from('person_aliases')
       .select('person_id, alias'),
+    args.supabase
+      .from('currency_registry')
+      .select('code')
+      .eq('is_active', true),
+    args.supabase
+      .from('platform_settings')
+      .select('default_currency')
+      .maybeSingle(),
   ]);
 
   if (accountsResult.error) {
@@ -203,6 +229,12 @@ export async function loadExecutionContextServer(args: {
   }
   if (aliasesResult.error) {
     throw new ContextLoadError('Failed to load person aliases');
+  }
+  if (currenciesResult.error) {
+    throw new ContextLoadError('Failed to load currency registry');
+  }
+  if (platformSettingsResult.error) {
+    throw new ContextLoadError('Failed to load platform settings');
   }
 
   const balanceMap = new Map(
@@ -232,10 +264,19 @@ export async function loadExecutionContextServer(args: {
     ...(balanceMap.get(person.id) || {}),
   }));
 
+  const supportedCurrencies = ((currenciesResult.data || []) as Array<{ code: string }>)
+    .map((currency) => currency.code);
+
   return {
     accounts: (accountsResult.data || []) as ServerAccount[],
     categories: (categoriesResult.data || []) as ServerCategory[],
     people,
+    supportedCurrencies,
+    defaultCurrency: sanitizeCurrency(
+      platformSettingsResult.data?.default_currency || undefined,
+      supportedCurrencies,
+      resolveDefaultCurrency(platformSettingsResult.data?.default_currency || undefined, supportedCurrencies)
+    ),
   };
 }
 
@@ -354,7 +395,7 @@ function preflightInstruction(
           user_id: 'preview',
           name: (action.accountName || '').trim(),
           account_type: action.accountType || inferAccountType(action.accountName),
-          currency: sanitizeCurrency(action.currency || 'AED'),
+          currency: sanitizeCurrency(action.currency, previewContext.supportedCurrencies, previewContext.defaultCurrency),
           opening_balance: Number(action.openingBalance ?? 0),
           current_balance: Number(action.openingBalance ?? 0),
           include_in_total: action.includeInTotal !== false,
@@ -369,7 +410,7 @@ function preflightInstruction(
           full_name: (action.personName || '').trim(),
           aliases: [],
           relationship: action.relationship || 'other',
-          preferred_currency: sanitizeCurrency(action.currency || 'AED'),
+          preferred_currency: sanitizeCurrency(action.currency, previewContext.supportedCurrencies, previewContext.defaultCurrency),
           is_active: true,
           is_archived: false,
         });
@@ -441,7 +482,7 @@ async function executeActionServer(args: {
   const { action, index, requestId, userId, supabase, context } = args;
   const today = new Date().toISOString().slice(0, 10);
   const date = !action.date || action.date === 'today' ? today : action.date;
-  const currency = sanitizeCurrency(action.currency || 'AED');
+  const currency = sanitizeCurrency(action.currency, context.supportedCurrencies, context.defaultCurrency);
   if (actionRequiresAmount(action) && typeof action.amount !== 'number') {
     throw new InvalidExecutionActionError('Missing amount');
   }
@@ -1180,9 +1221,21 @@ function normalizeName(value: string | undefined): string {
   return (value || '').trim().toLowerCase();
 }
 
-function sanitizeCurrency(value: string): string {
-  const currency = value.trim().toUpperCase().replace(/[^A-Z]/g, '');
-  return currency.length === 3 ? currency : 'AED';
+function sanitizeCurrency(
+  value: string | undefined,
+  allowedCurrencies: Iterable<string>,
+  fallbackCurrency: string
+): string {
+  const supportedCurrencies = new Set(allowedCurrencies);
+  const normalized = (value || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (normalized.length === 3 && supportedCurrencies.has(normalized)) {
+    return normalized;
+  }
+  const fallback = fallbackCurrency.trim().toUpperCase();
+  if (fallback.length === 3 && supportedCurrencies.has(fallback)) {
+    return fallback;
+  }
+  return supportedCurrencies.has('USD') ? 'USD' : Array.from(supportedCurrencies)[0] || 'USD';
 }
 
 function inferAccountType(name?: string): AccountType {
@@ -1277,7 +1330,7 @@ function requireAccountResolution(args: {
   const suggestedAccount: AccountSuggestion = {
     name: toTitleCase(suggestedName),
     type: inferAccountType(suggestedName),
-    currency: sanitizeCurrency(args.action.currency || 'AED'),
+    currency: sanitizeCurrency(args.action.currency, args.context.supportedCurrencies, args.context.defaultCurrency),
     openingBalance: 0,
     includeInTotal: true,
   };

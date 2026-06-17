@@ -12,7 +12,9 @@ export default async function AdminCurrencyPage() {
     typeof platformSettings.raw.default_currency === 'string' &&
     platformSettings.raw.default_currency.trim().length > 0
       ? platformSettings.raw.default_currency
-      : 'AED';
+      : referenceData.currencies.find((currency) => currency.isActive && currency.code === 'USD')?.code ||
+        referenceData.currencies.find((currency) => currency.isActive)?.code ||
+        'USD';
 
   return (
     <AdminCurrencySettingsClient

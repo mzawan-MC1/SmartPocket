@@ -14,6 +14,9 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchField from '@/components/ui/SearchField';
+import CurrencySelector from '@/components/CurrencySelector';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -42,7 +45,7 @@ interface TxnFormData {
 
 const DEFAULT_FORM: TxnFormData = {
   account_id: '', category_id: '', transaction_type: 'expense',
-  amount: '', currency: 'AED', description: '', merchant: '',
+  amount: '', currency: '', description: '', merchant: '',
   notes: '', transaction_date: new Date().toISOString().slice(0, 10),
   tags: '', is_recurring: false,
   // Phase 2 defaults
@@ -53,6 +56,7 @@ const DEFAULT_FORM: TxnFormData = {
 
 export default function TransactionsTable() {
   const { user } = useAuth();
+  const { data: referenceData } = useClientReferenceData();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -102,8 +106,13 @@ export default function TransactionsTable() {
   });
 
   const openAdd = () => {
+    const defaultAccount = accounts[0];
     setEditingTxn(null);
-    setForm({ ...DEFAULT_FORM, account_id: accounts[0]?.id || '' });
+    setForm({
+      ...DEFAULT_FORM,
+      account_id: defaultAccount?.id || '',
+      currency: defaultAccount?.currency || referenceData?.platformDefaultCurrency || '',
+    });
     setReceiptFile(null);
     setShowPhase2(false);
     setShowAddModal(true);
@@ -406,8 +415,11 @@ export default function TransactionsTable() {
                         </td>
                         <td className="px-4 py-3 text-right">
                           <span className={`text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
-                            {txn.transaction_type === 'income' ? '+' : txn.transaction_type === 'expense' ? '-' : ''}
-                            {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(txn.amount))}
+                            <FormattedCurrencyAmount
+                              amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
+                              currencyCode={txn.currency}
+                              className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
+                            />
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -483,7 +495,19 @@ export default function TransactionsTable() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">Account *</label>
-              <select className="input-base" value={form.account_id} onChange={(e) => setForm((f) => ({ ...f, account_id: e.target.value }))}>
+              <select
+                className="input-base"
+                value={form.account_id}
+                onChange={(e) => {
+                  const nextAccountId = e.target.value;
+                  const nextAccount = accounts.find((account) => account.id === nextAccountId);
+                  setForm((f) => ({
+                    ...f,
+                    account_id: nextAccountId,
+                    currency: nextAccount?.currency || f.currency,
+                  }));
+                }}
+              >
                 <option value="">Select account...</option>
                 {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
@@ -508,9 +532,11 @@ export default function TransactionsTable() {
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
-              <select className="input-base" value={form.currency} onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}>
-                {['AED', 'USD', 'EUR', 'GBP', 'SAR', 'PKR', 'INR'].map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CurrencySelector
+                value={form.currency}
+                onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
+                placeholder="Choose currency"
+              />
             </div>
           </div>
 

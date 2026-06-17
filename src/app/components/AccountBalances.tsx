@@ -7,6 +7,7 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import Icon from '@/components/ui/AppIcon';
 import SectionCard from '@/components/ui/SectionCard';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 
 function getAccountIcon(type: string) {
@@ -106,10 +107,12 @@ export default function AccountBalances() {
                   <p className="text-[11px] text-muted-foreground capitalize">{acct.account_type.replace('_', ' ')}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className={`text-sm font-700 font-tabular ${acct.current_balance < 0 ? 'text-negative' : 'text-foreground'}`}>
-                    {acct.current_balance < 0 ? '-' : ''}
-                    {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(acct.current_balance))}
-                  </p>
+                  <FormattedCurrencyAmount
+                    amount={Number(acct.current_balance)}
+                    currencyCode={acct.currency}
+                    className={`text-sm font-700 font-tabular ${acct.current_balance < 0 ? 'text-negative' : 'text-foreground'}`}
+                    showCode
+                  />
                   <p className="text-[11px] text-muted-foreground">{lastActivity}</p>
                 </div>
               </div>

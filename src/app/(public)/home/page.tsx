@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, BarChart3, Wallet, PieChart, Shield, Smartphone, TrendingUp, FileText, RefreshCw, Bell, Lock, Download, CheckCircle2, Monitor, Tablet, Zap, Languages, Star, ChevronRight, Mail, Apple, Sparkles } from 'lucide-react';
 import AppLogo from '@/components/ui/AppLogo';
 import { getPlatformSettings } from '@/lib/finance';
+import { formatCurrencyText } from '@/lib/currency-formatting';
 
 interface HeroSettings {
   hero_title?: string;
@@ -54,6 +55,13 @@ const PLANS = [
 
 /** Inline SVG dashboard preview — no external assets required */
 function DashboardPreview() {
+  const previewAmounts = {
+    totalBalance: formatCurrencyText(12480, { currencyCode: 'USD' }),
+    income: formatCurrencyText(4200, { currencyCode: 'USD' }),
+    expenses: formatCurrencyText(-2760, { currencyCode: 'USD' }),
+    netFlow: formatCurrencyText(1440, { currencyCode: 'USD' }),
+  };
+
   return (
     <div className="relative w-full max-w-3xl mx-auto mt-12">
       {/* Glow backdrop */}
@@ -76,10 +84,10 @@ function DashboardPreview() {
           {/* Top metrics row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
             {[
-              { label: 'Total Balance', value: '$12,480', color: 'text-foreground', bg: 'bg-accent/8' },
-              { label: 'Income', value: '$4,200', color: 'text-positive', bg: 'bg-positive/8' },
-              { label: 'Expenses', value: '$2,760', color: 'text-destructive', bg: 'bg-destructive/8' },
-              { label: 'Net Flow', value: '+$1,440', color: 'text-accent', bg: 'bg-accent/8' },
+              { label: 'Total Balance', value: previewAmounts.totalBalance, color: 'text-foreground', bg: 'bg-accent/8' },
+              { label: 'Income', value: previewAmounts.income, color: 'text-positive', bg: 'bg-positive/8' },
+              { label: 'Expenses', value: previewAmounts.expenses, color: 'text-destructive', bg: 'bg-destructive/8' },
+              { label: 'Net Flow', value: previewAmounts.netFlow, color: 'text-accent', bg: 'bg-accent/8' },
             ].map((m) => (
               <div key={m.label} className={`rounded-xl p-3 ${m.bg} border border-border`}>
                 <p className="text-[10px] text-muted-foreground mb-1">{m.label}</p>
@@ -179,16 +187,16 @@ function DashboardPreview() {
         <div className="p-3 space-y-2">
           <div>
             <p className="text-[8px] text-muted-foreground">Balance</p>
-            <p className="text-sm font-800 text-foreground">$12,480</p>
+            <p className="text-sm font-800 text-foreground">{previewAmounts.totalBalance}</p>
           </div>
           <div className="flex gap-1">
             <div className="flex-1 rounded-lg bg-positive/10 p-1.5 text-center">
               <p className="text-[7px] text-muted-foreground">In</p>
-              <p className="text-[9px] font-700 text-positive">$4.2k</p>
+                <p className="text-[9px] font-700 text-positive">{formatCurrencyText(4200, { currencyCode: 'USD', compact: true })}</p>
             </div>
             <div className="flex-1 rounded-lg bg-destructive/10 p-1.5 text-center">
               <p className="text-[7px] text-muted-foreground">Out</p>
-              <p className="text-[9px] font-700 text-destructive">$2.7k</p>
+                <p className="text-[9px] font-700 text-destructive">{formatCurrencyText(-2700, { currencyCode: 'USD', compact: true })}</p>
             </div>
           </div>
           <div className="flex items-end gap-0.5 h-8">
@@ -455,20 +463,20 @@ export default function HomePage() {
             <div className="card-elevated p-8 space-y-4">
               <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-4">Multi-currency support</p>
               {[
-                { symbol: '$', code: 'USD', name: 'US Dollar' },
-                { symbol: '€', code: 'EUR', name: 'Euro' },
-                { symbol: 'د.إ', code: 'AED', name: 'UAE Dirham' },
-                { symbol: '£', code: 'GBP', name: 'British Pound' },
+                { code: 'USD', name: 'US Dollar', sample: formatCurrencyText(1250, { currencyCode: 'USD' }) },
+                { code: 'EUR', name: 'Euro', sample: formatCurrencyText(1250, { currencyCode: 'EUR' }) },
+                { code: 'AED', name: 'UAE Dirham', sample: formatCurrencyText(1250, { currencyCode: 'AED' }) },
+                { code: 'GBP', name: 'British Pound', sample: formatCurrencyText(1250, { currencyCode: 'GBP' }) },
               ].map((c) => (
                 <div key={c.code} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-sm font-700 text-accent">{c.symbol}</span>
+                    <span className="min-w-8 rounded-lg bg-accent/10 px-2 py-1 text-xs font-700 text-accent">{c.sample}</span>
                     <span className="text-sm font-600 text-foreground">{c.name}</span>
                   </div>
                   <span className="text-xs text-muted-foreground font-600">{c.code}</span>
                 </div>
               ))}
-              <p className="text-xs text-muted-foreground pt-2">+ 150 more currencies supported</p>
+              <p className="text-xs text-muted-foreground pt-2">153 active currencies supported</p>
             </div>
           </div>
         </div>

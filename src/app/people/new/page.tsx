@@ -6,6 +6,9 @@ import { ArrowLeft, User, Save } from 'lucide-react';
 import Link from 'next/link';
 import { createManagedPerson, type RelationshipType } from '@/lib/people';
 import { toast } from 'sonner';
+import CurrencySelector from '@/components/CurrencySelector';
+import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
   { value: 'spouse', label: 'Spouse' }, { value: 'child', label: 'Child' },
@@ -15,25 +18,44 @@ const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
   { value: 'other', label: 'Other' },
 ];
 
-const CURRENCIES = ['AED', 'USD', 'EUR', 'GBP', 'SAR', 'QAR', 'KWD', 'BHD', 'OMR'];
-
 function NewPersonForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: referenceData } = useClientReferenceData();
   const [saving, setSaving] = useState(false);
+  const [phoneState, setPhoneState] = useState<InternationalPhoneValue>({
+    display: '',
+    e164: null,
+    countryCode: null,
+    callingCode: null,
+    nationalNumber: '',
+    isValid: false,
+  });
   const [form, setForm] = useState({
     full_name: '',
     relationship: 'other' as RelationshipType,
     email: '',
     phone: '',
+    phone_display: '',
+    phone_country_code: '',
+    phone_e164: '',
     notes: '',
-    preferred_currency: 'AED',
+    preferred_currency: referenceData?.platformDefaultCurrency || '',
   });
 
   useEffect(() => {
     const name = searchParams.get('name');
     if (name) setForm((f) => ({ ...f, full_name: name }));
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!referenceData?.platformDefaultCurrency) return;
+    setForm((current) =>
+      current.preferred_currency
+        ? current
+        : { ...current, preferred_currency: referenceData.platformDefaultCurrency || '' }
+    );
+  }, [referenceData?.platformDefaultCurrency]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +66,10 @@ function NewPersonForm() {
         full_name: form.full_name.trim(),
         relationship: form.relationship,
         email: form.email || null,
-        phone: form.phone || null,
+        phone: phoneState.display || phoneState.e164 || null,
+        phone_display: phoneState.display || null,
+        phone_country_code: phoneState.countryCode || null,
+        phone_e164: phoneState.e164 || null,
         notes: form.notes || null,
         preferred_currency: form.preferred_currency,
       });
@@ -87,18 +112,32 @@ function NewPersonForm() {
             className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
         </div>
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Phone</label>
-          <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Optional"
-            className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
+          <InternationalPhoneInput
+            label="Phone"
+            value={form.phone_display}
+            countryCode={form.phone_country_code}
+            onChange={(phone) => {
+              setPhoneState(phone);
+              setForm((current) => ({
+                ...current,
+                phone: phone.display || phone.e164 || '',
+                phone_display: phone.display,
+                phone_country_code: phone.countryCode || '',
+                phone_e164: phone.e164 || '',
+              }));
+            }}
+            helperText="Uses the selected country code when a local number is entered."
+          />
         </div>
       </div>
 
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">Preferred Currency</label>
-        <select value={form.preferred_currency} onChange={(e) => setForm({ ...form, preferred_currency: e.target.value })}
-          className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <CurrencySelector
+          value={form.preferred_currency}
+          onChange={(currencyCode) => setForm({ ...form, preferred_currency: currencyCode })}
+          placeholder="Choose currency"
+        />
       </div>
 
       <div>

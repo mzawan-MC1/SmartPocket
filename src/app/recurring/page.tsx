@@ -13,6 +13,7 @@ import {
   markRecurringAsPaid, getAccounts, getCategories,
   type RecurringTransaction, type FinancialAccount, type Category,
 } from '@/lib/finance';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface RecurringFormData {
   description: string;
@@ -23,6 +24,11 @@ interface RecurringFormData {
   merchant: string;
   account_id: string;
   category_id: string;
+}
+
+function normalizeCurrencyCode(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  return normalized.length === 3 ? normalized : 'USD';
 }
 
 export default function RecurringPage() {
@@ -62,12 +68,17 @@ export default function RecurringPage() {
     if (!data.account_id) { toast.error('Please select an account'); return; }
     setIsLoading(true);
     try {
+      const selectedAccount = accounts.find((account) => account.id === data.account_id);
+      if (!selectedAccount?.currency) {
+        toast.error('Selected account is missing a currency');
+        return;
+      }
       await createRecurringTransaction({
         account_id: data.account_id,
         category_id: data.category_id || null,
         transaction_type: data.transaction_type,
         amount: parseFloat(data.amount),
-        currency: accounts.find((a) => a.id === data.account_id)?.currency || 'AED',
+        currency: selectedAccount.currency,
         description: data.description,
         merchant: data.merchant || null,
         frequency: data.frequency as RecurringTransaction['frequency'],
@@ -122,8 +133,25 @@ export default function RecurringPage() {
 
   const activeItems = recurring.filter((r) => r.is_active);
   const pausedItems = recurring.filter((r) => !r.is_active);
-  const totalMonthly = activeItems.filter((r) => r.transaction_type === 'expense').reduce((s, r) => s + Number(r.amount), 0);
-  const totalIncome = activeItems.filter((r) => r.transaction_type === 'income').reduce((s, r) => s + Number(r.amount), 0);
+  const groupByCurrency = (items: RecurringTransaction[]) =>
+    Array.from(
+      items.reduce((map, item) => {
+        const currency = normalizeCurrencyCode(item.currency);
+        map.set(currency, (map.get(currency) || 0) + Number(item.amount || 0));
+        return map;
+      }, new Map<string, number>())
+    ).map(([currency, amount]) => ({ currency, amount }));
+
+  const totalMonthly = groupByCurrency(activeItems.filter((r) => r.transaction_type === 'expense'));
+  const totalIncome = groupByCurrency(activeItems.filter((r) => r.transaction_type === 'income'));
+  const netMonthlyMap = new Map<string, number>();
+  for (const row of totalIncome) {
+    netMonthlyMap.set(row.currency, (netMonthlyMap.get(row.currency) || 0) + row.amount);
+  }
+  for (const row of totalMonthly) {
+    netMonthlyMap.set(row.currency, (netMonthlyMap.get(row.currency) || 0) - row.amount);
+  }
+  const netMonthly = Array.from(netMonthlyMap.entries()).map(([currency, amount]) => ({ currency, amount }));
 
   const filteredCategories = categories.filter((c) => c.category_type === txnType);
 
@@ -145,19 +173,35 @@ export default function RecurringPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Monthly Expenses</p>
-            <p className="text-xl font-700 font-tabular text-negative">{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(totalMonthly)}</p>
+            <div className="text-xl font-700 font-tabular text-negative">
+              {totalMonthly.map((row) => (
+                <FormattedCurrencyAmount key={`expense-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-negative" showCode />
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'expense').length} active subscriptions</p>
           </div>
           <div className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Monthly Income</p>
-            <p className="text-xl font-700 font-tabular text-positive">{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(totalIncome)}</p>
+            <div className="text-xl font-700 font-tabular text-positive">
+              {totalIncome.map((row) => (
+                <FormattedCurrencyAmount key={`income-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-positive" showCode />
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'income').length} income sources</p>
           </div>
           <div className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Net Monthly</p>
-            <p className={`text-xl font-700 font-tabular ${totalIncome - totalMonthly >= 0 ? 'text-positive' : 'text-negative'}`}>
-              {totalIncome - totalMonthly >= 0 ? '+' : ''}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(totalIncome - totalMonthly)}
-            </p>
+            <div className="text-xl font-700 font-tabular">
+              {netMonthly.map((row) => (
+                <FormattedCurrencyAmount
+                  key={`net-${row.currency}`}
+                  amount={row.amount}
+                  currencyCode={row.currency}
+                  className={`text-xl font-700 ${row.amount >= 0 ? 'text-positive' : 'text-negative'}`}
+                  showCode
+                />
+              ))}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">After recurring expenses</p>
           </div>
         </div>
@@ -209,7 +253,12 @@ export default function RecurringPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className={`text-sm font-700 font-tabular ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}>
-                      {item.transaction_type === 'income' ? '+' : '-'}{new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(item.amount)}
+                      <FormattedCurrencyAmount
+                        amount={item.transaction_type === 'income' ? Number(item.amount) : -Math.abs(Number(item.amount))}
+                        currencyCode={item.currency}
+                        className={`text-sm font-700 ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}
+                        showCode
+                      />
                     </p>
                     <div className="flex items-center gap-1 mt-1 justify-end">
                       <button

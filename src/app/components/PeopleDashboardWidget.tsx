@@ -3,17 +3,14 @@ import React, { useEffect, useState } from 'react';
 import { Users, Wallet, TrendingUp, TrendingDown, RotateCcw } from 'lucide-react';
 import { getPeopleDashboardSummary } from '@/lib/people';
 import Link from 'next/link';
-
-function formatAmt(value: number) {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-}
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 export default function PeopleDashboardWidget() {
   const [summary, setSummary] = useState<{
-    totalHeld: number;
-    totalOwedToUser: number;
-    totalOwedByUser: number;
-    pendingReimbTotal: number;
+    totalHeldByCurrency: Array<{ currency: string; amount: number }>;
+    totalOwedToUserByCurrency: Array<{ currency: string; amount: number }>;
+    totalOwedByUserByCurrency: Array<{ currency: string; amount: number }>;
+    pendingReimbByCurrency: Array<{ currency: string; amount: number }>;
     peopleCount: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +35,25 @@ export default function PeopleDashboardWidget() {
 
   if (!summary || summary.peopleCount === 0) return null;
 
+  const renderAmounts = (rows: Array<{ currency: string; amount: number }>, className: string) => {
+    if (rows.length === 0) {
+      return <p className={className}>No data</p>;
+    }
+    return (
+      <div className="flex flex-col gap-1">
+        {rows.map((row) => (
+          <FormattedCurrencyAmount
+            key={`${row.currency}-${row.amount}`}
+            amount={row.amount}
+            currencyCode={row.currency}
+            className={className}
+            showCode
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="card-elevated p-5">
       <div className="flex items-center justify-between mb-4">
@@ -56,7 +72,7 @@ export default function PeopleDashboardWidget() {
             <Wallet size={13} className="text-info" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
           </div>
-          <p className="text-base font-700 text-foreground">AED {formatAmt(summary.totalHeld)}</p>
+          {renderAmounts(summary.totalHeldByCurrency, 'text-base font-700 text-foreground')}
           <p className="text-[10px] text-muted-foreground">Held for others</p>
         </div>
 
@@ -65,7 +81,7 @@ export default function PeopleDashboardWidget() {
             <TrendingUp size={13} className="text-positive" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
           </div>
-          <p className="text-base font-700 text-positive">AED {formatAmt(summary.totalOwedToUser)}</p>
+          {renderAmounts(summary.totalOwedToUserByCurrency, 'text-base font-700 text-positive')}
           <p className="text-[10px] text-muted-foreground">People owe me</p>
         </div>
 
@@ -74,7 +90,7 @@ export default function PeopleDashboardWidget() {
             <TrendingDown size={13} className="text-negative" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
           </div>
-          <p className="text-base font-700 text-negative">AED {formatAmt(summary.totalOwedByUser)}</p>
+          {renderAmounts(summary.totalOwedByUserByCurrency, 'text-base font-700 text-negative')}
           <p className="text-[10px] text-muted-foreground">I owe others</p>
         </div>
 
@@ -83,7 +99,7 @@ export default function PeopleDashboardWidget() {
             <RotateCcw size={13} className="text-warning" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Pending Reimb.</span>
           </div>
-          <p className="text-base font-700 text-warning">AED {formatAmt(summary.pendingReimbTotal)}</p>
+          {renderAmounts(summary.pendingReimbByCurrency, 'text-base font-700 text-warning')}
           <p className="text-[10px] text-muted-foreground">Outstanding</p>
         </div>
       </div>

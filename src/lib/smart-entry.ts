@@ -10,8 +10,9 @@ import type {
   SmartEntryReview,
   SuggestedAccount,
 } from '@/lib/ai-types';
+import { formatCurrencyText } from '@/lib/currency-formatting';
 
-const DEFAULT_CURRENCY = 'AED';
+const FALLBACK_CURRENCY = 'USD';
 type ContextAccount = NonNullable<NonNullable<FinancialContext['accounts']>[number]>;
 type ContextPerson = NonNullable<NonNullable<FinancialContext['people']>[number]>;
 
@@ -175,9 +176,34 @@ export function normalizeName(value: string | undefined) {
   return (value || '').trim().toLowerCase();
 }
 
-export function sanitizeCurrency(value: string | undefined) {
-  const currency = (value || DEFAULT_CURRENCY).trim().toUpperCase().replace(/[^A-Z]/g, '');
-  return currency.length === 3 ? currency : DEFAULT_CURRENCY;
+export function sanitizeCurrency(
+  value: string | undefined,
+  options?: {
+    fallbackCurrency?: string;
+    allowedCurrencies?: Iterable<string> | null;
+  }
+) {
+  const fallbackCurrency = (options?.fallbackCurrency || FALLBACK_CURRENCY).trim().toUpperCase();
+  const normalized = (value || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  const allowedCurrencies = options?.allowedCurrencies ? new Set(options.allowedCurrencies) : null;
+
+  if (normalized.length === 3 && (!allowedCurrencies || allowedCurrencies.has(normalized))) {
+    return normalized;
+  }
+
+  if (fallbackCurrency.length === 3 && (!allowedCurrencies || allowedCurrencies.has(fallbackCurrency))) {
+    return fallbackCurrency;
+  }
+
+  return FALLBACK_CURRENCY;
+}
+
+function formatSmartEntryMoney(amount: number, currency: string | undefined, fallbackCurrency?: string) {
+  return formatCurrencyText(amount, {
+    currencyCode: currency,
+    fallbackCurrencyCode: fallbackCurrency || FALLBACK_CURRENCY,
+    textOnly: true,
+  });
 }
 
 export function inferAccountType(name: string | undefined): SuggestedAccount['type'] {
@@ -499,7 +525,7 @@ export function inferSmartEntryPurpose(args: {
 export function deriveUnderstandingLines(instruction: ParsedFinancialInstruction) {
   return instruction.actions.map((action) => {
     const amount = typeof action.amount === 'number'
-      ? `${sanitizeCurrency(action.currency)} ${action.amount.toLocaleString()}`
+      ? formatSmartEntryMoney(action.amount, action.currency, instruction.review?.currency)
       : 'an unknown amount';
 
     switch (action.actionType) {
@@ -560,7 +586,11 @@ export function buildInitialSmartEntryReview(args: {
     (hasImplicitSpendMention(sourceText) || missingAmountAction?.amountNeedsConfirmation === true) &&
     !shouldUseFullReceivedAmount;
   const inferredCurrency = sanitizeCurrency(
-    actions.find((action) => typeof action.currency === 'string')?.currency || args.context?.defaultCurrency
+    actions.find((action) => typeof action.currency === 'string')?.currency || args.context?.defaultCurrency,
+    {
+      fallbackCurrency: args.context?.defaultCurrency,
+      allowedCurrencies: args.context?.currencies,
+    }
   );
 
   const review: SmartEntryReview = {
@@ -588,7 +618,7 @@ export function buildInitialSmartEntryReview(args: {
   if (purposeNeedsConfirmation) {
     const personName = primaryPersonAction?.personName || receiptAction?.personName || 'someone';
     const amountText = typeof receivedAmount === 'number'
-      ? `${inferredCurrency} ${receivedAmount.toLocaleString()}`
+      ? formatSmartEntryMoney(receivedAmount, inferredCurrency, args.context?.defaultCurrency)
       : 'an amount';
     const spendLabel = missingAmountAction?.categoryName || missingAmountAction?.description || 'A payment';
     review.understanding = [
@@ -1002,7 +1032,7 @@ export function getCompactSummaryRows(instruction: ParsedFinancialInstruction) {
     .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
     .map((action) => {
       const amount = typeof action.amount === 'number'
-        ? `${sanitizeCurrency(action.currency)} ${action.amount.toLocaleString()}`
+        ? formatSmartEntryMoney(action.amount, action.currency, instruction.review?.currency)
         : 'Amount needed';
 
       switch (action.actionType) {

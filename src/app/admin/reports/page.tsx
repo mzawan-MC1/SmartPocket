@@ -14,7 +14,7 @@ export default function AdminReportsPage() {
     pdf_include_logo: true,
     pdf_show_page_numbers: true,
     pdf_date_format: 'DD/MM/YYYY',
-    pdf_currency: 'AED',
+    pdf_currency: '',
     pdf_paper_size: 'A4',
     pdf_orientation: 'portrait',
   });
@@ -29,7 +29,7 @@ export default function AdminReportsPage() {
             pdf_include_logo: data.pdf_include_logo ?? s.pdf_include_logo,
             pdf_show_page_numbers: data.pdf_show_page_numbers ?? s.pdf_show_page_numbers,
             pdf_date_format: data.pdf_date_format || s.pdf_date_format,
-            pdf_currency: data.pdf_currency || s.pdf_currency,
+            pdf_currency: data.pdf_currency || data.default_currency || s.pdf_currency,
             pdf_paper_size: data.pdf_paper_size || s.pdf_paper_size,
             pdf_orientation: data.pdf_orientation || s.pdf_orientation,
           }));

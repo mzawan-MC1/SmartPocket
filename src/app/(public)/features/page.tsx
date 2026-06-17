@@ -46,7 +46,7 @@ const ALL_FEATURES = [
     items: [
       { icon: Languages, title: '4-Language Support', desc: 'English, Arabic (RTL), French, and Russian — switch instantly.' },
       { icon: Globe, title: 'Full RTL Layout', desc: 'Arabic interface is fully right-to-left, not just translated.' },
-      { icon: CreditCard, title: '150+ Currencies', desc: 'Track accounts in any currency including AED with official dirham symbol.' },
+      { icon: CreditCard, title: '153 Active Currencies', desc: 'Track accounts in globally supported currencies with official Smart Pocket currency rendering.' },
       { icon: Smartphone, title: 'PWA — Install Anywhere', desc: 'Install on iOS, Android, or desktop from any browser. Works offline.' },
     ],
   },

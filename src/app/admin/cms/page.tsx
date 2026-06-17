@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Layout, Check, Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 
 interface MenuItem {
   id: string;
@@ -62,6 +63,7 @@ export default function AdminCmsPage() {
     contact_phone: '',
     contact_address: '',
   });
+  const [contactPhoneCountryCode, setContactPhoneCountryCode] = useState('');
 
   const [payment, setPayment] = useState({
     payment_stripe_enabled: false,
@@ -311,12 +313,18 @@ export default function AdminCmsPage() {
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">Phone Number</label>
-              <input
-                type="tel"
-                className="input-base"
-                placeholder="+1 (555) 000-0000"
+              <InternationalPhoneInput
                 value={contact.contact_phone}
-                onChange={(e) => setContact((c) => ({ ...c, contact_phone: e.target.value }))}
+                countryCode={contactPhoneCountryCode}
+                onChange={(phone: InternationalPhoneValue) => {
+                  setContactPhoneCountryCode(phone.countryCode || '');
+                  setContact((current) => ({
+                    ...current,
+                    contact_phone: phone.display || phone.e164 || '',
+                  }));
+                }}
+                placeholder="+1 555 000 0000"
+                helperText="Stored as text-safe contact information for public pages."
               />
             </div>
             <div>

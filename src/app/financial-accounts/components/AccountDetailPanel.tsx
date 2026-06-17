@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { X, TrendingDown, TrendingUp, ArrowUpDown, Receipt } from 'lucide-react';
 import { getTransactions, type Transaction, type FinancialAccount } from '@/lib/finance';
 import EmptyState from '@/components/ui/EmptyState';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface AccountDetailPanelProps {
   account: FinancialAccount;
@@ -48,10 +49,12 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
           <div>
             <p className="text-white/60 text-xs">Current Balance</p>
             <p className={`text-3xl font-800 font-tabular mt-0.5 ${account.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
-              {account.current_balance < 0 ? '-' : ''}
-              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(account.current_balance))}
+              <FormattedCurrencyAmount
+                amount={account.current_balance}
+                currencyCode={account.currency}
+                className={account.current_balance < 0 ? 'text-red-200' : 'text-white'}
+              />
             </p>
-            <p className="text-white/60 text-xs mt-1">{account.currency}</p>
           </div>
         </div>
 
@@ -59,16 +62,19 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
         <div className="grid grid-cols-2 gap-3 p-4 border-b border-border">
           <div className="bg-muted/40 rounded-xl p-3">
             <p className="text-xs text-muted-foreground mb-1">Opening Balance</p>
-            <p className="text-sm font-700 font-tabular text-foreground">
-              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(account.opening_balance)}
-            </p>
+            <FormattedCurrencyAmount
+              amount={account.opening_balance}
+              currencyCode={account.currency}
+              className="text-sm font-700 text-foreground"
+            />
           </div>
           <div className="bg-muted/40 rounded-xl p-3">
             <p className="text-xs text-muted-foreground mb-1">Net Change</p>
-            <p className={`text-sm font-700 font-tabular ${account.current_balance >= account.opening_balance ? 'text-positive' : 'text-negative'}`}>
-              {account.current_balance >= account.opening_balance ? '+' : ''}
-              {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(account.current_balance - account.opening_balance)}
-            </p>
+            <FormattedCurrencyAmount
+              amount={account.current_balance - account.opening_balance}
+              currencyCode={account.currency}
+              className={`text-sm font-700 ${account.current_balance >= account.opening_balance ? 'text-positive' : 'text-negative'}`}
+            />
           </div>
         </div>
 
@@ -123,8 +129,11 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
                     </p>
                   </div>
                   <span className={`text-sm font-700 font-tabular flex-shrink-0 ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
-                    {txn.transaction_type === 'income' ? '+' : '-'}
-                    {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(txn.amount))}
+                    <FormattedCurrencyAmount
+                      amount={txn.transaction_type === 'income' ? txn.amount : -Math.abs(txn.amount)}
+                      currencyCode={txn.currency}
+                      className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
+                    />
                   </span>
                 </div>
               ))}

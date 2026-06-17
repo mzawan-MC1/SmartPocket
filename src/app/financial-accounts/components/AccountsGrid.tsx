@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, Loader2,  } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -9,6 +9,9 @@ import { getAccounts, createAccount, updateAccount, archiveAccount, type Financi
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AccountDetailPanel from './AccountDetailPanel';
 import Icon from '@/components/ui/AppIcon';
+import CurrencySelector from '@/components/CurrencySelector';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 
 const ACCOUNT_TYPE_OPTIONS = [
@@ -20,8 +23,6 @@ const ACCOUNT_TYPE_OPTIONS = [
   { value: 'investment', label: 'Investment' },
   { value: 'other', label: 'Other' },
 ];
-
-const CURRENCIES = ['AED', 'USD', 'EUR', 'GBP', 'SAR', 'PKR', 'INR', 'RUB', 'CAD', 'AUD'];
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -54,7 +55,26 @@ interface AccountFormData {
   include_in_total: boolean;
 }
 
+function groupAccountTotals(accounts: FinancialAccount[]) {
+  const grouped = new Map<string, { net: number; assets: number; liabilities: number }>();
+
+  for (const account of accounts) {
+    const current = grouped.get(account.currency) ?? { net: 0, assets: 0, liabilities: 0 };
+    current.net += Number(account.current_balance);
+    if (account.current_balance >= 0) {
+      current.assets += Number(account.current_balance);
+    } else {
+      current.liabilities += Math.abs(Number(account.current_balance));
+    }
+    grouped.set(account.currency, current);
+  }
+
+  return Array.from(grouped.entries()).map(([currency, totals]) => ({ currency, ...totals }));
+}
+
 export default function AccountsGrid() {
+  const { data: referenceData } = useClientReferenceData();
+  const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -64,7 +84,7 @@ export default function AccountsGrid() {
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState<AccountFormData>({
-    name: '', account_type: 'bank', currency: 'AED', opening_balance: '0.00', notes: '', include_in_total: true,
+    name: '', account_type: 'bank', currency: '', opening_balance: '0.00', notes: '', include_in_total: true,
   });
 
   const load = useCallback(() => {
@@ -83,9 +103,26 @@ export default function AccountsGrid() {
 
   const openAdd = () => {
     setEditingAccount(null);
-    setForm({ name: '', account_type: 'bank', currency: 'AED', opening_balance: '0.00', notes: '', include_in_total: true });
+    setForm({
+      name: '',
+      account_type: 'bank',
+      currency: platformDefaultCurrency,
+      opening_balance: '0.00',
+      notes: '',
+      include_in_total: true,
+    });
     setShowAddModal(true);
   };
+
+  React.useEffect(() => {
+    if (!platformDefaultCurrency) return;
+    setForm((current) => {
+      if (current.currency || editingAccount) {
+        return current;
+      }
+      return { ...current, currency: platformDefaultCurrency };
+    });
+  }, [editingAccount, platformDefaultCurrency]);
 
   const openEdit = (acct: FinancialAccount) => {
     setEditingAccount(acct);
@@ -103,6 +140,7 @@ export default function AccountsGrid() {
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Account name is required'); return; }
+    if (!form.currency) { toast.error('Currency is required'); return; }
     setIsSaving(true);
     try {
       const payload = {
@@ -143,9 +181,7 @@ export default function AccountsGrid() {
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
   const personalAccounts = activeAccounts.filter((a) => a.include_in_total);
-  const totalBalance = personalAccounts.reduce((s, a) => s + Number(a.current_balance), 0);
-  const totalAssets = personalAccounts.filter((a) => a.current_balance > 0).reduce((s, a) => s + Number(a.current_balance), 0);
-  const totalLiabilities = Math.abs(personalAccounts.filter((a) => a.current_balance < 0).reduce((s, a) => s + Number(a.current_balance), 0));
+  const groupedTotals = useMemo(() => groupAccountTotals(personalAccounts), [personalAccounts]);
 
   if (loading) {
     return (
@@ -178,19 +214,31 @@ export default function AccountsGrid() {
       {/* Summary Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { id: 'sum-total', label: 'Total Net Worth', value: totalBalance, positive: totalBalance >= 0 },
-          { id: 'sum-assets', label: 'Total Assets', value: totalAssets, positive: true },
-          { id: 'sum-liabilities', label: 'Total Liabilities', value: totalLiabilities, positive: false },
-          { id: 'sum-count', label: 'Active Accounts', value: activeAccounts.length, isCount: true },
+          { id: 'sum-total', label: 'Total Net Worth', field: 'net' as const },
+          { id: 'sum-assets', label: 'Total Assets', field: 'assets' as const },
+          { id: 'sum-liabilities', label: 'Total Liabilities', field: 'liabilities' as const },
+          { id: 'sum-count', label: 'Active Accounts', isCount: true },
         ].map((item) => (
           <div key={item.id} className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
-            <p className={`text-xl font-700 font-tabular ${item.positive ? 'text-foreground' : 'text-negative'}`}>
-              {item.isCount
-                ? item.value
-                : (item.positive ? '' : '-') + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(item.value as number))
-              }
-            </p>
+            {item.isCount ? (
+              <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
+            ) : groupedTotals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No active balances</p>
+            ) : (
+              <div className="space-y-1">
+                {groupedTotals.map((row) => (
+                  <FormattedCurrencyAmount
+                    key={`${item.id}-${row.currency}`}
+                    amount={row[item.field]}
+                    currencyCode={row.currency}
+                    className={`text-sm font-700 ${
+                      item.field === 'liabilities' ? 'text-negative' : row[item.field] >= 0 ? 'text-foreground' : 'text-negative'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -249,10 +297,12 @@ export default function AccountsGrid() {
                     <div className="mt-4 relative">
                       <p className="text-white/70 text-[11px] font-500">Current Balance</p>
                       <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
-                        {acct.current_balance < 0 ? '-' : ''}
-                        {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(Math.abs(acct.current_balance))}
+                        <FormattedCurrencyAmount
+                          amount={acct.current_balance}
+                          currencyCode={acct.currency}
+                          className={acct.current_balance < 0 ? 'text-red-200' : 'text-white'}
+                        />
                       </p>
-                      <p className="text-white/50 text-xs mt-0.5">{acct.currency}</p>
                     </div>
                     {openMenuId === acct.id && (
                       <div
@@ -275,9 +325,11 @@ export default function AccountsGrid() {
                   <div className="p-4 flex items-center justify-between">
                     <div>
                       <p className="text-xs text-muted-foreground">Opening Balance</p>
-                      <p className="text-sm font-600 font-tabular text-foreground">
-                        {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(acct.opening_balance)}
-                      </p>
+                      <FormattedCurrencyAmount
+                        amount={acct.opening_balance}
+                        currencyCode={acct.currency}
+                        className="text-sm font-600 text-foreground"
+                      />
                     </div>
                     <div className="flex items-center gap-1">
                       {acct.current_balance >= acct.opening_balance
@@ -285,8 +337,11 @@ export default function AccountsGrid() {
                         : <TrendingDown size={14} className="text-negative" />
                       }
                       <span className={`text-xs font-600 font-tabular ${acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}`}>
-                        {acct.current_balance >= acct.opening_balance ? '+' : ''}
-                        {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(acct.current_balance - acct.opening_balance)}
+                        <FormattedCurrencyAmount
+                          amount={acct.current_balance - acct.opening_balance}
+                          currencyCode={acct.currency}
+                          className={acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}
+                        />
                       </span>
                     </div>
                     <Badge variant={acct.include_in_total ? 'active' : 'default'}>
@@ -331,7 +386,11 @@ export default function AccountsGrid() {
                       </div>
                     </div>
                     <p className={`text-xl font-800 font-tabular mt-3 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
-                      {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(acct.current_balance)}
+                      <FormattedCurrencyAmount
+                        amount={acct.current_balance}
+                        currencyCode={acct.currency}
+                        className={acct.current_balance < 0 ? 'text-red-200' : 'text-white'}
+                      />
                     </p>
                   </div>
                   <div className="p-3 flex items-center justify-between">
@@ -372,9 +431,12 @@ export default function AccountsGrid() {
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">Currency *</label>
-              <select className="input-base" value={form.currency} onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CurrencySelector
+                value={form.currency}
+                onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
+                showCountryCount
+                placeholder="Choose currency"
+              />
             </div>
           </div>
           <div>

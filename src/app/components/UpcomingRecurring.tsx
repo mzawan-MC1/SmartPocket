@@ -7,12 +7,18 @@ import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 function daysUntil(dateStr: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const due = new Date(dateStr + 'T00:00:00');
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function normalizeCurrencyCode(value: string | null | undefined) {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
+  return normalized.length === 3 ? normalized : 'USD';
 }
 
 export default function UpcomingRecurring() {
@@ -56,7 +62,13 @@ export default function UpcomingRecurring() {
     }
   };
 
-  const totalDue = items.reduce((s, r) => s + Number(r.amount), 0);
+  const totalDueByCurrency = Array.from(
+    items.reduce((map, item) => {
+      const currency = normalizeCurrencyCode(item.currency);
+      map.set(currency, (map.get(currency) || 0) + Number(item.amount || 0));
+      return map;
+    }, new Map<string, number>())
+  ).map(([currency, amount]) => ({ currency, amount }));
 
   return (
     <SectionCard
@@ -105,9 +117,12 @@ export default function UpcomingRecurring() {
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <span className="text-sm font-700 font-tabular text-foreground">
-                      {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(item.amount)}
-                    </span>
+                    <FormattedCurrencyAmount
+                      amount={Number(item.amount)}
+                      currencyCode={item.currency}
+                      className="text-sm font-700 font-tabular text-foreground"
+                      showCode
+                    />
                     <button
                       onClick={() => handleMarkPaid(item)}
                       disabled={markingId === item.id}
@@ -127,8 +142,17 @@ export default function UpcomingRecurring() {
           </div>
           <div className="px-5 py-3 bg-muted/30 border-t border-border">
             <p className="text-xs text-muted-foreground text-center">
-              Total due: <span className="font-700 text-foreground font-tabular">
-                {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(totalDue)}
+              Total due:
+              <span className="font-700 text-foreground font-tabular inline-flex flex-col items-center">
+                {totalDueByCurrency.map((row) => (
+                  <FormattedCurrencyAmount
+                    key={row.currency}
+                    amount={row.amount}
+                    currencyCode={row.currency}
+                    className="font-700 text-foreground"
+                    showCode
+                  />
+                ))}
               </span>
             </p>
           </div>

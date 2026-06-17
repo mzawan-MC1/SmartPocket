@@ -10,6 +10,7 @@ import { getTransfers, createTransfer, getAccounts, type Transfer, type Financia
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface TransferFormData {
   from_account_id: string;
@@ -18,6 +19,14 @@ interface TransferFormData {
   description: string;
   transfer_date: string;
   notes: string;
+}
+
+function groupTransferAmounts(transfers: Transfer[]) {
+  const grouped = new Map<string, number>();
+  for (const transfer of transfers) {
+    grouped.set(transfer.currency, (grouped.get(transfer.currency) ?? 0) + Number(transfer.amount));
+  }
+  return Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
 }
 
 export default function TransfersPage() {
@@ -55,11 +64,15 @@ export default function TransfersPage() {
     setIsLoading(true);
     try {
       const fromAcct = accounts.find((a) => a.id === data.from_account_id);
+      if (!fromAcct?.currency) {
+        toast.error('Selected source account is missing a currency');
+        return;
+      }
       await createTransfer({
         from_account_id: data.from_account_id,
         to_account_id: data.to_account_id,
         amount: parseFloat(data.amount),
-        currency: fromAcct?.currency || 'AED',
+        currency: fromAcct.currency,
         description: data.description || 'Transfer',
         transfer_date: data.transfer_date,
         notes: data.notes || undefined,
@@ -89,6 +102,7 @@ export default function TransfersPage() {
   });
   const totalThisMonth = thisMonthTransfers.reduce((s, t) => s + Number(t.amount), 0);
   const avgTransfer = thisMonthTransfers.length > 0 ? totalThisMonth / thisMonthTransfers.length : 0;
+  const groupedTransferred = groupTransferAmounts(thisMonthTransfers);
 
   return (
     <AppLayout activeRoute="/transfers">
@@ -107,13 +121,25 @@ export default function TransfersPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: 'Total Transferred', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(totalThisMonth), sub: 'This month' },
+            { label: 'Total Transferred', sub: 'This month', grouped: groupedTransferred },
             { label: 'Transfers Count', value: String(thisMonthTransfers.length), sub: 'This month' },
-            { label: 'Avg Transfer', value: new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(avgTransfer), sub: 'Per transfer' },
+            { label: 'Avg Transfer', value: groupedTransferred.length === 1 ? avgTransfer : null, currency: groupedTransferred[0]?.currency, sub: groupedTransferred.length === 1 ? 'Per transfer' : 'Unavailable for mixed currencies' },
           ].map((item) => (
             <div key={item.label} className="card-elevated p-4">
               <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
-              <p className="text-xl font-700 font-tabular text-foreground">{item.value}</p>
+              {'grouped' in item ? (
+                <div className="space-y-1">
+                  {item.grouped.length === 0 ? <p className="text-sm text-muted-foreground">No transfers</p> : item.grouped.map((row) => (
+                    <FormattedCurrencyAmount key={`${item.label}-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
+                  ))}
+                </div>
+              ) : item.value === null ? (
+                <p className="text-sm font-600 text-muted-foreground">Mixed currencies</p>
+              ) : item.currency ? (
+                <FormattedCurrencyAmount amount={item.value} currencyCode={item.currency} className="text-lg font-700 text-foreground" />
+              ) : (
+                <p className="text-xl font-700 font-tabular text-foreground">{item.value}</p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
             </div>
           ))}
@@ -175,7 +201,7 @@ export default function TransfersPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-700 font-tabular text-foreground">
-                      {new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(transfer.amount)}
+                      <FormattedCurrencyAmount amount={transfer.amount} currencyCode={transfer.currency} className="text-sm font-700 text-foreground" />
                     </p>
                     <span className="text-[10px] font-600 text-positive bg-positive-soft px-1.5 py-0.5 rounded-full">completed</span>
                   </div>
@@ -194,7 +220,7 @@ export default function TransfersPage() {
               <label htmlFor="from-account" className="block text-sm font-600 text-foreground mb-1.5">From Account *</label>
               <select id="from-account" className={`input-base ${errors.from_account_id ? 'input-error' : ''}`} {...register('from_account_id', { required: 'Select source account' })}>
                 <option value="">Select account...</option>
-                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({new Intl.NumberFormat('en-US', { minimumFractionDigits: 2 }).format(a.current_balance)})</option>)}
+                {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.currency} {a.current_balance})</option>)}
               </select>
               {errors.from_account_id && <p className="mt-1.5 text-xs text-negative font-500">{errors.from_account_id.message}</p>}
             </div>

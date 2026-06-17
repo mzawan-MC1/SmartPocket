@@ -1,18 +1,22 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Settings, User, Globe, Bell, Shield, Check, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { CURRENCY_REGISTRY } from '@/lib/currency';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Icon from '@/components/ui/AppIcon';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
+import CountrySelector from '@/components/country/CountrySelector';
+import CurrencySelector from '@/components/CurrencySelector';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
 
 
 interface ProfileFormData {
@@ -35,10 +39,36 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
   const { user } = useAuth();
   const { setLanguage } = useLanguage();
+  const router = useRouter();
+  const { data: referenceData } = useClientReferenceData();
+  const snapshot = referenceData?.snapshot;
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProfileFormData>();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<ProfileFormData>({
+    defaultValues: {
+      full_name: '',
+      country: '',
+      monthly_income: '',
+      month_start_day: '1',
+      default_currency: referenceData?.platformDefaultCurrency || '',
+      preferred_language: 'en',
+    },
+  });
+
+  const selectedCountry = watch('country');
+  const selectedCurrency = watch('default_currency');
+  const selectedCountryRecord = getCountryByCode(snapshot?.countries ?? [], selectedCountry);
+  const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
+  const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
 
   useEffect(() => {
     if (!user) return;
@@ -48,16 +78,22 @@ export default function SettingsPage() {
       if (data) {
         reset({
           full_name: data.full_name || '',
-          country: data.country || 'AE',
+          country: data.country || '',
           monthly_income: data.monthly_income?.toString() || '',
           month_start_day: data.month_start_day?.toString() || '1',
-          default_currency: data.default_currency || 'AED',
+          default_currency: data.default_currency || referenceData?.platformDefaultCurrency || '',
           preferred_language: data.preferred_language || 'en',
         });
+        setCurrencyManuallySelected(false);
       }
     };
     loadProfile();
-  }, [user, reset]);
+  }, [referenceData?.platformDefaultCurrency, reset, user]);
+
+  useEffect(() => {
+    if (!recommendedCurrency || currencyManuallySelected) return;
+    setValue('default_currency', recommendedCurrency.code);
+  }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
   const onSubmit = async (data: ProfileFormData) => {
     if (!user) return;
@@ -74,8 +110,10 @@ export default function SettingsPage() {
       }).eq('id', user.id);
       if (error) throw error;
       setLanguage(data.preferred_language as any);
+      reset(data);
       setSaved(true);
       toast.success('Settings saved successfully');
+      router.refresh();
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save settings');
@@ -120,7 +158,12 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Country</label>
-                <input type="text" className="input-base" placeholder="e.g. AE, US, GB" {...register('country')} />
+                <CountrySelector
+                  value={selectedCountry}
+                  onChange={(countryCode) => setValue('country', countryCode, { shouldDirty: true })}
+                  placeholder="Choose your country"
+                />
+                <input type="hidden" {...register('country')} />
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Monthly income (optional)</label>
@@ -144,11 +187,26 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Default currency</label>
-                <select className="input-base" {...register('default_currency')}>
-                  {Object.values(CURRENCY_REGISTRY).map((c) => (
-                    <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-                  ))}
-                </select>
+                {selectedCountryRecord && recommendedCurrency ? (
+                  <p className="mb-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2 text-xs text-foreground">
+                    Recommended for {selectedCountryRecord.name}: {recommendedCurrency.name} ({recommendedCurrency.code})
+                  </p>
+                ) : null}
+                <CurrencySelector
+                  value={selectedCurrency}
+                  onChange={(currencyCode) => {
+                    setCurrencyManuallySelected(true);
+                    setValue('default_currency', currencyCode, { shouldDirty: true });
+                  }}
+                  showCountryCount
+                  placeholder="Choose your default currency"
+                />
+                <input type="hidden" {...register('default_currency')} />
+                {selectedCurrencyRecord && !selectedCurrencyRecord.isActive ? (
+                  <p className="mt-1.5 text-xs text-warning">
+                    This saved currency is inactive and is kept for compatibility.
+                  </p>
+                ) : null}
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Month starts on day</label>

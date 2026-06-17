@@ -5,6 +5,7 @@ import { Download, Printer, RefreshCw, TrendingUp, TrendingDown, Wallet, RotateC
 import { getManagedPeople, getPersonReport, type ManagedPerson, type PersonLedgerEntry, type Reimbursement, type Settlement, type PersonBalance } from '@/lib/people';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
+import { formatCurrencyText } from '@/lib/currency-formatting';
 
 
 const ENTRY_TYPE_LABELS: Record<string, { label: string; sign: '+' | '-'; group: string }> = {
@@ -31,8 +32,11 @@ const STATUS_COLORS: Record<string, string> = {
 
 type ReportTab = 'ledger' | 'held' | 'expenses' | 'reimbursements' | 'settlements';
 
-function fmt(amount: number, currency = 'AED') {
-  return `${currency} ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatMoney(amount: number, currency?: string | null, fallbackCurrency?: string) {
+  return formatCurrencyText(Math.abs(amount), {
+    currencyCode: currency,
+    fallbackCurrencyCode: fallbackCurrency,
+  });
 }
 
 function downloadCSV(filename: string, headers: string[], rows: string[][]) {
@@ -235,35 +239,45 @@ export default function PersonReportsPage() {
                 <Wallet size={14} className="text-info" />
                 <span className="text-xs font-600 text-muted-foreground">Money Held</span>
               </div>
-              <p className="text-base font-700 text-info">{fmt(balance.money_held, selectedPerson.preferred_currency)}</p>
+              <p className="text-base font-700 text-info">
+                {formatMoney(balance.money_held, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+              </p>
             </div>
             <div className="card p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp size={14} className="text-positive" />
                 <span className="text-xs font-600 text-muted-foreground">Owes Me</span>
               </div>
-              <p className="text-base font-700 text-positive">{fmt(balance.person_owes_user, selectedPerson.preferred_currency)}</p>
+              <p className="text-base font-700 text-positive">
+                {formatMoney(balance.person_owes_user, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+              </p>
             </div>
             <div className="card p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingDown size={14} className="text-negative" />
                 <span className="text-xs font-600 text-muted-foreground">I Owe</span>
               </div>
-              <p className="text-base font-700 text-negative">{fmt(balance.user_owes_person, selectedPerson.preferred_currency)}</p>
+              <p className="text-base font-700 text-negative">
+                {formatMoney(balance.user_owes_person, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+              </p>
             </div>
             <div className="card p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingDown size={14} className="text-muted-foreground" />
                 <span className="text-xs font-600 text-muted-foreground">Total Expenses</span>
               </div>
-              <p className="text-base font-700 text-foreground">{fmt(balance.total_expenses, selectedPerson.preferred_currency)}</p>
+              <p className="text-base font-700 text-foreground">
+                {formatMoney(balance.total_expenses, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+              </p>
             </div>
             <div className="card p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp size={14} className="text-muted-foreground" />
                 <span className="text-xs font-600 text-muted-foreground">Total Received</span>
               </div>
-              <p className="text-base font-700 text-foreground">{fmt(balance.total_received, selectedPerson.preferred_currency)}</p>
+              <p className="text-base font-700 text-foreground">
+                {formatMoney(balance.total_received, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+              </p>
             </div>
           </div>
         )}
@@ -331,7 +345,7 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta.label} · {entry.entry_date}</p>
                           </div>
                           <span className={`text-sm font-700 ml-4 ${meta.sign === '+' ? 'text-positive' : 'text-negative'}`}>
-                            {meta.sign}{entry.currency} {Number(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {meta.sign}{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
                           </span>
                         </div>
                       );
@@ -348,7 +362,9 @@ export default function PersonReportsPage() {
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-700 text-foreground">Held Balance Statement</h3>
                     {balance && selectedPerson && (
-                      <span className="text-sm font-700 text-info">{fmt(balance.money_held, selectedPerson.preferred_currency)}</span>
+                      <span className="text-sm font-700 text-info">
+                        {formatMoney(balance.money_held, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -368,7 +384,7 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta?.label} · {entry.entry_date}</p>
                           </div>
                           <span className={`text-sm font-700 ${meta?.sign === '+' ? 'text-positive' : 'text-negative'}`}>
-                            {meta?.sign}{entry.currency} {Number(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {meta?.sign}{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
                           </span>
                         </div>
                       );
@@ -400,7 +416,7 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta?.label} · {entry.entry_date}</p>
                           </div>
                           <span className="text-sm font-700 text-negative">
-                            -{entry.currency} {Number(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            -{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
                           </span>
                         </div>
                       );
@@ -449,13 +465,13 @@ export default function PersonReportsPage() {
                           </p>
                           {Number(r.amount_paid) > 0 && (
                             <p className="text-xs text-positive mt-0.5">
-                              Paid: {r.currency} {Number(r.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                              Paid: {formatMoney(Number(r.amount_paid), r.currency, selectedPerson?.preferred_currency)}
                             </p>
                           )}
                         </div>
                         <div className="text-right ml-4">
                           <p className="text-sm font-700 text-foreground">
-                            {r.currency} {Number(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {formatMoney(Number(r.amount), r.currency, selectedPerson?.preferred_currency)}
                           </p>
                           <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
                             {r.status.replace('_', ' ')}
@@ -491,7 +507,7 @@ export default function PersonReportsPage() {
                           <p className="text-xs text-muted-foreground">{s.payment_method} · {s.settlement_date}</p>
                         </div>
                         <p className="text-sm font-700 text-positive">
-                          +{s.currency} {Number(s.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          +{formatMoney(Number(s.amount), s.currency, selectedPerson?.preferred_currency)}
                         </p>
                       </div>
                     ))}

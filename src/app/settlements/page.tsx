@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
+import CurrencySelector from '@/components/CurrencySelector';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 interface NewSettlementModalProps {
   people: ManagedPerson[];
@@ -21,9 +24,11 @@ interface NewSettlementModalProps {
 }
 
 function NewSettlementModal({ people, accounts, reimbursements, onClose, onSuccess }: NewSettlementModalProps) {
+  const { data: referenceData } = useClientReferenceData();
+  const initialCurrency = referenceData?.platformDefaultCurrency || '';
   const [personId, setPersonId] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('AED');
+  const [currency, setCurrency] = useState(initialCurrency);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState('cash');
   const [accountId, setAccountId] = useState('');
@@ -31,6 +36,11 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
   const [notes, setNotes] = useState('');
   const [selectedReimbs, setSelectedReimbs] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!initialCurrency || currency) return;
+    setCurrency(initialCurrency);
+  }, [currency, initialCurrency]);
 
   const personReimbs = reimbursements.filter(
     (r) => r.person_id === personId && (r.status === 'pending' || r.status === 'partially_paid')
@@ -90,10 +100,11 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
-              <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-                {['AED', 'USD', 'EUR', 'GBP', 'SAR'].map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <CurrencySelector
+                value={currency}
+                onChange={setCurrency}
+                placeholder="Choose currency"
+              />
             </div>
           </div>
 
@@ -142,9 +153,12 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
                         : selectedReimbs.filter((id) => id !== r.id))}
                       className="rounded" />
                     <span className="text-sm text-foreground flex-1">{r.description}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {r.currency} {(Number(r.amount) - Number(r.amount_paid)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </span>
+                    <FormattedCurrencyAmount
+                      amount={Number(r.amount) - Number(r.amount_paid)}
+                      currencyCode={r.currency}
+                      className="text-xs text-muted-foreground"
+                      showCode
+                    />
                   </label>
                 ))}
               </div>
@@ -201,7 +215,14 @@ export default function SettlementsPage() {
     return matchPerson && matchSearch;
   });
 
-  const totalSettled = settlements.reduce((sum, s) => sum + Number(s.amount), 0);
+  const totalSettledByCurrency = Array.from(
+    settlements.reduce((map, settlement) => {
+      const normalized = typeof settlement.currency === 'string' ? settlement.currency.trim().toUpperCase() : '';
+      const currency = normalized.length === 3 ? normalized : 'USD';
+      map.set(currency, (map.get(currency) || 0) + Number(settlement.amount || 0));
+      return map;
+    }, new Map<string, number>())
+  ).map(([currency, amount]) => ({ currency, amount }));
 
   return (
     <AppLayout activeRoute="/settlements">
@@ -226,7 +247,21 @@ export default function SettlementsPage() {
           </div>
           <div className="card p-4">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Total Amount</p>
-            <p className="text-lg font-700 text-positive">AED {totalSettled.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <div className="text-lg font-700 text-positive">
+              {totalSettledByCurrency.length === 0 ? (
+                'No data'
+              ) : (
+                totalSettledByCurrency.map((row) => (
+                  <FormattedCurrencyAmount
+                    key={row.currency}
+                    amount={row.amount}
+                    currencyCode={row.currency}
+                    className="text-lg font-700 text-positive"
+                    showCode
+                  />
+                ))
+              )}
+            </div>
           </div>
         </div>
 
@@ -275,9 +310,12 @@ export default function SettlementsPage() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-700 text-positive">
-                      {s.currency} {Number(s.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
+                    <FormattedCurrencyAmount
+                      amount={Number(s.amount)}
+                      currencyCode={s.currency}
+                      className="text-sm font-700 text-positive"
+                      showCode
+                    />
                     <span className="text-xs px-2 py-0.5 rounded-full bg-positive-soft text-positive font-500">Settled</span>
                   </div>
                 </div>

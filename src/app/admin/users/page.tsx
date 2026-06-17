@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-foreground">{(u.preferred_language || 'en').toUpperCase()}</td>
-                      <td className="px-4 py-3 text-sm text-foreground">{u.default_currency || 'AED'}</td>
+                      <td className="px-4 py-3 text-sm text-foreground">{u.default_currency || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-600 px-2 py-0.5 rounded-full ${
                           u.is_active ? 'bg-positive-soft text-positive' : 'bg-negative-soft text-negative'

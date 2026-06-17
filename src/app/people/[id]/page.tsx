@@ -7,6 +7,9 @@ import {
   ArrowLeft, Wallet, TrendingUp, TrendingDown, Plus,
   FileText, RotateCcw, User, BarChart3, Edit2, DollarSign
 } from 'lucide-react';
+import CurrencySelector from '@/components/CurrencySelector';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 import {
   getManagedPerson, getPersonLedger, getReimbursements, getSettlements,
   addLedgerEntry, createReimbursement,
@@ -52,10 +55,6 @@ const TABS = [
   { id: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 
-function formatAmt(amount: number, currency = 'AED') {
-  return `${currency} ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 // ─── Quick Transaction Modal ──────────────────────────────────────────────────
 interface QuickTxnModalProps {
   person: ManagedPerson;
@@ -64,12 +63,19 @@ interface QuickTxnModalProps {
 }
 
 function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProps) {
+  const { data: referenceData } = useClientReferenceData();
+  const initialCurrency = person.preferred_currency || referenceData?.platformDefaultCurrency || '';
   const [entryType, setEntryType] = useState<string>('money_received');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [currency, setCurrency] = useState(person.preferred_currency || 'AED');
+  const [currency, setCurrency] = useState(initialCurrency);
   const [saving, setSaving] = useState(false);
   const [createReimb, setCreateReimb] = useState(false);
+
+  useEffect(() => {
+    if (!initialCurrency || currency) return;
+    setCurrency(initialCurrency);
+  }, [currency, initialCurrency]);
 
   const QUICK_TYPES = [
     { value: 'money_received', label: 'Money Received from Person' },
@@ -162,15 +168,7 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
           </div>
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
-            <select
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-            >
-              {['AED', 'USD', 'EUR', 'GBP', 'SAR'].map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <CurrencySelector value={currency} onChange={setCurrency} placeholder="Choose currency" />
           </div>
         </div>
 
@@ -315,21 +313,21 @@ export default function PersonDetailPage() {
               <Wallet size={15} className="text-info" />
               <span className="text-xs font-600 text-muted-foreground">Money Held</span>
             </div>
-            <p className="text-lg font-700 text-foreground">{formatAmt(person.money_held ?? 0, person.preferred_currency)}</p>
+            <FormattedCurrencyAmount amount={person.money_held ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-foreground" showCode />
           </div>
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={15} className="text-positive" />
               <span className="text-xs font-600 text-muted-foreground">Owes Me</span>
             </div>
-            <p className="text-lg font-700 text-positive">{formatAmt(person.person_owes_user ?? 0, person.preferred_currency)}</p>
+            <FormattedCurrencyAmount amount={person.person_owes_user ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-positive" showCode />
           </div>
           <div className="card p-4 col-span-2 sm:col-span-1">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown size={15} className="text-negative" />
               <span className="text-xs font-600 text-muted-foreground">I Owe</span>
             </div>
-            <p className="text-lg font-700 text-negative">{formatAmt(person.user_owes_person ?? 0, person.preferred_currency)}</p>
+            <FormattedCurrencyAmount amount={person.user_owes_person ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-negative" showCode />
           </div>
         </div>
 
@@ -342,10 +340,13 @@ export default function PersonDetailPage() {
                 {pendingReimbs.length} pending reimbursement{pendingReimbs.length > 1 ? 's' : ''}
               </p>
               <p className="text-xs text-muted-foreground">
-                Outstanding: {formatAmt(
-                  pendingReimbs.reduce((s, r) => s + (Number(r.amount) - Number(r.amount_paid)), 0),
-                  person.preferred_currency
-                )}
+                Outstanding:
+                <FormattedCurrencyAmount
+                  amount={pendingReimbs.reduce((s, r) => s + (Number(r.amount) - Number(r.amount_paid)), 0)}
+                  currencyCode={person.preferred_currency}
+                  className="ml-1 text-xs text-muted-foreground"
+                  showCode
+                />
               </p>
             </div>
             <button
@@ -384,11 +385,11 @@ export default function PersonDetailPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Received</p>
-                <p className="text-base font-700 text-foreground">{formatAmt(person.total_received ?? 0, person.preferred_currency)}</p>
+                <FormattedCurrencyAmount amount={person.total_received ?? 0} currencyCode={person.preferred_currency} className="text-base font-700 text-foreground" showCode />
               </div>
               <div className="card p-4">
                 <p className="text-xs text-muted-foreground mb-1">Total Expenses</p>
-                <p className="text-base font-700 text-foreground">{formatAmt(person.total_expenses ?? 0, person.preferred_currency)}</p>
+                <FormattedCurrencyAmount amount={person.total_expenses ?? 0} currencyCode={person.preferred_currency} className="text-base font-700 text-foreground" showCode />
               </div>
               <div className="card p-4">
                 <p className="text-xs text-muted-foreground mb-1">Reimbursements</p>
@@ -443,9 +444,12 @@ export default function PersonDetailPage() {
                           <p className="text-sm font-500 text-foreground">{entry.description}</p>
                           <p className="text-xs text-muted-foreground">{meta.label} · {entry.entry_date}</p>
                         </div>
-                        <span className={`text-sm font-700 ${meta.color}`}>
-                          {meta.sign}{entry.currency} {Number(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </span>
+                        <FormattedCurrencyAmount
+                          amount={meta.sign === '-' ? -Math.abs(Number(entry.amount)) : Number(entry.amount)}
+                          currencyCode={entry.currency}
+                          className={`text-sm font-700 ${meta.color}`}
+                          showCode
+                        />
                       </div>
                     );
                   })}
@@ -476,9 +480,12 @@ export default function PersonDetailPage() {
                         <p className="text-xs text-muted-foreground">{meta.label}</p>
                         <p className="text-xs text-muted-foreground">{entry.entry_date}</p>
                       </div>
-                      <span className={`text-sm font-700 ${meta.color}`}>
-                        {meta.sign}{entry.currency} {Number(entry.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
+                      <FormattedCurrencyAmount
+                        amount={meta.sign === '-' ? -Math.abs(Number(entry.amount)) : Number(entry.amount)}
+                        currencyCode={entry.currency}
+                        className={`text-sm font-700 ${meta.color}`}
+                        showCode
+                      />
                     </div>
                   );
                 })}
@@ -506,13 +513,11 @@ export default function PersonDetailPage() {
                       <p className="text-xs text-muted-foreground">{r.created_at.slice(0, 10)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-700 text-foreground">
-                        {r.currency} {Number(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </p>
+                      <FormattedCurrencyAmount amount={Number(r.amount)} currencyCode={r.currency} className="text-sm font-700 text-foreground" showCode />
                       {Number(r.amount_paid) > 0 && (
-                        <p className="text-xs text-positive">
-                          Paid: {r.currency} {Number(r.amount_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </p>
+                        <div className="text-xs text-positive">
+                          Paid: <FormattedCurrencyAmount amount={Number(r.amount_paid)} currencyCode={r.currency} className="inline-flex text-xs text-positive" showCode />
+                        </div>
                       )}
                       <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
                         {r.status.replace('_', ' ')}
@@ -540,9 +545,7 @@ export default function PersonDetailPage() {
                       <p className="text-sm font-600 text-foreground">{s.description}</p>
                       <p className="text-xs text-muted-foreground">{s.payment_method} · {s.settlement_date}</p>
                     </div>
-                    <p className="text-sm font-700 text-positive">
-                      {s.currency} {Number(s.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </p>
+                    <FormattedCurrencyAmount amount={Number(s.amount)} currencyCode={s.currency} className="text-sm font-700 text-positive" showCode />
                   </div>
                 </div>
               ))
@@ -556,11 +559,11 @@ export default function PersonDetailPage() {
             <div>
               <h3 className="text-base font-700 text-foreground mb-1">Person Report</h3>
               <p className="text-sm text-muted-foreground">
-                Total Received: {formatAmt(person.total_received ?? 0, person.preferred_currency)}<br />
-                Total Expenses: {formatAmt(person.total_expenses ?? 0, person.preferred_currency)}<br />
-                Money Held: {formatAmt(person.money_held ?? 0, person.preferred_currency)}<br />
-                Owes Me: {formatAmt(person.person_owes_user ?? 0, person.preferred_currency)}<br />
-                I Owe: {formatAmt(person.user_owes_person ?? 0, person.preferred_currency)}
+                Total Received: {person.preferred_currency} {Number(person.total_received ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
+                Total Expenses: {person.preferred_currency} {Number(person.total_expenses ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
+                Money Held: {person.preferred_currency} {Number(person.money_held ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
+                Owes Me: {person.preferred_currency} {Number(person.person_owes_user ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
+                I Owe: {person.preferred_currency} {Number(person.user_owes_person ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <Link

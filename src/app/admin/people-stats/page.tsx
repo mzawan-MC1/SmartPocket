@@ -4,13 +4,14 @@ import { Users, Home, BarChart3, TrendingUp, RefreshCw, Building2 } from 'lucide
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface PeopleStats {
   totalPeople: number;
   activePeople: number;
   archivedPeople: number;
   byRelationship: { relationship: string; count: number }[];
-  totalHeldBalance: number;
+  totalHeldBalanceByCurrency: Array<{ currency: string; amount: number }>;
   pendingReimbursements: number;
   settledReimbursements: number;
   totalSettlements: number;
@@ -26,10 +27,6 @@ interface SpaceStats {
 
 type RelationshipRow = { relationship: string };
 type SpaceTypeRow = { space_type: string };
-
-function fmt(n: number) {
-  return `AED ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
 
 export default function AdminPeopleSpaceStatsPage() {
   const { user } = useAuth();
@@ -96,8 +93,20 @@ export default function AdminPeopleSpaceStatsPage() {
       const bySpaceType = bySpaceTypeRes.data;
 
       // Aggregate held balance total (count only, not per-user breakdown)
-      const { data: balances } = await supabase.from('person_balances').select('money_held');
-      const totalHeld = (balances || []).reduce((s: number, b: { money_held: number }) => s + Math.max(0, Number(b.money_held)), 0);
+      const { data: balances } = await supabase.from('person_balances').select('money_held, preferred_currency');
+      const totalHeldByCurrency = Array.from(
+        ((balances || []) as Array<{ money_held: number | string; preferred_currency: string | null }>)
+          .reduce((map, balance) => {
+            const amount = Math.max(0, Number(balance.money_held || 0));
+            if (!amount) return map;
+            const normalized = typeof balance.preferred_currency === 'string'
+              ? balance.preferred_currency.trim().toUpperCase()
+              : '';
+            const currency = normalized.length === 3 ? normalized : 'USD';
+            map.set(currency, (map.get(currency) || 0) + amount);
+            return map;
+          }, new Map<string, number>())
+      ).map(([currency, amount]) => ({ currency, amount }));
 
       const activeSpaces = (spaceData || []).filter((s: { is_active: boolean }) => s.is_active).length;
 
@@ -106,7 +115,7 @@ export default function AdminPeopleSpaceStatsPage() {
         activePeople: activePeople || 0,
         archivedPeople: archivedPeople || 0,
         byRelationship: byRelationship || [],
-        totalHeldBalance: totalHeld,
+        totalHeldBalanceByCurrency: totalHeldByCurrency || [],
         pendingReimbursements: pendingReimb || 0,
         settledReimbursements: settledReimb || 0,
         totalSettlements: totalSettlements || 0,
@@ -179,7 +188,21 @@ export default function AdminPeopleSpaceStatsPage() {
                 </div>
                 <div className="card p-4">
                   <p className="text-xs text-muted-foreground mb-1">Total Held Balance</p>
-                  <p className="text-base font-700 text-info">{fmt(peopleStats?.totalHeldBalance ?? 0)}</p>
+                  <div className="space-y-1">
+                    {(peopleStats?.totalHeldBalanceByCurrency || []).length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No held balances</p>
+                    ) : (
+                      (peopleStats?.totalHeldBalanceByCurrency || []).map((row) => (
+                        <FormattedCurrencyAmount
+                          key={row.currency}
+                          amount={row.amount}
+                          currencyCode={row.currency}
+                          className="text-sm font-700 text-info"
+                          showCode
+                        />
+                      ))
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground mt-0.5">Across all users</p>
                 </div>
               </div>

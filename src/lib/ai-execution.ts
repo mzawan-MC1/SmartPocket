@@ -5,6 +5,7 @@
 
 'use client';
 import { createClient } from '@/lib/supabase/client';
+import { getClientReferenceData } from '@/lib/reference-data/client';
 import type { FinancialAction, ParsedFinancialInstruction, ExecutionResult, ExecutedAction, FailedAction } from './ai-types';
 import {
   createTransaction,
@@ -23,19 +24,42 @@ export interface ResolvedContext {
   accounts: FinancialAccount[];
   categories: Category[];
   people: ManagedPerson[];
+  supportedCurrencies: string[];
+  defaultCurrency: string;
 }
 
 export async function loadExecutionContext(): Promise<ResolvedContext> {
-  const [accounts, categories, people] = await Promise.all([
+  const [accounts, categories, people, referenceData] = await Promise.all([
     getAccounts(),
     getCategories(),
     getManagedPeople(),
+    getClientReferenceData(),
   ]);
+  const supportedCurrencies = referenceData.snapshot.currencies
+    .filter((currency) => currency.isActive)
+    .map((currency) => currency.code);
+  const defaultCurrency = (
+    referenceData.platformDefaultCurrency ||
+    (supportedCurrencies.includes('USD') ? 'USD' : supportedCurrencies[0] || 'USD')
+  ).trim().toUpperCase();
   return {
     accounts: accounts.filter((account) => account.is_active),
     categories,
     people: people.filter((person) => person.is_active && !person.is_archived),
+    supportedCurrencies,
+    defaultCurrency,
   };
+}
+
+function sanitizeExecutionCurrency(
+  value: string | undefined,
+  ctx: Pick<ResolvedContext, 'supportedCurrencies' | 'defaultCurrency'>
+) {
+  const normalized = (value || '').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  if (normalized.length === 3 && ctx.supportedCurrencies.includes(normalized)) {
+    return normalized;
+  }
+  return ctx.defaultCurrency || (ctx.supportedCurrencies.includes('USD') ? 'USD' : ctx.supportedCurrencies[0] || 'USD');
 }
 
 function resolveAccount(
@@ -90,7 +114,7 @@ async function executeAction(
 ): Promise<ExecutedAction> {
   const today = new Date().toISOString().slice(0, 10);
   const date = action.date === 'today' || !action.date ? today : action.date;
-  const currency = action.currency || 'AED';
+  const currency = sanitizeExecutionCurrency(action.currency, ctx);
   const amount = action.amount || 0;
 
   switch (action.actionType) {
@@ -440,6 +464,7 @@ export async function buildAIContext() {
       name: c.name,
       type: c.category_type,
     })),
-    defaultCurrency: 'AED',
+    currencies: ctx.supportedCurrencies,
+    defaultCurrency: ctx.defaultCurrency,
   };
 }

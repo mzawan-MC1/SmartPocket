@@ -6,11 +6,7 @@ import {
 import { getDashboardMetrics, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import Icon from '@/components/ui/AppIcon';
-
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-}
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 export default function DashboardMetrics() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
@@ -52,17 +48,58 @@ export default function DashboardMetrics() {
 
   if (!metrics) return null;
 
-  const budgetPct = metrics.totalBudget > 0 ? (metrics.budgetSpent / metrics.totalBudget) * 100 : 0;
-  const budgetRemaining = metrics.totalBudget - metrics.budgetSpent;
+  const budgetTotals = new Map(metrics.totalBudgetByCurrency.map((row) => [row.currency, row.amount]));
+  const budgetSpent = new Map(metrics.budgetSpentByCurrency.map((row) => [row.currency, row.amount]));
+  const budgetRemaining = Array.from(
+    new Set([...budgetTotals.keys(), ...budgetSpent.keys()])
+  )
+    .map((currency) => ({
+      currency,
+      amount: (budgetTotals.get(currency) || 0) - (budgetSpent.get(currency) || 0),
+      usedPct: (budgetTotals.get(currency) || 0) > 0
+        ? ((budgetSpent.get(currency) || 0) / (budgetTotals.get(currency) || 0)) * 100
+        : 0,
+    }))
+    .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' }));
+
+  const hasSingleCashFlowCurrency =
+    metrics.monthlyIncomeByCurrency.length === 1 &&
+    metrics.monthlyExpensesByCurrency.length <= 1 &&
+    metrics.netCashFlowByCurrency.length === 1 &&
+    (metrics.monthlyExpensesByCurrency.length === 0 ||
+      metrics.monthlyIncomeByCurrency[0].currency === metrics.monthlyExpensesByCurrency[0].currency) &&
+    metrics.monthlyIncomeByCurrency[0].currency === metrics.netCashFlowByCurrency[0].currency;
+
+  const hasExpenseAlert = hasSingleCashFlowCurrency
+    ? (metrics.monthlyExpensesByCurrency[0]?.amount || 0) > (metrics.monthlyIncomeByCurrency[0]?.amount || 0)
+    : false;
+
+  const renderCurrencyRows = (rows: Array<{ currency: string; amount: number }>, signed = false) => {
+    if (rows.length === 0) {
+      return <span className="text-muted-foreground">No data</span>;
+    }
+    return (
+      <div className="flex flex-col gap-1">
+        {rows.map((row) => (
+          <FormattedCurrencyAmount
+            key={`${row.currency}-${row.amount}`}
+            amount={signed ? row.amount : Math.abs(row.amount)}
+            currencyCode={row.currency}
+            showCode
+          />
+        ))}
+      </div>
+    );
+  };
 
   const personalCards = [
     {
       id: 'metric-balance',
       label: 'Personal Balance',
-      value: formatCurrency(metrics.totalBalance),
-      change: metrics.netCashFlow >= 0 ? `+${formatCurrency(metrics.netCashFlow)}` : formatCurrency(metrics.netCashFlow),
-      changeDir: metrics.netCashFlow >= 0 ? 'up' as const : 'down' as const,
-      changeLabel: 'net this month',
+      valueRows: metrics.totalBalanceByCurrency,
+      changeRows: metrics.netCashFlowByCurrency,
+      changeDir: metrics.netCashFlowByCurrency.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      changeLabel: 'net this month by currency',
       icon: Wallet,
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
@@ -71,10 +108,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-income',
       label: 'Monthly Income',
-      value: formatCurrency(metrics.monthlyIncome),
-      change: formatCurrency(metrics.monthlyIncome),
+      valueRows: metrics.monthlyIncomeByCurrency,
+      changeRows: metrics.monthlyIncomeByCurrency,
       changeDir: 'up' as const,
-      changeLabel: 'this month',
+      changeLabel: 'this month by currency',
       icon: TrendingUp,
       iconBg: 'bg-positive-soft',
       iconColor: 'text-positive',
@@ -83,23 +120,23 @@ export default function DashboardMetrics() {
     {
       id: 'metric-expenses',
       label: 'Monthly Expenses',
-      value: formatCurrency(metrics.monthlyExpenses),
-      change: formatCurrency(metrics.monthlyExpenses),
+      valueRows: metrics.monthlyExpensesByCurrency,
+      changeRows: metrics.monthlyExpensesByCurrency,
       changeDir: 'down' as const,
-      changeLabel: 'this month',
+      changeLabel: 'this month by currency',
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
       hero: false,
-      alert: metrics.monthlyExpenses > metrics.monthlyIncome,
+      alert: hasExpenseAlert,
     },
     {
       id: 'metric-netflow',
       label: 'Net Cash Flow',
-      value: (metrics.netCashFlow >= 0 ? '+' : '') + formatCurrency(metrics.netCashFlow),
-      change: metrics.netCashFlow >= 0 ? 'Positive' : 'Negative',
-      changeDir: metrics.netCashFlow >= 0 ? 'up' as const : 'down' as const,
-      changeLabel: 'income minus expenses',
+      valueRows: metrics.netCashFlowByCurrency,
+      change: metrics.netCashFlowByCurrency.length > 1 ? 'Mixed currencies' : metrics.netCashFlowByCurrency[0]?.amount >= 0 ? 'Positive' : 'Negative',
+      changeDir: metrics.netCashFlowByCurrency.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      changeLabel: 'income minus expenses by currency',
       icon: ArrowUpDown,
       iconBg: 'bg-info-soft',
       iconColor: 'text-info',
@@ -108,21 +145,21 @@ export default function DashboardMetrics() {
     {
       id: 'metric-budget',
       label: 'Budget Remaining',
-      value: formatCurrency(budgetRemaining),
-      change: `${budgetPct.toFixed(1)}% used`,
+      valueRows: budgetRemaining.map((row) => ({ currency: row.currency, amount: row.amount })),
+      change: budgetRemaining.length === 1 ? `${budgetRemaining[0].usedPct.toFixed(1)}% used` : 'Grouped by currency',
       changeDir: 'neutral' as const,
-      changeLabel: `of ${formatCurrency(metrics.totalBudget)} budget`,
+      changeLabel: budgetRemaining.length === 1 ? 'of current budget' : 'budget usage differs by currency',
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
       hero: false,
-      warningState: budgetPct >= 70,
-      budgetPct,
+      warningState: budgetRemaining.some((row) => row.usedPct >= 70),
+      budgetPct: budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
     },
     {
       id: 'metric-upcoming',
       label: 'Upcoming Payments',
-      value: formatCurrency(metrics.upcomingPaymentsTotal),
+      valueRows: metrics.upcomingPaymentsByCurrency,
       change: `${metrics.upcomingPaymentsCount} payment${metrics.upcomingPaymentsCount !== 1 ? 's' : ''}`,
       changeDir: 'neutral' as const,
       changeLabel: 'due in 7 days',
@@ -137,7 +174,7 @@ export default function DashboardMetrics() {
     {
       id: 'metric-managed-total',
       label: 'Money Managed',
-      value: formatCurrency(metrics.managedMoneyTotal),
+      valueRows: metrics.managedMoneyByCurrency,
       change: `${metrics.managedPeopleCount}`,
       changeDir: 'neutral' as const,
       changeLabel: metrics.managedPeopleCount === 1 ? 'person with managed money' : 'people with managed money',
@@ -152,10 +189,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-loan-outstanding',
       label: 'Outstanding Loans',
-      value: formatCurrency(metrics.outstandingLoanBalance),
-      change: formatCurrency(metrics.loanBorrowedThisMonth),
+      valueRows: metrics.outstandingLoanBalanceByCurrency,
+      changeRows: metrics.loanBorrowedThisMonthByCurrency,
       changeDir: 'neutral' as const,
-      changeLabel: 'borrowed this month',
+      changeLabel: 'borrowed this month by currency',
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -164,10 +201,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-loan-repaid',
       label: 'Loan Repayments',
-      value: formatCurrency(metrics.loanRepaidThisMonth),
-      change: formatCurrency(metrics.loanRepaidThisMonth),
+      valueRows: metrics.loanRepaidThisMonthByCurrency,
+      changeRows: metrics.loanRepaidThisMonthByCurrency,
       changeDir: 'neutral' as const,
-      changeLabel: 'paid this month',
+      changeLabel: 'paid this month by currency',
       icon: ArrowUpDown,
       iconBg: 'bg-accent/10',
       iconColor: 'text-accent',
@@ -206,16 +243,18 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <p className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                  {metric.value}
-                </p>
+                <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
+                  {renderCurrencyRows(metric.valueRows, metric.id === 'metric-netflow')}
+                </div>
                 <div className="flex items-center gap-1.5">
                   {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
                   {metric.changeDir === 'down' && <ArrowDown size={12} className="text-negative flex-shrink-0" />}
-                  <span className={`text-xs font-600 font-tabular ${
+                  <div className={`text-xs font-600 font-tabular ${
                     metric.changeDir === 'up' ? 'text-positive' :
                     metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
-                  }`}>{metric.change}</span>
+                  }`}>
+                    {metric.changeRows ? renderCurrencyRows(metric.changeRows, metric.id === 'metric-balance') : metric.change}
+                  </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
                 {metric.warningState && metric.budgetPct !== undefined && (
@@ -250,7 +289,7 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <p className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{metric.value}</p>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows)}</div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-600 font-tabular text-muted-foreground">{metric.change}</span>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
@@ -277,9 +316,11 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <p className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{metric.value}</p>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows)}</div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-600 font-tabular text-muted-foreground">{metric.change}</span>
+                  <div className="text-xs font-600 font-tabular text-muted-foreground">
+                    {metric.changeRows ? renderCurrencyRows(metric.changeRows) : metric.change}
+                  </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
               </div>

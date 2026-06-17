@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   spouse: 'Spouse', child: 'Child', parent: 'Parent', sibling: 'Sibling',
@@ -27,9 +28,20 @@ const RELATIONSHIP_COLORS: Record<string, string> = {
   other: 'bg-gray-100 text-gray-700',
 };
 
-function formatAmount(amount: number, currency = 'AED') {
+function groupPeopleTotals(people: ManagedPerson[], field: 'money_held' | 'person_owes_user' | 'user_owes_person') {
+  const grouped = new Map<string, number>();
+  for (const person of people) {
+    const amount = Number(person[field] ?? 0);
+    if (!amount) continue;
+    const currency = person.preferred_currency || 'USD';
+    grouped.set(currency, (grouped.get(currency) ?? 0) + amount);
+  }
+  return Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
+}
+
+function formatAmount(amount: number, currency = 'USD') {
   if (amount === 0) return '—';
-  return `${currency} ${Math.abs(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return <FormattedCurrencyAmount amount={amount} currencyCode={currency} />;
 }
 
 function PersonInitials({ name }: { name: string }) {
@@ -92,9 +104,9 @@ export default function ManagedPeoplePage() {
     setOpenMenuId(null);
   };
 
-  const totalHeld = people.reduce((s, p) => s + (p.money_held ?? 0), 0);
-  const totalOwedToMe = people.reduce((s, p) => s + (p.person_owes_user ?? 0), 0);
-  const totalIOwe = people.reduce((s, p) => s + (p.user_owes_person ?? 0), 0);
+  const totalHeld = groupPeopleTotals(people, 'money_held');
+  const totalOwedToMe = groupPeopleTotals(people, 'person_owes_user');
+  const totalIOwe = groupPeopleTotals(people, 'user_owes_person');
 
   return (
     <AppLayout activeRoute="/people">
@@ -121,21 +133,33 @@ export default function ManagedPeoplePage() {
               <Wallet size={16} className="text-info" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
             </div>
-            <p className="text-lg font-700 text-foreground">AED {totalHeld.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <div className="space-y-1">
+              {totalHeld.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalHeld.map((row) => (
+                <FormattedCurrencyAmount key={`held-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
+              ))}
+            </div>
           </div>
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={16} className="text-positive" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
             </div>
-            <p className="text-lg font-700 text-positive">AED {totalOwedToMe.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <div className="space-y-1">
+              {totalOwedToMe.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalOwedToMe.map((row) => (
+                <FormattedCurrencyAmount key={`owed-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-positive" />
+              ))}
+            </div>
           </div>
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown size={16} className="text-negative" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
             </div>
-            <p className="text-lg font-700 text-negative">AED {totalIOwe.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+            <div className="space-y-1">
+              {totalIOwe.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalIOwe.map((row) => (
+                <FormattedCurrencyAmount key={`owe-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-negative" />
+              ))}
+            </div>
           </div>
         </div>
 
