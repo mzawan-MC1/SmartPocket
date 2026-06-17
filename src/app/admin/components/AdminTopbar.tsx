@@ -24,12 +24,17 @@ export default function AdminTopbar({ onToggleSidebar }: AdminTopbarProps) {
       </button>
 
       <div className="flex-1 min-w-0 flex items-center gap-3">
-        <AppLogo width={112} height={28} />
+        <div className="flex h-10 w-[120px] shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30 px-2.5">
+          <AppLogo width={100} height={26} />
+        </div>
         <div className="min-w-0">
-          <p className="text-sm font-800 uppercase tracking-[0.14em] text-foreground truncate">
+          <p className="text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground">
+            Admin Portal
+          </p>
+          <p className="text-sm font-800 uppercase tracking-[0.08em] text-foreground leading-tight break-words">
             {branding.appName} Admin
           </p>
-          <p className="hidden sm:block text-xs text-muted-foreground mt-0.5">
+          <p className="hidden md:block text-xs text-muted-foreground mt-0.5">
             Branding, SEO, platform configuration, and monitoring
           </p>
         </div>

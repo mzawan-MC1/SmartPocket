@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { cache } from 'react';
+import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { normalizePlatformSettings, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -57,6 +58,8 @@ async function readPlatformSettingsWithAdminClient() {
 }
 
 export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSettingsSnapshot> => {
+  noStore();
+
   try {
     const anonData = await readPlatformSettingsWithAnonClient();
     if (anonData) {

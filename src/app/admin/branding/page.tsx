@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Palette, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
@@ -25,6 +26,7 @@ const FAVICON_UPLOAD = {
 };
 
 export default function AdminBrandingPage() {
+  const router = useRouter();
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,6 +152,7 @@ export default function AdminBrandingPage() {
       setFaviconFile(null);
       setUploadProgress({ logo: 0, favicon: 0 });
       setSaved(true);
+      router.refresh();
       toast.success('Branding settings saved');
       setTimeout(() => setSaved(false), 2500);
     } catch (e: unknown) {

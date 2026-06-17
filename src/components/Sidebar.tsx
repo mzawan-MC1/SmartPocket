@@ -82,7 +82,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <AppLogo width={120} height={32} />
+          <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
+            collapsed ? 'h-10 w-10 px-1.5' : 'h-10 w-[132px] px-2.5'
+          }`}>
+            <AppLogo width={collapsed ? 28 : 112} height={collapsed ? 28 : 28} />
+          </div>
           {!collapsed && (
             <span className="font-bold text-base text-primary truncate tracking-tight">
               {branding.appName}

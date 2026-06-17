@@ -194,18 +194,9 @@ export default function LoginForm({ onSwitchToSignUp, onForgotPassword }: LoginF
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label htmlFor="login-password" className="text-sm font-600 text-foreground">
-              Password
-            </label>
-            <button
-              type="button"
-              onClick={onForgotPassword}
-              className="text-xs font-600 text-accent hover:text-teal-600 transition-colors"
-            >
-              Forgot password?
-            </button>
-          </div>
+          <label htmlFor="login-password" className="block text-sm font-600 text-foreground mb-1.5">
+            Password
+          </label>
           <div className="relative">
             <input
               id="login-password"
@@ -225,6 +216,15 @@ export default function LoginForm({ onSwitchToSignUp, onForgotPassword }: LoginF
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          <div className="mt-2 flex justify-end">
+            <button
+              type="button"
+              onClick={onForgotPassword}
+              className="text-xs font-600 text-accent hover:text-teal-600 transition-colors"
+            >
+              Forgot password?
             </button>
           </div>
           {errors.password && (

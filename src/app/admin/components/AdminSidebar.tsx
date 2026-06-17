@@ -87,14 +87,26 @@ export default function AdminSidebar({ collapsed, onToggle, activeRoute }: Admin
         className="flex items-center justify-between border-b border-border flex-shrink-0"
         style={{ height: 'var(--topbar-height)', padding: collapsed ? '0 14px' : '0 20px' }}
       >
-        {!collapsed && (
-          <div className="flex items-center gap-3 min-w-0">
-            <AppLogo width={112} height={28} />
-            <span className="font-800 text-sm tracking-[0.12em] uppercase text-foreground truncate">
-              {branding.appName} Admin
-            </span>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className={`flex shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
+            collapsed ? 'h-10 w-10 px-1.5' : 'h-10 w-[132px] px-2.5'
+          }`}>
+            <AppLogo
+              width={collapsed ? 28 : 112}
+              height={collapsed ? 28 : 28}
+            />
           </div>
-        )}
+          {!collapsed && (
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground">
+                Admin Console
+              </p>
+              <p className="text-sm font-800 leading-tight text-foreground break-words">
+                {branding.appName}
+              </p>
+            </div>
+          )}
+        </div>
         <button onClick={onToggle} className="btn-ghost p-2" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
           <ArrowLeft size={16} className={collapsed ? 'rotate-180' : ''} />
         </button>
