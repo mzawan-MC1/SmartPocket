@@ -185,11 +185,12 @@ export default function AdminPage() {
   }, []);
 
   return (
-      <div className="page-section">
+      <div className="page-section gap-5 lg:gap-6">
         <PageHeader
           title="Admin Portal"
           description="Manage platform settings, subscriptions, content, localization, and operational health from one console."
           badge={<StatusBadge status={overview?.configured ? 'ready' : 'warning'} label={overview?.configured ? 'Ready' : 'Action required'} />}
+          className="mb-0"
         />
 
         {/* Stats */}

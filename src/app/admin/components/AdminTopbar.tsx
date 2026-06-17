@@ -25,9 +25,6 @@ export default function AdminTopbar({ onToggleSidebar }: AdminTopbarProps) {
           <p className="mt-0.5 truncate text-sm font-800 uppercase tracking-[0.08em] text-foreground sm:text-base">
             {branding.appName} ADMIN
           </p>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {branding.tagline}
-          </p>
         </div>
       </div>
     </header>

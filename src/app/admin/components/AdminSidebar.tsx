@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, BarChart3, CreditCard, FileText, Globe, HeartPulse, Layout, Languages, Mail, Settings2, Shield, Sparkles, ToggleLeft, Users, Activity, ClipboardList, Loader2 } from 'lucide-react';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import AppLogo from '@/components/ui/AppLogo';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 interface AdminSidebarProps {
   collapsed: boolean;
@@ -75,6 +76,8 @@ const ADMIN_GROUPS: Array<{ id: string; label: string; items: AdminNavItem[] }> 
 
 export default function AdminSidebar({ collapsed, onToggle, activeRoute }: AdminSidebarProps) {
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
+  const { branding } = usePlatformSettings();
+  const year = new Date().getFullYear();
 
   return (
     <aside
@@ -106,30 +109,30 @@ export default function AdminSidebar({ collapsed, onToggle, activeRoute }: Admin
         </button>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 pb-6 scrollbar-thin">
+      <div className="shrink-0 border-b border-border px-2 py-3">
+        <Link
+          href="/dashboard"
+          onClick={(event) => {
+            void handleNavigationIntent('/dashboard', event);
+          }}
+          className="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          aria-busy={isRoutePending('/dashboard') ? 'true' : undefined}
+          title={collapsed ? 'Back to My Account' : undefined}
+        >
+          {isRoutePending('/dashboard')
+            ? <Loader2 size={18} className="flex-shrink-0 animate-spin text-accent" />
+            : <ArrowLeft size={18} className="flex-shrink-0" />
+          }
+          {!collapsed && <span className="truncate flex-1">Back to My Account</span>}
+        </Link>
+      </div>
+
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-3 scrollbar-thin">
         <ul className="space-y-1 px-2">
-          <li>
-            <Link
-              href="/dashboard"
-              onClick={(event) => {
-                void handleNavigationIntent('/dashboard', event);
-              }}
-              className="nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-600 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-busy={isRoutePending('/dashboard') ? 'true' : undefined}
-              title={collapsed ? 'Back to My Account' : undefined}
-            >
-              {isRoutePending('/dashboard')
-                ? <Loader2 size={18} className="flex-shrink-0 animate-spin text-accent" />
-                : <ArrowLeft size={18} className="flex-shrink-0" />
-              }
-              {!collapsed && <span className="truncate flex-1">Back to My Account</span>}
-            </Link>
-          </li>
-          <div className="my-2 border-t border-border" />
           {ADMIN_GROUPS.map((group) => (
             <React.Fragment key={group.id}>
               {!collapsed && (
-                <li className="px-3 pt-4 pb-1 text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                <li className="px-3 pt-3 pb-1 text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
                   {group.label}
                 </li>
               )}
@@ -168,6 +171,17 @@ export default function AdminSidebar({ collapsed, onToggle, activeRoute }: Admin
           ))}
         </ul>
       </nav>
+
+      <div className="shrink-0 border-t border-border bg-secondary/25 px-3 py-3">
+        {collapsed ? (
+          <p className="text-center text-[11px] font-700 text-muted-foreground">{year}</p>
+        ) : (
+          <div className="space-y-0.5">
+            <p className="truncate text-xs font-700 text-foreground">{branding.appName} Admin</p>
+            <p className="text-[11px] text-muted-foreground">© {year}</p>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }

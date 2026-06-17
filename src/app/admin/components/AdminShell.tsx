@@ -45,7 +45,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           <AdminTopbar onToggleSidebar={() => setMobileNavOpen((v) => !v)} />
           <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin">
             <div className="flex min-h-full flex-col">
-              <div className="page-shell flex-1 pt-[calc(var(--page-padding-y)+0.5rem)] pb-[calc(var(--page-padding-y)+1.25rem)] lg:pb-[calc(var(--page-padding-y)+1.5rem)]">
+              <div className="page-shell flex-1 pt-4 pb-8 sm:pt-5 sm:pb-10 lg:pt-5 lg:pb-10">
                 {!isAdmin ? (
                   <div className="card-elevated max-w-xl p-6">
                     <h1 className="text-lg font-700">Admin access required</h1>
