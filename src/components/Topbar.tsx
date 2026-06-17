@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import SearchField from '@/components/ui/SearchField';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -47,7 +48,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     <header
       className="sticky top-0 z-20 shrink-0 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90"
     >
-      <div className="page-shell flex w-full flex-wrap items-center gap-2 py-3 sm:gap-3">
+      <div className="page-shell flex min-h-[72px] w-full flex-wrap items-center gap-3 py-3 sm:gap-4 sm:py-3.5">
         {/* Mobile menu toggle */}
         <button
           onClick={onToggleSidebar}
@@ -58,18 +59,12 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         </button>
 
         {/* Search */}
-        <div className={`order-last basis-full sm:order-none sm:basis-auto sm:flex-1 transition-all duration-200 ${searchOpen ? 'flex' : 'hidden sm:flex'}`}>
-          <div className="relative w-full max-w-none sm:max-w-[30rem] lg:max-w-[36rem] xl:max-w-[42rem]">
-            <Search
-              size={16}
-              className="pointer-events-none absolute start-3.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
-            />
-            <input
-              type="search"
-              placeholder="Search transactions, accounts..."
-              className="input-base h-10 border-border/90 bg-secondary/60 ps-11 pe-4 text-sm sm:h-11"
-            />
-          </div>
+        <div className={`order-last basis-full sm:order-none sm:basis-auto sm:flex-1 sm:pe-2 transition-all duration-200 ${searchOpen ? 'flex' : 'hidden sm:flex'}`}>
+          <SearchField
+            placeholder="Search transactions, accounts..."
+            wrapperClassName="max-w-none sm:max-w-[28rem] lg:max-w-[34rem] xl:max-w-[40rem]"
+            inputClassName="border-border/90 bg-secondary/60"
+          />
         </div>
 
         {/* Mobile search toggle */}
@@ -81,7 +76,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {searchOpen ? <X size={18} /> : <Search size={18} />}
         </button>
 
-        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2 sm:gap-2.5">
           {/* AI Smart Entry button */}
           <button
             onClick={() => setAiOpen(true)}

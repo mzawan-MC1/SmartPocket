@@ -1,11 +1,12 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { RotateCcw, Search } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { getReimbursements, getManagedPeople, recordReimbursementPayment, type Reimbursement, type ManagedPerson, type ReimbursementStatus } from '@/lib/people';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SearchField from '@/components/ui/SearchField';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-warning-soft text-warning border border-warning/20',
@@ -165,11 +166,14 @@ export default function ReimbursementsPage() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input type="text" placeholder="Search reimbursements..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
-          </div>
+          <SearchField
+            type="text"
+            placeholder="Search reimbursements..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+            inputClassName="bg-card h-[42px]"
+          />
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
             <option value="all">All Statuses</option>

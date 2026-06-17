@@ -1,12 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { Tag, Plus, Edit2, Trash2, Loader2, Search } from 'lucide-react';
+import { Tag, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import SearchField from '@/components/ui/SearchField';
 
 
 interface Category {
@@ -175,16 +176,13 @@ export default function CategoriesPage() {
 
         {/* Filters */}
         <div className="card-elevated p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search categories..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-base pl-9 h-9 text-sm"
-            />
-          </div>
+          <SearchField
+            placeholder="Search categories..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+            inputClassName="h-10"
+          />
           <div className="flex gap-2">
             {(['all', 'income', 'expense', 'transfer'] as const).map((t) => (
               <button

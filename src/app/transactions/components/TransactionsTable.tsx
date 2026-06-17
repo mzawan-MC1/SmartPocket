@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Tag, Edit2, Plus, Loader2, Upload, TrendingUp, TrendingDown, ArrowUpDown, Users  } from 'lucide-react';
+import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Tag, Edit2, Plus, Loader2, Upload, TrendingUp, TrendingDown, ArrowUpDown, Users  } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import Modal from '@/components/ui/Modal';
@@ -13,6 +13,7 @@ import {
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import { useAuth } from '@/contexts/AuthContext';
+import SearchField from '@/components/ui/SearchField';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -261,16 +262,13 @@ export default function TransactionsTable() {
       <div className="section-card">
         <div className="section-card-body">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search merchant, category, or tag..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              className="input-base pl-9 h-9 text-sm"
-            />
-          </div>
+          <SearchField
+            placeholder="Search merchant, category, or tag..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            wrapperClassName="flex-1"
+            inputClassName="h-10"
+          />
           <div className="flex items-center gap-2 flex-wrap">
             {(['all', 'income', 'expense', 'transfer'] as const).map((t) => (
               <button

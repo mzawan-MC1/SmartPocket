@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Link from 'next/link';
-import { Users, Plus, Search, Archive, MoreVertical, TrendingUp, TrendingDown, Wallet, ChevronRight, UserPlus, RefreshCw } from 'lucide-react';
+import { Users, Plus, Archive, MoreVertical, TrendingUp, TrendingDown, Wallet, ChevronRight, UserPlus, RefreshCw } from 'lucide-react';
 import { getManagedPeople, archiveManagedPerson, type ManagedPerson } from '@/lib/people';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SearchField from '@/components/ui/SearchField';
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   spouse: 'Spouse', child: 'Child', parent: 'Parent', sibling: 'Sibling',
@@ -140,16 +141,14 @@ export default function ManagedPeoplePage() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search people..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-            />
-          </div>
+          <SearchField
+            type="text"
+            placeholder="Search people..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+            inputClassName="bg-card h-[42px]"
+          />
           <select
             value={filterRelationship}
             onChange={(e) => setFilterRelationship(e.target.value)}

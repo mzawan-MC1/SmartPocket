@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { DollarSign, Plus, Search } from 'lucide-react';
+import { DollarSign, Plus } from 'lucide-react';
 import {
   getSettlements, createSettlement, getManagedPeople, getReimbursements,
   type Settlement, type ManagedPerson, type Reimbursement
@@ -10,6 +10,7 @@ import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SearchField from '@/components/ui/SearchField';
 
 interface NewSettlementModalProps {
   people: ManagedPerson[];
@@ -231,11 +232,14 @@ export default function SettlementsPage() {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input type="text" placeholder="Search settlements..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
-          </div>
+          <SearchField
+            type="text"
+            placeholder="Search settlements..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            wrapperClassName="flex-1"
+            inputClassName="bg-card h-[42px]"
+          />
           <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
             <option value="all">All People</option>

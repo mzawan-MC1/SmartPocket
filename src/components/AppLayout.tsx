@@ -67,7 +67,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
             style={{ background: 'var(--background)' }}
           >
             <div className="flex min-h-full flex-col">
-              <div className="page-shell flex-1 pt-[calc(var(--page-padding-y)+0.25rem)] pb-[calc(var(--page-padding-y)+1rem)] lg:pb-[calc(var(--page-padding-y)+1.25rem)]">
+              <div className="page-shell flex-1 pt-5 pb-8 sm:pt-6 sm:pb-10 lg:pt-6 lg:pb-10">
                 {children}
               </div>
               <div className="pb-[calc(var(--bottom-nav-height)+0.5rem)] lg:pb-0">

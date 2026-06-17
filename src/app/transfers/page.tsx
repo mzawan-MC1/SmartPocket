@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { ArrowLeftRight, Plus, Search, ChevronRight, Loader2 } from 'lucide-react';
+import { ArrowLeftRight, Plus, ChevronRight, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import { getTransfers, createTransfer, getAccounts, type Transfer, type FinancialAccount } from '@/lib/finance';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SearchField from '@/components/ui/SearchField';
 
 interface TransferFormData {
   from_account_id: string;
@@ -120,10 +121,12 @@ export default function TransfersPage() {
 
         {/* Search */}
         <div className="card-elevated p-4">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input type="search" placeholder="Search transfers..." value={search} onChange={(e) => setSearch(e.target.value)} className="input-base pl-9 h-9 text-sm" />
-          </div>
+          <SearchField
+            placeholder="Search transfers..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            inputClassName="h-10"
+          />
         </div>
 
         {/* Transfers List */}
