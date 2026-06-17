@@ -59,7 +59,9 @@ const ADMIN_GROUPS: Array<{ id: string; label: string; items: AdminNavItem[] }> 
     items: [
       { id: 'auth', label: 'Authentication', href: '/admin/auth-settings', icon: Shield },
       { id: 'email', label: 'Email & SMTP', href: '/admin/email', icon: Mail },
-      { id: 'localization', label: 'Currency & Languages', href: '/admin/localization', icon: Globe },
+      { id: 'currency', label: 'Currency Settings', href: '/admin/currency', icon: CreditCard },
+      { id: 'language', label: 'Languages', href: '/admin/language', icon: Languages },
+      { id: 'countries', label: 'Countries & Phone Codes', href: '/admin/countries', icon: Globe },
       { id: 'features', label: 'Feature Controls', href: '/admin/features', icon: ToggleLeft },
       { id: 'platform', label: 'Platform Settings', href: '/admin/platform', icon: Settings2 },
     ],

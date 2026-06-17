@@ -48,10 +48,18 @@ const ADMIN_SECTIONS = [
   {
     id: 'currency',
     title: 'Currency Settings',
-    description: 'Default currency, enabled currencies, AED symbol',
+    description: 'Default platform currency, featured ordering, active registry management',
     icon: CreditCard,
     href: '/admin/currency',
     color: 'bg-positive-soft text-positive',
+  },
+  {
+    id: 'countries',
+    title: 'Countries & Phone Codes',
+    description: 'Featured countries, calling codes, ISO data, and activation controls',
+    icon: Globe,
+    href: '/admin/countries',
+    color: 'bg-info-soft text-info',
   },
   {
     id: 'language',
