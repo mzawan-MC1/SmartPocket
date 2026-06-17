@@ -2,13 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import type { CurrencyReference } from '@/lib/reference-data/types';
+import { getRichCurrencyToken } from '@/lib/currency-formatting';
 
 type CurrencySymbolSize = 'compact' | 'normal';
 
 interface CurrencySymbolProps {
   currency: Pick<
     CurrencyReference,
-    'code' | 'name' | 'symbol' | 'fallbackSymbol' | 'symbolType' | 'symbolAssetPath'
+    'code' | 'name' | 'symbol' | 'narrowSymbol' | 'fallbackSymbol' | 'symbolType' | 'symbolAssetPath'
   >;
   size?: CurrencySymbolSize;
   textOnly?: boolean;
@@ -47,9 +48,14 @@ export default function CurrencySymbol({
   const styles = SIZE_STYLES[size];
   const accessibleLabel = ariaLabel || getAccessibleLabel(currency);
   const fallbackText = useMemo(() => {
-    const fallback = currency.fallbackSymbol?.trim() || currency.symbol?.trim() || currency.code;
-    return fallback;
-  }, [currency.code, currency.fallbackSymbol, currency.symbol]);
+    return getRichCurrencyToken({
+      code: currency.code,
+      symbol: currency.symbol,
+      narrowSymbol: currency.narrowSymbol,
+      fallbackSymbol: currency.fallbackSymbol,
+      symbolType: currency.symbolType,
+    });
+  }, [currency]);
 
   const shouldRenderAsset =
     !textOnly &&

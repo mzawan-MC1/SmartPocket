@@ -24,6 +24,32 @@ export interface FormattedCurrencyResult {
   usesCodeToken: boolean;
 }
 
+export function getRichCurrencyToken(
+  currency: Pick<CurrencyReference, 'code' | 'symbol' | 'narrowSymbol' | 'fallbackSymbol' | 'symbolType'>
+) {
+  const fallbackSymbol = currency.fallbackSymbol?.trim() || '';
+  const narrowSymbol = currency.narrowSymbol?.trim() || '';
+  const symbol = currency.symbol?.trim() || '';
+
+  if (currency.symbolType === 'asset') {
+    return symbol || fallbackSymbol || currency.code;
+  }
+
+  if (fallbackSymbol && fallbackSymbol !== currency.code) {
+    return fallbackSymbol;
+  }
+
+  if (narrowSymbol && narrowSymbol !== currency.code) {
+    return narrowSymbol;
+  }
+
+  if (symbol && symbol !== currency.code) {
+    return symbol;
+  }
+
+  return fallbackSymbol || symbol || currency.code;
+}
+
 function resolveCurrency(args: CurrencyFormattingOptions) {
   if (args.currency) {
     return args.currency;
@@ -74,17 +100,14 @@ function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormatti
     return { token: currency.code, usesCodeToken: true };
   }
 
-  const preferredToken =
-    currency.fallbackSymbol?.trim() ||
-    currency.narrowSymbol?.trim() ||
-    currency.symbol?.trim() ||
-    currency.code;
+  const preferredToken = getRichCurrencyToken(currency);
+  const usesCodeToken = currency.symbolType === 'asset' ? false : preferredToken === currency.code;
 
   if (options.displayMode === 'symbol') {
-    return { token: preferredToken, usesCodeToken: preferredToken === currency.code };
+    return { token: preferredToken, usesCodeToken };
   }
 
-  if (preferredToken === currency.code) {
+  if (usesCodeToken) {
     return { token: currency.code, usesCodeToken: true };
   }
 

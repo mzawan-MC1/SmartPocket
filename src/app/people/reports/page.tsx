@@ -5,7 +5,7 @@ import { Download, Printer, RefreshCw, TrendingUp, TrendingDown, Wallet, RotateC
 import { getManagedPeople, getPersonReport, type ManagedPerson, type PersonLedgerEntry, type Reimbursement, type Settlement, type PersonBalance } from '@/lib/people';
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
-import { formatCurrencyText } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 
 const ENTRY_TYPE_LABELS: Record<string, { label: string; sign: '+' | '-'; group: string }> = {
@@ -32,11 +32,25 @@ const STATUS_COLORS: Record<string, string> = {
 
 type ReportTab = 'ledger' | 'held' | 'expenses' | 'reimbursements' | 'settlements';
 
-function formatMoney(amount: number, currency?: string | null, fallbackCurrency?: string) {
-  return formatCurrencyText(Math.abs(amount), {
-    currencyCode: currency,
-    fallbackCurrencyCode: fallbackCurrency,
-  });
+function RichAmount({
+  amount,
+  currency,
+  fallbackCurrency,
+  className = '',
+}: {
+  amount: number;
+  currency?: string | null;
+  fallbackCurrency?: string;
+  className?: string;
+}) {
+  return (
+    <FormattedCurrencyAmount
+      amount={amount}
+      currencyCode={currency}
+      fallbackCurrencyCode={fallbackCurrency}
+      className={className}
+    />
+  );
 }
 
 function downloadCSV(filename: string, headers: string[], rows: string[][]) {
@@ -240,7 +254,7 @@ export default function PersonReportsPage() {
                 <span className="text-xs font-600 text-muted-foreground">Money Held</span>
               </div>
               <p className="text-base font-700 text-info">
-                {formatMoney(balance.money_held, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                <RichAmount amount={balance.money_held} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
               </p>
             </div>
             <div className="card p-4">
@@ -249,7 +263,7 @@ export default function PersonReportsPage() {
                 <span className="text-xs font-600 text-muted-foreground">Owes Me</span>
               </div>
               <p className="text-base font-700 text-positive">
-                {formatMoney(balance.person_owes_user, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                <RichAmount amount={balance.person_owes_user} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
               </p>
             </div>
             <div className="card p-4">
@@ -258,7 +272,7 @@ export default function PersonReportsPage() {
                 <span className="text-xs font-600 text-muted-foreground">I Owe</span>
               </div>
               <p className="text-base font-700 text-negative">
-                {formatMoney(balance.user_owes_person, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                <RichAmount amount={balance.user_owes_person} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
               </p>
             </div>
             <div className="card p-4">
@@ -267,7 +281,7 @@ export default function PersonReportsPage() {
                 <span className="text-xs font-600 text-muted-foreground">Total Expenses</span>
               </div>
               <p className="text-base font-700 text-foreground">
-                {formatMoney(balance.total_expenses, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                <RichAmount amount={balance.total_expenses} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
               </p>
             </div>
             <div className="card p-4">
@@ -276,7 +290,7 @@ export default function PersonReportsPage() {
                 <span className="text-xs font-600 text-muted-foreground">Total Received</span>
               </div>
               <p className="text-base font-700 text-foreground">
-                {formatMoney(balance.total_received, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                <RichAmount amount={balance.total_received} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
               </p>
             </div>
           </div>
@@ -345,7 +359,8 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta.label} · {entry.entry_date}</p>
                           </div>
                           <span className={`text-sm font-700 ml-4 ${meta.sign === '+' ? 'text-positive' : 'text-negative'}`}>
-                            {meta.sign}{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
+                            {meta.sign}
+                            <RichAmount amount={Number(entry.amount)} currency={entry.currency} fallbackCurrency={selectedPerson?.preferred_currency} className="inline-flex" />
                           </span>
                         </div>
                       );
@@ -363,7 +378,7 @@ export default function PersonReportsPage() {
                     <h3 className="text-sm font-700 text-foreground">Held Balance Statement</h3>
                     {balance && selectedPerson && (
                       <span className="text-sm font-700 text-info">
-                        {formatMoney(balance.money_held, selectedPerson.preferred_currency, selectedPerson.preferred_currency)}
+                        <RichAmount amount={balance.money_held} currency={selectedPerson.preferred_currency} fallbackCurrency={selectedPerson.preferred_currency} />
                       </span>
                     )}
                   </div>
@@ -384,7 +399,8 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta?.label} · {entry.entry_date}</p>
                           </div>
                           <span className={`text-sm font-700 ${meta?.sign === '+' ? 'text-positive' : 'text-negative'}`}>
-                            {meta?.sign}{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
+                            {meta?.sign}
+                            <RichAmount amount={Number(entry.amount)} currency={entry.currency} fallbackCurrency={selectedPerson?.preferred_currency} className="inline-flex" />
                           </span>
                         </div>
                       );
@@ -416,7 +432,8 @@ export default function PersonReportsPage() {
                             <p className="text-xs text-muted-foreground">{meta?.label} · {entry.entry_date}</p>
                           </div>
                           <span className="text-sm font-700 text-negative">
-                            -{formatMoney(Number(entry.amount), entry.currency, selectedPerson?.preferred_currency)}
+                            -
+                            <RichAmount amount={Number(entry.amount)} currency={entry.currency} fallbackCurrency={selectedPerson?.preferred_currency} className="inline-flex" />
                           </span>
                         </div>
                       );
@@ -465,13 +482,13 @@ export default function PersonReportsPage() {
                           </p>
                           {Number(r.amount_paid) > 0 && (
                             <p className="text-xs text-positive mt-0.5">
-                              Paid: {formatMoney(Number(r.amount_paid), r.currency, selectedPerson?.preferred_currency)}
+                              Paid: <RichAmount amount={Number(r.amount_paid)} currency={r.currency} fallbackCurrency={selectedPerson?.preferred_currency} className="inline-flex" />
                             </p>
                           )}
                         </div>
                         <div className="text-right ml-4">
                           <p className="text-sm font-700 text-foreground">
-                            {formatMoney(Number(r.amount), r.currency, selectedPerson?.preferred_currency)}
+                            <RichAmount amount={Number(r.amount)} currency={r.currency} fallbackCurrency={selectedPerson?.preferred_currency} />
                           </p>
                           <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
                             {r.status.replace('_', ' ')}
@@ -507,7 +524,8 @@ export default function PersonReportsPage() {
                           <p className="text-xs text-muted-foreground">{s.payment_method} · {s.settlement_date}</p>
                         </div>
                         <p className="text-sm font-700 text-positive">
-                          +{formatMoney(Number(s.amount), s.currency, selectedPerson?.preferred_currency)}
+                          +
+                          <RichAmount amount={Number(s.amount)} currency={s.currency} fallbackCurrency={selectedPerson?.preferred_currency} className="inline-flex" />
                         </p>
                       </div>
                     ))}

@@ -559,11 +559,11 @@ export default function PersonDetailPage() {
             <div>
               <h3 className="text-base font-700 text-foreground mb-1">Person Report</h3>
               <p className="text-sm text-muted-foreground">
-                Total Received: {person.preferred_currency} {Number(person.total_received ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
-                Total Expenses: {person.preferred_currency} {Number(person.total_expenses ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
-                Money Held: {person.preferred_currency} {Number(person.money_held ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
-                Owes Me: {person.preferred_currency} {Number(person.person_owes_user ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}<br />
-                I Owe: {person.preferred_currency} {Number(person.user_owes_person ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                Total Received: <FormattedCurrencyAmount amount={Number(person.total_received ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                Total Expenses: <FormattedCurrencyAmount amount={Number(person.total_expenses ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                Money Held: <FormattedCurrencyAmount amount={Number(person.money_held ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                Owes Me: <FormattedCurrencyAmount amount={Number(person.person_owes_user ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                I Owe: <FormattedCurrencyAmount amount={Number(person.user_owes_person ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" />
               </p>
             </div>
             <Link
