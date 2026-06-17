@@ -29,6 +29,34 @@ function jsonWithCookies(
   return applySupabaseCookies(NextResponse.json(body, { status }), cookieMutations);
 }
 
+function jsonConfirmError(
+  args: {
+    code: string;
+    message: string;
+    requestId?: string;
+    status: number;
+    category?: 'technical' | 'validation' | 'auth' | 'state' | 'configuration';
+  },
+  cookieMutations: Parameters<typeof applySupabaseCookies>[1]
+) {
+  return jsonWithCookies(
+    {
+      success: false,
+      status: 'failed',
+      requestId: args.requestId,
+      error: {
+        code: args.code,
+        category: args.category || 'technical',
+        message: args.message,
+        requestId: args.requestId,
+      },
+      errorMessage: args.message,
+    },
+    args.status,
+    cookieMutations
+  );
+}
+
 function isExecutingOrExecuted(status: string) {
   return status === 'executing' || status === 'executed' || status === 'partially_executed';
 }
@@ -183,17 +211,21 @@ async function replacePendingActions(args: {
 }) {
   const admin = args.admin;
 
-  await admin
+  const { error: deleteError } = await admin
     .from('ai_pending_actions')
     .delete()
     .eq('request_id', args.requestId)
     .eq('user_id', args.userId);
 
+  if (deleteError) {
+    throw deleteError;
+  }
+
   if (args.actions.length === 0) {
     return;
   }
 
-  await admin
+  const { error: insertError } = await admin
     .from('ai_pending_actions')
     .insert(
       args.actions.map((action, index) => ({
@@ -205,6 +237,10 @@ async function replacePendingActions(args: {
         status: 'pending',
       }))
     );
+
+  if (insertError) {
+    throw insertError;
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -462,6 +498,14 @@ export async function POST(req: NextRequest) {
       requestId,
       userId: user.id,
       actions: nextInstruction.actions,
+    }).catch((pendingActionsError) => {
+      console.error('[AI Confirm] Failed to replace pending actions', {
+        requestId,
+        userId: user.id,
+        code: 'PENDING_ACTIONS_UPDATE_FAILED',
+        message: pendingActionsError instanceof Error ? pendingActionsError.message : String(pendingActionsError),
+      });
+      throw pendingActionsError;
     });
 
     const { data: updatedRows, error: updateError } = await admin
@@ -484,8 +528,18 @@ export async function POST(req: NextRequest) {
       .select('id');
 
     if (updateError) {
-      console.error('[AI Confirm] Failed to update request:', updateError.message);
-      return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+      console.error('[AI Confirm] Failed to update request', {
+        requestId,
+        userId: user.id,
+        code: 'AI_REQUEST_UPDATE_FAILED',
+        message: updateError.message,
+      });
+      return jsonConfirmError({
+        code: 'AI_REQUEST_UPDATE_FAILED',
+        message: 'Confirmation is temporarily unavailable.',
+        requestId,
+        status: 500,
+      }, cookieMutations);
     }
 
     if ((updatedRows ?? []).length > 0) {
@@ -503,7 +557,14 @@ export async function POST(req: NextRequest) {
     }
     return jsonWithCookies({ error: 'This Smart Entry request cannot be confirmed in its current state.' }, 409, cookieMutations);
   } catch (error) {
-    console.error('[AI Confirm] Unexpected error:', error instanceof Error ? error.message : error);
-    return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+    console.error('[AI Confirm] Unexpected error', {
+      code: 'CONFIRMATION_FAILED',
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return jsonConfirmError({
+      code: 'CONFIRMATION_FAILED',
+      message: 'Confirmation is temporarily unavailable.',
+      status: 500,
+    }, cookieMutations);
   }
 }

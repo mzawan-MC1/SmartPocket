@@ -7,6 +7,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 
 export default function PeopleDashboardWidget() {
   const [summary, setSummary] = useState<{
+    defaultCurrency: string;
     totalHeldByCurrency: Array<{ currency: string; amount: number }>;
     totalOwedToUserByCurrency: Array<{ currency: string; amount: number }>;
     totalOwedByUserByCurrency: Array<{ currency: string; amount: number }>;
@@ -36,12 +37,13 @@ export default function PeopleDashboardWidget() {
   if (!summary || summary.peopleCount === 0) return null;
 
   const renderAmounts = (rows: Array<{ currency: string; amount: number }>, className: string) => {
-    if (rows.length === 0) {
-      return <p className={className}>No data</p>;
-    }
+    const safeRows = rows.length > 0
+      ? rows
+      : [{ currency: summary.defaultCurrency, amount: 0 }];
+
     return (
       <div className="flex flex-col gap-1">
-        {rows.map((row) => (
+        {safeRows.map((row) => (
           <FormattedCurrencyAmount
             key={`${row.currency}-${row.amount}`}
             amount={row.amount}

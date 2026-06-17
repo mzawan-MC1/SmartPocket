@@ -132,6 +132,30 @@ export interface ExecuteConfirmedActionsServerArgs {
 
 class ContextLoadError extends Error {}
 
+type ExecutionErrorCategory = 'technical' | 'validation' | 'state';
+
+class ExecutionPersistenceError extends Error {
+  code: string;
+  category: ExecutionErrorCategory;
+  publicMessage: string;
+  context?: Record<string, unknown>;
+
+  constructor(args: {
+    code: string;
+    category: ExecutionErrorCategory;
+    message: string;
+    publicMessage: string;
+    context?: Record<string, unknown>;
+  }) {
+    super(args.message);
+    this.name = 'ExecutionPersistenceError';
+    this.code = args.code;
+    this.category = args.category;
+    this.publicMessage = args.publicMessage;
+    this.context = args.context;
+  }
+}
+
 export class ExecutionClarificationError extends Error {
   clarification: ExecutionClarification;
 
@@ -376,6 +400,8 @@ function preflightInstruction(
     accounts: [...context.accounts],
     categories: [...context.categories],
     people: [...context.people],
+    supportedCurrencies: [...context.supportedCurrencies],
+    defaultCurrency: context.defaultCurrency,
   };
 
   instruction.actions.forEach((action, index) => {
@@ -1170,6 +1196,9 @@ async function executeActionServer(args: {
 }
 
 export function getSafeExecutionErrorMessage(error: unknown): string {
+  if (error instanceof ExecutionPersistenceError) {
+    return error.publicMessage;
+  }
   if (error instanceof InvalidExecutionActionError) {
     return error.message;
   }
@@ -1180,6 +1209,58 @@ export function getSafeExecutionErrorMessage(error: unknown): string {
     return error.message;
   }
   return 'Execution failed';
+}
+
+export function getExecutionErrorCode(error: unknown): string {
+  if (error instanceof ExecutionPersistenceError) {
+    return error.code;
+  }
+  if (error instanceof ExecutionClarificationError) {
+    if (error.clarification.code === 'account_missing') {
+      return 'ACCOUNT_ID_MISSING';
+    }
+    if (error.clarification.code === 'person_missing') {
+      return 'PERSON_ID_MISSING';
+    }
+    return 'INVALID_EXECUTION_PAYLOAD';
+  }
+  if (error instanceof InvalidExecutionActionError) {
+    return 'INVALID_EXECUTION_PAYLOAD';
+  }
+  if (error instanceof ContextLoadError) {
+    return 'EXECUTION_CONTEXT_LOAD_FAILED';
+  }
+  return 'EXECUTION_FAILED';
+}
+
+export function getExecutionErrorCategory(error: unknown): ExecutionErrorCategory {
+  if (error instanceof ExecutionPersistenceError) {
+    return error.category;
+  }
+  if (error instanceof ExecutionClarificationError) {
+    return 'validation';
+  }
+  if (error instanceof InvalidExecutionActionError) {
+    return 'validation';
+  }
+  if (error instanceof ContextLoadError) {
+    return 'technical';
+  }
+  return 'technical';
+}
+
+export function getSafeExecutionLogContext(error: unknown) {
+  if (error instanceof ExecutionPersistenceError) {
+    return error.context || null;
+  }
+  if (error instanceof ExecutionClarificationError) {
+    return {
+      actionIndex: error.clarification.actionIndex,
+      clarificationCode: error.clarification.code,
+      field: error.clarification.field || null,
+    };
+  }
+  return null;
 }
 
 export function isContextLoadError(error: unknown): boolean {
@@ -1407,7 +1488,12 @@ async function createAccountServer(
 ): Promise<ServerAccount> {
   const normalizedName = payload.name.trim();
   if (!normalizedName) {
-    throw new InvalidExecutionActionError('Account name is required');
+    throw new ExecutionPersistenceError({
+      code: 'INVALID_EXECUTION_PAYLOAD',
+      category: 'validation',
+      message: 'Account name is required',
+      publicMessage: 'The selected account is invalid. Please choose another account.',
+    });
   }
   const includeInTotal = payload.account_scope === 'managed' ? false : payload.include_in_total;
 
@@ -1421,7 +1507,17 @@ async function createAccountServer(
     .eq('include_in_total', includeInTotal);
 
   if (existingAccountsError) {
-    throw new Error('Failed to check for an existing account');
+    throw new ExecutionPersistenceError({
+      code: 'ACCOUNT_LOOKUP_FAILED',
+      category: 'technical',
+      message: 'Failed to check for an existing account',
+      publicMessage: 'The account could not be prepared. Please try again.',
+      context: {
+        accountName: normalizedName,
+        accountType: payload.account_type,
+        currency: payload.currency,
+      },
+    });
   }
 
   const existingAccount = ((existingAccounts || []) as ServerAccount[]).find(
@@ -1447,7 +1543,17 @@ async function createAccountServer(
     .single();
 
   if (error || !data) {
-    throw new Error('Failed to create account');
+    throw new ExecutionPersistenceError({
+      code: 'ACCOUNT_CREATE_FAILED',
+      category: 'technical',
+      message: error?.message || 'Failed to create account',
+      publicMessage: `The ${toTitleCase(payload.account_type.replace(/_/g, ' '))} account could not be created. Please try again or choose an existing account.`,
+      context: {
+        accountName: normalizedName,
+        accountType: payload.account_type,
+        currency: payload.currency,
+      },
+    });
   }
 
   return data as ServerAccount;
@@ -1524,6 +1630,51 @@ async function createTransactionServer(
   userId: string,
   supabase: SupabaseClient
 ) {
+  const accountId = typeof payload.account_id === 'string' ? payload.account_id.trim() : '';
+  const aiRequestId = typeof payload.ai_request_id === 'string' ? payload.ai_request_id : null;
+  const aiActionIndex = typeof payload.ai_action_index === 'number' ? payload.ai_action_index : null;
+
+  if (!accountId) {
+    throw new ExecutionPersistenceError({
+      code: 'ACCOUNT_ID_MISSING',
+      category: 'validation',
+      message: 'Transaction insert missing account_id',
+      publicMessage: 'The selected account is invalid. Please choose another account.',
+      context: {
+        aiRequestId,
+        aiActionIndex,
+      },
+    });
+  }
+
+  if (aiRequestId && aiActionIndex !== null) {
+    const { data: existingTransaction, error: lookupError } = await supabase
+      .from('transactions')
+      .select('id, account_id')
+      .eq('user_id', userId)
+      .eq('ai_request_id', aiRequestId)
+      .eq('ai_action_index', aiActionIndex)
+      .maybeSingle();
+
+    if (lookupError) {
+      throw new ExecutionPersistenceError({
+        code: 'TRANSACTION_LOOKUP_FAILED',
+        category: 'technical',
+        message: lookupError.message || 'Failed to check for an existing transaction',
+        publicMessage: 'The transaction could not be prepared. No records were created.',
+        context: {
+          aiRequestId,
+          aiActionIndex,
+          accountId,
+        },
+      });
+    }
+
+    if (existingTransaction) {
+      return existingTransaction;
+    }
+  }
+
   const { data, error } = await supabase
     .from('transactions')
     .insert({ ...payload, user_id: userId })
@@ -1531,7 +1682,17 @@ async function createTransactionServer(
     .single();
 
   if (error || !data) {
-    throw new Error('Failed to create transaction');
+    throw new ExecutionPersistenceError({
+      code: 'TRANSACTION_INSERT_FAILED',
+      category: 'technical',
+      message: error?.message || 'Failed to create transaction',
+      publicMessage: 'The transaction could not be saved. No records were created.',
+      context: {
+        aiRequestId,
+        aiActionIndex,
+        accountId,
+      },
+    });
   }
 
   await recalculateAccountBalanceServer(String(data.account_id), userId, supabase);

@@ -992,6 +992,23 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
   }, [resetRequestState]);
 
   const getFriendlyExecutionErrorMessage = (rawError: unknown): string => {
+    if (isObject(rawError) && typeof rawError.code === 'string') {
+      switch (rawError.code) {
+        case 'ACCOUNT_CREATE_FAILED':
+          return 'The Cash account could not be created. Please try again or choose an existing account.';
+        case 'ACCOUNT_ID_MISSING':
+          return 'The selected account is invalid. Please choose another account.';
+        case 'TRANSACTION_INSERT_FAILED':
+          return 'The transaction could not be saved. No records were created.';
+        case 'INVALID_EXECUTION_PAYLOAD':
+          return 'This Smart Entry request is invalid. Please review it and try again.';
+        case 'AI_REQUEST_UPDATE_FAILED':
+          return 'Smart Entry could not finalize this save request. Please refresh before trying again.';
+        default:
+          break;
+      }
+    }
+
     const message = typeof rawError === 'string' ? rawError : '';
     if (message.includes('already processed') || message.includes('already being processed') || message.includes('confirmed state')) {
       return 'This Smart Entry request was already processed. Your transaction was not duplicated.';
@@ -1001,6 +1018,21 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
     }
     return 'Failed to save records. Please try again.';
   };
+
+  const failedStateTitle = (() => {
+    switch (apiError?.code) {
+      case 'ACCOUNT_CREATE_FAILED':
+        return 'Could not create account';
+      case 'ACCOUNT_ID_MISSING':
+        return 'Choose another account';
+      case 'TRANSACTION_INSERT_FAILED':
+        return 'Could not save transaction';
+      case 'INVALID_EXECUTION_PAYLOAD':
+        return 'Review required';
+      default:
+        return 'Something went wrong';
+    }
+  })();
 
   const getFriendlyConfirmErrorMessage = (rawError: unknown): string => {
     const message = typeof rawError === 'string' ? rawError : '';
@@ -1731,7 +1763,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 <AlertTriangle size={28} className="text-negative" />
               </div>
               <div>
-                <p className="text-base font-700 text-foreground">Something went wrong</p>
+                <p className="text-base font-700 text-foreground">{failedStateTitle}</p>
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
                 {apiError?.requestId && (
                   <p className="text-xs text-muted-foreground mt-2">Reference: {apiError.requestId}</p>

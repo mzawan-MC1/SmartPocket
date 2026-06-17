@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
-import Icon from '@/components/ui/AppIcon';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 export default function DashboardMetrics() {
@@ -75,12 +74,13 @@ export default function DashboardMetrics() {
     : false;
 
   const renderCurrencyRows = (rows: Array<{ currency: string; amount: number }>, signed = false) => {
-    if (rows.length === 0) {
-      return <span className="text-muted-foreground">No data</span>;
-    }
+    const safeRows = rows.length > 0
+      ? rows
+      : [{ currency: metrics.defaultCurrency, amount: 0 }];
+
     return (
       <div className="flex flex-col gap-1">
-        {rows.map((row) => (
+        {safeRows.map((row) => (
           <FormattedCurrencyAmount
             key={`${row.currency}-${row.amount}`}
             amount={signed ? row.amount : Math.abs(row.amount)}
@@ -319,7 +319,7 @@ export default function DashboardMetrics() {
                 <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows)}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="text-xs font-600 font-tabular text-muted-foreground">
-                    {metric.changeRows ? renderCurrencyRows(metric.changeRows) : metric.change}
+                    {renderCurrencyRows(metric.changeRows)}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>

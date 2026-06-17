@@ -1,6 +1,12 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
 import { getClientReferenceData } from '@/lib/reference-data/client';
+import {
+  ensureZeroCurrencyTotal,
+  normalizeCurrencyCode,
+  resolveUserDefaultCurrency,
+  sortCurrencyTotals,
+} from '@/lib/currency-totals';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -157,27 +163,8 @@ export interface PersonBalance {
   user_owes_person: number;
 }
 
-function normalizeCurrencyCode(value: string | null | undefined) {
-  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
-  return normalized.length === 3 ? normalized : null;
-}
-
 async function resolveFallbackCurrency(preferredCurrency?: string | null) {
-  const normalized = normalizeCurrencyCode(preferredCurrency);
-  if (normalized) {
-    return normalized;
-  }
-
-  try {
-    const referenceData = await getClientReferenceData();
-    if (referenceData.platformDefaultCurrency) {
-      return referenceData.platformDefaultCurrency;
-    }
-  } catch {
-    // Keep writes resilient even if shared reference data is temporarily unavailable.
-  }
-
-  return 'USD';
+  return resolveUserDefaultCurrency(preferredCurrency);
 }
 
 // ─── Managed People ───────────────────────────────────────────────────────────
@@ -857,13 +844,7 @@ export async function getPersonReport(personId: string, dateFrom?: string, dateT
 
 export async function getPeopleDashboardSummary() {
   const supabase = createClient();
-  const {
-    data: platformSettings,
-  } = await supabase
-    .from('platform_settings')
-    .select('default_currency')
-    .maybeSingle();
-  const defaultCurrency = normalizeCurrencyCode(platformSettings?.default_currency) || 'USD';
+  const defaultCurrency = await resolveUserDefaultCurrency();
 
   const { data: balances } = await supabase
     .from('person_balances')
@@ -881,9 +862,12 @@ export async function getPeopleDashboardSummary() {
       const currency = normalizeCurrencyCode(balance.preferred_currency) || defaultCurrency;
       grouped.set(currency, (grouped.get(currency) || 0) + amount);
     }
-    return Array.from(grouped.entries())
-      .map(([currency, amount]) => ({ currency, amount }))
-      .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' }));
+    return ensureZeroCurrencyTotal(
+      Array.from(grouped.entries())
+        .map(([currency, amount]) => ({ currency, amount }))
+        .sort(sortCurrencyTotals),
+      defaultCurrency
+    );
   };
 
   const { data: pendingReimb } = await supabase
@@ -901,12 +885,16 @@ export async function getPeopleDashboardSummary() {
   }
 
   return {
+    defaultCurrency,
     totalHeldByCurrency: groupByCurrency((balance) => Number(balance.money_held || 0)),
     totalOwedToUserByCurrency: groupByCurrency((balance) => Number(balance.person_owes_user || 0)),
     totalOwedByUserByCurrency: groupByCurrency((balance) => Number(balance.user_owes_person || 0)),
-    pendingReimbByCurrency: Array.from(pendingReimbGrouped.entries())
-      .map(([currency, amount]) => ({ currency, amount }))
-      .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' })),
+    pendingReimbByCurrency: ensureZeroCurrencyTotal(
+      Array.from(pendingReimbGrouped.entries())
+        .map(([currency, amount]) => ({ currency, amount }))
+        .sort(sortCurrencyTotals),
+      defaultCurrency
+    ),
     peopleCount: allBalances.length,
   };
 }

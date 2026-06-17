@@ -1,8 +1,15 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import {
+  addCurrencyAmount,
+  ensureZeroCurrencyTotal,
+  mapCurrencyTotals,
+  resolveUserDefaultCurrency,
+} from '@/lib/currency-totals';
 
 type CurrencyAmountRow = { amount: number | string; currency: string | null };
+type AmountRow = { amount: number | string };
 type BalanceRow = { current_balance: number | string; include_in_total: boolean; currency: string };
 type TransactionMetricRow = {
   id: string;
@@ -175,6 +182,7 @@ export interface Transfer {
 }
 
 export interface DashboardMetrics {
+  defaultCurrency: string;
   totalBalanceByCurrency: Array<{ currency: string; amount: number }>;
   monthlyIncomeByCurrency: Array<{ currency: string; amount: number }>;
   monthlyExpensesByCurrency: Array<{ currency: string; amount: number }>;
@@ -376,28 +384,10 @@ function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'a
   return rows.filter((row) => predicate(row, ledgerSummaryByTransactionId, accountInclusionById));
 }
 
-function sortCurrencyTotals(left: { currency: string }, right: { currency: string }) {
-  return left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' });
-}
-
-function addCurrencyAmount(
-  totals: Map<string, number>,
-  currency: string | null | undefined,
-  amount: number,
-  fallbackCurrency = 'USD'
+async function getManagedMoneyMetrics(
+  supabase: ReturnType<typeof createClient>,
+  defaultCurrency: string
 ) {
-  if (!Number.isFinite(amount) || amount === 0) return;
-  const normalizedCurrency = (currency || fallbackCurrency).trim().toUpperCase();
-  totals.set(normalizedCurrency, (totals.get(normalizedCurrency) || 0) + amount);
-}
-
-function mapToCurrencyTotals(totals: Map<string, number>) {
-  return Array.from(totals.entries())
-    .map(([currency, amount]) => ({ currency, amount }))
-    .sort(sortCurrencyTotals);
-}
-
-async function getManagedMoneyMetrics(supabase: ReturnType<typeof createClient>) {
   const { data, error } = await supabase
     .from('person_balances')
     .select('full_name, money_held, preferred_currency');
@@ -407,10 +397,18 @@ async function getManagedMoneyMetrics(supabase: ReturnType<typeof createClient>)
   const balances = (data || []) as PersonBalanceMetricRow[];
   const managedMoneyByCurrency = new Map<string, number>();
   for (const row of balances) {
-    addCurrencyAmount(managedMoneyByCurrency, row.preferred_currency, Math.max(0, Number(row.money_held || 0)));
+    addCurrencyAmount(
+      managedMoneyByCurrency,
+      row.preferred_currency,
+      Math.max(0, Number(row.money_held || 0)),
+      defaultCurrency
+    );
   }
   return {
-    managedMoneyByCurrency: mapToCurrencyTotals(managedMoneyByCurrency),
+    managedMoneyByCurrency: ensureZeroCurrencyTotal(
+      mapCurrencyTotals(managedMoneyByCurrency),
+      defaultCurrency
+    ),
     managedPeopleCount: balances.filter((row) => Number(row.money_held || 0) > 0).length,
   };
 }
@@ -418,7 +416,8 @@ async function getManagedMoneyMetrics(supabase: ReturnType<typeof createClient>)
 async function getLoanMetrics(
   supabase: ReturnType<typeof createClient>,
   monthStart: string,
-  monthEnd: string
+  monthEnd: string,
+  defaultCurrency: string
 ) {
   const { data, error } = await supabase
     .from('person_ledger_entries')
@@ -437,25 +436,34 @@ async function getLoanMetrics(
   for (const row of rows) {
     const amount = Number(row.amount || 0);
     if (row.entry_type === 'reimbursement_due_to_person') {
-      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, amount);
+      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, amount, defaultCurrency);
       if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
-        addCurrencyAmount(loanBorrowedThisMonthByCurrency, row.currency, amount);
+        addCurrencyAmount(loanBorrowedThisMonthByCurrency, row.currency, amount, defaultCurrency);
       }
     }
     if (row.entry_type === 'reimbursement_paid') {
-      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, -amount);
+      addCurrencyAmount(outstandingLoanBalanceByCurrency, row.currency, -amount, defaultCurrency);
       if (row.entry_date >= monthStart && row.entry_date <= monthEnd) {
-        addCurrencyAmount(loanRepaidThisMonthByCurrency, row.currency, amount);
+        addCurrencyAmount(loanRepaidThisMonthByCurrency, row.currency, amount, defaultCurrency);
       }
     }
   }
 
   return {
-    outstandingLoanBalanceByCurrency: mapToCurrencyTotals(outstandingLoanBalanceByCurrency)
-      .map((row) => ({ ...row, amount: Math.max(0, row.amount) }))
-      .filter((row) => row.amount > 0),
-    loanBorrowedThisMonthByCurrency: mapToCurrencyTotals(loanBorrowedThisMonthByCurrency),
-    loanRepaidThisMonthByCurrency: mapToCurrencyTotals(loanRepaidThisMonthByCurrency),
+    outstandingLoanBalanceByCurrency: ensureZeroCurrencyTotal(
+      mapCurrencyTotals(outstandingLoanBalanceByCurrency)
+        .map((row) => ({ ...row, amount: Math.max(0, row.amount) }))
+        .filter((row) => row.amount > 0),
+      defaultCurrency
+    ),
+    loanBorrowedThisMonthByCurrency: ensureZeroCurrencyTotal(
+      mapCurrencyTotals(loanBorrowedThisMonthByCurrency),
+      defaultCurrency
+    ),
+    loanRepaidThisMonthByCurrency: ensureZeroCurrencyTotal(
+      mapCurrencyTotals(loanRepaidThisMonthByCurrency),
+      defaultCurrency
+    ),
   };
 }
 
@@ -915,6 +923,7 @@ function calculateNextDueDate(currentDate: string, frequency: string): string {
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const supabase = createClient();
+  const defaultCurrency = await resolveUserDefaultCurrency();
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -933,7 +942,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
   const totalBalanceByCurrency = new Map<string, number>();
   for (const account of ((accounts || []) as BalanceRow[]).filter((row) => row.include_in_total)) {
-    addCurrencyAmount(totalBalanceByCurrency, account.currency, Number(account.current_balance || 0));
+    addCurrencyAmount(totalBalanceByCurrency, account.currency, Number(account.current_balance || 0), defaultCurrency);
   }
 
   // Monthly income
@@ -951,7 +960,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     accountInclusionById,
     isPersonalIncomeTransaction
   )) {
-    addCurrencyAmount(monthlyIncomeByCurrency, transaction.currency, Number(transaction.amount || 0));
+    addCurrencyAmount(monthlyIncomeByCurrency, transaction.currency, Number(transaction.amount || 0), defaultCurrency);
   }
 
   // Monthly expenses
@@ -969,7 +978,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     accountInclusionById,
     isPersonalExpenseTransaction
   )) {
-    addCurrencyAmount(monthlyExpensesByCurrency, transaction.currency, Number(transaction.amount || 0));
+    addCurrencyAmount(monthlyExpensesByCurrency, transaction.currency, Number(transaction.amount || 0), defaultCurrency);
   }
 
   const cashFlowTransactions = [
@@ -985,7 +994,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     addCurrencyAmount(
       netCashFlowByCurrency,
       transaction.currency,
-      transaction.transaction_type === 'income' ? amount : -amount
+      transaction.transaction_type === 'income' ? amount : -amount,
+      defaultCurrency
     );
   }
 
@@ -997,7 +1007,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
   const totalBudgetByCurrency = new Map<string, number>();
   for (const budget of ((budgets || []) as CurrencyAmountRow[])) {
-    addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0));
+    addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0), defaultCurrency);
   }
 
   // Upcoming recurring
@@ -1011,19 +1021,20 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
   const upcomingPaymentsByCurrency = new Map<string, number>();
   for (const recurring of ((upcoming || []) as CurrencyAmountRow[])) {
-    addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0));
+    addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0), defaultCurrency);
   }
-  const managedMetrics = await getManagedMoneyMetrics(supabase);
-  const loanMetrics = await getLoanMetrics(supabase, monthStart, monthEnd);
+  const managedMetrics = await getManagedMoneyMetrics(supabase, defaultCurrency);
+  const loanMetrics = await getLoanMetrics(supabase, monthStart, monthEnd, defaultCurrency);
 
   return {
-    totalBalanceByCurrency: mapToCurrencyTotals(totalBalanceByCurrency),
-    monthlyIncomeByCurrency: mapToCurrencyTotals(monthlyIncomeByCurrency),
-    monthlyExpensesByCurrency: mapToCurrencyTotals(monthlyExpensesByCurrency),
-    netCashFlowByCurrency: mapToCurrencyTotals(netCashFlowByCurrency),
-    totalBudgetByCurrency: mapToCurrencyTotals(totalBudgetByCurrency),
-    budgetSpentByCurrency: mapToCurrencyTotals(monthlyExpensesByCurrency),
-    upcomingPaymentsByCurrency: mapToCurrencyTotals(upcomingPaymentsByCurrency),
+    defaultCurrency,
+    totalBalanceByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(totalBalanceByCurrency), defaultCurrency),
+    monthlyIncomeByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyIncomeByCurrency), defaultCurrency),
+    monthlyExpensesByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyExpensesByCurrency), defaultCurrency),
+    netCashFlowByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(netCashFlowByCurrency), defaultCurrency),
+    totalBudgetByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(totalBudgetByCurrency), defaultCurrency),
+    budgetSpentByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyExpensesByCurrency), defaultCurrency),
+    upcomingPaymentsByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(upcomingPaymentsByCurrency), defaultCurrency),
     upcomingPaymentsCount: (upcoming || []).length,
     managedMoneyByCurrency: managedMetrics.managedMoneyByCurrency,
     managedPeopleCount: managedMetrics.managedPeopleCount,
