@@ -379,6 +379,11 @@
     font-family: var(--font-sans);
   }
 
+  .search-field-input {
+    padding-inline-start: 2.75rem !important;
+    padding-inline-end: 1rem !important;
+  }
+
   .input-base:focus {
     border-color: var(--accent);
     background-color: #ffffff;

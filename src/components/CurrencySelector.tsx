@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { getActiveCurrencies, getCurrencyDisplayInfo } from '@/lib/currency';
+import SearchField from '@/components/ui/SearchField';
 
 interface CurrencySelectorProps {
   value: string;
@@ -100,17 +101,15 @@ export default function CurrencySelector({
         <div className="absolute top-full mt-1 left-0 right-0 bg-card border border-border rounded-xl shadow-card-md z-50 overflow-hidden">
           {/* Search */}
           <div className="p-2 border-b border-border">
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input
-                ref={searchRef}
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search currencies..."
-                className="input-base pl-8 py-2 text-sm h-8 w-full"
-              />
-            </div>
+            <SearchField
+              ref={searchRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search currencies..."
+              inputClassName="h-8 py-2 text-sm"
+              iconClassName="start-3 text-[14px]"
+            />
           </div>
 
           {/* List */}

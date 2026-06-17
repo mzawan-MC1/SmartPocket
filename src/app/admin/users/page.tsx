@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Users, Search, Loader2 } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import SearchField from '@/components/ui/SearchField';
 
 
 interface UserProfile {
@@ -61,16 +62,12 @@ export default function AdminUsersPage() {
 
         {/* Search */}
         <div className="card-elevated p-4">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search by name or email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-base pl-9 h-9 text-sm"
-            />
-          </div>
+          <SearchField
+            placeholder="Search by name or email..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            inputClassName="h-9"
+          />
         </div>
 
         {/* Users Table */}

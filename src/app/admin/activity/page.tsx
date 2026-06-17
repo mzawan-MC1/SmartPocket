@@ -1,7 +1,8 @@
 'use client';
 import React, { useState } from 'react';
-import { Activity, Search, RefreshCw } from 'lucide-react';
+import { Activity, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import SearchField from '@/components/ui/SearchField';
 
 const MOCK_ACTIVITY = [
   { id: 'a1', event: 'user.login', user: 'admin@smartpocket.app', ip: '192.168.1.1', timestamp: '2026-06-15 14:30:00', status: 'success' },
@@ -43,16 +44,12 @@ export default function AdminActivityPage() {
 
         {/* Search */}
         <div className="card-elevated p-4">
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search events or users..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="input-base pl-9 h-9 text-sm"
-            />
-          </div>
+          <SearchField
+            placeholder="Search events or users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            inputClassName="h-9"
+          />
         </div>
 
         {/* Activity Table */}

@@ -1,8 +1,9 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
-import { Languages, Loader2, Save, Search, RefreshCw } from 'lucide-react';
+import { Languages, Loader2, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import SearchField from '@/components/ui/SearchField';
 
 type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
 
@@ -250,16 +251,14 @@ export default function AdminTranslationsPage() {
 
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              className="input-base ps-9 text-sm"
-              placeholder="Search keys or values..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <SearchField
+            type="text"
+            wrapperClassName="flex-1 min-w-[200px]"
+            inputClassName="text-sm"
+            placeholder="Search keys or values..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <select
             className="input-base text-sm w-auto"
             value={filterType}
