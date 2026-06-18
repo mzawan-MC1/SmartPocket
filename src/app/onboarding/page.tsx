@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, Globe, DollarSign, User, TrendingUp } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, Globe, DollarSign, User, TrendingUp, CalendarDays } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -11,12 +11,28 @@ import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getDefaultCurrencyForCountry, getCountryByCode, getCurrencyByCode } from '@/lib/reference-data/lookups';
+import IncomeFrequencySelector from '@/components/financial-periods/IncomeFrequencySelector';
+import PayScheduleFields from '@/components/financial-periods/PayScheduleFields';
+import PlanningPreferencesFields from '@/components/financial-periods/PlanningPreferencesFields';
+import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
+import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { type FinancialPeriodFieldErrors } from '@/lib/financial-periods';
+import {
+  buildFinancialPeriodProfileUpdate,
+  buildFinancialPeriodFormValues,
+  clearFinancialPeriodProfileCache,
+  getBrowserTimeZone,
+  type FinancialPeriodFormValues,
+  validateFinancialPeriodForm,
+  withFrequencyDefaults,
+} from '@/lib/financial-periods/profile';
 
 const STEPS = [
   { id: 1, title: 'Welcome', icon: User },
   { id: 2, title: 'Language & Region', icon: Globe },
   { id: 3, title: 'Currency', icon: DollarSign },
-  { id: 4, title: 'Income', icon: TrendingUp },
+  { id: 4, title: 'Income Schedule', icon: TrendingUp },
+  { id: 5, title: 'Planning', icon: CalendarDays },
 ];
 
 interface OnboardingData {
@@ -26,6 +42,19 @@ interface OnboardingData {
   defaultCurrency: string;
   monthlyIncome: string;
   monthStartDay: string;
+  income_frequency: FinancialPeriodFormValues['income_frequency'];
+  pay_cycle_anchor_date: string;
+  weekly_payday: FinancialPeriodFormValues['weekly_payday'];
+  semimonthly_day_1: string;
+  semimonthly_day_2: string;
+  monthly_payday_rule: FinancialPeriodFormValues['monthly_payday_rule'];
+  monthly_payday_day: string;
+  default_dashboard_period: FinancialPeriodFormValues['default_dashboard_period'];
+  default_budget_period: FinancialPeriodFormValues['default_budget_period'];
+  week_starts_on: FinancialPeriodFormValues['week_starts_on'];
+  week_starts_on_custom_day: string;
+  timezone: string;
+  custom_cycle_days: string;
 }
 
 const LANGUAGES = [
@@ -35,16 +64,54 @@ const LANGUAGES = [
   { code: 'ru', name: 'Русский', flag: '🇷🇺' },
 ];
 
+const camelCaseFieldErrorMap: Record<keyof FinancialPeriodFormValues, keyof FinancialPeriodFieldErrors> = {
+  income_frequency: 'incomeFrequency',
+  pay_cycle_anchor_date: 'payCycleAnchorDate',
+  weekly_payday: 'weeklyPayday',
+  semimonthly_day_1: 'semimonthlyDay1',
+  semimonthly_day_2: 'semimonthlyDay2',
+  monthly_payday_rule: 'monthlyPaydayRule',
+  monthly_payday_day: 'monthlyPaydayDay',
+  default_dashboard_period: 'defaultDashboardPeriod',
+  default_budget_period: 'defaultBudgetPeriod',
+  week_starts_on: 'weekStartsOn',
+  week_starts_on_custom_day: 'weekStartsOnCustomDay',
+  timezone: 'timezone',
+  custom_cycle_days: 'customCycleDays',
+};
+
+function buildPlanningValues(data: Pick<OnboardingData, keyof FinancialPeriodFormValues>): FinancialPeriodFormValues {
+  return {
+    income_frequency: data.income_frequency,
+    pay_cycle_anchor_date: data.pay_cycle_anchor_date,
+    weekly_payday: data.weekly_payday,
+    semimonthly_day_1: data.semimonthly_day_1,
+    semimonthly_day_2: data.semimonthly_day_2,
+    monthly_payday_rule: data.monthly_payday_rule,
+    monthly_payday_day: data.monthly_payday_day,
+    default_dashboard_period: data.default_dashboard_period,
+    default_budget_period: data.default_budget_period,
+    week_starts_on: data.week_starts_on,
+    week_starts_on_custom_day: data.week_starts_on_custom_day,
+    timezone: data.timezone,
+    custom_cycle_days: data.custom_cycle_days,
+  };
+}
+
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
+  const [financialPeriodErrors, setFinancialPeriodErrors] = useState<FinancialPeriodFieldErrors>({});
   const { user } = useAuth();
   const router = useRouter();
   const { data: referenceData } = useClientReferenceData();
   const snapshot = referenceData?.snapshot;
+  const defaultFinancialValues = buildFinancialPeriodFormValues({
+    timezone: getBrowserTimeZone(),
+  });
 
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<OnboardingData>({
+  const { register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<OnboardingData>({
     defaultValues: {
       fullName: '',
       country: '',
@@ -52,15 +119,32 @@ export default function OnboardingPage() {
       defaultCurrency: referenceData?.platformDefaultCurrency || '',
       monthlyIncome: '',
       monthStartDay: '1',
+      ...defaultFinancialValues,
     },
   });
 
   const selectedLanguage = watch('preferredLanguage');
   const selectedCountry = watch('country');
   const selectedCurrency = watch('defaultCurrency');
+  const incomeFrequency = watch('income_frequency');
   const selectedCountryRecord = getCountryByCode(snapshot?.countries ?? [], selectedCountry);
   const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
   const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
+  const financialPeriodValues: FinancialPeriodFormValues = {
+    income_frequency: incomeFrequency,
+    pay_cycle_anchor_date: watch('pay_cycle_anchor_date'),
+    weekly_payday: watch('weekly_payday'),
+    semimonthly_day_1: watch('semimonthly_day_1'),
+    semimonthly_day_2: watch('semimonthly_day_2'),
+    monthly_payday_rule: watch('monthly_payday_rule'),
+    monthly_payday_day: watch('monthly_payday_day'),
+    default_dashboard_period: watch('default_dashboard_period'),
+    default_budget_period: watch('default_budget_period'),
+    week_starts_on: watch('week_starts_on'),
+    week_starts_on_custom_day: watch('week_starts_on_custom_day'),
+    timezone: watch('timezone'),
+    custom_cycle_days: watch('custom_cycle_days'),
+  };
 
   React.useEffect(() => {
     if (!snapshot) return;
@@ -75,9 +159,30 @@ export default function OnboardingPage() {
     setValue('defaultCurrency', recommendedCurrency.code);
   }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
+  const setFinancialField = <K extends keyof FinancialPeriodFormValues>(field: K, value: FinancialPeriodFormValues[K]) => {
+    setFinancialPeriodErrors((current) => ({ ...current, [camelCaseFieldErrorMap[field]]: undefined }));
+    setValue(field as keyof OnboardingData, value as OnboardingData[keyof OnboardingData], { shouldDirty: true });
+  };
+
+  const applyFinancialValues = (nextValues: FinancialPeriodFormValues) => {
+    (Object.entries(nextValues) as Array<[keyof FinancialPeriodFormValues, FinancialPeriodFormValues[keyof FinancialPeriodFormValues]]>)
+      .forEach(([field, value]) => {
+        setValue(field as keyof OnboardingData, value as OnboardingData[keyof OnboardingData], { shouldDirty: true });
+      });
+  };
+
   const onFinish = async (data: OnboardingData) => {
     setIsLoading(true);
     try {
+      const planningValues = buildPlanningValues(getValues());
+      const validation = validateFinancialPeriodForm(planningValues);
+      if (!validation.isValid) {
+        setFinancialPeriodErrors(validation.fieldErrors);
+        toast.error(validation.errors[0] || 'Please review your income and planning settings.');
+        return;
+      }
+
+      const financialPeriodPayload = buildFinancialPeriodProfileUpdate(planningValues);
       const supabase = createClient();
       const {
         data: { user: authUser },
@@ -100,12 +205,18 @@ export default function OnboardingPage() {
           default_currency: data.defaultCurrency,
           monthly_income: data.monthlyIncome ? parseFloat(data.monthlyIncome) : null,
           month_start_day: parseInt(data.monthStartDay),
+          ...financialPeriodPayload,
         })
         .eq('id', currentUser.id);
       if (error) throw error;
+      clearResolvedUserDefaultCurrencyCache();
+      clearFinancialPeriodProfileCache();
+      dispatchSmartPocketDataChanged({
+        source: 'OnboardingPage',
+        entities: ['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
+      });
       toast.success('Profile set up! Welcome to Smart Pocket.');
       router.replace('/dashboard');
-      router.refresh();
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save preferences.');
     } finally {
@@ -247,8 +358,8 @@ export default function OnboardingPage() {
             {step === 4 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">Monthly income (optional)</h2>
-                  <p className="text-sm text-muted-foreground">Helps calculate savings rate and budget recommendations</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">How do you usually receive income?</h2>
+                  <p className="text-sm text-muted-foreground">Set optional income guidance and your usual income schedule.</p>
                 </div>
                 <div>
                   <label htmlFor="ob-income" className="block text-sm font-600 text-foreground mb-1.5">
@@ -270,21 +381,52 @@ export default function OnboardingPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-1.5">Leave blank to skip — you can set this later in settings</p>
                 </div>
+                <IncomeFrequencySelector
+                  value={financialPeriodValues.income_frequency}
+                  onChange={(value) => {
+                    setFinancialPeriodErrors({});
+                    applyFinancialValues(withFrequencyDefaults(financialPeriodValues, value));
+                  }}
+                  error={financialPeriodErrors.incomeFrequency}
+                />
+                <PayScheduleFields
+                  values={financialPeriodValues}
+                  errors={financialPeriodErrors}
+                  onChange={setFinancialField}
+                />
+              </div>
+            )}
+
+            {step === 5 && (
+              <div className="space-y-5 fade-in">
                 <div>
-                  <label htmlFor="ob-month-start" className="block text-sm font-600 text-foreground mb-1.5">
-                    Month starts on day
-                  </label>
-                  <select id="ob-month-start" className="input-base" {...register('monthStartDay')}>
-                    {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-1.5">Used for monthly budget and report calculations</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">Planning preferences</h2>
+                  <p className="text-sm text-muted-foreground">Choose the default dashboard view, budget rhythm, week start, and timezone.</p>
                 </div>
+                <PlanningPreferencesFields
+                  values={financialPeriodValues}
+                  errors={financialPeriodErrors}
+                  onChange={setFinancialField}
+                />
               </div>
             )}
             </div>
           </div>
+
+          <input type="hidden" {...register('monthStartDay')} />
+          <input type="hidden" {...register('income_frequency')} />
+          <input type="hidden" {...register('pay_cycle_anchor_date')} />
+          <input type="hidden" {...register('weekly_payday')} />
+          <input type="hidden" {...register('semimonthly_day_1')} />
+          <input type="hidden" {...register('semimonthly_day_2')} />
+          <input type="hidden" {...register('monthly_payday_rule')} />
+          <input type="hidden" {...register('monthly_payday_day')} />
+          <input type="hidden" {...register('default_dashboard_period')} />
+          <input type="hidden" {...register('default_budget_period')} />
+          <input type="hidden" {...register('week_starts_on')} />
+          <input type="hidden" {...register('week_starts_on_custom_day')} />
+          <input type="hidden" {...register('timezone')} />
+          <input type="hidden" {...register('custom_cycle_days')} />
 
           {/* Navigation */}
           <div className="flex items-center justify-between">
