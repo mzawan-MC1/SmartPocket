@@ -281,38 +281,38 @@ export function getPreviousComparableReportPeriod(args: {
     case 'current_pay_period':
     case 'previous_pay_period': {
       const previous = getPreviousFinancialPeriod(args.config, args.startDate);
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: previous.startDate,
-      });
+      }, false);
     }
     case 'current_month':
     case 'previous_month':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftMonthKey(args.startDate.slice(0, 7), -1),
-      });
+      }, false);
     case 'current_quarter':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftQuarter(args.startDate, -1),
-      });
+      }, false);
     case 'current_year':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftYear(args.startDate, -1),
-      });
+      }, false);
     case 'last_30_days': {
       const endDate = addDays(args.startDate, -1);
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: 'custom',
         config: args.config,
         locale: args.locale,
@@ -320,12 +320,12 @@ export function getPreviousComparableReportPeriod(args: {
           startDate: addDays(endDate, -29),
           endDate,
         },
-      });
+      }, false);
     }
     case 'year_to_date': {
       const previousYearStart = `${String(Number(args.startDate.slice(0, 4)) - 1)}-01-01`;
       const previousYearEnd = `${String(Number(args.startDate.slice(0, 4)) - 1)}-${args.endDate.slice(5)}`;
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: 'custom',
         config: args.config,
         locale: args.locale,
@@ -333,7 +333,7 @@ export function getPreviousComparableReportPeriod(args: {
           startDate: previousYearStart,
           endDate: previousYearEnd,
         },
-      });
+      }, false);
     }
     case 'custom':
     default:
@@ -352,35 +352,35 @@ export function getNextComparableReportPeriod(args: {
     case 'current_pay_period':
     case 'previous_pay_period': {
       const next = getNextFinancialPeriod(args.config, args.startDate);
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: next.startDate,
-      });
+      }, false);
     }
     case 'current_month':
     case 'previous_month':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftMonthKey(args.startDate.slice(0, 7), 1),
-      });
+      }, false);
     case 'current_quarter':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftQuarter(args.startDate, 1),
-      });
+      }, false);
     case 'current_year':
-      return resolveReportPeriodPreset({
+      return resolveReportPeriodPresetInternal({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftYear(args.startDate, 1),
-      });
+      }, false);
     case 'last_30_days':
     case 'year_to_date':
     case 'custom':
