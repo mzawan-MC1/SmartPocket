@@ -12,11 +12,13 @@ import {
   getLatestExchangeRateSnapshot,
   listHistoricalExchangeRateSnapshots,
 } from '@/lib/exchange-rates/service';
+import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import type {
   ExchangeRateFreshness,
   ExchangeRateLookupMode,
   ExchangeRateSnapshotRecord,
 } from '@/lib/exchange-rates/types';
+import type { DashboardPeriodPreference } from '@/lib/financial-periods';
 
 type CurrencyAmountRow = { amount: number | string; currency: string | null };
 type AmountRow = { amount: number | string };
@@ -277,6 +279,7 @@ export interface DashboardMetrics {
   outstandingLoanBalance: DashboardConvertedMetric;
   loanBorrowedThisMonth: DashboardConvertedMetric;
   loanRepaidThisMonth: DashboardConvertedMetric;
+  budgetTrackingAvailable: boolean;
 }
 
 export interface HistoricalReportConvertedMetric {
@@ -351,6 +354,16 @@ export interface DashboardMonthContext {
   monthStart: string;
   monthEnd: string;
   isCurrentMonth: boolean;
+}
+
+export interface DashboardActivePeriod {
+  mode: DashboardPeriodPreference;
+  startDate: string;
+  endDate: string;
+  label: string;
+  isCurrent: boolean;
+  timezone: string;
+  monthKey?: string;
 }
 
 export async function loadTransactionLedgerSummaryMap(
@@ -1667,36 +1680,22 @@ function isValidDashboardMonthKey(value: string | null | undefined): value is st
 }
 
 export function getCurrentDashboardMonthKey(nowInput?: Date) {
-  const now = nowInput || new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  return getMonthContext(undefined, 'UTC', nowInput).monthKey;
 }
 
-export function getDashboardMonthContext(selectedMonth?: string, nowInput?: Date): DashboardMonthContext {
-  const now = nowInput || new Date();
-  const currentMonthKey = getCurrentDashboardMonthKey(now);
-  const monthKey = isValidDashboardMonthKey(selectedMonth) && selectedMonth <= currentMonthKey
-    ? selectedMonth
-    : currentMonthKey;
-  const [yearText, monthText] = monthKey.split('-');
-  const year = Number(yearText);
-  const monthIndex = Number(monthText) - 1;
-  const start = new Date(year, monthIndex, 1);
-  const end = new Date(year, monthIndex + 1, 0);
-
+export function getDashboardMonthContext(selectedMonth?: string, nowInput?: Date, timezone = 'UTC'): DashboardMonthContext {
+  const context = getMonthContext(selectedMonth, timezone, nowInput);
   return {
-    monthKey,
-    label: start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-    monthStart: start.toISOString().slice(0, 10),
-    monthEnd: end.toISOString().slice(0, 10),
-    isCurrentMonth: monthKey === currentMonthKey,
+    monthKey: context.monthKey,
+    label: context.label,
+    monthStart: context.startDate,
+    monthEnd: context.endDate,
+    isCurrentMonth: context.isCurrentMonth,
   };
 }
 
 export function shiftDashboardMonth(monthKey: string, offset: number) {
-  const [yearText, monthText] = monthKey.split('-');
-  const base = new Date(Number(yearText), Number(monthText) - 1, 1);
-  base.setMonth(base.getMonth() + offset);
-  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+  return shiftMonthKey(monthKey, offset);
 }
 
 export async function createBudget(payload: Partial<Budget>): Promise<Budget> {
@@ -1812,12 +1811,15 @@ function calculateNextDueDate(currentDate: string, frequency: string): string {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export async function getDashboardMetrics(args?: {
-  selectedMonth?: string;
+  startDate: string;
+  endDate: string;
+  mode: DashboardPeriodPreference;
 }): Promise<DashboardMetrics> {
   const supabase = createClient();
   const { defaultCurrency, latestSnapshot } = await getLatestReportingContext(supabase);
-  const monthContext = getDashboardMonthContext(args?.selectedMonth);
-  const { monthStart, monthEnd } = monthContext;
+  const periodStart = args?.startDate;
+  const periodEnd = args?.endDate;
+  const includeBudgetTracking = args?.mode === 'month';
   const [
     ledgerSummaryByTransactionId,
     accountInclusionById,
@@ -1839,27 +1841,29 @@ export async function getDashboardMetrics(args?: {
       .from('transactions')
       .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
       .eq('transaction_type', 'income')
-      .gte('transaction_date', monthStart)
-      .lte('transaction_date', monthEnd),
+      .gte('transaction_date', periodStart)
+      .lte('transaction_date', periodEnd),
     supabase
       .from('transactions')
       .select('id, account_id, category_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
       .eq('transaction_type', 'expense')
-      .gte('transaction_date', monthStart)
-      .lte('transaction_date', monthEnd),
-    supabase
-      .from('budgets')
-      .select('id, category_id, amount, currency, period_start, period_end')
-      .eq('is_active', true),
+      .gte('transaction_date', periodStart)
+      .lte('transaction_date', periodEnd),
+    includeBudgetTracking
+      ? supabase
+        .from('budgets')
+        .select('id, category_id, amount, currency, period_start, period_end')
+        .eq('is_active', true)
+      : Promise.resolve({ data: [], error: null }),
     supabase
       .from('recurring_transactions')
       .select('amount, currency')
       .eq('is_active', true)
       .eq('transaction_type', 'expense')
-      .gte('next_due_date', monthStart)
-      .lte('next_due_date', monthEnd),
+      .gte('next_due_date', periodStart)
+      .lte('next_due_date', periodEnd),
     getManagedMoneyMetrics(supabase, defaultCurrency),
-    getLoanMetrics(supabase, monthStart, monthEnd, defaultCurrency),
+    getLoanMetrics(supabase, periodStart, periodEnd, defaultCurrency),
   ]);
 
   if (accountsResult.error) throw accountsResult.error;
@@ -1915,7 +1919,7 @@ export async function getDashboardMetrics(args?: {
   const totalBudgetByCurrency = new Map<string, number>();
   const budgetSpentByCurrency = new Map<string, number>();
   const activeBudgetsForPeriod = ((budgetsResult.data || []) as BudgetMetricRow[])
-    .filter((budget) => isBudgetActiveForWindow(budget, monthStart, monthEnd));
+    .filter((budget) => isBudgetActiveForWindow(budget, periodStart, periodEnd));
   const eligibleMonthlyExpensesByCategory = new Map<string, TransactionMetricRow[]>();
 
   for (const transaction of eligibleMonthlyExpenses) {
@@ -2005,6 +2009,7 @@ export async function getDashboardMetrics(args?: {
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
+    budgetTrackingAvailable: includeBudgetTracking,
   };
 }
 

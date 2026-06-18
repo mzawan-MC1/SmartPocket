@@ -1,9 +1,14 @@
+import { createClient } from '@/lib/supabase/client';
 import {
   DEFAULT_FINANCIAL_PERIOD_CONFIG,
+  getCurrentBusinessDate,
   normalizeFinancialPeriodConfig,
+  getCurrentFinancialPeriod,
+  getMonthlyPeriod,
   validateFinancialPeriodConfig,
   type BudgetPeriod,
   type DashboardPeriodPreference,
+  type FinancialPeriod,
   type FinancialPeriodConfig,
   type FinancialPeriodValidationResult,
   type IncomeFrequency,
@@ -61,9 +66,25 @@ export const FINANCIAL_PERIOD_PROFILE_SELECT = [
 ].join(',');
 
 let cachedFinancialPeriodProfileConfig: FinancialPeriodConfig | null = null;
+let cachedFinancialPeriodRuntimeContext: UserFinancialPeriodContext | null = null;
+let inFlightFinancialPeriodRuntimeContext: Promise<UserFinancialPeriodContext> | null = null;
+
+export interface UserFinancialPeriodContext {
+  config: FinancialPeriodConfig;
+  effectiveConfig: FinancialPeriodConfig;
+  timezone: string;
+  defaultDashboardPeriod: DashboardPeriodPreference;
+  currentBusinessDate: string;
+  currentFinancialPeriod: FinancialPeriod;
+  currentMonthlyPeriod: FinancialPeriod;
+  hasConfigurationWarning: boolean;
+  configurationWarning: string | null;
+}
 
 export function clearFinancialPeriodProfileCache() {
   cachedFinancialPeriodProfileConfig = null;
+  cachedFinancialPeriodRuntimeContext = null;
+  inFlightFinancialPeriodRuntimeContext = null;
 }
 
 export function getBrowserTimeZone() {
@@ -221,4 +242,80 @@ export function buildFinancialPeriodProfileUpdate(values: FinancialPeriodFormVal
     timezone: config.timezone,
     custom_cycle_days: config.customCycleDays,
   };
+}
+
+function buildSafeMonthlyFallback(config: FinancialPeriodConfig): FinancialPeriodConfig {
+  return normalizeFinancialPeriodConfig({
+    ...config,
+    incomeFrequency: 'irregular',
+    defaultDashboardPeriod: 'month',
+  });
+}
+
+function buildRuntimeContext(row?: Partial<FinancialPeriodProfileRow> | null): UserFinancialPeriodContext {
+  const config = toFinancialPeriodConfig(row);
+  const validation = validateFinancialPeriodConfig(config);
+  const effectiveConfig = validation.isValid ? config : buildSafeMonthlyFallback(config);
+  const timezone = effectiveConfig.timezone || DEFAULT_FINANCIAL_PERIOD_CONFIG.timezone;
+  const currentBusinessDate = getCurrentBusinessDate(timezone);
+  const currentFinancialPeriod = getCurrentFinancialPeriod(effectiveConfig, currentBusinessDate);
+  const currentMonthlyPeriod = getMonthlyPeriod(currentBusinessDate, timezone);
+
+  return {
+    config,
+    effectiveConfig,
+    timezone,
+    defaultDashboardPeriod: validation.isValid ? config.defaultDashboardPeriod : 'month',
+    currentBusinessDate,
+    currentFinancialPeriod,
+    currentMonthlyPeriod,
+    hasConfigurationWarning: !validation.isValid,
+    configurationWarning: validation.isValid
+      ? null
+      : 'Your income schedule is incomplete, so Smart Pocket is using the current month. Update Income & Planning in Settings.',
+  };
+}
+
+export async function loadUserFinancialPeriodContext(): Promise<UserFinancialPeriodContext> {
+  if (cachedFinancialPeriodRuntimeContext) {
+    return cachedFinancialPeriodRuntimeContext;
+  }
+
+  if (inFlightFinancialPeriodRuntimeContext) {
+    return inFlightFinancialPeriodRuntimeContext;
+  }
+
+  inFlightFinancialPeriodRuntimeContext = (async () => {
+    const supabase = createClient();
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+
+    if (!userId) {
+      const context = buildRuntimeContext(null);
+      cachedFinancialPeriodRuntimeContext = context;
+      cachedFinancialPeriodProfileConfig = context.config;
+      return context;
+    }
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select(FINANCIAL_PERIOD_PROFILE_SELECT)
+      .eq('id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    const context = buildRuntimeContext((data || null) as Partial<FinancialPeriodProfileRow> | null);
+    cachedFinancialPeriodRuntimeContext = context;
+    cachedFinancialPeriodProfileConfig = context.config;
+    return context;
+  })();
+
+  try {
+    return await inFlightFinancialPeriodRuntimeContext;
+  } finally {
+    inFlightFinancialPeriodRuntimeContext = null;
+  }
 }

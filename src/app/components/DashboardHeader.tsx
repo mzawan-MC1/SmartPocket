@@ -3,7 +3,10 @@ import React, { useMemo, useRef } from 'react';
 import { Calendar, ChevronLeft, ChevronRight, MoreHorizontal, PiggyBank, Plus, Repeat, RotateCcw, Wallet } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { getCurrentDashboardMonthKey, getDashboardMonthContext, shiftDashboardMonth } from '@/lib/finance';
+import Tabs from '@/components/ui/Tabs';
+import type { DashboardActivePeriod } from '@/lib/finance';
+import { getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey, type DashboardPeriodPreference } from '@/lib/financial-periods';
+import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 
 type QuickActionId = 'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget';
 
@@ -19,26 +22,75 @@ const MORE_ACTIONS: Array<{ id: QuickActionId; label: string; icon: React.Compon
 ];
 
 export default function DashboardHeader({
-  selectedMonth,
+  activePeriod,
+  viewMode,
+  defaultViewMode,
+  onViewModeChange,
+  onResetToDefault,
   onSelectedMonthChange,
+  onSelectedPayPeriodChange,
   onQuickAction,
+  financialPeriodContext,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
+  viewMode: DashboardPeriodPreference;
+  defaultViewMode: DashboardPeriodPreference;
+  onViewModeChange: (mode: DashboardPeriodPreference) => void;
+  onResetToDefault: () => void;
   onSelectedMonthChange: (monthKey: string) => void;
+  onSelectedPayPeriodChange: (startDate: string) => void;
   onQuickAction: (action: QuickActionId, trigger: HTMLElement | null) => void;
+  financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const monthInputRef = useRef<HTMLInputElement | null>(null);
-  const monthContext = useMemo(() => getDashboardMonthContext(selectedMonth), [selectedMonth]);
-  const currentMonthKey = getCurrentDashboardMonthKey();
-  const canMoveNext = monthContext.monthKey < currentMonthKey;
+  const monthContext = useMemo(
+    () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone),
+    [activePeriod.monthKey, financialPeriodContext.timezone]
+  );
+  const currentMonthContext = useMemo(
+    () => getMonthContext(undefined, financialPeriodContext.timezone),
+    [financialPeriodContext.timezone]
+  );
+  const canMoveNext = viewMode === 'month'
+    ? monthContext.monthKey < currentMonthContext.monthKey
+    : activePeriod.endDate < financialPeriodContext.currentFinancialPeriod.endDate;
+  const description = activePeriod.mode === 'month'
+    ? `Your financial overview for ${activePeriod.label}`
+    : `Your financial overview for ${activePeriod.label}`;
+  const badgeLabel = financialPeriodContext.hasConfigurationWarning
+    ? 'Month fallback'
+    : activePeriod.mode === 'month'
+      ? 'Month view'
+      : 'Pay period view';
 
   return (
     <PageHeader
       title="Dashboard"
-      description={`Your financial overview for ${monthContext.label}`}
-      badge={<StatusBadge status="info" label="Live overview" />}
+      description={description}
+      badge={<StatusBadge status={financialPeriodContext.hasConfigurationWarning ? 'warning' : 'info'} label={badgeLabel} />}
       actions={
         <div className="flex flex-col gap-3 xl:items-end">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Tabs
+              items={[
+                { id: 'pay_cycle', label: 'Pay period' },
+                { id: 'month', label: 'Month' },
+              ]}
+              activeId={viewMode}
+              onChange={onViewModeChange}
+              className="w-auto"
+            />
+            {viewMode !== defaultViewMode ? (
+              <button type="button" className="btn-ghost h-9 px-3 text-xs" onClick={onResetToDefault}>
+                Use saved default
+              </button>
+            ) : null}
+          </div>
+          {financialPeriodContext.configurationWarning ? (
+            <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning max-w-[460px]">
+              {financialPeriodContext.configurationWarning}
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-center gap-2">
             <div className="inline-flex items-center gap-2 rounded-2xl border border-border bg-card px-2 py-2 shadow-card-sm">
               {QUICK_ACTIONS.map((action) => {
@@ -83,40 +135,59 @@ export default function DashboardHeader({
             <div className="section-card flex items-center gap-1 px-2 py-2">
               <button
                 type="button"
-                onClick={() => onSelectedMonthChange(shiftDashboardMonth(monthContext.monthKey, -1))}
+                onClick={() => {
+                  if (viewMode === 'month') {
+                    onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, -1));
+                    return;
+                  }
+                  onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
+                }}
                 className="btn-ghost min-h-0 rounded-xl p-2"
-                aria-label="Previous month"
+                aria-label={viewMode === 'month' ? 'Previous month' : 'Previous pay period'}
               >
                 <ChevronLeft size={15} className="text-muted-foreground" />
               </button>
-              <button
-                type="button"
-                onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted"
-                aria-label="Choose month"
-              >
-                <Calendar size={14} className="text-accent" />
-                <span className="text-sm font-700 text-foreground whitespace-nowrap">
-                  {monthContext.label}
-                </span>
-              </button>
-              <input
-                ref={monthInputRef}
-                type="month"
-                className="sr-only"
-                value={monthContext.monthKey}
-                max={currentMonthKey}
-                onChange={(event) => onSelectedMonthChange(event.target.value)}
-                aria-label="Dashboard month"
-              />
+              {viewMode === 'month' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
+                    className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-muted"
+                    aria-label="Choose month"
+                  >
+                    <Calendar size={14} className="text-accent" />
+                    <span className="text-sm font-700 text-foreground whitespace-nowrap">
+                      {monthContext.label}
+                    </span>
+                  </button>
+                  <input
+                    ref={monthInputRef}
+                    type="month"
+                    className="sr-only"
+                    value={monthContext.monthKey}
+                    max={currentMonthContext.monthKey}
+                    onChange={(event) => onSelectedMonthChange(event.target.value)}
+                    aria-label="Dashboard month"
+                  />
+                </>
+              ) : (
+                <div className="flex items-center gap-2 rounded-xl px-2 py-1.5">
+                  <Calendar size={14} className="text-accent" />
+                  <span className="text-sm font-700 text-foreground whitespace-nowrap">{activePeriod.label}</span>
+                </div>
+              )}
               <button
                 type="button"
                 onClick={() => {
                   if (!canMoveNext) return;
-                  onSelectedMonthChange(shiftDashboardMonth(monthContext.monthKey, 1));
+                  if (viewMode === 'month') {
+                    onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, 1));
+                    return;
+                  }
+                  onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                 }}
                 className="btn-ghost min-h-0 rounded-xl p-2 disabled:opacity-40"
-                aria-label="Next month"
+                aria-label={viewMode === 'month' ? 'Next month' : 'Next pay period'}
                 disabled={!canMoveNext}
               >
                 <ChevronRight size={15} className="text-muted-foreground" />

@@ -294,7 +294,7 @@ export default function SettingsPage() {
       });
       dispatchSmartPocketDataChanged({
         source: 'SettingsPage',
-        entities: ['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
+        entities: ['profile', 'dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
       });
       setSaved(true);
       toast.success('Settings saved successfully');

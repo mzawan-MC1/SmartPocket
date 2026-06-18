@@ -9,7 +9,15 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
-import { getDashboardMonthContext, loadAccountInclusionMap, loadTransactionLedgerSummaryMap, shouldIncludeInBudgetSpending, type Transaction } from '@/lib/finance';
+import {
+  convertHistoricalAmountWithSnapshots,
+  getHistoricalReportContext,
+  loadAccountInclusionMap,
+  loadTransactionLedgerSummaryMap,
+  shouldIncludeInBudgetSpending,
+  type DashboardActivePeriod,
+  type Transaction,
+} from '@/lib/finance';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
 
@@ -24,7 +32,19 @@ interface ExpenseTransactionRow extends Pick<Transaction, 'id' | 'account_id' | 
   category: { id: string; name: string; color: string | null } | Array<{ id: string; name: string; color: string | null }> | null;
 }
 
-function CustomTooltip({ active, payload }: any) {
+function formatCurrencyValue(value: number, currencyCode: string) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      maximumFractionDigits: 0,
+    }).format(value);
+  } catch {
+    return `${currencyCode} ${value.toFixed(0)}`;
+  }
+}
+
+function CustomTooltip({ active, payload, currencyCode }: any) {
   if (!active || !payload?.length) return null;
   const item = payload[0];
   const total = item?.payload?.total ?? 1;
@@ -32,7 +52,7 @@ function CustomTooltip({ active, payload }: any) {
     <div className="card-elevated-md p-3">
       <p className="text-xs font-600 text-foreground">{item.name}</p>
       <p className="text-sm font-700 font-tabular text-foreground mt-0.5">
-        ${item.value.toLocaleString()}
+        {formatCurrencyValue(Number(item.value || 0), currencyCode)}
       </p>
       <p className="text-xs text-muted-foreground">
         {((item.value / total) * 100).toFixed(1)}% of total
@@ -42,27 +62,29 @@ function CustomTooltip({ active, payload }: any) {
 }
 
 export default function SpendingCategoryChart({
-  selectedMonth,
+  activePeriod,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [data, setData] = useState<CategorySpend[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reportingCurrency, setReportingCurrency] = useState('USD');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const supabase = createClient();
-      const monthContext = getDashboardMonthContext(selectedMonth);
-      const start = monthContext.monthStart;
-      const end = monthContext.monthEnd;
+      const start = activePeriod.startDate;
+      const end = activePeriod.endDate;
 
       const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
         supabase
           .from('transactions')
-          .select('id, account_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance, category:categories(id, name, color)')
+          .select('id, account_id, amount, currency, transaction_type, transaction_date, expense_owner, paid_by, paid_from, use_held_balance, category:categories(id, name, color)')
           .eq('transaction_type', 'expense')
           .gte('transaction_date', start)
           .lte('transaction_date', end),
@@ -70,24 +92,41 @@ export default function SpendingCategoryChart({
         loadAccountInclusionMap(supabase),
       ]);
 
-      if (!txns?.length) {
+      const transactions = (txns || []) as Array<ExpenseTransactionRow & Pick<Transaction, 'currency' | 'transaction_date'>>;
+      if (!transactions.length) {
         setData([]);
         setTotal(0);
         return;
       }
 
+      const historyContext = await getHistoricalReportContext(
+        transactions.map((transaction) => ({ transaction_date: transaction.transaction_date }))
+      );
+      setReportingCurrency(historyContext.reportingCurrency);
       const categoryMap = new Map<string, { name: string; value: number; color: string | null }>();
-      for (const transaction of (txns || []) as ExpenseTransactionRow[]) {
+      let hadMissingRates = false;
+      for (const transaction of transactions) {
         if (!shouldIncludeInBudgetSpending(transaction, ledgerSummaryByTransactionId, accountInclusionById)) continue;
         const category = Array.isArray(transaction.category) ? transaction.category[0] : transaction.category;
         const key = category?.id ?? 'uncategorized';
         const name = category?.name ?? 'Uncategorized';
         const color = category?.color ?? null;
+        const conversion = convertHistoricalAmountWithSnapshots({
+          amount: Number(transaction.amount || 0),
+          fromCurrency: transaction.currency || historyContext.reportingCurrency,
+          reportingCurrency: historyContext.reportingCurrency,
+          rateDate: transaction.transaction_date,
+          snapshots: historyContext.snapshots,
+        });
+        if (conversion.convertedAmount === null) {
+          hadMissingRates = true;
+          continue;
+        }
         const existing = categoryMap.get(key);
         if (existing) {
-          existing.value += Number(transaction.amount);
+          existing.value += conversion.convertedAmount;
         } else {
-          categoryMap.set(key, { name, value: Number(transaction.amount), color });
+          categoryMap.set(key, { name, value: conversion.convertedAmount, color });
         }
       }
 
@@ -104,12 +143,16 @@ export default function SpendingCategoryChart({
       const grandTotal = sorted.reduce((sum, item) => sum + item.value, 0);
       setTotal(grandTotal);
       setData(sorted.map((item) => ({ ...item, total: grandTotal } as CategorySpend)));
+      if (hadMissingRates) {
+        setErrorMessage('Some historical exchange rates are unavailable for this period, so the chart omits those points.');
+      }
     } catch (error) {
       console.error('SpendingCategoryChart error:', error);
+      setErrorMessage('The chart period could not be calculated.');
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [activePeriod.endDate, activePeriod.startDate]);
 
   useEffect(() => {
     void load();
@@ -126,8 +169,8 @@ export default function SpendingCategoryChart({
   if (!data.length) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
-        <p className="text-sm text-muted-foreground">No expense data for this month</p>
-        <p className="text-xs text-muted-foreground">Add expense transactions to see spending by category</p>
+        <p className="text-sm text-muted-foreground">{errorMessage || `No expense data for this ${activePeriod.mode === 'month' ? 'month' : 'pay period'}`}</p>
+        <p className="text-xs text-muted-foreground">Add expense transactions to see spending by category.</p>
       </div>
     );
   }
@@ -157,7 +200,7 @@ export default function SpendingCategoryChart({
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -173,7 +216,7 @@ export default function SpendingCategoryChart({
             <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
             <span className="text-xs text-muted-foreground flex-1 truncate">{item.name}</span>
             <span className="text-xs font-600 font-tabular text-foreground">
-              ${item.value.toLocaleString()}
+              {formatCurrencyValue(item.value, reportingCurrency)}
             </span>
             <span className="text-[10px] text-muted-foreground w-10 text-right">
               {total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%

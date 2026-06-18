@@ -1,18 +1,18 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarClock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { getDashboardMonthContext, getRecurringTransactions, markRecurringAsPaid, type RecurringTransaction } from '@/lib/finance';
+import { getRecurringTransactions, markRecurringAsPaid, type DashboardActivePeriod, type RecurringTransaction } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { getCurrentBusinessDate } from '@/lib/financial-periods';
 
-function daysUntil(dateStr: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr + 'T00:00:00');
+function daysUntil(dateStr: string, timezone: string): number {
+  const today = new Date(`${getCurrentBusinessDate(timezone)}T12:00:00Z`);
+  const due = new Date(`${dateStr}T12:00:00Z`);
   return Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
@@ -22,21 +22,20 @@ function normalizeCurrencyCode(value: string | null | undefined) {
 }
 
 export default function UpcomingRecurring({
-  selectedMonth,
+  activePeriod,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
 }) {
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
-  const monthContext = getDashboardMonthContext(selectedMonth);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const all = await getRecurringTransactions();
       const upcoming = all.filter(
-        (r) => r.is_active && r.next_due_date >= monthContext.monthStart && r.next_due_date <= monthContext.monthEnd
+        (r) => r.is_active && r.next_due_date >= activePeriod.startDate && r.next_due_date <= activePeriod.endDate
       );
       setItems(upcoming);
     } catch (error) {
@@ -44,7 +43,7 @@ export default function UpcomingRecurring({
     } finally {
       setLoading(false);
     }
-  }, [monthContext.monthEnd, monthContext.monthStart]);
+  }, [activePeriod.endDate, activePeriod.startDate]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -76,8 +75,10 @@ export default function UpcomingRecurring({
   return (
     <SectionCard
       title="Upcoming Payments"
-      description={`Recurring items scheduled for ${monthContext.label}.`}
-      action={<StatusBadge status="pending" label={monthContext.isCurrentMonth ? 'Current month' : monthContext.label} />}
+      description={activePeriod.mode === 'month'
+        ? `Recurring items scheduled for ${activePeriod.label}.`
+        : `Recurring items due during ${activePeriod.label}.`}
+      action={<StatusBadge status="pending" label={activePeriod.mode === 'month' ? activePeriod.label : 'Pay period'} />}
       bodyClassName="p-0"
     >
 
@@ -98,15 +99,17 @@ export default function UpcomingRecurring({
           <EmptyState
             icon={CalendarClock}
             title="No upcoming payments"
-            description={`No recurring payments scheduled for ${monthContext.label}.`}
+            description={activePeriod.mode === 'month'
+              ? `No recurring payments scheduled for ${activePeriod.label}.`
+              : 'No recurring payments are due in this pay period.'}
           />
         </div>
       ) : (
         <>
           <div className="divide-y divide-border">
             {items.map((item) => {
-              const days = daysUntil(item.next_due_date);
-              const urgent = monthContext.isCurrentMonth && days <= 3;
+              const days = daysUntil(item.next_due_date, activePeriod.timezone);
+              const urgent = activePeriod.isCurrent && days <= 3;
               const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               return (
                 <div key={item.id} className={`flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors ${urgent ? 'bg-warning-soft/30' : ''}`}>
@@ -116,7 +119,7 @@ export default function UpcomingRecurring({
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {dueDate} · {monthContext.isCurrentMonth ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
+                      {dueDate} · {activePeriod.isCurrent ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -126,7 +129,7 @@ export default function UpcomingRecurring({
                       className="text-sm font-700 font-tabular text-foreground"
                       showCode
                     />
-                    {monthContext.isCurrentMonth ? (
+                    {activePeriod.isCurrent ? (
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id}
@@ -149,7 +152,7 @@ export default function UpcomingRecurring({
           </div>
           <div className="px-5 py-3 bg-muted/30 border-t border-border">
             <p className="text-xs text-muted-foreground text-center">
-              Total due:
+              {activePeriod.mode === 'month' ? 'Total scheduled:' : 'Total due this pay period:'}
               <span className="font-700 text-foreground font-tabular inline-flex flex-col items-center">
                 {totalDueByCurrency.map((row) => (
                   <FormattedCurrencyAmount

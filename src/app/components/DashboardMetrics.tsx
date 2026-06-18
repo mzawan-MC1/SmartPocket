@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown,
 } from 'lucide-react';
-import { getDashboardMetrics, getDashboardMonthContext, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
+import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
@@ -22,28 +22,34 @@ interface DashboardMetricCard {
   alert?: boolean;
   warningState?: boolean;
   budgetPct?: number;
+  valueContent?: React.ReactNode;
 }
 
 export default function DashboardMetrics({
-  selectedMonth,
+  activePeriod,
+  hasConfigurationWarning = false,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
+  hasConfigurationWarning?: boolean;
 }) {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
-  const monthContext = getDashboardMonthContext(selectedMonth);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const nextMetrics = await getDashboardMetrics({ selectedMonth: monthContext.monthKey });
+      const nextMetrics = await getDashboardMetrics({
+        startDate: activePeriod.startDate,
+        endDate: activePeriod.endDate,
+        mode: activePeriod.mode,
+      });
       setMetrics(nextMetrics);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
-  }, [monthContext.monthKey]);
+  }, [activePeriod.endDate, activePeriod.mode, activePeriod.startDate]);
 
   useEffect(() => {
     void load();
@@ -80,6 +86,9 @@ export default function DashboardMetrics({
   }
 
   if (!metrics) return null;
+
+  const isMonthMode = activePeriod.mode === 'month';
+  const flowLabel = isMonthMode ? 'Monthly' : 'Period';
 
   const budgetTotals = new Map(metrics.totalBudget.originalTotals.map((row) => [row.currency, row.amount]));
   const budgetSpent = new Map(metrics.budgetSpent.originalTotals.map((row) => [row.currency, row.amount]));
@@ -215,7 +224,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.totalBalance,
       changeMetric: metrics.netCashFlow,
       changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
-      changeLabel: 'net this month',
+      changeLabel: isMonthMode ? 'net this month' : 'net this pay period',
       icon: Wallet,
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
@@ -223,11 +232,11 @@ export default function DashboardMetrics({
     },
     {
       id: 'metric-income',
-      label: 'Monthly Income',
+      label: `${flowLabel} Income`,
       valueMetric: metrics.monthlyIncome,
       changeMetric: metrics.monthlyIncome,
       changeDir: 'up' as const,
-      changeLabel: monthContext.label,
+      changeLabel: activePeriod.label,
       icon: TrendingUp,
       iconBg: 'bg-positive-soft',
       iconColor: 'text-positive',
@@ -235,11 +244,11 @@ export default function DashboardMetrics({
     },
     {
       id: 'metric-expenses',
-      label: 'Monthly Expenses',
+      label: `${flowLabel} Expenses`,
       valueMetric: metrics.monthlyExpenses,
       changeMetric: metrics.monthlyExpenses,
       changeDir: 'down' as const,
-      changeLabel: monthContext.label,
+      changeLabel: activePeriod.label,
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -248,7 +257,7 @@ export default function DashboardMetrics({
     },
     {
       id: 'metric-netflow',
-      label: 'Net Cash Flow',
+      label: isMonthMode ? 'Net Cash Flow' : 'Period Cash Flow',
       valueMetric: metrics.netCashFlow,
       change: metrics.netCashFlow.originalTotals.length > 1 ? 'Mixed currencies' : metrics.netCashFlow.originalTotals[0]?.amount >= 0 ? 'Positive' : 'Negative',
       changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
@@ -262,23 +271,30 @@ export default function DashboardMetrics({
       id: 'metric-budget',
       label: 'Budget Remaining',
       valueMetric: budgetRemainingMetric,
-      change: metrics.activeBudgetCount === 0
-        ? 'No active budget'
-        : budgetRemaining.length === 1
+      valueContent: !metrics.budgetTrackingAvailable ? (
+        <span className="text-base font-700 text-muted-foreground">Not available</span>
+      ) : undefined,
+      change: !metrics.budgetTrackingAvailable
+        ? 'Not available yet'
+        : metrics.activeBudgetCount === 0
+          ? 'No active budget'
+          : budgetRemaining.length === 1
           ? `${budgetRemaining[0].usedPct.toFixed(1)}% used`
           : 'Grouped by currency',
       changeDir: 'neutral' as const,
-      changeLabel: metrics.activeBudgetCount === 0
-        ? 'for this month'
-        : budgetRemaining.length === 1
-          ? 'of current budget'
-          : 'budget usage differs by currency',
+      changeLabel: !metrics.budgetTrackingAvailable
+        ? 'Pay-period budget tracking will be available after budget-cycle setup.'
+        : metrics.activeBudgetCount === 0
+          ? 'for this month'
+          : budgetRemaining.length === 1
+            ? 'of current budget'
+            : 'budget usage differs by currency',
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
       hero: false,
-      warningState: metrics.activeBudgetCount > 0 && budgetRemaining.some((row) => row.usedPct >= 70),
-      budgetPct: metrics.activeBudgetCount > 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
+      warningState: metrics.budgetTrackingAvailable && metrics.activeBudgetCount > 0 && budgetRemaining.some((row) => row.usedPct >= 70),
+      budgetPct: metrics.budgetTrackingAvailable && metrics.activeBudgetCount > 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
     },
     {
       id: 'metric-upcoming',
@@ -286,7 +302,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.upcomingPayments,
       change: `${metrics.upcomingPaymentsCount} payment${metrics.upcomingPaymentsCount !== 1 ? 's' : ''}`,
       changeDir: 'neutral' as const,
-      changeLabel: `scheduled in ${monthContext.label}`,
+      changeLabel: isMonthMode ? `scheduled in ${activePeriod.label}` : 'due this pay period',
       icon: CalendarClock,
       iconBg: 'bg-secondary',
       iconColor: 'text-muted-foreground',
@@ -316,7 +332,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.outstandingLoanBalance,
       changeMetric: metrics.loanBorrowedThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: `borrowed in ${monthContext.label}`,
+      changeLabel: isMonthMode ? `borrowed in ${activePeriod.label}` : 'borrowed this pay period',
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -328,7 +344,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.loanRepaidThisMonth,
       changeMetric: metrics.loanRepaidThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: `paid in ${monthContext.label}`,
+      changeLabel: isMonthMode ? `paid in ${activePeriod.label}` : 'paid this pay period',
       icon: ArrowUpDown,
       iconBg: 'bg-accent/10',
       iconColor: 'text-accent',
@@ -341,7 +357,12 @@ export default function DashboardMetrics({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-700 text-foreground">Summary</p>
-          <p className="text-xs text-muted-foreground">Personal balances stay current. Monthly cards and loan flow follow {monthContext.label}.</p>
+          <p className="text-xs text-muted-foreground">
+            Personal balances stay current. {isMonthMode ? 'Monthly' : 'Pay-period'} cards and loan flow follow {activePeriod.label}.
+          </p>
+          {hasConfigurationWarning ? (
+            <p className="mt-1 text-xs text-warning">Pay-period calculations are temporarily using a monthly fallback from Settings.</p>
+          ) : null}
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
@@ -375,7 +396,7 @@ export default function DashboardMetrics({
                 </div>
               </div>
               <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                {renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
+                {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
               </div>
               <div className="flex items-center gap-1.5">
                 {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}

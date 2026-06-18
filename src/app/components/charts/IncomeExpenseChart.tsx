@@ -2,11 +2,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   isPersonalExpenseTransaction,
-  getDashboardMonthContext,
-  shiftDashboardMonth,
+  convertHistoricalAmountWithSnapshots,
+  getHistoricalReportContext,
   isPersonalIncomeTransaction,
   loadAccountInclusionMap,
   loadTransactionLedgerSummaryMap,
+  type DashboardActivePeriod,
   type Transaction,
 } from '@/lib/finance';
 import {
@@ -21,16 +22,30 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 
-interface MonthlyPoint {
-  month: string;
+interface ChartPoint {
+  label: string;
   income: number;
   expenses: number;
 }
 
-type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
+type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'currency' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
 
-function CustomTooltip({ active, payload, label }: any) {
+function formatCompactCurrency(value: number, currencyCode: string) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(value);
+  } catch {
+    return `${currencyCode} ${value.toFixed(0)}`;
+  }
+}
+
+function CustomTooltip({ active, payload, label, currencyCode }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="card-elevated-md p-3 min-w-[140px]">
@@ -42,7 +57,7 @@ function CustomTooltip({ active, payload, label }: any) {
             <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
           </div>
           <span className="text-xs font-700 font-tabular text-foreground">
-            ${entry.value.toLocaleString()}
+            {formatCompactCurrency(Number(entry.value || 0), currencyCode)}
           </span>
         </div>
       ))}
@@ -51,64 +66,129 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 export default function IncomeExpenseChart({
-  selectedMonth,
+  activePeriod,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
 }) {
-  const [data, setData] = useState<MonthlyPoint[]>([]);
+  const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [reportingCurrency, setReportingCurrency] = useState('USD');
 
   const load = useCallback(async () => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const supabase = createClient();
-      const monthContext = getDashboardMonthContext(selectedMonth);
-      const firstMonthContext = getDashboardMonthContext(shiftDashboardMonth(monthContext.monthKey, -5));
-      const start = firstMonthContext.monthStart;
-      const end = monthContext.monthEnd;
+      const rangeStart = activePeriod.mode === 'month'
+        ? getMonthContext(shiftMonthKey(activePeriod.monthKey || '', -5), activePeriod.timezone).startDate
+        : activePeriod.startDate;
+      const rangeEnd = activePeriod.endDate;
 
       const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
         supabase
           .from('transactions')
-          .select('id, account_id, transaction_type, amount, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
-          .gte('transaction_date', start)
-          .lte('transaction_date', end)
+          .select('id, account_id, transaction_type, amount, currency, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
+          .gte('transaction_date', rangeStart)
+          .lte('transaction_date', rangeEnd)
           .in('transaction_type', ['income', 'expense']),
         loadTransactionLedgerSummaryMap(supabase),
         loadAccountInclusionMap(supabase),
       ]);
 
-      const monthMap = new Map<string, MonthlyPoint>();
-      for (let i = 5; i >= 0; i -= 1) {
-        const period = getDashboardMonthContext(shiftDashboardMonth(monthContext.monthKey, -i));
-        const monthDate = new Date(`${period.monthStart}T00:00:00`);
-        const key = period.monthKey;
-        monthMap.set(key, {
-          month: monthDate.toLocaleString('en-US', { month: 'short' }),
-          income: 0,
-          expenses: 0,
-        });
+      const transactions = (txns || []) as TransactionAmountRow[];
+      const historyContext = await getHistoricalReportContext(
+        transactions.map((transaction) => ({ transaction_date: transaction.transaction_date }))
+      );
+      setReportingCurrency(historyContext.reportingCurrency);
+      const bucketMap = new Map<string, ChartPoint>();
+      const missingRateDates = new Set<string>();
+
+      if (activePeriod.mode === 'month') {
+        for (let i = 5; i >= 0; i -= 1) {
+          const period = getMonthContext(shiftMonthKey(activePeriod.monthKey || '', -i), activePeriod.timezone);
+          bucketMap.set(period.monthKey, {
+            label: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period.startDate}T12:00:00Z`)),
+            income: 0,
+            expenses: 0,
+          });
+        }
+      } else {
+        const start = new Date(`${activePeriod.startDate}T12:00:00Z`);
+        const end = new Date(`${activePeriod.endDate}T12:00:00Z`);
+        const dayCount = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        const useWeeklyBuckets = dayCount > 31;
+
+        for (let index = 0; index < dayCount; index += useWeeklyBuckets ? 7 : 1) {
+          const bucketStart = new Date(start);
+          bucketStart.setUTCDate(start.getUTCDate() + index);
+          const bucketEnd = new Date(bucketStart);
+          bucketEnd.setUTCDate(bucketStart.getUTCDate() + (useWeeklyBuckets ? 6 : 0));
+          if (bucketEnd > end) bucketEnd.setTime(end.getTime());
+          const bucketStartKey = bucketStart.toISOString().slice(0, 10);
+          const bucketEndKey = bucketEnd.toISOString().slice(0, 10);
+          bucketMap.set(bucketStartKey, {
+            label: useWeeklyBuckets
+              ? `${new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart)} - ${new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketEnd)}`
+              : new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart),
+            income: 0,
+            expenses: 0,
+          });
+        }
       }
 
-      for (const txn of (txns || []) as TransactionAmountRow[]) {
-        const key = txn.transaction_date.slice(0, 7);
-        const month = monthMap.get(key);
-        if (!month) continue;
+      const resolveBucketKey = (transactionDate: string) => {
+        if (activePeriod.mode === 'month') {
+          return transactionDate.slice(0, 7);
+        }
+        const keys = Array.from(bucketMap.keys()).sort();
+        return keys.find((key, index) => {
+          const startKey = key;
+          const endKey = index + 1 < keys.length
+            ? new Date(new Date(`${keys[index + 1]}T12:00:00Z`).getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+            : activePeriod.endDate;
+          return transactionDate >= startKey && transactionDate <= endKey;
+        }) || null;
+      };
+
+      for (const txn of transactions) {
+        const bucketKey = resolveBucketKey(txn.transaction_date);
+        const bucket = bucketKey ? bucketMap.get(bucketKey) : null;
+        if (!bucket) continue;
+        const conversion = convertHistoricalAmountWithSnapshots({
+          amount: Number(txn.amount || 0),
+          fromCurrency: txn.currency || historyContext.reportingCurrency,
+          reportingCurrency: historyContext.reportingCurrency,
+          rateDate: txn.transaction_date,
+          snapshots: historyContext.snapshots,
+        });
+
+        const numericAmount = conversion.convertedAmount;
+        if (numericAmount === null) {
+          if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
+          continue;
+        }
+
         if (isPersonalIncomeTransaction(txn, ledgerSummaryByTransactionId, accountInclusionById)) {
-          month.income += Number(txn.amount);
+          bucket.income += numericAmount;
         }
         if (isPersonalExpenseTransaction(txn, ledgerSummaryByTransactionId, accountInclusionById)) {
-          month.expenses += Number(txn.amount);
+          bucket.expenses += numericAmount;
         }
       }
 
-      setData(Array.from(monthMap.values()));
+      if (missingRateDates.size > 0) {
+        setErrorMessage('Some historical exchange rates are unavailable for this period, so the chart cannot be shown accurately yet.');
+      }
+
+      setData(Array.from(bucketMap.values()));
     } catch (error) {
       console.error('IncomeExpenseChart error:', error);
+      setErrorMessage('The chart period could not be calculated.');
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [activePeriod.endDate, activePeriod.mode, activePeriod.monthKey, activePeriod.startDate, activePeriod.timezone]);
 
   useEffect(() => {
     void load();
@@ -125,8 +205,14 @@ export default function IncomeExpenseChart({
   if (data.every((d) => d.income === 0 && d.expenses === 0)) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
-        <p className="text-sm text-muted-foreground">No transaction data yet</p>
-        <p className="text-xs text-muted-foreground">Add income and expense transactions to see trends</p>
+        <p className="text-sm text-muted-foreground">
+          {errorMessage || 'No transaction data in this period'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {activePeriod.mode === 'month'
+            ? 'Add income and expense transactions to see monthly trends.'
+            : 'Add income and expense transactions to see pay-period trends.'}
+        </p>
       </div>
     );
   }
@@ -146,7 +232,7 @@ export default function IncomeExpenseChart({
         </defs>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis
-          dataKey="month"
+          dataKey="label"
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }}
           axisLine={false}
           tickLine={false}
@@ -155,9 +241,9 @@ export default function IncomeExpenseChart({
           tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+          tickFormatter={(value) => formatCompactCurrency(Number(value || 0), reportingCurrency)}
         />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} />} />
         <Area
           type="monotone"
           dataKey="income"

@@ -3,23 +3,27 @@ import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
-import { getDashboardMonthContext } from '@/lib/finance';
+import type { DashboardActivePeriod } from '@/lib/finance';
 
 const IncomeExpenseChart = dynamic(() => import('./charts/IncomeExpenseChart'), { ssr: false });
 const SpendingCategoryChart = dynamic(() => import('./charts/SpendingCategoryChart'), { ssr: false });
 
 export default function DashboardCharts({
-  selectedMonth,
+  activePeriod,
+  hasConfigurationWarning = false,
 }: {
-  selectedMonth: string;
+  activePeriod: DashboardActivePeriod;
+  hasConfigurationWarning?: boolean;
 }) {
   const [activeTab, setActiveTab] = useState<'trend' | 'category'>('trend');
-  const monthContext = getDashboardMonthContext(selectedMonth);
+  const description = activePeriod.mode === 'month'
+    ? `Income, expenses, and spending composition through ${activePeriod.label}.`
+    : `Income, expenses, and spending composition during ${activePeriod.label}.`;
 
   return (
     <SectionCard
       title="Financial Overview"
-      description={`Income, expenses, and spending composition through ${monthContext.label}.`}
+      description={description}
       action={
         <Tabs
           items={[
@@ -31,8 +35,13 @@ export default function DashboardCharts({
         />
       }
     >
+      {hasConfigurationWarning ? (
+        <div className="mb-3 rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+          Pay-period charts are using a monthly fallback until your income schedule is completed in Settings.
+        </div>
+      ) : null}
       <div className="h-[260px]">
-        {activeTab === 'trend' ? <IncomeExpenseChart selectedMonth={selectedMonth} /> : <SpendingCategoryChart selectedMonth={selectedMonth} />}
+        {activeTab === 'trend' ? <IncomeExpenseChart activePeriod={activePeriod} /> : <SpendingCategoryChart activePeriod={activePeriod} />}
       </div>
     </SectionCard>
   );

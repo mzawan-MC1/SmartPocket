@@ -213,7 +213,7 @@ export default function OnboardingPage() {
       clearFinancialPeriodProfileCache();
       dispatchSmartPocketDataChanged({
         source: 'OnboardingPage',
-        entities: ['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
+        entities: ['profile', 'dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
       });
       toast.success('Profile set up! Welcome to Smart Pocket.');
       router.replace('/dashboard');

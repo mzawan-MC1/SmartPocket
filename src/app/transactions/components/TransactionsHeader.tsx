@@ -7,18 +7,28 @@ import StatusBadge from '@/components/ui/StatusBadge';
 
 export default function TransactionsHeader({
   onAddTransaction,
+  onExportCSV,
+  activeRangeLabel,
 }: {
   onAddTransaction: () => void;
+  onExportCSV: (() => void) | null;
+  activeRangeLabel: string;
 }) {
   return (
     <PageHeader
       title="Transactions"
-      description="Review, filter, and manage income, expenses, and transfers from a single ledger."
+      description={`Review, filter, and manage income, expenses, and transfers from a single ledger. Active range: ${activeRangeLabel}`}
       badge={<StatusBadge status="info" label="Finance ledger" />}
       actions={
         <>
           <button
-            onClick={() => toast?.info('CSV export triggered')}
+            onClick={() => {
+              if (!onExportCSV) {
+                toast?.info('No filtered transactions are ready to export yet');
+                return;
+              }
+              onExportCSV();
+            }}
             className="btn-secondary"
           >
             <Download size={15} />

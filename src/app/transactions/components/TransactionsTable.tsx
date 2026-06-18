@@ -1,12 +1,12 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Edit2, Loader2, ArrowUpDown, Users } from 'lucide-react';
+import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Edit2, Loader2, ArrowUpDown, Users, CalendarRange } from 'lucide-react';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import {
   getTransactions, deleteTransaction,
-  getAccounts, getCategories, uploadReceipt, getLatestReportingContext, getLatestTransactionReportingPreviews,
+  getAccounts, getCategories, getLatestReportingContext, getLatestTransactionReportingPreviews, generateCSV,
   type Transaction, type FinancialAccount, type Category,
 } from '@/lib/finance';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
@@ -14,18 +14,51 @@ import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import AddTransactionModal from './AddTransactionModal';
+import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import { formatFinancialPeriodLabel, getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey } from '@/lib/financial-periods';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
+type QuickDateFilterMode = 'pay_cycle' | 'month' | 'all_time' | 'custom';
+
+function downloadCSV(filename: string, csv: string) {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function getPayPeriodForOffset(context: UserFinancialPeriodContext, offset: number) {
+  let period = context.currentFinancialPeriod;
+  if (offset < 0) {
+    for (let index = 0; index < Math.abs(offset); index += 1) {
+      period = getPreviousFinancialPeriod(context.effectiveConfig, period.startDate);
+    }
+  } else if (offset > 0) {
+    for (let index = 0; index < offset; index += 1) {
+      period = getNextFinancialPeriod(context.effectiveConfig, period.startDate);
+    }
+  }
+  return period;
+}
 
 export default function TransactionsTable({
+  financialPeriodContext,
   isAddTransactionOpen,
   onOpenAddTransaction,
   onCloseAddTransaction,
+  onRangeLabelChange,
+  onExportReady,
 }: {
+  financialPeriodContext: UserFinancialPeriodContext;
   isAddTransactionOpen: boolean;
   onOpenAddTransaction: () => void;
   onCloseAddTransaction: () => void;
+  onRangeLabelChange: (label: string) => void;
+  onExportReady: (handler: (() => void) | null) => void;
 }) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionReportingCurrency, setTransactionReportingCurrency] = useState('');
@@ -37,8 +70,11 @@ export default function TransactionsTable({
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [filterAccount, setFilterAccount] = useState('all');
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [dateFilterMode, setDateFilterMode] = useState<QuickDateFilterMode>('month');
+  const [periodOffset, setPeriodOffset] = useState(0);
+  const [customDateFrom, setCustomDateFrom] = useState('');
+  const [customDateTo, setCustomDateTo] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('transaction_date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -47,11 +83,78 @@ export default function TransactionsTable({
   const [showFilters, setShowFilters] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const hasInitializedDateFilter = React.useRef(false);
+
+  useEffect(() => {
+    if (hasInitializedDateFilter.current) return;
+    setDateFilterMode(financialPeriodContext.defaultDashboardPeriod);
+    setPeriodOffset(0);
+    hasInitializedDateFilter.current = true;
+  }, [financialPeriodContext.defaultDashboardPeriod]);
+
+  const activeDateFilter = useMemo(() => {
+    if (dateFilterMode === 'all_time') {
+      return {
+        dateFrom: undefined,
+        dateTo: undefined,
+        label: 'All time',
+        description: 'Showing all transaction history',
+        canMovePrevious: false,
+        canMoveNext: false,
+      };
+    }
+
+    if (dateFilterMode === 'custom') {
+      const label = customDateFrom && customDateTo
+        ? `${customDateFrom} - ${customDateTo}`
+        : 'Custom range';
+      return {
+        dateFrom: customDateFrom || undefined,
+        dateTo: customDateTo || undefined,
+        label,
+        description: 'Custom date range',
+        canMovePrevious: false,
+        canMoveNext: false,
+      };
+    }
+
+    if (dateFilterMode === 'pay_cycle') {
+      const period = getPayPeriodForOffset(financialPeriodContext, periodOffset);
+      const payPeriodName = financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      return {
+        dateFrom: period.startDate,
+        dateTo: period.endDate,
+        label: formatFinancialPeriodLabel(period),
+        description: periodOffset === 0 ? `Current ${payPeriodName}` : periodOffset === -1 ? `Previous ${payPeriodName}` : 'Pay period',
+        canMovePrevious: true,
+        canMoveNext: periodOffset < 0,
+      };
+    }
+
+    const currentMonth = getMonthContext(undefined, financialPeriodContext.timezone);
+    const monthContext = getMonthContext(shiftMonthKey(currentMonth.monthKey, periodOffset), financialPeriodContext.timezone);
+    return {
+      dateFrom: monthContext.startDate,
+      dateTo: monthContext.endDate,
+      label: monthContext.label,
+      description: periodOffset === 0 ? 'Current month' : periodOffset === -1 ? 'Previous month' : 'Month',
+      canMovePrevious: true,
+      canMoveNext: periodOffset < 0,
+    };
+  }, [customDateFrom, customDateTo, dateFilterMode, financialPeriodContext, periodOffset]);
+
+  useEffect(() => {
+    onRangeLabelChange(activeDateFilter.label);
+  }, [activeDateFilter.label, onRangeLabelChange]);
 
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
-      getTransactions({ type: filterType === 'all' ? undefined : filterType, dateFrom: filterDateFrom || undefined, dateTo: filterDateTo || undefined }),
+      getTransactions({
+        type: filterType === 'all' ? undefined : filterType,
+        dateFrom: activeDateFilter.dateFrom,
+        dateTo: activeDateFilter.dateTo,
+      }),
       getAccounts(),
       getCategories(),
       getManagedPeople(false),
@@ -68,7 +171,7 @@ export default function TransactionsTable({
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
-  }, [filterType, filterDateFrom, filterDateTo]);
+  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filterType]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -120,7 +223,8 @@ export default function TransactionsTable({
         (t.category?.name || '').toLowerCase().includes(search.toLowerCase()) ||
         (t.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
       const matchAccount = filterAccount === 'all' || t.account_id === filterAccount;
-      return matchSearch && matchAccount;
+      const matchCategory = filterCategory === 'all' || t.category_id === filterCategory;
+      return matchSearch && matchAccount && matchCategory;
     });
     if (sortKey && sortDir) {
       result = [...result].sort((a, b) => {
@@ -133,7 +237,21 @@ export default function TransactionsTable({
       });
     }
     return result;
-  }, [transactions, search, filterAccount, sortKey, sortDir]);
+  }, [transactions, search, filterAccount, filterCategory, sortKey, sortDir]);
+
+  const exportFilteredTransactions = useCallback(() => {
+    if (filtered.length === 0) {
+      toast.error('No filtered transactions to export');
+      return;
+    }
+    downloadCSV(`smart-pocket-transactions-${activeDateFilter.dateFrom || 'all'}-${activeDateFilter.dateTo || 'all'}.csv`, generateCSV(filtered));
+    toast.success(`CSV exported - ${filtered.length} transactions`);
+  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filtered]);
+
+  useEffect(() => {
+    onExportReady(() => exportFilteredTransactions);
+    return () => onExportReady(null);
+  }, [exportFilteredTransactions, onExportReady]);
 
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
@@ -151,6 +269,85 @@ export default function TransactionsTable({
     <div className="space-y-4">
       <div className="section-card">
         <div className="section-card-body">
+          <div className="mb-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(0); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'pay_cycle' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Current planning period' : 'Current pay period'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(-1); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'pay_cycle' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Previous planning period' : 'Previous pay period'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('month'); setPeriodOffset(0); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'month' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                Current month
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('month'); setPeriodOffset(-1); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'month' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                Previous month
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('all_time'); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'all_time' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                All time
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDateFilterMode('custom'); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'custom' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                Custom range
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground">
+                <CalendarRange size={14} className="text-accent" />
+                <span className="font-600">{activeDateFilter.description}:</span>
+                <span>{activeDateFilter.label}</span>
+              </div>
+              {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
+                <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2 py-1">
+                  <button
+                    type="button"
+                    onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
+                    className="btn-ghost min-h-0 rounded-lg p-2"
+                    aria-label={dateFilterMode === 'month' ? 'Previous month' : 'Previous pay period'}
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (!activeDateFilter.canMoveNext) return; setPeriodOffset((current) => Math.min(0, current + 1)); setPage(1); }}
+                    disabled={!activeDateFilter.canMoveNext}
+                    className="btn-ghost min-h-0 rounded-lg p-2 disabled:opacity-40"
+                    aria-label={dateFilterMode === 'month' ? 'Next month' : 'Next pay period'}
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              ) : null}
+              {financialPeriodContext.configurationWarning ? (
+                <div className="rounded-xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+                  {financialPeriodContext.configurationWarning}
+                </div>
+              ) : null}
+            </div>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <SearchField
               placeholder="Search merchant, category, or tag..."
@@ -177,7 +374,7 @@ export default function TransactionsTable({
             </div>
           </div>
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
                 <label className="block text-sm font-700 text-foreground mb-1.5">Account</label>
                 <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-9 text-sm">
@@ -186,12 +383,33 @@ export default function TransactionsTable({
                 </select>
               </div>
               <div>
+                <label className="block text-sm font-700 text-foreground mb-1.5">Category</label>
+                <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }} className="input-base h-9 text-sm">
+                  <option value="all">All Categories</option>
+                  {categories
+                    .filter((category) => filterType === 'all' || category.category_type === filterType)
+                    .map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                </select>
+              </div>
+              <div>
                 <label className="block text-sm font-700 text-foreground mb-1.5">Date From</label>
-                <input type="date" className="input-base h-9 text-sm" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+                <input
+                  type="date"
+                  className="input-base h-9 text-sm"
+                  value={customDateFrom}
+                  onChange={(e) => { setCustomDateFrom(e.target.value); setDateFilterMode('custom'); setPage(1); }}
+                  aria-label="Custom range start date"
+                />
               </div>
               <div>
                 <label className="block text-sm font-700 text-foreground mb-1.5">Date To</label>
-                <input type="date" className="input-base h-9 text-sm" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+                <input
+                  type="date"
+                  className="input-base h-9 text-sm"
+                  value={customDateTo}
+                  onChange={(e) => { setCustomDateTo(e.target.value); setDateFilterMode('custom'); setPage(1); }}
+                  aria-label="Custom range end date"
+                />
               </div>
             </div>
           )}
@@ -217,8 +435,10 @@ export default function TransactionsTable({
           <div className="p-12">
             <EmptyState
               icon={ArrowUpDown}
-              title="No transactions yet"
-              description="Add your first income or expense transaction to get started."
+              title={transactions.length === 0 && dateFilterMode !== 'all_time' ? 'No transactions in this period' : 'No transactions yet'}
+              description={transactions.length === 0 && dateFilterMode !== 'all_time'
+                ? 'Try a different planning period, switch to all time, or broaden your filters.'
+                : 'Add your first income or expense transaction to get started.'}
               action={{ label: 'Add Transaction', onClick: handleOpenNewTransaction }}
             />
           </div>
@@ -383,4 +603,4 @@ export default function TransactionsTable({
       />
     </div>
   );
-};
+}

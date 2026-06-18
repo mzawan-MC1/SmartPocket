@@ -10,6 +10,14 @@ import {
 
 export * from './types';
 
+export interface FinancialMonthContext {
+  monthKey: string;
+  label: string;
+  startDate: string;
+  endDate: string;
+  isCurrentMonth: boolean;
+}
+
 const CUSTOM_CYCLE_MIN_DAYS = 2;
 const CUSTOM_CYCLE_MAX_DAYS = 90;
 
@@ -25,6 +33,10 @@ const WEEKDAY_TO_INDEX: Record<WeeklyPayday, number> = {
 
 function isValidDateString(value: string | null | undefined): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function isValidMonthKey(value: string | null | undefined): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value);
 }
 
 function normalizeDateString(value: string | null | undefined): string | null {
@@ -242,6 +254,50 @@ export function getMonthlyPeriod(referenceDate?: Date | string, timezone = DEFAU
   const startDate = `${year.toString().padStart(4, '0')}-${String(month).padStart(2, '0')}-01`;
   const endDate = `${year.toString().padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(daysInMonth(year, month)).padStart(2, '0')}`;
   return buildPeriod(startDate, endDate, 'month');
+}
+
+export function getCurrentBusinessDate(timezone = DEFAULT_FINANCIAL_PERIOD_CONFIG.timezone, referenceDate?: Date | string) {
+  return toBusinessDateString(referenceDate, getSafeTimezone(timezone));
+}
+
+export function getMonthKey(referenceDate?: Date | string, timezone = DEFAULT_FINANCIAL_PERIOD_CONFIG.timezone) {
+  const businessDate = getCurrentBusinessDate(timezone, referenceDate);
+  return businessDate.slice(0, 7);
+}
+
+export function shiftMonthKey(monthKey: string, offset: number) {
+  const [yearText, monthText] = monthKey.split('-');
+  const base = new Date(Date.UTC(Number(yearText), Number(monthText) - 1, 1, 12, 0, 0));
+  base.setUTCMonth(base.getUTCMonth() + offset);
+  return `${base.getUTCFullYear()}-${String(base.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getMonthContext(
+  selectedMonth?: string,
+  timezone = DEFAULT_FINANCIAL_PERIOD_CONFIG.timezone,
+  referenceDate?: Date | string
+): FinancialMonthContext {
+  const currentMonthKey = getMonthKey(referenceDate, timezone);
+  const monthKey = isValidMonthKey(selectedMonth) && selectedMonth <= currentMonthKey
+    ? selectedMonth
+    : currentMonthKey;
+  const [yearText, monthText] = monthKey.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const startDate = `${yearText}-${monthText}-01`;
+  const endDate = `${yearText}-${monthText}-${String(daysInMonth(year, month)).padStart(2, '0')}`;
+
+  return {
+    monthKey,
+    label: new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(toUtcNoonDate(startDate)),
+    startDate,
+    endDate,
+    isCurrentMonth: monthKey === currentMonthKey,
+  };
 }
 
 export function normalizeFinancialPeriodConfig(input?: Partial<FinancialPeriodConfig> | null): FinancialPeriodConfig {
