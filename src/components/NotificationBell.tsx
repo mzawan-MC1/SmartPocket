@@ -74,8 +74,8 @@ export default function NotificationBell() {
     void refresh(true);
   }, [refresh]);
 
-  useSmartPocketDataChanged(['notifications'], 'NotificationBell', () => {
-    void refresh();
+  useSmartPocketDataChanged(['notifications', 'profile', 'recurring_transactions', 'budgets'], 'NotificationBell', () => {
+    void refresh(true);
   });
 
   useEffect(() => {

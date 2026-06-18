@@ -7,7 +7,10 @@ import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 import {
+  canAutoAdvanceRecurringTransaction,
+  formatRecurringFrequencyLabel,
   getRecurringTransactions, updateRecurringTransaction,
   markRecurringAsPaid, getAccounts, getCategories,
   type RecurringTransaction, type FinancialAccount, type Category,
@@ -41,6 +44,10 @@ export default function RecurringPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useSmartPocketDataChanged(['recurring_transactions', 'financial_accounts', 'profile'], 'RecurringPage', async () => {
+    load();
+  });
 
   const handleTogglePause = async (item: RecurringTransaction) => {
     try {
@@ -115,16 +122,16 @@ export default function RecurringPage() {
         {/* Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="card-elevated p-4">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Monthly Expenses</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Expenses</p>
             <div className="text-xl font-700 font-tabular text-negative">
               {totalMonthly.map((row) => (
                 <FormattedCurrencyAmount key={`expense-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-negative" showCode />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'expense').length} active subscriptions</p>
+            <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'expense').length} active recurring expenses</p>
           </div>
           <div className="card-elevated p-4">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Monthly Income</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Income</p>
             <div className="text-xl font-700 font-tabular text-positive">
               {totalIncome.map((row) => (
                 <FormattedCurrencyAmount key={`income-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-positive" showCode />
@@ -133,7 +140,7 @@ export default function RecurringPage() {
             <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'income').length} income sources</p>
           </div>
           <div className="card-elevated p-4">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Net Monthly</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Net Scheduled</p>
             <div className="text-xl font-700 font-tabular">
               {netMonthly.map((row) => (
                 <FormattedCurrencyAmount
@@ -145,7 +152,7 @@ export default function RecurringPage() {
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">After recurring expenses</p>
+            <p className="text-xs text-muted-foreground mt-1">Across active supported schedules</p>
           </div>
         </div>
 
@@ -180,7 +187,9 @@ export default function RecurringPage() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {activeItems.map((item) => (
+              {activeItems.map((item) => {
+                const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
+                return (
                 <div key={item.id} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.transaction_type === 'income' ? 'bg-positive-soft' : 'bg-negative-soft'}`}>
                     <Repeat size={18} className={item.transaction_type === 'income' ? 'text-positive' : 'text-negative'} />
@@ -190,9 +199,12 @@ export default function RecurringPage() {
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.merchant && `${item.merchant} · `}{item.frequency} · Next: {item.next_due_date}
+                      {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency)} · Next: {item.next_due_date}
                       {item.account && ` · ${item.account.name}`}
                     </p>
+                    {!canMarkPaid ? (
+                      <p className="mt-1 text-[10px] font-600 text-warning">Recurring schedule is incomplete for automatic next-date calculation.</p>
+                    ) : null}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className={`text-sm font-700 font-tabular ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}>
@@ -206,7 +218,7 @@ export default function RecurringPage() {
                     <div className="flex items-center gap-1 mt-1 justify-end">
                       <button
                         onClick={() => handleMarkPaid(item)}
-                        disabled={markingId === item.id}
+                        disabled={markingId === item.id || !canMarkPaid}
                         className="flex items-center gap-0.5 text-[10px] font-600 text-accent hover:text-teal-600 transition-colors disabled:opacity-50"
                         aria-label="Mark as paid"
                       >
@@ -222,7 +234,7 @@ export default function RecurringPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
@@ -241,7 +253,7 @@ export default function RecurringPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{item.frequency} · Paused</p>
+                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency)} · Paused</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label="Resume">

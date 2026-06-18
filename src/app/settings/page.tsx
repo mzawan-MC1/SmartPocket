@@ -427,13 +427,9 @@ export default function SettingsPage() {
                   </p>
                 ) : null}
               </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Month starts on day</label>
-                <select className="input-base w-24" {...register('month_start_day')}>
-                  {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
+              <input type="hidden" {...register('month_start_day')} />
+              <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
+                Month starts on day is kept in your profile for legacy compatibility only and is not used by the shared planning-period engine.
               </div>
               </div>
             </SectionCard>
@@ -531,13 +527,13 @@ export default function SettingsPage() {
                   },
                   {
                     key: 'recurring_due_reminders' as const,
-                    label: 'Recurring payment reminders',
-                    desc: 'Create reminders when recurring expense payments are due soon.',
+                    label: 'Payday and bill reminders',
+                    desc: 'Create reminders for pay period starts, bills due before payday, recurring payments due soon, and large recurring payments due this pay period.',
                   },
                   {
                     key: 'budget_alerts' as const,
-                    label: 'Budget alerts',
-                    desc: 'Notify when spending reaches the saved alert threshold for active budgets.',
+                    label: 'Budget warnings',
+                    desc: 'Notify when spending reaches the saved alert threshold or exceeds an active budget period.',
                   },
                   {
                     key: 'reimbursement_updates' as const,

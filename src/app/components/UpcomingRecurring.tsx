@@ -1,7 +1,14 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarClock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { getRecurringTransactions, markRecurringAsPaid, type DashboardActivePeriod, type RecurringTransaction } from '@/lib/finance';
+import {
+  canAutoAdvanceRecurringTransaction,
+  formatRecurringFrequencyLabel,
+  getRecurringTransactions,
+  markRecurringAsPaid,
+  type DashboardActivePeriod,
+  type RecurringTransaction,
+} from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
@@ -47,7 +54,7 @@ export default function UpcomingRecurring({
 
   useEffect(() => { void load(); }, [load]);
 
-  useSmartPocketDataChanged(['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'], 'UpcomingRecurring', async () => {
+  useSmartPocketDataChanged(['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions', 'profile'], 'UpcomingRecurring', async () => {
     await load();
   });
 
@@ -110,6 +117,7 @@ export default function UpcomingRecurring({
             {items.map((item) => {
               const days = daysUntil(item.next_due_date, activePeriod.timezone);
               const urgent = activePeriod.isCurrent && days <= 3;
+              const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
               const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               return (
                 <div key={item.id} className={`flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors ${urgent ? 'bg-warning-soft/30' : ''}`}>
@@ -119,8 +127,11 @@ export default function UpcomingRecurring({
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {dueDate} · {activePeriod.isCurrent ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
+                      {formatRecurringFrequencyLabel(item.frequency)} · {dueDate} · {activePeriod.isCurrent ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
                     </p>
+                    {!canMarkPaid ? (
+                      <p className="mt-1 text-[10px] font-600 text-warning">Unable to calculate next payment date for this schedule.</p>
+                    ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
                     <FormattedCurrencyAmount
@@ -129,7 +140,7 @@ export default function UpcomingRecurring({
                       className="text-sm font-700 font-tabular text-foreground"
                       showCode
                     />
-                    {activePeriod.isCurrent ? (
+                    {activePeriod.isCurrent && canMarkPaid ? (
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id}
@@ -143,7 +154,7 @@ export default function UpcomingRecurring({
                         Mark paid
                       </button>
                     ) : (
-                      <span className="text-[10px] font-600 text-muted-foreground">Scheduled</span>
+                      <span className="text-[10px] font-600 text-muted-foreground">{canMarkPaid ? 'Scheduled' : 'Schedule incomplete'}</span>
                     )}
                   </div>
                 </div>

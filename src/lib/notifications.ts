@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/client';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
-import { getBudgets } from '@/lib/finance';
+import { formatRecurringFrequencyLabel, getBudgets } from '@/lib/finance';
+import { getCurrentFinancialPeriod, getNextFinancialPeriod } from '@/lib/financial-periods';
+import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 
 export interface AppNotification {
   id: string;
@@ -44,9 +46,37 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   ai_execution_failure_notifications: true,
 };
 
-function getCurrentMonthStart() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+function addDays(dateString: string, amount: number) {
+  const date = new Date(`${dateString}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatCurrencyTotal(currency: string, amount: number) {
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency,
+      currencyDisplay: 'code',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toFixed(2)}`;
+  }
+}
+
+function formatGroupedCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
+  return rows.map((row) => formatCurrencyTotal(row.currency, row.amount)).join(', ');
+}
+
+function sumRecurringDueByCurrency(rows: Array<{ currency: string | null; amount: number | null }>) {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const currency = typeof row.currency === 'string' && row.currency.trim().length > 0 ? row.currency : 'USD';
+    totals.set(currency, (totals.get(currency) || 0) + Math.abs(Number(row.amount || 0)));
+  }
+  return Array.from(totals.entries()).map(([currency, amount]) => ({ currency, amount }));
 }
 
 async function requireUserId() {
@@ -279,14 +309,76 @@ export async function syncInAppNotificationSignals(): Promise<void> {
   }
 
   const { supabase, userId } = await requireUserId();
-  const today = new Date();
-  const todayIso = today.toISOString().slice(0, 10);
-  const dueSoonIso = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const periodContext = await loadUserFinancialPeriodContext();
+  const todayIso = periodContext.currentBusinessDate;
+  const tomorrowIso = addDays(todayIso, 1);
+  const dueSoonIso = addDays(todayIso, 3);
+  const currentFinancialPeriod = getCurrentFinancialPeriod(periodContext.effectiveConfig, todayIso);
+  const nextFinancialPeriod = getNextFinancialPeriod(periodContext.effectiveConfig, todayIso);
 
   if (preferences.recurring_due_reminders) {
+    if (nextFinancialPeriod.startDate === todayIso) {
+      await createNotificationOnce({
+        type: 'pay_period_starts_today',
+        title: 'Pay period starts today',
+        message: `Your ${periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period'} starts today.`,
+        actionUrl: '/dashboard',
+        metadata: {
+          period_start: nextFinancialPeriod.startDate,
+          period_end: nextFinancialPeriod.endDate,
+        },
+        sourceKey: `pay_period_today:${nextFinancialPeriod.startDate}`,
+      });
+    } else if (nextFinancialPeriod.startDate === tomorrowIso) {
+      await createNotificationOnce({
+        type: 'pay_period_starts_tomorrow',
+        title: 'Pay period starts tomorrow',
+        message: `Your ${periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period'} starts tomorrow.`,
+        actionUrl: '/dashboard',
+        metadata: {
+          period_start: nextFinancialPeriod.startDate,
+          period_end: nextFinancialPeriod.endDate,
+        },
+        sourceKey: `pay_period_tomorrow:${nextFinancialPeriod.startDate}`,
+      });
+    }
+
+    const billsBeforePaydayEnd = addDays(nextFinancialPeriod.startDate, -1);
+    if (billsBeforePaydayEnd >= todayIso) {
+      const { data: billsBeforePayday, error: billsBeforePaydayError } = await supabase
+        .from('recurring_transactions')
+        .select('id, description, amount, currency, next_due_date, frequency')
+        .eq('is_active', true)
+        .eq('transaction_type', 'expense')
+        .gte('next_due_date', todayIso)
+        .lte('next_due_date', billsBeforePaydayEnd)
+        .order('next_due_date', { ascending: true });
+
+      if (billsBeforePaydayError) {
+        throw billsBeforePaydayError;
+      }
+
+      const dueBills = billsBeforePayday || [];
+      if (dueBills.length > 0) {
+        const dueTotals = sumRecurringDueByCurrency(dueBills);
+        await createNotificationOnce({
+          type: 'bills_before_next_payday',
+          title: 'Bills due before next payday',
+          message: `${formatGroupedCurrencyTotals(dueTotals)} in bills is due before your next payday on ${nextFinancialPeriod.startDate}.`,
+          actionUrl: '/recurring',
+          metadata: {
+            next_payday: nextFinancialPeriod.startDate,
+            total_due_by_currency: dueTotals,
+            recurring_count: dueBills.length,
+          },
+          sourceKey: `bills_before_payday:${nextFinancialPeriod.startDate}`,
+        });
+      }
+    }
+
     const { data: recurringDueSoon, error: recurringError } = await supabase
       .from('recurring_transactions')
-      .select('id, description, amount, currency, next_due_date')
+      .select('id, description, amount, currency, next_due_date, frequency')
       .eq('is_active', true)
       .eq('transaction_type', 'expense')
       .gte('next_due_date', todayIso)
@@ -302,7 +394,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
       await createNotificationOnce({
         type: 'recurring_due_soon',
         title: 'Recurring payment due soon',
-        message: `${recurring.description || 'A recurring payment'} is due on ${recurring.next_due_date}.`,
+        message: `${recurring.description || 'A recurring payment'} (${formatRecurringFrequencyLabel(recurring.frequency || '')}) is due on ${recurring.next_due_date}.`,
         actionUrl: '/recurring',
         metadata: {
           recurring_id: recurring.id,
@@ -312,11 +404,31 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         },
         sourceKey: `recurring_due:${recurring.id}:${recurring.next_due_date}`,
       });
+
+      if (
+        recurring.next_due_date >= currentFinancialPeriod.startDate &&
+        recurring.next_due_date <= currentFinancialPeriod.endDate &&
+        Math.abs(Number(recurring.amount || 0)) >= 500
+      ) {
+        await createNotificationOnce({
+          type: 'large_payment_due_this_period',
+          title: 'Large payment due this pay period',
+          message: `${recurring.description || 'A recurring payment'} of ${formatCurrencyTotal(recurring.currency || 'USD', Math.abs(Number(recurring.amount || 0)))} is due this ${periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period'}.`,
+          actionUrl: '/recurring',
+          metadata: {
+            recurring_id: recurring.id,
+            amount: recurring.amount,
+            currency: recurring.currency,
+            next_due_date: recurring.next_due_date,
+          },
+          sourceKey: `large_due:${recurring.id}:${currentFinancialPeriod.startDate}:${currentFinancialPeriod.endDate}`,
+        });
+      }
     }
   }
 
   if (preferences.budget_alerts) {
-    const budgets = await getBudgets(getCurrentMonthStart());
+    const budgets = await getBudgets(todayIso);
 
     for (const budget of budgets) {
       const amount = Number(budget.amount || 0);
@@ -325,12 +437,28 @@ export async function syncInAppNotificationSignals(): Promise<void> {
       const spent = Number(budget.spent || 0);
       const usedPct = (spent / amount) * 100;
       const threshold = Number(budget.alert_at_percent || 80);
+      if (usedPct >= 100) {
+        await createNotificationOnce({
+          type: 'budget_exceeded',
+          title: 'Budget exceeded',
+          message: `${budget.category?.name || budget.name} is over budget at ${usedPct.toFixed(1)}% for the active budget period.`,
+          actionUrl: '/budgets',
+          metadata: {
+            budget_id: budget.id,
+            period_start: budget.period_start,
+            used_pct: usedPct,
+            currency: budget.currency,
+          },
+          sourceKey: `budget_exceeded:${budget.id}:${budget.period_start}`,
+        });
+        continue;
+      }
       if (usedPct < threshold) continue;
 
       await createNotificationOnce({
         type: 'budget_threshold_reached',
-        title: 'Budget alert',
-        message: `${budget.category?.name || budget.name} has reached ${usedPct.toFixed(1)}% of its budget.`,
+        title: 'Budget near limit',
+        message: `${budget.category?.name || budget.name} has reached ${usedPct.toFixed(1)}% of its budget for the active budget period.`,
         actionUrl: '/budgets',
         metadata: {
           budget_id: budget.id,

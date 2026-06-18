@@ -151,11 +151,14 @@ export default function RecurringTransactionForm({
           <select id="rec-freq-shared" className="input-base" {...register('frequency')}>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
-            <option value="biweekly">Bi-weekly</option>
+            <option value="biweekly">Every 2 weeks</option>
             <option value="monthly">Monthly</option>
             <option value="quarterly">Quarterly</option>
             <option value="yearly">Yearly</option>
           </select>
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Twice a month and custom recurring schedules need dedicated recurrence fields and are not available yet.
+          </p>
         </div>
       </div>
 

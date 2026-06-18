@@ -273,7 +273,7 @@ export interface RecurringTransaction {
   currency: string;
   description: string;
   merchant: string | null;
-  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly';
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
   next_due_date: string;
   last_run_date: string | null;
   is_active: boolean;
@@ -310,6 +310,38 @@ export interface Transfer {
   // joined
   from_account?: { name: string };
   to_account?: { name: string };
+}
+
+export function formatRecurringFrequencyLabel(frequency: RecurringTransaction['frequency'] | string) {
+  switch (frequency) {
+    case 'weekly':
+      return 'Weekly';
+    case 'biweekly':
+      return 'Every 2 weeks';
+    case 'semimonthly':
+      return 'Twice a month';
+    case 'monthly':
+      return 'Monthly';
+    case 'quarterly':
+      return 'Quarterly';
+    case 'yearly':
+      return 'Yearly';
+    case 'custom':
+      return 'Custom';
+    case 'daily':
+      return 'Daily';
+    default:
+      return 'Recurring schedule is incomplete';
+  }
+}
+
+export function canAutoAdvanceRecurringTransaction(frequency: RecurringTransaction['frequency'] | string) {
+  return frequency === 'daily' ||
+    frequency === 'weekly' ||
+    frequency === 'biweekly' ||
+    frequency === 'monthly' ||
+    frequency === 'quarterly' ||
+    frequency === 'yearly';
 }
 
 export interface DashboardConvertedMetric {
@@ -395,6 +427,46 @@ export interface TransactionReportingPreview {
 export interface HistoricalReportContext {
   reportingCurrency: string;
   snapshots: ExchangeRateSnapshotRecord[];
+}
+
+export interface ReportBudgetPerformanceChartRow {
+  id: string;
+  category: string;
+  allocated: number;
+  spent: number;
+  color: string;
+}
+
+export interface ReportBudgetPerformanceItem extends BudgetTrackingItem {
+  allocatedReportingAmount: number | null;
+  spentReportingAmount: number | null;
+  remainingReportingAmount: number | null;
+  reportingCurrency: string;
+  reportingUnavailableReason: string | null;
+}
+
+export interface ReportBudgetPerformanceData {
+  items: ReportBudgetPerformanceItem[];
+  chartRows: ReportBudgetPerformanceChartRow[];
+  reportingCurrency: string;
+  activeBudgetCycleLabels: string[];
+  hasMixedCycles: boolean;
+  unavailableReason: string | null;
+  emptyReason: string | null;
+}
+
+export interface ReportViewData {
+  transactions: Transaction[];
+  accounts: FinancialAccount[];
+  reportingCurrency: string;
+  snapshots: ExchangeRateSnapshotRecord[];
+  incomeTransactions: Transaction[];
+  expenseTransactions: Transaction[];
+  cashFlowTransactions: Transaction[];
+  incomeMetric: HistoricalReportConvertedMetric;
+  expensesMetric: HistoricalReportConvertedMetric;
+  netMetric: HistoricalReportConvertedMetric;
+  budgetPerformance: ReportBudgetPerformanceData;
 }
 
 export interface HistoricalAmountConversionResult {
@@ -1774,6 +1846,170 @@ function getIntersectedBudgetWindow(
   };
 }
 
+function buildEmptyReportBudgetPerformanceData(reportingCurrency: string): ReportBudgetPerformanceData {
+  return {
+    items: [],
+    chartRows: [],
+    reportingCurrency,
+    activeBudgetCycleLabels: [],
+    hasMixedCycles: false,
+    unavailableReason: null,
+    emptyReason: 'No budgets apply to this report period',
+  };
+}
+
+const REPORT_CATEGORY_FALLBACK_COLORS = [
+  '#7c3aed',
+  '#f97316',
+  '#2563eb',
+  '#d97706',
+  '#8b5cf6',
+  '#ec4899',
+  '#dc2626',
+  '#94a3b8',
+];
+
+async function buildReportBudgetPerformanceData(args: {
+  startDate: string;
+  endDate: string;
+  expenseTransactions: Transaction[];
+  reportingCurrency: string;
+  snapshots: ExchangeRateSnapshotRecord[];
+  locale?: string;
+}): Promise<ReportBudgetPerformanceData> {
+  type ApplicableReportBudgetEntry = {
+    budget: Budget;
+    period: ResolvedBudgetPeriod | null;
+    spendingWindow: ResolvedBudgetPeriod | null;
+    warning: string | null;
+  };
+
+  const [periodContext, budgets] = await Promise.all([
+    loadUserFinancialPeriodContext(),
+    loadActiveBudgetRecords(),
+  ]);
+
+  const selectedRange = {
+    startDate: args.startDate,
+    endDate: args.endDate,
+  };
+
+  const applicableBudgetEntries = budgets.map<ApplicableReportBudgetEntry | null>((budget) => {
+    try {
+      const storedPeriod = isBudgetApplicableToRange(
+        budget,
+        periodContext.effectiveConfig,
+        selectedRange,
+        args.locale
+      );
+      if (!storedPeriod) {
+        return null;
+      }
+      return {
+        budget,
+        period: storedPeriod,
+        spendingWindow: getIntersectedBudgetWindow(storedPeriod, selectedRange),
+        warning: null,
+      };
+    } catch (error) {
+      return {
+        budget,
+        period: null,
+        spendingWindow: null,
+        warning: error instanceof Error ? error.message : 'Invalid financial-period configuration',
+      };
+    }
+  });
+  const applicableEntries = applicableBudgetEntries.filter((entry): entry is ApplicableReportBudgetEntry => entry !== null);
+
+  if (applicableEntries.length === 0) {
+    return buildEmptyReportBudgetPerformanceData(args.reportingCurrency);
+  }
+
+  const items: ReportBudgetPerformanceItem[] = [];
+  const chartRows: ReportBudgetPerformanceChartRow[] = [];
+  const unavailableReasons = new Set<string>();
+
+  for (const entry of applicableEntries) {
+    const period = entry.period || {
+      startDate: args.startDate,
+      endDate: args.endDate,
+      frequency: 'month',
+      label: 'Unavailable',
+      budgetPeriod: entry.budget.budget_period,
+    } satisfies ResolvedBudgetPeriod;
+    const budgetTransactions = entry.spendingWindow
+      ? getBudgetTransactionsForPeriod(entry.budget, entry.spendingWindow, args.expenseTransactions as BudgetExpenseRow[])
+      : [];
+    const trackingItem = buildBudgetTrackingItem({
+      budget: entry.budget,
+      period,
+      transactions: budgetTransactions as BudgetExpenseRow[],
+      snapshots: args.snapshots,
+    });
+    const allocatedConversion = convertHistoricalAmountWithSnapshots({
+      amount: Number(entry.budget.amount || 0),
+      fromCurrency: entry.budget.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: period.startDate,
+      snapshots: args.snapshots,
+    });
+    const spentReportingMetric = buildHistoricalReportConvertedMetricFromSnapshots({
+      transactions: budgetTransactions as Transaction[],
+      getSignedAmount: (transaction) => Number(transaction.amount || 0),
+      reportingCurrency: args.reportingCurrency,
+      snapshots: args.snapshots,
+    });
+    const spentReportingAmount = spentReportingMetric.reportingAmount;
+    const allocatedReportingAmount = allocatedConversion.convertedAmount;
+    const reportingUnavailableReason = allocatedReportingAmount === null
+      ? allocatedConversion.unavailableReason || buildHistoricalRateUnavailableMessage(
+        allocatedConversion.missingRateDate ? [allocatedConversion.missingRateDate] : []
+      )
+      : spentReportingAmount === null
+        ? spentReportingMetric.unavailableReason
+        : entry.warning;
+    if (reportingUnavailableReason) {
+      unavailableReasons.add(reportingUnavailableReason);
+    }
+    const remainingReportingAmount =
+      allocatedReportingAmount !== null && spentReportingAmount !== null
+        ? allocatedReportingAmount - spentReportingAmount
+        : null;
+
+    items.push({
+      ...trackingItem,
+      allocatedReportingAmount,
+      spentReportingAmount,
+      remainingReportingAmount,
+      reportingCurrency: args.reportingCurrency,
+      reportingUnavailableReason,
+    });
+
+    if (allocatedReportingAmount !== null && spentReportingAmount !== null) {
+      chartRows.push({
+        id: entry.budget.id,
+        category: entry.budget.category?.name || entry.budget.name || 'Budget',
+        allocated: allocatedReportingAmount,
+        spent: spentReportingAmount,
+        color: entry.budget.category?.color || REPORT_CATEGORY_FALLBACK_COLORS[chartRows.length % REPORT_CATEGORY_FALLBACK_COLORS.length],
+      });
+    }
+  }
+
+  const activeBudgetCycleLabels = Array.from(new Set(items.map((item) => item.periodTypeLabel)));
+
+  return {
+    items,
+    chartRows,
+    reportingCurrency: args.reportingCurrency,
+    activeBudgetCycleLabels,
+    hasMixedCycles: activeBudgetCycleLabels.length > 1,
+    unavailableReason: unavailableReasons.size > 0 ? Array.from(unavailableReasons)[0] : null,
+    emptyReason: items.length === 0 ? 'No budgets apply to this report period' : null,
+  };
+}
+
 function buildBudgetTrackingItem(args: {
   budget: Budget;
   period: ResolvedBudgetPeriod;
@@ -2243,6 +2479,7 @@ export async function markRecurringAsPaid(recurring: RecurringTransaction): Prom
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
+  const { currentBusinessDate } = await loadUserFinancialPeriodContext();
 
   // Create a real transaction
   const { error: txnErr } = await supabase
@@ -2256,7 +2493,7 @@ export async function markRecurringAsPaid(recurring: RecurringTransaction): Prom
       currency: recurring.currency,
       description: recurring.description,
       merchant: recurring.merchant,
-      transaction_date: new Date().toISOString().slice(0, 10),
+      transaction_date: currentBusinessDate,
       is_recurring: true,
       recurring_id: recurring.id,
     });
@@ -2264,12 +2501,15 @@ export async function markRecurringAsPaid(recurring: RecurringTransaction): Prom
 
   // Calculate next due date
   const nextDate = calculateNextDueDate(recurring.next_due_date, recurring.frequency);
+  if (!nextDate) {
+    throw new Error('Unable to calculate next payment date for this recurring schedule.');
+  }
 
   // Update recurring record
   const { error: updateErr } = await supabase
     .from('recurring_transactions')
     .update({
-      last_run_date: new Date().toISOString().slice(0, 10),
+      last_run_date: currentBusinessDate,
       next_due_date: nextDate,
     })
     .eq('id', recurring.id);
@@ -2279,16 +2519,46 @@ export async function markRecurringAsPaid(recurring: RecurringTransaction): Prom
   await recalculateAccountBalance(recurring.account_id);
 }
 
-function calculateNextDueDate(currentDate: string, frequency: string): string {
-  const date = new Date(currentDate);
+function calculateNextDueDate(currentDate: string, frequency: string): string | null {
+  const date = new Date(`${currentDate}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const buildClampedDate = (nextYear: number, nextMonth: number, requestedDay: number) => {
+    const daysInTargetMonth = new Date(Date.UTC(nextYear, nextMonth + 1, 0, 12, 0, 0)).getUTCDate();
+    return new Date(Date.UTC(nextYear, nextMonth, Math.min(requestedDay, daysInTargetMonth), 12, 0, 0));
+  };
+
   switch (frequency) {
-    case 'daily': date.setDate(date.getDate() + 1); break;
-    case 'weekly': date.setDate(date.getDate() + 7); break;
-    case 'biweekly': date.setDate(date.getDate() + 14); break;
-    case 'monthly': date.setMonth(date.getMonth() + 1); break;
-    case 'quarterly': date.setMonth(date.getMonth() + 3); break;
-    case 'yearly': date.setFullYear(date.getFullYear() + 1); break;
-    default: date.setMonth(date.getMonth() + 1);
+    case 'daily':
+      date.setUTCDate(date.getUTCDate() + 1);
+      break;
+    case 'weekly':
+      date.setUTCDate(date.getUTCDate() + 7);
+      break;
+    case 'biweekly':
+      date.setUTCDate(date.getUTCDate() + 14);
+      break;
+    case 'monthly': {
+      const next = buildClampedDate(year, month + 1, day);
+      return next.toISOString().slice(0, 10);
+    }
+    case 'quarterly': {
+      const next = buildClampedDate(year, month + 3, day);
+      return next.toISOString().slice(0, 10);
+    }
+    case 'yearly': {
+      const next = buildClampedDate(year + 1, month, day);
+      return next.toISOString().slice(0, 10);
+    }
+    case 'semimonthly':
+    case 'custom':
+      return null;
+    default:
+      return null;
   }
   return date.toISOString().slice(0, 10);
 }
@@ -2515,6 +2785,78 @@ export async function getReportDataWithContext(dateFrom: string, dateTo: string,
 
 export async function getReportData(dateFrom: string, dateTo: string, accountId?: string) {
   return (await getReportDataWithContext(dateFrom, dateTo, accountId)).transactions;
+}
+
+export async function getReportViewData(args: {
+  startDate: string;
+  endDate: string;
+  accountId?: string;
+  locale?: string;
+}): Promise<ReportViewData> {
+  const [reportData, accounts] = await Promise.all([
+    getReportDataWithContext(args.startDate, args.endDate, args.accountId),
+    getAccounts(),
+  ]);
+  const transactions = reportData.transactions;
+  const incomeTransactions = transactions.filter((transaction) =>
+    isPersonalIncomeTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+  );
+  const expenseTransactions = transactions.filter((transaction) =>
+    isPersonalExpenseTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+  );
+  const cashFlowTransactions = transactions.filter((transaction) =>
+    shouldIncludeInPersonalCashFlow(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+  );
+  const reportContext = await getHistoricalReportContext(transactions);
+  const [incomeMetric, expensesMetric, netMetric, budgetPerformance] = await Promise.all([
+    Promise.resolve(buildHistoricalReportConvertedMetricFromSnapshots({
+      transactions: incomeTransactions,
+      getSignedAmount: (transaction) => Number(transaction.amount || 0),
+      reportingCurrency: reportContext.reportingCurrency,
+      snapshots: reportContext.snapshots,
+    })),
+    Promise.resolve(buildHistoricalReportConvertedMetricFromSnapshots({
+      transactions: expenseTransactions,
+      getSignedAmount: (transaction) => Number(transaction.amount || 0),
+      reportingCurrency: reportContext.reportingCurrency,
+      snapshots: reportContext.snapshots,
+    })),
+    Promise.resolve(buildHistoricalReportConvertedMetricFromSnapshots({
+      transactions: cashFlowTransactions,
+      getSignedAmount: (transaction) => {
+        const amount = Number(transaction.amount || 0);
+        return transaction.transaction_type === 'income'
+          ? amount
+          : transaction.transaction_type === 'expense'
+            ? -amount
+            : 0;
+      },
+      reportingCurrency: reportContext.reportingCurrency,
+      snapshots: reportContext.snapshots,
+    })),
+    buildReportBudgetPerformanceData({
+      startDate: args.startDate,
+      endDate: args.endDate,
+      expenseTransactions,
+      reportingCurrency: reportContext.reportingCurrency,
+      snapshots: reportContext.snapshots,
+      locale: args.locale,
+    }),
+  ]);
+
+  return {
+    transactions,
+    accounts: accounts.filter((account) => account.is_active),
+    reportingCurrency: reportContext.reportingCurrency,
+    snapshots: reportContext.snapshots,
+    incomeTransactions,
+    expenseTransactions,
+    cashFlowTransactions,
+    incomeMetric,
+    expensesMetric,
+    netMetric,
+    budgetPerformance,
+  };
 }
 
 export async function buildHistoricalReportConvertedMetric(args: {

@@ -1,0 +1,432 @@
+import {
+  formatCalendarMonthLabel,
+  formatFinancialPeriodLabel,
+  getCurrentFinancialPeriod,
+  getCurrentBusinessDate,
+  getMonthContext,
+  getNextFinancialPeriod,
+  getPeriodContainingDate,
+  getPreviousFinancialPeriod,
+  type FinancialPeriodConfig,
+} from './index';
+
+export type ReportPeriodPreset =
+  | 'current_pay_period'
+  | 'previous_pay_period'
+  | 'current_month'
+  | 'previous_month'
+  | 'current_quarter'
+  | 'current_year'
+  | 'last_30_days'
+  | 'year_to_date'
+  | 'custom';
+
+export interface ReportPeriodRange {
+  preset: ReportPeriodPreset;
+  startDate: string;
+  endDate: string;
+  label: string;
+  presetLabel: string;
+  comparisonLabel: string | null;
+  navigationLabel: string | null;
+  isCustom: boolean;
+  canNavigateForward: boolean;
+}
+
+interface ResolveReportPeriodPresetArgs {
+  preset: ReportPeriodPreset;
+  config: FinancialPeriodConfig;
+  locale?: string;
+  referenceDate?: string;
+  customRange?: {
+    startDate: string;
+    endDate: string;
+  };
+}
+
+function addDays(dateString: string, amount: number) {
+  const date = toUtcNoonDate(dateString);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function toUtcNoonDate(dateString: string) {
+  return new Date(`${dateString}T12:00:00Z`);
+}
+
+function formatQuarterLabel(startDate: string) {
+  const date = toUtcNoonDate(startDate);
+  const quarter = Math.floor(date.getUTCMonth() / 3) + 1;
+  return `Q${quarter} ${date.getUTCFullYear()}`;
+}
+
+function formatYearLabel(startDate: string) {
+  return toUtcNoonDate(startDate).getUTCFullYear().toString();
+}
+
+function getQuarterRange(referenceDate: string) {
+  const date = toUtcNoonDate(referenceDate);
+  const year = date.getUTCFullYear();
+  const startMonth = Math.floor(date.getUTCMonth() / 3) * 3;
+  const start = new Date(Date.UTC(year, startMonth, 1, 12, 0, 0));
+  const end = new Date(Date.UTC(year, startMonth + 3, 0, 12, 0, 0));
+  return {
+    startDate: start.toISOString().slice(0, 10),
+    endDate: end.toISOString().slice(0, 10),
+  };
+}
+
+function getYearRange(referenceDate: string) {
+  const year = toUtcNoonDate(referenceDate).getUTCFullYear();
+  return {
+    startDate: `${year}-01-01`,
+    endDate: `${year}-12-31`,
+  };
+}
+
+function shiftMonthKey(monthKey: string, amount: number) {
+  const [yearText, monthText] = monthKey.split('-');
+  const shifted = new Date(Date.UTC(Number(yearText), Number(monthText) - 1 + amount, 1, 12, 0, 0));
+  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function shiftQuarter(referenceDate: string, amount: number) {
+  const date = toUtcNoonDate(referenceDate);
+  date.setUTCMonth(date.getUTCMonth() + amount * 3);
+  return date.toISOString().slice(0, 10);
+}
+
+function shiftYear(referenceDate: string, amount: number) {
+  const date = toUtcNoonDate(referenceDate);
+  date.setUTCFullYear(date.getUTCFullYear() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function buildPlanningPresetLabel(preset: ReportPeriodPreset, config: FinancialPeriodConfig) {
+  const isPlanningFallback = config.incomeFrequency === 'irregular';
+  if (preset === 'current_pay_period') {
+    return isPlanningFallback ? 'Current planning period' : 'Current pay period';
+  }
+  if (preset === 'previous_pay_period') {
+    return isPlanningFallback ? 'Previous planning period' : 'Previous pay period';
+  }
+  switch (preset) {
+    case 'current_month':
+      return 'Current month';
+    case 'previous_month':
+      return 'Previous month';
+    case 'current_quarter':
+      return 'Current quarter';
+    case 'current_year':
+      return 'Current year';
+    case 'last_30_days':
+      return 'Last 30 days';
+    case 'year_to_date':
+      return 'Year to date';
+    case 'custom':
+    default:
+      return 'Custom range';
+  }
+}
+
+function buildRangeLabel(
+  preset: ReportPeriodPreset,
+  startDate: string,
+  endDate: string,
+  locale: string | undefined
+) {
+  if (preset === 'current_month' || preset === 'previous_month') {
+    return formatCalendarMonthLabel(startDate, locale);
+  }
+  if (preset === 'current_quarter') {
+    return formatQuarterLabel(startDate);
+  }
+  if (preset === 'current_year') {
+    return formatYearLabel(startDate);
+  }
+  return formatFinancialPeriodLabel({
+    startDate,
+    endDate,
+    frequency: 'month',
+  }, locale);
+}
+
+function resolveReportPeriodPresetInternal(
+  args: ResolveReportPeriodPresetArgs,
+  includeComparison: boolean
+): ReportPeriodRange {
+  const locale = args.locale;
+  const referenceDate = args.referenceDate || getCurrentBusinessDate(args.config.timezone);
+  const presetLabel = buildPlanningPresetLabel(args.preset, args.config);
+
+  if (args.preset === 'custom') {
+    const rawStartDate = args.customRange?.startDate || referenceDate;
+    const rawEndDate = args.customRange?.endDate || referenceDate;
+    const startDate = rawStartDate <= rawEndDate ? rawStartDate : rawEndDate;
+    const endDate = rawStartDate <= rawEndDate ? rawEndDate : rawStartDate;
+    return {
+      preset: 'custom',
+      startDate,
+      endDate,
+      label: buildRangeLabel('custom', startDate, endDate, locale),
+      presetLabel,
+      comparisonLabel: null,
+      navigationLabel: null,
+      isCustom: true,
+      canNavigateForward: false,
+    };
+  }
+
+  let startDate = referenceDate;
+  let endDate = referenceDate;
+  let navigationLabel: string | null = null;
+
+  switch (args.preset) {
+    case 'current_pay_period': {
+      const period = getCurrentFinancialPeriod(args.config, referenceDate);
+      startDate = period.startDate;
+      endDate = period.endDate;
+      navigationLabel = args.config.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      break;
+    }
+    case 'previous_pay_period': {
+      const period = getPreviousFinancialPeriod(args.config, referenceDate);
+      startDate = period.startDate;
+      endDate = period.endDate;
+      navigationLabel = args.config.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      break;
+    }
+    case 'current_month': {
+      const month = getMonthContext(referenceDate.slice(0, 7), args.config.timezone);
+      startDate = month.startDate;
+      endDate = month.endDate;
+      navigationLabel = 'month';
+      break;
+    }
+    case 'previous_month': {
+      const month = getMonthContext(shiftMonthKey(referenceDate.slice(0, 7), -1), args.config.timezone);
+      startDate = month.startDate;
+      endDate = month.endDate;
+      navigationLabel = 'month';
+      break;
+    }
+    case 'current_quarter': {
+      const quarter = getQuarterRange(referenceDate);
+      startDate = quarter.startDate;
+      endDate = quarter.endDate;
+      navigationLabel = 'quarter';
+      break;
+    }
+    case 'current_year': {
+      const year = getYearRange(referenceDate);
+      startDate = year.startDate;
+      endDate = year.endDate;
+      navigationLabel = 'year';
+      break;
+    }
+    case 'last_30_days': {
+      endDate = referenceDate;
+      startDate = addDays(referenceDate, -29);
+      break;
+    }
+    case 'year_to_date': {
+      startDate = `${referenceDate.slice(0, 4)}-01-01`;
+      endDate = referenceDate;
+      break;
+    }
+  }
+
+  const previous = includeComparison
+    ? getPreviousComparableReportPeriod({
+      preset: args.preset,
+      config: args.config,
+      locale,
+      startDate,
+      endDate,
+    })
+    : null;
+
+  const currentEquivalent = resolveReportPeriodPresetInternal({
+    preset: args.preset,
+    config: args.config,
+    locale,
+    referenceDate: getCurrentBusinessDate(args.config.timezone),
+  }, false);
+
+  return {
+    preset: args.preset,
+    startDate,
+    endDate,
+    label: buildRangeLabel(args.preset, startDate, endDate, locale),
+    presetLabel,
+    comparisonLabel: previous ? previous.label : null,
+    navigationLabel,
+    isCustom: false,
+    canNavigateForward: endDate < currentEquivalent.endDate,
+  };
+}
+
+export function resolveReportPeriodPreset(args: ResolveReportPeriodPresetArgs): ReportPeriodRange {
+  return resolveReportPeriodPresetInternal(args, true);
+}
+
+export function getPreviousComparableReportPeriod(args: {
+  preset: ReportPeriodPreset;
+  config: FinancialPeriodConfig;
+  locale?: string;
+  startDate: string;
+  endDate: string;
+}): ReportPeriodRange | null {
+  switch (args.preset) {
+    case 'current_pay_period':
+    case 'previous_pay_period': {
+      const previous = getPreviousFinancialPeriod(args.config, args.startDate);
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: previous.startDate,
+      });
+    }
+    case 'current_month':
+    case 'previous_month':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftMonthKey(args.startDate.slice(0, 7), -1),
+      });
+    case 'current_quarter':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftQuarter(args.startDate, -1),
+      });
+    case 'current_year':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftYear(args.startDate, -1),
+      });
+    case 'last_30_days': {
+      const endDate = addDays(args.startDate, -1);
+      return resolveReportPeriodPreset({
+        preset: 'custom',
+        config: args.config,
+        locale: args.locale,
+        customRange: {
+          startDate: addDays(endDate, -29),
+          endDate,
+        },
+      });
+    }
+    case 'year_to_date': {
+      const previousYearStart = `${String(Number(args.startDate.slice(0, 4)) - 1)}-01-01`;
+      const previousYearEnd = `${String(Number(args.startDate.slice(0, 4)) - 1)}-${args.endDate.slice(5)}`;
+      return resolveReportPeriodPreset({
+        preset: 'custom',
+        config: args.config,
+        locale: args.locale,
+        customRange: {
+          startDate: previousYearStart,
+          endDate: previousYearEnd,
+        },
+      });
+    }
+    case 'custom':
+    default:
+      return null;
+  }
+}
+
+export function getNextComparableReportPeriod(args: {
+  preset: ReportPeriodPreset;
+  config: FinancialPeriodConfig;
+  locale?: string;
+  startDate: string;
+  endDate: string;
+}): ReportPeriodRange | null {
+  switch (args.preset) {
+    case 'current_pay_period':
+    case 'previous_pay_period': {
+      const next = getNextFinancialPeriod(args.config, args.startDate);
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: next.startDate,
+      });
+    }
+    case 'current_month':
+    case 'previous_month':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftMonthKey(args.startDate.slice(0, 7), 1),
+      });
+    case 'current_quarter':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftQuarter(args.startDate, 1),
+      });
+    case 'current_year':
+      return resolveReportPeriodPreset({
+        preset: args.preset,
+        config: args.config,
+        locale: args.locale,
+        referenceDate: shiftYear(args.startDate, 1),
+      });
+    case 'last_30_days':
+    case 'year_to_date':
+    case 'custom':
+    default:
+      return null;
+  }
+}
+
+export function formatReportPeriodLabel(period: ReportPeriodRange) {
+  return period.label;
+}
+
+export function getInitialReportPreset(config: FinancialPeriodConfig): ReportPeriodPreset {
+  return config.defaultDashboardPeriod === 'pay_cycle' ? 'current_pay_period' : 'current_month';
+}
+
+export function getReportPeriodFromDate(
+  preset: ReportPeriodPreset,
+  config: FinancialPeriodConfig,
+  referenceDate: string,
+  locale?: string
+) {
+  if (preset === 'custom') {
+    return resolveReportPeriodPreset({
+      preset,
+      config,
+      locale,
+      customRange: {
+        startDate: referenceDate,
+        endDate: referenceDate,
+      },
+    });
+  }
+  if (preset === 'current_pay_period' || preset === 'previous_pay_period') {
+    const period = getPeriodContainingDate(config, referenceDate);
+    return resolveReportPeriodPreset({
+      preset,
+      config,
+      locale,
+      referenceDate: period.startDate,
+    });
+  }
+  return resolveReportPeriodPreset({
+    preset,
+    config,
+    locale,
+    referenceDate,
+  });
+}
