@@ -15,9 +15,9 @@ import {
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import {
   formatBudgetPeriodLabel,
-  getBudgetPeriodForDate,
   getBudgetPeriodTypeLabel,
   getCurrentBudgetPeriod,
+  isBudgetApplicableToRange,
   getNextBudgetPeriod,
   getPreviousBudgetPeriod,
   normalizeBudgetPeriodValue,
@@ -1753,6 +1753,27 @@ function getBudgetTransactionsForPeriod(
   });
 }
 
+function getIntersectedBudgetWindow(
+  period: ResolvedBudgetPeriod,
+  selectedRange: { startDate: string; endDate: string }
+): ResolvedBudgetPeriod | null {
+  const startDate = period.startDate > selectedRange.startDate ? period.startDate : selectedRange.startDate;
+  const endDate = period.endDate < selectedRange.endDate ? period.endDate : selectedRange.endDate;
+  if (startDate > endDate) {
+    return null;
+  }
+  return {
+    ...period,
+    startDate,
+    endDate,
+    label: formatBudgetPeriodLabel({
+      ...period,
+      startDate,
+      endDate,
+    }),
+  };
+}
+
 function buildBudgetTrackingItem(args: {
   budget: Budget;
   period: ResolvedBudgetPeriod;
@@ -1985,45 +2006,139 @@ export async function getDashboardBudgetSummary(args: {
   mode: DashboardPeriodPreference;
   locale?: string;
 }): Promise<DashboardBudgetSummary> {
-  const overview = await getBudgetTrackingOverview({
-    referenceDate: args.endDate,
-    locale: args.locale,
-  });
+  type ApplicableDashboardBudget = {
+    budget: Budget;
+    period: ResolvedBudgetPeriod | null;
+    spendingWindow: ResolvedBudgetPeriod | null;
+    warning: string | null;
+  };
 
-  const overlappingItems = overview.items.filter((item) =>
-    item.period.startDate <= args.endDate && item.period.endDate >= args.startDate
-  );
-  const items = args.mode === 'month'
+  const supabase = createClient();
+  const [periodContext, budgets] = await Promise.all([
+    loadUserFinancialPeriodContext(),
+    loadActiveBudgetRecords(),
+  ]);
+
+  const selectedRange = {
+    startDate: args.startDate,
+    endDate: args.endDate,
+  };
+
+  const applicableBudgetEntries = budgets.map<ApplicableDashboardBudget | null>((budget) => {
+    try {
+      const storedPeriod = isBudgetApplicableToRange(
+        budget,
+        periodContext.effectiveConfig,
+        selectedRange,
+        args.locale
+      );
+      if (!storedPeriod) {
+        return null;
+      }
+      return {
+        budget,
+        period: storedPeriod,
+        spendingWindow: getIntersectedBudgetWindow(storedPeriod, selectedRange),
+        warning: null,
+      };
+    } catch (error) {
+      return {
+        budget,
+        period: null,
+        spendingWindow: null,
+        warning: error instanceof Error ? error.message : 'Budget period configuration is incomplete.',
+      };
+    }
+  });
+  const applicableBudgets = applicableBudgetEntries.filter((entry): entry is ApplicableDashboardBudget => entry !== null);
+
+  const visibleBudgets = args.mode === 'month'
     ? (() => {
-        const monthlyItems = overlappingItems.filter((item) => item.budget.budget_period === 'monthly');
-        return monthlyItems.length > 0 ? monthlyItems : overlappingItems;
+        const monthlyBudgets = applicableBudgets.filter((entry) => entry.budget.budget_period === 'monthly');
+        return monthlyBudgets.length > 0 ? monthlyBudgets : applicableBudgets;
       })()
-    : overlappingItems;
+    : applicableBudgets;
+
+  if (visibleBudgets.length === 0) {
+    return {
+      totalBudgetByCurrency: [],
+      spentByCurrency: [],
+      remainingByCurrency: [],
+      activeBudgetCount: 0,
+      activeBudgetCycleLabels: [],
+      hasMixedCycles: false,
+      conversionUnavailableCount: 0,
+    };
+  }
+
+  const [ledgerSummaryByTransactionId, accountInclusionById, expenseTransactionsResult, reportingContext] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+    supabase
+      .from('transactions')
+      .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
+      .eq('transaction_type', 'expense')
+      .gte('transaction_date', selectedRange.startDate)
+      .lte('transaction_date', selectedRange.endDate),
+    getHistoricalReportContext([{ transaction_date: selectedRange.endDate }]).catch(async () => ({
+      reportingCurrency: await resolveUserDefaultCurrency(),
+      snapshots: [],
+    })),
+  ]);
+
+  if (expenseTransactionsResult.error) throw expenseTransactionsResult.error;
+
+  const eligibleExpenses = filterTransactionsByRule(
+    (expenseTransactionsResult.data || []) as BudgetExpenseRow[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    shouldIncludeInBudgetSpending
+  ) as BudgetExpenseRow[];
 
   const totalBudgetByCurrency = new Map<string, number>();
   const spentByCurrency = new Map<string, number>();
   const remainingByCurrency = new Map<string, number>();
 
-  for (const item of items) {
-    addCurrencyAmount(totalBudgetByCurrency, item.budget.currency, Number(item.budget.amount || 0), overview.reportingCurrency);
+  const summaryItems = visibleBudgets.map((entry) => {
+    if (!entry.period || !entry.spendingWindow) {
+      return {
+        budget: entry.budget,
+        periodTypeLabel: getBudgetPeriodTypeLabel(entry.budget.budget_period),
+        spentAmount: null,
+        remainingAmount: null,
+        warning: entry.warning || 'Budget period configuration is incomplete.',
+      };
+    }
+
+    const item = buildBudgetTrackingItem({
+      budget: entry.budget,
+      period: entry.period,
+      transactions: getBudgetTransactionsForPeriod(entry.budget, entry.spendingWindow, eligibleExpenses),
+      snapshots: reportingContext.snapshots,
+    });
+    return item;
+  });
+
+  for (const item of summaryItems) {
+    addCurrencyAmount(totalBudgetByCurrency, item.budget.currency, Number(item.budget.amount || 0), reportingContext.reportingCurrency);
     if (item.spentAmount !== null) {
-      addCurrencyAmount(spentByCurrency, item.budget.currency, item.spentAmount, overview.reportingCurrency);
+      addCurrencyAmount(spentByCurrency, item.budget.currency, item.spentAmount, reportingContext.reportingCurrency);
     }
     if (item.remainingAmount !== null) {
-      addCurrencyAmount(remainingByCurrency, item.budget.currency, item.remainingAmount, overview.reportingCurrency);
+      addCurrencyAmount(remainingByCurrency, item.budget.currency, item.remainingAmount, reportingContext.reportingCurrency);
     }
   }
 
-  const cycleLabels = Array.from(new Set(items.map((item) => item.periodTypeLabel)));
+  const cycleLabels = Array.from(new Set(summaryItems.map((item) => item.periodTypeLabel)));
 
   return {
     totalBudgetByCurrency: mapCurrencyTotals(totalBudgetByCurrency),
     spentByCurrency: mapCurrencyTotals(spentByCurrency),
     remainingByCurrency: mapCurrencyTotals(remainingByCurrency),
-    activeBudgetCount: items.length,
+    activeBudgetCount: summaryItems.length,
     activeBudgetCycleLabels: cycleLabels,
     hasMixedCycles: cycleLabels.length > 1,
-    conversionUnavailableCount: items.filter((item) => item.remainingAmount === null).length,
+    conversionUnavailableCount: summaryItems.filter((item) => item.remainingAmount === null).length,
   };
 }
 

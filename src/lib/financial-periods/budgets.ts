@@ -33,6 +33,11 @@ export interface BudgetPeriodValidationResult {
   error: string | null;
 }
 
+export interface BudgetSelectedRange {
+  startDate: string;
+  endDate: string;
+}
+
 const BUDGET_PERIOD_LABELS: Record<BudgetPeriod, string> = {
   weekly: 'Weekly',
   biweekly: 'Every 2 weeks',
@@ -207,6 +212,41 @@ export function formatBudgetPeriodLabel(period: FinancialPeriod, locale?: string
   return period.frequency === 'month'
     ? formatCalendarMonthLabel(period.startDate, locale)
     : formatFinancialPeriodLabel(period, locale);
+}
+
+export function getStoredBudgetPeriod(
+  budget: BudgetPeriodSource,
+  userConfig: FinancialPeriodConfig,
+  locale?: string
+): ResolvedBudgetPeriod {
+  const referenceDate = budget.period_start || budget.period_anchor_date || undefined;
+  const resolved = getBudgetPeriodForDate(budget, userConfig, referenceDate, locale);
+  const startDate = budget.period_start || resolved.startDate;
+  const endDate = budget.period_end || resolved.endDate;
+  const explicitPeriod: FinancialPeriod = {
+    ...resolved,
+    startDate,
+    endDate,
+  };
+
+  return {
+    ...resolved,
+    startDate,
+    endDate,
+    label: formatBudgetPeriodLabel(explicitPeriod, locale),
+  };
+}
+
+export function isBudgetApplicableToRange(
+  budget: BudgetPeriodSource,
+  userConfig: FinancialPeriodConfig,
+  selectedRange: BudgetSelectedRange,
+  locale?: string
+): ResolvedBudgetPeriod | null {
+  const storedPeriod = getStoredBudgetPeriod(budget, userConfig, locale);
+  return storedPeriod.startDate <= selectedRange.endDate && storedPeriod.endDate >= selectedRange.startDate
+    ? storedPeriod
+    : null;
 }
 
 export function getBudgetPeriodForDate(

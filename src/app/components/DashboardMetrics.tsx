@@ -123,6 +123,8 @@ export default function DashboardMetrics({
     lookupMode: metrics.totalBudget.lookupMode,
     unavailableReason: metrics.totalBudget.unavailableReason || metrics.budgetSpent.unavailableReason,
   };
+  const hasApplicableBudgets = metrics.activeBudgetCount > 0;
+  const hasBudgetSpending = metrics.budgetSpent.originalTotals.some((row) => Math.abs(Number(row.amount || 0)) > 0);
 
   const hasSingleCashFlowCurrency =
     metrics.monthlyIncome.originalTotals.length === 1 &&
@@ -276,16 +278,22 @@ export default function DashboardMetrics({
       valueContent: metrics.budgetConversionUnavailableCount > 0 ? (
         <span className="text-base font-700 text-warning">Unavailable</span>
       ) : undefined,
-      change: metrics.activeBudgetCount === 0
-        ? 'No active budget'
+      change: !hasApplicableBudgets
+        ? 'No budgets for this period'
         : metrics.budgetConversionUnavailableCount > 0
           ? 'Conversion unavailable'
+          : !hasBudgetSpending
+            ? 'No spending in this period'
           : `Across ${metrics.activeBudgetCount} active budget${metrics.activeBudgetCount === 1 ? '' : 's'}`,
       changeDir: 'neutral' as const,
-      changeLabel: metrics.activeBudgetCount === 0
+      changeLabel: !hasApplicableBudgets
         ? isMonthMode ? `for ${activePeriod.label}` : `during ${activePeriod.label}`
         : metrics.budgetConversionUnavailableCount > 0
           ? `${metrics.budgetConversionUnavailableCount} active budget${metrics.budgetConversionUnavailableCount === 1 ? '' : 's'} need historical FX data`
+          : !hasBudgetSpending
+            ? metrics.hasMixedBudgetCycles
+              ? `Across active ${metrics.activeBudgetCycleLabels.join(' and ').toLowerCase()} budgets`
+              : `Across active ${metrics.activeBudgetCycleLabels[0]?.toLowerCase() || 'budget'} budgets`
           : metrics.hasMixedBudgetCycles
             ? `Across active ${metrics.activeBudgetCycleLabels.join(' and ').toLowerCase()} budgets`
             : `Across active ${metrics.activeBudgetCycleLabels[0]?.toLowerCase() || 'budget'} budgets`,
