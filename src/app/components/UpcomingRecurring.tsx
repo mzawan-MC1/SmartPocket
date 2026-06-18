@@ -78,7 +78,7 @@ export default function UpcomingRecurring({
       description={activePeriod.mode === 'month'
         ? `Recurring items scheduled for ${activePeriod.label}.`
         : `Recurring items due during ${activePeriod.label}.`}
-      action={<StatusBadge status="pending" label={activePeriod.mode === 'month' ? activePeriod.label : 'Pay period'} />}
+      action={<StatusBadge status="pending" label={activePeriod.label} />}
       bodyClassName="p-0"
     >
 
@@ -101,7 +101,7 @@ export default function UpcomingRecurring({
             title="No upcoming payments"
             description={activePeriod.mode === 'month'
               ? `No recurring payments scheduled for ${activePeriod.label}.`
-              : 'No recurring payments are due in this pay period.'}
+              : `No recurring payments are due during ${activePeriod.label}.`}
           />
         </div>
       ) : (

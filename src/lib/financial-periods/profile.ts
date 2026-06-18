@@ -104,7 +104,7 @@ export function toFinancialPeriodConfig(row?: Partial<FinancialPeriodProfileRow>
   }
 
   const normalized = normalizeFinancialPeriodConfig({
-    incomeFrequency: row?.income_frequency,
+    incomeFrequency: row?.income_frequency || undefined,
     payCycleAnchorDate: row?.pay_cycle_anchor_date,
     weeklyPayday: row?.weekly_payday,
     semimonthlyDay1: row?.semimonthly_day_1,

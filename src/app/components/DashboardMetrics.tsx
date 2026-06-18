@@ -23,6 +23,7 @@ interface DashboardMetricCard {
   warningState?: boolean;
   budgetPct?: number;
   valueContent?: React.ReactNode;
+  subtext?: string;
 }
 
 export default function DashboardMetrics({
@@ -224,11 +225,12 @@ export default function DashboardMetrics({
       valueMetric: metrics.totalBalance,
       changeMetric: metrics.netCashFlow,
       changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
-      changeLabel: isMonthMode ? 'net this month' : 'net this pay period',
+      changeLabel: isMonthMode ? 'net change this month' : 'net change this pay period',
       icon: Wallet,
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
       hero: true,
+      subtext: 'Across your active accounts',
     },
     {
       id: 'metric-income',
@@ -302,7 +304,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.upcomingPayments,
       change: `${metrics.upcomingPaymentsCount} payment${metrics.upcomingPaymentsCount !== 1 ? 's' : ''}`,
       changeDir: 'neutral' as const,
-      changeLabel: isMonthMode ? `scheduled in ${activePeriod.label}` : 'due this pay period',
+      changeLabel: isMonthMode ? `scheduled in ${activePeriod.label}` : `due in ${activePeriod.label}`,
       icon: CalendarClock,
       iconBg: 'bg-secondary',
       iconColor: 'text-muted-foreground',
@@ -332,7 +334,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.outstandingLoanBalance,
       changeMetric: metrics.loanBorrowedThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: isMonthMode ? `borrowed in ${activePeriod.label}` : 'borrowed this pay period',
+      changeLabel: `borrowed in ${activePeriod.label}`,
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -344,7 +346,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.loanRepaidThisMonth,
       changeMetric: metrics.loanRepaidThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: isMonthMode ? `paid in ${activePeriod.label}` : 'paid this pay period',
+      changeLabel: `paid in ${activePeriod.label}`,
       icon: ArrowUpDown,
       iconBg: 'bg-accent/10',
       iconColor: 'text-accent',
@@ -398,6 +400,9 @@ export default function DashboardMetrics({
               <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
                 {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
               </div>
+              {metric.subtext ? (
+                <p className="mb-2 text-xs text-muted-foreground">{metric.subtext}</p>
+              ) : null}
               <div className="flex items-center gap-1.5">
                 {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
                 {metric.changeDir === 'down' && <ArrowDown size={12} className="text-negative flex-shrink-0" />}

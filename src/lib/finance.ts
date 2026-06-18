@@ -1675,10 +1675,6 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   return budgets;
 }
 
-function isValidDashboardMonthKey(value: string | null | undefined): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value);
-}
-
 export function getCurrentDashboardMonthKey(nowInput?: Date) {
   return getMonthContext(undefined, 'UTC', nowInput).monthKey;
 }
@@ -1817,9 +1813,12 @@ export async function getDashboardMetrics(args?: {
 }): Promise<DashboardMetrics> {
   const supabase = createClient();
   const { defaultCurrency, latestSnapshot } = await getLatestReportingContext(supabase);
-  const periodStart = args?.startDate;
-  const periodEnd = args?.endDate;
-  const includeBudgetTracking = args?.mode === 'month';
+  if (!args?.startDate || !args?.endDate) {
+    throw new Error('Dashboard metrics require explicit period boundaries.');
+  }
+  const periodStart = args.startDate;
+  const periodEnd = args.endDate;
+  const includeBudgetTracking = args.mode === 'month';
   const [
     ledgerSummaryByTransactionId,
     accountInclusionById,

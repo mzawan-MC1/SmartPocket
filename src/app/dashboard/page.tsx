@@ -20,6 +20,7 @@ import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib
 import type { DashboardActivePeriod } from '@/lib/finance';
 import { toast } from 'sonner';
 import {
+  formatCalendarMonthLabel,
   formatFinancialPeriodLabel,
   getMonthContext,
   getPeriodContainingDate,
@@ -27,20 +28,27 @@ import {
 } from '@/lib/financial-periods';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 
-function buildMonthActivePeriod(monthKey: string, timezone: string): DashboardActivePeriod {
+function getDashboardLocale() {
+  if (typeof navigator !== 'undefined' && navigator.language) {
+    return navigator.language;
+  }
+  return 'en-US';
+}
+
+function buildMonthActivePeriod(monthKey: string, timezone: string, locale?: string): DashboardActivePeriod {
   const monthContext = getMonthContext(monthKey, timezone);
   return {
     mode: 'month',
     startDate: monthContext.startDate,
     endDate: monthContext.endDate,
-    label: monthContext.label,
+    label: formatCalendarMonthLabel(monthContext.startDate, locale),
     isCurrent: monthContext.isCurrentMonth,
     timezone,
     monthKey: monthContext.monthKey,
   };
 }
 
-function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPeriodContext): DashboardActivePeriod {
+function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPeriodContext, locale?: string): DashboardActivePeriod {
   const period = getPeriodContainingDate(context.effectiveConfig, startDate);
   const currentPeriod = context.currentFinancialPeriod;
   const clampedPeriod = period.endDate > currentPeriod.endDate ? currentPeriod : period;
@@ -48,13 +56,14 @@ function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPer
     mode: 'pay_cycle',
     startDate: clampedPeriod.startDate,
     endDate: clampedPeriod.endDate,
-    label: formatFinancialPeriodLabel(clampedPeriod),
+    label: formatFinancialPeriodLabel(clampedPeriod, locale),
     isCurrent: clampedPeriod.startDate === currentPeriod.startDate && clampedPeriod.endDate === currentPeriod.endDate,
     timezone: context.timezone,
   };
 }
 
 export default function DashboardPage() {
+  const dashboardLocale = getDashboardLocale();
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
   const [viewMode, setViewMode] = useState<DashboardPeriodPreference | null>(null);
@@ -95,7 +104,7 @@ export default function DashboardPage() {
     const storedMonthKey = window.sessionStorage.getItem('smartpocket.dashboard.month') || currentMonthKey;
     const normalizedMonthKey = getMonthContext(storedMonthKey, periodContext.timezone).monthKey;
     const storedPayPeriodStart = window.sessionStorage.getItem('smartpocket.dashboard.pay-period-start') || periodContext.currentFinancialPeriod.startDate;
-    const normalizedPayPeriod = buildPayPeriodActivePeriod(storedPayPeriodStart, periodContext);
+    const normalizedPayPeriod = buildPayPeriodActivePeriod(storedPayPeriodStart, periodContext, dashboardLocale);
 
     setViewMode((current) => current || nextViewMode);
     setSelectedMonth((current) => current || normalizedMonthKey);
@@ -135,10 +144,18 @@ export default function DashboardPage() {
   const activePeriod = React.useMemo<DashboardActivePeriod | null>(() => {
     if (!periodContext || !viewMode) return null;
     if (viewMode === 'month') {
-      return buildMonthActivePeriod(selectedMonth || getMonthContext(undefined, periodContext.timezone).monthKey, periodContext.timezone);
+      return buildMonthActivePeriod(
+        selectedMonth || getMonthContext(undefined, periodContext.timezone).monthKey,
+        periodContext.timezone,
+        dashboardLocale
+      );
     }
-    return buildPayPeriodActivePeriod(selectedPayPeriodStart || periodContext.currentFinancialPeriod.startDate, periodContext);
-  }, [periodContext, selectedMonth, selectedPayPeriodStart, viewMode]);
+    return buildPayPeriodActivePeriod(
+      selectedPayPeriodStart || periodContext.currentFinancialPeriod.startDate,
+      periodContext,
+      dashboardLocale
+    );
+  }, [dashboardLocale, periodContext, selectedMonth, selectedPayPeriodStart, viewMode]);
 
   const handleSelectedMonthChange = useCallback((monthKey: string) => {
     if (!periodContext) return;
@@ -164,8 +181,8 @@ export default function DashboardPage() {
 
   const handlePayPeriodChange = useCallback((startDate: string) => {
     if (!periodContext) return;
-    setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext).startDate);
-  }, [periodContext]);
+    setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
+  }, [dashboardLocale, periodContext]);
 
   return (
     <AppLayout activeRoute="/dashboard">

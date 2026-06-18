@@ -61,10 +61,10 @@ export default function PlanningPreferencesFields({
         <h3 className="text-base font-700 text-foreground">How would you like your dashboard to open?</h3>
         <p className="text-sm text-muted-foreground">This sets the default view for new dashboard sessions.</p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[
+          {([
             { value: 'pay_cycle', label: 'Current pay period', disabled: values.income_frequency === 'irregular' },
             { value: 'month', label: 'Current month', disabled: false },
-          ].map((option) => {
+          ] as const).map((option) => {
             const selected = values.default_dashboard_period === option.value;
             return (
               <button

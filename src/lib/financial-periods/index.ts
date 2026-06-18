@@ -493,11 +493,21 @@ export function getNextFinancialPeriod(config: Partial<FinancialPeriodConfig> | 
   return getPeriodContainingDate(config, addDays(current.endDate, 1));
 }
 
-export function formatFinancialPeriodLabel(period: FinancialPeriod, locale = 'en-US') {
+export function formatCalendarMonthLabel(referenceDate: Date | string, locale?: string) {
+  const monthDate = typeof referenceDate === 'string'
+    ? toUtcNoonDate(referenceDate)
+    : referenceDate;
+  return new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(monthDate);
+}
+
+export function formatFinancialPeriodLabel(period: FinancialPeriod, locale?: string) {
   const start = toUtcNoonDate(period.startDate);
   const end = toUtcNoonDate(period.endDate);
   const sharedYear = start.getUTCFullYear() === end.getUTCFullYear();
-  const sharedMonth = sharedYear && start.getUTCMonth() === end.getUTCMonth();
   const startLabel = new Intl.DateTimeFormat(locale, {
     month: 'short',
     day: 'numeric',
@@ -505,10 +515,10 @@ export function formatFinancialPeriodLabel(period: FinancialPeriod, locale = 'en
     timeZone: 'UTC',
   }).format(start);
   const endLabel = new Intl.DateTimeFormat(locale, {
-    month: sharedMonth ? undefined : 'short',
+    month: 'short',
     day: 'numeric',
     year: 'numeric',
     timeZone: 'UTC',
   }).format(end);
-  return `${startLabel} - ${endLabel}`;
+  return `${startLabel} \u2013 ${endLabel}`;
 }

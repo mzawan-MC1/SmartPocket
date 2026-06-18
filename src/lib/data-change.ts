@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
 export const SMARTPOCKET_DATA_CHANGED_EVENT = 'smartpocket:data-changed';
 
 export type SmartPocketDataEntity =
+  | 'profile'
   | 'dashboard'
   | 'transactions'
   | 'financial_accounts'
