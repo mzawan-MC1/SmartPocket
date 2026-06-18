@@ -135,6 +135,39 @@ export interface Transaction {
   receipt_attachments?: ReceiptAttachment[];
 }
 
+export interface CreateTransactionInput {
+  account_id: string;
+  category_id?: string | null;
+  transaction_type: 'income' | 'expense';
+  amount: number;
+  currency: string;
+  description: string;
+  merchant?: string | null;
+  notes?: string | null;
+  transaction_date: string;
+  tags?: string[];
+  is_recurring?: boolean;
+  recurring_id?: string | null;
+  person_id?: string | null;
+  expense_owner?: string | null;
+  paid_by?: string | null;
+  paid_from?: string | null;
+  use_held_balance?: boolean;
+  reimbursement_required?: boolean;
+  reimbursement_status?: string | null;
+}
+
+export interface CreateTransactionsBatchFailure {
+  index: number;
+  account_id: string;
+  message: string;
+}
+
+export interface CreateTransactionsBatchResult {
+  created: Transaction[];
+  failures: CreateTransactionsBatchFailure[];
+}
+
 export interface ReceiptAttachment {
   id: string;
   transaction_id: string;
@@ -305,6 +338,11 @@ export interface HistoricalAmountConversionResult {
   lookupMode: ExchangeRateLookupMode;
   unavailableReason: string | null;
   missingRateDate: string | null;
+}
+
+export interface LatestReportingContext {
+  defaultCurrency: string;
+  latestSnapshot: ExchangeRateSnapshotRecord | null;
 }
 
 export async function loadTransactionLedgerSummaryMap(
@@ -537,21 +575,29 @@ function findHistoricalSnapshotForDate(
   snapshots: ExchangeRateSnapshotRecord[],
   rateDate: string
 ): { snapshot: ExchangeRateSnapshotRecord | null; lookupMode: ExchangeRateLookupMode } {
-  let matchedSnapshot: ExchangeRateSnapshotRecord | null = null;
+  let low = 0;
+  let high = snapshots.length - 1;
+  let matchedIndex = -1;
 
-  for (const snapshot of snapshots) {
-    if (snapshot.rate_date > rateDate) {
-      break;
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const snapshot = snapshots[mid];
+    if (snapshot.rate_date <= rateDate) {
+      matchedIndex = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
     }
-    matchedSnapshot = snapshot;
   }
 
-  if (!matchedSnapshot) {
+  if (matchedIndex === -1) {
     return {
       snapshot: null,
       lookupMode: 'unavailable',
     };
   }
+
+  const matchedSnapshot = snapshots[matchedIndex];
 
   return {
     snapshot: matchedSnapshot,
@@ -573,6 +619,21 @@ export async function getHistoricalReportContext(
     snapshots: latestTransactionDate
       ? await listHistoricalExchangeRateSnapshots(createClient(), latestTransactionDate)
       : [],
+  };
+}
+
+export async function getLatestReportingContext(
+  supabaseInput?: ReturnType<typeof createClient>
+): Promise<LatestReportingContext> {
+  const supabase = supabaseInput || createClient();
+  const [defaultCurrency, latestSnapshot] = await Promise.all([
+    resolveUserDefaultCurrency(),
+    getLatestExchangeRateSnapshot(supabase).catch(() => null),
+  ]);
+
+  return {
+    defaultCurrency,
+    latestSnapshot,
   };
 }
 
@@ -1033,11 +1094,13 @@ export async function getAccounts(): Promise<FinancialAccount[]> {
   return data || [];
 }
 
-export async function getFinancialAccountsSummary(accountsInput?: FinancialAccount[]): Promise<AccountsSummaryMetrics> {
+export async function getFinancialAccountsSummary(
+  accountsInput?: FinancialAccount[],
+  reportingContext?: LatestReportingContext
+): Promise<AccountsSummaryMetrics> {
   const accounts = accountsInput || await getAccounts();
   const supabase = createClient();
-  const defaultCurrency = await resolveUserDefaultCurrency();
-  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
+  const { defaultCurrency, latestSnapshot } = reportingContext || await getLatestReportingContext(supabase);
   const activeAccounts = accounts.filter((account) => account.is_active);
   const personalAccounts = activeAccounts.filter((account) => account.include_in_total);
 
@@ -1210,10 +1273,12 @@ export async function getTransactions(filters?: {
   return (data || []) as Transaction[];
 }
 
-export async function getLatestTransactionReportingPreviews(transactions: Transaction[]) {
+export async function getLatestTransactionReportingPreviews(
+  transactions: Transaction[],
+  reportingContext?: LatestReportingContext
+) {
   const supabase = createClient();
-  const reportingCurrency = await resolveUserDefaultCurrency();
-  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
+  const { defaultCurrency: reportingCurrency, latestSnapshot } = reportingContext || await getLatestReportingContext(supabase);
   const previews: Record<string, TransactionReportingPreview> = {};
 
   for (const transaction of transactions) {
@@ -1307,39 +1372,73 @@ export async function getLatestTransactionReportingPreviews(transactions: Transa
   };
 }
 
-export async function createTransaction(payload: {
-  account_id: string;
-  category_id?: string | null;
-  transaction_type: 'income' | 'expense';
-  amount: number;
-  currency: string;
-  description: string;
-  merchant?: string;
-  notes?: string;
-  transaction_date: string;
-  tags?: string[];
-  is_recurring?: boolean;
-  recurring_id?: string | null;
-}): Promise<Transaction> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
+async function insertTransactionRecord(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  payload: CreateTransactionInput
+): Promise<Transaction> {
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ ...payload, user_id: user.id })
+    .insert({ ...payload, user_id: userId })
     .select()
     .single();
   if (error) throw error;
+  return data as Transaction;
+}
 
-  // Recalculate account balance
-  await recalculateAccountBalance(payload.account_id);
+export async function createTransactionsBatch(
+  payloads: CreateTransactionInput[],
+  options?: {
+    onProgress?: (args: { completed: number; total: number }) => void;
+  }
+): Promise<CreateTransactionsBatchResult> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  const created: Transaction[] = [];
+  const failures: CreateTransactionsBatchFailure[] = [];
+  const affectedAccountIds = new Set<string>();
+  const total = payloads.length;
 
-  return data;
+  for (let index = 0; index < payloads.length; index += 1) {
+    const payload = payloads[index];
+    try {
+      const transaction = await insertTransactionRecord(supabase, user.id, payload);
+      created.push(transaction);
+      affectedAccountIds.add(payload.account_id);
+    } catch (error) {
+      failures.push({
+        index,
+        account_id: payload.account_id,
+        message: error instanceof Error ? error.message : 'Failed to create transaction',
+      });
+    } finally {
+      options?.onProgress?.({ completed: index + 1, total });
+    }
+  }
+
+  await Promise.all(Array.from(affectedAccountIds).map((accountId) => recalculateAccountBalance(accountId)));
+
+  return { created, failures };
+}
+
+export async function createTransaction(payload: CreateTransactionInput): Promise<Transaction> {
+  const result = await createTransactionsBatch([payload]);
+  if (result.failures.length > 0 || result.created.length === 0) {
+    throw new Error(result.failures[0]?.message || 'Failed to create transaction');
+  }
+  return result.created[0];
 }
 
 export async function updateTransaction(id: string, payload: Partial<Transaction>): Promise<Transaction> {
   const supabase = createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from('transactions')
+    .select('account_id')
+    .eq('id', id)
+    .single();
+  if (existingError) throw existingError;
+
   const { data, error } = await supabase
     .from('transactions')
     .update(payload)
@@ -1347,7 +1446,11 @@ export async function updateTransaction(id: string, payload: Partial<Transaction
     .select()
     .single();
   if (error) throw error;
-  if (payload.account_id) await recalculateAccountBalance(payload.account_id);
+  const affectedAccountIds = new Set<string>([
+    existing.account_id,
+    payload.account_id || existing.account_id,
+  ]);
+  await Promise.all(Array.from(affectedAccountIds).map((accountId) => recalculateAccountBalance(accountId)));
   return data;
 }
 
@@ -1504,41 +1607,48 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   const start = periodStart || new Date().toISOString().slice(0, 7) + '-01';
   const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0)
     .toISOString().slice(0, 10);
-  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+  const [ledgerSummaryByTransactionId, accountInclusionById, budgetsResult, expenseTransactionsResult] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
-  ]);
-  const { data, error } = await supabase
-    .from('budgets')
-    .select(`*, category:categories(name, color, icon)`)
-    .eq('is_active', true)
-    .lte('period_start', end)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-
-  const budgets = ((data || []) as Budget[]).filter((budget) => isBudgetActiveForWindow(budget, start, end));
-
-  // Calculate spent for each budget
-  for (const budget of budgets) {
-    let spentQuery = supabase
+    supabase
+      .from('budgets')
+      .select(`*, category:categories(name, color, icon)`)
+      .eq('is_active', true)
+      .lte('period_start', end)
+      .order('created_at', { ascending: true }),
+    supabase
       .from('transactions')
       .select('id, account_id, category_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance')
       .eq('transaction_type', 'expense')
       .gte('transaction_date', start)
-      .lte('transaction_date', end);
+      .lte('transaction_date', end),
+  ]);
 
-    if (budget.category_id) {
-      spentQuery = spentQuery.eq('category_id', budget.category_id);
-    }
+  if (budgetsResult.error) throw budgetsResult.error;
+  if (expenseTransactionsResult.error) throw expenseTransactionsResult.error;
 
-    const { data: txns } = await spentQuery;
-    budget.spent = filterTransactionsByRule(
-      (txns || []) as TransactionMetricRow[],
-      ledgerSummaryByTransactionId,
-      accountInclusionById,
-      shouldIncludeInBudgetSpending
-    )
-      .reduce((s: number, t) => s + Number(t.amount), 0);
+  const budgets = ((budgetsResult.data || []) as Budget[]).filter((budget) => isBudgetActiveForWindow(budget, start, end));
+  const eligibleExpenses = filterTransactionsByRule(
+    (expenseTransactionsResult.data || []) as TransactionMetricRow[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    shouldIncludeInBudgetSpending
+  );
+  const totalEligibleExpenseSpent = eligibleExpenses.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+  const eligibleExpenseSpentByCategory = new Map<string, number>();
+
+  for (const transaction of eligibleExpenses) {
+    if (!transaction.category_id) continue;
+    eligibleExpenseSpentByCategory.set(
+      transaction.category_id,
+      (eligibleExpenseSpentByCategory.get(transaction.category_id) || 0) + Number(transaction.amount || 0)
+    );
+  }
+
+  for (const budget of budgets) {
+    budget.spent = budget.category_id
+      ? eligibleExpenseSpentByCategory.get(budget.category_id) || 0
+      : totalEligibleExpenseSpent;
   }
 
   return budgets;
@@ -1658,40 +1768,70 @@ function calculateNextDueDate(currentDate: string, frequency: string): string {
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const supabase = createClient();
-  const defaultCurrency = await resolveUserDefaultCurrency();
-  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
+  const { defaultCurrency, latestSnapshot } = await getLatestReportingContext(supabase);
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
   const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const today = now.toISOString().slice(0, 10);
-  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
+  const [
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    accountsResult,
+    incomeResult,
+    expenseResult,
+    budgetsResult,
+    upcomingResult,
+    managedMetrics,
+    loanMetrics,
+  ] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
+    supabase
+      .from('financial_accounts')
+      .select('current_balance, include_in_total, currency')
+      .eq('is_active', true),
+    supabase
+      .from('transactions')
+      .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
+      .eq('transaction_type', 'income')
+      .gte('transaction_date', monthStart)
+      .lte('transaction_date', monthEnd),
+    supabase
+      .from('transactions')
+      .select('id, account_id, category_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
+      .eq('transaction_type', 'expense')
+      .gte('transaction_date', monthStart)
+      .lte('transaction_date', monthEnd),
+    supabase
+      .from('budgets')
+      .select('id, category_id, amount, currency, period_start, period_end')
+      .eq('is_active', true),
+    supabase
+      .from('recurring_transactions')
+      .select('amount, currency')
+      .eq('is_active', true)
+      .eq('transaction_type', 'expense')
+      .gte('next_due_date', today)
+      .lte('next_due_date', next7Days),
+    getManagedMoneyMetrics(supabase, defaultCurrency),
+    getLoanMetrics(supabase, monthStart, monthEnd, defaultCurrency),
   ]);
 
-  // Total balance from active accounts that include_in_total
-  const { data: accounts } = await supabase
-    .from('financial_accounts')
-    .select('current_balance, include_in_total, currency')
-    .eq('is_active', true);
+  if (accountsResult.error) throw accountsResult.error;
+  if (incomeResult.error) throw incomeResult.error;
+  if (expenseResult.error) throw expenseResult.error;
+  if (budgetsResult.error) throw budgetsResult.error;
+  if (upcomingResult.error) throw upcomingResult.error;
 
   const totalBalanceByCurrency = new Map<string, number>();
-  for (const account of ((accounts || []) as BalanceRow[]).filter((row) => row.include_in_total)) {
+  for (const account of ((accountsResult.data || []) as BalanceRow[]).filter((row) => row.include_in_total)) {
     addCurrencyAmount(totalBalanceByCurrency, account.currency, Number(account.current_balance || 0), defaultCurrency);
   }
 
-  // Monthly income
-  const { data: incomeData } = await supabase
-    .from('transactions')
-    .select('id, account_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
-    .eq('transaction_type', 'income')
-    .gte('transaction_date', monthStart)
-    .lte('transaction_date', monthEnd);
-
   const monthlyIncomeByCurrency = new Map<string, number>();
   for (const transaction of filterTransactionsByRule(
-    (incomeData || []) as TransactionMetricRow[],
+    (incomeResult.data || []) as TransactionMetricRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     isPersonalIncomeTransaction
@@ -1699,17 +1839,9 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     addCurrencyAmount(monthlyIncomeByCurrency, transaction.currency, Number(transaction.amount || 0), defaultCurrency);
   }
 
-  // Monthly expenses
-  const { data: expenseData } = await supabase
-    .from('transactions')
-    .select('id, account_id, category_id, transaction_type, amount, currency, expense_owner, paid_by, paid_from, use_held_balance')
-    .eq('transaction_type', 'expense')
-    .gte('transaction_date', monthStart)
-    .lte('transaction_date', monthEnd);
-
   const monthlyExpensesByCurrency = new Map<string, number>();
   const eligibleMonthlyExpenses = filterTransactionsByRule(
-    (expenseData || []) as TransactionMetricRow[],
+    (expenseResult.data || []) as TransactionMetricRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     isPersonalExpenseTransaction
@@ -1719,8 +1851,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   }
 
   const cashFlowTransactions = [
-    ...((incomeData || []) as TransactionMetricRow[]),
-    ...((expenseData || []) as TransactionMetricRow[]),
+    ...((incomeResult.data || []) as TransactionMetricRow[]),
+    ...((expenseResult.data || []) as TransactionMetricRow[]),
   ];
   const netCashFlowByCurrency = new Map<string, number>();
   for (const transaction of cashFlowTransactions) {
@@ -1736,23 +1868,24 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     );
   }
 
-  // Budget totals
-  const { data: budgets } = await supabase
-    .from('budgets')
-    .select('id, category_id, amount, currency, period_start, period_end')
-    .eq('is_active', true);
-
   const totalBudgetByCurrency = new Map<string, number>();
   const budgetSpentByCurrency = new Map<string, number>();
-  const activeBudgetsForPeriod = ((budgets || []) as BudgetMetricRow[])
+  const activeBudgetsForPeriod = ((budgetsResult.data || []) as BudgetMetricRow[])
     .filter((budget) => isBudgetActiveForWindow(budget, monthStart, monthEnd));
+  const eligibleMonthlyExpensesByCategory = new Map<string, TransactionMetricRow[]>();
+
+  for (const transaction of eligibleMonthlyExpenses) {
+    if (!transaction.category_id) continue;
+    const existing = eligibleMonthlyExpensesByCategory.get(transaction.category_id) || [];
+    existing.push(transaction);
+    eligibleMonthlyExpensesByCategory.set(transaction.category_id, existing);
+  }
 
   for (const budget of activeBudgetsForPeriod) {
     addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0), defaultCurrency);
-
-    const matchingExpenses = eligibleMonthlyExpenses
-      .filter((transaction) => !budget.category_id || transaction.category_id === budget.category_id);
-
+    const matchingExpenses = budget.category_id
+      ? eligibleMonthlyExpensesByCategory.get(budget.category_id) || []
+      : eligibleMonthlyExpenses;
     for (const transaction of matchingExpenses) {
       addCurrencyAmount(
         budgetSpentByCurrency,
@@ -1763,21 +1896,10 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
     }
   }
 
-  // Upcoming recurring
-  const { data: upcoming } = await supabase
-    .from('recurring_transactions')
-    .select('amount, currency')
-    .eq('is_active', true)
-    .eq('transaction_type', 'expense')
-    .gte('next_due_date', today)
-    .lte('next_due_date', next7Days);
-
   const upcomingPaymentsByCurrency = new Map<string, number>();
-  for (const recurring of ((upcoming || []) as CurrencyAmountRow[])) {
+  for (const recurring of ((upcomingResult.data || []) as CurrencyAmountRow[])) {
     addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0), defaultCurrency);
   }
-  const managedMetrics = await getManagedMoneyMetrics(supabase, defaultCurrency);
-  const loanMetrics = await getLoanMetrics(supabase, monthStart, monthEnd, defaultCurrency);
 
   return {
     defaultCurrency,
@@ -1817,7 +1939,7 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
-    upcomingPaymentsCount: (upcoming || []).length,
+    upcomingPaymentsCount: (upcomingResult.data || []).length,
     managedMoney: buildDashboardConvertedMetric({
       originalTotals: managedMetrics.managedMoneyByCurrency,
       reportingCurrency: defaultCurrency,
@@ -1844,13 +1966,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
-export async function getReportData(dateFrom: string, dateTo: string, accountId?: string) {
+export async function getReportDataWithContext(dateFrom: string, dateTo: string, accountId?: string) {
   const supabase = createClient();
-  const [ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
-    loadTransactionLedgerSummaryMap(supabase),
-    loadAccountInclusionMap(supabase),
-  ]);
-
   let query = supabase
     .from('transactions')
     .select(`
@@ -1866,14 +1983,29 @@ export async function getReportData(dateFrom: string, dateTo: string, accountId?
     query = query.eq('account_id', accountId);
   }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return filterTransactionsByRule(
-    (data || []) as Transaction[],
+  const [ledgerSummaryByTransactionId, accountInclusionById, queryResult] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+    query,
+  ]);
+
+  if (queryResult.error) throw queryResult.error;
+  const transactions = filterTransactionsByRule(
+    (queryResult.data || []) as Transaction[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     shouldIncludeInPersonalReports
   );
+
+  return {
+    transactions,
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+  };
+}
+
+export async function getReportData(dateFrom: string, dateTo: string, accountId?: string) {
+  return (await getReportDataWithContext(dateFrom, dateTo, accountId)).transactions;
 }
 
 export async function buildHistoricalReportConvertedMetric(args: {

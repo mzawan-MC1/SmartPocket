@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, Loader2,  } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -11,6 +11,7 @@ import {
   updateAccount,
   archiveAccount,
   getFinancialAccountsSummary,
+  getLatestReportingContext,
   type AccountsSummaryMetrics,
   type FinancialAccount,
 } from '@/lib/finance';
@@ -86,10 +87,13 @@ export default function AccountsGrid() {
 
   const load = useCallback(() => {
     setLoading(true);
-    getAccounts()
-      .then(async (nextAccounts) => {
+    Promise.all([
+      getAccounts(),
+      getLatestReportingContext(),
+    ])
+      .then(async ([nextAccounts, reportingContext]) => {
         setAccounts(nextAccounts);
-        setSummary(await getFinancialAccountsSummary(nextAccounts));
+        setSummary(await getFinancialAccountsSummary(nextAccounts, reportingContext));
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
@@ -230,30 +234,33 @@ export default function AccountsGrid() {
     <div className="space-y-6">
       {/* Summary Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {summaryCards.map((item) => (
+        {summaryCards.map((item) => {
+          const metric = item.isCount ? null : summary?.[item.field] ?? null;
+
+          return (
           <div key={item.id} className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
             {item.isCount ? (
               <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
-            ) : !summary || summary[item.field].originalTotals.length === 0 ? (
+            ) : !metric || metric.originalTotals.length === 0 ? (
               <p className="text-sm text-muted-foreground">No active balances</p>
             ) : (
               <div className="space-y-2">
-                {summary[item.field].reportingAmount !== null ? (
+                {metric.reportingAmount !== null ? (
                   <FormattedCurrencyAmount
-                    amount={summary[item.field].reportingAmount}
-                    currencyCode={summary[item.field].reportingCurrency}
+                    amount={metric.reportingAmount}
+                    currencyCode={metric.reportingCurrency}
                     className={`text-sm font-700 ${
                       item.field === 'totalLiabilities'
                         ? 'text-negative'
-                        : (summary[item.field].reportingAmount || 0) >= 0
+                        : (metric.reportingAmount || 0) >= 0
                           ? 'text-foreground'
                           : 'text-negative'
                     }`}
                   />
                 ) : (
                   <div className="space-y-1">
-                    {summary[item.field].originalTotals.map((row) => (
+                    {metric.originalTotals.map((row) => (
                       <FormattedCurrencyAmount
                         key={`${item.id}-${row.currency}`}
                         amount={row.amount}
@@ -274,8 +281,8 @@ export default function AccountsGrid() {
                     View original currencies
                   </summary>
                   <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
-                    <p>Reporting currency: {summary[item.field].reportingCurrency}</p>
-                    {summary[item.field].originalTotals.map((row) => (
+                    <p>Reporting currency: {metric.reportingCurrency}</p>
+                    {metric.originalTotals.map((row) => (
                       <FormattedCurrencyAmount
                         key={`${item.id}-details-${row.currency}`}
                         amount={row.amount}
@@ -284,18 +291,18 @@ export default function AccountsGrid() {
                         className="block text-[11px] text-muted-foreground"
                       />
                     ))}
-                    {summary[item.field].provider ? <p>Provider: {summary[item.field].provider}</p> : null}
-                    {summary[item.field].rateDate ? <p>Rate date: {summary[item.field].rateDate}</p> : null}
-                    {summary[item.field].providerTimestamp ? <p>Provider timestamp: {summary[item.field].providerTimestamp}</p> : null}
-                    {summary[item.field].fetchedAt ? <p>Fetched at: {summary[item.field].fetchedAt}</p> : null}
-                    <p>Status: {summary[item.field].stale ? 'Stale' : 'Fresh'}</p>
-                    {summary[item.field].unavailableReason ? <p className="text-warning">{summary[item.field].unavailableReason}</p> : null}
+                    {metric.provider ? <p>Provider: {metric.provider}</p> : null}
+                    {metric.rateDate ? <p>Rate date: {metric.rateDate}</p> : null}
+                    {metric.providerTimestamp ? <p>Provider timestamp: {metric.providerTimestamp}</p> : null}
+                    {metric.fetchedAt ? <p>Fetched at: {metric.fetchedAt}</p> : null}
+                    <p>Status: {metric.stale ? 'Stale' : 'Fresh'}</p>
+                    {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
                   </div>
                 </details>
               </div>
             )}
           </div>
-        ))}
+        )})}
       </div>
 
       {/* Active Accounts */}

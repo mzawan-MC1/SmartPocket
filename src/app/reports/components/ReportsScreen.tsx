@@ -1,9 +1,8 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { BarChart3, PieChart, TrendingUp, FileText, Target, FileDown, Printer, Calendar, Filter, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
-import { createClient } from '@/lib/supabase/client';
 import {
   buildHistoricalRateUnavailableMessage,
   buildHistoricalReportConvertedMetricFromSnapshots,
@@ -12,11 +11,9 @@ import {
   getAccounts,
   getHistoricalReportContext,
   getReportBudgets,
-  getReportData,
-  loadAccountInclusionMap,
+  getReportDataWithContext,
   isPersonalExpenseTransaction,
   isPersonalIncomeTransaction,
-  loadTransactionLedgerSummaryMap,
   shouldIncludeInPersonalCashFlow,
   type FinancialAccount,
   type HistoricalReportConvertedMetric,
@@ -366,15 +363,17 @@ export default function ReportsScreen() {
 
   const load = useCallback(() => {
     setLoading(true);
-    const supabase = createClient();
     Promise.all([
-      getReportData(dateFrom, dateTo, selectedAccount),
+      getReportDataWithContext(dateFrom, dateTo, selectedAccount),
       getAccounts(),
-      loadTransactionLedgerSummaryMap(supabase),
-      loadAccountInclusionMap(supabase),
       getReportBudgets(dateFrom, dateTo),
     ])
-      .then(async ([txns, accts, ledgerSummary, accountInclusion, budgets]) => {
+      .then(async ([reportData, accts, budgets]) => {
+        const {
+          transactions: txns,
+          ledgerSummaryByTransactionId: ledgerSummary,
+          accountInclusionById: accountInclusion,
+        } = reportData;
         const incomeTransactions = txns.filter((t) =>
           isPersonalIncomeTransaction(t, ledgerSummary, accountInclusion)
         );
@@ -449,15 +448,21 @@ export default function ReportsScreen() {
 
   useEffect(() => { load(); }, [load]);
 
-  const incomeTransactions = transactions.filter((t) =>
-    isPersonalIncomeTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
-  );
-  const expenseTransactions = transactions.filter((t) =>
-    isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
-  );
-  const cashFlowTransactions = transactions.filter((transaction) =>
-    shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)
-  );
+  const incomeTransactions = useMemo(() => (
+    transactions.filter((t) =>
+      isPersonalIncomeTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
+    )
+  ), [transactions, ledgerSummaryByTransactionId, accountInclusionById]);
+  const expenseTransactions = useMemo(() => (
+    transactions.filter((t) =>
+      isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)
+    )
+  ), [transactions, ledgerSummaryByTransactionId, accountInclusionById]);
+  const cashFlowTransactions = useMemo(() => (
+    transactions.filter((transaction) =>
+      shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)
+    )
+  ), [transactions, ledgerSummaryByTransactionId, accountInclusionById]);
   const incomeMetric = historicalMetrics?.income ?? null;
   const expensesMetric = historicalMetrics?.expenses ?? null;
   const netMetric = historicalMetrics?.net ?? null;
@@ -479,6 +484,7 @@ export default function ReportsScreen() {
       : Number(incomeMetric.reportingAmount) <= 0
       ? 'No income in selected period'
       : `${savingsRate.toFixed(1)}%`;
+  const expenseTransactionCount = expenseTransactions.length;
   const activeChartState =
     activeReport === 'income-expense'
       ? chartState.incomeExpense
@@ -506,7 +512,7 @@ export default function ReportsScreen() {
     ],
     'spending-category': [
       { id: 'rpt-sc-total', label: 'Total Spent', convertedMetric: expensesMetric, sub: 'All categories' },
-      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)).length), sub: 'Records' },
+      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(expenseTransactionCount), sub: 'Records' },
       { id: 'rpt-sc-income', label: 'Total Income', convertedMetric: incomeMetric, positive: true },
       { id: 'rpt-sc-net', label: 'Net', convertedMetric: netMetric },
     ],

@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import AppLayout from '@/components/AppLayout';
 import { Settings, User, Globe, Bell, Shield, Check, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -17,6 +16,7 @@ import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
+import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
@@ -52,7 +52,6 @@ export default function SettingsPage() {
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const { user } = useAuth();
   const { setLanguage } = useLanguage();
-  const router = useRouter();
   const { data: referenceData } = useClientReferenceData();
   const snapshot = referenceData?.snapshot;
 
@@ -139,6 +138,7 @@ export default function SettingsPage() {
         .single();
       if (error) throw error;
       setLanguage((savedProfile.preferred_language || 'en') as any);
+      clearResolvedUserDefaultCurrencyCache();
       reset({
         full_name: savedProfile.full_name || '',
         country: savedProfile.country || '',
@@ -153,7 +153,6 @@ export default function SettingsPage() {
       });
       setSaved(true);
       toast.success('Settings saved successfully');
-      router.refresh();
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       toast.error(err?.message || 'Failed to save settings');

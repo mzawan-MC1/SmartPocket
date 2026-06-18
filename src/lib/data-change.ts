@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export const SMARTPOCKET_DATA_CHANGED_EVENT = 'smartpocket:data-changed';
 
@@ -47,21 +47,28 @@ export function useSmartPocketDataChanged(
   label: string,
   onChange: () => void | Promise<void>
 ) {
+  const onChangeRef = useRef(onChange);
+
   useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    const entitySet = new Set(entities);
     const handleChange = (event: Event) => {
       const customEvent = event as CustomEvent<SmartPocketDataChangedDetail>;
       const detail = customEvent.detail;
-      if (!detail?.entities?.some((entity) => entities.includes(entity))) {
+      if (!detail?.entities?.some((entity) => entitySet.has(entity))) {
         return;
       }
 
       logDebug(`${label} refetch`, detail);
-      void onChange();
+      void onChangeRef.current();
     };
 
     window.addEventListener(SMARTPOCKET_DATA_CHANGED_EVENT, handleChange as EventListener);
     return () => {
       window.removeEventListener(SMARTPOCKET_DATA_CHANGED_EVENT, handleChange as EventListener);
     };
-  }, [entities, label, onChange]);
+  }, [label, ...entities]);
 }

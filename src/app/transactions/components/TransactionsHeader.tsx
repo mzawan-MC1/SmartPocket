@@ -5,7 +5,11 @@ import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 
-export default function TransactionsHeader() {
+export default function TransactionsHeader({
+  onAddTransaction,
+}: {
+  onAddTransaction: () => void;
+}) {
   return (
     <PageHeader
       title="Transactions"
@@ -20,7 +24,7 @@ export default function TransactionsHeader() {
             <Download size={15} />
             Export CSV
           </button>
-          <button className="btn-primary">
+          <button onClick={onAddTransaction} className="btn-primary">
             <Plus size={15} />
             Add Transaction
           </button>

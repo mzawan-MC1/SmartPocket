@@ -16,7 +16,7 @@ const sizeClasses = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
-  xl: 'max-w-2xl',
+  xl: 'max-w-4xl',
 };
 
 export default function Modal({ open, isOpen, onClose, title, description, children, size = 'md' }: ModalProps) {
@@ -30,6 +30,19 @@ export default function Modal({ open, isOpen, onClose, title, description, child
     }
     return () => { document.body.style.overflow = ''; };
   }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isVisible, onClose]);
 
   if (!isVisible) return null;
 
