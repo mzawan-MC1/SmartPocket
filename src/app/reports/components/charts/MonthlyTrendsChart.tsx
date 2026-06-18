@@ -53,9 +53,19 @@ export default function MonthlyTrendsChart({
   data: MonthlyTrendsChartRow[];
   currencyCode: string;
 }) {
+  const safeData = Array.isArray(data)
+    ? data.filter((row) =>
+      row &&
+      typeof row.month === 'string' &&
+      row.month.length > 0 &&
+      Number.isFinite(row.income) &&
+      Number.isFinite(row.expenses) &&
+      Number.isFinite(row.savings)
+    )
+    : [];
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={3}>
+      <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={3}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />

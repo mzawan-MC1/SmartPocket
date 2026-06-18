@@ -46,15 +46,27 @@ export default function SpendingCategoryReportChart({
   data: SpendingCategoryChartRow[];
   currencyCode: string;
 }) {
+  const safeData = Array.isArray(data)
+    ? data.filter((row) =>
+      row &&
+      typeof row.id === 'string' &&
+      row.id.length > 0 &&
+      typeof row.category === 'string' &&
+      row.category.length > 0 &&
+      Number.isFinite(row.amount) &&
+      typeof row.color === 'string' &&
+      row.color.length > 0
+    )
+    : [];
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barSize={32}>
+      <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barSize={32}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="category" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
         <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
-          {data.map((entry) => (
+          {safeData.map((entry) => (
             <Cell key={entry.id} fill={entry.color} />
           ))}
         </Bar>

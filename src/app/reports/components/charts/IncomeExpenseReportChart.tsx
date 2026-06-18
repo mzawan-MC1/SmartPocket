@@ -61,9 +61,19 @@ export default function IncomeExpenseReportChart({
   data: IncomeExpenseChartRow[];
   currencyCode: string;
 }) {
+  const safeData = Array.isArray(data)
+    ? data.filter((row) =>
+      row &&
+      typeof row.month === 'string' &&
+      row.month.length > 0 &&
+      Number.isFinite(row.income) &&
+      Number.isFinite(row.expenses) &&
+      Number.isFinite(row.net)
+    )
+    : [];
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+      <AreaChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
         <defs>
           <linearGradient id="rptIncomeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--positive)" stopOpacity={0.2} />

@@ -27,7 +27,6 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
-
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
 const MonthlyTrendsChart = dynamic(() => import('./charts/MonthlyTrendsChart'), { ssr: false });
@@ -101,6 +100,54 @@ function formatMonthKey(monthKey: string) {
     year: 'numeric',
     timeZone: 'UTC',
   }).format(parsed);
+}
+
+function isFiniteAmount(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function sanitizeIncomeExpenseChartRows(rows: unknown): IncomeExpenseChartRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row): row is IncomeExpenseChartRow => {
+    if (!row || typeof row !== 'object') return false;
+    const candidate = row as Partial<IncomeExpenseChartRow>;
+    return typeof candidate.month === 'string' &&
+      candidate.month.length > 0 &&
+      isFiniteAmount(candidate.income) &&
+      isFiniteAmount(candidate.expenses) &&
+      isFiniteAmount(candidate.net);
+  });
+}
+
+function sanitizeSpendingCategoryChartRows(rows: unknown): SpendingCategoryChartRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row): row is SpendingCategoryChartRow => {
+    if (!row || typeof row !== 'object') return false;
+    const candidate = row as Partial<SpendingCategoryChartRow>;
+    return typeof candidate.id === 'string' &&
+      candidate.id.length > 0 &&
+      typeof candidate.category === 'string' &&
+      candidate.category.length > 0 &&
+      isFiniteAmount(candidate.amount) &&
+      typeof candidate.color === 'string' &&
+      candidate.color.length > 0;
+  });
+}
+
+function sanitizeBudgetPerformanceChartRows(rows: unknown): BudgetPerformanceChartRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row): row is BudgetPerformanceChartRow => {
+    if (!row || typeof row !== 'object') return false;
+    const candidate = row as Partial<BudgetPerformanceChartRow>;
+    return typeof candidate.id === 'string' &&
+      candidate.id.length > 0 &&
+      typeof candidate.category === 'string' &&
+      candidate.category.length > 0 &&
+      isFiniteAmount(candidate.allocated) &&
+      isFiniteAmount(candidate.spent) &&
+      typeof candidate.color === 'string' &&
+      candidate.color.length > 0;
+  });
 }
 
 function buildIncomeExpenseChartState(args: {
@@ -411,16 +458,25 @@ export default function ReportsScreen() {
   const cashFlowTransactions = transactions.filter((transaction) =>
     shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)
   );
+  const incomeMetric = historicalMetrics?.income ?? null;
+  const expensesMetric = historicalMetrics?.expenses ?? null;
+  const netMetric = historicalMetrics?.net ?? null;
   const canCalculateSavingsRate =
-    historicalMetrics?.income.reportingAmount !== null &&
-    historicalMetrics?.expenses.reportingAmount !== null &&
-    Number(historicalMetrics?.income.reportingAmount) > 0;
+    incomeMetric !== null &&
+    expensesMetric !== null &&
+    incomeMetric.reportingAmount !== null &&
+    expensesMetric.reportingAmount !== null &&
+    Number(incomeMetric.reportingAmount) > 0;
   const savingsRate = canCalculateSavingsRate
-    ? ((Number(historicalMetrics?.income.reportingAmount || 0) - Number(historicalMetrics?.expenses.reportingAmount || 0)) / Number(historicalMetrics?.income.reportingAmount || 0)) * 100
+    ? ((Number(incomeMetric?.reportingAmount || 0) - Number(expensesMetric?.reportingAmount || 0)) / Number(incomeMetric?.reportingAmount || 0)) * 100
     : 0;
-  const savingsRateValue = historicalMetrics?.income.reportingAmount === null || historicalMetrics?.expenses.reportingAmount === null
-    ? historicalMetrics?.income.unavailableReason || historicalMetrics?.expenses.unavailableReason || 'Savings rate unavailable until historical rates exist'
-    : Number(historicalMetrics.income.reportingAmount) <= 0
+  const savingsRateValue = !incomeMetric || !expensesMetric
+    ? loading
+      ? 'Loading report metrics'
+      : 'Report metrics unavailable'
+    : incomeMetric.reportingAmount === null || expensesMetric.reportingAmount === null
+      ? incomeMetric.unavailableReason || expensesMetric.unavailableReason || 'Savings rate unavailable until historical rates exist'
+      : Number(incomeMetric.reportingAmount) <= 0
       ? 'No income in selected period'
       : `${savingsRate.toFixed(1)}%`;
   const activeChartState =
@@ -443,34 +499,34 @@ export default function ReportsScreen() {
     positive?: boolean;
   }>> = {
     'income-expense': [
-      { id: 'rpt-ie-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, sub: `${dateFrom} – ${dateTo}`, positive: true },
-      { id: 'rpt-ie-expenses', label: 'Total Expenses', convertedMetric: historicalMetrics?.expenses || null, sub: `${dateFrom} – ${dateTo}`, positive: false },
-      { id: 'rpt-ie-net', label: 'Net Savings', convertedMetric: historicalMetrics?.net || null, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable until all required historical rates exist' },
+      { id: 'rpt-ie-income', label: 'Total Income', convertedMetric: incomeMetric, sub: `${dateFrom} – ${dateTo}`, positive: true },
+      { id: 'rpt-ie-expenses', label: 'Total Expenses', convertedMetric: expensesMetric, sub: `${dateFrom} – ${dateTo}`, positive: false },
+      { id: 'rpt-ie-net', label: 'Net Savings', convertedMetric: netMetric, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable until all required historical rates exist' },
       { id: 'rpt-ie-txns', label: 'Transactions', value: String(transactions.length), sub: 'Total records' },
     ],
     'spending-category': [
-      { id: 'rpt-sc-total', label: 'Total Spent', convertedMetric: historicalMetrics?.expenses || null, sub: 'All categories' },
+      { id: 'rpt-sc-total', label: 'Total Spent', convertedMetric: expensesMetric, sub: 'All categories' },
       { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)).length), sub: 'Records' },
-      { id: 'rpt-sc-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, positive: true },
-      { id: 'rpt-sc-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
+      { id: 'rpt-sc-income', label: 'Total Income', convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-sc-net', label: 'Net', convertedMetric: netMetric },
     ],
     'monthly-trends': [
-      { id: 'rpt-mt-income', label: 'Period Income', convertedMetric: historicalMetrics?.income || null, positive: true },
-      { id: 'rpt-mt-expenses', label: 'Period Expenses', convertedMetric: historicalMetrics?.expenses || null, positive: false },
-      { id: 'rpt-mt-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
+      { id: 'rpt-mt-income', label: 'Period Income', convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-mt-expenses', label: 'Period Expenses', convertedMetric: expensesMetric, positive: false },
+      { id: 'rpt-mt-net', label: 'Net', convertedMetric: netMetric },
       { id: 'rpt-mt-txns', label: 'Transactions', value: String(transactions.length) },
     ],
     'budget-performance': [
-      { id: 'rpt-bp-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, positive: true },
-      { id: 'rpt-bp-expenses', label: 'Total Expenses', convertedMetric: historicalMetrics?.expenses || null, positive: false },
-      { id: 'rpt-bp-net', label: 'Net Savings', convertedMetric: historicalMetrics?.net || null },
+      { id: 'rpt-bp-income', label: 'Total Income', convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-bp-expenses', label: 'Total Expenses', convertedMetric: expensesMetric, positive: false },
+      { id: 'rpt-bp-net', label: 'Net Savings', convertedMetric: netMetric },
       { id: 'rpt-bp-rate', label: 'Savings Rate', value: savingsRateValue, positive: canCalculateSavingsRate ? savingsRate >= 20 : undefined },
     ],
     'account-statement': [
       { id: 'rpt-as-txns', label: 'Total Transactions', value: String(transactions.length), sub: `${dateFrom} – ${dateTo}` },
-      { id: 'rpt-as-credits', label: 'Total Credits', convertedMetric: historicalMetrics?.income || null, sub: 'Inflows', positive: true },
-      { id: 'rpt-as-debits', label: 'Total Debits', convertedMetric: historicalMetrics?.expenses || null, sub: 'Outflows', positive: false },
-      { id: 'rpt-as-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
+      { id: 'rpt-as-credits', label: 'Total Credits', convertedMetric: incomeMetric, sub: 'Inflows', positive: true },
+      { id: 'rpt-as-debits', label: 'Total Debits', convertedMetric: expensesMetric, sub: 'Outflows', positive: false },
+      { id: 'rpt-as-net', label: 'Net', convertedMetric: netMetric },
     ],
   };
 
@@ -710,12 +766,12 @@ export default function ReportsScreen() {
                     />
                   </div>
                 ) : activeReport === 'income-expense' ? (
-                  <IncomeExpenseReportChart data={chartState.incomeExpense.data} currencyCode={reportingCurrency} />
+                  <IncomeExpenseReportChart data={sanitizeIncomeExpenseChartRows(chartState.incomeExpense.data)} currencyCode={reportingCurrency} />
                 ) : activeReport === 'spending-category' ? (
-                  <SpendingCategoryReportChart data={chartState.spendingCategory.data} currencyCode={reportingCurrency} />
+                  <SpendingCategoryReportChart data={sanitizeSpendingCategoryChartRows(chartState.spendingCategory.data)} currencyCode={reportingCurrency} />
                 ) : activeReport === 'monthly-trends' ? (
                   <MonthlyTrendsChart
-                    data={chartState.monthlyTrends.data.map((row) => ({
+                    data={sanitizeIncomeExpenseChartRows(chartState.monthlyTrends.data).map((row) => ({
                       month: row.month,
                       income: row.income,
                       expenses: row.expenses,
@@ -724,7 +780,7 @@ export default function ReportsScreen() {
                     currencyCode={reportingCurrency}
                   />
                 ) : activeReport === 'budget-performance' ? (
-                  <BudgetPerformanceChart data={chartState.budgetPerformance.data} currencyCode={reportingCurrency} />
+                  <BudgetPerformanceChart data={sanitizeBudgetPerformanceChartRows(chartState.budgetPerformance.data)} currencyCode={reportingCurrency} />
                 ) : null}
                 {activeReport === 'account-statement' && <AccountStatementTable transactions={transactions} />}
               </div>

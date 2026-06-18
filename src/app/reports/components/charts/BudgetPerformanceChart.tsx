@@ -55,9 +55,22 @@ export default function BudgetPerformanceChart({
   data: BudgetPerformanceChartRow[];
   currencyCode: string;
 }) {
+  const safeData = Array.isArray(data)
+    ? data.filter((row) =>
+      row &&
+      typeof row.id === 'string' &&
+      row.id.length > 0 &&
+      typeof row.category === 'string' &&
+      row.category.length > 0 &&
+      Number.isFinite(row.allocated) &&
+      Number.isFinite(row.spent) &&
+      typeof row.color === 'string' &&
+      row.color.length > 0
+    )
+    : [];
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={2}>
+      <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={2}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
@@ -65,7 +78,7 @@ export default function BudgetPerformanceChart({
         <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
         <Bar dataKey="allocated" fill="var(--muted)" radius={[3, 3, 0, 0]} barSize={18} name="allocated" />
         <Bar dataKey="spent" radius={[3, 3, 0, 0]} barSize={18} name="spent">
-          {data.map((entry) => {
+          {safeData.map((entry) => {
             const pct = entry.allocated > 0 ? (entry.spent / entry.allocated) * 100 : 0;
             const color = pct >= 100 ? 'var(--negative)' : pct >= 80 ? 'var(--warning)' : entry.color || 'var(--positive)';
             return <Cell key={entry.id} fill={color} />;
