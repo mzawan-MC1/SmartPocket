@@ -7,8 +7,6 @@ import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import {
   getAccounts,
-  createAccount,
-  updateAccount,
   archiveAccount,
   getFinancialAccountsSummary,
   getLatestReportingContext,
@@ -17,21 +15,8 @@ import {
 } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AccountDetailPanel from './AccountDetailPanel';
-import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import { useClientReferenceData } from '@/lib/reference-data/client';
-import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
-
-
-const ACCOUNT_TYPE_OPTIONS = [
-  { value: 'bank', label: 'Bank Account' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'savings', label: 'Savings' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'digital_wallet', label: 'Digital Wallet' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'other', label: 'Other' },
-];
+import FinancialAccountForm from './FinancialAccountForm';
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -55,23 +40,11 @@ function getIcon(type: string) {
   }
 }
 
-interface AccountFormData {
-  name: string;
-  account_type: string;
-  currency: string;
-  opening_balance: string;
-  notes: string;
-  include_in_total: boolean;
-}
-
 type SummaryMetric =
   | { id: string; label: string; isCount: true }
   | { id: string; label: string; field: 'totalNetWorth' | 'totalAssets' | 'totalLiabilities'; isCount?: false };
 
 export default function AccountsGrid() {
-  const { data: referenceData } = useClientReferenceData();
-  const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
-  const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [summary, setSummary] = useState<AccountsSummaryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,10 +53,6 @@ export default function AccountsGrid() {
   const [selectedAccount, setSelectedAccount] = useState<FinancialAccount | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState<AccountFormData>({
-    name: '', account_type: 'bank', currency: '', opening_balance: '0.00', notes: '', include_in_total: true,
-  });
 
   const load = useCallback(() => {
     setLoading(true);
@@ -101,87 +70,19 @@ export default function AccountsGrid() {
 
   useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void resolveUserDefaultCurrency(platformDefaultCurrency).then((currencyCode) => {
-      if (!cancelled) {
-        setUserDefaultCurrency(currencyCode);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [platformDefaultCurrency]);
-
   useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountsGrid', () => {
     load();
   });
 
   const openAdd = () => {
     setEditingAccount(null);
-    setForm({
-      name: '',
-      account_type: 'bank',
-      currency: userDefaultCurrency || platformDefaultCurrency,
-      opening_balance: '0.00',
-      notes: '',
-      include_in_total: true,
-    });
     setShowAddModal(true);
   };
-
-  React.useEffect(() => {
-    const defaultCurrency = userDefaultCurrency || platformDefaultCurrency;
-    if (!defaultCurrency) return;
-    setForm((current) => {
-      if (current.currency || editingAccount) {
-        return current;
-      }
-      return { ...current, currency: defaultCurrency };
-    });
-  }, [editingAccount, platformDefaultCurrency, userDefaultCurrency]);
 
   const openEdit = (acct: FinancialAccount) => {
     setEditingAccount(acct);
-    setForm({
-      name: acct.name,
-      account_type: acct.account_type,
-      currency: acct.currency,
-      opening_balance: String(acct.opening_balance),
-      notes: acct.notes || '',
-      include_in_total: acct.include_in_total,
-    });
     setShowAddModal(true);
     setOpenMenuId(null);
-  };
-
-  const handleSave = async () => {
-    if (!form.name.trim()) { toast.error('Account name is required'); return; }
-    if (!form.currency) { toast.error('Currency is required'); return; }
-    setIsSaving(true);
-    try {
-      const payload = {
-        name: form.name.trim(),
-        account_type: form.account_type as FinancialAccount['account_type'],
-        currency: form.currency,
-        opening_balance: parseFloat(form.opening_balance) || 0,
-        notes: form.notes || null,
-        include_in_total: form.include_in_total,
-      };
-      if (editingAccount) {
-        await updateAccount(editingAccount.id, payload);
-        toast.success('Account updated');
-      } else {
-        await createAccount(payload);
-        toast.success('Account created');
-      }
-      setShowAddModal(false);
-      load();
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to save account');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleArchive = async (id: string) => {
@@ -473,69 +374,11 @@ export default function AccountsGrid() {
         title={editingAccount ? 'Edit Account' : 'Add Account'}
         size="md"
       >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Account Name *</label>
-            <input
-              type="text"
-              className="input-base"
-              placeholder="e.g. Chase Checking, Cash Wallet"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Account Type *</label>
-              <select className="input-base" value={form.account_type} onChange={(e) => setForm((f) => ({ ...f, account_type: e.target.value }))}>
-                {ACCOUNT_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Currency *</label>
-              <CurrencySelector
-                value={form.currency}
-                onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
-                showCountryCount
-                placeholder="Choose currency"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Opening Balance</label>
-            <p className="text-xs text-muted-foreground mb-1.5">Current balance of this account. Use negative for credit card debt.</p>
-            <input
-              type="number"
-              step="0.01"
-              className="input-base font-tabular"
-              placeholder="0.00"
-              value={form.opening_balance}
-              onChange={(e) => setForm((f) => ({ ...f, opening_balance: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
-            <textarea rows={2} className="input-base resize-none" placeholder="Optional notes..." value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/40 rounded-xl">
-            <input
-              id="include-in-total"
-              type="checkbox"
-              className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
-              checked={form.include_in_total}
-              onChange={(e) => setForm((f) => ({ ...f, include_in_total: e.target.checked }))}
-            />
-            <label htmlFor="include-in-total" className="text-sm font-500 text-foreground cursor-pointer">
-              Include in total balance calculation
-            </label>
-          </div>
-          <div className="flex gap-2 justify-end pt-2 border-t border-border">
-            <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary">Cancel</button>
-            <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary">
-              {isSaving ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : editingAccount ? 'Update Account' : 'Add Account'}
-            </button>
-          </div>
-        </div>
+        <FinancialAccountForm
+          account={editingAccount}
+          onSuccess={() => setShowAddModal(false)}
+          onCancel={() => setShowAddModal(false)}
+        />
       </Modal>
 
       {/* Archive Confirm */}

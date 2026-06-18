@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
-import { loadAccountInclusionMap, loadTransactionLedgerSummaryMap, shouldIncludeInBudgetSpending, type Transaction } from '@/lib/finance';
+import { getDashboardMonthContext, loadAccountInclusionMap, loadTransactionLedgerSummaryMap, shouldIncludeInBudgetSpending, type Transaction } from '@/lib/finance';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
 
@@ -41,7 +41,11 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-export default function SpendingCategoryChart() {
+export default function SpendingCategoryChart({
+  selectedMonth,
+}: {
+  selectedMonth: string;
+}) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [data, setData] = useState<CategorySpend[]>([]);
   const [total, setTotal] = useState(0);
@@ -51,10 +55,9 @@ export default function SpendingCategoryChart() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const now = new Date();
-      const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+      const monthContext = getDashboardMonthContext(selectedMonth);
+      const start = monthContext.monthStart;
+      const end = monthContext.monthEnd;
 
       const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
         supabase
@@ -106,7 +109,7 @@ export default function SpendingCategoryChart() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedMonth]);
 
   useEffect(() => {
     void load();
@@ -123,7 +126,7 @@ export default function SpendingCategoryChart() {
   if (!data.length) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
-        <p className="text-sm text-muted-foreground">No expense data this month</p>
+        <p className="text-sm text-muted-foreground">No expense data for this month</p>
         <p className="text-xs text-muted-foreground">Add expense transactions to see spending by category</p>
       </div>
     );

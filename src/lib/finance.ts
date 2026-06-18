@@ -345,6 +345,14 @@ export interface LatestReportingContext {
   latestSnapshot: ExchangeRateSnapshotRecord | null;
 }
 
+export interface DashboardMonthContext {
+  monthKey: string;
+  label: string;
+  monthStart: string;
+  monthEnd: string;
+  isCurrentMonth: boolean;
+}
+
 export async function loadTransactionLedgerSummaryMap(
   supabase: ReturnType<typeof createClient>
 ): Promise<Map<string, TransactionLedgerSummary>> {
@@ -1654,6 +1662,43 @@ export async function getBudgets(periodStart?: string): Promise<Budget[]> {
   return budgets;
 }
 
+function isValidDashboardMonthKey(value: string | null | undefined): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value);
+}
+
+export function getCurrentDashboardMonthKey(nowInput?: Date) {
+  const now = nowInput || new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getDashboardMonthContext(selectedMonth?: string, nowInput?: Date): DashboardMonthContext {
+  const now = nowInput || new Date();
+  const currentMonthKey = getCurrentDashboardMonthKey(now);
+  const monthKey = isValidDashboardMonthKey(selectedMonth) && selectedMonth <= currentMonthKey
+    ? selectedMonth
+    : currentMonthKey;
+  const [yearText, monthText] = monthKey.split('-');
+  const year = Number(yearText);
+  const monthIndex = Number(monthText) - 1;
+  const start = new Date(year, monthIndex, 1);
+  const end = new Date(year, monthIndex + 1, 0);
+
+  return {
+    monthKey,
+    label: start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    monthStart: start.toISOString().slice(0, 10),
+    monthEnd: end.toISOString().slice(0, 10),
+    isCurrentMonth: monthKey === currentMonthKey,
+  };
+}
+
+export function shiftDashboardMonth(monthKey: string, offset: number) {
+  const [yearText, monthText] = monthKey.split('-');
+  const base = new Date(Number(yearText), Number(monthText) - 1, 1);
+  base.setMonth(base.getMonth() + offset);
+  return `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export async function createBudget(payload: Partial<Budget>): Promise<Budget> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1766,14 +1811,13 @@ function calculateNextDueDate(currentDate: string, frequency: string): string {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export async function getDashboardMetrics(): Promise<DashboardMetrics> {
+export async function getDashboardMetrics(args?: {
+  selectedMonth?: string;
+}): Promise<DashboardMetrics> {
   const supabase = createClient();
   const { defaultCurrency, latestSnapshot } = await getLatestReportingContext(supabase);
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-  const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-  const today = now.toISOString().slice(0, 10);
+  const monthContext = getDashboardMonthContext(args?.selectedMonth);
+  const { monthStart, monthEnd } = monthContext;
   const [
     ledgerSummaryByTransactionId,
     accountInclusionById,
@@ -1812,8 +1856,8 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
       .select('amount, currency')
       .eq('is_active', true)
       .eq('transaction_type', 'expense')
-      .gte('next_due_date', today)
-      .lte('next_due_date', next7Days),
+      .gte('next_due_date', monthStart)
+      .lte('next_due_date', monthEnd),
     getManagedMoneyMetrics(supabase, defaultCurrency),
     getLoanMetrics(supabase, monthStart, monthEnd, defaultCurrency),
   ]);

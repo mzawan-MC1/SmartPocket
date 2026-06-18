@@ -3,28 +3,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { Repeat, Plus, Play, Pause, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
-import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import {
-  getRecurringTransactions, createRecurringTransaction, updateRecurringTransaction,
+  getRecurringTransactions, updateRecurringTransaction,
   markRecurringAsPaid, getAccounts, getCategories,
   type RecurringTransaction, type FinancialAccount, type Category,
 } from '@/lib/finance';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-
-interface RecurringFormData {
-  description: string;
-  amount: string;
-  transaction_type: 'income' | 'expense';
-  frequency: string;
-  next_due_date: string;
-  merchant: string;
-  account_id: string;
-  category_id: string;
-}
+import RecurringTransactionForm from './components/RecurringTransactionForm';
 
 function normalizeCurrencyCode(value: string | null | undefined) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
@@ -33,22 +22,11 @@ function normalizeCurrencyCode(value: string | null | undefined) {
 
 export default function RecurringPage() {
   const [showAddModal, setShowAddModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
-
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<RecurringFormData>({
-    defaultValues: {
-      transaction_type: 'expense',
-      frequency: 'monthly',
-      next_due_date: new Date().toISOString().split('T')[0],
-    },
-  });
-
-  const txnType = watch('transaction_type');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -63,39 +41,6 @@ export default function RecurringPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  const onSubmit = async (data: RecurringFormData) => {
-    if (!data.account_id) { toast.error('Please select an account'); return; }
-    setIsLoading(true);
-    try {
-      const selectedAccount = accounts.find((account) => account.id === data.account_id);
-      if (!selectedAccount?.currency) {
-        toast.error('Selected account is missing a currency');
-        return;
-      }
-      await createRecurringTransaction({
-        account_id: data.account_id,
-        category_id: data.category_id || null,
-        transaction_type: data.transaction_type,
-        amount: parseFloat(data.amount),
-        currency: selectedAccount.currency,
-        description: data.description,
-        merchant: data.merchant || null,
-        frequency: data.frequency as RecurringTransaction['frequency'],
-        next_due_date: data.next_due_date,
-        is_active: true,
-        auto_create: false,
-      });
-      toast.success('Recurring transaction created');
-      reset();
-      setShowAddModal(false);
-      load();
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to create recurring transaction');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleTogglePause = async (item: RecurringTransaction) => {
     try {
@@ -152,8 +97,6 @@ export default function RecurringPage() {
     netMonthlyMap.set(row.currency, (netMonthlyMap.get(row.currency) || 0) - row.amount);
   }
   const netMonthly = Array.from(netMonthlyMap.entries()).map(([currency, amount]) => ({ currency, amount }));
-
-  const filteredCategories = categories.filter((c) => c.category_type === txnType);
 
   return (
     <AppLayout activeRoute="/recurring">
@@ -313,80 +256,16 @@ export default function RecurringPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); reset(); }} title="Add Recurring Transaction" size="md">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-          <div>
-            <label htmlFor="rec-desc" className="block text-sm font-600 text-foreground mb-1.5">Description *</label>
-            <input id="rec-desc" type="text" className={`input-base ${errors.description ? 'input-error' : ''}`} placeholder="e.g. Netflix Subscription"
-              {...register('description', { required: 'Description is required' })}
-            />
-            {errors.description && <p className="mt-1.5 text-xs text-negative font-500">{errors.description.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="rec-type" className="block text-sm font-600 text-foreground mb-1.5">Type</label>
-              <select id="rec-type" className="input-base" {...register('transaction_type')}>
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="rec-freq" className="block text-sm font-600 text-foreground mb-1.5">Frequency</label>
-              <select id="rec-freq" className="input-base" {...register('frequency')}>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="biweekly">Bi-weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="yearly">Yearly</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="rec-account" className="block text-sm font-600 text-foreground mb-1.5">Account *</label>
-            <select id="rec-account" className={`input-base ${errors.account_id ? 'input-error' : ''}`} {...register('account_id', { required: 'Select an account' })}>
-              <option value="">Select account...</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-            </select>
-            {errors.account_id && <p className="mt-1.5 text-xs text-negative font-500">{errors.account_id.message}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="rec-category" className="block text-sm font-600 text-foreground mb-1.5">Category</label>
-            <select id="rec-category" className="input-base" {...register('category_id')}>
-              <option value="">No category</option>
-              {filteredCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="rec-amount" className="block text-sm font-600 text-foreground mb-1.5">Amount *</label>
-            <input id="rec-amount" type="number" step="0.01" min="0.01" className={`input-base font-tabular ${errors.amount ? 'input-error' : ''}`} placeholder="0.00"
-              {...register('amount', { required: 'Amount is required', min: { value: 0.01, message: 'Must be greater than 0' } })}
-            />
-            {errors.amount && <p className="mt-1.5 text-xs text-negative font-500">{errors.amount.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="rec-merchant" className="block text-sm font-600 text-foreground mb-1.5">Merchant</label>
-              <input id="rec-merchant" type="text" className="input-base" placeholder="e.g. Netflix" {...register('merchant')} />
-            </div>
-            <div>
-              <label htmlFor="rec-next-date" className="block text-sm font-600 text-foreground mb-1.5">Next Due Date</label>
-              <input id="rec-next-date" type="date" className="input-base" {...register('next_due_date')} />
-            </div>
-          </div>
-
-          <div className="flex gap-2 justify-end pt-2 border-t border-border">
-            <button type="button" onClick={() => { setShowAddModal(false); reset(); }} className="btn-secondary">Cancel</button>
-            <button type="submit" disabled={isLoading} className="btn-primary">
-              {isLoading ? <><Loader2 size={15} className="animate-spin" /> Creating...</> : 'Add Recurring'}
-            </button>
-          </div>
-        </form>
+      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title="Add Recurring Transaction" size="md">
+        <RecurringTransactionForm
+          accounts={accounts}
+          categories={categories}
+          onSuccess={() => {
+            setShowAddModal(false);
+            load();
+          }}
+          onCancel={() => { setShowAddModal(false); }}
+        />
       </Modal>
     </AppLayout>
   );

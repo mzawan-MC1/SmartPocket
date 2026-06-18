@@ -2,6 +2,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   isPersonalExpenseTransaction,
+  getDashboardMonthContext,
+  shiftDashboardMonth,
   isPersonalIncomeTransaction,
   loadAccountInclusionMap,
   loadTransactionLedgerSummaryMap,
@@ -48,7 +50,11 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function IncomeExpenseChart() {
+export default function IncomeExpenseChart({
+  selectedMonth,
+}: {
+  selectedMonth: string;
+}) {
   const [data, setData] = useState<MonthlyPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,11 +62,10 @@ export default function IncomeExpenseChart() {
     setLoading(true);
     try {
       const supabase = createClient();
-      const now = new Date();
-      const firstMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-      const start = `${firstMonth.getFullYear()}-${String(firstMonth.getMonth() + 1).padStart(2, '0')}-01`;
-      const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+      const monthContext = getDashboardMonthContext(selectedMonth);
+      const firstMonthContext = getDashboardMonthContext(shiftDashboardMonth(monthContext.monthKey, -5));
+      const start = firstMonthContext.monthStart;
+      const end = monthContext.monthEnd;
 
       const [{ data: txns }, ledgerSummaryByTransactionId, accountInclusionById] = await Promise.all([
         supabase
@@ -75,10 +80,11 @@ export default function IncomeExpenseChart() {
 
       const monthMap = new Map<string, MonthlyPoint>();
       for (let i = 5; i >= 0; i -= 1) {
-        const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`;
+        const period = getDashboardMonthContext(shiftDashboardMonth(monthContext.monthKey, -i));
+        const monthDate = new Date(`${period.monthStart}T00:00:00`);
+        const key = period.monthKey;
         monthMap.set(key, {
-          month: month.toLocaleString('en-US', { month: 'short' }),
+          month: monthDate.toLocaleString('en-US', { month: 'short' }),
           income: 0,
           expenses: 0,
         });
@@ -102,7 +108,7 @@ export default function IncomeExpenseChart() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedMonth]);
 
   useEffect(() => {
     void load();

@@ -1,7 +1,8 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Users, Wallet, TrendingUp, TrendingDown, RotateCcw } from 'lucide-react';
 import { getPeopleDashboardSummary } from '@/lib/people';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 import Link from 'next/link';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
@@ -16,12 +17,28 @@ export default function PeopleDashboardWidget() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getPeopleDashboardSummary()
-      .then(setSummary)
-      .catch(() => setSummary(null))
-      .finally(() => setLoading(false));
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setSummary(await getPeopleDashboardSummary());
+    } catch {
+      setSummary(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useSmartPocketDataChanged(
+    ['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
+    'PeopleDashboardWidget',
+    async () => {
+      await load();
+    }
+  );
 
   if (loading) {
     return (

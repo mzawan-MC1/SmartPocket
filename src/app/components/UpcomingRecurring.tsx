@@ -1,7 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarClock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { getRecurringTransactions, markRecurringAsPaid, type RecurringTransaction } from '@/lib/finance';
+import { getDashboardMonthContext, getRecurringTransactions, markRecurringAsPaid, type RecurringTransaction } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
@@ -21,19 +21,22 @@ function normalizeCurrencyCode(value: string | null | undefined) {
   return normalized.length === 3 ? normalized : 'USD';
 }
 
-export default function UpcomingRecurring() {
+export default function UpcomingRecurring({
+  selectedMonth,
+}: {
+  selectedMonth: string;
+}) {
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const monthContext = getDashboardMonthContext(selectedMonth);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const today = new Date().toISOString().slice(0, 10);
-    const next7 = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     try {
       const all = await getRecurringTransactions();
       const upcoming = all.filter(
-        (r) => r.is_active && r.next_due_date >= today && r.next_due_date <= next7
+        (r) => r.is_active && r.next_due_date >= monthContext.monthStart && r.next_due_date <= monthContext.monthEnd
       );
       setItems(upcoming);
     } catch (error) {
@@ -41,7 +44,7 @@ export default function UpcomingRecurring() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [monthContext.monthEnd, monthContext.monthStart]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -73,8 +76,8 @@ export default function UpcomingRecurring() {
   return (
     <SectionCard
       title="Upcoming Payments"
-      description="Recurring items due within the next 7 days."
-      action={<StatusBadge status="pending" label="Next 7 days" />}
+      description={`Recurring items scheduled for ${monthContext.label}.`}
+      action={<StatusBadge status="pending" label={monthContext.isCurrentMonth ? 'Current month' : monthContext.label} />}
       bodyClassName="p-0"
     >
 
@@ -95,7 +98,7 @@ export default function UpcomingRecurring() {
           <EmptyState
             icon={CalendarClock}
             title="No upcoming payments"
-            description="No recurring payments due in the next 7 days."
+            description={`No recurring payments scheduled for ${monthContext.label}.`}
           />
         </div>
       ) : (
@@ -103,7 +106,7 @@ export default function UpcomingRecurring() {
           <div className="divide-y divide-border">
             {items.map((item) => {
               const days = daysUntil(item.next_due_date);
-              const urgent = days <= 3;
+              const urgent = monthContext.isCurrentMonth && days <= 3;
               const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               return (
                 <div key={item.id} className={`flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors ${urgent ? 'bg-warning-soft/30' : ''}`}>
@@ -113,7 +116,7 @@ export default function UpcomingRecurring() {
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {dueDate} · {days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`}
+                      {dueDate} · {monthContext.isCurrentMonth ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -123,18 +126,22 @@ export default function UpcomingRecurring() {
                       className="text-sm font-700 font-tabular text-foreground"
                       showCode
                     />
-                    <button
-                      onClick={() => handleMarkPaid(item)}
-                      disabled={markingId === item.id}
-                      className="text-[10px] font-600 text-accent hover:text-teal-600 flex items-center gap-0.5 transition-colors disabled:opacity-50"
-                      aria-label={`Mark ${item.description} as paid`}
-                    >
-                      {markingId === item.id
-                        ? <Loader2 size={11} className="animate-spin" />
-                        : <CheckCircle2 size={11} />
-                      }
-                      Mark paid
-                    </button>
+                    {monthContext.isCurrentMonth ? (
+                      <button
+                        onClick={() => handleMarkPaid(item)}
+                        disabled={markingId === item.id}
+                        className="text-[10px] font-600 text-accent hover:text-teal-600 flex items-center gap-0.5 transition-colors disabled:opacity-50"
+                        aria-label={`Mark ${item.description} as paid`}
+                      >
+                        {markingId === item.id
+                          ? <Loader2 size={11} className="animate-spin" />
+                          : <CheckCircle2 size={11} />
+                        }
+                        Mark paid
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-600 text-muted-foreground">Scheduled</span>
+                    )}
                   </div>
                 </div>
               );
