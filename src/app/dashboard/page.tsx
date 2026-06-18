@@ -243,10 +243,6 @@ export default function DashboardPage() {
         <Modal isOpen={activeQuickAction === 'budget'} onClose={closeQuickAction} title="Set Category Budget" size="md">
           <AddBudgetForm
             onSuccess={() => {
-              dispatchSmartPocketDataChanged({
-                source: 'dashboard-budget-quick-action',
-                entities: ['dashboard'],
-              });
               toast.success('Budget created');
               closeQuickAction();
             }}

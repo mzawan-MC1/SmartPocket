@@ -1,42 +1,54 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { Plus, AlertCircle, AlertTriangle, Edit2 } from 'lucide-react';
+import { Plus, AlertCircle, AlertTriangle, Edit2, ChevronLeft, ChevronRight, Target } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
-import { getBudgets, type Budget } from '@/lib/finance';
+import {
+  deleteBudget,
+  getBudgetDetailSnapshot,
+  getBudgetTrackingOverview,
+  type Budget,
+  type BudgetDetailSnapshot,
+  type BudgetTrackingItem,
+  type BudgetTrackingOverview,
+} from '@/lib/finance';
 import AddBudgetForm from './components/AddBudgetForm';
 import dynamic from 'next/dynamic';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
+import type { BudgetPeriod } from '@/lib/financial-periods';
+import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
 
-function getBarClass(pct: number) {
-  if (pct >= 100) return 'budget-bar-red';
-  if (pct >= 80) return 'budget-bar-amber';
+function getBarClass(status: BudgetTrackingItem['status']) {
+  if (status === 'over_budget') return 'budget-bar-red';
+  if (status === 'near_limit') return 'budget-bar-amber';
   return 'budget-bar-green';
 }
 
-function getStatus(pct: number) {
-  if (pct >= 100) return { label: 'Exceeded', variant: 'exceeded' as const };
-  if (pct >= 80) return { label: 'Near Limit', variant: 'warning' as const };
-  if (pct === 0) return { label: 'Not Started', variant: 'default' as const };
-  return { label: 'On Track', variant: 'active' as const };
+function getStatusTone(status: BudgetTrackingItem['status']) {
+  if (status === 'over_budget') return 'text-negative';
+  if (status === 'near_limit') return 'text-warning';
+  if (status === 'conversion_unavailable') return 'text-warning';
+  if (status === 'no_spending') return 'text-muted-foreground';
+  return 'text-positive';
 }
 
-function groupBudgetSummaries(budgets: Budget[]) {
+function groupBudgetSummaries(items: BudgetTrackingItem[]) {
   const grouped = new Map<string, { budget: number; spent: number }>();
 
-  for (const budget of budgets) {
-    const currency = (budget.currency || '').trim().toUpperCase();
+  for (const item of items.filter((entry) => entry.remainingAmount !== null)) {
+    const currency = (item.budget.currency || '').trim().toUpperCase();
     if (!currency) continue;
 
     const current = grouped.get(currency) || { budget: 0, spent: 0 };
-    current.budget += Number(budget.amount || 0);
-    current.spent += Number(budget.spent || 0);
+    current.budget += Number(item.budget.amount || 0);
+    current.spent += Number(item.spentAmount || 0);
     grouped.set(currency, current);
   }
 
@@ -55,30 +67,56 @@ function groupBudgetSummaries(budgets: Budget[]) {
     .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' }));
 }
 
+const PERIOD_FILTERS: Array<'all' | BudgetPeriod> = ['all', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'custom'];
+
 export default function BudgetsPage() {
-  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [overview, setOverview] = useState<BudgetTrackingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  });
+  const [periodFilter, setPeriodFilter] = useState<'all' | BudgetPeriod>('all');
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [detailBudget, setDetailBudget] = useState<Budget | null>(null);
+  const [detailReferenceDate, setDetailReferenceDate] = useState<string | null>(null);
+  const [detailSnapshot, setDetailSnapshot] = useState<BudgetDetailSnapshot | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
-    getBudgets(`${selectedMonth}-01`)
-      .then(setBudgets)
+    getBudgetTrackingOverview({
+      periodFilter,
+      locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+    })
+      .then(setOverview)
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
-  }, [selectedMonth]);
+  }, [periodFilter]);
 
   useEffect(() => { load(); }, [load]);
+  useSmartPocketDataChanged(['budgets', 'transactions', 'profile'], 'BudgetsPage', async () => {
+    load();
+  });
 
-  const budgetSummaries = useMemo(() => groupBudgetSummaries(budgets), [budgets]);
+  useEffect(() => {
+    if (!detailBudget) return;
+    setDetailLoading(true);
+    setDetailSnapshot(null);
+    getBudgetDetailSnapshot({
+      budgetId: detailBudget.id,
+      referenceDate: detailReferenceDate || undefined,
+      locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+    })
+      .then(setDetailSnapshot)
+      .catch((error) => toast.error(error.message))
+      .finally(() => setDetailLoading(false));
+  }, [detailBudget, detailReferenceDate]);
+
+  const items = overview?.items || [];
+  const budgetSummaries = useMemo(() => groupBudgetSummaries(items), [items]);
   const singleCurrencySummary = budgetSummaries.length === 1 ? budgetSummaries[0] : null;
-  const onTrack = budgets.filter((b) => (b.spent || 0) / b.amount < 0.8).length;
-  const warning = budgets.filter((b) => { const p = (b.spent || 0) / b.amount; return p >= 0.8 && p < 1; }).length;
-  const exceeded = budgets.filter((b) => (b.spent || 0) >= b.amount).length;
+  const onTrack = items.filter((item) => item.status === 'on_track').length;
+  const warning = items.filter((item) => item.status === 'near_limit').length;
+  const exceeded = items.filter((item) => item.status === 'over_budget').length;
+  const unavailable = items.filter((item) => item.status === 'conversion_unavailable').length;
 
   const barClass = singleCurrencySummary && singleCurrencySummary.utilizationPct >= 90
     ? 'budget-bar-red'
@@ -96,22 +134,35 @@ export default function BudgetsPage() {
       <div className="page-section">
         <PageHeader
           title="Budgets"
-          description="Track your spending against budget limits and keep monthly plans visible."
+          description="Track spending against each budget's own stored period without rewriting it when your planning settings change."
           badge={<StatusBadge status="info" label="Budget planning" />}
           actions={
             <>
-              <input
-                type="month"
-                className="input-base h-11 text-sm w-full sm:w-40"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              />
-              <button onClick={() => setShowAddModal(true)} className="btn-primary">
+              <button onClick={() => {
+                setEditingBudget(null);
+                setShowAddModal(true);
+              }} className="btn-primary">
                 <Plus size={16} /> Add Budget
               </button>
             </>
           }
         />
+        <div className="flex flex-wrap gap-2">
+          {PERIOD_FILTERS.map((filterValue) => {
+            const selected = periodFilter === filterValue;
+            return (
+              <button
+                key={filterValue}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setPeriodFilter(filterValue)}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
+              >
+                {filterValue === 'all' ? 'All budgets' : getBudgetPeriodTypeLabel(filterValue)}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Overview Card */}
         {loading ? (
@@ -134,7 +185,7 @@ export default function BudgetsPage() {
               <div className="flex-1 space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <h2 className="text-base font-700 text-foreground">Overall Monthly Budget</h2>
+                    <h2 className="text-base font-700 text-foreground">Budget Overview</h2>
                     {singleCurrencySummary ? (
                       <span className={`text-sm font-700 font-tabular ${statusColor}`}>
                         {singleCurrencySummary.utilizationPct.toFixed(1)}% used
@@ -259,6 +310,9 @@ export default function BudgetsPage() {
                   <span className="flex items-center gap-1.5 text-xs font-600 text-positive"><span className="w-2 h-2 rounded-full bg-positive" />{onTrack} on track</span>
                   <span className="flex items-center gap-1.5 text-xs font-600 text-warning"><span className="w-2 h-2 rounded-full bg-warning" />{warning} near limit</span>
                   <span className="flex items-center gap-1.5 text-xs font-600 text-negative"><span className="w-2 h-2 rounded-full bg-negative" />{exceeded} exceeded</span>
+                  {unavailable > 0 ? (
+                    <span className="flex items-center gap-1.5 text-xs font-600 text-warning"><span className="w-2 h-2 rounded-full bg-warning" />{unavailable} conversion unavailable</span>
+                  ) : null}
                 </div>
               </div>
             </div>
@@ -269,7 +323,10 @@ export default function BudgetsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-700 text-foreground">Category Budgets</h2>
-            <button onClick={() => setShowAddModal(true)} className="btn-ghost text-sm text-accent">
+            <button onClick={() => {
+              setEditingBudget(null);
+              setShowAddModal(true);
+            }} className="btn-ghost text-sm text-accent">
               <Plus size={14} /> Add Category Budget
             </button>
           </div>
@@ -284,30 +341,38 @@ export default function BudgetsPage() {
                 </div>
               ))}
             </div>
-          ) : budgets.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="card-elevated p-12">
               <EmptyState
                 icon={Plus}
                 title="No budgets yet"
-                description="Create your first budget to start tracking spending limits."
-                action={{ label: 'Add Budget', onClick: () => setShowAddModal(true) }}
+                description="Create your first budget to start tracking stored weekly, monthly, or custom spending limits."
+                action={{
+                  label: 'Add Budget',
+                  onClick: () => {
+                    setEditingBudget(null);
+                    setShowAddModal(true);
+                  },
+                }}
               />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
-              {budgets.map((bud) => {
-                const spent = bud.spent || 0;
-                const pct = bud.amount > 0 ? (spent / bud.amount) * 100 : 0;
-                const remaining = bud.amount - spent;
-                const status = getStatus(pct);
-                const barClass = getBarClass(pct);
+              {items.map((item) => {
+                const bud = item.budget;
+                const barClass = getBarClass(item.status);
                 const catColor = bud.category?.color || '#6b7280';
 
                 return (
                   <div
                     key={bud.id}
+                    onClick={() => {
+                      setDetailBudget(bud);
+                      setDetailSnapshot(null);
+                      setDetailReferenceDate(item.period.startDate);
+                    }}
                     className={`card-elevated p-5 hover:shadow-card-md transition-shadow duration-200 ${
-                      pct >= 100 ? 'border-negative/30 bg-negative-soft/10' : pct >= 80 ? 'border-warning/30' : ''
+                      item.status === 'over_budget' ? 'border-negative/30 bg-negative-soft/10' : item.status === 'near_limit' ? 'border-warning/30' : ''
                     }`}
                   >
                     <div className="flex items-center justify-between mb-4">
@@ -317,20 +382,20 @@ export default function BudgetsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-700 text-foreground">{bud.category?.name || bud.name}</p>
+                          <p className="text-[11px] text-muted-foreground">{item.periodTypeLabel} budget</p>
                           <div className="flex items-center gap-1 mt-0.5">
-                            {pct >= 100 && <AlertCircle size={11} className="text-negative" />}
-                            {pct >= 80 && pct < 100 && <AlertTriangle size={11} className="text-warning" />}
-                            <span className={`text-[10px] font-600 ${
-                              status.variant === 'exceeded' ? 'text-negative' :
-                              status.variant === 'warning' ? 'text-warning' :
-                              status.variant === 'active' ? 'text-positive' : 'text-muted-foreground'
-                            }`}>{status.label}</span>
+                            {item.status === 'over_budget' && <AlertCircle size={11} className="text-negative" />}
+                            {item.status === 'near_limit' && <AlertTriangle size={11} className="text-warning" />}
+                            <span className={`text-[10px] font-600 ${getStatusTone(item.status)}`}>{item.statusLabel}</span>
                           </div>
                         </div>
                       </div>
                       <button
                         className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                        onClick={() => toast.info('Edit budget coming soon')}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setEditingBudget(bud);
+                        }}
                         title={`Edit ${bud.name} budget`}
                       >
                         <Edit2 size={13} />
@@ -338,23 +403,30 @@ export default function BudgetsPage() {
                     </div>
 
                     <div className="mb-3">
+                      <p className="mb-2 text-xs text-muted-foreground">{item.period.label}</p>
                       <div className="flex items-center justify-between mb-1.5">
-                        <FormattedCurrencyAmount
-                          amount={spent}
-                          currencyCode={bud.currency}
-                          className="text-xs text-muted-foreground"
-                          textOnly
-                        />
-                        <span className="text-xs font-600 font-tabular text-muted-foreground">{pct.toFixed(0)}%</span>
+                        {item.spentAmount !== null ? (
+                          <FormattedCurrencyAmount
+                            amount={item.spentAmount}
+                            currencyCode={bud.currency}
+                            className="text-xs text-muted-foreground"
+                            textOnly
+                          />
+                        ) : (
+                          <span className="text-xs text-warning">Conversion unavailable</span>
+                        )}
+                        <span className="text-xs font-600 font-tabular text-muted-foreground">
+                          {item.progressPct !== null ? `${item.progressPct.toFixed(0)}%` : 'N/A'}
+                        </span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full rounded-full transition-all duration-500 ${barClass}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+                        <div className={`h-full rounded-full transition-all duration-500 ${barClass}`} style={{ width: `${Math.min(item.progressPct || 0, 100)}%` }} />
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground">Allocated</p>
+                        <p className="text-[11px] text-muted-foreground">Budget amount</p>
                         <FormattedCurrencyAmount
                           amount={bud.amount}
                           currencyCode={bud.currency}
@@ -363,21 +435,32 @@ export default function BudgetsPage() {
                         />
                       </div>
                       <div className="text-right">
-                        <p className="text-[11px] text-muted-foreground">{remaining >= 0 ? 'Remaining' : 'Over by'}</p>
-                        <FormattedCurrencyAmount
-                          amount={Math.abs(remaining)}
-                          currencyCode={bud.currency}
-                          className={`text-sm font-700 font-tabular ${remaining >= 0 ? 'text-positive' : 'text-negative'}`}
-                          showCode
-                        />
+                        <p className="text-[11px] text-muted-foreground">{item.remainingAmount !== null && item.remainingAmount >= 0 ? 'Remaining' : 'Over by'}</p>
+                        {item.remainingAmount !== null ? (
+                          <FormattedCurrencyAmount
+                            amount={Math.abs(item.remainingAmount)}
+                            currencyCode={bud.currency}
+                            className={`text-sm font-700 font-tabular ${item.remainingAmount >= 0 ? 'text-positive' : 'text-negative'}`}
+                            showCode
+                          />
+                        ) : (
+                          <p className="text-sm font-700 text-warning">Unavailable</p>
+                        )}
                       </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{item.transactionCount} transaction{item.transactionCount === 1 ? '' : 's'} in this period</span>
+                      <span>{item.warning ? 'Check Settings or FX history' : item.period.label}</span>
                     </div>
                   </div>
                 );
               })}
 
               <button
-                onClick={() => setShowAddModal(true)}
+                onClick={() => {
+                  setEditingBudget(null);
+                  setShowAddModal(true);
+                }}
                 className="card-elevated border-dashed border-2 border-border hover:border-accent hover:bg-accent/5 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-8 min-h-[180px] group"
               >
                 <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
@@ -390,11 +473,168 @@ export default function BudgetsPage() {
         </div>
       </div>
 
-      <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Set Category Budget" size="md">
+      <Modal
+        isOpen={showAddModal}
+        onClose={() => {
+          setShowAddModal(false);
+          setEditingBudget(null);
+        }}
+        title="Set Category Budget"
+        size="md"
+      >
         <AddBudgetForm
-          onSuccess={() => { setShowAddModal(false); toast.success('Budget created'); load(); }}
-          onCancel={() => setShowAddModal(false)}
+          onSuccess={() => { setShowAddModal(false); setEditingBudget(null); toast.success('Budget saved'); load(); }}
+          onCancel={() => {
+            setShowAddModal(false);
+            setEditingBudget(null);
+          }}
         />
+      </Modal>
+      <Modal
+        isOpen={!!editingBudget && !showAddModal}
+        onClose={() => setEditingBudget(null)}
+        title={`Edit ${editingBudget?.category?.name || editingBudget?.name || 'Budget'}`}
+        size="md"
+      >
+        {editingBudget ? (
+          <AddBudgetForm
+            budget={editingBudget}
+            onSuccess={() => { setEditingBudget(null); toast.success('Budget updated'); load(); }}
+            onCancel={() => setEditingBudget(null)}
+          />
+        ) : null}
+      </Modal>
+      <Modal
+        isOpen={!!detailBudget}
+        onClose={() => {
+          setDetailBudget(null);
+          setDetailSnapshot(null);
+          setDetailReferenceDate(null);
+        }}
+        title={detailBudget?.category?.name || detailBudget?.name || 'Budget details'}
+        size="lg"
+      >
+        {detailLoading || !detailSnapshot ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">Loading budget details...</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDetailReferenceDate(detailSnapshot.previousPeriod.startDate)}
+                className="btn-ghost h-9 px-3"
+                aria-label="Previous budget period"
+              >
+                <ChevronLeft size={14} /> Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailReferenceDate(null)}
+                className="btn-secondary h-9 px-3"
+              >
+                Current period
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailReferenceDate(detailSnapshot.nextPeriod.startDate)}
+                className="btn-ghost h-9 px-3"
+                aria-label="Next budget period"
+              >
+                Next <ChevronRight size={14} />
+              </button>
+              <StatusBadge status={detailSnapshot.status === 'over_budget' ? 'danger' : detailSnapshot.status === 'near_limit' ? 'warning' : 'active'} label={detailSnapshot.statusLabel} />
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-sm font-700 text-foreground">{detailSnapshot.periodTypeLabel}</p>
+              <p className="text-xs text-muted-foreground mt-1">{detailSnapshot.period.label}</p>
+              {detailSnapshot.warning ? (
+                <p className="mt-2 text-sm text-warning">{detailSnapshot.warning}</p>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border p-4">
+                <p className="text-[11px] text-muted-foreground">Budget amount</p>
+                <FormattedCurrencyAmount amount={detailSnapshot.budget.amount} currencyCode={detailSnapshot.budget.currency} className="text-lg font-700 text-foreground" showCode />
+              </div>
+              <div className="rounded-2xl border border-border p-4">
+                <p className="text-[11px] text-muted-foreground">Spent</p>
+                {detailSnapshot.spentAmount !== null ? (
+                  <FormattedCurrencyAmount amount={detailSnapshot.spentAmount} currencyCode={detailSnapshot.budget.currency} className="text-lg font-700 text-foreground" showCode />
+                ) : (
+                  <p className="text-sm font-700 text-warning">Historical exchange rate unavailable</p>
+                )}
+              </div>
+              <div className="rounded-2xl border border-border p-4">
+                <p className="text-[11px] text-muted-foreground">{detailSnapshot.remainingAmount !== null && detailSnapshot.remainingAmount >= 0 ? 'Remaining' : 'Over by'}</p>
+                {detailSnapshot.remainingAmount !== null ? (
+                  <FormattedCurrencyAmount amount={Math.abs(detailSnapshot.remainingAmount)} currencyCode={detailSnapshot.budget.currency} className={`text-lg font-700 ${detailSnapshot.remainingAmount >= 0 ? 'text-positive' : 'text-negative'}`} showCode />
+                ) : (
+                  <p className="text-sm font-700 text-warning">Unavailable</p>
+                )}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-700 text-foreground">Progress</p>
+                <span className="text-xs font-600 text-muted-foreground">
+                  {detailSnapshot.progressPct !== null ? `${detailSnapshot.progressPct.toFixed(1)}% used` : 'Conversion unavailable'}
+                </span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div className={`h-full rounded-full ${getBarClass(detailSnapshot.status)}`} style={{ width: `${Math.min(detailSnapshot.progressPct || 0, 100)}%` }} />
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-700 text-foreground">Category transactions</p>
+                <span className="text-xs text-muted-foreground">{detailSnapshot.transactions.length} item{detailSnapshot.transactions.length === 1 ? '' : 's'}</span>
+              </div>
+              {detailSnapshot.transactions.length === 0 ? (
+                <div className="rounded-2xl border border-border bg-muted/20 p-6 text-sm text-muted-foreground">No spending in this period.</div>
+              ) : (
+                <div className="space-y-2">
+                  {detailSnapshot.transactions.map((transaction) => (
+                    <div key={transaction.id} className="rounded-2xl border border-border p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-600 text-foreground">{transaction.merchant || transaction.description || 'Expense'}</p>
+                          <p className="text-xs text-muted-foreground">{transaction.transaction_date}</p>
+                        </div>
+                        <FormattedCurrencyAmount amount={transaction.amount} currencyCode={transaction.currency} className="text-sm font-700 text-foreground" showCode />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-3">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setEditingBudget(detailSnapshot.budget);
+                  setDetailBudget(null);
+                  setDetailSnapshot(null);
+                  setDetailReferenceDate(null);
+                }}
+              >
+                <Edit2 size={14} /> Edit Budget
+              </button>
+              <button
+                type="button"
+                className="btn-ghost text-negative"
+                onClick={async () => {
+                  await deleteBudget(detailSnapshot.budget.id);
+                  toast.success('Budget archived');
+                  setDetailBudget(null);
+                  load();
+                }}
+              >
+                Archive Budget
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </AppLayout>
   );

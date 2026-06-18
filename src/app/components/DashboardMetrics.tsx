@@ -273,30 +273,28 @@ export default function DashboardMetrics({
       id: 'metric-budget',
       label: 'Budget Remaining',
       valueMetric: budgetRemainingMetric,
-      valueContent: !metrics.budgetTrackingAvailable ? (
-        <span className="text-base font-700 text-muted-foreground">Not available</span>
+      valueContent: metrics.budgetConversionUnavailableCount > 0 ? (
+        <span className="text-base font-700 text-warning">Unavailable</span>
       ) : undefined,
-      change: !metrics.budgetTrackingAvailable
-        ? 'Not available yet'
-        : metrics.activeBudgetCount === 0
-          ? 'No active budget'
-          : budgetRemaining.length === 1
-          ? `${budgetRemaining[0].usedPct.toFixed(1)}% used`
-          : 'Grouped by currency',
+      change: metrics.activeBudgetCount === 0
+        ? 'No active budget'
+        : metrics.budgetConversionUnavailableCount > 0
+          ? 'Conversion unavailable'
+          : `Across ${metrics.activeBudgetCount} active budget${metrics.activeBudgetCount === 1 ? '' : 's'}`,
       changeDir: 'neutral' as const,
-      changeLabel: !metrics.budgetTrackingAvailable
-        ? 'Pay-period budget tracking will be available after budget-cycle setup.'
-        : metrics.activeBudgetCount === 0
-          ? 'for this month'
-          : budgetRemaining.length === 1
-            ? 'of current budget'
-            : 'budget usage differs by currency',
+      changeLabel: metrics.activeBudgetCount === 0
+        ? isMonthMode ? `for ${activePeriod.label}` : `during ${activePeriod.label}`
+        : metrics.budgetConversionUnavailableCount > 0
+          ? `${metrics.budgetConversionUnavailableCount} active budget${metrics.budgetConversionUnavailableCount === 1 ? '' : 's'} need historical FX data`
+          : metrics.hasMixedBudgetCycles
+            ? `Across active ${metrics.activeBudgetCycleLabels.join(' and ').toLowerCase()} budgets`
+            : `Across active ${metrics.activeBudgetCycleLabels[0]?.toLowerCase() || 'budget'} budgets`,
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
       hero: false,
-      warningState: metrics.budgetTrackingAvailable && metrics.activeBudgetCount > 0 && budgetRemaining.some((row) => row.usedPct >= 70),
-      budgetPct: metrics.budgetTrackingAvailable && metrics.activeBudgetCount > 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
+      warningState: metrics.activeBudgetCount > 0 && metrics.budgetConversionUnavailableCount === 0 && budgetRemaining.some((row) => row.usedPct >= 70),
+      budgetPct: metrics.activeBudgetCount > 0 && metrics.budgetConversionUnavailableCount === 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
     },
     {
       id: 'metric-upcoming',

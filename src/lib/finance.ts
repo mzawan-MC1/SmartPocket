@@ -13,12 +13,24 @@ import {
   listHistoricalExchangeRateSnapshots,
 } from '@/lib/exchange-rates/service';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
+import {
+  formatBudgetPeriodLabel,
+  getBudgetPeriodForDate,
+  getBudgetPeriodTypeLabel,
+  getCurrentBudgetPeriod,
+  getNextBudgetPeriod,
+  getPreviousBudgetPeriod,
+  normalizeBudgetPeriodValue,
+  type ResolvedBudgetPeriod,
+} from '@/lib/financial-periods/budgets';
 import type {
   ExchangeRateFreshness,
   ExchangeRateLookupMode,
   ExchangeRateSnapshotRecord,
 } from '@/lib/exchange-rates/types';
 import type { DashboardPeriodPreference } from '@/lib/financial-periods';
+import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import type { BudgetPeriod } from '@/lib/financial-periods';
 
 type CurrencyAmountRow = { amount: number | string; currency: string | null };
 type AmountRow = { amount: number | string };
@@ -51,10 +63,16 @@ type LoanLedgerRow = {
 type BudgetMetricRow = {
   id: string;
   category_id: string | null;
+  name: string;
   amount: number | string;
   currency: string | null;
+  budget_period: BudgetPeriod | null;
+  period_anchor_date: string | null;
+  custom_period_days: number | null;
   period_start: string;
   period_end: string | null;
+  alert_at_percent?: number | string | null;
+  category?: { name: string; color: string | null; icon?: string | null } | null;
 };
 type BudgetReportRow = BudgetMetricRow & {
   category?: { name: string; color: string | null } | null;
@@ -190,12 +208,59 @@ export interface Budget {
   period: 'monthly' | 'weekly' | 'yearly' | 'custom';
   period_start: string;
   period_end: string | null;
+  budget_period: BudgetPeriod;
+  period_anchor_date: string | null;
+  custom_period_days: number | null;
   alert_at_percent: number;
   currency: string;
   is_active: boolean;
   // joined
   category?: { name: string; color: string | null; icon: string | null };
   spent?: number;
+}
+
+export type BudgetTrackingStatus =
+  | 'on_track'
+  | 'near_limit'
+  | 'over_budget'
+  | 'no_spending'
+  | 'conversion_unavailable';
+
+export interface BudgetTrackingItem {
+  budget: Budget;
+  period: ResolvedBudgetPeriod;
+  periodTypeLabel: string;
+  spentMetric: HistoricalReportConvertedMetric;
+  spentAmount: number | null;
+  remainingAmount: number | null;
+  progressPct: number | null;
+  status: BudgetTrackingStatus;
+  statusLabel: string;
+  transactionCount: number;
+  warning: string | null;
+}
+
+export interface BudgetTrackingOverview {
+  items: BudgetTrackingItem[];
+  referenceDate: string;
+  reportingCurrency: string;
+  defaultBudgetPeriod: BudgetPeriod;
+}
+
+export interface BudgetDetailSnapshot extends BudgetTrackingItem {
+  previousPeriod: ResolvedBudgetPeriod;
+  nextPeriod: ResolvedBudgetPeriod;
+  transactions: Transaction[];
+}
+
+export interface DashboardBudgetSummary {
+  totalBudgetByCurrency: Array<{ currency: string; amount: number }>;
+  spentByCurrency: Array<{ currency: string; amount: number }>;
+  remainingByCurrency: Array<{ currency: string; amount: number }>;
+  activeBudgetCount: number;
+  activeBudgetCycleLabels: string[];
+  hasMixedCycles: boolean;
+  conversionUnavailableCount: number;
 }
 
 export interface RecurringTransaction {
@@ -280,6 +345,9 @@ export interface DashboardMetrics {
   loanBorrowedThisMonth: DashboardConvertedMetric;
   loanRepaidThisMonth: DashboardConvertedMetric;
   budgetTrackingAvailable: boolean;
+  activeBudgetCycleLabels: string[];
+  budgetConversionUnavailableCount: number;
+  hasMixedBudgetCycles: boolean;
 }
 
 export interface HistoricalReportConvertedMetric {
@@ -1623,56 +1691,350 @@ export async function createTransfer(payload: {
 
 // ─── Budgets ──────────────────────────────────────────────────────────────────
 
-export async function getBudgets(periodStart?: string): Promise<Budget[]> {
+type BudgetExpenseRow = TransactionMetricRow & {
+  transaction_date: string;
+  description?: string;
+  merchant?: string | null;
+  notes?: string | null;
+  tags?: string[];
+  category?: { name: string; color: string | null; icon?: string | null } | null;
+  account?: { name: string; currency: string } | null;
+};
+
+function normalizeBudgetRecord(row: Budget): Budget {
+  return {
+    ...row,
+    budget_period: normalizeBudgetPeriodValue(row),
+    period_anchor_date: row.period_anchor_date || null,
+    custom_period_days: row.custom_period_days ?? null,
+  };
+}
+
+function getBudgetTrackingStatus(
+  budgetAmount: number,
+  spentAmount: number | null,
+  warning: string | null
+): { status: BudgetTrackingStatus; statusLabel: string; progressPct: number | null; remainingAmount: number | null } {
+  if (warning || spentAmount === null) {
+    const isConfigurationIssue = warning ? /settings|require|incomplete/i.test(warning) : false;
+    return {
+      status: 'conversion_unavailable',
+      statusLabel: isConfigurationIssue ? 'Configuration incomplete' : 'Conversion unavailable',
+      progressPct: null,
+      remainingAmount: null,
+    };
+  }
+
+  const remainingAmount = budgetAmount - spentAmount;
+  const progressPct = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
+  if (spentAmount === 0) {
+    return { status: 'no_spending', statusLabel: 'No spending', progressPct, remainingAmount };
+  }
+  if (progressPct > 100) {
+    return { status: 'over_budget', statusLabel: 'Over budget', progressPct, remainingAmount };
+  }
+  if (progressPct >= 80) {
+    return { status: 'near_limit', statusLabel: 'Near limit', progressPct, remainingAmount };
+  }
+  return { status: 'on_track', statusLabel: 'On track', progressPct, remainingAmount };
+}
+
+function getBudgetTransactionsForPeriod(
+  budget: Budget,
+  period: ResolvedBudgetPeriod,
+  expenses: BudgetExpenseRow[]
+) {
+  return expenses.filter((transaction) => {
+    if (transaction.transaction_date < period.startDate || transaction.transaction_date > period.endDate) {
+      return false;
+    }
+    if (!budget.category_id) return true;
+    return transaction.category_id === budget.category_id;
+  });
+}
+
+function buildBudgetTrackingItem(args: {
+  budget: Budget;
+  period: ResolvedBudgetPeriod;
+  transactions: BudgetExpenseRow[];
+  snapshots: ExchangeRateSnapshotRecord[];
+}): BudgetTrackingItem {
+  const spentMetric = buildHistoricalReportConvertedMetricFromSnapshots({
+    transactions: args.transactions as Transaction[],
+    getSignedAmount: (transaction) => Number(transaction.amount || 0),
+    reportingCurrency: args.budget.currency,
+    snapshots: args.snapshots,
+  });
+  const warning = spentMetric.conversionAvailable ? null : spentMetric.unavailableReason;
+  const status = getBudgetTrackingStatus(Number(args.budget.amount || 0), spentMetric.reportingAmount, warning);
+
+  return {
+    budget: args.budget,
+    period: args.period,
+    periodTypeLabel: getBudgetPeriodTypeLabel(args.period.budgetPeriod),
+    spentMetric,
+    spentAmount: spentMetric.reportingAmount,
+    remainingAmount: status.remainingAmount,
+    progressPct: status.progressPct,
+    status: status.status,
+    statusLabel: status.statusLabel,
+    transactionCount: args.transactions.length,
+    warning,
+  };
+}
+
+async function loadActiveBudgetRecords() {
   const supabase = createClient();
-  const start = periodStart || new Date().toISOString().slice(0, 7) + '-01';
-  const end = new Date(new Date(start).getFullYear(), new Date(start).getMonth() + 1, 0)
-    .toISOString().slice(0, 10);
-  const [ledgerSummaryByTransactionId, accountInclusionById, budgetsResult, expenseTransactionsResult] = await Promise.all([
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('*, category:categories(name, color, icon)')
+    .eq('is_active', true)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return ((data || []) as Budget[]).map(normalizeBudgetRecord);
+}
+
+export async function getBudgetTrackingOverview(args?: {
+  referenceDate?: string;
+  periodFilter?: BudgetPeriod | 'all';
+  locale?: string;
+}): Promise<BudgetTrackingOverview> {
+  const supabase = createClient();
+  const [periodContext, budgets] = await Promise.all([
+    loadUserFinancialPeriodContext(),
+    loadActiveBudgetRecords(),
+  ]);
+  const referenceDate = args?.referenceDate || periodContext.currentBusinessDate;
+  const filteredBudgets = (args?.periodFilter && args.periodFilter !== 'all')
+    ? budgets.filter((budget) => budget.budget_period === args.periodFilter)
+    : budgets;
+
+  if (filteredBudgets.length === 0) {
+    return {
+      items: [],
+      referenceDate,
+      reportingCurrency: await resolveUserDefaultCurrency(),
+      defaultBudgetPeriod: periodContext.effectiveConfig.defaultBudgetPeriod,
+    };
+  }
+
+  const resolved = filteredBudgets.map((budget) => {
+    try {
+      return {
+        budget,
+        period: getCurrentBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args?.locale),
+        warning: null,
+      };
+    } catch (error) {
+      return {
+        budget,
+        period: null,
+        warning: error instanceof Error ? error.message : 'Budget period configuration is incomplete.',
+      };
+    }
+  });
+
+  const validPeriods = resolved.filter((entry): entry is { budget: Budget; period: ResolvedBudgetPeriod; warning: null } => !!entry.period);
+  const earliestStart = validPeriods.map((entry) => entry.period.startDate).sort()[0];
+  const latestEnd = validPeriods.map((entry) => entry.period.endDate).sort().at(-1);
+  const [ledgerSummaryByTransactionId, accountInclusionById, expenseTransactionsResult, reportingContext] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
-    supabase
-      .from('budgets')
-      .select(`*, category:categories(name, color, icon)`)
-      .eq('is_active', true)
-      .lte('period_start', end)
-      .order('created_at', { ascending: true }),
-    supabase
-      .from('transactions')
-      .select('id, account_id, category_id, amount, transaction_type, expense_owner, paid_by, paid_from, use_held_balance')
-      .eq('transaction_type', 'expense')
-      .gte('transaction_date', start)
-      .lte('transaction_date', end),
+    earliestStart && latestEnd
+      ? supabase
+        .from('transactions')
+        .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
+        .eq('transaction_type', 'expense')
+        .gte('transaction_date', earliestStart)
+        .lte('transaction_date', latestEnd)
+      : Promise.resolve({ data: [], error: null }),
+    getHistoricalReportContext(validPeriods.flatMap((entry) => [{ transaction_date: entry.period.endDate }])).catch(async () => ({
+      reportingCurrency: await resolveUserDefaultCurrency(),
+      snapshots: [],
+    })),
   ]);
 
-  if (budgetsResult.error) throw budgetsResult.error;
   if (expenseTransactionsResult.error) throw expenseTransactionsResult.error;
 
-  const budgets = ((budgetsResult.data || []) as Budget[]).filter((budget) => isBudgetActiveForWindow(budget, start, end));
   const eligibleExpenses = filterTransactionsByRule(
-    (expenseTransactionsResult.data || []) as TransactionMetricRow[],
+    (expenseTransactionsResult.data || []) as BudgetExpenseRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
     shouldIncludeInBudgetSpending
+  ) as BudgetExpenseRow[];
+
+  const items = resolved.map((entry) => {
+    if (!entry.period) {
+      return {
+        budget: entry.budget,
+        period: {
+          startDate: referenceDate,
+          endDate: referenceDate,
+          frequency: 'month',
+          label: 'Unavailable',
+          budgetPeriod: entry.budget.budget_period,
+        } satisfies ResolvedBudgetPeriod,
+        periodTypeLabel: getBudgetPeriodTypeLabel(entry.budget.budget_period),
+        spentMetric: {
+          originalTotals: [{ currency: entry.budget.currency, amount: 0 }],
+          reportingCurrency: entry.budget.currency,
+          reportingAmount: null,
+          allOriginalInReportingCurrency: false,
+          conversionAvailable: false,
+          provider: null,
+          freshestAppliedAt: null,
+          earliestRateDate: null,
+          latestRateDate: null,
+          exactCount: 0,
+          previousAvailableCount: 0,
+          unavailableCount: 0,
+          missingRateDates: [],
+          freshness: 'unavailable',
+          stale: true,
+          unavailableReason: entry.warning,
+        },
+        spentAmount: null,
+        remainingAmount: null,
+        progressPct: null,
+        status: 'conversion_unavailable' as const,
+        statusLabel: 'Configuration incomplete',
+        transactionCount: 0,
+        warning: entry.warning,
+      } satisfies BudgetTrackingItem;
+    }
+
+    return buildBudgetTrackingItem({
+      budget: entry.budget,
+      period: entry.period,
+      transactions: getBudgetTransactionsForPeriod(entry.budget, entry.period, eligibleExpenses),
+      snapshots: reportingContext.snapshots,
+    });
+  });
+
+  return {
+    items,
+    referenceDate,
+    reportingCurrency: reportingContext.reportingCurrency,
+    defaultBudgetPeriod: periodContext.effectiveConfig.defaultBudgetPeriod,
+  };
+}
+
+export async function getBudgetDetailSnapshot(args: {
+  budgetId: string;
+  referenceDate?: string;
+  locale?: string;
+}): Promise<BudgetDetailSnapshot> {
+  const supabase = createClient();
+  const [periodContext, budgetResult] = await Promise.all([
+    loadUserFinancialPeriodContext(),
+    supabase
+      .from('budgets')
+      .select('*, category:categories(name, color, icon)')
+      .eq('id', args.budgetId)
+      .single(),
+  ]);
+
+  if (budgetResult.error) throw budgetResult.error;
+  const budget = normalizeBudgetRecord(budgetResult.data as Budget);
+  const referenceDate = args.referenceDate || periodContext.currentBusinessDate;
+  const period = getCurrentBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
+  const previousPeriod = getPreviousBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
+  const nextPeriod = getNextBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
+
+  const [ledgerSummaryByTransactionId, accountInclusionById, transactionsResult, reportingContext] = await Promise.all([
+    loadTransactionLedgerSummaryMap(supabase),
+    loadAccountInclusionMap(supabase),
+    supabase
+      .from('transactions')
+      .select('*, account:financial_accounts(name, currency), category:categories(name, color, icon)')
+      .eq('transaction_type', 'expense')
+      .gte('transaction_date', period.startDate)
+      .lte('transaction_date', period.endDate)
+      .order('transaction_date', { ascending: false }),
+    getHistoricalReportContext([{ transaction_date: period.endDate }], budget.currency),
+  ]);
+
+  if (transactionsResult.error) throw transactionsResult.error;
+  const eligibleExpenses = filterTransactionsByRule(
+    (transactionsResult.data || []) as BudgetExpenseRow[],
+    ledgerSummaryByTransactionId,
+    accountInclusionById,
+    shouldIncludeInBudgetSpending
+  ) as BudgetExpenseRow[];
+
+  const transactions = getBudgetTransactionsForPeriod(budget, period, eligibleExpenses);
+  const item = buildBudgetTrackingItem({
+    budget,
+    period,
+    transactions,
+    snapshots: reportingContext.snapshots,
+  });
+
+  return {
+    ...item,
+    previousPeriod,
+    nextPeriod,
+    transactions: transactions as Transaction[],
+  };
+}
+
+export async function getDashboardBudgetSummary(args: {
+  startDate: string;
+  endDate: string;
+  mode: DashboardPeriodPreference;
+  locale?: string;
+}): Promise<DashboardBudgetSummary> {
+  const overview = await getBudgetTrackingOverview({
+    referenceDate: args.endDate,
+    locale: args.locale,
+  });
+
+  const overlappingItems = overview.items.filter((item) =>
+    item.period.startDate <= args.endDate && item.period.endDate >= args.startDate
   );
-  const totalEligibleExpenseSpent = eligibleExpenses.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
-  const eligibleExpenseSpentByCategory = new Map<string, number>();
+  const items = args.mode === 'month'
+    ? (() => {
+        const monthlyItems = overlappingItems.filter((item) => item.budget.budget_period === 'monthly');
+        return monthlyItems.length > 0 ? monthlyItems : overlappingItems;
+      })()
+    : overlappingItems;
 
-  for (const transaction of eligibleExpenses) {
-    if (!transaction.category_id) continue;
-    eligibleExpenseSpentByCategory.set(
-      transaction.category_id,
-      (eligibleExpenseSpentByCategory.get(transaction.category_id) || 0) + Number(transaction.amount || 0)
-    );
+  const totalBudgetByCurrency = new Map<string, number>();
+  const spentByCurrency = new Map<string, number>();
+  const remainingByCurrency = new Map<string, number>();
+
+  for (const item of items) {
+    addCurrencyAmount(totalBudgetByCurrency, item.budget.currency, Number(item.budget.amount || 0), overview.reportingCurrency);
+    if (item.spentAmount !== null) {
+      addCurrencyAmount(spentByCurrency, item.budget.currency, item.spentAmount, overview.reportingCurrency);
+    }
+    if (item.remainingAmount !== null) {
+      addCurrencyAmount(remainingByCurrency, item.budget.currency, item.remainingAmount, overview.reportingCurrency);
+    }
   }
 
-  for (const budget of budgets) {
-    budget.spent = budget.category_id
-      ? eligibleExpenseSpentByCategory.get(budget.category_id) || 0
-      : totalEligibleExpenseSpent;
-  }
+  const cycleLabels = Array.from(new Set(items.map((item) => item.periodTypeLabel)));
 
-  return budgets;
+  return {
+    totalBudgetByCurrency: mapCurrencyTotals(totalBudgetByCurrency),
+    spentByCurrency: mapCurrencyTotals(spentByCurrency),
+    remainingByCurrency: mapCurrencyTotals(remainingByCurrency),
+    activeBudgetCount: items.length,
+    activeBudgetCycleLabels: cycleLabels,
+    hasMixedCycles: cycleLabels.length > 1,
+    conversionUnavailableCount: items.filter((item) => item.remainingAmount === null).length,
+  };
+}
+
+export async function getBudgets(periodStart?: string): Promise<Budget[]> {
+  const overview = await getBudgetTrackingOverview({ referenceDate: periodStart });
+  return overview.items.map((item) => ({
+    ...item.budget,
+    period_start: item.period.startDate,
+    period_end: item.period.endDate,
+    spent: item.spentAmount ?? 0,
+  }));
 }
 
 export function getCurrentDashboardMonthKey(nowInput?: Date) {
@@ -1705,6 +2067,18 @@ export async function createBudget(payload: Partial<Budget>): Promise<Budget> {
     .single();
   if (error) throw error;
   return data;
+}
+
+export async function updateBudget(id: string, payload: Partial<Budget>): Promise<Budget> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('budgets')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return normalizeBudgetRecord(data as Budget);
 }
 
 export async function deleteBudget(id: string): Promise<void> {
@@ -1818,14 +2192,13 @@ export async function getDashboardMetrics(args?: {
   }
   const periodStart = args.startDate;
   const periodEnd = args.endDate;
-  const includeBudgetTracking = args.mode === 'month';
   const [
     ledgerSummaryByTransactionId,
     accountInclusionById,
     accountsResult,
     incomeResult,
     expenseResult,
-    budgetsResult,
+    dashboardBudgetSummary,
     upcomingResult,
     managedMetrics,
     loanMetrics,
@@ -1848,12 +2221,11 @@ export async function getDashboardMetrics(args?: {
       .eq('transaction_type', 'expense')
       .gte('transaction_date', periodStart)
       .lte('transaction_date', periodEnd),
-    includeBudgetTracking
-      ? supabase
-        .from('budgets')
-        .select('id, category_id, amount, currency, period_start, period_end')
-        .eq('is_active', true)
-      : Promise.resolve({ data: [], error: null }),
+    getDashboardBudgetSummary({
+      startDate: periodStart,
+      endDate: periodEnd,
+      mode: args.mode,
+    }),
     supabase
       .from('recurring_transactions')
       .select('amount, currency')
@@ -1868,7 +2240,6 @@ export async function getDashboardMetrics(args?: {
   if (accountsResult.error) throw accountsResult.error;
   if (incomeResult.error) throw incomeResult.error;
   if (expenseResult.error) throw expenseResult.error;
-  if (budgetsResult.error) throw budgetsResult.error;
   if (upcomingResult.error) throw upcomingResult.error;
 
   const totalBalanceByCurrency = new Map<string, number>();
@@ -1915,34 +2286,6 @@ export async function getDashboardMetrics(args?: {
     );
   }
 
-  const totalBudgetByCurrency = new Map<string, number>();
-  const budgetSpentByCurrency = new Map<string, number>();
-  const activeBudgetsForPeriod = ((budgetsResult.data || []) as BudgetMetricRow[])
-    .filter((budget) => isBudgetActiveForWindow(budget, periodStart, periodEnd));
-  const eligibleMonthlyExpensesByCategory = new Map<string, TransactionMetricRow[]>();
-
-  for (const transaction of eligibleMonthlyExpenses) {
-    if (!transaction.category_id) continue;
-    const existing = eligibleMonthlyExpensesByCategory.get(transaction.category_id) || [];
-    existing.push(transaction);
-    eligibleMonthlyExpensesByCategory.set(transaction.category_id, existing);
-  }
-
-  for (const budget of activeBudgetsForPeriod) {
-    addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0), defaultCurrency);
-    const matchingExpenses = budget.category_id
-      ? eligibleMonthlyExpensesByCategory.get(budget.category_id) || []
-      : eligibleMonthlyExpenses;
-    for (const transaction of matchingExpenses) {
-      addCurrencyAmount(
-        budgetSpentByCurrency,
-        transaction.currency,
-        Number(transaction.amount || 0),
-        defaultCurrency
-      );
-    }
-  }
-
   const upcomingPaymentsByCurrency = new Map<string, number>();
   for (const recurring of ((upcomingResult.data || []) as CurrencyAmountRow[])) {
     addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0), defaultCurrency);
@@ -1971,16 +2314,16 @@ export async function getDashboardMetrics(args?: {
       latestSnapshot,
     }),
     totalBudget: buildDashboardConvertedMetric({
-      originalTotals: mapCurrencyTotals(totalBudgetByCurrency),
+      originalTotals: dashboardBudgetSummary.totalBudgetByCurrency,
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
     budgetSpent: buildDashboardConvertedMetric({
-      originalTotals: mapCurrencyTotals(budgetSpentByCurrency),
+      originalTotals: dashboardBudgetSummary.spentByCurrency,
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
-    activeBudgetCount: activeBudgetsForPeriod.length,
+    activeBudgetCount: dashboardBudgetSummary.activeBudgetCount,
     upcomingPayments: buildDashboardConvertedMetric({
       originalTotals: mapCurrencyTotals(upcomingPaymentsByCurrency),
       reportingCurrency: defaultCurrency,
@@ -2008,7 +2351,10 @@ export async function getDashboardMetrics(args?: {
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
-    budgetTrackingAvailable: includeBudgetTracking,
+    budgetTrackingAvailable: true,
+    activeBudgetCycleLabels: dashboardBudgetSummary.activeBudgetCycleLabels,
+    budgetConversionUnavailableCount: dashboardBudgetSummary.conversionUnavailableCount,
+    hasMixedBudgetCycles: dashboardBudgetSummary.hasMixedCycles,
   };
 }
 

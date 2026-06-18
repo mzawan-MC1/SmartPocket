@@ -6,6 +6,7 @@ export const SMARTPOCKET_DATA_CHANGED_EVENT = 'smartpocket:data-changed';
 
 export type SmartPocketDataEntity =
   | 'profile'
+  | 'budgets'
   | 'dashboard'
   | 'transactions'
   | 'financial_accounts'
