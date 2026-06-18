@@ -11,6 +11,7 @@ import AccountDetailPanel from './AccountDetailPanel';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
 
 
 const ACCOUNT_TYPE_OPTIONS = [
@@ -78,6 +79,7 @@ type SummaryMetric =
 export default function AccountsGrid() {
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
+  const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -100,6 +102,18 @@ export default function AccountsGrid() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void resolveUserDefaultCurrency(platformDefaultCurrency).then((currencyCode) => {
+      if (!cancelled) {
+        setUserDefaultCurrency(currencyCode);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [platformDefaultCurrency]);
+
   useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountsGrid', () => {
     load();
   });
@@ -109,7 +123,7 @@ export default function AccountsGrid() {
     setForm({
       name: '',
       account_type: 'bank',
-      currency: platformDefaultCurrency,
+      currency: userDefaultCurrency || platformDefaultCurrency,
       opening_balance: '0.00',
       notes: '',
       include_in_total: true,
@@ -118,14 +132,15 @@ export default function AccountsGrid() {
   };
 
   React.useEffect(() => {
-    if (!platformDefaultCurrency) return;
+    const defaultCurrency = userDefaultCurrency || platformDefaultCurrency;
+    if (!defaultCurrency) return;
     setForm((current) => {
       if (current.currency || editingAccount) {
         return current;
       }
-      return { ...current, currency: platformDefaultCurrency };
+      return { ...current, currency: defaultCurrency };
     });
-  }, [editingAccount, platformDefaultCurrency]);
+  }, [editingAccount, platformDefaultCurrency, userDefaultCurrency]);
 
   const openEdit = (acct: FinancialAccount) => {
     setEditingAccount(acct);

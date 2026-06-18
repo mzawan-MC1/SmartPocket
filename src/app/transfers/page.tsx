@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { ArrowLeftRight, Plus, ChevronRight, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -11,6 +11,9 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { createClient } from '@/lib/supabase/client';
+import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
+import { getLatestExchangeRateSnapshot } from '@/lib/exchange-rates/service';
 
 interface TransferFormData {
   from_account_id: string;
@@ -24,7 +27,9 @@ interface TransferFormData {
 function groupTransferAmounts(transfers: Transfer[]) {
   const grouped = new Map<string, number>();
   for (const transfer of transfers) {
-    grouped.set(transfer.currency, (grouped.get(transfer.currency) ?? 0) + Number(transfer.amount));
+    const currency = transfer.source_currency || transfer.currency;
+    const amount = Number(transfer.source_amount ?? transfer.amount);
+    grouped.set(currency, (grouped.get(currency) ?? 0) + amount);
   }
   return Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
 }
@@ -36,12 +41,16 @@ export default function TransfersPage() {
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [latestSnapshot, setLatestSnapshot] = useState<Awaited<ReturnType<typeof getLatestExchangeRateSnapshot>> | null>(null);
+  const [latestSnapshotError, setLatestSnapshotError] = useState<string | null>(null);
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<TransferFormData>({
     defaultValues: { transfer_date: new Date().toISOString().split('T')[0] },
   });
 
   const fromAccountId = watch('from_account_id');
+  const toAccountId = watch('to_account_id');
+  const amountValue = watch('amount');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -56,6 +65,119 @@ export default function TransfersPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    void getLatestExchangeRateSnapshot(supabase)
+      .then((snapshot) => {
+        if (!cancelled) {
+          setLatestSnapshot(snapshot);
+          setLatestSnapshotError(null);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setLatestSnapshot(null);
+          setLatestSnapshotError(error instanceof Error ? error.message : 'Failed to load exchange rates');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const fromAccount = accounts.find((account) => account.id === fromAccountId);
+  const toAccount = accounts.find((account) => account.id === toAccountId);
+  const transferPreview = useMemo(() => {
+    const numericAmount = Number(amountValue);
+    if (!fromAccount?.currency || !toAccount?.currency || !Number.isFinite(numericAmount) || numericAmount <= 0) {
+      return null;
+    }
+
+    if (fromAccount.currency === toAccount.currency) {
+      return {
+        available: true,
+        sameCurrency: true,
+        sourceAmount: numericAmount,
+        sourceCurrency: fromAccount.currency,
+        destinationAmount: numericAmount,
+        destinationCurrency: toAccount.currency,
+        rateUsed: 1,
+        provider: null,
+        rateDate: null,
+        providerTimestamp: null,
+        fetchedAt: null,
+        stale: false,
+        snapshotId: null as string | null,
+        error: null as string | null,
+      };
+    }
+
+    if (!latestSnapshot) {
+      return {
+        available: false,
+        sameCurrency: false,
+        sourceAmount: numericAmount,
+        sourceCurrency: fromAccount.currency,
+        destinationAmount: null,
+        destinationCurrency: toAccount.currency,
+        rateUsed: null,
+        provider: null,
+        rateDate: null,
+        providerTimestamp: null,
+        fetchedAt: null,
+        stale: true,
+        snapshotId: null,
+        error: latestSnapshotError || 'No valid exchange-rate snapshot is available',
+      };
+    }
+
+    try {
+      const conversion = convertWithSnapshot({
+        amount: numericAmount,
+        fromCurrency: fromAccount.currency,
+        toCurrency: toAccount.currency,
+        snapshot: latestSnapshot,
+        lookupMode: 'latest',
+      });
+
+      return {
+        available: true,
+        sameCurrency: false,
+        sourceAmount: numericAmount,
+        sourceCurrency: fromAccount.currency,
+        destinationAmount: conversion.convertedAmount,
+        destinationCurrency: toAccount.currency,
+        rateUsed: conversion.rateUsed,
+        provider: conversion.provider,
+        rateDate: conversion.rateDate,
+        providerTimestamp: conversion.providerTimestamp,
+        fetchedAt: conversion.fetchedAt,
+        stale: conversion.stale,
+        snapshotId: latestSnapshot.id,
+        error: null,
+      };
+    } catch (error) {
+      return {
+        available: false,
+        sameCurrency: false,
+        sourceAmount: numericAmount,
+        sourceCurrency: fromAccount.currency,
+        destinationAmount: null,
+        destinationCurrency: toAccount.currency,
+        rateUsed: null,
+        provider: null,
+        rateDate: null,
+        providerTimestamp: null,
+        fetchedAt: null,
+        stale: true,
+        snapshotId: latestSnapshot.id,
+        error: error instanceof Error ? error.message : 'Failed to calculate exchange-rate preview',
+      };
+    }
+  }, [amountValue, fromAccount, latestSnapshot, latestSnapshotError, toAccount]);
+
   const onSubmit = async (data: TransferFormData) => {
     if (data.from_account_id === data.to_account_id) {
       toast.error('From and To accounts must be different');
@@ -64,8 +186,17 @@ export default function TransfersPage() {
     setIsLoading(true);
     try {
       const fromAcct = accounts.find((a) => a.id === data.from_account_id);
+      const toAcct = accounts.find((a) => a.id === data.to_account_id);
       if (!fromAcct?.currency) {
         toast.error('Selected source account is missing a currency');
+        return;
+      }
+      if (!toAcct?.currency) {
+        toast.error('Selected destination account is missing a currency');
+        return;
+      }
+      if (fromAcct.currency !== toAcct.currency && (!transferPreview || !transferPreview.available || transferPreview.destinationAmount === null)) {
+        toast.error(transferPreview?.error || 'A valid exchange-rate preview is required for cross-currency transfers');
         return;
       }
       await createTransfer({
@@ -73,6 +204,15 @@ export default function TransfersPage() {
         to_account_id: data.to_account_id,
         amount: parseFloat(data.amount),
         currency: fromAcct.currency,
+        source_amount: parseFloat(data.amount),
+        source_currency: fromAcct.currency,
+        destination_amount: transferPreview?.destinationAmount ?? parseFloat(data.amount),
+        destination_currency: toAcct.currency,
+        exchange_rate: transferPreview?.rateUsed ?? 1,
+        exchange_rate_provider: transferPreview?.sameCurrency ? null : transferPreview?.provider ?? null,
+        exchange_rate_snapshot_id: transferPreview?.sameCurrency ? null : transferPreview?.snapshotId ?? null,
+        exchange_rate_date: transferPreview?.sameCurrency ? data.transfer_date : transferPreview?.rateDate ?? null,
+        exchange_rate_timestamp: transferPreview?.sameCurrency ? null : transferPreview?.providerTimestamp ?? transferPreview?.fetchedAt ?? null,
         description: data.description || 'Transfer',
         transfer_date: data.transfer_date,
         notes: data.notes || undefined,
@@ -127,9 +267,9 @@ export default function TransfersPage() {
           ].map((item) => (
             <div key={item.label} className="card-elevated p-4">
               <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
-              {'grouped' in item ? (
+              {item.label === 'Total Transferred' ? (
                 <div className="space-y-1">
-                  {item.grouped.length === 0 ? <p className="text-sm text-muted-foreground">No transfers</p> : item.grouped.map((row) => (
+                  {groupedTransferred.length === 0 ? <p className="text-sm text-muted-foreground">No transfers</p> : groupedTransferred.map((row) => (
                     <FormattedCurrencyAmount key={`${item.label}-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
                   ))}
                 </div>
@@ -201,8 +341,21 @@ export default function TransfersPage() {
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="text-sm font-700 font-tabular text-foreground">
-                      <FormattedCurrencyAmount amount={transfer.amount} currencyCode={transfer.currency} className="text-sm font-700 text-foreground" />
+                      <FormattedCurrencyAmount
+                        amount={transfer.source_amount ?? transfer.amount}
+                        currencyCode={transfer.source_currency || transfer.currency}
+                        className="text-sm font-700 text-foreground"
+                      />
                     </p>
+                    {transfer.destination_currency && transfer.destination_currency !== (transfer.source_currency || transfer.currency) ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        <FormattedCurrencyAmount
+                          amount={transfer.destination_amount ?? transfer.amount}
+                          currencyCode={transfer.destination_currency}
+                          className="text-[11px] text-muted-foreground"
+                        />
+                      </p>
+                    ) : null}
                     <span className="text-[10px] font-600 text-positive bg-positive-soft px-1.5 py-0.5 rounded-full">completed</span>
                   </div>
                 </div>
@@ -241,6 +394,33 @@ export default function TransfersPage() {
             />
             {errors.amount && <p className="mt-1.5 text-xs text-negative font-500">{errors.amount.message}</p>}
           </div>
+
+          {transferPreview && fromAccount && toAccount ? (
+            <div className={`rounded-xl border p-3 ${
+              transferPreview.available ? 'border-info/20 bg-info-soft/40' : 'border-warning/30 bg-warning-soft/20'
+            }`}>
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">Transfer Preview</p>
+              <div className="mt-2 flex items-center gap-2 text-sm font-600 text-foreground">
+                <FormattedCurrencyAmount amount={transferPreview.sourceAmount} currencyCode={transferPreview.sourceCurrency} size="sm" />
+                <ChevronRight size={14} className="text-muted-foreground" />
+                {transferPreview.destinationAmount !== null ? (
+                  <FormattedCurrencyAmount amount={transferPreview.destinationAmount} currencyCode={transferPreview.destinationCurrency} size="sm" />
+                ) : (
+                  <span className="text-warning">{transferPreview.error}</span>
+                )}
+              </div>
+              {!transferPreview.sameCurrency && transferPreview.available ? (
+                <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                  <p>Provider: {transferPreview.provider}</p>
+                  <p>Rate date: {transferPreview.rateDate}</p>
+                  <p>Provider timestamp: {transferPreview.providerTimestamp || transferPreview.fetchedAt}</p>
+                  {transferPreview.stale ? (
+                    <p className="text-warning">This preview uses a stale cached rate. Review it before saving.</p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div>
             <label htmlFor="transfer-desc" className="block text-sm font-600 text-foreground mb-1.5">Description</label>

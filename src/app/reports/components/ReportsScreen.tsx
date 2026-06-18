@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import {
+  buildHistoricalReportConvertedMetric,
   generateCSV,
   getAccounts,
   getReportData,
@@ -14,6 +15,7 @@ import {
   loadTransactionLedgerSummaryMap,
   shouldIncludeInPersonalCashFlow,
   type FinancialAccount,
+  type HistoricalReportConvertedMetric,
   type Transaction,
 } from '@/lib/finance';
 import EmptyState from '@/components/ui/EmptyState';
@@ -37,18 +39,29 @@ const reportTypes = [
   { id: 'account-statement' as ReportType, label: 'Account Statement', icon: FileText, description: 'Full transaction history by account' },
 ];
 
-function groupTransactionsByCurrency(
-  transactions: Transaction[],
-  getSignedAmount: (transaction: Transaction) => number
+function renderOriginalCurrencyRows(
+  rows: Array<{ currency: string; amount: number }>,
+  positive?: boolean
 ) {
-  const grouped = new Map<string, number>();
-
-  for (const transaction of transactions) {
-    const currency = transaction.currency || 'USD';
-    grouped.set(currency, (grouped.get(currency) ?? 0) + getSignedAmount(transaction));
+  if (rows.length === 0) {
+    return <span className="text-sm text-muted-foreground">No data</span>;
   }
 
-  return Array.from(grouped.entries()).map(([currency, amount]) => ({ currency, amount }));
+  return (
+    <div className="space-y-1">
+      {rows.map((row) => (
+        <FormattedCurrencyAmount
+          key={`${row.currency}-${row.amount}`}
+          amount={row.amount}
+          currencyCode={row.currency}
+          size="sm"
+          className={`text-sm font-700 ${
+            positive === true ? 'text-positive' : positive === false ? 'text-negative' : 'text-foreground'
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function ReportsScreen() {
@@ -63,6 +76,11 @@ export default function ReportsScreen() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [ledgerSummaryByTransactionId, setLedgerSummaryByTransactionId] = useState<Map<string, { entryTypes: Set<string>; referenceTypes: Set<string> }>>(new Map());
   const [accountInclusionById, setAccountInclusionById] = useState<Map<string, boolean>>(new Map());
+  const [historicalMetrics, setHistoricalMetrics] = useState<{
+    income: HistoricalReportConvertedMetric;
+    expenses: HistoricalReportConvertedMetric;
+    net: HistoricalReportConvertedMetric;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -74,11 +92,47 @@ export default function ReportsScreen() {
       loadTransactionLedgerSummaryMap(supabase),
       loadAccountInclusionMap(supabase),
     ])
-      .then(([txns, accts, ledgerSummary, accountInclusion]) => {
+      .then(async ([txns, accts, ledgerSummary, accountInclusion]) => {
+        const incomeTransactions = txns.filter((t) =>
+          isPersonalIncomeTransaction(t, ledgerSummary, accountInclusion)
+        );
+        const expenseTransactions = txns.filter((t) =>
+          isPersonalExpenseTransaction(t, ledgerSummary, accountInclusion)
+        );
+        const cashFlowTransactions = txns.filter((transaction) =>
+          shouldIncludeInPersonalCashFlow(transaction, ledgerSummary, accountInclusion)
+        );
+        const [incomeMetric, expensesMetric, netMetric] = await Promise.all([
+          buildHistoricalReportConvertedMetric({
+            transactions: incomeTransactions,
+            getSignedAmount: (transaction) => Number(transaction.amount || 0),
+          }),
+          buildHistoricalReportConvertedMetric({
+            transactions: expenseTransactions,
+            getSignedAmount: (transaction) => Number(transaction.amount || 0),
+          }),
+          buildHistoricalReportConvertedMetric({
+            transactions: cashFlowTransactions,
+            getSignedAmount: (transaction) => {
+              const amount = Number(transaction.amount || 0);
+              return transaction.transaction_type === 'income'
+                ? amount
+                : transaction.transaction_type === 'expense'
+                  ? -amount
+                  : 0;
+            },
+          }),
+        ]);
+
         setTransactions(txns);
         setAccounts(accts.filter((a) => a.is_active));
         setLedgerSummaryByTransactionId(ledgerSummary);
         setAccountInclusionById(accountInclusion);
+        setHistoricalMetrics({
+          income: incomeMetric,
+          expenses: expensesMetric,
+          net: netMetric,
+        });
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
@@ -95,54 +149,113 @@ export default function ReportsScreen() {
   const cashFlowTransactions = transactions.filter((transaction) =>
     shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)
   );
-
-  const incomeByCurrency = groupTransactionsByCurrency(incomeTransactions, (transaction) => Number(transaction.amount || 0));
-  const expensesByCurrency = groupTransactionsByCurrency(expenseTransactions, (transaction) => Number(transaction.amount || 0));
-  const netByCurrency = groupTransactionsByCurrency(cashFlowTransactions, (transaction) => {
-    const amount = Number(transaction.amount || 0);
-    return transaction.transaction_type === 'income' ? amount : transaction.transaction_type === 'expense' ? -amount : 0;
-  });
   const canCalculateSavingsRate =
-    incomeByCurrency.length === 1 &&
-    netByCurrency.length === 1 &&
-    incomeByCurrency[0].currency === netByCurrency[0].currency &&
-    incomeByCurrency[0].amount > 0;
-  const savingsRate = canCalculateSavingsRate ? (netByCurrency[0].amount / incomeByCurrency[0].amount) * 100 : 0;
+    historicalMetrics?.income.reportingAmount !== null &&
+    historicalMetrics?.net.reportingAmount !== null &&
+    Number(historicalMetrics?.income.reportingAmount) > 0;
+  const savingsRate = canCalculateSavingsRate
+    ? (Number(historicalMetrics?.net.reportingAmount || 0) / Number(historicalMetrics?.income.reportingAmount || 0)) * 100
+    : 0;
 
-  const summaryByType: Record<ReportType, Array<{ id: string; label: string; value?: string; groupedValues?: Array<{ currency: string; amount: number }>; sub?: string; positive?: boolean }>> = {
+  const summaryByType: Record<ReportType, Array<{
+    id: string;
+    label: string;
+    value?: string;
+    convertedMetric?: HistoricalReportConvertedMetric | null;
+    sub?: string;
+    positive?: boolean;
+  }>> = {
     'income-expense': [
-      { id: 'rpt-ie-income', label: 'Total Income', groupedValues: incomeByCurrency, sub: `${dateFrom} – ${dateTo}`, positive: true },
-      { id: 'rpt-ie-expenses', label: 'Total Expenses', groupedValues: expensesByCurrency, sub: `${dateFrom} – ${dateTo}`, positive: false },
-      { id: 'rpt-ie-net', label: 'Net Savings', groupedValues: netByCurrency, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable for mixed currencies' },
+      { id: 'rpt-ie-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, sub: `${dateFrom} – ${dateTo}`, positive: true },
+      { id: 'rpt-ie-expenses', label: 'Total Expenses', convertedMetric: historicalMetrics?.expenses || null, sub: `${dateFrom} – ${dateTo}`, positive: false },
+      { id: 'rpt-ie-net', label: 'Net Savings', convertedMetric: historicalMetrics?.net || null, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable until all required historical rates exist' },
       { id: 'rpt-ie-txns', label: 'Transactions', value: String(transactions.length), sub: 'Total records' },
     ],
     'spending-category': [
-      { id: 'rpt-sc-total', label: 'Total Spent', groupedValues: expensesByCurrency, sub: 'All categories' },
+      { id: 'rpt-sc-total', label: 'Total Spent', convertedMetric: historicalMetrics?.expenses || null, sub: 'All categories' },
       { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(transactions.filter((t) => isPersonalExpenseTransaction(t, ledgerSummaryByTransactionId, accountInclusionById)).length), sub: 'Records' },
-      { id: 'rpt-sc-income', label: 'Total Income', groupedValues: incomeByCurrency, positive: true },
-      { id: 'rpt-sc-net', label: 'Net', groupedValues: netByCurrency },
+      { id: 'rpt-sc-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, positive: true },
+      { id: 'rpt-sc-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
     ],
     'monthly-trends': [
-      { id: 'rpt-mt-income', label: 'Period Income', groupedValues: incomeByCurrency, positive: true },
-      { id: 'rpt-mt-expenses', label: 'Period Expenses', groupedValues: expensesByCurrency, positive: false },
-      { id: 'rpt-mt-net', label: 'Net', groupedValues: netByCurrency },
+      { id: 'rpt-mt-income', label: 'Period Income', convertedMetric: historicalMetrics?.income || null, positive: true },
+      { id: 'rpt-mt-expenses', label: 'Period Expenses', convertedMetric: historicalMetrics?.expenses || null, positive: false },
+      { id: 'rpt-mt-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
       { id: 'rpt-mt-txns', label: 'Transactions', value: String(transactions.length) },
     ],
     'budget-performance': [
-      { id: 'rpt-bp-income', label: 'Total Income', groupedValues: incomeByCurrency, positive: true },
-      { id: 'rpt-bp-expenses', label: 'Total Expenses', groupedValues: expensesByCurrency, positive: false },
-      { id: 'rpt-bp-net', label: 'Net Savings', groupedValues: netByCurrency },
+      { id: 'rpt-bp-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, positive: true },
+      { id: 'rpt-bp-expenses', label: 'Total Expenses', convertedMetric: historicalMetrics?.expenses || null, positive: false },
+      { id: 'rpt-bp-net', label: 'Net Savings', convertedMetric: historicalMetrics?.net || null },
       { id: 'rpt-bp-rate', label: 'Savings Rate', value: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}%` : 'Mixed currencies', positive: canCalculateSavingsRate ? savingsRate >= 20 : undefined },
     ],
     'account-statement': [
       { id: 'rpt-as-txns', label: 'Total Transactions', value: String(transactions.length), sub: `${dateFrom} – ${dateTo}` },
-      { id: 'rpt-as-credits', label: 'Total Credits', groupedValues: incomeByCurrency, sub: 'Inflows', positive: true },
-      { id: 'rpt-as-debits', label: 'Total Debits', groupedValues: expensesByCurrency, sub: 'Outflows', positive: false },
-      { id: 'rpt-as-net', label: 'Net', groupedValues: netByCurrency },
+      { id: 'rpt-as-credits', label: 'Total Credits', convertedMetric: historicalMetrics?.income || null, sub: 'Inflows', positive: true },
+      { id: 'rpt-as-debits', label: 'Total Debits', convertedMetric: historicalMetrics?.expenses || null, sub: 'Outflows', positive: false },
+      { id: 'rpt-as-net', label: 'Net', convertedMetric: historicalMetrics?.net || null },
     ],
   };
 
   const summary = summaryByType[activeReport];
+
+  const renderConvertedMetric = (metric: HistoricalReportConvertedMetric, positive?: boolean) => {
+    if (metric.reportingAmount === null) {
+      return renderOriginalCurrencyRows(metric.originalTotals, positive);
+    }
+
+    return (
+      <FormattedCurrencyAmount
+        amount={metric.reportingAmount}
+        currencyCode={metric.reportingCurrency}
+        size="sm"
+        className={`text-sm font-700 ${
+          positive === true ? 'text-positive' : positive === false ? 'text-negative' : 'text-foreground'
+        }`}
+      />
+    );
+  };
+
+  const renderConvertedMetricDetails = (metric: HistoricalReportConvertedMetric) => {
+    const shouldShowDetails =
+      metric.originalTotals.length > 1 ||
+      !metric.allOriginalInReportingCurrency ||
+      metric.previousAvailableCount > 0 ||
+      metric.unavailableCount > 0 ||
+      Boolean(metric.provider);
+
+    if (!shouldShowDetails) {
+      return null;
+    }
+
+    return (
+      <details className="mt-2 rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
+        <summary className="cursor-pointer text-[11px] font-600 text-muted-foreground">
+          View original currencies
+        </summary>
+        <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
+          {renderOriginalCurrencyRows(metric.originalTotals)}
+          {metric.reportingAmount !== null && !metric.allOriginalInReportingCurrency ? (
+            <p>Historical reporting total in {metric.reportingCurrency}.</p>
+          ) : null}
+          {metric.previousAvailableCount > 0 ? (
+            <p>{metric.previousAvailableCount} record(s) use the nearest previous available snapshot.</p>
+          ) : null}
+          {metric.exactCount > 0 ? <p>{metric.exactCount} record(s) use an exact transaction-date snapshot.</p> : null}
+          {metric.earliestRateDate || metric.latestRateDate ? (
+            <p>
+              Applied rate dates: {metric.earliestRateDate || metric.latestRateDate}
+              {metric.latestRateDate && metric.latestRateDate !== metric.earliestRateDate ? ` to ${metric.latestRateDate}` : ''}
+            </p>
+          ) : null}
+          {metric.provider ? <p>Provider: {metric.provider}</p> : null}
+          {metric.freshestAppliedAt ? <p>Latest snapshot fetched at: {metric.freshestAppliedAt}</p> : null}
+          {metric.stale ? <p className="text-warning">One or more applied snapshots are stale.</p> : null}
+          {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
+        </div>
+      </details>
+    );
+  };
 
   const handleDownloadCSV = () => {
     if (transactions.length === 0) { toast.error('No data to export'); return; }
@@ -263,28 +376,17 @@ export default function ReportsScreen() {
             {summary.map((item) => (
               <div key={item.id} className="card-elevated p-4">
                 <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
-                <p className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
+                <div className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
                   {loading ? (
                     <span className="animate-pulse bg-muted rounded w-20 h-5 inline-block" />
-                  ) : item.groupedValues ? (
-                    <div className="space-y-1">
-                      {item.groupedValues.length === 0 ? (
-                        <span className="text-sm text-muted-foreground">No data</span>
-                      ) : item.groupedValues.map((row) => (
-                        <FormattedCurrencyAmount
-                          key={`${item.id}-${row.currency}`}
-                          amount={row.amount}
-                          currencyCode={row.currency}
-                          size="sm"
-                          className={`text-sm font-700 ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}
-                        />
-                      ))}
-                    </div>
+                  ) : item.convertedMetric ? (
+                    renderConvertedMetric(item.convertedMetric, item.positive)
                   ) : (
                     item.value
                   )}
-                </p>
+                </div>
                 {item.sub && <p className="text-[11px] text-muted-foreground mt-0.5">{item.sub}</p>}
+                {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric) : null}
               </div>
             ))}
           </div>

@@ -6,6 +6,8 @@ import type {
   FinancialAction,
   ParsedFinancialInstruction,
 } from '@/lib/ai-types';
+import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
+import { getLatestExchangeRateSnapshot } from '@/lib/exchange-rates/service';
 
 type AccountType =
   | 'bank'
@@ -88,6 +90,18 @@ interface PersonBalanceRow {
   money_held: number | string;
   person_owes_user: number | string;
   user_owes_person: number | string;
+}
+
+interface PreparedServerTransfer {
+  sourceAmount: number;
+  sourceCurrency: string;
+  destinationAmount: number;
+  destinationCurrency: string;
+  exchangeRate: number | null;
+  exchangeRateProvider: string | null;
+  exchangeRateSnapshotId: string | null;
+  exchangeRateDate: string | null;
+  exchangeRateTimestamp: string | null;
 }
 
 export interface ServerExecutionContext {
@@ -200,7 +214,7 @@ export async function loadExecutionContextServer(args: {
 }): Promise<ServerExecutionContext> {
   const needsPersonBalances = instructionNeedsPersonBalances(args.instruction);
 
-  const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult, currenciesResult, platformSettingsResult] = await Promise.all([
+  const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult, currenciesResult, profileResult, platformSettingsResult] = await Promise.all([
     args.supabase
       .from('financial_accounts')
       .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')
@@ -234,6 +248,11 @@ export async function loadExecutionContextServer(args: {
       .select('code')
       .eq('is_active', true),
     args.supabase
+      .from('user_profiles')
+      .select('default_currency')
+      .eq('id', args.userId)
+      .maybeSingle(),
+    args.supabase
       .from('platform_settings')
       .select('default_currency')
       .maybeSingle(),
@@ -256,6 +275,9 @@ export async function loadExecutionContextServer(args: {
   }
   if (currenciesResult.error) {
     throw new ContextLoadError('Failed to load currency registry');
+  }
+  if (profileResult.error) {
+    throw new ContextLoadError('Failed to load user profile currency');
   }
   if (platformSettingsResult.error) {
     throw new ContextLoadError('Failed to load platform settings');
@@ -297,9 +319,12 @@ export async function loadExecutionContextServer(args: {
     people,
     supportedCurrencies,
     defaultCurrency: sanitizeCurrency(
-      platformSettingsResult.data?.default_currency || undefined,
+      profileResult.data?.default_currency || platformSettingsResult.data?.default_currency || undefined,
       supportedCurrencies,
-      resolveDefaultCurrency(platformSettingsResult.data?.default_currency || undefined, supportedCurrencies)
+      resolveDefaultCurrency(
+        profileResult.data?.default_currency || platformSettingsResult.data?.default_currency || undefined,
+        supportedCurrencies
+      )
     ),
   };
 }
@@ -601,12 +626,29 @@ async function executeActionServer(args: {
         throw new InvalidExecutionActionError('Source and destination accounts must be different');
       }
 
+      const preparedTransfer = await prepareServerTransfer({
+        amount,
+        transferDate: date,
+        fromAccount,
+        toAccount,
+        supabase,
+      });
+
       const transfer = await createTransferServer(
         {
           from_account_id: fromAccount.id,
           to_account_id: toAccount.id,
-          amount,
-          currency,
+          amount: preparedTransfer.sourceAmount,
+          currency: preparedTransfer.sourceCurrency,
+          source_amount: preparedTransfer.sourceAmount,
+          source_currency: preparedTransfer.sourceCurrency,
+          destination_amount: preparedTransfer.destinationAmount,
+          destination_currency: preparedTransfer.destinationCurrency,
+          exchange_rate: preparedTransfer.exchangeRate,
+          exchange_rate_provider: preparedTransfer.exchangeRateProvider,
+          exchange_rate_snapshot_id: preparedTransfer.exchangeRateSnapshotId,
+          exchange_rate_date: preparedTransfer.exchangeRateDate,
+          exchange_rate_timestamp: preparedTransfer.exchangeRateTimestamp,
           description: action.description || 'Transfer',
           transfer_date: date,
           notes: action.notes || null,
@@ -1330,6 +1372,59 @@ function inferAccountType(name?: string): AccountType {
   return 'other';
 }
 
+async function prepareServerTransfer(args: {
+  amount: number;
+  transferDate: string;
+  fromAccount: ServerAccount;
+  toAccount: ServerAccount;
+  supabase: SupabaseClient;
+}): Promise<PreparedServerTransfer> {
+  const sourceAmount = Number(args.amount);
+  const sourceCurrency = args.fromAccount.currency;
+  const destinationCurrency = args.toAccount.currency;
+
+  if (sourceCurrency === destinationCurrency) {
+    return {
+      sourceAmount,
+      sourceCurrency,
+      destinationAmount: sourceAmount,
+      destinationCurrency,
+      exchangeRate: 1,
+      exchangeRateProvider: null,
+      exchangeRateSnapshotId: null,
+      exchangeRateDate: args.transferDate,
+      exchangeRateTimestamp: null,
+    };
+  }
+
+  const latestSnapshot = await getLatestExchangeRateSnapshot(args.supabase);
+  if (!latestSnapshot) {
+    throw new InvalidExecutionActionError(
+      'Cross-currency transfers require a valid cached exchange-rate snapshot before they can be saved.'
+    );
+  }
+
+  const conversion = convertWithSnapshot({
+    amount: sourceAmount,
+    fromCurrency: sourceCurrency,
+    toCurrency: destinationCurrency,
+    snapshot: latestSnapshot,
+    lookupMode: 'latest',
+  });
+
+  return {
+    sourceAmount,
+    sourceCurrency,
+    destinationAmount: conversion.convertedAmount,
+    destinationCurrency,
+    exchangeRate: conversion.rateUsed,
+    exchangeRateProvider: conversion.provider,
+    exchangeRateSnapshotId: latestSnapshot.id,
+    exchangeRateDate: conversion.rateDate,
+    exchangeRateTimestamp: conversion.providerTimestamp || conversion.fetchedAt,
+  };
+}
+
 function resolveAccountByIdOrName(
   id: string | undefined,
   name: string | undefined,
@@ -1585,12 +1680,12 @@ async function recalculateAccountBalanceServer(
       .eq('transaction_type', 'expense'),
     supabase
       .from('transfers')
-      .select('amount')
+      .select('amount, destination_amount')
       .eq('user_id', userId)
       .eq('to_account_id', accountId),
     supabase
       .from('transfers')
-      .select('amount')
+      .select('amount, source_amount')
       .eq('user_id', userId)
       .eq('from_account_id', accountId),
   ]);
@@ -1604,13 +1699,23 @@ async function recalculateAccountBalanceServer(
 
   const sumAmount = (rows: Array<{ amount: number | string }> | null) =>
     (rows || []).reduce((sum, row) => sum + Number(row.amount), 0);
+  const sumTransferInAmount = (
+    rows: Array<{ amount: number | string; destination_amount?: number | string | null }> | null
+  ) => (rows || []).reduce((sum, row) => sum + Number(row.destination_amount ?? row.amount ?? 0), 0);
+  const sumTransferOutAmount = (
+    rows: Array<{ amount: number | string; source_amount?: number | string | null }> | null
+  ) => (rows || []).reduce((sum, row) => sum + Number(row.source_amount ?? row.amount ?? 0), 0);
 
   const newBalance =
     Number(accountResult.data.opening_balance || 0) +
     sumAmount(incomeResult.data as Array<{ amount: number | string }> | null) -
     sumAmount(expenseResult.data as Array<{ amount: number | string }> | null) +
-    sumAmount(transferInResult.data as Array<{ amount: number | string }> | null) -
-    sumAmount(transferOutResult.data as Array<{ amount: number | string }> | null);
+    sumTransferInAmount(
+      transferInResult.data as Array<{ amount: number | string; destination_amount?: number | string | null }> | null
+    ) -
+    sumTransferOutAmount(
+      transferOutResult.data as Array<{ amount: number | string; source_amount?: number | string | null }> | null
+    );
 
   const { error: updateError } = await supabase
     .from('financial_accounts')
@@ -1720,6 +1825,15 @@ async function createTransferServer(
     to_account_id: string;
     amount: number;
     currency: string;
+    source_amount?: number;
+    source_currency?: string;
+    destination_amount?: number;
+    destination_currency?: string;
+    exchange_rate?: number | null;
+    exchange_rate_provider?: string | null;
+    exchange_rate_snapshot_id?: string | null;
+    exchange_rate_date?: string | null;
+    exchange_rate_timestamp?: string | null;
     description: string;
     transfer_date: string;
     notes: string | null;
@@ -1729,82 +1843,124 @@ async function createTransferServer(
   userId: string,
   supabase: SupabaseClient
 ) {
-  const { data: fromTransaction, error: fromError } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: userId,
-      account_id: payload.from_account_id,
-      transaction_type: 'transfer',
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description || 'Transfer out',
-      transaction_date: payload.transfer_date,
-      notes: payload.notes,
-      ai_request_id: payload.ai_request_id || null,
-      ai_action_index: payload.ai_action_index ?? null,
-    })
-    .select('id')
-    .single();
+  const sourceAmount = Number(payload.source_amount ?? payload.amount);
+  const sourceCurrency = payload.source_currency || payload.currency;
+  const destinationAmount = Number(payload.destination_amount ?? payload.amount);
+  const destinationCurrency = payload.destination_currency || payload.currency;
+  let fromTransactionId: string | null = null;
+  let toTransactionId: string | null = null;
 
-  if (fromError || !fromTransaction) {
-    throw new Error('Failed to create transfer source transaction');
+  try {
+    const { data: fromTransaction, error: fromError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        account_id: payload.from_account_id,
+        transaction_type: 'transfer',
+        amount: sourceAmount,
+        currency: sourceCurrency,
+        description: payload.description || 'Transfer out',
+        transaction_date: payload.transfer_date,
+        notes: payload.notes,
+        ai_request_id: payload.ai_request_id || null,
+        ai_action_index: payload.ai_action_index ?? null,
+      })
+      .select('id')
+      .single();
+
+    if (fromError || !fromTransaction) {
+      throw new Error('Failed to create transfer source transaction');
+    }
+
+    fromTransactionId = fromTransaction.id;
+
+    const { data: toTransaction, error: toError } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: userId,
+        account_id: payload.to_account_id,
+        transaction_type: 'transfer',
+        amount: destinationAmount,
+        currency: destinationCurrency,
+        description: payload.description || 'Transfer in',
+        transaction_date: payload.transfer_date,
+        notes: payload.notes,
+        transfer_pair_id: fromTransaction.id,
+        ai_request_id: payload.ai_request_id || null,
+        ai_action_index: payload.ai_action_index ?? null,
+      })
+      .select('id')
+      .single();
+
+    if (toError || !toTransaction) {
+      throw new Error('Failed to create transfer destination transaction');
+    }
+
+    toTransactionId = toTransaction.id;
+
+    const { error: pairError } = await supabase
+      .from('transactions')
+      .update({ transfer_pair_id: toTransaction.id })
+      .eq('id', fromTransaction.id)
+      .eq('user_id', userId);
+
+    if (pairError) {
+      throw new Error('Failed to link transfer transactions');
+    }
+
+    const { data: transfer, error: transferError } = await supabase
+      .from('transfers')
+      .insert({
+        user_id: userId,
+        from_account_id: payload.from_account_id,
+        to_account_id: payload.to_account_id,
+        from_transaction_id: fromTransaction.id,
+        to_transaction_id: toTransaction.id,
+        amount: sourceAmount,
+        currency: sourceCurrency,
+        source_amount: sourceAmount,
+        source_currency: sourceCurrency,
+        destination_amount: destinationAmount,
+        destination_currency: destinationCurrency,
+        exchange_rate: payload.exchange_rate ?? null,
+        exchange_rate_provider: payload.exchange_rate_provider ?? null,
+        exchange_rate_snapshot_id: payload.exchange_rate_snapshot_id ?? null,
+        exchange_rate_date: payload.exchange_rate_date ?? null,
+        exchange_rate_timestamp: payload.exchange_rate_timestamp ?? null,
+        description: payload.description,
+        transfer_date: payload.transfer_date,
+        notes: payload.notes,
+      })
+      .select('id')
+      .single();
+
+    if (transferError || !transfer) {
+      throw new Error('Failed to create transfer');
+    }
+
+    await Promise.all([
+      recalculateAccountBalanceServer(payload.from_account_id, userId, supabase),
+      recalculateAccountBalanceServer(payload.to_account_id, userId, supabase),
+    ]);
+
+    return transfer;
+  } catch (error) {
+    if (toTransactionId) {
+      await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', toTransactionId)
+        .eq('user_id', userId);
+    }
+    if (fromTransactionId) {
+      await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', fromTransactionId)
+        .eq('user_id', userId);
+    }
+    throw error;
   }
-
-  const { data: toTransaction, error: toError } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: userId,
-      account_id: payload.to_account_id,
-      transaction_type: 'transfer',
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description || 'Transfer in',
-      transaction_date: payload.transfer_date,
-      notes: payload.notes,
-      transfer_pair_id: fromTransaction.id,
-      ai_request_id: payload.ai_request_id || null,
-      ai_action_index: payload.ai_action_index ?? null,
-    })
-    .select('id')
-    .single();
-
-  if (toError || !toTransaction) {
-    throw new Error('Failed to create transfer destination transaction');
-  }
-
-  await supabase
-    .from('transactions')
-    .update({ transfer_pair_id: toTransaction.id })
-    .eq('id', fromTransaction.id)
-    .eq('user_id', userId);
-
-  const { data: transfer, error: transferError } = await supabase
-    .from('transfers')
-    .insert({
-      user_id: userId,
-      from_account_id: payload.from_account_id,
-      to_account_id: payload.to_account_id,
-      from_transaction_id: fromTransaction.id,
-      to_transaction_id: toTransaction.id,
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description,
-      transfer_date: payload.transfer_date,
-      notes: payload.notes,
-    })
-    .select('id')
-    .single();
-
-  if (transferError || !transfer) {
-    throw new Error('Failed to create transfer');
-  }
-
-  await Promise.all([
-    recalculateAccountBalanceServer(payload.from_account_id, userId, supabase),
-    recalculateAccountBalanceServer(payload.to_account_id, userId, supabase),
-  ]);
-
-  return transfer;
 }
 
 async function rollbackExecutedActions(args: {

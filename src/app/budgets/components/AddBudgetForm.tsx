@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
 
 interface AddBudgetFormProps {
   onSuccess: () => void;
@@ -28,6 +29,18 @@ export default function AddBudgetForm({ onSuccess, onCancel }: AddBudgetFormProp
   useEffect(() => {
     getCategories('expense').then(setCategories).catch(console.error);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void resolveUserDefaultCurrency(referenceData?.platformDefaultCurrency).then((currencyCode) => {
+      if (!cancelled) {
+        setForm((current) => (current.currency ? current : { ...current, currency: currencyCode }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [referenceData?.platformDefaultCurrency]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown,
 } from 'lucide-react';
-import { getDashboardMetrics, type DashboardMetrics } from '@/lib/finance';
+import { getDashboardMetrics, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
@@ -47,8 +47,8 @@ export default function DashboardMetrics() {
 
   if (!metrics) return null;
 
-  const budgetTotals = new Map(metrics.totalBudgetByCurrency.map((row) => [row.currency, row.amount]));
-  const budgetSpent = new Map(metrics.budgetSpentByCurrency.map((row) => [row.currency, row.amount]));
+  const budgetTotals = new Map(metrics.totalBudget.originalTotals.map((row) => [row.currency, row.amount]));
+  const budgetSpent = new Map(metrics.budgetSpent.originalTotals.map((row) => [row.currency, row.amount]));
   const budgetRemaining = Array.from(new Set([...budgetTotals.keys(), ...budgetSpent.keys()]))
     .map((currency) => ({
       currency,
@@ -59,19 +59,40 @@ export default function DashboardMetrics() {
     }))
     .sort((left, right) => left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' }));
 
+  const budgetRemainingMetric: DashboardConvertedMetric = {
+    originalTotals: budgetRemaining.map((row) => ({ currency: row.currency, amount: row.amount })),
+    reportingCurrency: metrics.defaultCurrency,
+    reportingAmount:
+      metrics.totalBudget.reportingAmount !== null && metrics.budgetSpent.reportingAmount !== null
+        ? metrics.totalBudget.reportingAmount - metrics.budgetSpent.reportingAmount
+        : null,
+    allOriginalInReportingCurrency: budgetRemaining.every((row) => row.currency === metrics.defaultCurrency),
+    conversionAvailable:
+      budgetRemaining.every((row) => row.currency === metrics.defaultCurrency) ||
+      (metrics.totalBudget.conversionAvailable && metrics.budgetSpent.conversionAvailable),
+    rateDate: metrics.totalBudget.rateDate || metrics.budgetSpent.rateDate,
+    provider: metrics.totalBudget.provider || metrics.budgetSpent.provider,
+    providerTimestamp: metrics.totalBudget.providerTimestamp || metrics.budgetSpent.providerTimestamp,
+    fetchedAt: metrics.totalBudget.fetchedAt || metrics.budgetSpent.fetchedAt,
+    freshness: metrics.totalBudget.freshness,
+    stale: metrics.totalBudget.stale || metrics.budgetSpent.stale,
+    lookupMode: metrics.totalBudget.lookupMode,
+    unavailableReason: metrics.totalBudget.unavailableReason || metrics.budgetSpent.unavailableReason,
+  };
+
   const hasSingleCashFlowCurrency =
-    metrics.monthlyIncomeByCurrency.length === 1 &&
-    metrics.monthlyExpensesByCurrency.length <= 1 &&
-    metrics.netCashFlowByCurrency.length === 1 &&
-    (metrics.monthlyExpensesByCurrency.length === 0 ||
-      metrics.monthlyIncomeByCurrency[0].currency === metrics.monthlyExpensesByCurrency[0].currency) &&
-    metrics.monthlyIncomeByCurrency[0].currency === metrics.netCashFlowByCurrency[0].currency;
+    metrics.monthlyIncome.originalTotals.length === 1 &&
+    metrics.monthlyExpenses.originalTotals.length <= 1 &&
+    metrics.netCashFlow.originalTotals.length === 1 &&
+    (metrics.monthlyExpenses.originalTotals.length === 0 ||
+      metrics.monthlyIncome.originalTotals[0].currency === metrics.monthlyExpenses.originalTotals[0].currency) &&
+    metrics.monthlyIncome.originalTotals[0].currency === metrics.netCashFlow.originalTotals[0].currency;
 
   const hasExpenseAlert = hasSingleCashFlowCurrency
-    ? (metrics.monthlyExpensesByCurrency[0]?.amount || 0) > (metrics.monthlyIncomeByCurrency[0]?.amount || 0)
+    ? (metrics.monthlyExpenses.originalTotals[0]?.amount || 0) > (metrics.monthlyIncome.originalTotals[0]?.amount || 0)
     : false;
 
-  const renderCurrencyRows = (
+  const renderOriginalCurrencyRows = (
     rows: Array<{ currency: string; amount: number }>,
     size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md'
   ) => {
@@ -94,14 +115,73 @@ export default function DashboardMetrics() {
     );
   };
 
+  const renderMetricValue = (
+    metric: DashboardConvertedMetric,
+    size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md'
+  ) => {
+    if (metric.reportingAmount === null) {
+      return renderOriginalCurrencyRows(metric.originalTotals, size);
+    }
+
+    return (
+      <FormattedCurrencyAmount
+        amount={metric.reportingAmount}
+        currencyCode={metric.reportingCurrency}
+        size={size}
+        showCode
+      />
+    );
+  };
+
+  const renderMetricMeta = (metric: DashboardConvertedMetric) => {
+    if (metric.reportingAmount === null) {
+      return 'Original currencies only';
+    }
+    if (metric.allOriginalInReportingCurrency) {
+      return null;
+    }
+    return `Reporting total${metric.stale ? ' • stale rate' : ''}`;
+  };
+
+  const renderMetricDetails = (metric: DashboardConvertedMetric) => {
+    const metaLabel = renderMetricMeta(metric);
+    const shouldShowDetails =
+      metric.originalTotals.length > 1 ||
+      !metric.allOriginalInReportingCurrency ||
+      Boolean(metric.provider) ||
+      Boolean(metric.unavailableReason);
+
+    if (!shouldShowDetails) {
+      return null;
+    }
+
+    return (
+      <details className="mt-3 rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
+        <summary className="cursor-pointer text-xs font-600 text-muted-foreground">
+          View original currencies
+        </summary>
+        <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+          <div>{renderOriginalCurrencyRows(metric.originalTotals, 'xs')}</div>
+          {metaLabel ? <p>{metaLabel}</p> : null}
+          {metric.rateDate ? <p>Rate date: {metric.rateDate}</p> : null}
+          {metric.providerTimestamp ? <p>Provider timestamp: {metric.providerTimestamp}</p> : null}
+          {metric.fetchedAt ? <p>Fetched at: {metric.fetchedAt}</p> : null}
+          {metric.provider ? <p>Provider: {metric.provider}</p> : null}
+          {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
+          {metric.stale && metric.provider ? <p className="text-warning">Rates are older than the fresh window.</p> : null}
+        </div>
+      </details>
+    );
+  };
+
   const personalCards = [
     {
       id: 'metric-balance',
       label: 'Personal Balance',
-      valueRows: metrics.totalBalanceByCurrency,
-      changeRows: metrics.netCashFlowByCurrency,
-      changeDir: metrics.netCashFlowByCurrency.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
-      changeLabel: 'net this month by currency',
+      valueMetric: metrics.totalBalance,
+      changeMetric: metrics.netCashFlow,
+      changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      changeLabel: 'net this month',
       icon: Wallet,
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
@@ -110,10 +190,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-income',
       label: 'Monthly Income',
-      valueRows: metrics.monthlyIncomeByCurrency,
-      changeRows: metrics.monthlyIncomeByCurrency,
+      valueMetric: metrics.monthlyIncome,
+      changeMetric: metrics.monthlyIncome,
       changeDir: 'up' as const,
-      changeLabel: 'this month by currency',
+      changeLabel: 'this month',
       icon: TrendingUp,
       iconBg: 'bg-positive-soft',
       iconColor: 'text-positive',
@@ -122,10 +202,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-expenses',
       label: 'Monthly Expenses',
-      valueRows: metrics.monthlyExpensesByCurrency,
-      changeRows: metrics.monthlyExpensesByCurrency,
+      valueMetric: metrics.monthlyExpenses,
+      changeMetric: metrics.monthlyExpenses,
       changeDir: 'down' as const,
-      changeLabel: 'this month by currency',
+      changeLabel: 'this month',
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -135,10 +215,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-netflow',
       label: 'Net Cash Flow',
-      valueRows: metrics.netCashFlowByCurrency,
-      change: metrics.netCashFlowByCurrency.length > 1 ? 'Mixed currencies' : metrics.netCashFlowByCurrency[0]?.amount >= 0 ? 'Positive' : 'Negative',
-      changeDir: metrics.netCashFlowByCurrency.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
-      changeLabel: 'income minus expenses by currency',
+      valueMetric: metrics.netCashFlow,
+      change: metrics.netCashFlow.originalTotals.length > 1 ? 'Mixed currencies' : metrics.netCashFlow.originalTotals[0]?.amount >= 0 ? 'Positive' : 'Negative',
+      changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      changeLabel: 'income minus expenses',
       icon: ArrowUpDown,
       iconBg: 'bg-info-soft',
       iconColor: 'text-info',
@@ -147,7 +227,7 @@ export default function DashboardMetrics() {
     {
       id: 'metric-budget',
       label: 'Budget Remaining',
-      valueRows: budgetRemaining.map((row) => ({ currency: row.currency, amount: row.amount })),
+      valueMetric: budgetRemainingMetric,
       change: metrics.activeBudgetCount === 0
         ? 'No active budget'
         : budgetRemaining.length === 1
@@ -169,7 +249,7 @@ export default function DashboardMetrics() {
     {
       id: 'metric-upcoming',
       label: 'Upcoming Payments',
-      valueRows: metrics.upcomingPaymentsByCurrency,
+      valueMetric: metrics.upcomingPayments,
       change: `${metrics.upcomingPaymentsCount} payment${metrics.upcomingPaymentsCount !== 1 ? 's' : ''}`,
       changeDir: 'neutral' as const,
       changeLabel: 'due in 7 days',
@@ -184,7 +264,7 @@ export default function DashboardMetrics() {
     {
       id: 'metric-managed-total',
       label: 'Money Managed',
-      valueRows: metrics.managedMoneyByCurrency,
+      valueMetric: metrics.managedMoney,
       change: `${metrics.managedPeopleCount}`,
       changeDir: 'neutral' as const,
       changeLabel: metrics.managedPeopleCount === 1 ? 'person with managed money' : 'people with managed money',
@@ -199,10 +279,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-loan-outstanding',
       label: 'Outstanding Loans',
-      valueRows: metrics.outstandingLoanBalanceByCurrency,
-      changeRows: metrics.loanBorrowedThisMonthByCurrency,
+      valueMetric: metrics.outstandingLoanBalance,
+      changeMetric: metrics.loanBorrowedThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: 'borrowed this month by currency',
+      changeLabel: 'borrowed this month',
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
@@ -211,10 +291,10 @@ export default function DashboardMetrics() {
     {
       id: 'metric-loan-repaid',
       label: 'Loan Repayments',
-      valueRows: metrics.loanRepaidThisMonthByCurrency,
-      changeRows: metrics.loanRepaidThisMonthByCurrency,
+      valueMetric: metrics.loanRepaidThisMonth,
+      changeMetric: metrics.loanRepaidThisMonth,
       changeDir: 'neutral' as const,
-      changeLabel: 'paid this month by currency',
+      changeLabel: 'paid this month',
       icon: ArrowUpDown,
       iconBg: 'bg-accent/10',
       iconColor: 'text-accent',
@@ -254,7 +334,7 @@ export default function DashboardMetrics() {
                   </div>
                 </div>
                 <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                  {renderCurrencyRows(metric.valueRows, isHero ? 'xl' : 'lg')}
+                  {renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
@@ -263,10 +343,11 @@ export default function DashboardMetrics() {
                     metric.changeDir === 'up' ? 'text-positive' :
                     metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
                   }`}>
-                    {metric.changeRows ? renderCurrencyRows(metric.changeRows, 'xs') : metric.change}
+                    {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
+                {renderMetricDetails(metric.valueMetric)}
                 {metric.warningState && metric.budgetPct !== undefined && (
                   <div className="mt-3">
                     <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
@@ -299,11 +380,12 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows, 'lg')}</div>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderMetricValue(metric.valueMetric, 'lg')}</div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-600 font-tabular text-muted-foreground">{metric.change}</span>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
+                {renderMetricDetails(metric.valueMetric)}
               </div>
             );
           })}
@@ -326,13 +408,14 @@ export default function DashboardMetrics() {
                     <Icon size={17} className={metric.iconColor} />
                   </div>
                 </div>
-                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderCurrencyRows(metric.valueRows, 'lg')}</div>
+                <div className="mb-1.5 text-2xl font-800 font-tabular text-foreground">{renderMetricValue(metric.valueMetric, 'lg')}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="text-xs font-600 font-tabular text-muted-foreground">
-                    {renderCurrencyRows(metric.changeRows, 'xs')}
+                    {renderMetricValue(metric.changeMetric, 'xs')}
                   </div>
                   <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
                 </div>
+                {renderMetricDetails(metric.valueMetric)}
               </div>
             );
           })}

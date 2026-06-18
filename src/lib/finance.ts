@@ -7,6 +7,16 @@ import {
   mapCurrencyTotals,
   resolveUserDefaultCurrency,
 } from '@/lib/currency-totals';
+import { getExchangeRateFreshness, convertWithSnapshot } from '@/lib/exchange-rates/conversion';
+import {
+  getLatestExchangeRateSnapshot,
+  listHistoricalExchangeRateSnapshots,
+} from '@/lib/exchange-rates/service';
+import type {
+  ExchangeRateFreshness,
+  ExchangeRateLookupMode,
+  ExchangeRateSnapshotRecord,
+} from '@/lib/exchange-rates/types';
 
 type CurrencyAmountRow = { amount: number | string; currency: string | null };
 type AmountRow = { amount: number | string };
@@ -181,6 +191,15 @@ export interface Transfer {
   to_transaction_id: string | null;
   amount: number;
   currency: string;
+  source_amount?: number | null;
+  source_currency?: string | null;
+  destination_amount?: number | null;
+  destination_currency?: string | null;
+  exchange_rate?: number | null;
+  exchange_rate_provider?: string | null;
+  exchange_rate_snapshot_id?: string | null;
+  exchange_rate_date?: string | null;
+  exchange_rate_timestamp?: string | null;
   description: string | null;
   transfer_date: string;
   notes: string | null;
@@ -190,22 +209,56 @@ export interface Transfer {
   to_account?: { name: string };
 }
 
+export interface DashboardConvertedMetric {
+  originalTotals: Array<{ currency: string; amount: number }>;
+  reportingCurrency: string;
+  reportingAmount: number | null;
+  allOriginalInReportingCurrency: boolean;
+  conversionAvailable: boolean;
+  rateDate: string | null;
+  provider: string | null;
+  providerTimestamp: string | null;
+  fetchedAt: string | null;
+  freshness: ExchangeRateFreshness;
+  stale: boolean;
+  lookupMode: ExchangeRateLookupMode;
+  unavailableReason: string | null;
+}
+
 export interface DashboardMetrics {
   defaultCurrency: string;
-  totalBalanceByCurrency: Array<{ currency: string; amount: number }>;
-  monthlyIncomeByCurrency: Array<{ currency: string; amount: number }>;
-  monthlyExpensesByCurrency: Array<{ currency: string; amount: number }>;
-  netCashFlowByCurrency: Array<{ currency: string; amount: number }>;
-  totalBudgetByCurrency: Array<{ currency: string; amount: number }>;
-  budgetSpentByCurrency: Array<{ currency: string; amount: number }>;
+  totalBalance: DashboardConvertedMetric;
+  monthlyIncome: DashboardConvertedMetric;
+  monthlyExpenses: DashboardConvertedMetric;
+  netCashFlow: DashboardConvertedMetric;
+  totalBudget: DashboardConvertedMetric;
+  budgetSpent: DashboardConvertedMetric;
   activeBudgetCount: number;
-  upcomingPaymentsByCurrency: Array<{ currency: string; amount: number }>;
+  upcomingPayments: DashboardConvertedMetric;
   upcomingPaymentsCount: number;
-  managedMoneyByCurrency: Array<{ currency: string; amount: number }>;
+  managedMoney: DashboardConvertedMetric;
   managedPeopleCount: number;
-  outstandingLoanBalanceByCurrency: Array<{ currency: string; amount: number }>;
-  loanBorrowedThisMonthByCurrency: Array<{ currency: string; amount: number }>;
-  loanRepaidThisMonthByCurrency: Array<{ currency: string; amount: number }>;
+  outstandingLoanBalance: DashboardConvertedMetric;
+  loanBorrowedThisMonth: DashboardConvertedMetric;
+  loanRepaidThisMonth: DashboardConvertedMetric;
+}
+
+export interface HistoricalReportConvertedMetric {
+  originalTotals: Array<{ currency: string; amount: number }>;
+  reportingCurrency: string;
+  reportingAmount: number | null;
+  allOriginalInReportingCurrency: boolean;
+  conversionAvailable: boolean;
+  provider: string | null;
+  freshestAppliedAt: string | null;
+  earliestRateDate: string | null;
+  latestRateDate: string | null;
+  exactCount: number;
+  previousAvailableCount: number;
+  unavailableCount: number;
+  freshness: ExchangeRateFreshness;
+  stale: boolean;
+  unavailableReason: string | null;
 }
 
 export async function loadTransactionLedgerSummaryMap(
@@ -402,6 +455,149 @@ function isBudgetActiveForWindow(
   return budget.period_start <= periodEnd && (!budget.period_end || budget.period_end >= periodStart);
 }
 
+function sumCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
+  return rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+}
+
+function findHistoricalSnapshotForDate(
+  snapshots: ExchangeRateSnapshotRecord[],
+  rateDate: string
+): { snapshot: ExchangeRateSnapshotRecord | null; lookupMode: ExchangeRateLookupMode } {
+  let matchedSnapshot: ExchangeRateSnapshotRecord | null = null;
+
+  for (const snapshot of snapshots) {
+    if (snapshot.rate_date > rateDate) {
+      break;
+    }
+    matchedSnapshot = snapshot;
+  }
+
+  if (!matchedSnapshot) {
+    return {
+      snapshot: null,
+      lookupMode: 'unavailable',
+    };
+  }
+
+  return {
+    snapshot: matchedSnapshot,
+    lookupMode: matchedSnapshot.rate_date === rateDate ? 'exact' : 'previous_available',
+  };
+}
+
+function buildHistoricalOriginalTotals(
+  transactions: Transaction[],
+  getSignedAmount: (transaction: Transaction) => number,
+  reportingCurrency: string
+) {
+  const grouped = new Map<string, number>();
+
+  for (const transaction of transactions) {
+    addCurrencyAmount(
+      grouped,
+      transaction.currency || reportingCurrency,
+      getSignedAmount(transaction),
+      reportingCurrency
+    );
+  }
+
+  return ensureZeroCurrencyTotal(mapCurrencyTotals(grouped), reportingCurrency);
+}
+
+function buildDashboardConvertedMetric(args: {
+  originalTotals: Array<{ currency: string; amount: number }>;
+  reportingCurrency: string;
+  latestSnapshot: Awaited<ReturnType<typeof getLatestExchangeRateSnapshot>> | null;
+}): DashboardConvertedMetric {
+  const originalTotals = ensureZeroCurrencyTotal(args.originalTotals, args.reportingCurrency);
+  const allOriginalInReportingCurrency = originalTotals.every(
+    (row) => row.currency === args.reportingCurrency
+  );
+
+  if (allOriginalInReportingCurrency) {
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: sumCurrencyTotals(originalTotals),
+      allOriginalInReportingCurrency: true,
+      conversionAvailable: true,
+      rateDate: null,
+      provider: null,
+      providerTimestamp: null,
+      fetchedAt: null,
+      freshness: 'fresh',
+      stale: false,
+      lookupMode: 'same_currency',
+      unavailableReason: null,
+    };
+  }
+
+  if (!args.latestSnapshot) {
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      rateDate: null,
+      provider: null,
+      providerTimestamp: null,
+      fetchedAt: null,
+      freshness: 'unavailable',
+      stale: true,
+      lookupMode: 'unavailable',
+      unavailableReason: 'Exchange rates are unavailable',
+    };
+  }
+
+  const latestSnapshot = args.latestSnapshot;
+
+  try {
+    const convertedAmount = originalTotals.reduce((sum, row) => {
+      return sum + convertWithSnapshot({
+        amount: row.amount,
+        fromCurrency: row.currency,
+        toCurrency: args.reportingCurrency,
+        snapshot: latestSnapshot,
+        lookupMode: 'latest',
+      }).convertedAmount;
+    }, 0);
+
+    const freshness = getExchangeRateFreshness(latestSnapshot);
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: convertedAmount,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: true,
+      rateDate: latestSnapshot.rate_date,
+      provider: latestSnapshot.provider,
+      providerTimestamp: latestSnapshot.provider_timestamp,
+      fetchedAt: latestSnapshot.fetched_at,
+      freshness,
+      stale: freshness !== 'fresh',
+      lookupMode: 'latest',
+      unavailableReason: null,
+    };
+  } catch (error) {
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      rateDate: latestSnapshot.rate_date,
+      provider: latestSnapshot.provider,
+      providerTimestamp: latestSnapshot.provider_timestamp,
+      fetchedAt: latestSnapshot.fetched_at,
+      freshness: getExchangeRateFreshness(latestSnapshot),
+      stale: true,
+      lookupMode: 'unavailable',
+      unavailableReason: error instanceof Error ? error.message : 'Exchange-rate conversion failed',
+    };
+  }
+}
+
 async function getManagedMoneyMetrics(
   supabase: ReturnType<typeof createClient>,
   defaultCurrency: string
@@ -559,19 +755,21 @@ export async function recalculateAccountBalance(accountId: string): Promise<numb
   // Sum transfers in
   const { data: transfersIn } = await supabase
     .from('transfers')
-    .select('amount')
+    .select('amount, destination_amount')
     .eq('to_account_id', accountId);
 
   // Sum transfers out
   const { data: transfersOut } = await supabase
     .from('transfers')
-    .select('amount')
+    .select('amount, source_amount')
     .eq('from_account_id', accountId);
 
   const incomeTotal = ((income || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
   const expenseTotal = ((expenses || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
-  const transferInTotal = ((transfersIn || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
-  const transferOutTotal = ((transfersOut || []) as AmountRow[]).reduce((s: number, t) => s + Number(t.amount), 0);
+  const transferInTotal = ((transfersIn || []) as Array<{ amount: number | string; destination_amount?: number | string | null }>)
+    .reduce((sum, row) => sum + Number(row.destination_amount ?? row.amount ?? 0), 0);
+  const transferOutTotal = ((transfersOut || []) as Array<{ amount: number | string; source_amount?: number | string | null }>)
+    .reduce((sum, row) => sum + Number(row.source_amount ?? row.amount ?? 0), 0);
 
   const newBalance = Number(acct.opening_balance) + incomeTotal - expenseTotal + transferInTotal - transferOutTotal;
 
@@ -703,6 +901,15 @@ export async function createTransfer(payload: {
   to_account_id: string;
   amount: number;
   currency: string;
+  source_amount?: number;
+  source_currency?: string;
+  destination_amount?: number;
+  destination_currency?: string;
+  exchange_rate?: number | null;
+  exchange_rate_provider?: string | null;
+  exchange_rate_snapshot_id?: string | null;
+  exchange_rate_date?: string | null;
+  exchange_rate_timestamp?: string | null;
   description?: string;
   transfer_date: string;
   notes?: string;
@@ -715,69 +922,100 @@ export async function createTransfer(payload: {
     throw new Error('Source and destination accounts must be different');
   }
 
-  // Create outgoing transaction
-  const { data: fromTxn, error: fromErr } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: user.id,
-      account_id: payload.from_account_id,
-      transaction_type: 'transfer',
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description || 'Transfer out',
-      transaction_date: payload.transfer_date,
-    })
-    .select()
-    .single();
-  if (fromErr) throw fromErr;
+  const sourceAmount = Number(payload.source_amount ?? payload.amount);
+  const sourceCurrency = payload.source_currency || payload.currency;
+  const destinationAmount = Number(payload.destination_amount ?? payload.amount);
+  const destinationCurrency = payload.destination_currency || payload.currency;
 
-  // Create incoming transaction
-  const { data: toTxn, error: toErr } = await supabase
-    .from('transactions')
-    .insert({
-      user_id: user.id,
-      account_id: payload.to_account_id,
-      transaction_type: 'transfer',
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description || 'Transfer in',
-      transaction_date: payload.transfer_date,
-      transfer_pair_id: fromTxn.id,
-    })
-    .select()
-    .single();
-  if (toErr) throw toErr;
+  if (!Number.isFinite(sourceAmount) || sourceAmount <= 0) {
+    throw new Error('Source transfer amount must be greater than 0');
+  }
+  if (!Number.isFinite(destinationAmount) || destinationAmount <= 0) {
+    throw new Error('Destination transfer amount must be greater than 0');
+  }
 
-  // Update pair link on from transaction
-  await supabase
-    .from('transactions')
-    .update({ transfer_pair_id: toTxn.id })
-    .eq('id', fromTxn.id);
+  let fromTxnId: string | null = null;
+  let toTxnId: string | null = null;
 
-  // Create transfer record
-  const { data: transfer, error: transferErr } = await supabase
-    .from('transfers')
-    .insert({
-      user_id: user.id,
-      from_account_id: payload.from_account_id,
-      to_account_id: payload.to_account_id,
-      from_transaction_id: fromTxn.id,
-      to_transaction_id: toTxn.id,
-      amount: payload.amount,
-      currency: payload.currency,
-      description: payload.description || '',
-      transfer_date: payload.transfer_date,
-      notes: payload.notes || null,
-    })
-    .select()
-    .single();
-  if (transferErr) throw transferErr;
+  try {
+    const { data: fromTxn, error: fromErr } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        account_id: payload.from_account_id,
+        transaction_type: 'transfer',
+        amount: sourceAmount,
+        currency: sourceCurrency,
+        description: payload.description || 'Transfer out',
+        transaction_date: payload.transfer_date,
+      })
+      .select()
+      .single();
+    if (fromErr) throw fromErr;
+    fromTxnId = fromTxn.id;
 
-  // Recalculate both account balances
-  await recalculateAccountBalance(payload.from_account_id);
-  await recalculateAccountBalance(payload.to_account_id);
+    const { data: toTxn, error: toErr } = await supabase
+      .from('transactions')
+      .insert({
+        user_id: user.id,
+        account_id: payload.to_account_id,
+        transaction_type: 'transfer',
+        amount: destinationAmount,
+        currency: destinationCurrency,
+        description: payload.description || 'Transfer in',
+        transaction_date: payload.transfer_date,
+        transfer_pair_id: fromTxn.id,
+      })
+      .select()
+      .single();
+    if (toErr) throw toErr;
+    toTxnId = toTxn.id;
 
-  return transfer;
+    await supabase
+      .from('transactions')
+      .update({ transfer_pair_id: toTxn.id })
+      .eq('id', fromTxn.id);
+
+    const { data: transfer, error: transferErr } = await supabase
+      .from('transfers')
+      .insert({
+        user_id: user.id,
+        from_account_id: payload.from_account_id,
+        to_account_id: payload.to_account_id,
+        from_transaction_id: fromTxn.id,
+        to_transaction_id: toTxn.id,
+        amount: sourceAmount,
+        currency: sourceCurrency,
+        source_amount: sourceAmount,
+        source_currency: sourceCurrency,
+        destination_amount: destinationAmount,
+        destination_currency: destinationCurrency,
+        exchange_rate: payload.exchange_rate ?? null,
+        exchange_rate_provider: payload.exchange_rate_provider ?? null,
+        exchange_rate_snapshot_id: payload.exchange_rate_snapshot_id ?? null,
+        exchange_rate_date: payload.exchange_rate_date ?? null,
+        exchange_rate_timestamp: payload.exchange_rate_timestamp ?? null,
+        description: payload.description || '',
+        transfer_date: payload.transfer_date,
+        notes: payload.notes || null,
+      })
+      .select()
+      .single();
+    if (transferErr) throw transferErr;
+
+    await recalculateAccountBalance(payload.from_account_id);
+    await recalculateAccountBalance(payload.to_account_id);
+
+    return transfer;
+  } catch (error) {
+    if (toTxnId) {
+      await supabase.from('transactions').delete().eq('id', toTxnId);
+    }
+    if (fromTxnId) {
+      await supabase.from('transactions').delete().eq('id', fromTxnId);
+    }
+    throw error;
+  }
 }
 
 // ─── Budgets ──────────────────────────────────────────────────────────────────
@@ -942,6 +1180,7 @@ function calculateNextDueDate(currentDate: string, frequency: string): string {
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   const supabase = createClient();
   const defaultCurrency = await resolveUserDefaultCurrency();
+  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
@@ -1032,11 +1271,17 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   for (const budget of activeBudgetsForPeriod) {
     addCurrencyAmount(totalBudgetByCurrency, budget.currency, Number(budget.amount || 0), defaultCurrency);
 
-    const spent = eligibleMonthlyExpenses
-      .filter((transaction) => !budget.category_id || transaction.category_id === budget.category_id)
-      .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+    const matchingExpenses = eligibleMonthlyExpenses
+      .filter((transaction) => !budget.category_id || transaction.category_id === budget.category_id);
 
-    addCurrencyAmount(budgetSpentByCurrency, budget.currency, spent, defaultCurrency);
+    for (const transaction of matchingExpenses) {
+      addCurrencyAmount(
+        budgetSpentByCurrency,
+        transaction.currency,
+        Number(transaction.amount || 0),
+        defaultCurrency
+      );
+    }
   }
 
   // Upcoming recurring
@@ -1057,20 +1302,64 @@ export async function getDashboardMetrics(): Promise<DashboardMetrics> {
 
   return {
     defaultCurrency,
-    totalBalanceByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(totalBalanceByCurrency), defaultCurrency),
-    monthlyIncomeByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyIncomeByCurrency), defaultCurrency),
-    monthlyExpensesByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(monthlyExpensesByCurrency), defaultCurrency),
-    netCashFlowByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(netCashFlowByCurrency), defaultCurrency),
-    totalBudgetByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(totalBudgetByCurrency), defaultCurrency),
-    budgetSpentByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(budgetSpentByCurrency), defaultCurrency),
+    totalBalance: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(totalBalanceByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    monthlyIncome: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(monthlyIncomeByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    monthlyExpenses: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(monthlyExpensesByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    netCashFlow: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(netCashFlowByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    totalBudget: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(totalBudgetByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    budgetSpent: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(budgetSpentByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
     activeBudgetCount: activeBudgetsForPeriod.length,
-    upcomingPaymentsByCurrency: ensureZeroCurrencyTotal(mapCurrencyTotals(upcomingPaymentsByCurrency), defaultCurrency),
+    upcomingPayments: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(upcomingPaymentsByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
     upcomingPaymentsCount: (upcoming || []).length,
-    managedMoneyByCurrency: managedMetrics.managedMoneyByCurrency,
+    managedMoney: buildDashboardConvertedMetric({
+      originalTotals: managedMetrics.managedMoneyByCurrency,
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
     managedPeopleCount: managedMetrics.managedPeopleCount,
-    outstandingLoanBalanceByCurrency: loanMetrics.outstandingLoanBalanceByCurrency,
-    loanBorrowedThisMonthByCurrency: loanMetrics.loanBorrowedThisMonthByCurrency,
-    loanRepaidThisMonthByCurrency: loanMetrics.loanRepaidThisMonthByCurrency,
+    outstandingLoanBalance: buildDashboardConvertedMetric({
+      originalTotals: loanMetrics.outstandingLoanBalanceByCurrency,
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    loanBorrowedThisMonth: buildDashboardConvertedMetric({
+      originalTotals: loanMetrics.loanBorrowedThisMonthByCurrency,
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    loanRepaidThisMonth: buildDashboardConvertedMetric({
+      originalTotals: loanMetrics.loanRepaidThisMonthByCurrency,
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
   };
 }
 
@@ -1106,6 +1395,172 @@ export async function getReportData(dateFrom: string, dateTo: string, accountId?
     accountInclusionById,
     shouldIncludeInPersonalReports
   );
+}
+
+export async function buildHistoricalReportConvertedMetric(args: {
+  transactions: Transaction[];
+  getSignedAmount: (transaction: Transaction) => number;
+  reportingCurrency?: string;
+}) {
+  const supabase = createClient();
+  const reportingCurrency = args.reportingCurrency || await resolveUserDefaultCurrency();
+  const originalTotals = buildHistoricalOriginalTotals(
+    args.transactions,
+    args.getSignedAmount,
+    reportingCurrency
+  );
+  const allOriginalInReportingCurrency = originalTotals.every(
+    (row) => row.currency === reportingCurrency
+  );
+
+  if (allOriginalInReportingCurrency) {
+    return {
+      originalTotals,
+      reportingCurrency,
+      reportingAmount: sumCurrencyTotals(originalTotals),
+      allOriginalInReportingCurrency: true,
+      conversionAvailable: true,
+      provider: null,
+      freshestAppliedAt: null,
+      earliestRateDate: null,
+      latestRateDate: null,
+      exactCount: 0,
+      previousAvailableCount: 0,
+      unavailableCount: 0,
+      freshness: 'fresh' as const,
+      stale: false,
+      unavailableReason: null,
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  const latestTransactionDate = args.transactions.reduce((latest, transaction) => {
+    return transaction.transaction_date > latest ? transaction.transaction_date : latest;
+  }, '');
+
+  const snapshots = latestTransactionDate
+    ? await listHistoricalExchangeRateSnapshots(supabase, latestTransactionDate)
+    : [];
+
+  if (snapshots.length === 0) {
+    return {
+      originalTotals,
+      reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      provider: null,
+      freshestAppliedAt: null,
+      earliestRateDate: null,
+      latestRateDate: null,
+      exactCount: 0,
+      previousAvailableCount: 0,
+      unavailableCount: args.transactions.length,
+      freshness: 'unavailable' as const,
+      stale: true,
+      unavailableReason: 'Historical conversion is unavailable until exchange-rate snapshots exist for this period.',
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  let reportingAmount = 0;
+  let exactCount = 0;
+  let previousAvailableCount = 0;
+  let unavailableCount = 0;
+  let provider: string | null = null;
+  let freshestAppliedAt: string | null = null;
+  let earliestRateDate: string | null = null;
+  let latestRateDate: string | null = null;
+  let stale = false;
+
+  for (const transaction of args.transactions) {
+    const signedAmount = args.getSignedAmount(transaction);
+    const fromCurrency = transaction.currency || reportingCurrency;
+
+    if (!Number.isFinite(signedAmount)) {
+      unavailableCount += 1;
+      continue;
+    }
+
+    if (fromCurrency === reportingCurrency) {
+      reportingAmount += signedAmount;
+      continue;
+    }
+
+    const { snapshot, lookupMode } = findHistoricalSnapshotForDate(
+      snapshots,
+      transaction.transaction_date
+    );
+
+    if (!snapshot) {
+      unavailableCount += 1;
+      continue;
+    }
+
+    try {
+      const conversion = convertWithSnapshot({
+        amount: signedAmount,
+        fromCurrency,
+        toCurrency: reportingCurrency,
+        snapshot,
+        lookupMode,
+      });
+
+      reportingAmount += conversion.convertedAmount;
+      if (lookupMode === 'exact') {
+        exactCount += 1;
+      } else if (lookupMode === 'previous_available') {
+        previousAvailableCount += 1;
+      }
+
+      provider = provider && provider !== conversion.provider ? 'multiple' : conversion.provider;
+      freshestAppliedAt = [freshestAppliedAt, conversion.providerTimestamp || conversion.fetchedAt]
+        .filter(Boolean)
+        .sort()
+        .at(-1) || freshestAppliedAt;
+      earliestRateDate = [earliestRateDate, conversion.rateDate].filter(Boolean).sort()[0] || earliestRateDate;
+      latestRateDate = [latestRateDate, conversion.rateDate].filter(Boolean).sort().at(-1) || latestRateDate;
+      stale = stale || conversion.stale;
+    } catch {
+      unavailableCount += 1;
+    }
+  }
+
+  if (unavailableCount > 0) {
+    return {
+      originalTotals,
+      reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      provider,
+      freshestAppliedAt,
+      earliestRateDate,
+      latestRateDate,
+      exactCount,
+      previousAvailableCount,
+      unavailableCount,
+      freshness: stale ? 'stale' : 'fresh',
+      stale: true,
+      unavailableReason: 'Historical conversion is unavailable for one or more records before the first stored snapshot.',
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  return {
+    originalTotals,
+    reportingCurrency,
+    reportingAmount,
+    allOriginalInReportingCurrency: false,
+    conversionAvailable: true,
+    provider,
+    freshestAppliedAt,
+    earliestRateDate,
+    latestRateDate,
+    exactCount,
+    previousAvailableCount,
+    unavailableCount: 0,
+    freshness: stale ? 'stale' : 'fresh',
+    stale,
+    unavailableReason: null,
+  } satisfies HistoricalReportConvertedMetric;
 }
 
 export function generateCSV(transactions: Transaction[]): string {

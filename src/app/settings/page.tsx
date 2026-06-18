@@ -17,6 +17,7 @@ import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
+import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   getNotificationPreferences,
@@ -45,7 +46,6 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsSaving, setNotificationsSaving] = useState(false);
@@ -94,16 +94,10 @@ export default function SettingsPage() {
           default_currency: data.default_currency || referenceData?.platformDefaultCurrency || '',
           preferred_language: data.preferred_language || 'en',
         });
-        setCurrencyManuallySelected(false);
       }
     };
     loadProfile();
   }, [referenceData?.platformDefaultCurrency, reset, user]);
-
-  useEffect(() => {
-    if (!recommendedCurrency || currencyManuallySelected) return;
-    setValue('default_currency', recommendedCurrency.code);
-  }, [currencyManuallySelected, recommendedCurrency, setValue]);
 
   const loadNotificationPreferences = async () => {
     setNotificationsLoading(true);
@@ -130,17 +124,33 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       const supabase = createClient();
-      const { error } = await supabase.from('user_profiles').update({
-        full_name: data.full_name,
-        country: data.country,
-        monthly_income: data.monthly_income ? parseFloat(data.monthly_income) : null,
-        month_start_day: parseInt(data.month_start_day),
-        default_currency: data.default_currency,
-        preferred_language: data.preferred_language,
-      }).eq('id', user.id);
+      const { data: savedProfile, error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: data.full_name,
+          country: data.country,
+          monthly_income: data.monthly_income ? parseFloat(data.monthly_income) : null,
+          month_start_day: parseInt(data.month_start_day),
+          default_currency: data.default_currency,
+          preferred_language: data.preferred_language,
+        })
+        .eq('id', user.id)
+        .select('*')
+        .single();
       if (error) throw error;
-      setLanguage(data.preferred_language as any);
-      reset(data);
+      setLanguage((savedProfile.preferred_language || 'en') as any);
+      reset({
+        full_name: savedProfile.full_name || '',
+        country: savedProfile.country || '',
+        monthly_income: savedProfile.monthly_income?.toString() || '',
+        month_start_day: savedProfile.month_start_day?.toString() || '1',
+        default_currency: savedProfile.default_currency || referenceData?.platformDefaultCurrency || '',
+        preferred_language: savedProfile.preferred_language || 'en',
+      });
+      dispatchSmartPocketDataChanged({
+        source: 'SettingsPage',
+        entities: ['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
+      });
       setSaved(true);
       toast.success('Settings saved successfully');
       router.refresh();
@@ -240,14 +250,26 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Default currency</label>
                 {selectedCountryRecord && recommendedCurrency ? (
-                  <p className="mb-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2 text-xs text-foreground">
-                    Recommended for {selectedCountryRecord.name}: {recommendedCurrency.name} ({recommendedCurrency.code})
-                  </p>
+                  <div className="mb-2 rounded-xl border border-accent/20 bg-accent/5 px-3 py-2 text-xs text-foreground">
+                    <p>
+                      Recommended for {selectedCountryRecord.name}: {recommendedCurrency.name} ({recommendedCurrency.code})
+                    </p>
+                    {selectedCurrency !== recommendedCurrency.code ? (
+                      <div className="mt-2 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setValue('default_currency', recommendedCurrency.code, { shouldDirty: true })}
+                          className="btn-secondary text-xs"
+                        >
+                          Use recommended {recommendedCurrency.code}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 <CurrencySelector
                   value={selectedCurrency}
                   onChange={(currencyCode) => {
-                    setCurrencyManuallySelected(true);
                     setValue('default_currency', currencyCode, { shouldDirty: true });
                   }}
                   showCountryCount
