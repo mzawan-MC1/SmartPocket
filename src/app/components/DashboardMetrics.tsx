@@ -7,6 +7,23 @@ import { getDashboardMetrics, getDashboardMonthContext, type DashboardConvertedM
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
+interface DashboardMetricCard {
+  id: string;
+  label: string;
+  valueMetric: DashboardConvertedMetric;
+  changeDir: 'up' | 'down' | 'neutral';
+  changeLabel: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  iconBg: string;
+  iconColor: string;
+  hero: boolean;
+  changeMetric?: DashboardConvertedMetric;
+  change?: string;
+  alert?: boolean;
+  warningState?: boolean;
+  budgetPct?: number;
+}
+
 export default function DashboardMetrics({
   selectedMonth,
 }: {
@@ -191,7 +208,7 @@ export default function DashboardMetrics({
     );
   };
 
-  const personalCards = [
+  const personalCards: DashboardMetricCard[] = [
     {
       id: 'metric-balance',
       label: 'Personal Balance',
@@ -277,7 +294,7 @@ export default function DashboardMetrics({
     },
   ];
 
-  const managedCards = [
+  const managedCards: DashboardMetricCard[] = [
     {
       id: 'metric-managed-total',
       label: 'Money I Manage for Others',
@@ -292,7 +309,7 @@ export default function DashboardMetrics({
     },
   ];
 
-  const loanCards = [
+  const loanCards: DashboardMetricCard[] = [
     {
       id: 'metric-loan-outstanding',
       label: 'Outstanding Loans',
