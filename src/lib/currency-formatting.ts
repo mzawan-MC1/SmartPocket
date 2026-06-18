@@ -130,9 +130,11 @@ export function formatCurrencyValue(
   const sign = amount < 0 ? '-' : '';
   const numberText = formatNumber(amount, options.locale, minorUnits, options.compact);
   const { token, usesCodeToken } = pickDisplayToken(resolvedCurrency, options);
-  const text = shouldUseSpacing(token, usesCodeToken)
-    ? `${sign}${token} ${numberText}`
-    : `${sign}${token}${numberText}`;
+  const text = usesCodeToken
+    ? `${token} ${sign}${numberText}`.trim()
+    : shouldUseSpacing(token, usesCodeToken)
+      ? `${sign}${token} ${numberText}`
+      : `${sign}${token}${numberText}`;
 
   return {
     code: resolvedCurrency.code,

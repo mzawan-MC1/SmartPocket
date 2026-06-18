@@ -5,9 +5,13 @@ import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { createClient } from '@/lib/supabase/client';
 import {
-  buildHistoricalReportConvertedMetric,
+  buildHistoricalRateUnavailableMessage,
+  buildHistoricalReportConvertedMetricFromSnapshots,
+  convertHistoricalAmountWithSnapshots,
   generateCSV,
   getAccounts,
+  getHistoricalReportContext,
+  getReportBudgets,
   getReportData,
   loadAccountInclusionMap,
   isPersonalExpenseTransaction,
@@ -30,6 +34,14 @@ const MonthlyTrendsChart = dynamic(() => import('./charts/MonthlyTrendsChart'), 
 const BudgetPerformanceChart = dynamic(() => import('./charts/BudgetPerformanceChart'), { ssr: false });
 
 type ReportType = 'income-expense' | 'spending-category' | 'monthly-trends' | 'budget-performance' | 'account-statement';
+type IncomeExpenseChartRow = { month: string; income: number; expenses: number; net: number };
+type SpendingCategoryChartRow = { id: string; category: string; amount: number; color: string };
+type BudgetPerformanceChartRow = { id: string; category: string; allocated: number; spent: number; color: string };
+type ChartState<T> = {
+  data: T[];
+  unavailableReason: string | null;
+  emptyReason: string | null;
+};
 
 const reportTypes = [
   { id: 'income-expense' as ReportType, label: 'Income vs Expenses', icon: TrendingUp, description: 'Compare monthly inflows and outflows' },
@@ -37,6 +49,17 @@ const reportTypes = [
   { id: 'monthly-trends' as ReportType, label: 'Monthly Trends', icon: BarChart3, description: 'Spending patterns over time' },
   { id: 'budget-performance' as ReportType, label: 'Budget Performance', icon: Target, description: 'How well you stuck to your budgets' },
   { id: 'account-statement' as ReportType, label: 'Account Statement', icon: FileText, description: 'Full transaction history by account' },
+];
+
+const CATEGORY_FALLBACK_COLORS = [
+  '#7c3aed',
+  '#f97316',
+  '#2563eb',
+  '#d97706',
+  '#8b5cf6',
+  '#ec4899',
+  '#dc2626',
+  '#94a3b8',
 ];
 
 function renderOriginalCurrencyRows(
@@ -64,6 +87,205 @@ function renderOriginalCurrencyRows(
   );
 }
 
+function getMonthKey(value: string) {
+  return value.slice(0, 7);
+}
+
+function formatMonthKey(monthKey: string) {
+  const parsed = new Date(`${monthKey}-01T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return monthKey;
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
+function buildIncomeExpenseChartState(args: {
+  incomeTransactions: Transaction[];
+  expenseTransactions: Transaction[];
+  reportingCurrency: string;
+  snapshots: Awaited<ReturnType<typeof getHistoricalReportContext>>['snapshots'];
+}): ChartState<IncomeExpenseChartRow> {
+  const rows = new Map<string, IncomeExpenseChartRow>();
+  const missingRateDates = new Set<string>();
+
+  for (const transaction of args.incomeTransactions) {
+    const conversion = convertHistoricalAmountWithSnapshots({
+      amount: Number(transaction.amount || 0),
+      fromCurrency: transaction.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: transaction.transaction_date,
+      snapshots: args.snapshots,
+    });
+    if (conversion.convertedAmount === null) {
+      if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
+      return {
+        data: [],
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        emptyReason: null,
+      };
+    }
+    const monthKey = getMonthKey(transaction.transaction_date);
+    const current = rows.get(monthKey) || { month: formatMonthKey(monthKey), income: 0, expenses: 0, net: 0 };
+    current.income += conversion.convertedAmount;
+    current.net += conversion.convertedAmount;
+    rows.set(monthKey, current);
+  }
+
+  for (const transaction of args.expenseTransactions) {
+    const conversion = convertHistoricalAmountWithSnapshots({
+      amount: Math.abs(Number(transaction.amount || 0)),
+      fromCurrency: transaction.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: transaction.transaction_date,
+      snapshots: args.snapshots,
+    });
+    if (conversion.convertedAmount === null) {
+      if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
+      return {
+        data: [],
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        emptyReason: null,
+      };
+    }
+    const monthKey = getMonthKey(transaction.transaction_date);
+    const current = rows.get(monthKey) || { month: formatMonthKey(monthKey), income: 0, expenses: 0, net: 0 };
+    current.expenses += conversion.convertedAmount;
+    current.net -= conversion.convertedAmount;
+    rows.set(monthKey, current);
+  }
+
+  const data = Array.from(rows.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([, row]) => row);
+
+  return {
+    data,
+    unavailableReason: null,
+    emptyReason: data.length === 0 ? 'No transactions in this period' : null,
+  };
+}
+
+function buildSpendingCategoryChartState(args: {
+  expenseTransactions: Transaction[];
+  reportingCurrency: string;
+  snapshots: Awaited<ReturnType<typeof getHistoricalReportContext>>['snapshots'];
+}): ChartState<SpendingCategoryChartRow> {
+  const totals = new Map<string, SpendingCategoryChartRow>();
+  const missingRateDates = new Set<string>();
+
+  for (const transaction of args.expenseTransactions) {
+    const conversion = convertHistoricalAmountWithSnapshots({
+      amount: Math.abs(Number(transaction.amount || 0)),
+      fromCurrency: transaction.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: transaction.transaction_date,
+      snapshots: args.snapshots,
+    });
+    if (conversion.convertedAmount === null) {
+      if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
+      return {
+        data: [],
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        emptyReason: null,
+      };
+    }
+
+    const categoryName = transaction.category?.name || 'Uncategorized';
+    const current = totals.get(categoryName) || {
+      id: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      category: categoryName,
+      amount: 0,
+      color: transaction.category?.color || CATEGORY_FALLBACK_COLORS[totals.size % CATEGORY_FALLBACK_COLORS.length],
+    };
+    current.amount += conversion.convertedAmount;
+    totals.set(categoryName, current);
+  }
+
+  const data = Array.from(totals.values())
+    .filter((row) => row.amount > 0)
+    .sort((left, right) => right.amount - left.amount);
+
+  return {
+    data,
+    unavailableReason: null,
+    emptyReason: data.length === 0 ? 'No expense transactions in this period' : null,
+  };
+}
+
+function buildBudgetPerformanceChartState(args: {
+  budgets: Awaited<ReturnType<typeof getReportBudgets>>;
+  expenseTransactions: Transaction[];
+  reportingCurrency: string;
+  snapshots: Awaited<ReturnType<typeof getHistoricalReportContext>>['snapshots'];
+}): ChartState<BudgetPerformanceChartRow> {
+  if (args.budgets.length === 0) {
+    return {
+      data: [],
+      unavailableReason: null,
+      emptyReason: 'No budgets exist for this period',
+    };
+  }
+
+  const missingRateDates = new Set<string>();
+  const data: BudgetPerformanceChartRow[] = [];
+
+  for (const budget of args.budgets) {
+    const allocatedConversion = convertHistoricalAmountWithSnapshots({
+      amount: Number(budget.amount || 0),
+      fromCurrency: budget.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: budget.period_start,
+      snapshots: args.snapshots,
+    });
+    if (allocatedConversion.convertedAmount === null) {
+      if (allocatedConversion.missingRateDate) missingRateDates.add(allocatedConversion.missingRateDate);
+      return {
+        data: [],
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        emptyReason: null,
+      };
+    }
+
+    let spent = 0;
+    for (const transaction of args.expenseTransactions.filter((item) => !budget.category_id || item.category_id === budget.category_id)) {
+      const conversion = convertHistoricalAmountWithSnapshots({
+        amount: Math.abs(Number(transaction.amount || 0)),
+        fromCurrency: transaction.currency || args.reportingCurrency,
+        reportingCurrency: args.reportingCurrency,
+        rateDate: transaction.transaction_date,
+        snapshots: args.snapshots,
+      });
+      if (conversion.convertedAmount === null) {
+        if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
+        return {
+          data: [],
+          unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+          emptyReason: null,
+        };
+      }
+      spent += conversion.convertedAmount;
+    }
+
+    data.push({
+      id: budget.id,
+      category: budget.category?.name || 'Uncategorized',
+      allocated: allocatedConversion.convertedAmount,
+      spent,
+      color: budget.category?.color || CATEGORY_FALLBACK_COLORS[data.length % CATEGORY_FALLBACK_COLORS.length],
+    });
+  }
+
+  return {
+    data,
+    unavailableReason: null,
+    emptyReason: data.length === 0 ? 'No budgets exist for this period' : null,
+  };
+}
+
 export default function ReportsScreen() {
   const [activeReport, setActiveReport] = useState<ReportType>('income-expense');
   const [dateFrom, setDateFrom] = useState(() => {
@@ -81,6 +303,18 @@ export default function ReportsScreen() {
     expenses: HistoricalReportConvertedMetric;
     net: HistoricalReportConvertedMetric;
   } | null>(null);
+  const [reportingCurrency, setReportingCurrency] = useState('');
+  const [chartState, setChartState] = useState<{
+    incomeExpense: ChartState<IncomeExpenseChartRow>;
+    spendingCategory: ChartState<SpendingCategoryChartRow>;
+    monthlyTrends: ChartState<IncomeExpenseChartRow>;
+    budgetPerformance: ChartState<BudgetPerformanceChartRow>;
+  }>({
+    incomeExpense: { data: [], unavailableReason: null, emptyReason: null },
+    spendingCategory: { data: [], unavailableReason: null, emptyReason: null },
+    monthlyTrends: { data: [], unavailableReason: null, emptyReason: null },
+    budgetPerformance: { data: [], unavailableReason: null, emptyReason: null },
+  });
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -91,8 +325,9 @@ export default function ReportsScreen() {
       getAccounts(),
       loadTransactionLedgerSummaryMap(supabase),
       loadAccountInclusionMap(supabase),
+      getReportBudgets(dateFrom, dateTo),
     ])
-      .then(async ([txns, accts, ledgerSummary, accountInclusion]) => {
+      .then(async ([txns, accts, ledgerSummary, accountInclusion, budgets]) => {
         const incomeTransactions = txns.filter((t) =>
           isPersonalIncomeTransaction(t, ledgerSummary, accountInclusion)
         );
@@ -102,36 +337,63 @@ export default function ReportsScreen() {
         const cashFlowTransactions = txns.filter((transaction) =>
           shouldIncludeInPersonalCashFlow(transaction, ledgerSummary, accountInclusion)
         );
-        const [incomeMetric, expensesMetric, netMetric] = await Promise.all([
-          buildHistoricalReportConvertedMetric({
-            transactions: incomeTransactions,
-            getSignedAmount: (transaction) => Number(transaction.amount || 0),
-          }),
-          buildHistoricalReportConvertedMetric({
-            transactions: expenseTransactions,
-            getSignedAmount: (transaction) => Number(transaction.amount || 0),
-          }),
-          buildHistoricalReportConvertedMetric({
-            transactions: cashFlowTransactions,
-            getSignedAmount: (transaction) => {
-              const amount = Number(transaction.amount || 0);
-              return transaction.transaction_type === 'income'
-                ? amount
-                : transaction.transaction_type === 'expense'
-                  ? -amount
-                  : 0;
-            },
-          }),
-        ]);
+        const reportContext = await getHistoricalReportContext(txns);
+        const incomeMetric = buildHistoricalReportConvertedMetricFromSnapshots({
+          transactions: incomeTransactions,
+          getSignedAmount: (transaction) => Number(transaction.amount || 0),
+          reportingCurrency: reportContext.reportingCurrency,
+          snapshots: reportContext.snapshots,
+        });
+        const expensesMetric = buildHistoricalReportConvertedMetricFromSnapshots({
+          transactions: expenseTransactions,
+          getSignedAmount: (transaction) => Number(transaction.amount || 0),
+          reportingCurrency: reportContext.reportingCurrency,
+          snapshots: reportContext.snapshots,
+        });
+        const netMetric = buildHistoricalReportConvertedMetricFromSnapshots({
+          transactions: cashFlowTransactions,
+          getSignedAmount: (transaction) => {
+            const amount = Number(transaction.amount || 0);
+            return transaction.transaction_type === 'income'
+              ? amount
+              : transaction.transaction_type === 'expense'
+                ? -amount
+                : 0;
+          },
+          reportingCurrency: reportContext.reportingCurrency,
+          snapshots: reportContext.snapshots,
+        });
 
         setTransactions(txns);
         setAccounts(accts.filter((a) => a.is_active));
         setLedgerSummaryByTransactionId(ledgerSummary);
         setAccountInclusionById(accountInclusion);
+        setReportingCurrency(reportContext.reportingCurrency);
         setHistoricalMetrics({
           income: incomeMetric,
           expenses: expensesMetric,
           net: netMetric,
+        });
+        const incomeExpenseChart = buildIncomeExpenseChartState({
+          incomeTransactions,
+          expenseTransactions,
+          reportingCurrency: reportContext.reportingCurrency,
+          snapshots: reportContext.snapshots,
+        });
+        setChartState({
+          incomeExpense: incomeExpenseChart,
+          spendingCategory: buildSpendingCategoryChartState({
+            expenseTransactions,
+            reportingCurrency: reportContext.reportingCurrency,
+            snapshots: reportContext.snapshots,
+          }),
+          monthlyTrends: incomeExpenseChart,
+          budgetPerformance: buildBudgetPerformanceChartState({
+            budgets,
+            expenseTransactions,
+            reportingCurrency: reportContext.reportingCurrency,
+            snapshots: reportContext.snapshots,
+          }),
         });
       })
       .catch((e) => toast.error(e.message))
@@ -151,11 +413,26 @@ export default function ReportsScreen() {
   );
   const canCalculateSavingsRate =
     historicalMetrics?.income.reportingAmount !== null &&
-    historicalMetrics?.net.reportingAmount !== null &&
+    historicalMetrics?.expenses.reportingAmount !== null &&
     Number(historicalMetrics?.income.reportingAmount) > 0;
   const savingsRate = canCalculateSavingsRate
-    ? (Number(historicalMetrics?.net.reportingAmount || 0) / Number(historicalMetrics?.income.reportingAmount || 0)) * 100
+    ? ((Number(historicalMetrics?.income.reportingAmount || 0) - Number(historicalMetrics?.expenses.reportingAmount || 0)) / Number(historicalMetrics?.income.reportingAmount || 0)) * 100
     : 0;
+  const savingsRateValue = historicalMetrics?.income.reportingAmount === null || historicalMetrics?.expenses.reportingAmount === null
+    ? historicalMetrics?.income.unavailableReason || historicalMetrics?.expenses.unavailableReason || 'Savings rate unavailable until historical rates exist'
+    : Number(historicalMetrics.income.reportingAmount) <= 0
+      ? 'No income in selected period'
+      : `${savingsRate.toFixed(1)}%`;
+  const activeChartState =
+    activeReport === 'income-expense'
+      ? chartState.incomeExpense
+      : activeReport === 'spending-category'
+        ? chartState.spendingCategory
+        : activeReport === 'monthly-trends'
+          ? chartState.monthlyTrends
+          : activeReport === 'budget-performance'
+            ? chartState.budgetPerformance
+            : null;
 
   const summaryByType: Record<ReportType, Array<{
     id: string;
@@ -187,7 +464,7 @@ export default function ReportsScreen() {
       { id: 'rpt-bp-income', label: 'Total Income', convertedMetric: historicalMetrics?.income || null, positive: true },
       { id: 'rpt-bp-expenses', label: 'Total Expenses', convertedMetric: historicalMetrics?.expenses || null, positive: false },
       { id: 'rpt-bp-net', label: 'Net Savings', convertedMetric: historicalMetrics?.net || null },
-      { id: 'rpt-bp-rate', label: 'Savings Rate', value: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}%` : 'Mixed currencies', positive: canCalculateSavingsRate ? savingsRate >= 20 : undefined },
+      { id: 'rpt-bp-rate', label: 'Savings Rate', value: savingsRateValue, positive: canCalculateSavingsRate ? savingsRate >= 20 : undefined },
     ],
     'account-statement': [
       { id: 'rpt-as-txns', label: 'Total Transactions', value: String(transactions.length), sub: `${dateFrom} – ${dateTo}` },
@@ -234,6 +511,7 @@ export default function ReportsScreen() {
           View original currencies
         </summary>
         <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
+          <p>Reporting currency: {metric.reportingCurrency}</p>
           {renderOriginalCurrencyRows(metric.originalTotals)}
           {metric.reportingAmount !== null && !metric.allOriginalInReportingCurrency ? (
             <p>Historical reporting total in {metric.reportingCurrency}.</p>
@@ -250,6 +528,7 @@ export default function ReportsScreen() {
           ) : null}
           {metric.provider ? <p>Provider: {metric.provider}</p> : null}
           {metric.freshestAppliedAt ? <p>Latest snapshot fetched at: {metric.freshestAppliedAt}</p> : null}
+          {metric.missingRateDates.length > 0 ? <p>{buildHistoricalRateUnavailableMessage(metric.missingRateDates)}</p> : null}
           {metric.stale ? <p className="text-warning">One or more applied snapshots are stale.</p> : null}
           {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
         </div>
@@ -414,10 +693,39 @@ export default function ReportsScreen() {
               </div>
             ) : (
               <div className="h-[300px]">
-                {activeReport === 'income-expense' && <IncomeExpenseReportChart />}
-                {activeReport === 'spending-category' && <SpendingCategoryReportChart />}
-                {activeReport === 'monthly-trends' && <MonthlyTrendsChart />}
-                {activeReport === 'budget-performance' && <BudgetPerformanceChart />}
+                {activeReport !== 'account-statement' && activeChartState?.unavailableReason ? (
+                  <div className="h-full flex items-center justify-center">
+                    <EmptyState
+                      icon={BarChart3}
+                      title="Conversion required"
+                      description={activeChartState.unavailableReason}
+                    />
+                  </div>
+                ) : activeReport !== 'account-statement' && activeChartState?.emptyReason ? (
+                  <div className="h-full flex items-center justify-center">
+                    <EmptyState
+                      icon={activeReport === 'budget-performance' ? Target : BarChart3}
+                      title="No chart data"
+                      description={activeChartState.emptyReason}
+                    />
+                  </div>
+                ) : activeReport === 'income-expense' ? (
+                  <IncomeExpenseReportChart data={chartState.incomeExpense.data} currencyCode={reportingCurrency} />
+                ) : activeReport === 'spending-category' ? (
+                  <SpendingCategoryReportChart data={chartState.spendingCategory.data} currencyCode={reportingCurrency} />
+                ) : activeReport === 'monthly-trends' ? (
+                  <MonthlyTrendsChart
+                    data={chartState.monthlyTrends.data.map((row) => ({
+                      month: row.month,
+                      income: row.income,
+                      expenses: row.expenses,
+                      savings: row.net,
+                    }))}
+                    currencyCode={reportingCurrency}
+                  />
+                ) : activeReport === 'budget-performance' ? (
+                  <BudgetPerformanceChart data={chartState.budgetPerformance.data} currencyCode={reportingCurrency} />
+                ) : null}
                 {activeReport === 'account-statement' && <AccountStatementTable transactions={transactions} />}
               </div>
             )}

@@ -5,7 +5,15 @@ import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
-import { getAccounts, createAccount, updateAccount, archiveAccount, type FinancialAccount } from '@/lib/finance';
+import {
+  getAccounts,
+  createAccount,
+  updateAccount,
+  archiveAccount,
+  getFinancialAccountsSummary,
+  type AccountsSummaryMetrics,
+  type FinancialAccount,
+} from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AccountDetailPanel from './AccountDetailPanel';
 import CurrencySelector from '@/components/CurrencySelector';
@@ -55,32 +63,16 @@ interface AccountFormData {
   include_in_total: boolean;
 }
 
-function groupAccountTotals(accounts: FinancialAccount[]) {
-  const grouped = new Map<string, { net: number; assets: number; liabilities: number }>();
-
-  for (const account of accounts) {
-    const current = grouped.get(account.currency) ?? { net: 0, assets: 0, liabilities: 0 };
-    current.net += Number(account.current_balance);
-    if (account.current_balance >= 0) {
-      current.assets += Number(account.current_balance);
-    } else {
-      current.liabilities += Math.abs(Number(account.current_balance));
-    }
-    grouped.set(account.currency, current);
-  }
-
-  return Array.from(grouped.entries()).map(([currency, totals]) => ({ currency, ...totals }));
-}
-
 type SummaryMetric =
   | { id: string; label: string; isCount: true }
-  | { id: string; label: string; field: 'net' | 'assets' | 'liabilities'; isCount?: false };
+  | { id: string; label: string; field: 'totalNetWorth' | 'totalAssets' | 'totalLiabilities'; isCount?: false };
 
 export default function AccountsGrid() {
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
   const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [summary, setSummary] = useState<AccountsSummaryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<FinancialAccount | null>(null);
@@ -95,7 +87,10 @@ export default function AccountsGrid() {
   const load = useCallback(() => {
     setLoading(true);
     getAccounts()
-      .then(setAccounts)
+      .then(async (nextAccounts) => {
+        setAccounts(nextAccounts);
+        setSummary(await getFinancialAccountsSummary(nextAccounts));
+      })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -198,8 +193,12 @@ export default function AccountsGrid() {
 
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
-  const personalAccounts = activeAccounts.filter((a) => a.include_in_total);
-  const groupedTotals = useMemo(() => groupAccountTotals(personalAccounts), [personalAccounts]);
+  const summaryCards = [
+    { id: 'sum-total', label: 'Total Net Worth', field: 'totalNetWorth' as const },
+    { id: 'sum-assets', label: 'Total Assets', field: 'totalAssets' as const },
+    { id: 'sum-liabilities', label: 'Total Liabilities', field: 'totalLiabilities' as const },
+    { id: 'sum-count', label: 'Active Accounts', isCount: true },
+  ] satisfies SummaryMetric[];
 
   if (loading) {
     return (
@@ -231,30 +230,68 @@ export default function AccountsGrid() {
     <div className="space-y-6">
       {/* Summary Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {([
-          { id: 'sum-total', label: 'Total Net Worth', field: 'net' as const },
-          { id: 'sum-assets', label: 'Total Assets', field: 'assets' as const },
-          { id: 'sum-liabilities', label: 'Total Liabilities', field: 'liabilities' as const },
-          { id: 'sum-count', label: 'Active Accounts', isCount: true },
-        ] as SummaryMetric[]).map((item) => (
+        {summaryCards.map((item) => (
           <div key={item.id} className="card-elevated p-4">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
             {item.isCount ? (
               <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
-            ) : groupedTotals.length === 0 ? (
+            ) : !summary || summary[item.field].originalTotals.length === 0 ? (
               <p className="text-sm text-muted-foreground">No active balances</p>
             ) : (
-              <div className="space-y-1">
-                {groupedTotals.map((row) => (
+              <div className="space-y-2">
+                {summary[item.field].reportingAmount !== null ? (
                   <FormattedCurrencyAmount
-                    key={`${item.id}-${row.currency}`}
-                    amount={row[item.field]}
-                    currencyCode={row.currency}
+                    amount={summary[item.field].reportingAmount}
+                    currencyCode={summary[item.field].reportingCurrency}
                     className={`text-sm font-700 ${
-                      item.field === 'liabilities' ? 'text-negative' : row[item.field] >= 0 ? 'text-foreground' : 'text-negative'
+                      item.field === 'totalLiabilities'
+                        ? 'text-negative'
+                        : (summary[item.field].reportingAmount || 0) >= 0
+                          ? 'text-foreground'
+                          : 'text-negative'
                     }`}
                   />
-                ))}
+                ) : (
+                  <div className="space-y-1">
+                    {summary[item.field].originalTotals.map((row) => (
+                      <FormattedCurrencyAmount
+                        key={`${item.id}-${row.currency}`}
+                        amount={row.amount}
+                        currencyCode={row.currency}
+                        className={`text-sm font-700 ${
+                          item.field === 'totalLiabilities'
+                            ? 'text-negative'
+                            : row.amount >= 0
+                              ? 'text-foreground'
+                              : 'text-negative'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+                <details className="rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
+                  <summary className="cursor-pointer text-[11px] font-600 text-muted-foreground">
+                    View original currencies
+                  </summary>
+                  <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
+                    <p>Reporting currency: {summary[item.field].reportingCurrency}</p>
+                    {summary[item.field].originalTotals.map((row) => (
+                      <FormattedCurrencyAmount
+                        key={`${item.id}-details-${row.currency}`}
+                        amount={row.amount}
+                        currencyCode={row.currency}
+                        textOnly
+                        className="block text-[11px] text-muted-foreground"
+                      />
+                    ))}
+                    {summary[item.field].provider ? <p>Provider: {summary[item.field].provider}</p> : null}
+                    {summary[item.field].rateDate ? <p>Rate date: {summary[item.field].rateDate}</p> : null}
+                    {summary[item.field].providerTimestamp ? <p>Provider timestamp: {summary[item.field].providerTimestamp}</p> : null}
+                    {summary[item.field].fetchedAt ? <p>Fetched at: {summary[item.field].fetchedAt}</p> : null}
+                    <p>Status: {summary[item.field].stale ? 'Stale' : 'Fresh'}</p>
+                    {summary[item.field].unavailableReason ? <p className="text-warning">{summary[item.field].unavailableReason}</p> : null}
+                  </div>
+                </details>
               </div>
             )}
           </div>

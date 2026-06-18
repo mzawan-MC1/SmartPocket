@@ -54,6 +54,9 @@ type BudgetMetricRow = {
   period_start: string;
   period_end: string | null;
 };
+type BudgetReportRow = BudgetMetricRow & {
+  category?: { name: string; color: string | null } | null;
+};
 type TransactionLedgerSummary = {
   entryTypes: Set<string>;
   referenceTypes: Set<string>;
@@ -256,9 +259,52 @@ export interface HistoricalReportConvertedMetric {
   exactCount: number;
   previousAvailableCount: number;
   unavailableCount: number;
+  missingRateDates: string[];
   freshness: ExchangeRateFreshness;
   stale: boolean;
   unavailableReason: string | null;
+}
+
+export interface AccountsSummaryMetrics {
+  defaultCurrency: string;
+  totalNetWorth: DashboardConvertedMetric;
+  totalAssets: DashboardConvertedMetric;
+  totalLiabilities: DashboardConvertedMetric;
+  activeAccountsCount: number;
+}
+
+export interface TransactionReportingPreview {
+  transactionId: string;
+  originalAmount: number;
+  originalCurrency: string;
+  reportingAmount: number | null;
+  reportingCurrency: string;
+  rateDate: string | null;
+  provider: string | null;
+  providerTimestamp: string | null;
+  fetchedAt: string | null;
+  freshness: ExchangeRateFreshness;
+  stale: boolean;
+  unavailableReason: string | null;
+}
+
+export interface HistoricalReportContext {
+  reportingCurrency: string;
+  snapshots: ExchangeRateSnapshotRecord[];
+}
+
+export interface HistoricalAmountConversionResult {
+  convertedAmount: number | null;
+  reportingCurrency: string;
+  rateDate: string | null;
+  provider: string | null;
+  providerTimestamp: string | null;
+  fetchedAt: string | null;
+  freshness: ExchangeRateFreshness;
+  stale: boolean;
+  lookupMode: ExchangeRateLookupMode;
+  unavailableReason: string | null;
+  missingRateDate: string | null;
 }
 
 export async function loadTransactionLedgerSummaryMap(
@@ -459,6 +505,34 @@ function sumCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
   return rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
 }
 
+function formatHistoricalRateDateLabel(value: string) {
+  const parsed = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
+function dedupeSortedDates(values: Iterable<string>) {
+  return Array.from(new Set(Array.from(values).filter(Boolean))).sort();
+}
+
+export function buildHistoricalRateUnavailableMessage(missingRateDates: Iterable<string>) {
+  const dates = dedupeSortedDates(missingRateDates);
+  if (dates.length === 0) {
+    return 'Historical conversion is unavailable for one or more records before the first stored snapshot.';
+  }
+  if (dates.length === 1) {
+    return `Historical rate unavailable for ${formatHistoricalRateDateLabel(dates[0])}`;
+  }
+  return `Historical rates unavailable for ${dates.length} dates from ${formatHistoricalRateDateLabel(dates[0])} to ${formatHistoricalRateDateLabel(dates[dates.length - 1])}`;
+}
+
 function findHistoricalSnapshotForDate(
   snapshots: ExchangeRateSnapshotRecord[],
   rateDate: string
@@ -485,6 +559,119 @@ function findHistoricalSnapshotForDate(
   };
 }
 
+export async function getHistoricalReportContext(
+  transactions: Array<Pick<Transaction, 'transaction_date'>>,
+  reportingCurrency?: string
+): Promise<HistoricalReportContext> {
+  const resolvedReportingCurrency = reportingCurrency || await resolveUserDefaultCurrency();
+  const latestTransactionDate = transactions.reduce((latest, transaction) => {
+    return transaction.transaction_date > latest ? transaction.transaction_date : latest;
+  }, '');
+
+  return {
+    reportingCurrency: resolvedReportingCurrency,
+    snapshots: latestTransactionDate
+      ? await listHistoricalExchangeRateSnapshots(createClient(), latestTransactionDate)
+      : [],
+  };
+}
+
+export function convertHistoricalAmountWithSnapshots(args: {
+  amount: number;
+  fromCurrency: string;
+  reportingCurrency: string;
+  rateDate: string;
+  snapshots: ExchangeRateSnapshotRecord[];
+}): HistoricalAmountConversionResult {
+  const numericAmount = Number(args.amount || 0);
+  if (!Number.isFinite(numericAmount)) {
+    return {
+      convertedAmount: null,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: null,
+      provider: null,
+      providerTimestamp: null,
+      fetchedAt: null,
+      freshness: 'unavailable',
+      stale: true,
+      lookupMode: 'unavailable',
+      unavailableReason: 'Amount must be a finite number',
+      missingRateDate: args.rateDate,
+    };
+  }
+
+  if ((args.fromCurrency || '').trim().toUpperCase() === (args.reportingCurrency || '').trim().toUpperCase()) {
+    return {
+      convertedAmount: numericAmount,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: null,
+      provider: null,
+      providerTimestamp: null,
+      fetchedAt: null,
+      freshness: 'fresh',
+      stale: false,
+      lookupMode: 'same_currency',
+      unavailableReason: null,
+      missingRateDate: null,
+    };
+  }
+
+  const { snapshot, lookupMode } = findHistoricalSnapshotForDate(args.snapshots, args.rateDate);
+  if (!snapshot) {
+    return {
+      convertedAmount: null,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: null,
+      provider: null,
+      providerTimestamp: null,
+      fetchedAt: null,
+      freshness: 'unavailable',
+      stale: true,
+      lookupMode: 'unavailable',
+      unavailableReason: buildHistoricalRateUnavailableMessage([args.rateDate]),
+      missingRateDate: args.rateDate,
+    };
+  }
+
+  try {
+    const conversion = convertWithSnapshot({
+      amount: numericAmount,
+      fromCurrency: args.fromCurrency,
+      toCurrency: args.reportingCurrency,
+      snapshot,
+      lookupMode,
+    });
+
+    return {
+      convertedAmount: conversion.convertedAmount,
+      reportingCurrency: conversion.reportingCurrency,
+      rateDate: conversion.rateDate,
+      provider: conversion.provider,
+      providerTimestamp: conversion.providerTimestamp,
+      fetchedAt: conversion.fetchedAt,
+      freshness: conversion.freshness,
+      stale: conversion.stale,
+      lookupMode: conversion.lookupMode,
+      unavailableReason: null,
+      missingRateDate: null,
+    };
+  } catch (error) {
+    return {
+      convertedAmount: null,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: snapshot.rate_date,
+      provider: snapshot.provider,
+      providerTimestamp: snapshot.provider_timestamp,
+      fetchedAt: snapshot.fetched_at,
+      freshness: getExchangeRateFreshness(snapshot),
+      stale: true,
+      lookupMode: 'unavailable',
+      unavailableReason: error instanceof Error ? error.message : 'Historical conversion failed',
+      missingRateDate: args.rateDate,
+    };
+  }
+}
+
 function buildHistoricalOriginalTotals(
   transactions: Transaction[],
   getSignedAmount: (transaction: Transaction) => number,
@@ -502,6 +689,158 @@ function buildHistoricalOriginalTotals(
   }
 
   return ensureZeroCurrencyTotal(mapCurrencyTotals(grouped), reportingCurrency);
+}
+
+export function buildHistoricalReportConvertedMetricFromSnapshots(args: {
+  transactions: Transaction[];
+  getSignedAmount: (transaction: Transaction) => number;
+  reportingCurrency: string;
+  snapshots: ExchangeRateSnapshotRecord[];
+}) {
+  const originalTotals = buildHistoricalOriginalTotals(
+    args.transactions,
+    args.getSignedAmount,
+    args.reportingCurrency
+  );
+  const allOriginalInReportingCurrency = originalTotals.every(
+    (row) => row.currency === args.reportingCurrency
+  );
+
+  if (allOriginalInReportingCurrency) {
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: sumCurrencyTotals(originalTotals),
+      allOriginalInReportingCurrency: true,
+      conversionAvailable: true,
+      provider: null,
+      freshestAppliedAt: null,
+      earliestRateDate: null,
+      latestRateDate: null,
+      exactCount: 0,
+      previousAvailableCount: 0,
+      unavailableCount: 0,
+      missingRateDates: [],
+      freshness: 'fresh' as const,
+      stale: false,
+      unavailableReason: null,
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  if (args.snapshots.length === 0) {
+    const missingRateDates = dedupeSortedDates(
+      args.transactions
+        .filter((transaction) => (transaction.currency || '').trim().toUpperCase() !== args.reportingCurrency.trim().toUpperCase())
+        .map((transaction) => transaction.transaction_date)
+    );
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      provider: null,
+      freshestAppliedAt: null,
+      earliestRateDate: null,
+      latestRateDate: null,
+      exactCount: 0,
+      previousAvailableCount: 0,
+      unavailableCount: missingRateDates.length,
+      missingRateDates,
+      freshness: 'unavailable' as const,
+      stale: true,
+      unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  let reportingAmount = 0;
+  let exactCount = 0;
+  let previousAvailableCount = 0;
+  let unavailableCount = 0;
+  let provider: string | null = null;
+  let freshestAppliedAt: string | null = null;
+  let earliestRateDate: string | null = null;
+  let latestRateDate: string | null = null;
+  let stale = false;
+  const missingRateDates = new Set<string>();
+
+  for (const transaction of args.transactions) {
+    const signedAmount = args.getSignedAmount(transaction);
+    const conversion = convertHistoricalAmountWithSnapshots({
+      amount: signedAmount,
+      fromCurrency: transaction.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: transaction.transaction_date,
+      snapshots: args.snapshots,
+    });
+
+    if (conversion.convertedAmount === null) {
+      unavailableCount += 1;
+      if (conversion.missingRateDate) {
+        missingRateDates.add(conversion.missingRateDate);
+      }
+      continue;
+    }
+
+    reportingAmount += conversion.convertedAmount;
+    if (conversion.lookupMode === 'exact') {
+      exactCount += 1;
+    } else if (conversion.lookupMode === 'previous_available') {
+      previousAvailableCount += 1;
+    }
+
+    if (conversion.provider) {
+      provider = provider && provider !== conversion.provider ? 'multiple' : conversion.provider;
+    }
+    freshestAppliedAt = [freshestAppliedAt, conversion.providerTimestamp || conversion.fetchedAt]
+      .filter(Boolean)
+      .sort()
+      .at(-1) || freshestAppliedAt;
+    earliestRateDate = [earliestRateDate, conversion.rateDate].filter(Boolean).sort()[0] || earliestRateDate;
+    latestRateDate = [latestRateDate, conversion.rateDate].filter(Boolean).sort().at(-1) || latestRateDate;
+    stale = stale || conversion.stale;
+  }
+
+  const missingDates = dedupeSortedDates(missingRateDates);
+  if (unavailableCount > 0) {
+    return {
+      originalTotals,
+      reportingCurrency: args.reportingCurrency,
+      reportingAmount: null,
+      allOriginalInReportingCurrency: false,
+      conversionAvailable: false,
+      provider,
+      freshestAppliedAt,
+      earliestRateDate,
+      latestRateDate,
+      exactCount,
+      previousAvailableCount,
+      unavailableCount,
+      missingRateDates: missingDates,
+      freshness: stale ? 'stale' : 'fresh',
+      stale: true,
+      unavailableReason: buildHistoricalRateUnavailableMessage(missingDates),
+    } satisfies HistoricalReportConvertedMetric;
+  }
+
+  return {
+    originalTotals,
+    reportingCurrency: args.reportingCurrency,
+    reportingAmount,
+    allOriginalInReportingCurrency: false,
+    conversionAvailable: true,
+    provider,
+    freshestAppliedAt,
+    earliestRateDate,
+    latestRateDate,
+    exactCount,
+    previousAvailableCount,
+    unavailableCount: 0,
+    missingRateDates: [],
+    freshness: stale ? 'stale' : 'fresh',
+    stale,
+    unavailableReason: null,
+  } satisfies HistoricalReportConvertedMetric;
 }
 
 function buildDashboardConvertedMetric(args: {
@@ -694,6 +1033,49 @@ export async function getAccounts(): Promise<FinancialAccount[]> {
   return data || [];
 }
 
+export async function getFinancialAccountsSummary(accountsInput?: FinancialAccount[]): Promise<AccountsSummaryMetrics> {
+  const accounts = accountsInput || await getAccounts();
+  const supabase = createClient();
+  const defaultCurrency = await resolveUserDefaultCurrency();
+  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
+  const activeAccounts = accounts.filter((account) => account.is_active);
+  const personalAccounts = activeAccounts.filter((account) => account.include_in_total);
+
+  const netByCurrency = new Map<string, number>();
+  const assetsByCurrency = new Map<string, number>();
+  const liabilitiesByCurrency = new Map<string, number>();
+
+  for (const account of personalAccounts) {
+    const currentBalance = Number(account.current_balance || 0);
+    addCurrencyAmount(netByCurrency, account.currency, currentBalance, defaultCurrency);
+    if (currentBalance >= 0) {
+      addCurrencyAmount(assetsByCurrency, account.currency, currentBalance, defaultCurrency);
+    } else {
+      addCurrencyAmount(liabilitiesByCurrency, account.currency, Math.abs(currentBalance), defaultCurrency);
+    }
+  }
+
+  return {
+    defaultCurrency,
+    totalNetWorth: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(netByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    totalAssets: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(assetsByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    totalLiabilities: buildDashboardConvertedMetric({
+      originalTotals: mapCurrencyTotals(liabilitiesByCurrency),
+      reportingCurrency: defaultCurrency,
+      latestSnapshot,
+    }),
+    activeAccountsCount: activeAccounts.length,
+  };
+}
+
 export async function createAccount(payload: Partial<FinancialAccount>): Promise<FinancialAccount> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -826,6 +1208,103 @@ export async function getTransactions(filters?: {
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as Transaction[];
+}
+
+export async function getLatestTransactionReportingPreviews(transactions: Transaction[]) {
+  const supabase = createClient();
+  const reportingCurrency = await resolveUserDefaultCurrency();
+  const latestSnapshot = await getLatestExchangeRateSnapshot(supabase).catch(() => null);
+  const previews: Record<string, TransactionReportingPreview> = {};
+
+  for (const transaction of transactions) {
+    const originalAmount = transaction.transaction_type === 'income'
+      ? Number(transaction.amount || 0)
+      : transaction.transaction_type === 'expense'
+        ? -Math.abs(Number(transaction.amount || 0))
+        : Number(transaction.amount || 0);
+
+    const originalCurrency = transaction.currency || reportingCurrency;
+    if (originalCurrency === reportingCurrency) {
+      previews[transaction.id] = {
+        transactionId: transaction.id,
+        originalAmount,
+        originalCurrency,
+        reportingAmount: originalAmount,
+        reportingCurrency,
+        rateDate: null,
+        provider: null,
+        providerTimestamp: null,
+        fetchedAt: null,
+        freshness: 'fresh',
+        stale: false,
+        unavailableReason: null,
+      };
+      continue;
+    }
+
+    if (!latestSnapshot) {
+      previews[transaction.id] = {
+        transactionId: transaction.id,
+        originalAmount,
+        originalCurrency,
+        reportingAmount: null,
+        reportingCurrency,
+        rateDate: null,
+        provider: null,
+        providerTimestamp: null,
+        fetchedAt: null,
+        freshness: 'unavailable',
+        stale: true,
+        unavailableReason: 'Exchange rates are unavailable',
+      };
+      continue;
+    }
+
+    try {
+      const conversion = convertWithSnapshot({
+        amount: originalAmount,
+        fromCurrency: originalCurrency,
+        toCurrency: reportingCurrency,
+        snapshot: latestSnapshot,
+        lookupMode: 'latest',
+      });
+      previews[transaction.id] = {
+        transactionId: transaction.id,
+        originalAmount,
+        originalCurrency,
+        reportingAmount: conversion.convertedAmount,
+        reportingCurrency,
+        rateDate: conversion.rateDate,
+        provider: conversion.provider,
+        providerTimestamp: conversion.providerTimestamp,
+        fetchedAt: conversion.fetchedAt,
+        freshness: conversion.freshness,
+        stale: conversion.stale,
+        unavailableReason: null,
+      };
+    } catch (error) {
+      previews[transaction.id] = {
+        transactionId: transaction.id,
+        originalAmount,
+        originalCurrency,
+        reportingAmount: null,
+        reportingCurrency,
+        rateDate: latestSnapshot.rate_date,
+        provider: latestSnapshot.provider,
+        providerTimestamp: latestSnapshot.provider_timestamp,
+        fetchedAt: latestSnapshot.fetched_at,
+        freshness: getExchangeRateFreshness(latestSnapshot),
+        stale: true,
+        unavailableReason: error instanceof Error ? error.message : 'Exchange-rate conversion failed',
+      };
+    }
+  }
+
+  return {
+    reportingCurrency,
+    previews,
+    snapshot: latestSnapshot,
+  };
 }
 
 export async function createTransaction(payload: {
@@ -1402,165 +1881,13 @@ export async function buildHistoricalReportConvertedMetric(args: {
   getSignedAmount: (transaction: Transaction) => number;
   reportingCurrency?: string;
 }) {
-  const supabase = createClient();
-  const reportingCurrency = args.reportingCurrency || await resolveUserDefaultCurrency();
-  const originalTotals = buildHistoricalOriginalTotals(
-    args.transactions,
-    args.getSignedAmount,
-    reportingCurrency
-  );
-  const allOriginalInReportingCurrency = originalTotals.every(
-    (row) => row.currency === reportingCurrency
-  );
-
-  if (allOriginalInReportingCurrency) {
-    return {
-      originalTotals,
-      reportingCurrency,
-      reportingAmount: sumCurrencyTotals(originalTotals),
-      allOriginalInReportingCurrency: true,
-      conversionAvailable: true,
-      provider: null,
-      freshestAppliedAt: null,
-      earliestRateDate: null,
-      latestRateDate: null,
-      exactCount: 0,
-      previousAvailableCount: 0,
-      unavailableCount: 0,
-      freshness: 'fresh' as const,
-      stale: false,
-      unavailableReason: null,
-    } satisfies HistoricalReportConvertedMetric;
-  }
-
-  const latestTransactionDate = args.transactions.reduce((latest, transaction) => {
-    return transaction.transaction_date > latest ? transaction.transaction_date : latest;
-  }, '');
-
-  const snapshots = latestTransactionDate
-    ? await listHistoricalExchangeRateSnapshots(supabase, latestTransactionDate)
-    : [];
-
-  if (snapshots.length === 0) {
-    return {
-      originalTotals,
-      reportingCurrency,
-      reportingAmount: null,
-      allOriginalInReportingCurrency: false,
-      conversionAvailable: false,
-      provider: null,
-      freshestAppliedAt: null,
-      earliestRateDate: null,
-      latestRateDate: null,
-      exactCount: 0,
-      previousAvailableCount: 0,
-      unavailableCount: args.transactions.length,
-      freshness: 'unavailable' as const,
-      stale: true,
-      unavailableReason: 'Historical conversion is unavailable until exchange-rate snapshots exist for this period.',
-    } satisfies HistoricalReportConvertedMetric;
-  }
-
-  let reportingAmount = 0;
-  let exactCount = 0;
-  let previousAvailableCount = 0;
-  let unavailableCount = 0;
-  let provider: string | null = null;
-  let freshestAppliedAt: string | null = null;
-  let earliestRateDate: string | null = null;
-  let latestRateDate: string | null = null;
-  let stale = false;
-
-  for (const transaction of args.transactions) {
-    const signedAmount = args.getSignedAmount(transaction);
-    const fromCurrency = transaction.currency || reportingCurrency;
-
-    if (!Number.isFinite(signedAmount)) {
-      unavailableCount += 1;
-      continue;
-    }
-
-    if (fromCurrency === reportingCurrency) {
-      reportingAmount += signedAmount;
-      continue;
-    }
-
-    const { snapshot, lookupMode } = findHistoricalSnapshotForDate(
-      snapshots,
-      transaction.transaction_date
-    );
-
-    if (!snapshot) {
-      unavailableCount += 1;
-      continue;
-    }
-
-    try {
-      const conversion = convertWithSnapshot({
-        amount: signedAmount,
-        fromCurrency,
-        toCurrency: reportingCurrency,
-        snapshot,
-        lookupMode,
-      });
-
-      reportingAmount += conversion.convertedAmount;
-      if (lookupMode === 'exact') {
-        exactCount += 1;
-      } else if (lookupMode === 'previous_available') {
-        previousAvailableCount += 1;
-      }
-
-      provider = provider && provider !== conversion.provider ? 'multiple' : conversion.provider;
-      freshestAppliedAt = [freshestAppliedAt, conversion.providerTimestamp || conversion.fetchedAt]
-        .filter(Boolean)
-        .sort()
-        .at(-1) || freshestAppliedAt;
-      earliestRateDate = [earliestRateDate, conversion.rateDate].filter(Boolean).sort()[0] || earliestRateDate;
-      latestRateDate = [latestRateDate, conversion.rateDate].filter(Boolean).sort().at(-1) || latestRateDate;
-      stale = stale || conversion.stale;
-    } catch {
-      unavailableCount += 1;
-    }
-  }
-
-  if (unavailableCount > 0) {
-    return {
-      originalTotals,
-      reportingCurrency,
-      reportingAmount: null,
-      allOriginalInReportingCurrency: false,
-      conversionAvailable: false,
-      provider,
-      freshestAppliedAt,
-      earliestRateDate,
-      latestRateDate,
-      exactCount,
-      previousAvailableCount,
-      unavailableCount,
-      freshness: stale ? 'stale' : 'fresh',
-      stale: true,
-      unavailableReason: 'Historical conversion is unavailable for one or more records before the first stored snapshot.',
-    } satisfies HistoricalReportConvertedMetric;
-  }
-
-  return {
-    originalTotals,
-    reportingCurrency,
-    reportingAmount,
-    allOriginalInReportingCurrency: false,
-    conversionAvailable: true,
-    provider,
-    freshestAppliedAt,
-    earliestRateDate,
-    latestRateDate,
-    exactCount,
-    previousAvailableCount,
-    unavailableCount: 0,
-    freshness: stale ? 'stale' : 'fresh',
-    stale,
-    unavailableReason: null,
-  } satisfies HistoricalReportConvertedMetric;
+  const context = await getHistoricalReportContext(args.transactions, args.reportingCurrency);
+  return buildHistoricalReportConvertedMetricFromSnapshots({
+    transactions: args.transactions,
+    getSignedAmount: args.getSignedAmount,
+    reportingCurrency: context.reportingCurrency,
+    snapshots: context.snapshots,
+  });
 }
 
 export function generateCSV(transactions: Transaction[]): string {
@@ -1582,6 +1909,22 @@ export function generateCSV(transactions: Transaction[]): string {
     `"${(t.notes || '').replace(/"/g, '""')}"`,
   ]);
   return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+}
+
+export async function getReportBudgets(dateFrom: string, dateTo: string): Promise<BudgetReportRow[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('budgets')
+    .select('id, category_id, amount, currency, period_start, period_end, category:categories(name, color)')
+    .eq('is_active', true)
+    .lte('period_start', dateTo)
+    .order('period_start', { ascending: true });
+
+  if (error) throw error;
+
+  return ((data || []) as BudgetReportRow[]).filter((budget) =>
+    isBudgetActiveForWindow(budget, dateFrom, dateTo)
+  );
 }
 
 // ─── Receipt Upload ───────────────────────────────────────────────────────────

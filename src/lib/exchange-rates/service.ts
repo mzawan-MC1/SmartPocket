@@ -165,6 +165,36 @@ export async function getHistoricalExchangeRateSnapshotForDate(
   };
 }
 
+export async function getExactExchangeRateSnapshotForDate(
+  client: ExchangeRateQueryClient,
+  args: {
+    provider: string;
+    rateDate: string;
+  }
+): Promise<ExchangeRateSnapshotRecord | null> {
+  const provider = normalizeProviderId(args.provider);
+  const normalizedDate = normalizeRateDate(args.rateDate);
+  if (!provider || !normalizedDate) {
+    return null;
+  }
+
+  const { data, error } = await client
+    .from('exchange_rate_snapshots')
+    .select('*')
+    .eq('status', 'success')
+    .eq('provider', provider)
+    .eq('rate_date', normalizedDate)
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? parseSnapshotRow(data) : null;
+}
+
 export async function listHistoricalExchangeRateSnapshots(
   client: ExchangeRateQueryClient,
   throughDate: string
@@ -238,6 +268,88 @@ async function completeExchangeRateSyncRun(
   }
 }
 
+async function ensureLatestSnapshotPointer(
+  client: ExchangeRateQueryClient,
+  args: {
+    provider: string;
+    baseCurrency: string;
+  }
+) {
+  const provider = normalizeProviderId(args.provider);
+  const baseCurrency = normalizeCurrencyCode(args.baseCurrency);
+  if (!provider || !baseCurrency) {
+    throw new Error('Cannot update latest exchange-rate pointer with invalid identifiers');
+  }
+
+  const { data: newestSnapshot, error: newestSnapshotError } = await client
+    .from('exchange_rate_snapshots')
+    .select('id')
+    .eq('status', 'success')
+    .eq('provider', provider)
+    .eq('base_currency', baseCurrency)
+    .order('rate_date', { ascending: false })
+    .order('fetched_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (newestSnapshotError) {
+    throw newestSnapshotError;
+  }
+
+  if (!newestSnapshot?.id) {
+    return null;
+  }
+
+  const { error: clearError } = await client
+    .from('exchange_rate_snapshots')
+    .update({ is_latest: false })
+    .eq('provider', provider)
+    .eq('base_currency', baseCurrency)
+    .neq('id', newestSnapshot.id)
+    .eq('is_latest', true);
+
+  if (clearError) {
+    throw clearError;
+  }
+
+  const { error: markError } = await client
+    .from('exchange_rate_snapshots')
+    .update({ is_latest: true })
+    .eq('id', newestSnapshot.id);
+
+  if (markError) {
+    throw markError;
+  }
+
+  return String(newestSnapshot.id);
+}
+
+async function storeValidatedSnapshot(args: {
+  client: ExchangeRateQueryClient;
+  snapshot: ExchangeRateProviderSnapshot;
+}) {
+  const { data: rpcData, error: rpcError } = await args.client.rpc('exchange_rate_store_snapshot', {
+    p_provider: args.snapshot.provider,
+    p_base_currency: args.snapshot.baseCurrency,
+    p_rate_date: args.snapshot.rateDate,
+    p_fetched_at: args.snapshot.fetchedAt,
+    p_provider_timestamp: args.snapshot.providerTimestamp,
+    p_rates: args.snapshot.rates,
+    p_status: 'success',
+  });
+
+  if (rpcError) {
+    throw rpcError;
+  }
+
+  await ensureLatestSnapshotPointer(args.client, {
+    provider: args.snapshot.provider,
+    baseCurrency: args.snapshot.baseCurrency,
+  });
+
+  return typeof rpcData === 'string' ? rpcData : String(rpcData);
+}
+
 export async function getExchangeRateStatusSummary(
   client: ExchangeRateQueryClient
 ): Promise<ExchangeRateStatusSummary> {
@@ -278,19 +390,10 @@ export async function syncExchangeRates(args: {
 
   try {
     const snapshot = validateProviderSnapshot(await args.provider.latestRates(), args.supportedCurrencies);
-    const { data: rpcData, error: rpcError } = await args.client.rpc('exchange_rate_store_snapshot', {
-      p_provider: snapshot.provider,
-      p_base_currency: snapshot.baseCurrency,
-      p_rate_date: snapshot.rateDate,
-      p_fetched_at: snapshot.fetchedAt,
-      p_provider_timestamp: snapshot.providerTimestamp,
-      p_rates: snapshot.rates,
-      p_status: 'success',
+    const snapshotId = await storeValidatedSnapshot({
+      client: args.client,
+      snapshot,
     });
-
-    if (rpcError) {
-      throw rpcError;
-    }
 
     const rateCount = countRates(snapshot.rates);
     await completeExchangeRateSyncRun(args.client, {
@@ -303,7 +406,7 @@ export async function syncExchangeRates(args: {
     return {
       success: true,
       runId,
-      snapshotId: typeof rpcData === 'string' ? rpcData : String(rpcData),
+      snapshotId,
       provider: snapshot.provider,
       baseCurrency: snapshot.baseCurrency,
       rateDate: snapshot.rateDate,
@@ -313,6 +416,86 @@ export async function syncExchangeRates(args: {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Exchange-rate sync failed';
+    await completeExchangeRateSyncRun(args.client, {
+      runId,
+      status: 'failed',
+      rateCount: 0,
+      errorMessage: message,
+    }).catch(() => undefined);
+    throw error;
+  }
+}
+
+export async function syncHistoricalExchangeRatesForDate(args: {
+  client: ExchangeRateQueryClient;
+  provider: ExchangeRateProvider;
+  supportedCurrencies: string[];
+  rateDate: string;
+}) {
+  const normalizedDate = normalizeRateDate(args.rateDate);
+  if (!normalizedDate) {
+    throw new Error('Historical exchange-rate date is invalid');
+  }
+
+  const existingSnapshot = await getExactExchangeRateSnapshotForDate(args.client, {
+    provider: args.provider.name,
+    rateDate: normalizedDate,
+  });
+
+  if (existingSnapshot) {
+    return {
+      success: true,
+      skipped: true,
+      runId: null,
+      snapshotId: existingSnapshot.id,
+      provider: existingSnapshot.provider,
+      baseCurrency: existingSnapshot.base_currency,
+      rateDate: existingSnapshot.rate_date,
+      rateCount: countRates(existingSnapshot.rates),
+      providerTimestamp: existingSnapshot.provider_timestamp,
+      fetchedAt: existingSnapshot.fetched_at,
+    };
+  }
+
+  const runId = await createExchangeRateSyncRun(args.client, args.provider.name);
+
+  try {
+    const snapshot = validateProviderSnapshot(
+      await args.provider.historicalRates(normalizedDate),
+      args.supportedCurrencies
+    );
+
+    if (snapshot.rateDate !== normalizedDate) {
+      throw new Error(`Historical exchange-rate provider returned ${snapshot.rateDate} instead of ${normalizedDate}`);
+    }
+
+    const snapshotId = await storeValidatedSnapshot({
+      client: args.client,
+      snapshot,
+    });
+    const rateCount = countRates(snapshot.rates);
+
+    await completeExchangeRateSyncRun(args.client, {
+      runId,
+      status: 'success',
+      rateCount,
+      errorMessage: null,
+    });
+
+    return {
+      success: true,
+      skipped: false,
+      runId,
+      snapshotId,
+      provider: snapshot.provider,
+      baseCurrency: snapshot.baseCurrency,
+      rateDate: snapshot.rateDate,
+      rateCount,
+      providerTimestamp: snapshot.providerTimestamp,
+      fetchedAt: snapshot.fetchedAt,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Historical exchange-rate sync failed';
     await completeExchangeRateSyncRun(args.client, {
       runId,
       status: 'failed',

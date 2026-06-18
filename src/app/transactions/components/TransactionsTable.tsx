@@ -7,7 +7,7 @@ import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import {
   getTransactions, createTransaction, updateTransaction, deleteTransaction,
-  getAccounts, getCategories, uploadReceipt,
+  getAccounts, getCategories, uploadReceipt, getLatestTransactionReportingPreviews,
   type Transaction, type FinancialAccount, type Category,
 } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -58,6 +58,8 @@ export default function TransactionsTable() {
   const { user } = useAuth();
   const { data: referenceData } = useClientReferenceData();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactionReportingCurrency, setTransactionReportingCurrency] = useState('');
+  const [transactionReportingPreviews, setTransactionReportingPreviews] = useState<Record<string, Awaited<ReturnType<typeof getLatestTransactionReportingPreviews>>['previews'][string]>>({});
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [people, setPeople] = useState<ManagedPerson[]>([]);
@@ -89,8 +91,11 @@ export default function TransactionsTable() {
       getCategories(),
       getManagedPeople(false),
     ])
-      .then(([txns, accts, cats, ppl]) => {
+      .then(async ([txns, accts, cats, ppl]) => {
+        const reporting = await getLatestTransactionReportingPreviews(txns);
         setTransactions(txns);
+        setTransactionReportingCurrency(reporting.reportingCurrency);
+        setTransactionReportingPreviews(reporting.previews);
         setAccounts(accts.filter((a) => a.is_active));
         setCategories(cats);
         setPeople(ppl);
@@ -381,6 +386,11 @@ export default function TransactionsTable() {
                     const catColor = txn.category?.color || '#6b7280';
                     const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
                     const hasPerson = !!(txn as any).person_id;
+                    const reportingPreview = transactionReportingPreviews[txn.id];
+                    const showReportingPreview =
+                      reportingPreview &&
+                      reportingPreview.reportingAmount !== null &&
+                      reportingPreview.originalCurrency !== reportingPreview.reportingCurrency;
                     return (
                       <tr key={txn.id} className={`data-table-row transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : ''}`}>
                         <td className="px-4 py-3">
@@ -414,14 +424,30 @@ export default function TransactionsTable() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <span className={`text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
-                            <FormattedCurrencyAmount
-                              amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
-                              currencyCode={txn.currency}
-                              size="sm"
-                              className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
-                            />
-                          </span>
+                          <div className="space-y-1">
+                            <span className={`block text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
+                              <FormattedCurrencyAmount
+                                amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
+                                currencyCode={txn.currency}
+                                size="sm"
+                                className={txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
+                              />
+                            </span>
+                            {showReportingPreview ? (
+                              <span
+                                className="block text-[11px] text-muted-foreground"
+                                title={`Reporting currency ${transactionReportingCurrency}; provider ${reportingPreview.provider || 'n/a'}; rate date ${reportingPreview.rateDate || 'n/a'}`}
+                              >
+                                ≈{' '}
+                                <FormattedCurrencyAmount
+                                  amount={reportingPreview.reportingAmount as number}
+                                  currencyCode={reportingPreview.reportingCurrency}
+                                  size="xs"
+                                  className="text-[11px] text-muted-foreground"
+                                />
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">

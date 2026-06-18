@@ -10,36 +10,43 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { formatCurrencyValue } from '@/lib/currency-formatting';
 
-// Backend integration point: fetch from /api/reports/income-expense-trend
-const data = [
-  { month: 'Jan', income: 6800, expenses: 4200 },
-  { month: 'Feb', income: 7100, expenses: 5100 },
-  { month: 'Mar', income: 6900, expenses: 3980 },
-  { month: 'Apr', income: 7200, expenses: 4650 },
-  { month: 'May', income: 7000, expenses: 5380 },
-  { month: 'Jun', income: 7300, expenses: 5140 },
-];
+type IncomeExpenseChartRow = {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+};
 
-function CustomTooltip({ active, payload, label }: any) {
+function formatAxisValue(value: number, currencyCode: string) {
+  return formatCurrencyValue(value, {
+    currencyCode,
+    compact: true,
+  }).text;
+}
+
+function CustomTooltip({ active, payload, label, currencyCode }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="card-elevated-md p-3 min-w-[150px]">
-      <p className="text-xs font-600 text-muted-foreground mb-2">{label} 2026</p>
+      <p className="text-xs font-600 text-muted-foreground mb-2">{label}</p>
       {payload.map((entry: any) => (
         <div key={`rpt-tt-${entry.name}`} className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
             <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
           </div>
-          <span className="text-xs font-700 font-tabular">${entry.value.toLocaleString()}</span>
+          <span className="text-xs font-700 font-tabular">
+            {formatCurrencyValue(entry.value, { currencyCode }).text}
+          </span>
         </div>
       ))}
       <div className="mt-1.5 pt-1.5 border-t border-border">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">Net</span>
           <span className={`text-xs font-700 font-tabular ${payload[0]?.value - payload[1]?.value >= 0 ? 'text-positive' : 'text-negative'}`}>
-            ${(payload[0]?.value - payload[1]?.value).toLocaleString()}
+            {formatCurrencyValue(payload[0]?.value - payload[1]?.value, { currencyCode }).text}
           </span>
         </div>
       </div>
@@ -47,7 +54,13 @@ function CustomTooltip({ active, payload, label }: any) {
   );
 }
 
-export default function IncomeExpenseReportChart() {
+export default function IncomeExpenseReportChart({
+  data,
+  currencyCode,
+}: {
+  data: IncomeExpenseChartRow[];
+  currencyCode: string;
+}) {
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
@@ -63,8 +76,8 @@ export default function IncomeExpenseReportChart() {
         </defs>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-        <Tooltip content={<CustomTooltip />} />
+        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
+        <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
         <Area type="monotone" dataKey="income" stroke="var(--positive)" strokeWidth={2} fill="url(#rptIncomeGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         <Area type="monotone" dataKey="expenses" stroke="var(--negative)" strokeWidth={2} fill="url(#rptExpenseGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
