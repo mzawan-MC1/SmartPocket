@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
-import { Plus, AlertCircle, AlertTriangle, Edit2, ChevronLeft, ChevronRight, Target } from 'lucide-react';
+import { Plus, AlertCircle, AlertTriangle, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
@@ -542,7 +542,7 @@ export default function BudgetsPage() {
               >
                 Next <ChevronRight size={14} />
               </button>
-              <StatusBadge status={detailSnapshot.status === 'over_budget' ? 'danger' : detailSnapshot.status === 'near_limit' ? 'warning' : 'active'} label={detailSnapshot.statusLabel} />
+              <StatusBadge status={detailSnapshot.status === 'over_budget' ? 'error' : detailSnapshot.status === 'near_limit' ? 'warning' : 'info'} label={detailSnapshot.statusLabel} />
             </div>
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
               <p className="text-sm font-700 text-foreground">{detailSnapshot.periodTypeLabel}</p>
