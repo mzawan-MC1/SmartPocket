@@ -70,7 +70,7 @@ export default function DashboardHeader({
       actions={
         <div className="flex w-full flex-col gap-1.5 lg:items-end">
           <div className="flex w-full flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-2xl border border-border bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap lg:justify-end">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-md lg:flex-nowrap lg:justify-end">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -78,16 +78,16 @@ export default function DashboardHeader({
                     key={action.id}
                     type="button"
                     onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-transparent px-2.5 text-sm font-700 text-foreground transition-colors hover:border-border hover:bg-muted"
+                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 text-sm font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75"
                     aria-label={action.label}
                   >
-                    <Icon size={15} className="text-accent" />
+                    <Icon size={28} className="text-accent" />
                     <span>{action.label.replace('Add ', '')}</span>
                   </button>
                 );
               })}
             </div>
-            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap">
+            <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap">
               <Tabs
                 items={[
                   { id: 'pay_cycle', label: 'Pay period' },
@@ -116,7 +116,7 @@ export default function DashboardHeader({
                   className="btn-ghost min-h-0 rounded-lg p-1.5"
                   aria-label={viewMode === 'month' ? 'Previous month' : 'Previous pay period'}
                 >
-                  <ChevronLeft size={15} className="text-muted-foreground" />
+                  <ChevronLeft size={28} className="text-muted-foreground" />
                 </button>
                 {viewMode === 'month' ? (
                   <>
@@ -126,7 +126,7 @@ export default function DashboardHeader({
                       className="flex h-9 items-center gap-1.5 rounded-lg px-2 hover:bg-card"
                       aria-label="Choose month"
                     >
-                      <Calendar size={13} className="text-accent" />
+                      <Calendar size={24} className="text-accent" />
                       <span className="whitespace-nowrap text-sm font-700 text-foreground">
                         {monthContext.label}
                       </span>
@@ -143,7 +143,7 @@ export default function DashboardHeader({
                   </>
                 ) : (
                   <div className="flex h-9 items-center gap-1.5 rounded-lg px-2">
-                    <Calendar size={13} className="text-accent" />
+                    <Calendar size={24} className="text-accent" />
                     <span className="whitespace-nowrap text-sm font-700 text-foreground">{activePeriod.label}</span>
                   </div>
                 )}
@@ -161,7 +161,7 @@ export default function DashboardHeader({
                   aria-label={viewMode === 'month' ? 'Next month' : 'Next pay period'}
                   disabled={!canMoveNext}
                 >
-                  <ChevronRight size={15} className="text-muted-foreground" />
+                  <ChevronRight size={28} className="text-muted-foreground" />
                 </button>
               </div>
             </div>
