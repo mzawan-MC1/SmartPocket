@@ -161,7 +161,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           className={`btn-ghost h-9 w-9 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <ToggleIcon size={30} className="text-muted-foreground" />
+          <ToggleIcon size={22} className="text-muted-foreground" />
         </button>
       </div>
 

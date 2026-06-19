@@ -1,6 +1,6 @@
 'use client';
 import React, { useMemo, useRef } from 'react';
-import { Calendar, ChevronLeft, ChevronRight, PiggyBank, Plus, Repeat, RotateCcw, Wallet } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Plus, Repeat, RotateCcw, Target, Wallet } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import Tabs from '@/components/ui/Tabs';
@@ -15,7 +15,7 @@ const QUICK_ACTIONS: Array<{ id: QuickActionId; label: string; icon: React.Compo
   { id: 'account', label: 'Add Account', icon: Wallet },
   { id: 'recurring', label: 'Add Recurring', icon: Repeat },
   { id: 'reimbursement', label: 'Add Reimbursement', icon: RotateCcw },
-  { id: 'budget', label: 'Add Budget', icon: PiggyBank },
+  { id: 'budget', label: 'Add Budget', icon: Target },
 ];
 
 export default function DashboardHeader({
@@ -78,16 +78,16 @@ export default function DashboardHeader({
                     key={action.id}
                     type="button"
                     onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                    className="inline-flex h-9 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 text-sm font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-transparent bg-transparent px-2.5 text-sm font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75"
                     aria-label={action.label}
                   >
-                    <Icon size={28} className="text-accent" />
+                    <Icon size={15} className="text-accent" />
                     <span>{action.label.replace('Add ', '')}</span>
                   </button>
                 );
               })}
             </div>
-            <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap">
+            <div className="flex flex-wrap items-center gap-1 rounded-2xl border border-border/90 bg-card px-1 py-1 shadow-card-sm lg:flex-nowrap">
               <Tabs
                 items={[
                   { id: 'pay_cycle', label: 'Pay period' },
@@ -98,11 +98,11 @@ export default function DashboardHeader({
                 className="w-auto"
               />
               {viewMode !== defaultViewMode ? (
-                <button type="button" className="btn-ghost h-9 whitespace-nowrap px-2.5 text-xs" onClick={onResetToDefault}>
+                <button type="button" className="btn-ghost h-8.5 whitespace-nowrap px-2 text-[11px]" onClick={onResetToDefault}>
                   Use saved default
                 </button>
               ) : null}
-              <div className="hidden h-6 w-px bg-border/80 lg:block" />
+              <div className="hidden h-5 w-px bg-border/80 lg:block" />
               <div className="inline-flex items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5">
                 <button
                   type="button"
@@ -113,21 +113,21 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-1.5"
+                  className="btn-ghost min-h-0 rounded-lg p-1"
                   aria-label={viewMode === 'month' ? 'Previous month' : 'Previous pay period'}
                 >
-                  <ChevronLeft size={28} className="text-muted-foreground" />
+                  <ChevronLeft size={18} className="text-muted-foreground" />
                 </button>
                 {viewMode === 'month' ? (
                   <>
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                      className="flex h-9 items-center gap-1.5 rounded-lg px-2 hover:bg-card"
+                      className="flex h-8 items-center gap-1.5 rounded-lg px-1.5 hover:bg-card"
                       aria-label="Choose month"
                     >
-                      <Calendar size={24} className="text-accent" />
-                      <span className="whitespace-nowrap text-sm font-700 text-foreground">
+                      <Calendar size={16} className="text-accent" />
+                      <span className="whitespace-nowrap text-[13px] font-700 text-foreground">
                         {monthContext.label}
                       </span>
                     </button>
@@ -142,9 +142,9 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-9 items-center gap-1.5 rounded-lg px-2">
-                    <Calendar size={24} className="text-accent" />
-                    <span className="whitespace-nowrap text-sm font-700 text-foreground">{activePeriod.label}</span>
+                  <div className="flex h-8 items-center gap-1.5 rounded-lg px-1.5">
+                    <Calendar size={16} className="text-accent" />
+                    <span className="whitespace-nowrap text-[13px] font-700 text-foreground">{activePeriod.label}</span>
                   </div>
                 )}
                 <button
@@ -157,11 +157,11 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-1.5 disabled:opacity-40"
+                  className="btn-ghost min-h-0 rounded-lg p-1 disabled:opacity-40"
                   aria-label={viewMode === 'month' ? 'Next month' : 'Next pay period'}
                   disabled={!canMoveNext}
                 >
-                  <ChevronRight size={28} className="text-muted-foreground" />
+                  <ChevronRight size={18} className="text-muted-foreground" />
                 </button>
               </div>
             </div>
