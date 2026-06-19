@@ -33,6 +33,16 @@ export interface ReportPeriodRange {
   canNavigateForward: boolean;
 }
 
+interface PlainReportPeriodRange {
+  preset: ReportPeriodPreset;
+  startDate: string;
+  endDate: string;
+  label: string;
+  presetLabel: string;
+  navigationLabel: string | null;
+  isCustom: boolean;
+}
+
 interface ResolveReportPeriodPresetArgs {
   preset: ReportPeriodPreset;
   config: FinancialPeriodConfig;
@@ -151,10 +161,7 @@ function buildRangeLabel(
   }, locale);
 }
 
-function resolveReportPeriodPresetInternal(
-  args: ResolveReportPeriodPresetArgs,
-  includeComparison: boolean
-): ReportPeriodRange {
+function resolvePlainReportPeriod(args: ResolveReportPeriodPresetArgs): PlainReportPeriodRange {
   const locale = args.locale;
   const referenceDate = args.referenceDate || getCurrentBusinessDate(args.config.timezone);
   const presetLabel = buildPlanningPresetLabel(args.preset, args.config);
@@ -170,10 +177,8 @@ function resolveReportPeriodPresetInternal(
       endDate,
       label: buildRangeLabel('custom', startDate, endDate, locale),
       presetLabel,
-      comparisonLabel: null,
       navigationLabel: null,
       isCustom: true,
-      canNavigateForward: false,
     };
   }
 
@@ -236,33 +241,44 @@ function resolveReportPeriodPresetInternal(
     }
   }
 
-  const previous = includeComparison
-    ? getPreviousComparableReportPeriod({
-      preset: args.preset,
-      config: args.config,
-      locale,
-      startDate,
-      endDate,
-    })
-    : null;
-
-  const currentEquivalent = resolveReportPeriodPresetInternal({
-    preset: args.preset,
-    config: args.config,
-    locale,
-    referenceDate: getCurrentBusinessDate(args.config.timezone),
-  }, false);
-
   return {
     preset: args.preset,
     startDate,
     endDate,
     label: buildRangeLabel(args.preset, startDate, endDate, locale),
     presetLabel,
-    comparisonLabel: previous ? previous.label : null,
     navigationLabel,
     isCustom: false,
-    canNavigateForward: endDate < currentEquivalent.endDate,
+  };
+}
+
+function resolveReportPeriodPresetInternal(
+  args: ResolveReportPeriodPresetArgs,
+  includeComparison: boolean
+): ReportPeriodRange {
+  const plainRange = resolvePlainReportPeriod(args);
+  const previous = includeComparison
+    ? getPreviousComparableReportPeriod({
+      preset: plainRange.preset,
+      config: args.config,
+      locale: args.locale,
+      startDate: plainRange.startDate,
+      endDate: plainRange.endDate,
+    })
+    : null;
+  const currentEquivalent = plainRange.isCustom
+    ? plainRange
+    : resolvePlainReportPeriod({
+      preset: plainRange.preset,
+      config: args.config,
+      locale: args.locale,
+      referenceDate: getCurrentBusinessDate(args.config.timezone),
+    });
+
+  return {
+    ...plainRange,
+    comparisonLabel: previous ? previous.label : null,
+    canNavigateForward: plainRange.endDate < currentEquivalent.endDate,
   };
 }
 
@@ -281,38 +297,55 @@ export function getPreviousComparableReportPeriod(args: {
     case 'current_pay_period':
     case 'previous_pay_period': {
       const previous = getPreviousFinancialPeriod(args.config, args.startDate);
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: previous.startDate,
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     }
     case 'current_month':
     case 'previous_month':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftMonthKey(args.startDate.slice(0, 7), -1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'current_quarter':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftQuarter(args.startDate, -1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'current_year':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftYear(args.startDate, -1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'last_30_days': {
       const endDate = addDays(args.startDate, -1);
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: 'custom',
         config: args.config,
         locale: args.locale,
@@ -320,12 +353,16 @@ export function getPreviousComparableReportPeriod(args: {
           startDate: addDays(endDate, -29),
           endDate,
         },
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     }
     case 'year_to_date': {
       const previousYearStart = `${String(Number(args.startDate.slice(0, 4)) - 1)}-01-01`;
       const previousYearEnd = `${String(Number(args.startDate.slice(0, 4)) - 1)}-${args.endDate.slice(5)}`;
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: 'custom',
         config: args.config,
         locale: args.locale,
@@ -333,7 +370,10 @@ export function getPreviousComparableReportPeriod(args: {
           startDate: previousYearStart,
           endDate: previousYearEnd,
         },
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     }
     case 'custom':
     default:
@@ -352,35 +392,51 @@ export function getNextComparableReportPeriod(args: {
     case 'current_pay_period':
     case 'previous_pay_period': {
       const next = getNextFinancialPeriod(args.config, args.startDate);
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: next.startDate,
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     }
     case 'current_month':
     case 'previous_month':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftMonthKey(args.startDate.slice(0, 7), 1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'current_quarter':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftQuarter(args.startDate, 1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'current_year':
-      return resolveReportPeriodPresetInternal({
+      return {
+        ...resolvePlainReportPeriod({
         preset: args.preset,
         config: args.config,
         locale: args.locale,
         referenceDate: shiftYear(args.startDate, 1),
-      }, false);
+        }),
+        comparisonLabel: null,
+        canNavigateForward: false,
+      };
     case 'last_30_days':
     case 'year_to_date':
     case 'custom':
