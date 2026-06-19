@@ -172,13 +172,6 @@ export default function DashboardPage() {
     setSelectedPayPeriodStart((current) => current || periodContext.currentFinancialPeriod.startDate);
   }, [periodContext]);
 
-  const handleResetToDefault = useCallback(() => {
-    if (!periodContext) return;
-    setViewMode(periodContext.defaultDashboardPeriod);
-    setSelectedMonth(getMonthContext(undefined, periodContext.timezone).monthKey);
-    setSelectedPayPeriodStart(periodContext.currentFinancialPeriod.startDate);
-  }, [periodContext]);
-
   const handlePayPeriodChange = useCallback((startDate: string) => {
     if (!periodContext) return;
     setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
@@ -201,10 +194,8 @@ export default function DashboardPage() {
           <>
             <DashboardHeader
               activePeriod={activePeriod}
-              defaultViewMode={periodContext.defaultDashboardPeriod}
               viewMode={viewMode}
               onViewModeChange={handleViewModeChange}
-              onResetToDefault={handleResetToDefault}
               onSelectedMonthChange={handleSelectedMonthChange}
               onSelectedPayPeriodChange={handlePayPeriodChange}
               onQuickAction={openQuickAction}

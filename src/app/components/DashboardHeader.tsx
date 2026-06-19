@@ -21,9 +21,7 @@ const QUICK_ACTIONS: Array<{ id: QuickActionId; label: string; icon: React.Compo
 export default function DashboardHeader({
   activePeriod,
   viewMode,
-  defaultViewMode,
   onViewModeChange,
-  onResetToDefault,
   onSelectedMonthChange,
   onSelectedPayPeriodChange,
   onQuickAction,
@@ -31,9 +29,7 @@ export default function DashboardHeader({
 }: {
   activePeriod: DashboardActivePeriod;
   viewMode: DashboardPeriodPreference;
-  defaultViewMode: DashboardPeriodPreference;
   onViewModeChange: (mode: DashboardPeriodPreference) => void;
-  onResetToDefault: () => void;
   onSelectedMonthChange: (monthKey: string) => void;
   onSelectedPayPeriodChange: (startDate: string) => void;
   onQuickAction: (action: QuickActionId, trigger: HTMLElement | null) => void;
@@ -80,11 +76,6 @@ export default function DashboardHeader({
                 onChange={onViewModeChange}
                 className="w-auto [&_.tab-button]:min-h-[2rem] [&_.tab-button]:px-2 [&_.tab-button]:py-1 [&_.tab-button]:text-[12px] [&_.tab-button]:leading-4"
               />
-              {viewMode !== defaultViewMode ? (
-                <button type="button" className="btn-ghost h-8 whitespace-nowrap px-1.5 text-[11px]" onClick={onResetToDefault}>
-                  Use saved default
-                </button>
-              ) : null}
               <div className="hidden h-4 w-px bg-border/80 xl:block" />
               <div className="inline-flex items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5">
                 <button
