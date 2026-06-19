@@ -5,7 +5,6 @@ export const RESERVED_CMS_SLUGS = [
   'about',
   'features',
   'pricing',
-  'contact',
   'dashboard',
   'admin',
   'sign-up-login',
@@ -15,7 +14,6 @@ export const MARKETING_HOME_SLUGS = [
   'about',
   'features',
   'pricing',
-  'contact',
 ] as const;
 
 export type CmsPageRecord = {

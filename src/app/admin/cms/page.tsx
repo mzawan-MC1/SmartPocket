@@ -43,7 +43,7 @@ export default function AdminCmsPage() {
     { id: 'hm-1', label: 'About', href: '/#about' },
     { id: 'hm-2', label: 'Features', href: '/#features' },
     { id: 'hm-3', label: 'Pricing', href: '/#pricing' },
-    { id: 'hm-4', label: 'Contact', href: '/#contact' },
+    { id: 'hm-4', label: 'Contact', href: '/contact' },
   ]);
 
   const [footerSections, setFooterSections] = useState<FooterSection[]>([
@@ -61,7 +61,7 @@ export default function AdminCmsPage() {
       title: 'Company',
       links: [
         { id: 'fl-4', label: 'About', href: '/#about' },
-        { id: 'fl-5', label: 'Contact', href: '/#contact' },
+        { id: 'fl-5', label: 'Contact', href: '/contact' },
       ],
     },
     {

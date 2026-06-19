@@ -76,7 +76,6 @@ const MARKETING_HOME_ANCHORS = {
   '/about': '/#about',
   '/features': '/#features',
   '/pricing': '/#pricing',
-  '/contact': '/#contact',
 } as const;
 
 function normalizePublicDestination(href: string) {
@@ -101,6 +100,10 @@ export function mapMarketingHrefToHomeAnchor(href: string) {
     return normalized;
   }
 
+  if (normalized === '/#contact') {
+    return '/contact';
+  }
+
   return MARKETING_HOME_ANCHORS[normalized as keyof typeof MARKETING_HOME_ANCHORS] || normalized;
 }
 
@@ -112,7 +115,7 @@ export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
   { id: 'hm-about', label: 'About', href: '/#about' },
   { id: 'hm-features', label: 'Features', href: '/#features' },
   { id: 'hm-pricing', label: 'Pricing', href: '/#pricing' },
-  { id: 'hm-contact', label: 'Contact', href: '/#contact' },
+  { id: 'hm-contact', label: 'Contact', href: '/contact' },
 ];
 
 export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
@@ -129,7 +132,7 @@ export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
     id: 'fs-support',
     title: 'Support',
     links: [
-      { id: 'fl-contact', label: 'Contact', href: '/#contact' },
+      { id: 'fl-contact', label: 'Contact', href: '/contact' },
       { id: 'fl-help', label: 'Help Center', href: '/help' },
     ],
   },

@@ -405,7 +405,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Security & Privacy ───────────────────────────────────────────── */}
-      <section id="pricing" className="scroll-mt-28 py-20 px-4 bg-card/50">
+      <section className="py-20 px-4 bg-card/50">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="grid grid-cols-2 gap-4 order-2 lg:order-1">
@@ -545,7 +545,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Pricing Teaser ───────────────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-card/50">
+      <section id="pricing" className="scroll-mt-28 py-20 px-4 bg-card/50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">Simple, transparent pricing</h2>
@@ -593,14 +593,14 @@ export default function HomePage() {
       </section>
 
       {/* ── Contact CTA ──────────────────────────────────────────────────── */}
-      <section id="contact" className="scroll-mt-28 py-20 px-4">
+      <section className="py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 text-xs font-700 uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1.5 rounded-full mb-6">
             <Mail size={12} /> Get in touch
           </div>
           <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">Have questions? We are here.</h2>
           <p className="text-muted-foreground mb-8 leading-relaxed">Whether you need help getting started, have a feature request, or want to discuss enterprise pricing — reach out and we will respond within 24 hours.</p>
-          <Link href="/#contact" className="btn-primary text-base py-3.5 px-10 mx-auto gap-2">
+          <Link href="/contact" className="btn-primary text-base py-3.5 px-10 mx-auto gap-2">
             <Mail size={18} /> Contact Us
           </Link>
         </div>

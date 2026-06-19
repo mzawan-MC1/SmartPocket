@@ -237,7 +237,7 @@ export default function CmsPagesTab() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-700 text-foreground">Legal &amp; Content Pages</h2>
-              <p className="text-xs text-muted-foreground">Manage Privacy, Terms, Cookie Policy, Refund Policy, and other long-form standalone pages.</p>
+              <p className="text-xs text-muted-foreground">Manage Privacy, Terms, Contact, Cookie Policy, Refund Policy, and other long-form standalone pages.</p>
             </div>
             <button type="button" onClick={startNewPage} className="btn-primary text-xs py-2">
               <FilePlus2 size={14} />
@@ -395,7 +395,7 @@ export default function CmsPagesTab() {
           </div>
 
           <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Marketing sections such as About, Features, Pricing, and Contact are managed on the Home page, not in Legal &amp; Content Pages.
+            Marketing sections such as About, Features, and Pricing are managed on the Home page. Contact remains a standalone CMS-backed page.
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
