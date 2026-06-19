@@ -54,10 +54,20 @@ export interface PlatformPublicSettings {
   socialLinkedin: string;
 }
 
+export interface PlatformAuthSettings {
+  emailPasswordEnabled: boolean;
+  googleOauthEnabled: boolean;
+  appleOauthEnabled: boolean;
+  magicLinkEnabled: boolean;
+  requireEmailVerification: boolean;
+  passwordMinLength: number;
+}
+
 export interface PlatformSettingsSnapshot {
   branding: PlatformBrandingSettings;
   seo: PlatformSeoSettings;
   publicUi: PlatformPublicSettings;
+  auth: PlatformAuthSettings;
   updatedAt?: string;
   raw: Record<string, unknown>;
 }
@@ -136,6 +146,14 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     socialTwitter: '',
     socialGithub: '',
     socialLinkedin: '',
+  },
+  auth: {
+    emailPasswordEnabled: true,
+    googleOauthEnabled: false,
+    appleOauthEnabled: false,
+    magicLinkEnabled: false,
+    requireEmailVerification: true,
+    passwordMinLength: 8,
   },
   updatedAt: undefined,
   raw: {},
@@ -302,6 +320,32 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
       socialTwitter: sanitizeOptionalString(raw.social_twitter),
       socialGithub: sanitizeOptionalString(raw.social_github),
       socialLinkedin: sanitizeOptionalString(raw.social_linkedin),
+    },
+    auth: {
+      emailPasswordEnabled: sanitizeBoolean(
+        raw.email_password_enabled,
+        DEFAULT_PLATFORM_SETTINGS.auth.emailPasswordEnabled
+      ),
+      googleOauthEnabled: sanitizeBoolean(
+        raw.google_oauth_enabled,
+        DEFAULT_PLATFORM_SETTINGS.auth.googleOauthEnabled
+      ),
+      appleOauthEnabled: sanitizeBoolean(
+        raw.apple_oauth_enabled,
+        DEFAULT_PLATFORM_SETTINGS.auth.appleOauthEnabled
+      ),
+      magicLinkEnabled: sanitizeBoolean(
+        raw.magic_link_enabled,
+        DEFAULT_PLATFORM_SETTINGS.auth.magicLinkEnabled
+      ),
+      requireEmailVerification: sanitizeBoolean(
+        raw.require_email_verification,
+        DEFAULT_PLATFORM_SETTINGS.auth.requireEmailVerification
+      ),
+      passwordMinLength:
+        typeof raw.password_min_length === 'number' && Number.isFinite(raw.password_min_length)
+          ? raw.password_min_length
+          : DEFAULT_PLATFORM_SETTINGS.auth.passwordMinLength,
     },
     updatedAt: typeof raw.updated_at === 'string' ? raw.updated_at : undefined,
     raw,

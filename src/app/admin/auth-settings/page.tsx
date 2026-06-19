@@ -6,14 +6,13 @@ import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 
 
 type AuthSettings = {
-  emailAuth: boolean;
+  email_password_enabled: boolean;
   google_oauth_enabled: boolean;
   apple_oauth_enabled: boolean;
   magic_link_enabled: boolean;
   require_email_verification: boolean;
   password_min_length: number;
   session_duration: number;
-  allow_signup: boolean;
 };
 
 type AuthMethod = {
@@ -28,17 +27,16 @@ export default function AdminAuthSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [settings, setSettings] = useState<AuthSettings>({
-    emailAuth: true,
+    email_password_enabled: true,
     google_oauth_enabled: false,
     apple_oauth_enabled: false,
     magic_link_enabled: false,
     require_email_verification: true,
     password_min_length: 8,
     session_duration: 30,
-    allow_signup: true,
   });
   const methods: AuthMethod[] = [
-    { key: 'emailAuth', label: 'Email & Password', desc: 'Allow users to sign in with email and password', required: true },
+    { key: 'email_password_enabled', label: 'Email & Password', desc: 'Allow users to sign in with email and password', required: false },
     { key: 'google_oauth_enabled', label: 'Google OAuth', desc: 'Requires Google Cloud Console setup in Supabase', required: false },
     { key: 'apple_oauth_enabled', label: 'Apple Sign In', desc: 'Requires Apple Developer account setup in Supabase', required: false },
     { key: 'magic_link_enabled', label: 'Magic Link (Passwordless)', desc: 'Users sign in via a one-time email link', required: false },
@@ -50,6 +48,7 @@ export default function AdminAuthSettingsPage() {
         if (data) {
           setSettings((s) => ({
             ...s,
+            email_password_enabled: data.email_password_enabled ?? s.email_password_enabled,
             google_oauth_enabled: data.google_oauth_enabled ?? s.google_oauth_enabled,
             apple_oauth_enabled: data.apple_oauth_enabled ?? s.apple_oauth_enabled,
             magic_link_enabled: data.magic_link_enabled ?? s.magic_link_enabled,
@@ -66,6 +65,7 @@ export default function AdminAuthSettingsPage() {
     setIsSaving(true);
     try {
       await savePlatformSettings({
+        email_password_enabled: settings.email_password_enabled,
         google_oauth_enabled: settings.google_oauth_enabled,
         apple_oauth_enabled: settings.apple_oauth_enabled,
         magic_link_enabled: settings.magic_link_enabled,

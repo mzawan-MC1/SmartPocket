@@ -80,12 +80,12 @@ export default function PublicHeader() {
           <div className="hidden md:flex items-center gap-2">
             <LanguageSwitcher variant="compact" />
             <Link
-              href="/sign-up-login"
+              href="/sign-up-login?mode=login"
               className="btn-ghost text-sm px-3 py-2 text-muted-foreground hover:text-foreground"
             >
               Sign In
             </Link>
-            <Link href="/sign-up-login" className="btn-primary text-sm py-2 px-4">
+            <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2 px-4">
               Get Started
             </Link>
           </div>
@@ -126,10 +126,10 @@ export default function PublicHeader() {
               </Link>
             ))}
             <div className="pt-3 border-t border-border flex flex-col gap-2">
-              <Link href="/sign-up-login" className="btn-secondary text-sm py-2.5 justify-center">
+              <Link href="/sign-up-login?mode=login" className="btn-secondary text-sm py-2.5 justify-center">
                 Sign In
               </Link>
-              <Link href="/sign-up-login" className="btn-primary text-sm py-2.5 justify-center">
+              <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2.5 justify-center">
                 Get Started Free
               </Link>
             </div>

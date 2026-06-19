@@ -1,10 +1,11 @@
 'use client';
-import React, { useState, Suspense } from 'react';
+import React, { Suspense, useCallback } from 'react';
 import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
 import AppLogo from '@/components/ui/AppLogo';
 import { ShieldCheck, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getSettingsAssetUrl } from '@/lib/platform-settings';
@@ -13,11 +14,32 @@ import { getSettingsAssetUrl } from '@/lib/platform-settings';
 type AuthMode = 'login' | 'signup' | 'forgot';
 
 export default function AuthScreen() {
-  const [mode, setMode] = useState<AuthMode>('login');
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useTranslation('auth');
-  const { branding, updatedAt } = usePlatformSettings();
+  const { branding, updatedAt, auth } = usePlatformSettings();
   const year = new Date().getFullYear();
   const faviconSrc = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
+  const requestedMode = searchParams.get('mode');
+  const mode: AuthMode =
+    requestedMode === 'signup'
+      ? 'signup'
+      : requestedMode === 'forgot' && auth.emailPasswordEnabled
+        ? 'forgot'
+        : 'login';
+  const hasOauthProviders = auth.googleOauthEnabled || auth.appleOauthEnabled;
+  const hasAnyAuthMethod =
+    auth.emailPasswordEnabled ||
+    auth.googleOauthEnabled ||
+    auth.appleOauthEnabled ||
+    auth.magicLinkEnabled;
+
+  const setMode = useCallback((nextMode: AuthMode) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('mode', nextMode);
+    const query = params.toString();
+    router.replace(query ? `/sign-up-login?${query}` : '/sign-up-login', { scroll: false });
+  }, [router, searchParams]);
 
   const features = [
     { id: 'feat-track', icon: TrendingUp, text: 'Track every dollar across all accounts' },
@@ -107,16 +129,31 @@ export default function AuthScreen() {
 
         <div className="w-full max-w-[460px] rounded-[28px] border border-border bg-card/95 p-5 sm:p-7 shadow-card-lg">
           <Suspense fallback={<div className="w-full h-64 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" /></div>}>
-            {mode === 'login' && (
+            {!hasAnyAuthMethod ? (
+              <div className="py-10 text-center">
+                <h1 className="text-2xl font-700 text-foreground tracking-tight">Authentication unavailable</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  No sign-in methods are currently enabled. Please contact support or try again later.
+                </p>
+              </div>
+            ) : mode === 'login' ? (
               <LoginForm
                 onSwitchToSignUp={() => setMode('signup')}
                 onForgotPassword={() => setMode('forgot')}
+                showGoogle={auth.googleOauthEnabled}
+                showApple={auth.appleOauthEnabled}
+                showMagicLink={auth.magicLinkEnabled}
+                showEmailPassword={auth.emailPasswordEnabled}
               />
-            )}
-            {mode === 'signup' && (
-              <SignUpForm onSwitchToLogin={() => setMode('login')} />
-            )}
-            {mode === 'forgot' && (
+            ) : mode === 'signup' ? (
+              <SignUpForm
+                onSwitchToLogin={() => setMode('login')}
+                showGoogle={auth.googleOauthEnabled}
+                showApple={auth.appleOauthEnabled}
+                showMagicLink={auth.magicLinkEnabled}
+                showEmailPassword={auth.emailPasswordEnabled}
+              />
+            ) : (
               <ForgotPasswordForm onBack={() => setMode('login')} />
             )}
           </Suspense>
