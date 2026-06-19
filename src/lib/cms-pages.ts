@@ -1,5 +1,23 @@
 export type CmsPageStatus = 'draft' | 'published';
 
+export const RESERVED_CMS_SLUGS = [
+  'home',
+  'about',
+  'features',
+  'pricing',
+  'contact',
+  'dashboard',
+  'admin',
+  'sign-up-login',
+] as const;
+
+export const MARKETING_HOME_SLUGS = [
+  'about',
+  'features',
+  'pricing',
+  'contact',
+] as const;
+
 export type CmsPageRecord = {
   id: string;
   title: string;
@@ -163,6 +181,16 @@ export function slugifyCmsPageSlug(value: string) {
 
 export function isValidCmsPageSlug(value: string) {
   return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+}
+
+export function isReservedCmsSlug(value: string) {
+  const slug = slugifyCmsPageSlug(value);
+  return RESERVED_CMS_SLUGS.includes(slug as (typeof RESERVED_CMS_SLUGS)[number]);
+}
+
+export function isMarketingHomeSlug(value: string) {
+  const slug = slugifyCmsPageSlug(value);
+  return MARKETING_HOME_SLUGS.includes(slug as (typeof MARKETING_HOME_SLUGS)[number]);
 }
 
 export function getCmsPageNavigationLabel(page: Pick<CmsPageRecord, 'navigation_label' | 'title'>) {

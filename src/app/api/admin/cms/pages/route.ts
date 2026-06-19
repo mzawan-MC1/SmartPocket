@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import {
+  isReservedCmsSlug,
   normalizeCmsPagePayload,
   sanitizeRichTextHtml,
   type CmsPageInput,
@@ -92,7 +93,14 @@ export async function GET() {
   }
 
   return applySupabaseCookies(
-    NextResponse.json({ pages: (data as CmsPageRecord[]).map(serializePage) }, { status: 200 }),
+    NextResponse.json(
+      {
+        pages: (data as CmsPageRecord[])
+          .filter((page) => !isReservedCmsSlug(page.slug))
+          .map(serializePage),
+      },
+      { status: 200 }
+    ),
     cookieMutations
   );
 }
@@ -119,6 +127,19 @@ export async function POST(request: Request) {
     if (!payload.slug) {
       return applySupabaseCookies(
         NextResponse.json({ error: 'Slug is required.' }, { status: 400 }),
+        cookieMutations
+      );
+    }
+
+    if (isReservedCmsSlug(payload.slug)) {
+      return applySupabaseCookies(
+        NextResponse.json(
+          {
+            error:
+              'This slug is reserved for built-in application routes. Marketing sections are managed on the Home page.',
+          },
+          { status: 400 }
+        ),
         cookieMutations
       );
     }

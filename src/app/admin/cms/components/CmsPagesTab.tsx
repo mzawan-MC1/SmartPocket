@@ -236,8 +236,8 @@ export default function CmsPagesTab() {
         <div className="card-elevated p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-700 text-foreground">CMS Pages</h2>
-              <p className="text-xs text-muted-foreground">Manage protected system pages and custom public pages.</p>
+              <h2 className="text-base font-700 text-foreground">Legal &amp; Content Pages</h2>
+              <p className="text-xs text-muted-foreground">Manage Privacy, Terms, Cookie Policy, Refund Policy, and other long-form standalone pages.</p>
             </div>
             <button type="button" onClick={startNewPage} className="btn-primary text-xs py-2">
               <FilePlus2 size={14} />
@@ -333,10 +333,10 @@ export default function CmsPagesTab() {
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-lg font-700 text-foreground">
-                {isNewPage ? 'Create CMS Page' : `Edit: ${selectedPage?.title || 'CMS Page'}`}
+                {isNewPage ? 'Create Content Page' : `Edit: ${selectedPage?.title || 'Content Page'}`}
               </h2>
               <p className="text-sm text-muted-foreground">
-                Draft, publish, disable, preview, and protect public pages from a single place.
+                Draft, publish, disable, preview, and protect long-form standalone pages from a single place.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -392,6 +392,10 @@ export default function CmsPagesTab() {
                 {isNewPage ? 'Create Page' : 'Save Changes'}
               </button>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            Marketing sections such as About, Features, Pricing, and Contact are managed on the Home page, not in Legal &amp; Content Pages.
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

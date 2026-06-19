@@ -3,8 +3,9 @@ import 'server-only';
 import { cache } from 'react';
 import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
-import { normalizePlatformSettings, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
+import { normalizePlatformSettings, normalizePublicNavHref, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import { listPublicCmsPages } from '@/lib/cms-pages-server';
+import { isMarketingHomeSlug } from '@/lib/cms-pages';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 async function readPlatformSettingsWithAnonClient() {
@@ -92,10 +93,13 @@ function mergePublicCmsNavigation(
     return settings;
   }
 
-  const existingHeaderHrefs = new Set(settings.publicUi.headerMenu.map((item) => item.href));
+  const existingHeaderHrefs = new Set(
+    settings.publicUi.headerMenu.map((item) => normalizePublicNavHref(item.href))
+  );
   const headerPages = pages
+    .filter((page) => !isMarketingHomeSlug(page.slug))
     .filter((page) => page.show_in_header)
-    .filter((page) => !existingHeaderHrefs.has(`/${page.slug}`))
+    .filter((page) => !existingHeaderHrefs.has(normalizePublicNavHref(`/${page.slug}`)))
     .map((page) => ({
       id: `cms-header-${page.id}`,
       label: page.navigation_label_resolved,
@@ -103,11 +107,14 @@ function mergePublicCmsNavigation(
     }));
 
   const existingFooterHrefs = new Set(
-    settings.publicUi.footerSections.flatMap((section) => section.links.map((link) => link.href))
+    settings.publicUi.footerSections.flatMap((section) =>
+      section.links.map((link) => normalizePublicNavHref(link.href))
+    )
   );
   const footerLinks = pages
+    .filter((page) => !isMarketingHomeSlug(page.slug))
     .filter((page) => page.show_in_footer)
-    .filter((page) => !existingFooterHrefs.has(`/${page.slug}`))
+    .filter((page) => !existingFooterHrefs.has(normalizePublicNavHref(`/${page.slug}`)))
     .map((page) => ({
       id: `cms-footer-${page.id}`,
       label: page.navigation_label_resolved,

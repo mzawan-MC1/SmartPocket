@@ -72,11 +72,47 @@ export interface PlatformSettingsSnapshot {
   raw: Record<string, unknown>;
 }
 
+const MARKETING_HOME_ANCHORS = {
+  '/about': '/#about',
+  '/features': '/#features',
+  '/pricing': '/#pricing',
+  '/contact': '/#contact',
+} as const;
+
+function normalizePublicDestination(href: string) {
+  const trimmed = href.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const [pathPart, hashPart] = trimmed.split('#', 2);
+  const normalizedPath = pathPart
+    ? (pathPart.startsWith('/') ? pathPart : `/${pathPart}`)
+        .replace(/\/{2,}/g, '/')
+        .replace(/\/+$/g, '') || '/'
+    : '/';
+  const normalizedHash = hashPart ? `#${hashPart.trim().toLowerCase()}` : '';
+  return `${normalizedPath}${normalizedHash}`;
+}
+
+export function mapMarketingHrefToHomeAnchor(href: string) {
+  const normalized = normalizePublicDestination(href);
+  if (!normalized) {
+    return normalized;
+  }
+
+  return MARKETING_HOME_ANCHORS[normalized as keyof typeof MARKETING_HOME_ANCHORS] || normalized;
+}
+
+export function normalizePublicNavHref(href: string) {
+  return mapMarketingHrefToHomeAnchor(href);
+}
+
 export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
-  { id: 'hm-about', label: 'About', href: '/about' },
-  { id: 'hm-features', label: 'Features', href: '/features' },
-  { id: 'hm-pricing', label: 'Pricing', href: '/pricing' },
-  { id: 'hm-contact', label: 'Contact', href: '/contact' },
+  { id: 'hm-about', label: 'About', href: '/#about' },
+  { id: 'hm-features', label: 'Features', href: '/#features' },
+  { id: 'hm-pricing', label: 'Pricing', href: '/#pricing' },
+  { id: 'hm-contact', label: 'Contact', href: '/#contact' },
 ];
 
 export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
@@ -84,16 +120,16 @@ export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
     id: 'fs-product',
     title: 'Product',
     links: [
-      { id: 'fl-features', label: 'Features', href: '/features' },
-      { id: 'fl-pricing', label: 'Pricing', href: '/pricing' },
-      { id: 'fl-about', label: 'About', href: '/about' },
+      { id: 'fl-features', label: 'Features', href: '/#features' },
+      { id: 'fl-pricing', label: 'Pricing', href: '/#pricing' },
+      { id: 'fl-about', label: 'About', href: '/#about' },
     ],
   },
   {
     id: 'fs-support',
     title: 'Support',
     links: [
-      { id: 'fl-contact', label: 'Contact', href: '/contact' },
+      { id: 'fl-contact', label: 'Contact', href: '/#contact' },
       { id: 'fl-help', label: 'Help Center', href: '/help' },
     ],
   },
@@ -216,14 +252,26 @@ function normalizeKeywords(value: unknown, fallback: string[]) {
 
 function normalizeNavLinks(value: unknown, fallback: PlatformNavLink[]) {
   if (!Array.isArray(value)) return fallback;
+  const seenDestinations = new Set<string>();
   const links = value
     .filter(isObject)
     .map((entry, index) => ({
       id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `link-${index}`,
       label: typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : '',
-      href: typeof entry.href === 'string' && entry.href.trim() ? entry.href.trim() : '',
+      href: typeof entry.href === 'string' && entry.href.trim() ? normalizePublicNavHref(entry.href.trim()) : '',
     }))
-    .filter((entry) => entry.label && entry.href);
+    .filter((entry) => {
+      if (!entry.label || !entry.href) {
+        return false;
+      }
+
+      if (seenDestinations.has(entry.href)) {
+        return false;
+      }
+
+      seenDestinations.add(entry.href);
+      return true;
+    });
   return links.length > 0 ? links : fallback;
 }
 

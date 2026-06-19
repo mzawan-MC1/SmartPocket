@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import { normalizePublicNavHref } from '@/lib/platform-settings';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 import CmsPagesTab from '@/app/admin/cms/components/CmsPagesTab';
 
@@ -39,10 +40,10 @@ export default function AdminCmsPage() {
       : 'header';
 
   const [headerMenu, setHeaderMenu] = useState<MenuItem[]>([
-    { id: 'hm-1', label: 'About', href: '/about' },
-    { id: 'hm-2', label: 'Features', href: '/features' },
-    { id: 'hm-3', label: 'Pricing', href: '/pricing' },
-    { id: 'hm-4', label: 'Contact', href: '/contact' },
+    { id: 'hm-1', label: 'About', href: '/#about' },
+    { id: 'hm-2', label: 'Features', href: '/#features' },
+    { id: 'hm-3', label: 'Pricing', href: '/#pricing' },
+    { id: 'hm-4', label: 'Contact', href: '/#contact' },
   ]);
 
   const [footerSections, setFooterSections] = useState<FooterSection[]>([
@@ -50,8 +51,8 @@ export default function AdminCmsPage() {
       id: 'fs-1',
       title: 'Product',
       links: [
-        { id: 'fl-1', label: 'Features', href: '/features' },
-        { id: 'fl-2', label: 'Pricing', href: '/pricing' },
+        { id: 'fl-1', label: 'Features', href: '/#features' },
+        { id: 'fl-2', label: 'Pricing', href: '/#pricing' },
         { id: 'fl-3', label: 'Security', href: '/security' },
       ],
     },
@@ -59,8 +60,8 @@ export default function AdminCmsPage() {
       id: 'fs-2',
       title: 'Company',
       links: [
-        { id: 'fl-4', label: 'About', href: '/about' },
-        { id: 'fl-5', label: 'Contact', href: '/contact' },
+        { id: 'fl-4', label: 'About', href: '/#about' },
+        { id: 'fl-5', label: 'Contact', href: '/#contact' },
       ],
     },
     {
@@ -90,10 +91,23 @@ export default function AdminCmsPage() {
       .then((data) => {
         if (data) {
           if (data.header_menu && Array.isArray(data.header_menu) && data.header_menu.length > 0) {
-            setHeaderMenu(data.header_menu as MenuItem[]);
+            setHeaderMenu(
+              (data.header_menu as MenuItem[]).map((item) => ({
+                ...item,
+                href: normalizePublicNavHref(item.href),
+              }))
+            );
           }
           if (data.footer_sections && Array.isArray(data.footer_sections) && data.footer_sections.length > 0) {
-            setFooterSections(data.footer_sections as FooterSection[]);
+            setFooterSections(
+              (data.footer_sections as FooterSection[]).map((section) => ({
+                ...section,
+                links: section.links.map((link) => ({
+                  ...link,
+                  href: normalizePublicNavHref(link.href),
+                })),
+              }))
+            );
           }
           setContact({
             contact_email: data.contact_email || '',
@@ -131,8 +145,17 @@ export default function AdminCmsPage() {
     setIsSaving(true);
     try {
       await savePlatformSettings({
-        header_menu: headerMenu,
-        footer_sections: footerSections,
+        header_menu: headerMenu.map((item) => ({
+          ...item,
+          href: normalizePublicNavHref(item.href),
+        })),
+        footer_sections: footerSections.map((section) => ({
+          ...section,
+          links: section.links.map((link) => ({
+            ...link,
+            href: normalizePublicNavHref(link.href),
+          })),
+        })),
         ...contact,
         ...payment,
       });
