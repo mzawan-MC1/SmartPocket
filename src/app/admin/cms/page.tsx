@@ -83,7 +83,7 @@ export default function AdminCmsPage() {
     contact_address: '',
   });
   const [contactPhoneCountryCode, setContactPhoneCountryCode] = useState('');
-  const { data: referenceData } = useClientReferenceData();
+  const { data: referenceData, loading: referenceDataLoading } = useClientReferenceData(true);
   const countries = referenceData?.snapshot.countries ?? [];
 
   const [payment, setPayment] = useState({
@@ -179,6 +179,10 @@ export default function AdminCmsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      if ((contactPhoneCountryCode || contact.contact_phone_country_code) && countries.length === 0) {
+        throw new Error('Country reference data is still loading. Please try again in a moment.');
+      }
+
       const normalizedPhone = buildNormalizedPhoneParts({
         value: contact.contact_phone,
         countryCode: contactPhoneCountryCode || contact.contact_phone_country_code,
@@ -423,6 +427,8 @@ export default function AdminCmsPage() {
             <InternationalPhoneInput
               value={contact.contact_phone}
               countryCode={contactPhoneCountryCode}
+              countries={countries}
+              countriesLoading={referenceDataLoading}
               onChange={(phone: InternationalPhoneValue) => {
                 setContactPhoneCountryCode(phone.countryCode || '');
                 setContact((current) => ({

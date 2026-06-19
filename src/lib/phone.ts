@@ -12,6 +12,9 @@ export interface NormalizedPhoneParts {
 }
 
 export const LEGACY_PLATFORM_CONTACT_PHONE_COUNTRY_CODE = 'AE';
+const GUARDED_COUNTRY_CALLING_CODES: Record<string, string> = {
+  AE: '+971',
+};
 
 export function sanitizePhoneDisplay(value: string | null | undefined) {
   return (value || '').trim().replace(/\s+/g, ' ');
@@ -35,6 +38,30 @@ export function normalizeDialableCharacters(value: string | null | undefined) {
   return result;
 }
 
+export function normalizeCallingCode(value: string | null | undefined) {
+  const dialable = normalizeDialableCharacters(value);
+  if (!dialable.startsWith('+')) {
+    return null;
+  }
+
+  const digitsOnly = dialable.slice(1).replace(/[^\d]/g, '');
+  return digitsOnly ? `+${digitsOnly}` : null;
+}
+
+export function getCanonicalCountryCallingCode(
+  country: Pick<CountryReference, 'isoAlpha2' | 'callingCode'> | null | undefined
+) {
+  const countryCode = normalizeCountryCode(country?.isoAlpha2);
+  const normalizedCallingCode = normalizeCallingCode(country?.callingCode);
+  const guardedCallingCode = countryCode ? GUARDED_COUNTRY_CALLING_CODES[countryCode] ?? null : null;
+
+  if (guardedCallingCode) {
+    return guardedCallingCode;
+  }
+
+  return normalizedCallingCode;
+}
+
 function stripCallingCode(value: string, callingCode: string | null | undefined) {
   const normalizedCallingCode = normalizeDialableCharacters(callingCode);
   if (!normalizedCallingCode || !value.startsWith(normalizedCallingCode)) {
@@ -53,7 +80,7 @@ export function buildNormalizedPhoneParts(args: {
   const countries = args.countries ?? [];
   const selectedCountry = getCountryByCode(countries, args.countryCode);
   const selectedCountryCode = normalizeCountryCode(selectedCountry?.isoAlpha2);
-  const callingCode = selectedCountry?.callingCode?.trim() || null;
+  const callingCode = getCanonicalCountryCallingCode(selectedCountry);
 
   if (!display) {
     return {
@@ -128,12 +155,12 @@ function inferCountryCodeFromPhoneValue(
   const digitsOnly = dialable.slice(1);
   const matches = countries
     .filter((country) => {
-      const callingDigits = country.callingCode?.replace(/[^\d]/g, '') || '';
+      const callingDigits = getCanonicalCountryCallingCode(country)?.replace(/[^\d]/g, '') || '';
       return callingDigits ? digitsOnly.startsWith(callingDigits) : false;
     })
     .sort((left, right) => {
-      const leftDigits = left.callingCode?.replace(/[^\d]/g, '') || '';
-      const rightDigits = right.callingCode?.replace(/[^\d]/g, '') || '';
+      const leftDigits = getCanonicalCountryCallingCode(left)?.replace(/[^\d]/g, '') || '';
+      const rightDigits = getCanonicalCountryCallingCode(right)?.replace(/[^\d]/g, '') || '';
       return rightDigits.length - leftDigits.length;
     });
 

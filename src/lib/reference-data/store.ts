@@ -3,6 +3,7 @@ import 'server-only';
 import { cache } from 'react';
 import { unstable_noStore as noStore } from 'next/cache';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getCanonicalCountryCallingCode } from '@/lib/phone';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type {
   CountryCurrencyReference,
@@ -91,9 +92,9 @@ function mapCurrencyRow(row: CurrencyRow): CurrencyReference {
 }
 
 function mapCountryRow(row: CountryRow): CountryReference {
-  return {
-    isoAlpha2: row.iso_alpha2,
-    isoAlpha3: row.iso_alpha3,
+  const mappedCountry: CountryReference = {
+    isoAlpha2: row.iso_alpha2.trim().toUpperCase(),
+    isoAlpha3: row.iso_alpha3.trim().toUpperCase(),
     isoNumeric: row.iso_numeric,
     name: row.name,
     nativeName: row.native_name,
@@ -108,6 +109,11 @@ function mapCountryRow(row: CountryRow): CountryReference {
     isFeatured: row.is_featured,
     featuredSortOrder: row.featured_sort_order,
     sortOrder: row.sort_order,
+  };
+
+  return {
+    ...mappedCountry,
+    callingCode: getCanonicalCountryCallingCode(mappedCountry),
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { getCanonicalCountryCallingCode } from '@/lib/phone';
 import type {
   CountryCurrencyReference,
   CountryReference,
@@ -64,6 +65,7 @@ export interface ClientReferenceDataResult {
 
 let cachedResult: ClientReferenceDataResult | null = null;
 let inFlightRequest: Promise<ClientReferenceDataResult> | null = null;
+let refreshInFlightRequest: Promise<ClientReferenceDataResult> | null = null;
 
 function mapCurrencyRow(row: CurrencyRow): CurrencyReference {
   return {
@@ -85,9 +87,9 @@ function mapCurrencyRow(row: CurrencyRow): CurrencyReference {
 }
 
 function mapCountryRow(row: CountryRow): CountryReference {
-  return {
-    isoAlpha2: row.iso_alpha2,
-    isoAlpha3: row.iso_alpha3,
+  const mappedCountry: CountryReference = {
+    isoAlpha2: row.iso_alpha2.trim().toUpperCase(),
+    isoAlpha3: row.iso_alpha3.trim().toUpperCase(),
     isoNumeric: row.iso_numeric,
     name: row.name,
     nativeName: row.native_name,
@@ -102,6 +104,11 @@ function mapCountryRow(row: CountryRow): CountryReference {
     isFeatured: row.is_featured,
     featuredSortOrder: row.featured_sort_order,
     sortOrder: row.sort_order,
+  };
+
+  return {
+    ...mappedCountry,
+    callingCode: getCanonicalCountryCallingCode(mappedCountry),
   };
 }
 
@@ -162,6 +169,23 @@ async function loadClientReferenceData(): Promise<ClientReferenceDataResult> {
 }
 
 export async function getClientReferenceData(forceRefresh = false): Promise<ClientReferenceDataResult> {
+  if (forceRefresh) {
+    if (refreshInFlightRequest) {
+      return refreshInFlightRequest;
+    }
+
+    refreshInFlightRequest = loadClientReferenceData()
+      .then((result) => {
+        cachedResult = result;
+        return result;
+      })
+      .finally(() => {
+        refreshInFlightRequest = null;
+      });
+
+    return refreshInFlightRequest;
+  }
+
   if (!forceRefresh && cachedResult) {
     return cachedResult;
   }
@@ -185,23 +209,24 @@ export async function getClientReferenceData(forceRefresh = false): Promise<Clie
 export function clearClientReferenceDataCache() {
   cachedResult = null;
   inFlightRequest = null;
+  refreshInFlightRequest = null;
 }
 
-export function useClientReferenceData() {
+export function useClientReferenceData(forceRefreshOnMount = false) {
   const [state, setState] = useState<{
     data: ClientReferenceDataResult | null;
     loading: boolean;
     error: string | null;
   }>({
-    data: cachedResult,
-    loading: !cachedResult,
+    data: forceRefreshOnMount ? null : cachedResult,
+    loading: forceRefreshOnMount || !cachedResult,
     error: null,
   });
 
   useEffect(() => {
     let isMounted = true;
 
-    getClientReferenceData()
+    getClientReferenceData(forceRefreshOnMount)
       .then((data) => {
         if (!isMounted) return;
         setState({ data, loading: false, error: null });
@@ -218,7 +243,7 @@ export function useClientReferenceData() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [forceRefreshOnMount]);
 
   return state;
 }

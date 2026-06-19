@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import PhoneCountrySelector from '@/components/phone/PhoneCountrySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { buildNormalizedPhoneParts, getInitialPhoneCountryCode } from '@/lib/phone';
+import type { CountryReference } from '@/lib/reference-data/types';
 
 export interface InternationalPhoneValue {
   display: string;
@@ -23,6 +24,8 @@ interface InternationalPhoneInputProps {
   disabled?: boolean;
   className?: string;
   helperText?: string | null;
+  countries?: CountryReference[];
+  countriesLoading?: boolean;
 }
 
 export default function InternationalPhoneInput({
@@ -34,9 +37,12 @@ export default function InternationalPhoneInput({
   disabled = false,
   className = '',
   helperText = null,
+  countries: providedCountries,
+  countriesLoading = false,
 }: InternationalPhoneInputProps) {
-  const { data } = useClientReferenceData();
-  const countries = data?.snapshot.countries ?? [];
+  const { data, loading } = useClientReferenceData();
+  const countries = providedCountries ?? data?.snapshot.countries ?? [];
+  const isCountriesLoading = providedCountries ? countriesLoading : loading;
   const [selectedCountryCode, setSelectedCountryCode] = useState(() =>
     getInitialPhoneCountryCode({ explicitCountryCode: countryCode, countries })
   );
@@ -89,7 +95,9 @@ export default function InternationalPhoneInput({
             setSelectedCountryCode(nextCountryCode);
             emitChange(value || '', nextCountryCode);
           }}
-          disabled={disabled}
+          disabled={disabled || isCountriesLoading}
+          countries={countries}
+          loading={isCountriesLoading}
         />
         <input
           type="text"
@@ -97,7 +105,7 @@ export default function InternationalPhoneInput({
           autoComplete="tel"
           value={value || ''}
           onChange={(event) => emitChange(event.target.value)}
-          disabled={disabled}
+          disabled={disabled || isCountriesLoading}
           placeholder={placeholder}
           className="input-base"
         />

@@ -3,7 +3,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import SearchField from '@/components/ui/SearchField';
+import { getCanonicalCountryCallingCode } from '@/lib/phone';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import type { CountryReference } from '@/lib/reference-data/types';
 import { getSelectableActiveCountries } from '@/lib/reference-data/collections';
 import {
   getCountryByCode,
@@ -16,6 +18,8 @@ interface PhoneCountrySelectorProps {
   onChange: (countryCode: string) => void;
   disabled?: boolean;
   className?: string;
+  countries?: CountryReference[];
+  loading?: boolean;
 }
 
 export default function PhoneCountrySelector({
@@ -23,6 +27,8 @@ export default function PhoneCountrySelector({
   onChange,
   disabled = false,
   className = '',
+  countries: providedCountries,
+  loading: providedLoading,
 }: PhoneCountrySelectorProps) {
   const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
@@ -31,7 +37,8 @@ export default function PhoneCountrySelector({
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const countries = data?.snapshot.countries ?? [];
+  const countries = providedCountries ?? data?.snapshot.countries ?? [];
+  const isLoading = providedLoading ?? loading;
   const orderedCountries = useMemo(() => getSelectableActiveCountries(countries), [countries]);
   const selectedCountry = getCountryByCode(countries, value);
   const normalizedValue = normalizeCountryCode(value);
@@ -47,7 +54,9 @@ export default function PhoneCountrySelector({
   }, [orderedCountries, search]);
 
   const selectedCountryLabel = selectedCountry
-    ? [selectedCountry.isoAlpha2, selectedCountry.callingCode].filter(Boolean).join(' · ')
+    ? [selectedCountry.isoAlpha2, getCanonicalCountryCallingCode(selectedCountry)]
+        .filter(Boolean)
+        .join(' · ')
     : '';
 
   useEffect(() => {
@@ -125,7 +134,7 @@ export default function PhoneCountrySelector({
           </span>
         ) : (
           <span className="text-sm text-muted-foreground">
-            {loading ? 'Loading...' : 'Select'}
+            {isLoading ? 'Loading...' : 'Select'}
           </span>
         )}
         <svg
@@ -173,7 +182,7 @@ export default function PhoneCountrySelector({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-700 text-foreground">{country.name}</p>
                     <p className="whitespace-nowrap text-sm text-muted-foreground">
-                      {[country.isoAlpha2, country.callingCode].filter(Boolean).join(' • ')}
+                      {[country.isoAlpha2, getCanonicalCountryCallingCode(country)].filter(Boolean).join(' • ')}
                     </p>
                   </div>
                   {country.isoAlpha2 === normalizedValue ? (
