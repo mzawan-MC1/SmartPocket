@@ -12,9 +12,7 @@ export interface NormalizedPhoneParts {
 }
 
 export const LEGACY_PLATFORM_CONTACT_PHONE_COUNTRY_CODE = 'AE';
-const GUARDED_COUNTRY_CALLING_CODES: Record<string, string> = {
-  AE: '+971',
-};
+const VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES = new Set(['1', '7']);
 
 export function sanitizePhoneDisplay(value: string | null | undefined) {
   return (value || '').trim().replace(/\s+/g, ' ');
@@ -48,18 +46,65 @@ export function normalizeCallingCode(value: string | null | undefined) {
   return digitsOnly ? `+${digitsOnly}` : null;
 }
 
-export function getCanonicalCountryCallingCode(
-  country: Pick<CountryReference, 'isoAlpha2' | 'callingCode'> | null | undefined
-) {
-  const countryCode = normalizeCountryCode(country?.isoAlpha2);
-  const normalizedCallingCode = normalizeCallingCode(country?.callingCode);
-  const guardedCallingCode = countryCode ? GUARDED_COUNTRY_CALLING_CODES[countryCode] ?? null : null;
+export function normalizeCallingCodeSuffix(value: string | null | undefined) {
+  const normalized = (value || '').trim();
+  return /^\d+$/.test(normalized) ? normalized : null;
+}
 
-  if (guardedCallingCode) {
-    return guardedCallingCode;
+export function getCanonicalCountryCallingCode(
+  country: Pick<CountryReference, 'isoAlpha2' | 'callingCode' | 'callingCodeSuffix'> | null | undefined
+) {
+  const normalizedCallingCode = normalizeCallingCode(country?.callingCode);
+  const normalizedSuffix = normalizeCallingCodeSuffix(country?.callingCodeSuffix);
+  if (!normalizedCallingCode) return null;
+  if (!normalizedSuffix) return normalizedCallingCode;
+
+  const digitsOnly = normalizedCallingCode.slice(1);
+  if (digitsOnly.endsWith(normalizedSuffix)) {
+    return normalizedCallingCode;
+  }
+
+  if (digitsOnly.length === 1 && !VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES.has(digitsOnly)) {
+    return `+${digitsOnly}${normalizedSuffix}`;
   }
 
   return normalizedCallingCode;
+}
+
+export function getCountryCallingCodeVariants(
+  country:
+    | Pick<CountryReference, 'callingCode' | 'callingCodeSuffix' | 'callingCodeSuffixes'>
+    | null
+    | undefined
+) {
+  const canonicalCallingCode = getCanonicalCountryCallingCode(country);
+  if (!canonicalCallingCode) {
+    return [];
+  }
+
+  const variants = new Set<string>([canonicalCallingCode]);
+  const normalizedCallingCode = normalizeCallingCode(country?.callingCode);
+  const normalizedSuffixes = (country?.callingCodeSuffixes ?? [])
+    .map((suffix) => normalizeCallingCodeSuffix(suffix))
+    .filter((suffix): suffix is string => Boolean(suffix));
+  const primarySuffix = normalizeCallingCodeSuffix(country?.callingCodeSuffix);
+
+  let rootCallingCode: string | null = normalizedCallingCode;
+  if (primarySuffix) {
+    const canonicalDigits = canonicalCallingCode.slice(1);
+    if (canonicalDigits.endsWith(primarySuffix)) {
+      const rootDigits = canonicalDigits.slice(0, -primarySuffix.length);
+      rootCallingCode = rootDigits ? `+${rootDigits}` : canonicalCallingCode;
+    }
+  }
+
+  if (rootCallingCode) {
+    for (const suffix of normalizedSuffixes) {
+      variants.add(`${rootCallingCode}${suffix}`);
+    }
+  }
+
+  return Array.from(variants);
 }
 
 function stripCallingCode(value: string, callingCode: string | null | undefined) {
@@ -129,11 +174,21 @@ export function buildNormalizedPhoneParts(args: {
 
 export function getInitialPhoneCountryCode(args: {
   explicitCountryCode?: string | null;
+  inferredPhoneValue?: string | null;
+  defaultCountryCode?: string | null;
   fallbackCountryCode?: string | null;
   countries?: CountryReference[];
 }) {
   const direct = normalizeCountryCode(args.explicitCountryCode);
   if (direct) return direct;
+
+  const inferred = inferCountryCodeFromPhoneValue(args.inferredPhoneValue, args.countries);
+  if (inferred) return inferred;
+
+  const defaultCountryCode = normalizeCountryCode(args.defaultCountryCode);
+  if (defaultCountryCode && getCountryByCode(args.countries ?? [], defaultCountryCode)) {
+    return defaultCountryCode;
+  }
 
   const fallback = normalizeCountryCode(args.fallbackCountryCode);
   if (fallback && getCountryByCode(args.countries ?? [], fallback)) {
@@ -141,6 +196,54 @@ export function getInitialPhoneCountryCode(args: {
   }
 
   return '';
+}
+
+export function rebuildPhoneForCountryChange(args: {
+  value: string | null | undefined;
+  currentCountryCode?: string | null;
+  nextCountryCode?: string | null;
+  countries?: CountryReference[];
+}) {
+  const nextCountryCode = normalizeCountryCode(args.nextCountryCode);
+  if (!nextCountryCode) {
+    return sanitizePhoneDisplay(args.value);
+  }
+
+  const countries = args.countries ?? [];
+  const nextCountry = getCountryByCode(countries, nextCountryCode);
+  const nextCallingCode = getCanonicalCountryCallingCode(nextCountry);
+  if (!nextCountry || !nextCallingCode) {
+    return sanitizePhoneDisplay(args.value);
+  }
+
+  const currentNormalized = buildNormalizedPhoneParts({
+    value: args.value,
+    countryCode: args.currentCountryCode,
+    countries,
+  });
+  let nationalDigits = currentNormalized.nationalNumber.replace(/[^\d]/g, '');
+
+  if (!nationalDigits) {
+    const inferredCountryCode = inferCountryCodeFromPhoneValue(args.value, countries);
+    if (inferredCountryCode) {
+      nationalDigits = buildNormalizedPhoneParts({
+        value: args.value,
+        countryCode: inferredCountryCode,
+        countries,
+      }).nationalNumber.replace(/[^\d]/g, '');
+    }
+  }
+
+  if (!nationalDigits) {
+    const rawDigits = normalizeDialableCharacters(args.value).replace(/^\+/, '').replace(/[^\d]/g, '');
+    nationalDigits = rawDigits.replace(/^0+/, '') || rawDigits;
+  }
+
+  if (!nationalDigits) {
+    return sanitizePhoneDisplay(args.value);
+  }
+
+  return `${nextCallingCode}${nationalDigits}`;
 }
 
 function inferCountryCodeFromPhoneValue(
@@ -155,13 +258,23 @@ function inferCountryCodeFromPhoneValue(
   const digitsOnly = dialable.slice(1);
   const matches = countries
     .filter((country) => {
-      const callingDigits = getCanonicalCountryCallingCode(country)?.replace(/[^\d]/g, '') || '';
-      return callingDigits ? digitsOnly.startsWith(callingDigits) : false;
+      return getCountryCallingCodeVariants(country).some((callingCode) => {
+        const callingDigits = callingCode.replace(/[^\d]/g, '');
+        return callingDigits ? digitsOnly.startsWith(callingDigits) : false;
+      });
     })
     .sort((left, right) => {
-      const leftDigits = getCanonicalCountryCallingCode(left)?.replace(/[^\d]/g, '') || '';
-      const rightDigits = getCanonicalCountryCallingCode(right)?.replace(/[^\d]/g, '') || '';
-      return rightDigits.length - leftDigits.length;
+      const leftDigits = getCountryCallingCodeVariants(left).reduce(
+        (longest, callingCode) =>
+          Math.max(longest, callingCode.replace(/[^\d]/g, '').length),
+        0
+      );
+      const rightDigits = getCountryCallingCodeVariants(right).reduce(
+        (longest, callingCode) =>
+          Math.max(longest, callingCode.replace(/[^\d]/g, '').length),
+        0
+      );
+      return rightDigits - leftDigits;
     });
 
   return matches[0]?.isoAlpha2 || '';

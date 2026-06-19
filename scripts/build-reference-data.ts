@@ -85,6 +85,8 @@ type CountryCurrencyReferenceSeed = {
   priority: number;
 };
 
+const VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES = new Set(['1', '7']);
+
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REFERENCE_DIR = path.join(ROOT_DIR, 'supabase', 'reference');
 const PUBLIC_CURRENCIES_DIR = path.join(ROOT_DIR, 'public', 'currencies');
@@ -339,10 +341,16 @@ function normalizeCallingCode(country: SourceCountry) {
   const suffixes = (country.idd?.suffixes ?? [])
     .map((suffix) => suffix.trim())
     .filter((suffix) => /^\d+$/.test(suffix));
+  const rootDigits = root?.replace(/[^\d]/g, '') || '';
+  const primarySuffix = suffixes[0] ?? null;
+  const callingCode =
+    root && primarySuffix && rootDigits.length === 1 && !VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES.has(rootDigits)
+      ? `${root}${primarySuffix}`
+      : root;
 
   return {
-    callingCode: root,
-    primarySuffix: suffixes[0] ?? null,
+    callingCode,
+    primarySuffix,
     suffixes,
   };
 }

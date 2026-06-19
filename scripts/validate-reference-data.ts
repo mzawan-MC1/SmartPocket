@@ -46,6 +46,8 @@ type CountryCurrencyReferenceSeed = {
   priority: number;
 };
 
+const VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES = new Set(['1', '7']);
+
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REFERENCE_DIR = path.join(ROOT_DIR, 'supabase', 'reference');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
@@ -76,6 +78,7 @@ async function main() {
   const currencyByCode = new Map(currencies.map((currency) => [currency.code, currency]));
   const countryByCode = new Map(countries.map((country) => [country.iso_alpha2, country]));
   const mappingPairs = new Set<string>();
+  const truncatedCallingCodes: string[] = [];
 
   for (const currency of currencies) {
     assert(/^[A-Z]{3}$/.test(currency.code), `Invalid currency code: ${currency.code}`);
@@ -117,6 +120,15 @@ async function main() {
       country.calling_code_suffixes.every((suffix) => /^\d+$/.test(suffix)),
       `Invalid calling code suffix list for ${country.iso_alpha2}`
     );
+    if (country.calling_code && country.calling_code_suffix) {
+      const digitsOnly = country.calling_code.replace(/[^\d]/g, '');
+      if (
+        digitsOnly.length === 1 &&
+        !VALID_SINGLE_DIGIT_COUNTRY_CALLING_CODES.has(digitsOnly)
+      ) {
+        truncatedCallingCodes.push(country.iso_alpha2);
+      }
+    }
     if (country.default_currency_code !== null) {
       assert(
         currencyByCode.has(country.default_currency_code),
@@ -189,6 +201,10 @@ async function main() {
   assert(
     new Set(featuredCountryOrders).size === featuredCountryOrders.length,
     'Featured country sort order must be deterministic.'
+  );
+  assert(
+    truncatedCallingCodes.length === 0,
+    `Countries use truncated root-only calling codes: ${truncatedCallingCodes.join(', ')}`
   );
 
   console.log(

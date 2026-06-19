@@ -3,7 +3,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import PhoneCountrySelector from '@/components/phone/PhoneCountrySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
-import { buildNormalizedPhoneParts, getInitialPhoneCountryCode } from '@/lib/phone';
+import {
+  buildNormalizedPhoneParts,
+  getInitialPhoneCountryCode,
+  rebuildPhoneForCountryChange,
+} from '@/lib/phone';
 import type { CountryReference } from '@/lib/reference-data/types';
 
 export interface InternationalPhoneValue {
@@ -44,7 +48,7 @@ export default function InternationalPhoneInput({
   const countries = providedCountries ?? data?.snapshot.countries ?? [];
   const isCountriesLoading = providedCountries ? countriesLoading : loading;
   const [selectedCountryCode, setSelectedCountryCode] = useState(() =>
-    getInitialPhoneCountryCode({ explicitCountryCode: countryCode, countries })
+    getInitialPhoneCountryCode({ explicitCountryCode: countryCode, inferredPhoneValue: value, countries })
   );
 
   useEffect(() => {
@@ -52,11 +56,12 @@ export default function InternationalPhoneInput({
     setSelectedCountryCode(
       getInitialPhoneCountryCode({
         explicitCountryCode: countryCode,
+        inferredPhoneValue: value,
         fallbackCountryCode: selectedCountryCode,
         countries,
       })
     );
-  }, [countries, countryCode, selectedCountryCode]);
+  }, [countries, countryCode, selectedCountryCode, value]);
 
   const normalized = useMemo(
     () =>
@@ -92,8 +97,14 @@ export default function InternationalPhoneInput({
         <PhoneCountrySelector
           value={selectedCountryCode}
           onChange={(nextCountryCode) => {
+            const rebuiltValue = rebuildPhoneForCountryChange({
+              value,
+              currentCountryCode: selectedCountryCode,
+              nextCountryCode,
+              countries,
+            });
             setSelectedCountryCode(nextCountryCode);
-            emitChange(value || '', nextCountryCode);
+            emitChange(rebuiltValue, nextCountryCode);
           }}
           disabled={disabled || isCountriesLoading}
           countries={countries}

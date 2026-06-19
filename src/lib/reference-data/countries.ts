@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { getCanonicalCountryCallingCode, getCountryCallingCodeVariants, normalizeCallingCode } from '@/lib/phone';
 import { getReferenceDataSnapshot } from '@/lib/reference-data/store';
 
 function compareCountries(
@@ -10,10 +11,6 @@ function compareCountries(
     left.name.localeCompare(right.name, 'en', { sensitivity: 'base' }) ||
     left.isoAlpha2.localeCompare(right.isoAlpha2)
   );
-}
-
-function normalizeCallingCode(value: string) {
-  return value.replace(/[^\d+]/g, '');
 }
 
 export async function getAllActiveCountries() {
@@ -53,23 +50,25 @@ export async function getCountryByIsoAlpha2(countryCode: string) {
 export async function getCountriesByCallingCode(callingCode: string) {
   const snapshot = await getReferenceDataSnapshot();
   const normalizedCallingCode = normalizeCallingCode(callingCode);
+  if (!normalizedCallingCode) {
+    return [];
+  }
 
   return snapshot.countries
     .filter((country) => {
-      if (!country.isActive || !country.callingCode) {
+      if (!country.isActive) {
         return false;
       }
 
-      if (country.callingCode === normalizedCallingCode) {
-        return true;
-      }
-
-      return country.callingCodeSuffixes.some((suffix) => {
-        const combinedCode = `${country.callingCode}${suffix}`;
-        return combinedCode === normalizedCallingCode || normalizedCallingCode.startsWith(combinedCode);
-      });
+      return getCountryCallingCodeVariants(country).some(
+        (variant) => variant === normalizedCallingCode || normalizedCallingCode.startsWith(variant)
+      );
     })
-    .sort(compareCountries);
+    .sort((left, right) => {
+      const leftDigits = getCanonicalCountryCallingCode(left)?.replace(/[^\d]/g, '').length ?? 0;
+      const rightDigits = getCanonicalCountryCallingCode(right)?.replace(/[^\d]/g, '').length ?? 0;
+      return rightDigits - leftDigits || compareCountries(left, right);
+    });
 }
 
 export async function getCountryCurrencies(countryCode: string) {
