@@ -826,16 +826,16 @@ export default function ReportsScreen() {
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-3 print:hidden">
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="card-elevated p-2.5 print:hidden">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-1 xl:flex-nowrap xl:gap-1.5">
                 {reportPresets.map((preset) => (
                   <button
                     key={preset.key}
                     type="button"
                     onClick={() => handlePresetChange(preset.key)}
                     aria-pressed={activePreset === preset.key}
-                    className={`rounded-lg border px-2 py-1 text-[11px] font-600 leading-none transition-all ${
+                    className={`whitespace-nowrap rounded-lg border px-1.5 py-1 text-[10px] font-600 leading-none transition-all xl:px-2 xl:text-[11px] ${
                       activePreset === preset.key ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
                     }`}
                   >
@@ -844,9 +844,10 @@ export default function ReportsScreen() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
                   <Calendar size={14} className="text-muted-foreground" />
+                  <span className="text-[11px] font-600 text-muted-foreground">From</span>
                   <label className="sr-only" htmlFor="report-date-from">Report start date</label>
                   <input
                     id="report-date-from"
@@ -856,9 +857,9 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateFrom(event.target.value);
                     }}
-                    className="input-base h-8 w-[148px] max-w-full text-sm"
+                    className="input-base h-8 w-[136px] max-w-full px-2 text-sm"
                   />
-                  <span className="text-xs text-muted-foreground">to</span>
+                  <span className="text-[11px] font-600 text-muted-foreground">To</span>
                   <label className="sr-only" htmlFor="report-date-to">Report end date</label>
                   <input
                     id="report-date-to"
@@ -868,16 +869,17 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateTo(event.target.value);
                     }}
-                    className="input-base h-8 w-[148px] max-w-full text-sm"
+                    className="input-base h-8 w-[136px] max-w-full px-2 text-sm"
                   />
                   <div className="flex items-center gap-1.5 max-sm:w-full">
                     <Filter size={13} className="text-muted-foreground" />
+                    <span className="text-[11px] font-600 text-muted-foreground">Account</span>
                     <label className="sr-only" htmlFor="report-account-filter">Filter by account</label>
                     <select
                       id="report-account-filter"
                       value={selectedAccount}
                       onChange={(event) => setSelectedAccount(event.target.value)}
-                      className="input-base h-8 min-w-[150px] max-w-full text-sm"
+                      className="input-base h-8 min-w-[140px] max-w-full px-2 text-sm"
                     >
                       <option value="all">All Accounts</option>
                       {(reportData?.accounts || []).map((account) => (
@@ -887,12 +889,12 @@ export default function ReportsScreen() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+                <div className="flex flex-wrap items-center gap-1.5 xl:ml-auto xl:flex-nowrap">
                   <button
                     type="button"
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
-                    className="btn-secondary h-8 px-2.5 text-sm"
+                    className="btn-secondary h-8 px-2 text-sm"
                     aria-label={`Previous ${activeRange?.navigationLabel || 'period'}`}
                   >
                     <ChevronLeft size={14} />
@@ -902,7 +904,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
                     disabled={periodLoading}
-                    className="btn-secondary h-8 px-2.5 text-sm"
+                    className="btn-secondary h-8 px-2 text-sm"
                   >
                     Current
                   </button>
@@ -910,17 +912,14 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
-                    className="btn-secondary h-8 px-2.5 text-sm"
+                    className="btn-secondary h-8 px-2 text-sm"
                     aria-label={`Next ${activeRange?.navigationLabel || 'period'}`}
                   >
                     Next
                     <ChevronRight size={14} />
                   </button>
                 </div>
-              </div>
-
-              <div className="min-h-[20px] px-0.5">
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground xl:text-right">
                   <span className="font-600 text-foreground">{activeRange?.label || 'Loading period...'}</span>
                   {' · '}
                   {activeRange?.comparisonLabel
