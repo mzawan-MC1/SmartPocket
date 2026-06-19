@@ -101,9 +101,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* Language Switcher */}
           <LanguageSwitcher variant="compact" />
 
-          <div className="[&_svg]:h-[22px] [&_svg]:w-[22px]">
-            <NotificationBell />
-          </div>
+          <NotificationBell />
 
           {/* User Menu */}
           <div className="relative" ref={menuRef}>

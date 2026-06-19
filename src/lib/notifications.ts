@@ -308,7 +308,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
     return;
   }
 
-  const { supabase, userId } = await requireUserId();
+  const { supabase } = await requireUserId();
   const periodContext = await loadUserFinancialPeriodContext();
   const todayIso = periodContext.currentBusinessDate;
   const tomorrowIso = addDays(todayIso, 1);
@@ -472,8 +472,4 @@ export async function syncInAppNotificationSignals(): Promise<void> {
     }
   }
 
-  dispatchSmartPocketDataChanged({
-    source: `notifications:sync:${userId}`,
-    entities: ['notifications'],
-  });
 }

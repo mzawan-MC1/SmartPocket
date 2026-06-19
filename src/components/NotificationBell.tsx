@@ -13,6 +13,8 @@ import {
 } from '@/lib/notifications';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 
+const NOTIFICATION_STALE_MS = 60 * 1000;
+
 function formatNotificationTime(value: string) {
   const date = new Date(value);
   const diffMs = date.getTime() - Date.now();
@@ -39,6 +41,10 @@ function formatNotificationTime(value: string) {
 export default function NotificationBell() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const hasLoadedRef = useRef(false);
+  const lastLoadedAtRef = useRef<number | null>(null);
+  const lightRefreshInFlightRef = useRef<Promise<void> | null>(null);
+  const syncInFlightRef = useRef<Promise<void> | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -47,44 +53,93 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const refresh = useCallback(async (syncSignals = false) => {
-    setError(null);
-    setLoading(true);
-    try {
-      if (syncSignals) {
-        setSyncing(true);
-        await syncInAppNotificationSignals();
+  const refreshLight = useCallback(async ({ showLoading = false }: { showLoading?: boolean } = {}) => {
+    if (lightRefreshInFlightRef.current) {
+      return lightRefreshInFlightRef.current;
+    }
+
+    const shouldShowLoading = showLoading && !hasLoadedRef.current;
+    const refreshPromise = (async () => {
+      if (shouldShowLoading) {
+        setLoading(true);
       }
 
-      const [items, unread] = await Promise.all([
-        listNotifications(),
-        getUnreadNotificationCount(),
-      ]);
-      setNotifications(items);
-      setUnreadCount(unread);
-    } catch (refreshError) {
-      setError(refreshError instanceof Error ? refreshError.message : 'Failed to load notifications.');
-    } finally {
-      setLoading(false);
-      setSyncing(false);
+      try {
+        const [items, unread] = await Promise.all([
+          listNotifications(),
+          getUnreadNotificationCount(),
+        ]);
+        hasLoadedRef.current = true;
+        lastLoadedAtRef.current = Date.now();
+        setNotifications(items);
+        setUnreadCount(unread);
+        setError(null);
+      } catch (refreshError) {
+        if (!hasLoadedRef.current) {
+          setError(refreshError instanceof Error ? refreshError.message : 'Failed to load notifications.');
+        }
+      } finally {
+        if (shouldShowLoading) {
+          setLoading(false);
+        }
+        lightRefreshInFlightRef.current = null;
+      }
+    })();
+
+    lightRefreshInFlightRef.current = refreshPromise;
+    return refreshPromise;
+  }, []);
+
+  const runSignalSync = useCallback(async () => {
+    if (syncInFlightRef.current) {
+      return syncInFlightRef.current;
     }
+
+    const syncPromise = (async () => {
+      setSyncing(true);
+      try {
+        await syncInAppNotificationSignals();
+      } catch (syncError) {
+        if (!hasLoadedRef.current) {
+          setError(syncError instanceof Error ? syncError.message : 'Failed to refresh alerts.');
+        }
+      } finally {
+        setSyncing(false);
+        syncInFlightRef.current = null;
+      }
+    })();
+
+    syncInFlightRef.current = syncPromise;
+    return syncPromise;
+  }, []);
+
+  const isDataStale = useCallback(() => {
+    if (lastLoadedAtRef.current === null) {
+      return true;
+    }
+    return Date.now() - lastLoadedAtRef.current > NOTIFICATION_STALE_MS;
   }, []);
 
   useEffect(() => {
-    void refresh(true);
-  }, [refresh]);
+    void refreshLight({ showLoading: true });
+    void runSignalSync();
+  }, [refreshLight, runSignalSync]);
 
-  useSmartPocketDataChanged(['notifications', 'profile', 'recurring_transactions', 'budgets'], 'NotificationBell', () => {
-    void refresh(true);
+  useSmartPocketDataChanged(['notifications'], 'NotificationBellNotifications', () => {
+    void refreshLight();
+  });
+
+  useSmartPocketDataChanged(['profile', 'recurring_transactions', 'budgets'], 'NotificationBellSignals', () => {
+    void runSignalSync();
   });
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      void refresh(true);
+      void refreshLight();
     }, 5 * 60 * 1000);
 
     return () => window.clearInterval(interval);
-  }, [refresh]);
+  }, [refreshLight]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -128,13 +183,18 @@ export default function NotificationBell() {
     setError(null);
     try {
       await markAllNotificationsAsRead();
-      await refresh();
+      await refreshLight();
     } catch (markError) {
       setError(markError instanceof Error ? markError.message : 'Failed to mark notifications as read.');
     } finally {
       setMarkingAll(false);
     }
-  }, [refresh]);
+  }, [refreshLight]);
+
+  const handleRetry = useCallback(async () => {
+    await refreshLight({ showLoading: true });
+    void runSignalSync();
+  }, [refreshLight, runSignalSync]);
 
   const headerLabel = useMemo(() => {
     if (unreadCount <= 0) return 'No unread notifications';
@@ -146,21 +206,21 @@ export default function NotificationBell() {
     <div className="relative" ref={containerRef}>
       <button
         type="button"
-        className="btn-ghost relative h-10 w-10 p-0"
+        className="btn-ghost relative h-12 w-12 shrink-0 p-0"
         aria-label="Notifications"
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
           const nextOpen = !open;
           setOpen(nextOpen);
-          if (nextOpen) {
-            void refresh();
+          if (nextOpen && isDataStale()) {
+            void refreshLight();
           }
         }}
       >
-        <Bell size={18} />
+        <Bell className="h-[44px] w-[44px]" />
         {unreadDot ? (
-          <span className="absolute top-1.5 end-1.5 flex min-h-2.5 min-w-2.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-700 text-white ring-2 ring-card">
+          <span className="absolute end-1 top-1 flex min-h-2.5 min-w-2.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-700 text-white ring-2 ring-card">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         ) : null}
@@ -206,7 +266,7 @@ export default function NotificationBell() {
                 <button
                   type="button"
                   className="mt-3 btn-secondary text-sm"
-                  onClick={() => void refresh(true)}
+                  onClick={() => void handleRetry()}
                 >
                   Try again
                 </button>
