@@ -1,8 +1,27 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
+import CmsPageView from '@/components/cms/CmsPageView';
+import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublicCmsPageBySlug('about');
+  if (!page) {
+    return {
+      title: 'About Smart Pocket',
+      description: 'Learn more about Smart Pocket and the mission behind the platform.',
+    };
+  }
+
+  return {
+    title: page.seo_title_resolved,
+    description: page.seo_description_resolved,
+  };
+}
+
+function LegacyAboutPage() {
   return (
     <div className="py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -44,4 +63,29 @@ export default function AboutPage() {
       </div>
     </div>
   );
+}
+
+export default async function AboutPage() {
+  const cmsPage = await getPublicCmsPageBySlug('about');
+  if (cmsPage) {
+    return (
+      <CmsPageView
+        page={cmsPage}
+        afterContent={
+          <div className="text-center">
+            <Link href="/sign-up-login" className="btn-primary text-base py-3 px-8 mx-auto">
+              Start for Free <ArrowRight size={18} />
+            </Link>
+          </div>
+        }
+      />
+    );
+  }
+
+  const anyPage = await getAnyCmsPageBySlug('about');
+  if (anyPage) {
+    notFound();
+  }
+
+  return <LegacyAboutPage />;
 }

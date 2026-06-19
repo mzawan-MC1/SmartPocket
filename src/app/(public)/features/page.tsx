@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { ArrowRight, BarChart3, Wallet, PieChart, Shield, Globe, Smartphone, TrendingUp, FileText, RefreshCw, Bell, Lock, Download, CheckCircle2, Monitor, Languages, CreditCard, Tag, Receipt } from 'lucide-react';
-import Icon from '@/components/ui/AppIcon';
+import CmsHtml from '@/components/cms/CmsHtml';
+import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 
 
 const ALL_FEATURES = [
@@ -52,11 +55,65 @@ const ALL_FEATURES = [
   },
 ];
 
-export default function FeaturesPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublicCmsPageBySlug('features');
+  if (!page) {
+    return {
+      title: 'Features | Smart Pocket',
+      description: 'Explore Smart Pocket features for budgeting, tracking, reports, and secure finance management.',
+    };
+  }
+
+  return {
+    title: page.seo_title_resolved,
+    description: page.seo_description_resolved,
+  };
+}
+
+function FeaturesExperience() {
+  return (
+    <>
+      <div className="space-y-16">
+        {ALL_FEATURES?.map((cat) => (
+          <div key={cat?.category}>
+            <h2 className="text-xl font-700 text-foreground mb-6 pb-3 border-b border-border">
+              {cat?.category}
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {cat?.items?.map((item) => {
+                const Icon = item?.icon;
+                return (
+                  <div key={item?.title} className="flex gap-4 p-5 rounded-2xl border border-border hover:border-accent/30 hover:bg-accent/3 transition-all">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
+                      <Icon size={18} className="text-accent" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-700 text-foreground mb-1">{item?.title}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item?.desc}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-16 text-center card-elevated p-10">
+        <h2 className="text-2xl font-700 text-foreground mb-3">Ready to get started?</h2>
+        <p className="text-muted-foreground mb-6">Free plan available. No credit card required.</p>
+        <Link href="/sign-up-login" className="btn-primary text-base py-3 px-8 mx-auto gap-2">
+          Create Free Account <ArrowRight size={18} />
+        </Link>
+      </div>
+    </>
+  );
+}
+
+function LegacyFeaturesPage() {
   return (
     <div className="py-16 px-4">
       <div className="max-w-5xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-16">
           <h1 className="text-4xl sm:text-5xl font-800 text-foreground mb-4 tracking-tight">
             Everything you need to manage money
@@ -73,43 +130,43 @@ export default function FeaturesPage() {
             </Link>
           </div>
         </div>
-
-        {/* Feature categories */}
-        <div className="space-y-16">
-          {ALL_FEATURES?.map((cat) => (
-            <div key={cat?.category}>
-              <h2 className="text-xl font-700 text-foreground mb-6 pb-3 border-b border-border">
-                {cat?.category}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {cat?.items?.map((item) => {
-                  const Icon = item?.icon;
-                  return (
-                    <div key={item?.title} className="flex gap-4 p-5 rounded-2xl border border-border hover:border-accent/30 hover:bg-accent/3 transition-all">
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <Icon size={18} className="text-accent" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-700 text-foreground mb-1">{item?.title}</h3>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{item?.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* CTA */}
-        <div className="mt-16 text-center card-elevated p-10">
-          <h2 className="text-2xl font-700 text-foreground mb-3">Ready to get started?</h2>
-          <p className="text-muted-foreground mb-6">Free plan available. No credit card required.</p>
-          <Link href="/sign-up-login" className="btn-primary text-base py-3 px-8 mx-auto gap-2">
-            Create Free Account <ArrowRight size={18} />
-          </Link>
-        </div>
+        <FeaturesExperience />
       </div>
     </div>
   );
+}
+
+export default async function FeaturesPage() {
+  const cmsPage = await getPublicCmsPageBySlug('features');
+  if (cmsPage) {
+    return (
+      <div className="py-16 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h1 className="text-4xl sm:text-5xl font-800 text-foreground mb-4 tracking-tight">{cmsPage.title}</h1>
+            <CmsHtml
+              html={cmsPage.content_html_sanitized}
+              className="prose prose-slate mx-auto max-w-none text-muted-foreground [&_a]:text-accent [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground"
+            />
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+              <Link href="/sign-up-login" className="btn-primary text-base py-3 px-8 gap-2">
+                Get Started Free <ArrowRight size={18} />
+              </Link>
+              <Link href="/pricing" className="btn-secondary text-base py-3 px-8">
+                View Pricing
+              </Link>
+            </div>
+          </div>
+          <FeaturesExperience />
+        </div>
+      </div>
+    );
+  }
+
+  const anyPage = await getAnyCmsPageBySlug('features');
+  if (anyPage) {
+    notFound();
+  }
+
+  return <LegacyFeaturesPage />;
 }

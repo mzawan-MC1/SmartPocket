@@ -4,6 +4,7 @@ import { cache } from 'react';
 import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { normalizePlatformSettings, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
+import { listPublicCmsPages } from '@/lib/cms-pages-server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 async function readPlatformSettingsWithAnonClient() {
@@ -63,16 +64,74 @@ export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSetti
   try {
     const anonData = await readPlatformSettingsWithAnonClient();
     if (anonData) {
-      return normalizePlatformSettings(anonData);
+      const normalized = normalizePlatformSettings(anonData);
+      const pages = await listPublicCmsPages();
+      return mergePublicCmsNavigation(normalized, pages);
     }
   } catch {}
 
   try {
     const adminData = await readPlatformSettingsWithAdminClient();
     if (adminData) {
-      return normalizePlatformSettings(adminData);
+      const normalized = normalizePlatformSettings(adminData);
+      const pages = await listPublicCmsPages();
+      return mergePublicCmsNavigation(normalized, pages);
     }
   } catch {}
 
-  return normalizePlatformSettings(null);
+  const normalized = normalizePlatformSettings(null);
+  const pages = await listPublicCmsPages();
+  return mergePublicCmsNavigation(normalized, pages);
 });
+
+function mergePublicCmsNavigation(
+  settings: PlatformSettingsSnapshot,
+  pages: Awaited<ReturnType<typeof listPublicCmsPages>>
+) {
+  if (!pages.length) {
+    return settings;
+  }
+
+  const existingHeaderHrefs = new Set(settings.publicUi.headerMenu.map((item) => item.href));
+  const headerPages = pages
+    .filter((page) => page.show_in_header)
+    .filter((page) => !existingHeaderHrefs.has(`/${page.slug}`))
+    .map((page) => ({
+      id: `cms-header-${page.id}`,
+      label: page.navigation_label_resolved,
+      href: `/${page.slug}`,
+    }));
+
+  const existingFooterHrefs = new Set(
+    settings.publicUi.footerSections.flatMap((section) => section.links.map((link) => link.href))
+  );
+  const footerLinks = pages
+    .filter((page) => page.show_in_footer)
+    .filter((page) => !existingFooterHrefs.has(`/${page.slug}`))
+    .map((page) => ({
+      id: `cms-footer-${page.id}`,
+      label: page.navigation_label_resolved,
+      href: `/${page.slug}`,
+    }));
+
+  const footerSections =
+    footerLinks.length > 0
+      ? [
+          ...settings.publicUi.footerSections,
+          {
+            id: 'cms-pages',
+            title: 'Pages',
+            links: footerLinks,
+          },
+        ]
+      : settings.publicUi.footerSections;
+
+  return {
+    ...settings,
+    publicUi: {
+      ...settings.publicUi,
+      headerMenu: [...settings.publicUi.headerMenu, ...headerPages],
+      footerSections,
+    },
+  };
+}

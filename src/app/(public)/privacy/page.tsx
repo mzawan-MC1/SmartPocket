@@ -1,4 +1,24 @@
-export default function PrivacyPage() {
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import CmsPageView from '@/components/cms/CmsPageView';
+import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublicCmsPageBySlug('privacy');
+  if (!page) {
+    return {
+      title: 'Privacy Policy',
+      description: 'Learn how Smart Pocket collects, uses, and protects personal and financial information.',
+    };
+  }
+
+  return {
+    title: page.seo_title_resolved,
+    description: page.seo_description_resolved,
+  };
+}
+
+function LegacyPrivacyPage() {
   return (
     <div className="py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -23,4 +43,18 @@ export default function PrivacyPage() {
       </div>
     </div>
   );
+}
+
+export default async function PrivacyPage() {
+  const cmsPage = await getPublicCmsPageBySlug('privacy');
+  if (cmsPage) {
+    return <CmsPageView page={cmsPage} />;
+  }
+
+  const anyPage = await getAnyCmsPageBySlug('privacy');
+  if (anyPage) {
+    notFound();
+  }
+
+  return <LegacyPrivacyPage />;
 }

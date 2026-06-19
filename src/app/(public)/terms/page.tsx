@@ -1,4 +1,24 @@
-export default function TermsPage() {
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import CmsPageView from '@/components/cms/CmsPageView';
+import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getPublicCmsPageBySlug('terms');
+  if (!page) {
+    return {
+      title: 'Terms of Service',
+      description: 'Read the terms that govern access to and use of Smart Pocket.',
+    };
+  }
+
+  return {
+    title: page.seo_title_resolved,
+    description: page.seo_description_resolved,
+  };
+}
+
+function LegacyTermsPage() {
   return (
     <div className="py-16 px-4">
       <div className="max-w-3xl mx-auto">
@@ -24,4 +44,18 @@ export default function TermsPage() {
       </div>
     </div>
   );
+}
+
+export default async function TermsPage() {
+  const cmsPage = await getPublicCmsPageBySlug('terms');
+  if (cmsPage) {
+    return <CmsPageView page={cmsPage} />;
+  }
+
+  const anyPage = await getAnyCmsPageBySlug('terms');
+  if (anyPage) {
+    notFound();
+  }
+
+  return <LegacyTermsPage />;
 }
