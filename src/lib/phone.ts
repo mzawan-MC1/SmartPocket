@@ -11,6 +11,8 @@ export interface NormalizedPhoneParts {
   isValid: boolean;
 }
 
+export const LEGACY_PLATFORM_CONTACT_PHONE_COUNTRY_CODE = 'AE';
+
 export function sanitizePhoneDisplay(value: string | null | undefined) {
   return (value || '').trim().replace(/\s+/g, ' ');
 }
@@ -112,4 +114,93 @@ export function getInitialPhoneCountryCode(args: {
   }
 
   return '';
+}
+
+function inferCountryCodeFromPhoneValue(
+  value: string | null | undefined,
+  countries: CountryReference[] | undefined
+) {
+  const dialable = normalizeDialableCharacters(value);
+  if (!dialable.startsWith('+') || !countries?.length) {
+    return '';
+  }
+
+  const digitsOnly = dialable.slice(1);
+  const matches = countries
+    .filter((country) => {
+      const callingDigits = country.callingCode?.replace(/[^\d]/g, '') || '';
+      return callingDigits ? digitsOnly.startsWith(callingDigits) : false;
+    })
+    .sort((left, right) => {
+      const leftDigits = left.callingCode?.replace(/[^\d]/g, '') || '';
+      const rightDigits = right.callingCode?.replace(/[^\d]/g, '') || '';
+      return rightDigits.length - leftDigits.length;
+    });
+
+  return matches[0]?.isoAlpha2 || '';
+}
+
+export function getPlatformContactPhoneCountryCode(args: {
+  explicitCountryCode?: string | null;
+  phoneValue?: string | null;
+  fallbackCountryCode?: string | null;
+  countries?: CountryReference[];
+}) {
+  const direct = normalizeCountryCode(args.explicitCountryCode);
+  if (direct) return direct;
+
+  const inferred = inferCountryCodeFromPhoneValue(args.phoneValue, args.countries);
+  if (inferred) return inferred;
+
+  const fallback = normalizeCountryCode(args.fallbackCountryCode);
+  if (fallback) return fallback;
+
+  const dialable = normalizeDialableCharacters(args.phoneValue);
+  if (dialable && !dialable.startsWith('+')) {
+    return LEGACY_PLATFORM_CONTACT_PHONE_COUNTRY_CODE;
+  }
+
+  return '';
+}
+
+function formatGroupedNationalNumber(nationalNumber: string) {
+  const digits = nationalNumber.replace(/[^\d]/g, '');
+  if (!digits) return '';
+  if (digits.length <= 4) return digits;
+
+  const groups: string[] = [];
+  let remaining = digits;
+
+  groups.unshift(remaining.slice(-4));
+  remaining = remaining.slice(0, -4);
+
+  while (remaining.length > 3) {
+    groups.unshift(remaining.slice(-3));
+    remaining = remaining.slice(0, -3);
+  }
+
+  if (remaining) {
+    groups.unshift(remaining);
+  }
+
+  return groups.join(' ');
+}
+
+export function formatNormalizedPhoneForDisplay(args: {
+  value: string | null | undefined;
+  countryCode?: string | null;
+  countries?: CountryReference[];
+}) {
+  const normalized = buildNormalizedPhoneParts(args);
+  if (!normalized.e164) {
+    return sanitizePhoneDisplay(args.value);
+  }
+
+  const callingCodeDigits = normalized.callingCode?.replace(/[^\d]/g, '') || '';
+  const nationalDigits = normalized.nationalNumber.replace(/[^\d]/g, '');
+  if (!callingCodeDigits || !nationalDigits) {
+    return normalized.e164;
+  }
+
+  return `+${callingCodeDigits} ${formatGroupedNationalNumber(nationalDigits)}`.trim();
 }

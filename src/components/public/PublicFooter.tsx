@@ -84,7 +84,7 @@ export default function PublicFooter() {
                   className="flex items-center gap-2 hover:text-foreground transition-colors"
                 >
                   <Phone size={13} />
-                  {publicUi.contactPhone}
+                  {publicUi.contactPhoneFormatted || publicUi.contactPhone}
                 </a>
               )}
               {publicUi.contactAddress && (

@@ -71,6 +71,16 @@ export default function CountrySelector({
     });
   }, [currencyCodesByCountry, orderedCountries, search]);
 
+  const selectedCountryMeta = selectedCountry
+    ? [
+        selectedCountry.isoAlpha2,
+        selectedCountry.callingCode,
+        selectedCountry.defaultCurrencyCode,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+
   useEffect(() => {
     if (!open) return;
 
@@ -148,20 +158,12 @@ export default function CountrySelector({
         aria-haspopup="listbox"
       >
         {selectedCountry ? (
-          <>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-lg">
-              <span aria-hidden="true">{selectedCountry.flag || '🌍'}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-700 text-foreground">{selectedCountry.name}</span>
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="truncate text-sm font-700 text-foreground">{selectedCountry.name}</span>
-                <span className="text-xs font-600 text-muted-foreground">{selectedCountry.isoAlpha2}</span>
-              </div>
-              <p className="truncate text-sm text-muted-foreground">
-                {[selectedCountry.callingCode, selectedCountry.defaultCurrencyCode].filter(Boolean).join(' • ')}
-              </p>
-            </div>
-          </>
+            <p className="whitespace-nowrap text-sm text-muted-foreground">{selectedCountryMeta}</p>
+          </div>
         ) : (
           <span className="text-sm text-muted-foreground">{loading ? 'Loading countries...' : placeholder}</span>
         )}
@@ -209,16 +211,13 @@ export default function CountrySelector({
                           : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
                     }`}
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/70 text-lg">
-                      <span aria-hidden="true">{country.flag || '🌍'}</span>
-                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-700 text-foreground">{country.name}</span>
                         <span className="text-xs font-600 text-muted-foreground">{country.isoAlpha2}</span>
                       </div>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {[country.callingCode, country.defaultCurrencyCode].filter(Boolean).join(' • ')}
+                    <p className="whitespace-nowrap text-sm text-muted-foreground">
+                      {[country.callingCode, country.defaultCurrencyCode].filter(Boolean).join(' • ')}
                       </p>
                     </div>
                     {country.isoAlpha2 === normalizedValue ? (

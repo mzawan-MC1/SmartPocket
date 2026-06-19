@@ -82,7 +82,7 @@ export default function InternationalPhoneInput({
   return (
     <div className={className}>
       {label ? <label className="mb-1.5 block text-sm font-600 text-foreground">{label}</label> : null}
-      <div className="grid grid-cols-[minmax(8rem,10rem)_1fr] gap-3">
+      <div className="grid grid-cols-[minmax(10.5rem,12rem)_1fr] gap-3">
         <PhoneCountrySelector
           value={selectedCountryCode}
           onChange={(nextCountryCode) => {

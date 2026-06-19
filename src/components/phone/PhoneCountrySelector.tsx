@@ -46,6 +46,10 @@ export default function PhoneCountrySelector({
     });
   }, [orderedCountries, search]);
 
+  const selectedCountryLabel = selectedCountry
+    ? [selectedCountry.isoAlpha2, selectedCountry.callingCode].filter(Boolean).join(' · ')
+    : '';
+
   useEffect(() => {
     if (!open) return;
 
@@ -116,14 +120,9 @@ export default function PhoneCountrySelector({
         }`}
       >
         {selectedCountry ? (
-          <>
-            <span className="text-lg" aria-hidden="true">
-              {selectedCountry.flag || '🌍'}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-sm font-600 text-foreground">
-              {selectedCountry.callingCode || 'Code'} {selectedCountry.isoAlpha2}
-            </span>
-          </>
+          <span className="min-w-0 flex-1 whitespace-nowrap text-sm font-600 text-foreground">
+            {selectedCountryLabel}
+          </span>
         ) : (
           <span className="text-sm text-muted-foreground">
             {loading ? 'Loading...' : 'Select'}
@@ -171,12 +170,9 @@ export default function PhoneCountrySelector({
                         : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
                   }`}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/70 text-lg">
-                    <span aria-hidden="true">{country.flag || '🌍'}</span>
-                  </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-700 text-foreground">{country.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm font-700 text-foreground">{country.name}</p>
+                    <p className="whitespace-nowrap text-sm text-muted-foreground">
                       {[country.isoAlpha2, country.callingCode].filter(Boolean).join(' • ')}
                     </p>
                   </div>

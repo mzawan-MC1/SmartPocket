@@ -107,7 +107,7 @@ export default async function ContactPage() {
 
         <ContactDetails
           email={contactDetails.contactEmail}
-          phone={contactDetails.contactPhone}
+          phone={contactDetails.contactPhoneFormatted || contactDetails.contactPhone}
           address={contactDetails.contactAddress}
         />
 
@@ -132,7 +132,9 @@ export default async function ContactPage() {
               </div>
               <div>
                 <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">Phone</p>
-                <p className="text-sm text-foreground">{contactDetails.contactPhone || 'Not configured'}</p>
+                <p className="text-sm text-foreground">
+                  {contactDetails.contactPhoneFormatted || contactDetails.contactPhone || 'Not configured'}
+                </p>
               </div>
               <div>
                 <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">Address</p>

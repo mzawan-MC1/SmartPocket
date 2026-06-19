@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 import { normalizePublicNavHref } from '@/lib/platform-settings';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
+import { buildNormalizedPhoneParts, getPlatformContactPhoneCountryCode } from '@/lib/phone';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 import CmsPagesTab from '@/app/admin/cms/components/CmsPagesTab';
 
 interface MenuItem {
@@ -77,9 +79,12 @@ export default function AdminCmsPage() {
   const [contact, setContact] = useState({
     contact_email: '',
     contact_phone: '',
+    contact_phone_country_code: '',
     contact_address: '',
   });
   const [contactPhoneCountryCode, setContactPhoneCountryCode] = useState('');
+  const { data: referenceData } = useClientReferenceData();
+  const countries = referenceData?.snapshot.countries ?? [];
 
   const [payment, setPayment] = useState({
     payment_stripe_enabled: false,
@@ -112,8 +117,20 @@ export default function AdminCmsPage() {
           setContact({
             contact_email: data.contact_email || '',
             contact_phone: data.contact_phone || '',
+            contact_phone_country_code: getPlatformContactPhoneCountryCode({
+              explicitCountryCode: data.contact_phone_country_code,
+              phoneValue: data.contact_phone,
+              countries,
+            }),
             contact_address: data.contact_address || '',
           });
+          setContactPhoneCountryCode(
+            getPlatformContactPhoneCountryCode({
+              explicitCountryCode: data.contact_phone_country_code,
+              phoneValue: data.contact_phone,
+              countries,
+            })
+          );
           setPayment({
             payment_stripe_enabled: data.payment_stripe_enabled ?? false,
             payment_paypal_enabled: data.payment_paypal_enabled ?? false,
@@ -123,6 +140,24 @@ export default function AdminCmsPage() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    const resolvedPhoneCountryCode = getPlatformContactPhoneCountryCode({
+      explicitCountryCode: contactPhoneCountryCode || contact.contact_phone_country_code,
+      phoneValue: contact.contact_phone,
+      countries,
+    });
+
+    if (!resolvedPhoneCountryCode || resolvedPhoneCountryCode === contactPhoneCountryCode) {
+      return;
+    }
+
+    setContactPhoneCountryCode(resolvedPhoneCountryCode);
+    setContact((current) => ({
+      ...current,
+      contact_phone_country_code: resolvedPhoneCountryCode,
+    }));
+  }, [contact.contact_phone, contact.contact_phone_country_code, contactPhoneCountryCode, countries]);
 
   const tabs = useMemo(
     () => [
@@ -144,6 +179,17 @@ export default function AdminCmsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      const normalizedPhone = buildNormalizedPhoneParts({
+        value: contact.contact_phone,
+        countryCode: contactPhoneCountryCode || contact.contact_phone_country_code,
+        countries,
+      });
+      const resolvedPhoneCountryCode = getPlatformContactPhoneCountryCode({
+        explicitCountryCode: contactPhoneCountryCode || contact.contact_phone_country_code,
+        phoneValue: contact.contact_phone,
+        countries,
+      });
+
       await savePlatformSettings({
         header_menu: headerMenu.map((item) => ({
           ...item,
@@ -156,9 +202,18 @@ export default function AdminCmsPage() {
             href: normalizePublicNavHref(link.href),
           })),
         })),
-        ...contact,
+        contact_email: contact.contact_email,
+        contact_phone: normalizedPhone.e164 || normalizedPhone.display || '',
+        contact_phone_country_code: resolvedPhoneCountryCode,
+        contact_address: contact.contact_address,
         ...payment,
       });
+      setContact((current) => ({
+        ...current,
+        contact_phone: normalizedPhone.e164 || normalizedPhone.display || '',
+        contact_phone_country_code: resolvedPhoneCountryCode,
+      }));
+      setContactPhoneCountryCode(resolvedPhoneCountryCode);
       setSaved(true);
       toast.success('CMS & navigation settings saved.');
       setTimeout(() => setSaved(false), 2500);
@@ -372,11 +427,12 @@ export default function AdminCmsPage() {
                 setContactPhoneCountryCode(phone.countryCode || '');
                 setContact((current) => ({
                   ...current,
-                  contact_phone: phone.display || phone.e164 || '',
+                  contact_phone: phone.e164 || phone.display || '',
+                  contact_phone_country_code: phone.countryCode || '',
                 }));
               }}
               placeholder="+1 555 000 0000"
-              helperText="Stored as public contact information for CMS and footer use."
+              helperText="Stores the selected country separately and saves the public phone as a normalized international number."
             />
           </div>
           <div>

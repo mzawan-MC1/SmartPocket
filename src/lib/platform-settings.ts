@@ -48,6 +48,8 @@ export interface PlatformPublicSettings {
   footerTagline: string;
   contactEmail: string;
   contactPhone: string;
+  contactPhoneCountryCode: string;
+  contactPhoneFormatted: string;
   contactAddress: string;
   socialTwitter: string;
   socialGithub: string;
@@ -181,6 +183,8 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     footerTagline: 'Personal finance, simplified.',
     contactEmail: '',
     contactPhone: '',
+    contactPhoneCountryCode: '',
+    contactPhoneFormatted: '',
     contactAddress: '',
     socialTwitter: '',
     socialGithub: '',
@@ -367,6 +371,8 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
       footerTagline: sanitizeOptionalString(raw.footer_tagline) || branding.tagline,
       contactEmail: sanitizeOptionalString(raw.contact_email),
       contactPhone: sanitizeOptionalString(raw.contact_phone),
+      contactPhoneCountryCode: sanitizeOptionalString(raw.contact_phone_country_code).toUpperCase(),
+      contactPhoneFormatted: '',
       contactAddress: sanitizeOptionalString(raw.contact_address),
       socialTwitter: sanitizeOptionalString(raw.social_twitter),
       socialGithub: sanitizeOptionalString(raw.social_github),

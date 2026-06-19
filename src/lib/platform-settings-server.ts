@@ -6,6 +6,12 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizePlatformSettings, normalizePublicNavHref, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import { listPublicCmsPages } from '@/lib/cms-pages-server';
 import { isMarketingHomeSlug } from '@/lib/cms-pages';
+import {
+  buildNormalizedPhoneParts,
+  formatNormalizedPhoneForDisplay,
+  getPlatformContactPhoneCountryCode,
+} from '@/lib/phone';
+import { getReferenceDataSnapshot } from '@/lib/reference-data/store';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 async function readPlatformSettingsWithAnonClient() {
@@ -61,13 +67,14 @@ async function readPlatformSettingsWithAdminClient() {
 
 export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSettingsSnapshot> => {
   noStore();
+  const referenceData = await getReferenceDataSnapshot();
 
   try {
     const anonData = await readPlatformSettingsWithAnonClient();
     if (anonData) {
       const normalized = normalizePlatformSettings(anonData);
       const pages = await listPublicCmsPages();
-      return mergePublicCmsNavigation(normalized, pages);
+      return enrichPlatformContactPhone(mergePublicCmsNavigation(normalized, pages), referenceData);
     }
   } catch {}
 
@@ -76,13 +83,13 @@ export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSetti
     if (adminData) {
       const normalized = normalizePlatformSettings(adminData);
       const pages = await listPublicCmsPages();
-      return mergePublicCmsNavigation(normalized, pages);
+      return enrichPlatformContactPhone(mergePublicCmsNavigation(normalized, pages), referenceData);
     }
   } catch {}
 
   const normalized = normalizePlatformSettings(null);
   const pages = await listPublicCmsPages();
-  return mergePublicCmsNavigation(normalized, pages);
+  return enrichPlatformContactPhone(mergePublicCmsNavigation(normalized, pages), referenceData);
 });
 
 function mergePublicCmsNavigation(
@@ -139,6 +146,41 @@ function mergePublicCmsNavigation(
       ...settings.publicUi,
       headerMenu: [...settings.publicUi.headerMenu, ...headerPages],
       footerSections,
+    },
+  };
+}
+
+function enrichPlatformContactPhone(
+  settings: PlatformSettingsSnapshot,
+  referenceData: Awaited<ReturnType<typeof getReferenceDataSnapshot>>
+) {
+  const contactPhoneCountryCode = getPlatformContactPhoneCountryCode({
+    explicitCountryCode: settings.publicUi.contactPhoneCountryCode,
+    phoneValue: settings.publicUi.contactPhone,
+    countries: referenceData.countries,
+  });
+  const contactPhoneFormatted = formatNormalizedPhoneForDisplay({
+    value: settings.publicUi.contactPhone,
+    countryCode: contactPhoneCountryCode,
+    countries: referenceData.countries,
+  });
+  const normalizedContactPhone = buildNormalizedPhoneParts({
+    value: settings.publicUi.contactPhone,
+    countryCode: contactPhoneCountryCode,
+    countries: referenceData.countries,
+  });
+
+  return {
+    ...settings,
+    publicUi: {
+      ...settings.publicUi,
+      contactPhone: normalizedContactPhone.e164 || settings.publicUi.contactPhone,
+      contactPhoneCountryCode,
+      contactPhoneFormatted:
+        contactPhoneFormatted ||
+        normalizedContactPhone.display ||
+        normalizedContactPhone.e164 ||
+        settings.publicUi.contactPhone,
     },
   };
 }
