@@ -517,7 +517,8 @@ function buildCsvFilename(activeReport: ReportType, range: ReportPeriodRange) {
 }
 
 export default function ReportsScreen() {
-  const locale = getReportsLocale();
+  const [locale, setLocale] = useState('en-US');
+  const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
   const [activePreset, setActivePreset] = useState<ReportPeriodPreset>('current_month');
@@ -528,6 +529,15 @@ export default function ReportsScreen() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const browserLocale = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
+    setLocale(browserLocale);
+    setGeneratedAtLabel(new Intl.DateTimeFormat(browserLocale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date()));
+  }, []);
 
   const loadPeriodContext = useCallback(async () => {
     setPeriodLoading(true);
@@ -784,7 +794,7 @@ export default function ReportsScreen() {
         <p className="text-sm text-muted-foreground">Range: {activeRange ? formatReportPeriodLabel(activeRange) : 'Loading'}</p>
         <p className="text-sm text-muted-foreground">Account filter: {selectedAccount === 'all' ? 'All Accounts' : selectedAccount}</p>
         <p className="text-sm text-muted-foreground">Reporting currency: {reportData?.reportingCurrency || 'Loading'}</p>
-        <p className="text-sm text-muted-foreground">Generated: {new Date().toLocaleString()}</p>
+        <p className="text-sm text-muted-foreground">Generated: {generatedAtLabel || 'Loading'}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
@@ -816,16 +826,16 @@ export default function ReportsScreen() {
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-4 print:hidden">
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-wrap gap-2">
+          <div className="card-elevated p-3 print:hidden">
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {reportPresets.map((preset) => (
                   <button
                     key={preset.key}
                     type="button"
                     onClick={() => handlePresetChange(preset.key)}
                     aria-pressed={activePreset === preset.key}
-                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-600 transition-all ${
+                    className={`rounded-lg border px-2 py-1 text-[11px] font-600 leading-none transition-all ${
                       activePreset === preset.key ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
                     }`}
                   >
@@ -834,7 +844,7 @@ export default function ReportsScreen() {
                 ))}
               </div>
 
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <Calendar size={14} className="text-muted-foreground" />
                   <label className="sr-only" htmlFor="report-date-from">Report start date</label>
@@ -846,9 +856,9 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateFrom(event.target.value);
                     }}
-                    className="input-base h-8 text-sm"
+                    className="input-base h-8 w-[148px] max-w-full text-sm"
                   />
-                  <span className="text-sm text-muted-foreground">to</span>
+                  <span className="text-xs text-muted-foreground">to</span>
                   <label className="sr-only" htmlFor="report-date-to">Report end date</label>
                   <input
                     id="report-date-to"
@@ -858,16 +868,16 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateTo(event.target.value);
                     }}
-                    className="input-base h-8 text-sm"
+                    className="input-base h-8 w-[148px] max-w-full text-sm"
                   />
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 max-sm:w-full">
                     <Filter size={13} className="text-muted-foreground" />
                     <label className="sr-only" htmlFor="report-account-filter">Filter by account</label>
                     <select
                       id="report-account-filter"
                       value={selectedAccount}
                       onChange={(event) => setSelectedAccount(event.target.value)}
-                      className="input-base h-8 text-sm"
+                      className="input-base h-8 min-w-[150px] max-w-full text-sm"
                     >
                       <option value="all">All Accounts</option>
                       {(reportData?.accounts || []).map((account) => (
@@ -877,12 +887,12 @@ export default function ReportsScreen() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
                   <button
                     type="button"
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
-                    className="btn-secondary h-8 px-3 text-sm"
+                    className="btn-secondary h-8 px-2.5 text-sm"
                     aria-label={`Previous ${activeRange?.navigationLabel || 'period'}`}
                   >
                     <ChevronLeft size={14} />
@@ -892,7 +902,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
                     disabled={periodLoading}
-                    className="btn-secondary h-8 px-3 text-sm"
+                    className="btn-secondary h-8 px-2.5 text-sm"
                   >
                     Current
                   </button>
@@ -900,7 +910,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
-                    className="btn-secondary h-8 px-3 text-sm"
+                    className="btn-secondary h-8 px-2.5 text-sm"
                     aria-label={`Next ${activeRange?.navigationLabel || 'period'}`}
                   >
                     Next
@@ -909,9 +919,10 @@ export default function ReportsScreen() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border/70 bg-muted/20 px-3 py-2">
-                <p className="text-sm font-600 text-foreground">{activeRange?.label || 'Loading period...'}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-h-[20px] px-0.5">
+                <p className="truncate text-xs text-muted-foreground">
+                  <span className="font-600 text-foreground">{activeRange?.label || 'Loading period...'}</span>
+                  {' · '}
                   {activeRange?.comparisonLabel
                     ? `Compared with ${activeRange.comparisonLabel}`
                     : activePreset === 'custom'
