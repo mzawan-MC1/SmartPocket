@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, Globe, Apple, CheckCircle2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -18,10 +19,11 @@ interface SignUpFormProps {
 }
 
 export default function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [successState, setSuccessState] = useState<'verify-email' | 'ready' | null>(null);
   const { signUp } = useAuth();
 
   const {
@@ -36,9 +38,15 @@ export default function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, { fullName: data.fullName });
-      setSuccess(true);
-      toast.success('Account created! Check your email to verify.');
+      const result = await signUp(data.email, data.password, { fullName: data.fullName });
+
+      if (result.requiresEmailVerification) {
+        setSuccessState('verify-email');
+        toast.success('Account created! Check your email to verify.');
+      } else {
+        setSuccessState('ready');
+        toast.success('Account created! You can continue to Smart Pocket now.');
+      }
     } catch (err: any) {
       const msg = err?.message || 'Sign up failed. Please try again.';
       toast.error(msg);
@@ -79,18 +87,34 @@ export default function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
     }
   };
 
-  if (success) {
+  if (successState) {
+    const needsVerification = successState === 'verify-email';
+
     return (
       <div className="text-center fade-in py-8">
         <div className="w-16 h-16 rounded-full bg-positive-soft flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 size={32} className="text-positive" />
         </div>
-        <h2 className="text-xl font-700 text-foreground mb-2">Check your inbox</h2>
+        <h2 className="text-xl font-700 text-foreground mb-2">
+          {needsVerification ? 'Check your inbox' : 'Account created'}
+        </h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-          We sent a verification link to your email. Click it to activate your Smart Pocket account.
+          {needsVerification
+            ? 'We sent a verification link to your email. Click it to activate your Smart Pocket account.'
+            : 'Your account is ready. Continue to Smart Pocket to finish setting up your profile.'}
         </p>
-        <button onClick={onSwitchToLogin} className="btn-primary mx-auto">
-          Back to Sign In
+        <button
+          onClick={() => {
+            if (needsVerification) {
+              onSwitchToLogin();
+              return;
+            }
+
+            router.replace('/');
+          }}
+          className="btn-primary mx-auto"
+        >
+          {needsVerification ? 'Back to Sign In' : 'Continue to Smart Pocket'}
         </button>
       </div>
     );

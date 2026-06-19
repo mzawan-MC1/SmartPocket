@@ -5,6 +5,17 @@ import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
 
+type SignUpMetadata = {
+  fullName?: string;
+  avatarUrl?: string;
+};
+
+export type SignUpResult = {
+  user: Session['user'] | null;
+  session: Session | null;
+  requiresEmailVerification: boolean;
+};
+
 const AuthContext = createContext<any>({});
 
 export const useAuth = () => {
@@ -42,14 +53,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Email/Password Sign Up
-  const signUp = async (email: string, password: string, metadata = {}) => {
+  const signUp = async (email: string, password: string, metadata: SignUpMetadata = {}): Promise<SignUpResult> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          full_name: (metadata as any)?.fullName || '',
-          avatar_url: (metadata as any)?.avatarUrl || ''
+          full_name: metadata.fullName || '',
+          avatar_url: metadata.avatarUrl || ''
         },
         emailRedirectTo: `${window.location.origin}/api/auth/callback`
       }
@@ -70,7 +81,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Non-fatal — DB trigger handles it
     }
 
-    return data;
+    return {
+      user: data.user,
+      session: data.session,
+      requiresEmailVerification: !data.session,
+    };
   };
 
   // Sign Out

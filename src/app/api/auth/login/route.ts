@@ -29,6 +29,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!authData.user.email_confirmed_at) {
+      await supabase.auth.signOut();
+      return applySupabaseCookies(
+        NextResponse.json(
+          { error: 'Please verify your email before signing in.' },
+          { status: 403 }
+        ),
+        cookieMutations
+      );
+    }
+
     const userId = authData.user.id;
     const safeNext = getSafeNextPath(next ?? null);
     const { destination, profileError } = await getPostAuthDestination(supabase, userId, safeNext);
