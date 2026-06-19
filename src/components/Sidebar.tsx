@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronLeft, ChevronRight, Settings, HelpCircle, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2 } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -59,11 +59,6 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         { id: 'nav-ai-history', label: 'AI History', icon: History, href: '/ai-history' },
       ],
     },
-  ];
-
-  const accountItems = [
-    { id: 'nav-settings', label: t('nav.settings'), icon: Settings, href: '/settings' },
-    { id: 'nav-help', label: t('nav.help'), icon: HelpCircle, href: '/help' },
   ];
 
   const handleSignOut = async () => {
@@ -188,15 +183,6 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         </div>
       </nav>
 
-      <div className="shrink-0 border-t border-border px-2 py-3">
-        {!collapsed && (
-          <p className="mb-1.5 px-3 text-[10px] font-800 uppercase tracking-[0.18em] text-muted-foreground">Account</p>
-        )}
-        <ul className="space-y-1">
-          {accountItems.map((item) => renderNavItem(item, true))}
-        </ul>
-      </div>
-
       {/* User Profile */}
       <div className={`shrink-0 border-t border-border p-3 ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
@@ -218,13 +204,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                 <p className="truncate text-xs text-muted-foreground">{displayEmail}</p>
               </div>
             </div>
-            <div className="mt-3 flex items-center gap-2">
-              <Link
-                href="/settings"
-                className="inline-flex flex-1 items-center justify-center rounded-xl border border-border bg-card px-3 py-2 text-xs font-700 text-foreground transition-colors hover:bg-muted"
-              >
-                Settings
-              </Link>
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">Account</p>
+                <p className="truncate text-xs text-muted-foreground">Manage profile options from the top menu.</p>
+              </div>
               <button
                 onClick={handleSignOut}
                 className="inline-flex items-center justify-center rounded-xl border border-negative/20 bg-negative-soft px-3 py-2 text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80"

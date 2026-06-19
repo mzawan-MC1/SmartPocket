@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, HelpCircle } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -131,6 +131,14 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                 >
                   <Settings size={14} className="text-muted-foreground" />
                   Settings
+                </Link>
+                <Link
+                  href="/help"
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <HelpCircle size={14} className="text-muted-foreground" />
+                  Help & Support
                 </Link>
                 <Link
                   href="/ai-history"

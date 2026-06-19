@@ -65,12 +65,12 @@ export default function DashboardHeader({
       title="Dashboard"
       description={description}
       badge={<StatusBadge status={financialPeriodContext.hasConfigurationWarning ? 'warning' : 'info'} label={badgeLabel} />}
-      className="items-start gap-4"
-      actionsClassName="w-full xl:w-auto"
+      className="items-start gap-3 lg:flex-nowrap lg:items-center lg:justify-between"
+      actionsClassName="w-full lg:w-auto lg:flex-1"
       actions={
-        <div className="flex w-full flex-col gap-2 xl:min-w-[720px] xl:items-end">
-          <div className="flex w-full flex-wrap items-center justify-between gap-2 xl:flex-nowrap xl:justify-end">
-            <div className="flex flex-1 flex-wrap items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-2 shadow-card-sm xl:flex-nowrap xl:justify-start">
+        <div className="flex w-full flex-col gap-1.5 lg:items-end">
+          <div className="flex w-full flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1 rounded-2xl border border-border bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap lg:justify-end">
               {QUICK_ACTIONS.map((action) => {
                 const Icon = action.icon;
                 return (
@@ -78,7 +78,7 @@ export default function DashboardHeader({
                     key={action.id}
                     type="button"
                     onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-transparent px-3 text-sm font-700 text-foreground transition-colors hover:border-border hover:bg-muted"
+                    className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-transparent px-2.5 text-sm font-700 text-foreground transition-colors hover:border-border hover:bg-muted"
                     aria-label={action.label}
                   >
                     <Icon size={15} className="text-accent" />
@@ -87,7 +87,7 @@ export default function DashboardHeader({
                 );
               })}
             </div>
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card px-2 py-2 shadow-card-sm xl:flex-nowrap">
+            <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border bg-card px-1.5 py-1.5 shadow-card-sm lg:flex-nowrap">
               <Tabs
                 items={[
                   { id: 'pay_cycle', label: 'Pay period' },
@@ -98,12 +98,12 @@ export default function DashboardHeader({
                 className="w-auto"
               />
               {viewMode !== defaultViewMode ? (
-                <button type="button" className="btn-ghost h-9 whitespace-nowrap px-3 text-xs" onClick={onResetToDefault}>
+                <button type="button" className="btn-ghost h-9 whitespace-nowrap px-2.5 text-xs" onClick={onResetToDefault}>
                   Use saved default
                 </button>
               ) : null}
-              <div className="h-7 w-px bg-border/80" />
-              <div className="inline-flex items-center gap-1 rounded-xl bg-muted/35 px-1 py-1">
+              <div className="hidden h-6 w-px bg-border/80 lg:block" />
+              <div className="inline-flex items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -113,7 +113,7 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-2"
+                  className="btn-ghost min-h-0 rounded-lg p-1.5"
                   aria-label={viewMode === 'month' ? 'Previous month' : 'Previous pay period'}
                 >
                   <ChevronLeft size={15} className="text-muted-foreground" />
@@ -123,10 +123,10 @@ export default function DashboardHeader({
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                      className="flex h-9 items-center gap-2 rounded-lg px-2.5 hover:bg-card"
+                      className="flex h-9 items-center gap-1.5 rounded-lg px-2 hover:bg-card"
                       aria-label="Choose month"
                     >
-                      <Calendar size={14} className="text-accent" />
+                      <Calendar size={13} className="text-accent" />
                       <span className="whitespace-nowrap text-sm font-700 text-foreground">
                         {monthContext.label}
                       </span>
@@ -142,8 +142,8 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-9 items-center gap-2 rounded-lg px-2.5">
-                    <Calendar size={14} className="text-accent" />
+                  <div className="flex h-9 items-center gap-1.5 rounded-lg px-2">
+                    <Calendar size={13} className="text-accent" />
                     <span className="whitespace-nowrap text-sm font-700 text-foreground">{activePeriod.label}</span>
                   </div>
                 )}
@@ -157,7 +157,7 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-2 disabled:opacity-40"
+                  className="btn-ghost min-h-0 rounded-lg p-1.5 disabled:opacity-40"
                   aria-label={viewMode === 'month' ? 'Next month' : 'Next pay period'}
                   disabled={!canMoveNext}
                 >
@@ -167,7 +167,7 @@ export default function DashboardHeader({
             </div>
           </div>
           {financialPeriodContext.configurationWarning ? (
-            <div className="max-w-[560px] rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning lg:max-w-[520px]">
               {financialPeriodContext.configurationWarning}
             </div>
           ) : null}
