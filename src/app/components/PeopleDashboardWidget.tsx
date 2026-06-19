@@ -42,7 +42,7 @@ export default function PeopleDashboardWidget() {
 
   if (loading) {
     return (
-      <div className="card-elevated p-5 animate-pulse">
+      <div className="card-elevated animate-pulse p-4">
         <div className="h-4 bg-muted rounded w-1/3 mb-4" />
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-16 bg-muted rounded-xl" />)}
@@ -74,19 +74,19 @@ export default function PeopleDashboardWidget() {
   };
 
   return (
-    <div className="card-elevated p-5">
-      <div className="flex items-center justify-between mb-4">
+    <div className="card-elevated p-4">
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users size={18} className="text-accent" />
-          <h3 className="text-sm font-700 text-foreground">People & Finances</h3>
+          <h3 className="text-sm font-700 text-foreground">People & Spaces</h3>
         </div>
         <Link href="/people" className="text-xs text-accent font-600 hover:underline">
           View All ({summary.peopleCount})
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-info-soft rounded-xl p-3">
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl bg-info-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Wallet size={13} className="text-info" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
@@ -95,7 +95,7 @@ export default function PeopleDashboardWidget() {
           <p className="text-[10px] text-muted-foreground">Held for others</p>
         </div>
 
-        <div className="bg-positive-soft rounded-xl p-3">
+        <div className="rounded-xl bg-positive-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={13} className="text-positive" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
@@ -104,7 +104,7 @@ export default function PeopleDashboardWidget() {
           <p className="text-[10px] text-muted-foreground">People owe me</p>
         </div>
 
-        <div className="bg-negative-soft rounded-xl p-3">
+        <div className="rounded-xl bg-negative-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingDown size={13} className="text-negative" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
@@ -113,7 +113,7 @@ export default function PeopleDashboardWidget() {
           <p className="text-[10px] text-muted-foreground">I owe others</p>
         </div>
 
-        <div className="bg-warning-soft rounded-xl p-3">
+        <div className="rounded-xl bg-warning-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <RotateCcw size={13} className="text-warning" />
             <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Pending Reimb.</span>
@@ -124,10 +124,10 @@ export default function PeopleDashboardWidget() {
       </div>
 
       <div className="mt-3 flex gap-2">
-        <Link href="/reimbursements" className="flex-1 text-center py-2 rounded-lg border border-border text-xs font-600 text-foreground hover:bg-muted transition-colors">
+        <Link href="/reimbursements" className="flex-1 rounded-lg border border-border py-2 text-center text-xs font-600 text-foreground transition-colors hover:bg-muted">
           Reimbursements
         </Link>
-        <Link href="/settlements" className="flex-1 text-center py-2 rounded-lg border border-border text-xs font-600 text-foreground hover:bg-muted transition-colors">
+        <Link href="/settlements" className="flex-1 rounded-lg border border-border py-2 text-center text-xs font-600 text-foreground transition-colors hover:bg-muted">
           Settlements
         </Link>
       </div>

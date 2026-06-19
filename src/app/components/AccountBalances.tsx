@@ -5,7 +5,6 @@ import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, ArrowRight, Landm
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
-import Icon from '@/components/ui/AppIcon';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
@@ -61,7 +60,8 @@ export default function AccountBalances() {
   return (
     <SectionCard
       title="Accounts"
-      description="Live balances for your active bank accounts, cards, wallets, and savings."
+      description="Live balances for your active accounts."
+      className="h-full"
       action={
         <Link href="/financial-accounts" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
           Manage <ArrowRight size={13} />
@@ -73,7 +73,7 @@ export default function AccountBalances() {
       {loading ? (
         <div className="divide-y divide-border">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-acct-${i}`} className="flex items-center gap-3 px-5 py-3 animate-pulse">
+            <div key={`skel-acct-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
               <div className="w-8 h-8 rounded-lg bg-muted flex-shrink-0" />
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-28 mb-1.5" />
@@ -84,7 +84,7 @@ export default function AccountBalances() {
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="px-5 py-8">
+        <div className="px-4 py-8">
           <EmptyState
             icon={Wallet}
             title="No accounts yet"
@@ -98,7 +98,7 @@ export default function AccountBalances() {
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
             const lastActivity = new Date(acct.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             return (
-              <div key={acct.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer">
+              <div key={acct.id} className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/40">
                 <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
                   <Icon size={15} />
                 </div>

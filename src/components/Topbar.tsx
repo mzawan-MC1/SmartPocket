@@ -81,12 +81,12 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* AI Smart Entry button */}
           <button
             onClick={() => setAiOpen(true)}
-            className="hidden h-10 items-center gap-1.5 rounded-xl border border-purple-200 bg-ai-soft px-3.5 text-sm font-700 text-ai transition-colors hover:bg-purple-100 sm:inline-flex"
+            className="hidden h-10 min-w-[156px] items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-ai-soft px-4 text-sm font-700 text-ai transition-colors hover:bg-purple-100 sm:inline-flex"
             aria-label="AI Smart Entry"
             title="Smart Entry (AI)"
           >
             <Sparkles size={14} />
-            <span className="hidden xl:inline">Smart Entry</span>
+            <span className="hidden lg:inline">Smart Entry</span>
           </button>
 
           {/* Mobile AI button */}

@@ -24,6 +24,8 @@ export default function DashboardCharts({
     <SectionCard
       title="Financial Overview"
       description={description}
+      className="h-full"
+      bodyClassName="pt-3"
       action={
         <Tabs
           items={[
@@ -40,7 +42,7 @@ export default function DashboardCharts({
           Pay-period charts are using a monthly fallback until your income schedule is completed in Settings.
         </div>
       ) : null}
-      <div className="h-[260px]">
+      <div className="h-[248px]">
         {activeTab === 'trend' ? <IncomeExpenseChart activePeriod={activePeriod} /> : <SpendingCategoryChart activePeriod={activePeriod} />}
       </div>
     </SectionCard>

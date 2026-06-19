@@ -211,16 +211,30 @@ export default function DashboardPage() {
               financialPeriodContext={periodContext}
             />
             <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-start">
-              <div className="xl:col-span-8 space-y-5">
-                <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
-                <RecentTransactions />
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+                <div className="xl:col-span-8">
+                  <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
+                </div>
+                <div className="xl:col-span-4">
+                  <AIUsageCard />
+                </div>
               </div>
-              <div className="xl:col-span-4 space-y-5">
-                <AIUsageCard />
-                <AccountBalances />
-                <PeopleDashboardWidget />
-                <UpcomingRecurring activePeriod={activePeriod} />
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+                <div className="xl:col-span-6">
+                  <RecentTransactions />
+                </div>
+                <div className="xl:col-span-3">
+                  <UpcomingRecurring activePeriod={activePeriod} />
+                </div>
+                <div className="xl:col-span-3">
+                  <AccountBalances />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+                <div className="xl:col-span-4">
+                  <PeopleDashboardWidget />
+                </div>
               </div>
             </div>
           </>

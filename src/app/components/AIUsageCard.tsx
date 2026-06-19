@@ -161,7 +161,7 @@ export default function AIUsageCard() {
 
   if (loading) {
     return (
-      <div className="card-elevated p-5 animate-pulse">
+      <div className="card-elevated animate-pulse p-4">
         <div className="h-4 bg-secondary rounded w-1/2 mb-4" />
         <div className="space-y-3">
           <div className="h-3 bg-secondary rounded" />
@@ -173,7 +173,7 @@ export default function AIUsageCard() {
 
   if (!summary?.has_subscription) {
     return (
-      <div className="card-elevated p-5">
+      <div className="card-elevated p-4">
         <div className="flex items-center gap-2 mb-3">
           <Zap size={16} className="text-accent" />
           <h3 className="text-sm font-700 text-foreground">AI Usage</h3>
@@ -208,7 +208,7 @@ export default function AIUsageCard() {
     : '—';
 
   return (
-    <div className="card-elevated p-5 space-y-4">
+    <div className="card-elevated space-y-3 p-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -237,36 +237,35 @@ export default function AIUsageCard() {
       )}
 
       {/* Credit bars */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <UsageBar used={creditsUsed} total={creditsTotal} label="AI Credits" />
         {voiceTotalMin > 0 && (
           <UsageBar used={voiceUsedMin} total={voiceTotalMin} label="Voice minutes" />
         )}
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-secondary/50 rounded-xl p-3">
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="rounded-xl bg-secondary/50 p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Credits left</p>
           <p className={`text-base font-700 ${creditsRemaining === 0 ? 'text-negative' : 'text-foreground'}`}>
             {creditsRemaining}
           </p>
         </div>
-        <div className="bg-secondary/50 rounded-xl p-3">
+        <div className="rounded-xl bg-secondary/50 p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Requests today</p>
           <p className="text-base font-700 text-foreground">
             {summary.requests_today ?? 0}
             <span className="text-xs font-400 text-muted-foreground">/{summary.daily_ai_request_limit ?? '—'}</span>
           </p>
         </div>
-        <div className="bg-secondary/50 rounded-xl p-3">
+        <div className="rounded-xl bg-secondary/50 p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Reset date</p>
           <p className="text-sm font-600 text-foreground flex items-center gap-1">
             <Calendar size={11} className="text-muted-foreground" />
             {resetDate}
           </p>
         </div>
-        <div className="bg-secondary/50 rounded-xl p-3">
+        <div className="rounded-xl bg-secondary/50 p-3">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Status</p>
           <p className="text-sm font-600 text-foreground capitalize flex items-center gap-1">
             {summary.status === 'active' || summary.status === 'trialing'

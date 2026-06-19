@@ -61,27 +61,29 @@ export default function DashboardMetrics({
   });
 
   if (loading) {
-    const skeletonCards = [
-      'xl:col-span-6 sm:col-span-2',
-      'xl:col-span-3',
-      'xl:col-span-3',
-      'xl:col-span-4',
-      'xl:col-span-4',
-      'xl:col-span-4',
-      'xl:col-span-4',
-      'xl:col-span-4',
-      'xl:col-span-4',
-    ];
+    const topSkeletonCards = Array.from({ length: 4 });
+    const bottomSkeletonCards = Array.from({ length: 5 });
 
     return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
-        {skeletonCards.map((spanClass, i) => (
-          <div key={`skel-${i}`} className={`metric-card h-full min-h-[220px] animate-pulse ${spanClass}`}>
-            <div className="h-3 bg-muted rounded w-24 mb-3" />
-            <div className="h-8 bg-muted rounded w-32 mb-2" />
-            <div className="h-3 bg-muted rounded w-20" />
-          </div>
-        ))}
+      <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {topSkeletonCards.map((_, i) => (
+            <div key={`skel-top-${i}`} className="metric-card h-full min-h-[176px] animate-pulse px-4 py-3">
+              <div className="mb-2.5 h-3.5 w-28 rounded bg-muted" />
+              <div className="mb-2 h-8 w-32 rounded bg-muted" />
+              <div className="h-3 rounded bg-muted w-20" />
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {bottomSkeletonCards.map((_, i) => (
+            <div key={`skel-bottom-${i}`} className="metric-card h-full min-h-[176px] animate-pulse px-4 py-3">
+              <div className="mb-2.5 h-3.5 w-28 rounded bg-muted" />
+              <div className="mb-2 h-8 w-32 rounded bg-muted" />
+              <div className="h-3 rounded bg-muted w-20" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -360,82 +362,85 @@ export default function DashboardMetrics({
     },
   ];
 
+  const topRowCards = [personalCards[0], personalCards[1], personalCards[2], personalCards[3]];
+  const bottomRowCards = [personalCards[4], personalCards[5], managedCards[0], loanCards[0], loanCards[1]];
+
+  const renderMetricCard = (metric: DashboardMetricCard) => {
+    const Icon = metric.icon;
+    const isHero = metric.hero;
+
+    return (
+      <div
+        key={metric.id}
+        className={`metric-card flex h-full min-h-[176px] flex-col px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg ${
+          metric.alert ? 'border-negative/30 bg-negative-soft/30' : ''
+        } ${metric.warningState ? 'border-warning/30' : ''} ${
+          metric.id === 'metric-balance' ? 'border-primary/20 bg-primary/[0.03]' : ''
+        }`}
+      >
+        {isHero && (
+          <div className="absolute top-0 right-0 h-32 w-32 opacity-5">
+            <div className="h-full w-full translate-x-8 -translate-y-8 rounded-full bg-primary" />
+          </div>
+        )}
+        <div className="relative mb-2.5 flex items-start justify-between gap-3">
+          <p className="pr-3 text-xs font-800 uppercase tracking-[0.15em] text-foreground/88">{metric.label}</p>
+          <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl ${metric.iconBg} ring-1 ring-black/5`}>
+            <Icon size={19} className={metric.iconColor} />
+          </div>
+        </div>
+        <div className={`mb-1 font-tabular font-800 leading-tight text-foreground ${isHero ? 'text-[1.95rem] md:text-[2.15rem]' : 'text-[1.68rem]'}`}>
+          {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
+        </div>
+        {metric.subtext ? (
+          <p className="mb-1.5 text-[13px] leading-snug text-muted-foreground">{metric.subtext}</p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+          {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
+          {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
+          <div className={`text-sm font-700 font-tabular leading-none ${
+            metric.changeDir === 'up' ? 'text-positive' :
+            metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
+          }`}>
+            {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+          </div>
+          <span className="text-[13px] leading-snug text-muted-foreground">{metric.changeLabel}</span>
+        </div>
+        <div className="mt-auto pt-2">
+          {renderMetricDetails(metric.valueMetric)}
+        </div>
+        {metric.warningState && metric.budgetPct !== undefined && (
+          <div className="mt-2">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full ${metric.budgetPct >= 90 ? 'budget-bar-red' : 'budget-bar-amber'}`}
+                style={{ width: `${Math.min(metric.budgetPct, 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-700 text-foreground">Summary</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-base font-800 text-foreground">Summary</p>
+          <p className="text-sm text-muted-foreground">
             Personal balances stay current. {isMonthMode ? 'Monthly' : 'Pay-period'} cards and loan flow follow {activePeriod.label}.
           </p>
           {hasConfigurationWarning ? (
-            <p className="mt-1 text-xs text-warning">Pay-period calculations are temporarily using a monthly fallback from Settings.</p>
+            <p className="mt-1 text-sm text-warning">Pay-period calculations are temporarily using a monthly fallback from Settings.</p>
           ) : null}
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-12">
-        {[...personalCards, ...managedCards, ...loanCards].map((metric) => {
-          const Icon = metric.icon;
-          const isHero = metric.hero;
-          const desktopSpan = metric.id === 'metric-balance'
-            ? 'xl:col-span-6'
-            : metric.id === 'metric-income' || metric.id === 'metric-expenses'
-              ? 'xl:col-span-3'
-              : 'xl:col-span-4';
-
-          return (
-            <div
-              key={metric.id}
-              className={`metric-card flex h-full min-h-[220px] flex-col transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg ${desktopSpan} ${
-                isHero ? 'sm:col-span-2' : 'col-span-1'
-              } ${metric.alert ? 'border-negative/30 bg-negative-soft/30' : ''} ${
-                metric.warningState ? 'border-warning/30' : ''
-              }`}
-            >
-              {isHero && (
-                <div className="absolute top-0 right-0 w-32 h-32 opacity-5">
-                  <div className="w-full h-full rounded-full bg-primary translate-x-8 -translate-y-8" />
-                </div>
-              )}
-              <div className="flex items-start justify-between mb-3 relative">
-                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{metric.label}</p>
-                <div className={`w-10 h-10 rounded-2xl ${metric.iconBg} flex items-center justify-center flex-shrink-0 ring-1 ring-black/5`}>
-                  <Icon size={17} className={metric.iconColor} />
-                </div>
-              </div>
-              <div className={`font-tabular font-800 text-foreground ${isHero ? 'text-3xl md:text-[2rem]' : 'text-2xl'} mb-1.5`}>
-                {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'xl' : 'lg')}
-              </div>
-              {metric.subtext ? (
-                <p className="mb-2 text-xs text-muted-foreground">{metric.subtext}</p>
-              ) : null}
-              <div className="flex items-center gap-1.5">
-                {metric.changeDir === 'up' && <ArrowUp size={12} className="text-positive flex-shrink-0" />}
-                {metric.changeDir === 'down' && <ArrowDown size={12} className="text-negative flex-shrink-0" />}
-                <div className={`text-xs font-600 font-tabular ${
-                  metric.changeDir === 'up' ? 'text-positive' :
-                  metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
-                }`}>
-                  {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
-                </div>
-                <span className="text-xs text-muted-foreground">{metric.changeLabel}</span>
-              </div>
-              <div className="mt-auto pt-3">
-                {renderMetricDetails(metric.valueMetric)}
-              </div>
-              {metric.warningState && metric.budgetPct !== undefined && (
-                <div className="mt-3">
-                  <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${metric.budgetPct >= 90 ? 'budget-bar-red' : 'budget-bar-amber'}`}
-                      style={{ width: `${Math.min(metric.budgetPct, 100)}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {topRowCards.map((metric) => renderMetricCard(metric))}
+      </div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {bottomRowCards.map((metric) => renderMetricCard(metric))}
       </div>
     </div>
   );

@@ -40,7 +40,8 @@ export default function RecentTransactions() {
   return (
     <SectionCard
       title="Recent Transactions"
-      description="Last 8 recorded entries across your active accounts."
+      description="Latest recorded entries across your active accounts."
+      className="h-full"
       action={
         <Link href="/transactions" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
           View all <ArrowRight size={13} />
@@ -52,7 +53,7 @@ export default function RecentTransactions() {
       {loading ? (
         <div className="divide-y divide-border">
           {[...Array(5)].map((_, i) => (
-            <div key={`skel-txn-${i}`} className="flex items-center gap-3 px-5 py-3 animate-pulse">
+            <div key={`skel-txn-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
               <div className="w-9 h-9 rounded-xl bg-muted flex-shrink-0" />
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-32 mb-1.5" />
@@ -63,7 +64,7 @@ export default function RecentTransactions() {
           ))}
         </div>
       ) : transactions.length === 0 ? (
-        <div className="px-5 py-10">
+        <div className="px-4 py-8">
           <EmptyState
             icon={Receipt}
             title="No transactions yet"
@@ -77,7 +78,7 @@ export default function RecentTransactions() {
             const catColor = txn.category?.color || '#6b7280';
             const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
             return (
-              <div key={txn.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors cursor-pointer group">
+              <div key={txn.id} className="group flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/40">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: catColor + '20' }}

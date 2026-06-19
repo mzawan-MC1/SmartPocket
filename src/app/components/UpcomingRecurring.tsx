@@ -81,10 +81,11 @@ export default function UpcomingRecurring({
 
   return (
     <SectionCard
-      title="Upcoming Payments"
+      title="Upcoming Recurring"
       description={activePeriod.mode === 'month'
         ? `Recurring items scheduled for ${activePeriod.label}.`
-        : `Recurring items due during ${activePeriod.label}.`}
+        : `Recurring items due in ${activePeriod.label}.`}
+      className="h-full"
       action={<StatusBadge status="pending" label={activePeriod.label} />}
       bodyClassName="p-0"
     >
@@ -92,7 +93,7 @@ export default function UpcomingRecurring({
       {loading ? (
         <div className="divide-y divide-border">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-rec-${i}`} className="flex items-center gap-3 px-5 py-3 animate-pulse">
+            <div key={`skel-rec-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-36 mb-1.5" />
                 <div className="h-2.5 bg-muted rounded w-24" />
@@ -102,7 +103,7 @@ export default function UpcomingRecurring({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="px-5 py-8">
+        <div className="px-4 py-8">
           <EmptyState
             icon={CalendarClock}
             title="No upcoming payments"
@@ -120,7 +121,7 @@ export default function UpcomingRecurring({
               const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
               const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
               return (
-                <div key={item.id} className={`flex items-center gap-3 px-5 py-3 hover:bg-muted/40 transition-colors ${urgent ? 'bg-warning-soft/30' : ''}`}>
+                <div key={item.id} className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${urgent ? 'bg-warning-soft/30' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       {urgent && <AlertCircle size={12} className="text-warning flex-shrink-0" />}
@@ -161,7 +162,7 @@ export default function UpcomingRecurring({
               );
             })}
           </div>
-          <div className="px-5 py-3 bg-muted/30 border-t border-border">
+          <div className="border-t border-border bg-muted/30 px-4 py-3">
             <p className="text-xs text-muted-foreground text-center">
               {activePeriod.mode === 'month' ? 'Total scheduled:' : 'Total due this pay period:'}
               <span className="font-700 text-foreground font-tabular inline-flex flex-col items-center">

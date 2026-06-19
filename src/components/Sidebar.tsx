@@ -8,7 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import Icon from '@/components/ui/AppIcon';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
@@ -31,23 +30,38 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const { branding } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
 
-  const navItems = [
-    { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
-    { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },
-    { id: 'nav-accounts', label: t('nav.accounts'), icon: Wallet, href: '/financial-accounts' },
-    { id: 'nav-transfers', label: 'Transfers', icon: ArrowUpDown, href: '/transfers' },
-    { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
-    { id: 'nav-recurring', label: 'Recurring', icon: Repeat, href: '/recurring' },
-    { id: 'nav-categories', label: 'Categories', icon: Tag, href: '/categories' },
-    { id: 'nav-reports', label: t('nav.reports'), icon: BarChart3, href: '/reports' },
-    { id: 'nav-people', label: 'People', icon: Users, href: '/people' },
-    { id: 'nav-spaces', label: 'Spaces', icon: Home, href: '/spaces' },
-    { id: 'nav-reimbursements', label: 'Reimbursements', icon: RotateCcw, href: '/reimbursements' },
-    { id: 'nav-settlements', label: 'Settlements', icon: DollarSign, href: '/settlements' },
-    { id: 'nav-ai-history', label: 'AI History', icon: History, href: '/ai-history' },
+  const navSections = [
+    {
+      heading: 'Finance',
+      items: [
+        { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
+        { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },
+        { id: 'nav-accounts', label: t('nav.accounts'), icon: Wallet, href: '/financial-accounts' },
+        { id: 'nav-transfers', label: 'Transfers', icon: ArrowUpDown, href: '/transfers' },
+        { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
+        { id: 'nav-recurring', label: 'Recurring', icon: Repeat, href: '/recurring' },
+        { id: 'nav-categories', label: 'Categories', icon: Tag, href: '/categories' },
+      ],
+    },
+    {
+      heading: 'Manage',
+      items: [
+        { id: 'nav-reimbursements', label: 'Reimbursements', icon: RotateCcw, href: '/reimbursements' },
+        { id: 'nav-settlements', label: 'Settlements', icon: DollarSign, href: '/settlements' },
+        { id: 'nav-people', label: 'People', icon: Users, href: '/people' },
+        { id: 'nav-spaces', label: 'Spaces', icon: Home, href: '/spaces' },
+      ],
+    },
+    {
+      heading: 'Reports',
+      items: [
+        { id: 'nav-reports', label: t('nav.reports'), icon: BarChart3, href: '/reports' },
+        { id: 'nav-ai-history', label: 'AI History', icon: History, href: '/ai-history' },
+      ],
+    },
   ];
 
-  const bottomItems = [
+  const accountItems = [
     { id: 'nav-settings', label: t('nav.settings'), icon: Settings, href: '/settings' },
     { id: 'nav-help', label: t('nav.help'), icon: HelpCircle, href: '/help' },
   ];
@@ -71,6 +85,54 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const displayEmail = user?.email || '';
   const initials = displayName.charAt(0).toUpperCase();
 
+  const renderNavItem = (item: { id: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; href: string }, compact = false) => {
+    const Icon = item.icon;
+    const active = isRouteActive(item.href);
+    const pending = isRoutePending(item.href);
+
+    return (
+      <li key={item.id}>
+        <Link
+          href={item.href}
+          onClick={(event) => {
+            const shouldNavigate = handleNavigationIntent(item.href, event);
+            if (shouldNavigate) {
+              onNavigateItem?.();
+            }
+          }}
+          className={`group relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-600 transition-all duration-150 ${
+            active
+              ? 'border-accent/20 bg-accent/10 text-accent shadow-sm'
+              : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/55 hover:text-foreground'
+          } ${compact ? 'px-3 py-2.5' : ''}`}
+          aria-current={active ? 'page' : undefined}
+          aria-busy={pending ? 'true' : undefined}
+          title={collapsed ? item.label : undefined}
+        >
+          <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+            active ? 'bg-white/85 text-accent ring-1 ring-accent/10' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
+          }`}>
+            <Icon size={17} />
+          </span>
+          {!collapsed && (
+            <span className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="truncate">{item.label}</span>
+              {pending ? <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" /> : null}
+            </span>
+          )}
+          {collapsed && pending ? (
+            <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
+          ) : null}
+          {collapsed && (
+            <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>
+              {item.label}
+            </span>
+          )}
+        </Link>
+      </li>
+    );
+  };
+
   return (
     <aside
       className={`relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-card sidebar-transition lg:sticky lg:top-0 lg:min-h-screen lg:h-screen ${
@@ -83,8 +145,8 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       >
         <div className="min-w-0 flex-1">
           <div
-            className={`flex h-12 items-center overflow-hidden rounded-xl border border-border bg-muted/30 ${
-              collapsed ? 'w-11 justify-center px-1' : 'max-w-[192px] px-3'
+            className={`flex h-12 items-center overflow-hidden rounded-2xl border border-border bg-muted/35 ${
+              collapsed ? 'w-11 justify-center px-1' : 'max-w-[208px] px-3'
             }`}
           >
             <AppLogo
@@ -109,97 +171,29 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </div>
 
       {/* Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4 scrollbar-thin">
-        {!collapsed && (
-          <p className="px-5 mb-2 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Finance</p>
-        )}
-
-        <ul className="space-y-1 px-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isRouteActive(item.href);
-            const pending = isRoutePending(item.href);
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  onClick={(event) => {
-                    const shouldNavigate = handleNavigationIntent(item.href, event);
-                    if (shouldNavigate) {
-                      onNavigateItem?.();
-                    }
-                  }}
-                  className={`nav-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-500 relative group ${
-                    active ? 'nav-active font-600' : 'text-muted-foreground'
-                  }`}
-                  aria-current={active ? 'page' : undefined}
-                  aria-busy={pending ? 'true' : undefined}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  {!collapsed && (
-                    <span className="truncate flex-1">{item.label}</span>
-                  )}
-                  {!collapsed && pending && (
-                    <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" />
-                  )}
-                  {collapsed && pending && (
-                    <span className="absolute top-2.5 end-2.5 w-2 h-2 rounded-full bg-accent" />
-                  )}
-                  {collapsed && (
-                    <span className={`absolute ${isRTL ? 'right-full me-3' : 'left-full ms-3'} px-2.5 py-1.5 bg-foreground text-card text-xs font-500 rounded-md whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity duration-150 z-50 shadow-card-md`}>
-                      {item.label}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 scrollbar-thin">
+        <div className="space-y-3">
+          {navSections.map((section) => (
+            <div key={section.heading} className="space-y-1.5">
+              {!collapsed && (
+                <p className="px-3 text-[10px] font-800 uppercase tracking-[0.18em] text-muted-foreground">
+                  {section.heading}
+                </p>
+              )}
+              <ul className="space-y-1">
+                {section.items.map((item) => renderNavItem(item))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
 
       <div className="shrink-0 border-t border-border px-2 py-3">
         {!collapsed && (
-          <p className="mb-2 px-3 text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">Account</p>
+          <p className="mb-1.5 px-3 text-[10px] font-800 uppercase tracking-[0.18em] text-muted-foreground">Account</p>
         )}
         <ul className="space-y-1">
-          {bottomItems.map((item) => {
-            const Icon = item.icon;
-            const active = isRouteActive(item.href);
-            const pending = isRoutePending(item.href);
-            return (
-              <li key={item.id}>
-                <Link
-                  href={item.href}
-                  onClick={(event) => {
-                    const shouldNavigate = handleNavigationIntent(item.href, event);
-                    if (shouldNavigate) {
-                      onNavigateItem?.();
-                    }
-                  }}
-                  className={`nav-item relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-500 text-muted-foreground group ${active ? 'nav-active font-600' : ''}`}
-                  aria-current={active ? 'page' : undefined}
-                  aria-busy={pending ? 'true' : undefined}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <Icon size={18} className="flex-shrink-0" />
-                  {!collapsed && <span className="truncate flex-1">{item.label}</span>}
-                  {!collapsed && pending && (
-                    <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" />
-                  )}
-                  {collapsed && pending && (
-                    <span className="absolute top-2.5 end-2.5 w-2 h-2 rounded-full bg-accent" />
-                  )}
-                  {collapsed && (
-                    <span className={`absolute ${isRTL ? 'right-full me-3' : 'left-full ms-3'} whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 pointer-events-none group-hover:opacity-100 z-50`}>
-                      {item.label}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
+          {accountItems.map((item) => renderNavItem(item, true))}
         </ul>
       </div>
 
@@ -208,28 +202,38 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         {collapsed ? (
           <button
             onClick={handleSignOut}
-            className="w-9 h-9 rounded-full gradient-teal flex items-center justify-center text-white text-sm font-700 flex-shrink-0 hover:opacity-80 transition-opacity"
+            className="flex h-10 w-10 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white transition-opacity hover:opacity-80"
             title="Sign out"
           >
             {initials}
           </button>
         ) : (
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-2.5 hover:bg-secondary transition-colors cursor-pointer group">
-            <div className="w-9 h-9 rounded-full gradient-teal flex items-center justify-center text-white text-sm font-700 flex-shrink-0">
-              {initials}
+          <div className="rounded-2xl border border-border bg-secondary/45 p-3 shadow-card-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white">
+                {initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-700 text-foreground">{displayName}</p>
+                <p className="truncate text-xs text-muted-foreground">{displayEmail}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-600 text-foreground truncate">{displayName}</p>
-              <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
+            <div className="mt-3 flex items-center gap-2">
+              <Link
+                href="/settings"
+                className="inline-flex flex-1 items-center justify-center rounded-xl border border-border bg-card px-3 py-2 text-xs font-700 text-foreground transition-colors hover:bg-muted"
+              >
+                Settings
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="inline-flex items-center justify-center rounded-xl border border-negative/20 bg-negative-soft px-3 py-2 text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut size={14} />
+              </button>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut size={15} className="text-muted-foreground hover:text-negative transition-colors" />
-            </button>
           </div>
         )}
       </div>
