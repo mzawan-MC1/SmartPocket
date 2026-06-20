@@ -1,12 +1,14 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Users, Wallet, TrendingUp, TrendingDown, RotateCcw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getPeopleDashboardSummary } from '@/lib/people';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import Link from 'next/link';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 export default function PeopleDashboardWidget() {
+  const { t } = useTranslation(['portal', 'common']);
   const [summary, setSummary] = useState<{
     defaultCurrency: string;
     totalHeldByCurrency: Array<{ currency: string; amount: number }>;
@@ -78,10 +80,10 @@ export default function PeopleDashboardWidget() {
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users size={18} className="text-accent" />
-          <h3 className="text-sm font-700 text-foreground">People & Spaces</h3>
+          <h3 className="text-sm font-700 text-foreground">{t('people.detail.dashboardTitle', { ns: 'portal' })}</h3>
         </div>
         <Link href="/people" className="text-xs text-accent font-600 hover:underline">
-          View All ({summary.peopleCount})
+          {t('actions.viewAll', { ns: 'common' })} ({summary.peopleCount})
         </Link>
       </div>
 
@@ -89,46 +91,46 @@ export default function PeopleDashboardWidget() {
         <div className="rounded-xl bg-info-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Wallet size={13} className="text-info" />
-            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
+            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">{t('people.moneyHeld', { ns: 'portal' })}</span>
           </div>
           {renderAmounts(summary.totalHeldByCurrency, 'text-base font-700 text-foreground')}
-          <p className="text-[10px] text-muted-foreground">Held for others</p>
+          <p className="text-[10px] text-muted-foreground">{t('people.detail.heldForOthers', { ns: 'portal' })}</p>
         </div>
 
         <div className="rounded-xl bg-positive-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingUp size={13} className="text-positive" />
-            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
+            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">{t('people.owedToMe', { ns: 'portal' })}</span>
           </div>
           {renderAmounts(summary.totalOwedToUserByCurrency, 'text-base font-700 text-positive')}
-          <p className="text-[10px] text-muted-foreground">People owe me</p>
+          <p className="text-[10px] text-muted-foreground">{t('people.detail.peopleOweMe', { ns: 'portal' })}</p>
         </div>
 
         <div className="rounded-xl bg-negative-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <TrendingDown size={13} className="text-negative" />
-            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
+            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">{t('people.iOwe', { ns: 'portal' })}</span>
           </div>
           {renderAmounts(summary.totalOwedByUserByCurrency, 'text-base font-700 text-negative')}
-          <p className="text-[10px] text-muted-foreground">I owe others</p>
+          <p className="text-[10px] text-muted-foreground">{t('people.detail.iOweOthers', { ns: 'portal' })}</p>
         </div>
 
         <div className="rounded-xl bg-warning-soft p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <RotateCcw size={13} className="text-warning" />
-            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">Pending Reimb.</span>
+            <span className="text-[10px] font-600 text-muted-foreground uppercase tracking-wide">{t('people.detail.pendingReimbursementsShort', { ns: 'portal' })}</span>
           </div>
           {renderAmounts(summary.pendingReimbByCurrency, 'text-base font-700 text-warning')}
-          <p className="text-[10px] text-muted-foreground">Outstanding</p>
+          <p className="text-[10px] text-muted-foreground">{t('reimbursements.outstanding', { ns: 'portal' })}</p>
         </div>
       </div>
 
       <div className="mt-3 flex gap-2">
         <Link href="/reimbursements" className="flex-1 rounded-lg border border-border py-2 text-center text-xs font-600 text-foreground transition-colors hover:bg-muted">
-          Reimbursements
+          {t('reimbursements.title', { ns: 'portal' })}
         </Link>
         <Link href="/settlements" className="flex-1 rounded-lg border border-border py-2 text-center text-xs font-600 text-foreground transition-colors hover:bg-muted">
-          Settlements
+          {t('settlements.title', { ns: 'portal' })}
         </Link>
       </div>
     </div>

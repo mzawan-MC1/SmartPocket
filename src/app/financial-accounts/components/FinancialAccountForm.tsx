@@ -2,22 +2,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finance';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
-
-const ACCOUNT_TYPE_OPTIONS = [
-  { value: 'bank', label: 'Bank Account' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'savings', label: 'Savings' },
-  { value: 'cash', label: 'Cash' },
-  { value: 'digital_wallet', label: 'Digital Wallet' },
-  { value: 'investment', label: 'Investment' },
-  { value: 'other', label: 'Other' },
-];
 
 interface AccountFormData {
   name: string;
@@ -37,6 +28,7 @@ export default function FinancialAccountForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
   const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
@@ -90,11 +82,11 @@ export default function FinancialAccountForm({
 
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error('Account name is required');
+      toast.error(t('accounts.form.nameRequired', { ns: 'portal' }));
       return;
     }
     if (!form.currency) {
-      toast.error('Currency is required');
+      toast.error(t('accounts.form.currencyRequired', { ns: 'portal' }));
       return;
     }
 
@@ -111,10 +103,10 @@ export default function FinancialAccountForm({
 
       if (account) {
         await updateAccount(account.id, payload);
-        toast.success('Account updated');
+        toast.success(t('accounts.form.updated', { ns: 'portal' }));
       } else {
         await createAccount(payload);
-        toast.success('Account created');
+        toast.success(t('accounts.form.created', { ns: 'portal' }));
       }
 
       dispatchSmartPocketDataChanged({
@@ -123,44 +115,54 @@ export default function FinancialAccountForm({
       });
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save account');
+      toast.error(error instanceof Error ? error.message : t('accounts.form.saveFailed', { ns: 'portal' }));
     } finally {
       setIsSaving(false);
     }
   };
 
+  const accountTypeOptions = [
+    { value: 'bank', label: t('accounts.types.bank', { ns: 'portal' }) },
+    { value: 'credit_card', label: t('accounts.types.creditCard', { ns: 'portal' }) },
+    { value: 'savings', label: t('accounts.types.savings', { ns: 'portal' }) },
+    { value: 'cash', label: t('accounts.types.cash', { ns: 'portal' }) },
+    { value: 'digital_wallet', label: t('accounts.types.digitalWallet', { ns: 'portal' }) },
+    { value: 'investment', label: t('accounts.types.investment', { ns: 'portal' }) },
+    { value: 'other', label: t('accounts.types.other', { ns: 'portal' }) },
+  ];
+
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">Account Name *</label>
+        <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.form.name', { ns: 'portal' })} *</label>
         <input
           type="text"
           className="input-base"
-          placeholder="e.g. Chase Checking, Cash Wallet"
+          placeholder={t('accounts.form.namePlaceholder', { ns: 'portal' })}
           value={form.name}
           onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
         />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Account Type *</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.form.type', { ns: 'portal' })} *</label>
           <select className="input-base" value={form.account_type} onChange={(event) => setForm((current) => ({ ...current, account_type: event.target.value }))}>
-            {ACCOUNT_TYPE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            {accountTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Currency *</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency', { ns: 'portal' })} *</label>
           <CurrencySelector
             value={form.currency}
             onChange={(currencyCode) => setForm((current) => ({ ...current, currency: currencyCode }))}
             showCountryCount
-            placeholder="Choose currency"
+            placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
           />
         </div>
       </div>
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">Opening Balance</label>
-        <p className="text-xs text-muted-foreground mb-1.5">Current balance of this account. Use negative for credit card debt.</p>
+        <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.openingBalance', { ns: 'portal' })}</label>
+        <p className="text-xs text-muted-foreground mb-1.5">{t('accounts.form.openingBalanceHelper', { ns: 'portal' })}</p>
         <input
           type="number"
           step="0.01"
@@ -171,8 +173,8 @@ export default function FinancialAccountForm({
         />
       </div>
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
-        <textarea rows={2} className="input-base resize-none" placeholder="Optional notes..." value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
+        <label className="block text-sm font-600 text-foreground mb-1.5">{t('reimbursements.notes', { ns: 'portal' })}</label>
+        <textarea rows={2} className="input-base resize-none" placeholder={t('accounts.form.notesPlaceholder', { ns: 'portal' })} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
       </div>
       <div className="flex items-center gap-3 rounded-xl bg-muted/40 p-3">
         <input
@@ -183,13 +185,13 @@ export default function FinancialAccountForm({
           onChange={(event) => setForm((current) => ({ ...current, include_in_total: event.target.checked }))}
         />
         <label htmlFor="include-in-total-shared" className="text-sm font-500 text-foreground cursor-pointer">
-          Include in total balance calculation
+          {t('accounts.form.includeInTotal', { ns: 'portal' })}
         </label>
       </div>
       <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn-secondary">{t('actions.cancel', { ns: 'common' })}</button>
         <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary">
-          {isSaving ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : account ? 'Update Account' : 'Add Account'}
+          {isSaving ? <><Loader2 size={15} className="animate-spin" /> {t('status.saving', { ns: 'common' })}</> : account ? t('accounts.form.updateAction', { ns: 'portal' }) : t('accounts.addAccount', { ns: 'portal' })}
         </button>
       </div>
     </div>

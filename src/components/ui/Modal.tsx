@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ModalProps {
   open?: boolean;
@@ -34,6 +35,7 @@ export default function Modal({
   contentClassName = '',
   bodyClassName = '',
 }: ModalProps) {
+  const { t } = useTranslation('common');
   const isVisible = open || isOpen || false;
   const mobileContentClassName = mobileLayout === 'fullscreen'
     ? 'max-[480px]:h-[100dvh] max-[480px]:max-h-[100dvh] max-[480px]:rounded-none max-[480px]:border-0'
@@ -77,7 +79,11 @@ export default function Modal({
             <h2 className="text-lg font-800 text-foreground">{title}</h2>
             {description && <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>}
           </div>
-          <button onClick={onClose} className="btn-ghost p-1.5 -mr-1 -mt-1 rounded-lg" aria-label="Close modal">
+          <button
+            onClick={onClose}
+            className="btn-ghost p-1.5 -mr-1 -mt-1 rounded-lg"
+            aria-label={t('actions.close')}
+          >
             <X size={18} />
           </button>
         </div>

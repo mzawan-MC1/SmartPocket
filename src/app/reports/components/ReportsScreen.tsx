@@ -50,23 +50,23 @@ type ChartState<T> = {
 type ReportGrouping = 'day' | 'week' | 'month';
 
 const reportTypes = [
-  { id: 'income-expense' as ReportType, label: 'Income vs Expenses', icon: TrendingUp, description: 'Compare income and expenses for the active report range.' },
-  { id: 'spending-category' as ReportType, label: 'Spending by Category', icon: PieChart, description: 'Review category spending for the active range.' },
-  { id: 'monthly-trends' as ReportType, label: 'Trends', icon: BarChart3, description: 'See daily, weekly, or monthly trend buckets based on the selected range.' },
-  { id: 'budget-performance' as ReportType, label: 'Budget Performance', icon: Target, description: 'Track only budgets that apply to the active report range.' },
-  { id: 'account-statement' as ReportType, label: 'Account Statement', icon: FileText, description: 'Keep original transaction dates, currencies, and amounts as the primary statement values.' },
+  { id: 'income-expense' as ReportType, icon: TrendingUp },
+  { id: 'spending-category' as ReportType, icon: PieChart },
+  { id: 'monthly-trends' as ReportType, icon: BarChart3 },
+  { id: 'budget-performance' as ReportType, icon: Target },
+  { id: 'account-statement' as ReportType, icon: FileText },
 ];
 
-const reportPresets: Array<{ key: ReportPeriodPreset; label: string }> = [
-  { key: 'current_pay_period', label: 'Current pay period' },
-  { key: 'previous_pay_period', label: 'Previous pay period' },
-  { key: 'current_month', label: 'Current month' },
-  { key: 'previous_month', label: 'Previous month' },
-  { key: 'current_quarter', label: 'Current quarter' },
-  { key: 'current_year', label: 'Current year' },
-  { key: 'last_30_days', label: 'Last 30 days' },
-  { key: 'year_to_date', label: 'Year to date' },
-  { key: 'custom', label: 'Custom range' },
+const reportPresets: ReportPeriodPreset[] = [
+  'current_pay_period',
+  'previous_pay_period',
+  'current_month',
+  'previous_month',
+  'current_quarter',
+  'current_year',
+  'last_30_days',
+  'year_to_date',
+  'custom',
 ];
 
 function getPresetButtonLabel(
@@ -177,10 +177,11 @@ function downloadCsv(filename: string, csv: string) {
 
 function renderOriginalCurrencyRows(
   rows: Array<{ currency: string; amount: number }>,
-  positive?: boolean
+  positive?: boolean,
+  emptyLabel?: string
 ) {
   if (rows.length === 0) {
-    return <span className="text-sm text-muted-foreground">No data</span>;
+    return <span className="text-sm text-muted-foreground">{emptyLabel ?? ''}</span>;
   }
 
   return (
@@ -198,6 +199,16 @@ function renderOriginalCurrencyRows(
       ))}
     </div>
   );
+}
+
+function getTransactionTypeLabel(
+  transactionType: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (transactionType === 'income' || transactionType === 'expense' || transactionType === 'transfer') {
+    return t(`transactions.types.${transactionType}`);
+  }
+  return transactionType;
 }
 
 function isFiniteAmount(value: unknown): value is number {
@@ -336,7 +347,7 @@ function buildIncomeExpenseChartState(args: {
   return {
     data,
     unavailableReason: null,
-    emptyReason: data.length === 0 ? 'No transactions in this period' : null,
+    emptyReason: data.length === 0 ? 'NO_TRANSACTIONS' : null,
   };
 }
 
@@ -344,6 +355,7 @@ function buildSpendingCategoryChartState(args: {
   expenseTransactions: Transaction[];
   reportingCurrency: string;
   snapshots: ReportViewData['snapshots'];
+  t: (key: string, options?: Record<string, unknown>) => string;
 }): ChartState<SpendingCategoryChartRow> {
   const totals = new Map<string, SpendingCategoryChartRow>();
   const missingRateDates = new Set<string>();
@@ -365,7 +377,7 @@ function buildSpendingCategoryChartState(args: {
       };
     }
 
-    const categoryName = transaction.category?.name || 'Uncategorized';
+    const categoryName = transaction.category?.name || args.t('transactions.uncategorized');
     const current = totals.get(categoryName) || {
       id: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       category: categoryName,
@@ -383,7 +395,7 @@ function buildSpendingCategoryChartState(args: {
   return {
     data,
     unavailableReason: null,
-    emptyReason: data.length === 0 ? 'No expense transactions in this period' : null,
+    emptyReason: data.length === 0 ? 'NO_EXPENSES' : null,
   };
 }
 
@@ -404,7 +416,10 @@ function renderConvertedMetric(metric: HistoricalReportConvertedMetric, positive
   );
 }
 
-function renderConvertedMetricDetails(metric: HistoricalReportConvertedMetric) {
+function renderConvertedMetricDetails(
+  metric: HistoricalReportConvertedMetric,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   const shouldShowDetails =
     metric.originalTotals.length > 1 ||
     !metric.allOriginalInReportingCurrency ||
@@ -419,28 +434,30 @@ function renderConvertedMetricDetails(metric: HistoricalReportConvertedMetric) {
   return (
     <details className="mt-2 rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
       <summary className="cursor-pointer text-[11px] font-600 text-muted-foreground">
-        View original currencies
+        {t('reports.viewOriginalCurrencies')}
       </summary>
       <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
-        <p>Reporting currency: {metric.reportingCurrency}</p>
-        {renderOriginalCurrencyRows(metric.originalTotals)}
+        <p>{t('reports.reportingCurrency', { currency: metric.reportingCurrency })}</p>
+        {renderOriginalCurrencyRows(metric.originalTotals, undefined, t('reports.noData'))}
         {metric.reportingAmount !== null && !metric.allOriginalInReportingCurrency ? (
-          <p>Historical reporting total in {metric.reportingCurrency}.</p>
+          <p>{t('reports.historicalReportingTotal', { currency: metric.reportingCurrency })}</p>
         ) : null}
         {metric.previousAvailableCount > 0 ? (
-          <p>{metric.previousAvailableCount} record(s) use the nearest previous available snapshot.</p>
+          <p>{t('reports.previousSnapshotUsage', { count: metric.previousAvailableCount })}</p>
         ) : null}
-        {metric.exactCount > 0 ? <p>{metric.exactCount} record(s) use an exact transaction-date snapshot.</p> : null}
+        {metric.exactCount > 0 ? <p>{t('reports.exactSnapshotUsage', { count: metric.exactCount })}</p> : null}
         {metric.earliestRateDate || metric.latestRateDate ? (
           <p>
-            Applied rate dates: {metric.earliestRateDate || metric.latestRateDate}
-            {metric.latestRateDate && metric.latestRateDate !== metric.earliestRateDate ? ` to ${metric.latestRateDate}` : ''}
+            {t('reports.appliedRateDates', {
+              start: metric.earliestRateDate || metric.latestRateDate,
+              end: metric.latestRateDate && metric.latestRateDate !== metric.earliestRateDate ? ` to ${metric.latestRateDate}` : '',
+            })}
           </p>
         ) : null}
-        {metric.provider ? <p>Provider: {metric.provider}</p> : null}
-        {metric.freshestAppliedAt ? <p>Latest snapshot fetched at: {metric.freshestAppliedAt}</p> : null}
+        {metric.provider ? <p>{t('reports.provider', { provider: metric.provider })}</p> : null}
+        {metric.freshestAppliedAt ? <p>{t('reports.latestSnapshotFetchedAt', { value: metric.freshestAppliedAt })}</p> : null}
         {metric.missingRateDates.length > 0 ? <p>{buildHistoricalRateUnavailableMessage(metric.missingRateDates)}</p> : null}
-        {metric.stale ? <p className="text-warning">One or more applied snapshots are stale.</p> : null}
+        {metric.stale ? <p className="text-warning">{t('reports.stale')}</p> : null}
         {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
       </div>
     </details>
@@ -471,20 +488,23 @@ function getReportTitle(
   return t('reports.titles.monthlyTrends');
 }
 
-function buildTransactionsCsv(data: ReportViewData) {
+function buildTransactionsCsv(
+  data: ReportViewData,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   const headers = [
-    'Date',
-    'Type',
-    'Merchant/Source',
-    'Description',
-    'Category',
-    'Account',
-    'Original Amount',
-    'Original Currency',
-    'Reporting Equivalent',
-    'Reporting Currency',
-    'Tags',
-    'Notes',
+    t('reports.accountStatement.columns.date'),
+    t('reports.accountStatement.columns.type'),
+    t('reports.accountStatement.columns.merchantSource'),
+    t('reports.accountStatement.columns.description'),
+    t('reports.accountStatement.columns.category'),
+    t('reports.accountStatement.columns.account'),
+    t('reports.accountStatement.columns.originalAmount'),
+    t('reports.accountStatement.columns.originalCurrency'),
+    t('reports.accountStatement.columns.reportingEquivalent'),
+    t('reports.accountStatement.columns.reportingCurrency'),
+    t('reports.accountStatement.columns.tags'),
+    t('reports.accountStatement.columns.notes'),
   ];
 
   const rows = data.transactions.map((transaction) => {
@@ -501,14 +521,14 @@ function buildTransactionsCsv(data: ReportViewData) {
 
     return [
       transaction.transaction_date,
-      transaction.transaction_type,
+      getTransactionTypeLabel(transaction.transaction_type, t),
       transaction.merchant || '',
       transaction.description || '',
       transaction.category?.name || '',
       transaction.account?.name || '',
       signedOriginalAmount.toFixed(2),
       transaction.currency || '',
-      conversion.convertedAmount === null ? 'Unavailable' : conversion.convertedAmount.toFixed(2),
+      conversion.convertedAmount === null ? t('reports.unavailable') : conversion.convertedAmount.toFixed(2),
       data.reportingCurrency,
       (transaction.tags || []).join(', '),
       transaction.notes || '',
@@ -518,37 +538,40 @@ function buildTransactionsCsv(data: ReportViewData) {
   return [headers.join(','), ...rows.map((row) => row.map(escapeCsvValue).join(','))].join('\n');
 }
 
-function buildBudgetPerformanceCsv(items: ReportBudgetPerformanceItem[]) {
+function buildBudgetPerformanceCsv(
+  items: ReportBudgetPerformanceItem[],
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   const headers = [
-    'Budget',
-    'Category',
-    'Period Label',
-    'Period Type',
-    'Budget Amount',
-    'Budget Currency',
-    'Spent',
-    'Remaining',
-    'Status',
-    'Progress Percent',
-    'Reporting Amount',
-    'Reporting Spent',
-    'Reporting Remaining',
-    'Reporting Currency',
+    t('reports.budgetPerformanceCsv.budget'),
+    t('reports.budgetPerformanceCsv.category'),
+    t('reports.budgetPerformanceCsv.periodLabel'),
+    t('reports.budgetPerformanceCsv.periodType'),
+    t('reports.budgetPerformanceCsv.budgetAmount'),
+    t('reports.budgetPerformanceCsv.budgetCurrency'),
+    t('reports.budgetPerformanceCsv.spent'),
+    t('reports.budgetPerformanceCsv.remaining'),
+    t('reports.budgetPerformanceCsv.status'),
+    t('reports.budgetPerformanceCsv.progressPercent'),
+    t('reports.budgetPerformanceCsv.reportingAmount'),
+    t('reports.budgetPerformanceCsv.reportingSpent'),
+    t('reports.budgetPerformanceCsv.reportingRemaining'),
+    t('reports.budgetPerformanceCsv.reportingCurrency'),
   ];
   const rows = items.map((item) => [
-    item.budget.name || item.budget.category?.name || 'Budget',
+    item.budget.name || item.budget.category?.name || t('reports.budget'),
     item.budget.category?.name || '',
     item.period.label || '',
     item.periodTypeLabel,
     Number(item.budget.amount || 0).toFixed(2),
     item.budget.currency || '',
-    item.spentAmount === null ? 'Unavailable' : item.spentAmount.toFixed(2),
-    item.remainingAmount === null ? 'Unavailable' : item.remainingAmount.toFixed(2),
+    item.spentAmount === null ? t('reports.unavailable') : item.spentAmount.toFixed(2),
+    item.remainingAmount === null ? t('reports.unavailable') : item.remainingAmount.toFixed(2),
     item.statusLabel,
     item.progressPct === null ? '' : item.progressPct.toFixed(1),
-    item.allocatedReportingAmount === null ? 'Unavailable' : item.allocatedReportingAmount.toFixed(2),
-    item.spentReportingAmount === null ? 'Unavailable' : item.spentReportingAmount.toFixed(2),
-    item.remainingReportingAmount === null ? 'Unavailable' : item.remainingReportingAmount.toFixed(2),
+    item.allocatedReportingAmount === null ? t('reports.unavailable') : item.allocatedReportingAmount.toFixed(2),
+    item.spentReportingAmount === null ? t('reports.unavailable') : item.spentReportingAmount.toFixed(2),
+    item.remainingReportingAmount === null ? t('reports.unavailable') : item.remainingReportingAmount.toFixed(2),
     item.reportingCurrency,
   ]);
   return [headers.join(','), ...rows.map((row) => row.map(escapeCsvValue).join(','))].join('\n');
@@ -673,8 +696,9 @@ export default function ReportsScreen() {
       expenseTransactions: reportData.expenseTransactions,
       reportingCurrency: reportData.reportingCurrency,
       snapshots: reportData.snapshots,
+      t,
     });
-  }, [reportData]);
+  }, [reportData, t]);
 
   const activeTitle = getReportTitle(activeReport, grouping, t);
   const incomeMetric = reportData?.incomeMetric || null;
@@ -691,12 +715,12 @@ export default function ReportsScreen() {
     : 0;
   const savingsRateValue = !incomeMetric || !expensesMetric
     ? loading
-      ? 'Loading report metrics'
-      : 'Report metrics unavailable'
+      ? t('reports.loadingMetrics')
+      : t('reports.metricsUnavailable')
     : incomeMetric.reportingAmount === null || expensesMetric.reportingAmount === null
-      ? incomeMetric.unavailableReason || expensesMetric.unavailableReason || 'Historical exchange rate unavailable'
+      ? incomeMetric.unavailableReason || expensesMetric.unavailableReason || t('reports.historicalRateUnavailable')
       : Number(incomeMetric.reportingAmount) <= 0
-        ? 'No income in selected period'
+        ? t('reports.noIncomeSelectedPeriod')
         : `${savingsRate.toFixed(1)}%`;
 
   const summaryByType: Record<ReportType, Array<{
@@ -708,64 +732,64 @@ export default function ReportsScreen() {
     positive?: boolean;
   }>> = {
     'income-expense': [
-      { id: 'rpt-ie-income', label: 'Total Income', convertedMetric: incomeMetric, sub: activeRange?.label, positive: true },
-      { id: 'rpt-ie-expenses', label: 'Total Expenses', convertedMetric: expensesMetric, sub: activeRange?.comparisonLabel ? `Compared with ${activeRange.comparisonLabel}` : undefined, positive: false },
-      { id: 'rpt-ie-net', label: 'Net Savings', convertedMetric: netMetric, sub: canCalculateSavingsRate ? `${savingsRate.toFixed(1)}% savings rate` : 'Savings rate unavailable until historical rates exist' },
-      { id: 'rpt-ie-txns', label: 'Transactions', value: String(reportData?.transactions.length || 0), sub: 'Included records' },
+      { id: 'rpt-ie-income', label: t('reports.summary.totalIncome'), convertedMetric: incomeMetric, sub: activeRange?.label, positive: true },
+      { id: 'rpt-ie-expenses', label: t('reports.summary.totalExpenses'), convertedMetric: expensesMetric, sub: activeRange?.comparisonLabel ? t('reports.comparedWith', { value: activeRange.comparisonLabel }) : undefined, positive: false },
+      { id: 'rpt-ie-net', label: t('reports.summary.netSavings'), convertedMetric: netMetric, sub: canCalculateSavingsRate ? t('reports.summary.savingsRateValue', { value: savingsRate.toFixed(1) }) : t('reports.summary.savingsRateUnavailable') },
+      { id: 'rpt-ie-txns', label: t('reports.summary.transactions'), value: String(reportData?.transactions.length || 0), sub: t('reports.summary.includedRecords') },
     ],
     'spending-category': [
-      { id: 'rpt-sc-total', label: 'Total Spent', convertedMetric: expensesMetric, sub: activeRange?.label, positive: false },
-      { id: 'rpt-sc-txns', label: 'Expense Transactions', value: String(reportData?.expenseTransactions.length || 0), sub: 'Included records' },
-      { id: 'rpt-sc-income', label: 'Total Income', convertedMetric: incomeMetric, positive: true },
-      { id: 'rpt-sc-net', label: 'Net Savings', convertedMetric: netMetric },
+      { id: 'rpt-sc-total', label: t('reports.summary.totalSpent'), convertedMetric: expensesMetric, sub: activeRange?.label, positive: false },
+      { id: 'rpt-sc-txns', label: t('reports.summary.expenseTransactions'), value: String(reportData?.expenseTransactions.length || 0), sub: t('reports.summary.includedRecords') },
+      { id: 'rpt-sc-income', label: t('reports.summary.totalIncome'), convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-sc-net', label: t('reports.summary.netSavings'), convertedMetric: netMetric },
     ],
     'monthly-trends': [
-      { id: 'rpt-mt-income', label: 'Period Income', convertedMetric: incomeMetric, positive: true },
-      { id: 'rpt-mt-expenses', label: 'Period Expenses', convertedMetric: expensesMetric, positive: false },
-      { id: 'rpt-mt-net', label: 'Net Savings', convertedMetric: netMetric },
-      { id: 'rpt-mt-buckets', label: grouping === 'day' ? 'Daily Buckets' : grouping === 'week' ? 'Weekly Buckets' : 'Monthly Buckets', value: String(incomeExpenseChartState.data.length) },
+      { id: 'rpt-mt-income', label: t('reports.summary.periodIncome'), convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-mt-expenses', label: t('reports.summary.periodExpenses'), convertedMetric: expensesMetric, positive: false },
+      { id: 'rpt-mt-net', label: t('reports.summary.netSavings'), convertedMetric: netMetric },
+      { id: 'rpt-mt-buckets', label: grouping === 'day' ? t('reports.summary.dailyBuckets') : grouping === 'week' ? t('reports.summary.weeklyBuckets') : t('reports.summary.monthlyBuckets'), value: String(incomeExpenseChartState.data.length) },
     ],
     'budget-performance': [
-      { id: 'rpt-bp-budgets', label: 'Applicable Budgets', value: String(reportData?.budgetPerformance.items.length || 0), sub: activeRange?.label },
-      { id: 'rpt-bp-income', label: 'Total Income', convertedMetric: incomeMetric, positive: true },
-      { id: 'rpt-bp-expenses', label: 'Total Expenses', convertedMetric: expensesMetric, positive: false },
-      { id: 'rpt-bp-rate', label: 'Savings Rate', value: savingsRateValue },
+      { id: 'rpt-bp-budgets', label: t('reports.summary.applicableBudgets'), value: String(reportData?.budgetPerformance.items.length || 0), sub: activeRange?.label },
+      { id: 'rpt-bp-income', label: t('reports.summary.totalIncome'), convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-bp-expenses', label: t('reports.summary.totalExpenses'), convertedMetric: expensesMetric, positive: false },
+      { id: 'rpt-bp-rate', label: t('reports.summary.savingsRate'), value: savingsRateValue },
     ],
     'account-statement': [
-      { id: 'rpt-as-txns', label: 'Total Transactions', value: String(reportData?.transactions.length || 0), sub: activeRange?.label },
-      { id: 'rpt-as-credits', label: 'Total Credits', convertedMetric: incomeMetric, positive: true },
-      { id: 'rpt-as-debits', label: 'Total Debits', convertedMetric: expensesMetric, positive: false },
-      { id: 'rpt-as-net', label: 'Net', convertedMetric: netMetric },
+      { id: 'rpt-as-txns', label: t('reports.summary.totalTransactions'), value: String(reportData?.transactions.length || 0), sub: activeRange?.label },
+      { id: 'rpt-as-credits', label: t('reports.summary.totalCredits'), convertedMetric: incomeMetric, positive: true },
+      { id: 'rpt-as-debits', label: t('reports.summary.totalDebits'), convertedMetric: expensesMetric, positive: false },
+      { id: 'rpt-as-net', label: t('reports.summary.net'), convertedMetric: netMetric },
     ],
   };
 
   const handleDownloadCSV = useCallback(() => {
     if (!reportData || !activeRange) {
-      toast.error('No data to export');
+      toast.error(t('reports.noDataToExport'));
       return;
     }
     if (activeReport === 'budget-performance') {
       if (reportData.budgetPerformance.items.length === 0) {
-        toast.error('No budgets apply to this report period');
+        toast.error(t('reports.noBudgetsApply'));
         return;
       }
       downloadCsv(
         buildCsvFilename(activeReport, activeRange),
-        buildBudgetPerformanceCsv(reportData.budgetPerformance.items)
+        buildBudgetPerformanceCsv(reportData.budgetPerformance.items, t)
       );
-      toast.success(`CSV exported — ${reportData.budgetPerformance.items.length} budget rows`);
+      toast.success(t('reports.csvExportedBudgets', { count: reportData.budgetPerformance.items.length }));
       return;
     }
     if (reportData.transactions.length === 0) {
-      toast.error('No data to export');
+      toast.error(t('reports.noDataToExport'));
       return;
     }
     downloadCsv(
       buildCsvFilename(activeReport, activeRange),
-      buildTransactionsCsv(reportData)
+      buildTransactionsCsv(reportData, t)
     );
-    toast.success(`CSV exported — ${reportData.transactions.length} transactions`);
-  }, [activeRange, activeReport, reportData]);
+    toast.success(t('reports.csvExportedTransactions', { count: reportData.transactions.length }));
+  }, [activeRange, activeReport, reportData, t]);
 
   const handlePrint = useCallback(() => window.print(), []);
 
@@ -898,15 +922,15 @@ export default function ReportsScreen() {
               <div className="flex flex-wrap items-center gap-1 xl:flex-nowrap xl:gap-1.5">
                 {reportPresets.map((preset) => (
                   <button
-                    key={preset.key}
+                    key={preset}
                     type="button"
-                    onClick={() => handlePresetChange(preset.key)}
-                    aria-pressed={activePreset === preset.key}
+                    onClick={() => handlePresetChange(preset)}
+                    aria-pressed={activePreset === preset}
                     className={`whitespace-nowrap rounded-lg border px-1.5 py-1 text-[10px] font-600 leading-none transition-all xl:px-2 xl:text-[11px] ${
-                      activePreset === preset.key ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
+                      activePreset === preset ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
                     }`}
                   >
-                    {getPresetButtonLabel(preset.key, periodContext, t)}
+                    {getPresetButtonLabel(preset, periodContext, t)}
                   </button>
                 ))}
               </div>
@@ -1013,7 +1037,7 @@ export default function ReportsScreen() {
                   )}
                 </div>
                 {item.sub ? <p className="mt-0.5 text-[11px] text-muted-foreground">{item.sub}</p> : null}
-                {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric) : null}
+                {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric, t) : null}
               </div>
             ))}
           </div>
@@ -1023,12 +1047,19 @@ export default function ReportsScreen() {
               <div>
                 <h2 className="text-base font-700 text-foreground">{activeTitle}</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {activeRange?.label || 'Loading range'}
-                  {activeRange?.comparisonLabel ? ` · Compared with ${activeRange.comparisonLabel}` : ''}
+                  {activeRange?.label || t('reports.loadingRange')}
+                  {activeRange?.comparisonLabel ? ` · ${t('reports.comparedWith', { value: activeRange.comparisonLabel })}` : ''}
                 </p>
                 {activeReport === 'monthly-trends' ? (
                   <p className="mt-1 text-[11px] text-muted-foreground">
-                    Grouped by {grouping === 'day' ? 'day' : grouping === 'week' ? 'week' : 'month'} for this range.
+                    {t('reports.groupedBy', {
+                      value:
+                        grouping === 'day'
+                          ? t('reports.grouping.day')
+                          : grouping === 'week'
+                            ? t('reports.grouping.week')
+                            : t('reports.grouping.month'),
+                    })}
                   </p>
                 ) : null}
               </div>
@@ -1039,7 +1070,7 @@ export default function ReportsScreen() {
               <div className="flex h-[300px] items-center justify-center">
                 <div className="text-center">
                   <Loader2 size={24} className="mx-auto mb-2 animate-spin text-accent" />
-                  <p className="text-sm text-muted-foreground">Loading report data...</p>
+                  <p className="text-sm text-muted-foreground">{t('reports.loadingData')}</p>
                 </div>
               </div>
             ) : activeReport === 'account-statement' ? (
@@ -1047,15 +1078,16 @@ export default function ReportsScreen() {
                 transactions={reportData?.transactions || []}
                 reportingCurrency={reportData?.reportingCurrency || ''}
                 snapshots={reportData?.snapshots || []}
+                t={t}
               />
             ) : activeReport === 'budget-performance' ? (
               reportData?.budgetPerformance.unavailableReason ? (
                 <div className="flex min-h-[300px] items-center justify-center">
-                  <EmptyState icon={Target} title="Historical exchange rate unavailable" description={reportData.budgetPerformance.unavailableReason} />
+                  <EmptyState icon={Target} title={t('reports.historicalRateUnavailable')} description={reportData.budgetPerformance.unavailableReason} />
                 </div>
               ) : reportData?.budgetPerformance.emptyReason ? (
                 <div className="flex min-h-[300px] items-center justify-center">
-                  <EmptyState icon={Target} title="No budgets apply to this report period" description={reportData.budgetPerformance.emptyReason} />
+                  <EmptyState icon={Target} title={t('reports.noBudgetsApply')} description={reportData.budgetPerformance.emptyReason} />
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -1070,7 +1102,7 @@ export default function ReportsScreen() {
                       <div key={item.budget.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-700 text-foreground">{item.budget.category?.name || item.budget.name || 'Budget'}</p>
+                            <p className="text-sm font-700 text-foreground">{item.budget.category?.name || item.budget.name || t('reports.budget')}</p>
                             <p className="text-xs text-muted-foreground">{item.periodTypeLabel} · {item.period.label}</p>
                           </div>
                           <StatusBadge
@@ -1080,28 +1112,28 @@ export default function ReportsScreen() {
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Budget</p>
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.budget')}</p>
                             <FormattedCurrencyAmount amount={Number(item.budget.amount || 0)} currencyCode={item.budget.currency} className="font-700 text-foreground" showCode />
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Spent</p>
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.spent')}</p>
                             {item.spentAmount === null ? (
-                              <p className="font-700 text-warning">Unavailable</p>
+                              <p className="font-700 text-warning">{t('reports.unavailable')}</p>
                             ) : (
                               <FormattedCurrencyAmount amount={item.spentAmount} currencyCode={item.budget.currency} className="font-700 text-foreground" showCode />
                             )}
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Remaining</p>
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.remaining')}</p>
                             {item.remainingAmount === null ? (
-                              <p className="font-700 text-warning">Unavailable</p>
+                              <p className="font-700 text-warning">{t('reports.unavailable')}</p>
                             ) : (
                               <FormattedCurrencyAmount amount={item.remainingAmount} currencyCode={item.budget.currency} className="font-700 text-foreground" showCode />
                             )}
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Progress</p>
-                            <p className="font-700 text-foreground">{item.progressPct === null ? 'Unavailable' : `${item.progressPct.toFixed(1)}%`}</p>
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.progress')}</p>
+                            <p className="font-700 text-foreground">{item.progressPct === null ? t('reports.unavailable') : `${item.progressPct.toFixed(1)}%`}</p>
                           </div>
                         </div>
                         {item.reportingUnavailableReason ? (
@@ -1114,14 +1146,18 @@ export default function ReportsScreen() {
               )
             ) : activeChartState?.unavailableReason ? (
               <div className="flex h-[300px] items-center justify-center">
-                <EmptyState icon={BarChart3} title="Historical exchange rate unavailable" description={activeChartState.unavailableReason} />
+                <EmptyState icon={BarChart3} title={t('reports.historicalRateUnavailable')} description={activeChartState.unavailableReason} />
               </div>
             ) : activeChartState?.emptyReason ? (
               <div className="flex h-[300px] items-center justify-center">
                 <EmptyState
                   icon={activeReport === 'spending-category' ? PieChart : BarChart3}
-                  title="No transactions in this period"
-                  description={activeChartState.emptyReason}
+                  title={t('reports.noTransactionsInPeriod')}
+                  description={
+                    activeChartState.emptyReason === 'NO_EXPENSES'
+                      ? t('reports.noExpensesInPeriod')
+                      : t('reports.noTransactionsInPeriod')
+                  }
                 />
               </div>
             ) : (
@@ -1152,24 +1188,24 @@ export default function ReportsScreen() {
           </div>
 
           <div className="card-elevated p-4 print:hidden max-[480px]:p-3">
-            <p className="mb-3 text-sm font-700 text-foreground">Download Options</p>
+            <p className="mb-3 text-sm font-700 text-foreground">{t('reports.downloadOptions')}</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
                 {
                   id: 'dl-csv',
                   icon: FileDown,
-                  label: 'CSV Export',
+                  label: t('reports.downloads.csvExport'),
                   desc: activeReport === 'budget-performance'
-                    ? `${reportData?.budgetPerformance.items.length || 0} applicable budgets in the active range`
-                    : `${reportData?.transactions.length || 0} transactions in the active range`,
+                    ? t('reports.downloads.applicableBudgetsInRange', { count: reportData?.budgetPerformance.items.length || 0 })
+                    : t('reports.downloads.transactionsInRange', { count: reportData?.transactions.length || 0 }),
                   action: handleDownloadCSV,
                   primary: true,
                 },
                 {
                   id: 'dl-print',
                   icon: Printer,
-                  label: 'Print / Save as PDF',
-                  desc: 'Use the browser print dialog to save the visible report as PDF.',
+                  label: t('reports.downloads.printPdf'),
+                  desc: t('reports.downloads.printPdfDescription'),
                   action: handlePrint,
                   primary: false,
                 },
@@ -1205,11 +1241,16 @@ function AccountStatementTable(args: {
   transactions: Transaction[];
   reportingCurrency: string;
   snapshots: ReportViewData['snapshots'];
+  t: (key: string, options?: Record<string, unknown>) => string;
 }) {
   if (args.transactions.length === 0) {
     return (
       <div className="flex min-h-[300px] items-center justify-center">
-        <EmptyState icon={FileText} title="No transactions in this period" description="Adjust the report range or account filter to see statement activity." />
+        <EmptyState
+          icon={FileText}
+          title={args.t('reports.noTransactionsInPeriod')}
+          description={args.t('reports.accountStatement.emptyDescription')}
+        />
       </div>
     );
   }
@@ -1233,8 +1274,8 @@ function AccountStatementTable(args: {
             <div key={`mobile-${transaction.id}`} className="rounded-2xl border border-border p-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-700 text-foreground">{transaction.merchant || transaction.description || 'Statement entry'}</p>
-                  <p className="text-xs text-muted-foreground">{transaction.transaction_date} · {transaction.transaction_type}</p>
+                  <p className="truncate text-sm font-700 text-foreground">{transaction.merchant || transaction.description || args.t('reports.accountStatement.entryFallback')}</p>
+                  <p className="text-xs text-muted-foreground">{transaction.transaction_date} · {getTransactionTypeLabel(transaction.transaction_type, args.t)}</p>
                 </div>
                 <FormattedCurrencyAmount
                   amount={signedAmount}
@@ -1245,21 +1286,21 @@ function AccountStatementTable(args: {
               </div>
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Category</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.category')}</p>
                   <p className="text-foreground">{transaction.category?.name || '—'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.account')}</p>
                   <p className="text-foreground">{transaction.account?.name || '—'}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Description</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.description')}</p>
                   <p className="text-foreground">{transaction.description || '—'}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reporting Equivalent</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.reportingEquivalent')}</p>
                   {conversion.convertedAmount === null ? (
-                    <span className="text-warning">Unavailable</span>
+                    <span className="text-warning">{args.t('reports.unavailable')}</span>
                   ) : (
                     <FormattedCurrencyAmount
                       amount={conversion.convertedAmount}
@@ -1278,14 +1319,14 @@ function AccountStatementTable(args: {
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border">
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Date</th>
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Type</th>
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Merchant/Source</th>
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Description</th>
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Category</th>
-            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Account</th>
-            <th className="px-3 py-2 text-right text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Original Amount</th>
-            <th className="px-3 py-2 text-right text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Reporting Equivalent</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.date')}</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.type')}</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.merchantSource')}</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.description')}</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.category')}</th>
+            <th className="px-3 py-2 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.account')}</th>
+            <th className="px-3 py-2 text-right text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.originalAmount')}</th>
+            <th className="px-3 py-2 text-right text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.reportingEquivalent')}</th>
           </tr>
         </thead>
         <tbody>
@@ -1304,7 +1345,7 @@ function AccountStatementTable(args: {
             return (
               <tr key={transaction.id} className="border-b border-border last:border-0 hover:bg-muted/30">
                 <td className="whitespace-nowrap px-3 py-2.5 font-tabular text-muted-foreground">{transaction.transaction_date}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{transaction.transaction_type}</td>
+                <td className="px-3 py-2.5 text-muted-foreground">{getTransactionTypeLabel(transaction.transaction_type, args.t)}</td>
                 <td className="px-3 py-2.5 text-foreground">{transaction.merchant || '—'}</td>
                 <td className="max-w-[220px] truncate px-3 py-2.5 text-foreground">{transaction.description || '—'}</td>
                 <td className="px-3 py-2.5 text-muted-foreground">{transaction.category?.name || '—'}</td>
@@ -1319,7 +1360,7 @@ function AccountStatementTable(args: {
                 </td>
                 <td className="px-3 py-2.5 text-right text-muted-foreground">
                   {conversion.convertedAmount === null ? (
-                    <span className="text-warning">Unavailable</span>
+                    <span className="text-warning">{args.t('reports.unavailable')}</span>
                   ) : (
                     <FormattedCurrencyAmount
                       amount={conversion.convertedAmount}

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import SearchField from '@/components/ui/SearchField';
 import { getCanonicalCountryCallingCode } from '@/lib/phone';
 import { useClientReferenceData } from '@/lib/reference-data/client';
@@ -30,6 +31,7 @@ export default function PhoneCountrySelector({
   countries: providedCountries,
   loading: providedLoading,
 }: PhoneCountrySelectorProps) {
+  const { t } = useTranslation('common');
   const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -134,7 +136,7 @@ export default function PhoneCountrySelector({
           </span>
         ) : (
           <span className="text-sm text-muted-foreground">
-            {isLoading ? 'Loading...' : 'Select'}
+            {isLoading ? t('country.loading') : t('country.select')}
           </span>
         )}
         <svg
@@ -156,41 +158,47 @@ export default function PhoneCountrySelector({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search country or calling code..."
+              placeholder={t('country.searchPhone')}
               inputClassName="h-9 text-sm"
             />
           </div>
           <div className="max-h-80 overflow-y-auto p-2">
-            <div className="space-y-2">
-              {filteredCountries.map((country, index) => (
-                <button
-                  key={country.isoAlpha2}
-                  type="button"
-                  onClick={() => {
-                    onChange(country.isoAlpha2);
-                    setOpen(false);
-                    setSearch('');
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
-                    country.isoAlpha2 === normalizedValue
-                      ? 'border-accent bg-accent/5 shadow-card-sm'
-                      : index === highlightedIndex
-                        ? 'border-accent/40 bg-muted/30'
-                        : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
-                  }`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-700 text-foreground">{country.name}</p>
-                    <p className="whitespace-nowrap text-sm text-muted-foreground">
-                      {[country.isoAlpha2, getCanonicalCountryCallingCode(country)].filter(Boolean).join(' • ')}
-                    </p>
-                  </div>
-                  {country.isoAlpha2 === normalizedValue ? (
-                    <Check size={14} className="shrink-0 text-accent" />
-                  ) : null}
-                </button>
-              ))}
-            </div>
+            {filteredCountries.length === 0 ? (
+              <div className="px-4 py-5 text-center text-sm text-muted-foreground">
+                {t('country.noneFound')}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filteredCountries.map((country, index) => (
+                  <button
+                    key={country.isoAlpha2}
+                    type="button"
+                    onClick={() => {
+                      onChange(country.isoAlpha2);
+                      setOpen(false);
+                      setSearch('');
+                    }}
+                    className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                      country.isoAlpha2 === normalizedValue
+                        ? 'border-accent bg-accent/5 shadow-card-sm'
+                        : index === highlightedIndex
+                          ? 'border-accent/40 bg-muted/30'
+                          : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-700 text-foreground">{country.name}</p>
+                      <p className="whitespace-nowrap text-sm text-muted-foreground">
+                        {[country.isoAlpha2, getCanonicalCountryCallingCode(country)].filter(Boolean).join(' • ')}
+                      </p>
+                    </div>
+                    {country.isoAlpha2 === normalizedValue ? (
+                      <Check size={14} className="shrink-0 text-accent" />
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : null}

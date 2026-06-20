@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import Modal from '@/components/ui/Modal';
 import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
 import ManagedPersonForm from '@/app/people/components/ManagedPersonForm';
@@ -16,6 +17,7 @@ import {
 const AIAssistantModalLazy = React.lazy(() => import('@/components/ai/AIAssistantModal'));
 
 export default function QuickActionsProvider({ children }: { children: React.ReactNode }) {
+  const { t } = useTranslation('portal');
   const [activeAction, setActiveAction] = useState<QuickActionId | null>(null);
   const initialTransactionType: 'income' | 'expense' =
     activeAction === 'income' ? 'income' : 'expense';
@@ -47,19 +49,39 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
         initialTransactionType={initialTransactionType}
       />
 
-      <Modal isOpen={activeAction === 'transfer'} onClose={closeQuickAction} title="New Transfer" size="md">
+      <Modal
+        isOpen={activeAction === 'transfer'}
+        onClose={closeQuickAction}
+        title={t('transfers.newTransfer')}
+        size="md"
+      >
         <AddTransferForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
       </Modal>
 
-      <Modal isOpen={activeAction === 'account'} onClose={closeQuickAction} title="Add Account" size="md">
+      <Modal
+        isOpen={activeAction === 'account'}
+        onClose={closeQuickAction}
+        title={t('accounts.addAccount')}
+        size="md"
+      >
         <FinancialAccountForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
       </Modal>
 
-      <Modal isOpen={activeAction === 'person'} onClose={closeQuickAction} title="Add Person" size="md">
+      <Modal
+        isOpen={activeAction === 'person'}
+        onClose={closeQuickAction}
+        title={t('people.addPerson')}
+        size="md"
+      >
         <ManagedPersonForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
       </Modal>
 
-      <Modal isOpen={activeAction === 'reimbursement'} onClose={closeQuickAction} title="Add Reimbursement" size="md">
+      <Modal
+        isOpen={activeAction === 'reimbursement'}
+        onClose={closeQuickAction}
+        title={t('reimbursements.addReimbursement')}
+        size="md"
+      >
         <CreateReimbursementForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
       </Modal>
 

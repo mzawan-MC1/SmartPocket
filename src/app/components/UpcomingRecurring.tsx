@@ -1,6 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarClock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   canAutoAdvanceRecurringTransaction,
   formatRecurringFrequencyLabel,
@@ -33,6 +34,7 @@ export default function UpcomingRecurring({
 }: {
   activePeriod: DashboardActivePeriod;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -62,10 +64,10 @@ export default function UpcomingRecurring({
     setMarkingId(item.id);
     try {
       await markRecurringAsPaid(item);
-      toast.success(`${item.description} marked as paid`);
+      toast.success(t('recurring.markedPaid', { ns: 'portal', name: item.description }));
       load();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Failed to mark as paid');
+      toast.error(err instanceof Error ? err.message : t('recurring.markPaidFailed', { ns: 'portal' }));
     } finally {
       setMarkingId(null);
     }
@@ -81,10 +83,10 @@ export default function UpcomingRecurring({
 
   return (
     <SectionCard
-      title="Upcoming Recurring"
+      title={t('dashboardMetrics.cards.upcomingPayments', { ns: 'portal' })}
       description={activePeriod.mode === 'month'
-        ? `Recurring items scheduled for ${activePeriod.label}.`
-        : `Recurring items due in ${activePeriod.label}.`}
+        ? t('recurring.widgetDescriptionMonth', { ns: 'portal', period: activePeriod.label })
+        : t('recurring.widgetDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
       className="h-full"
       action={<StatusBadge status="pending" label={activePeriod.label} />}
       bodyClassName="p-0"
@@ -106,10 +108,10 @@ export default function UpcomingRecurring({
         <div className="px-4 py-8">
           <EmptyState
             icon={CalendarClock}
-            title="No upcoming payments"
+            title={t('recurring.noUpcomingTitle', { ns: 'portal' })}
             description={activePeriod.mode === 'month'
-              ? `No recurring payments scheduled for ${activePeriod.label}.`
-              : `No recurring payments are due during ${activePeriod.label}.`}
+              ? t('recurring.noUpcomingDescriptionMonth', { ns: 'portal', period: activePeriod.label })
+              : t('recurring.noUpcomingDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
           />
         </div>
       ) : (
@@ -128,10 +130,16 @@ export default function UpcomingRecurring({
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatRecurringFrequencyLabel(item.frequency)} · {dueDate} · {activePeriod.isCurrent ? (days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `${days} days left`) : 'Scheduled'}
+                      {formatRecurringFrequencyLabel(item.frequency)} · {dueDate} · {activePeriod.isCurrent
+                        ? (days === 0
+                          ? t('time.today', { ns: 'common' })
+                          : days === 1
+                            ? t('recurring.tomorrow', { ns: 'portal' })
+                            : t('recurring.daysLeft', { ns: 'portal', count: days }))
+                        : t('recurring.scheduled', { ns: 'portal' })}
                     </p>
                     {!canMarkPaid ? (
-                      <p className="mt-1 text-[10px] font-600 text-warning">Unable to calculate next payment date for this schedule.</p>
+                      <p className="mt-1 text-[10px] font-600 text-warning">{t('recurring.incompleteSchedule', { ns: 'portal' })}</p>
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -146,16 +154,18 @@ export default function UpcomingRecurring({
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id}
                         className="text-[10px] font-600 text-accent hover:text-teal-600 flex items-center gap-0.5 transition-colors disabled:opacity-50"
-                        aria-label={`Mark ${item.description} as paid`}
+                        aria-label={t('recurring.markItemAsPaid', { ns: 'portal', name: item.description })}
                       >
                         {markingId === item.id
                           ? <Loader2 size={11} className="animate-spin" />
                           : <CheckCircle2 size={11} />
                         }
-                        Mark paid
+                        {t('recurring.markAsPaid', { ns: 'portal' })}
                       </button>
                     ) : (
-                      <span className="text-[10px] font-600 text-muted-foreground">{canMarkPaid ? 'Scheduled' : 'Schedule incomplete'}</span>
+                      <span className="text-[10px] font-600 text-muted-foreground">
+                        {canMarkPaid ? t('recurring.scheduled', { ns: 'portal' }) : t('recurring.scheduleIncomplete', { ns: 'portal' })}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -164,7 +174,9 @@ export default function UpcomingRecurring({
           </div>
           <div className="border-t border-border bg-muted/30 px-4 py-3">
             <p className="text-xs text-muted-foreground text-center">
-              {activePeriod.mode === 'month' ? 'Total scheduled:' : 'Total due this pay period:'}
+              {activePeriod.mode === 'month'
+                ? t('recurring.totalScheduled', { ns: 'portal' })
+                : t('recurring.totalDueThisPeriod', { ns: 'portal' })}
               <span className="font-700 text-foreground font-tabular inline-flex flex-col items-center">
                 {totalDueByCurrency.map((row) => (
                   <FormattedCurrencyAmount

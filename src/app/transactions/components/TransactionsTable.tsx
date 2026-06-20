@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Edit2, Loader2, ArrowUpDown, Users, CalendarRange } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
@@ -60,6 +61,7 @@ export default function TransactionsTable({
   onRangeLabelChange: (label: string) => void;
   onExportReady: (handler: (() => void) | null) => void;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionReportingCurrency, setTransactionReportingCurrency] = useState('');
   const [transactionReportingPreviews, setTransactionReportingPreviews] = useState<Record<string, Awaited<ReturnType<typeof getLatestTransactionReportingPreviews>>['previews'][string]>>({});
@@ -97,8 +99,8 @@ export default function TransactionsTable({
       return {
         dateFrom: undefined,
         dateTo: undefined,
-        label: 'All time',
-        description: 'Showing all transaction history',
+        label: t('transactions.filters.allTime', { ns: 'portal' }),
+        description: t('transactions.filters.showingAllHistory', { ns: 'portal' }),
         canMovePrevious: false,
         canMoveNext: false,
       };
@@ -107,12 +109,12 @@ export default function TransactionsTable({
     if (dateFilterMode === 'custom') {
       const label = customDateFrom && customDateTo
         ? `${customDateFrom} - ${customDateTo}`
-        : 'Custom range';
+        : t('transactions.filters.customRange', { ns: 'portal' });
       return {
         dateFrom: customDateFrom || undefined,
         dateTo: customDateTo || undefined,
         label,
-        description: 'Custom date range',
+        description: t('transactions.filters.customDateRange', { ns: 'portal' }),
         canMovePrevious: false,
         canMoveNext: false,
       };
@@ -120,12 +122,18 @@ export default function TransactionsTable({
 
     if (dateFilterMode === 'pay_cycle') {
       const period = getPayPeriodForOffset(financialPeriodContext, periodOffset);
-      const payPeriodName = financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      const payPeriodName = financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular'
+        ? t('transactions.filters.planningPeriod', { ns: 'portal' })
+        : t('transactions.filters.payPeriod', { ns: 'portal' });
       return {
         dateFrom: period.startDate,
         dateTo: period.endDate,
         label: formatFinancialPeriodLabel(period),
-        description: periodOffset === 0 ? `Current ${payPeriodName}` : periodOffset === -1 ? `Previous ${payPeriodName}` : 'Pay period',
+        description: periodOffset === 0
+          ? t('transactions.filters.currentNamedPeriod', { ns: 'portal', period: payPeriodName })
+          : periodOffset === -1
+            ? t('transactions.filters.previousNamedPeriod', { ns: 'portal', period: payPeriodName })
+            : payPeriodName,
         canMovePrevious: true,
         canMoveNext: periodOffset < 0,
       };
@@ -137,11 +145,15 @@ export default function TransactionsTable({
       dateFrom: monthContext.startDate,
       dateTo: monthContext.endDate,
       label: monthContext.label,
-      description: periodOffset === 0 ? 'Current month' : periodOffset === -1 ? 'Previous month' : 'Month',
+      description: periodOffset === 0
+        ? t('transactions.filters.currentMonth', { ns: 'portal' })
+        : periodOffset === -1
+          ? t('transactions.filters.previousMonth', { ns: 'portal' })
+          : t('transactions.filters.month', { ns: 'portal' }),
       canMovePrevious: true,
       canMoveNext: periodOffset < 0,
     };
-  }, [customDateFrom, customDateTo, dateFilterMode, financialPeriodContext, periodOffset]);
+  }, [customDateFrom, customDateTo, dateFilterMode, financialPeriodContext, periodOffset, t]);
 
   useEffect(() => {
     onRangeLabelChange(activeDateFilter.label);
@@ -190,7 +202,7 @@ export default function TransactionsTable({
   }, [onOpenAddTransaction]);
 
   const handleDelete = async (txn: Transaction) => {
-    if (!confirm('Delete this transaction?')) return;
+    if (!confirm(t('transactions.deleteConfirm', { ns: 'portal' }))) return;
     setDeletingId(txn.id);
     try {
       await deleteTransaction(txn.id, txn.account_id);
@@ -198,9 +210,9 @@ export default function TransactionsTable({
         source: 'transactions-delete',
         entities: ['transactions', 'financial_accounts', 'dashboard'],
       });
-      toast.success('Transaction deleted');
+      toast.success(t('transactions.deleted', { ns: 'portal' }));
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : t('transactions.deleteFailed', { ns: 'portal' }));
     } finally {
       setDeletingId(null);
     }
@@ -241,12 +253,12 @@ export default function TransactionsTable({
 
   const exportFilteredTransactions = useCallback(() => {
     if (filtered.length === 0) {
-      toast.error('No filtered transactions to export');
+      toast.error(t('transactionsHeader.exportEmpty', { ns: 'portal' }));
       return;
     }
     downloadCSV(`smart-pocket-transactions-${activeDateFilter.dateFrom || 'all'}-${activeDateFilter.dateTo || 'all'}.csv`, generateCSV(filtered));
-    toast.success(`CSV exported - ${filtered.length} transactions`);
-  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filtered]);
+    toast.success(t('reports.csvExportedTransactions', { ns: 'portal', count: filtered.length }));
+  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filtered, t]);
 
   useEffect(() => {
     onExportReady(() => exportFilteredTransactions);
@@ -276,42 +288,46 @@ export default function TransactionsTable({
                 onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(0); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'pay_cycle' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Current planning period' : 'Current pay period'}
+                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular'
+                  ? t('reports.presets.currentPlanningPeriod', { ns: 'portal' })
+                  : t('reports.presets.currentPayPeriod', { ns: 'portal' })}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(-1); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'pay_cycle' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Previous planning period' : 'Previous pay period'}
+                {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular'
+                  ? t('reports.presets.previousPlanningPeriod', { ns: 'portal' })
+                  : t('reports.presets.previousPayPeriod', { ns: 'portal' })}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('month'); setPeriodOffset(0); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'month' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                Current month
+                {t('reports.presets.currentMonth', { ns: 'portal' })}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('month'); setPeriodOffset(-1); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'month' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                Previous month
+                {t('reports.presets.previousMonth', { ns: 'portal' })}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('all_time'); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'all_time' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                All time
+                {t('transactions.filters.allTime', { ns: 'portal' })}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('custom'); setPage(1); }}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'custom' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
-                Custom range
+                {t('transactions.filters.customRange', { ns: 'portal' })}
               </button>
             </div>
             <div className="flex flex-col gap-2 min-[430px]:flex-row min-[430px]:flex-wrap min-[430px]:items-center">
@@ -326,7 +342,7 @@ export default function TransactionsTable({
                     type="button"
                     onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
                     className="btn-ghost min-h-0 rounded-lg p-2"
-                    aria-label={dateFilterMode === 'month' ? 'Previous month' : 'Previous pay period'}
+                    aria-label={dateFilterMode === 'month' ? t('transactions.filters.previousMonth', { ns: 'portal' }) : t('transactions.filters.previousPayPeriod', { ns: 'portal' })}
                   >
                     <ChevronLeft size={14} />
                   </button>
@@ -335,7 +351,7 @@ export default function TransactionsTable({
                     onClick={() => { if (!activeDateFilter.canMoveNext) return; setPeriodOffset((current) => Math.min(0, current + 1)); setPage(1); }}
                     disabled={!activeDateFilter.canMoveNext}
                     className="btn-ghost min-h-0 rounded-lg p-2 disabled:opacity-40"
-                    aria-label={dateFilterMode === 'month' ? 'Next month' : 'Next pay period'}
+                    aria-label={dateFilterMode === 'month' ? t('transactions.filters.nextMonth', { ns: 'portal' }) : t('transactions.filters.nextPayPeriod', { ns: 'portal' })}
                   >
                     <ChevronRight size={14} />
                   </button>
@@ -350,65 +366,67 @@ export default function TransactionsTable({
           </div>
           <div className="flex flex-col gap-3 max-[480px]:gap-2.5 sm:flex-row">
             <SearchField
-              placeholder="Search merchant, category, or tag..."
+              placeholder={t('transactions.searchPlaceholder', { ns: 'portal' })}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               wrapperClassName="flex-1"
               inputClassName="h-10 max-[480px]:h-9"
             />
             <div className="flex flex-wrap items-center gap-2 max-[480px]:gap-1.5">
-              {(['all', 'income', 'expense', 'transfer'] as const).map((t) => (
+              {(['all', 'income', 'expense', 'transfer'] as const).map((filterValue) => (
                 <button
-                  key={`type-filter-${t}`}
-                  onClick={() => { setFilterType(t); setPage(1); }}
+                  key={`type-filter-${filterValue}`}
+                  onClick={() => { setFilterType(filterValue); setPage(1); }}
                   className={`rounded-lg border px-3 py-1.5 text-xs font-600 transition-all duration-150 max-[480px]:px-2.5 ${
-                    filterType === t ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent/50'
+                    filterType === filterValue ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent/50'
                   }`}
                 >
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {filterValue === 'all'
+                    ? t('transactions.filters.all', { ns: 'portal' })
+                    : t(`transactions.types.${filterValue}` as const, { ns: 'portal' })}
                 </button>
               ))}
               <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary h-9 px-3 text-sm ${showFilters ? 'border-accent text-accent' : ''}`}>
-                <Filter size={14} /> Filters {showFilters && <X size={12} />}
+                <Filter size={14} /> {t('actions.filter', { ns: 'common' })} {showFilters && <X size={12} />}
               </button>
             </div>
           </div>
           {showFilters && (
             <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-4">
               <div>
-                <label className="block text-sm font-700 text-foreground mb-1.5">Account</label>
+                <label className="block text-sm font-700 text-foreground mb-1.5">{t('transactions.account', { ns: 'portal' })}</label>
                 <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-9 text-sm">
-                  <option value="all">All Accounts</option>
+                  <option value="all">{t('transactions.allAccounts', { ns: 'portal' })}</option>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-700 text-foreground mb-1.5">Category</label>
+                <label className="block text-sm font-700 text-foreground mb-1.5">{t('transactions.category', { ns: 'portal' })}</label>
                 <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }} className="input-base h-9 text-sm">
-                  <option value="all">All Categories</option>
+                  <option value="all">{t('transactions.allCategories', { ns: 'portal' })}</option>
                   {categories
                     .filter((category) => filterType === 'all' || category.category_type === filterType)
                     .map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-700 text-foreground mb-1.5">Date From</label>
+                <label className="block text-sm font-700 text-foreground mb-1.5">{t('transactions.dateFrom', { ns: 'portal' })}</label>
                 <input
                   type="date"
                   className="input-base h-9 text-sm"
                   value={customDateFrom}
                   onChange={(e) => { setCustomDateFrom(e.target.value); setDateFilterMode('custom'); setPage(1); }}
-                  aria-label="Custom range start date"
+                  aria-label={t('transactions.customRangeStart', { ns: 'portal' })}
                 />
               </div>
               <div>
-                <label className="block text-sm font-700 text-foreground mb-1.5">Date To</label>
+                <label className="block text-sm font-700 text-foreground mb-1.5">{t('transactions.dateTo', { ns: 'portal' })}</label>
                 <input
                   type="date"
                   className="input-base h-9 text-sm"
                   value={customDateTo}
                   onChange={(e) => { setCustomDateTo(e.target.value); setDateFilterMode('custom'); setPage(1); }}
-                  aria-label="Custom range end date"
+                  aria-label={t('transactions.customRangeEnd', { ns: 'portal' })}
                 />
               </div>
             </div>
@@ -418,7 +436,7 @@ export default function TransactionsTable({
 
       {selectedIds.size > 0 && (
         <div className="section-card flex items-center gap-3 border-accent/40 bg-accent/5 px-4 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
-          <span className="text-sm font-600 text-foreground">{selectedIds.size} selected</span>
+          <span className="text-sm font-600 text-foreground">{t('transactions.selectedCount', { ns: 'portal', count: selectedIds.size })}</span>
           <div className="flex items-center gap-2 ml-auto">
             <button onClick={() => setSelectedIds(new Set())} className="btn-ghost text-xs py-1.5 px-2"><X size={13} /></button>
           </div>
@@ -429,17 +447,17 @@ export default function TransactionsTable({
         {loading ? (
           <div className="p-8 text-center max-[480px]:p-5">
             <Loader2 size={24} className="animate-spin text-accent mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">Loading transactions...</p>
+            <p className="text-sm text-muted-foreground">{t('transactions.loading', { ns: 'portal' })}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 max-[480px]:p-5">
             <EmptyState
               icon={ArrowUpDown}
-              title={transactions.length === 0 && dateFilterMode !== 'all_time' ? 'No transactions in this period' : 'No transactions yet'}
+              title={transactions.length === 0 && dateFilterMode !== 'all_time' ? t('transactions.emptyInPeriodTitle', { ns: 'portal' }) : t('transactions.emptyTitle', { ns: 'portal' })}
               description={transactions.length === 0 && dateFilterMode !== 'all_time'
-                ? 'Try a different planning period, switch to all time, or broaden your filters.'
-                : 'Add your first income or expense transaction to get started.'}
-              action={{ label: 'Add Transaction', onClick: handleOpenNewTransaction }}
+                ? t('transactions.emptyInPeriodDescription', { ns: 'portal' })
+                : t('transactions.emptyDescription', { ns: 'portal' })}
+              action={{ label: t('transactionsHeader.addTransaction', { ns: 'portal' }), onClick: handleOpenNewTransaction }}
             />
           </div>
         ) : (
@@ -462,7 +480,7 @@ export default function TransactionsTable({
                         className="mt-1 h-4 w-4 rounded border-border accent-accent"
                         checked={selectedIds.has(txn.id)}
                         onChange={() => toggleSelect(txn.id)}
-                        aria-label="Select transaction"
+                        aria-label={t('transactions.selectTransaction', { ns: 'portal' })}
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
@@ -471,7 +489,7 @@ export default function TransactionsTable({
                             <p className="text-xs text-muted-foreground">{txn.transaction_date}</p>
                           </div>
                           <Badge variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}>
-                            {txn.transaction_type}
+                            {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
                           </Badge>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -481,11 +499,11 @@ export default function TransactionsTable({
                               <span>{txn.category.name}</span>
                             </span>
                           ) : (
-                            <span>Uncategorized</span>
+                            <span>{t('transactions.uncategorized', { ns: 'portal' })}</span>
                           )}
-                          <span>{txn.account?.name || 'No account'}</span>
+                          <span>{txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}</span>
                           {hasReceipt ? <Paperclip size={11} className="flex-shrink-0" /> : null}
-                          {hasPerson ? <Users size={11} className="flex-shrink-0 text-accent" aria-label="Managed person transaction" /> : null}
+                          {hasPerson ? <Users size={11} className="flex-shrink-0 text-accent" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} /> : null}
                         </div>
                         {txn.notes ? (
                           <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{txn.notes}</p>
@@ -511,14 +529,14 @@ export default function TransactionsTable({
                             ) : null}
                           </div>
                           <div className="flex items-center gap-1">
-                            <button onClick={() => openEdit(txn)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted" aria-label="Edit">
+                            <button onClick={() => openEdit(txn)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted" aria-label={t('actions.edit', { ns: 'common' })}>
                               <Edit2 size={14} className="text-muted-foreground" />
                             </button>
                             <button
                               onClick={() => handleDelete(txn)}
                               disabled={deletingId === txn.id}
                               className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-negative-soft"
-                              aria-label="Delete"
+                              aria-label={t('actions.delete', { ns: 'common' })}
                             >
                               {deletingId === txn.id ? <Loader2 size={14} className="animate-spin text-negative" /> : <Trash2 size={14} className="text-negative" />}
                             </button>
@@ -538,24 +556,24 @@ export default function TransactionsTable({
                       <input type="checkbox" className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
                         checked={selectedIds.size === paginated.length && paginated.length > 0}
                         onChange={() => selectedIds.size === paginated.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(paginated.map((t) => t.id)))}
-                        aria-label="Select all"
+                        aria-label={t('transactions.selectAll', { ns: 'portal' })}
                       />
                     </th>
                     {[
-                      { key: 'transaction_date' as SortKey, label: 'Date' },
-                      { key: 'merchant' as SortKey, label: 'Merchant / Source' },
+                      { key: 'transaction_date' as SortKey, label: t('transactions.date', { ns: 'portal' }) },
+                      { key: 'merchant' as SortKey, label: t('transactions.merchantSource', { ns: 'portal' }) },
                     ].map((col) => (
                       <th key={`th-${col.key}`} className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground select-none" onClick={() => handleSort(col.key)}>
                         <div className="flex items-center gap-1.5">{col.label}<SortIcon col={col.key} /></div>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Category</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Account</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Type</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('transactions.category', { ns: 'portal' })}</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('transactions.account', { ns: 'portal' })}</th>
+                    <th className="px-4 py-3 text-left text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('transactions.type', { ns: 'portal' })}</th>
                     <th className="px-4 py-3 text-right text-[11px] font-600 uppercase tracking-wider text-muted-foreground cursor-pointer hover:text-foreground select-none" onClick={() => handleSort('amount')}>
-                      <div className="flex items-center justify-end gap-1.5">Amount<SortIcon col="amount" /></div>
+                      <div className="flex items-center justify-end gap-1.5">{t('transactions.amount', { ns: 'portal' })}<SortIcon col="amount" /></div>
                     </th>
-                    <th className="px-4 py-3 text-center text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Actions</th>
+                    <th className="px-4 py-3 text-center text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('transactions.actions', { ns: 'portal' })}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -572,7 +590,7 @@ export default function TransactionsTable({
                       <tr key={txn.id} className={`data-table-row transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : ''}`}>
                         <td className="px-4 py-3">
                           <input type="checkbox" className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
-                            checked={selectedIds.has(txn.id)} onChange={() => toggleSelect(txn.id)} aria-label="Select row"
+                            checked={selectedIds.has(txn.id)} onChange={() => toggleSelect(txn.id)} aria-label={t('transactions.selectRow', { ns: 'portal' })}
                           />
                         </td>
                         <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">{txn.transaction_date}</td>
@@ -580,7 +598,7 @@ export default function TransactionsTable({
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-600 text-foreground truncate max-w-[160px]">{txn.merchant || txn.description}</span>
                             {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
-                            {hasPerson && <Users size={11} className="text-accent flex-shrink-0" aria-label="Managed person transaction" />}
+                            {hasPerson && <Users size={11} className="text-accent flex-shrink-0" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} />}
                           </div>
                           {txn.notes && <p className="text-xs text-muted-foreground truncate max-w-[160px]">{txn.notes}</p>}
                         </td>
@@ -597,7 +615,7 @@ export default function TransactionsTable({
                         <td className="px-4 py-3 text-sm text-muted-foreground">{txn.account?.name || '—'}</td>
                         <td className="px-4 py-3">
                           <Badge variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}>
-                            {txn.transaction_type}
+                            {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
                           </Badge>
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -613,7 +631,12 @@ export default function TransactionsTable({
                             {showReportingPreview ? (
                               <span
                                 className="block text-[11px] text-muted-foreground"
-                                title={`Reporting currency ${transactionReportingCurrency}; provider ${reportingPreview.provider || 'n/a'}; rate date ${reportingPreview.rateDate || 'n/a'}`}
+                                title={t('transactions.reportingPreviewTitle', {
+                                  ns: 'portal',
+                                  currency: transactionReportingCurrency,
+                                  provider: reportingPreview.provider || 'n/a',
+                                  rateDate: reportingPreview.rateDate || 'n/a',
+                                })}
                               >
                                 ≈{' '}
                                 <FormattedCurrencyAmount
@@ -628,14 +651,14 @@ export default function TransactionsTable({
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => openEdit(txn)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label="Edit">
+                            <button onClick={() => openEdit(txn)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('actions.edit', { ns: 'common' })}>
                               <Edit2 size={13} className="text-muted-foreground" />
                             </button>
                             <button
                               onClick={() => handleDelete(txn)}
                               disabled={deletingId === txn.id}
                               className="w-7 h-7 rounded hover:bg-negative-soft flex items-center justify-center"
-                              aria-label="Delete"
+                              aria-label={t('actions.delete', { ns: 'common' })}
                             >
                               {deletingId === txn.id ? <Loader2 size={13} className="animate-spin text-negative" /> : <Trash2 size={13} className="text-negative" />}
                             </button>
@@ -651,7 +674,12 @@ export default function TransactionsTable({
             {totalPages > 1 && (
               <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3 max-[480px]:px-3">
                 <p className="text-xs text-muted-foreground">
-                  Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of {filtered.length}
+                  {t('transactions.showingCount', {
+                    ns: 'portal',
+                    start: (page - 1) * perPage + 1,
+                    end: Math.min(page * perPage, filtered.length),
+                    total: filtered.length,
+                  })}
                 </p>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="btn-ghost p-1.5 disabled:opacity-40">

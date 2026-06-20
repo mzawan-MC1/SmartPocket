@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, Loader2,  } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -41,11 +42,31 @@ function getIcon(type: string) {
   }
 }
 
+function getAccountTypeLabel(type: string, t: (key: string) => string) {
+  switch (type) {
+    case 'bank':
+      return t('accounts.types.bank');
+    case 'credit_card':
+      return t('accounts.types.creditCard');
+    case 'savings':
+      return t('accounts.types.savings');
+    case 'cash':
+      return t('accounts.types.cash');
+    case 'digital_wallet':
+      return t('accounts.types.digitalWallet');
+    case 'investment':
+      return t('accounts.types.investment');
+    default:
+      return t('accounts.types.other');
+  }
+}
+
 type SummaryMetric =
   | { id: string; label: string; isCount: true }
   | { id: string; label: string; field: 'totalNetWorth' | 'totalAssets' | 'totalLiabilities'; isCount?: false };
 
 export default function AccountsGrid() {
+  const { t } = useTranslation('portal');
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [summary, setSummary] = useState<AccountsSummaryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -65,9 +86,9 @@ export default function AccountsGrid() {
         setAccounts(nextAccounts);
         setSummary(await getFinancialAccountsSummary(nextAccounts, reportingContext));
       })
-      .catch((e) => toast.error(e.message))
+      .catch((e) => toast.error(e.message || t('accounts.loadFailed')))
       .finally(() => setLoading(false));
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -89,21 +110,21 @@ export default function AccountsGrid() {
   const handleArchive = async (id: string) => {
     try {
       await archiveAccount(id);
-      toast.success('Account archived');
+      toast.success(t('accounts.archived'));
       setShowArchiveConfirm(null);
       load();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to archive');
+      toast.error(e instanceof Error ? e.message : t('accounts.archiveFailed'));
     }
   };
 
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
   const summaryCards = [
-    { id: 'sum-total', label: 'Total Net Worth', field: 'totalNetWorth' as const },
-    { id: 'sum-assets', label: 'Total Assets', field: 'totalAssets' as const },
-    { id: 'sum-liabilities', label: 'Total Liabilities', field: 'totalLiabilities' as const },
-    { id: 'sum-count', label: 'Active Accounts', isCount: true },
+    { id: 'sum-total', label: t('accounts.summary.totalNetWorth'), field: 'totalNetWorth' as const },
+    { id: 'sum-assets', label: t('accounts.summary.totalAssets'), field: 'totalAssets' as const },
+    { id: 'sum-liabilities', label: t('accounts.summary.totalLiabilities'), field: 'totalLiabilities' as const },
+    { id: 'sum-count', label: t('accounts.summary.activeAccounts'), isCount: true },
   ] satisfies SummaryMetric[];
 
   if (loading) {
@@ -147,7 +168,7 @@ export default function AccountsGrid() {
             {item.isCount ? (
               <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
             ) : !metric || metric.originalTotals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No active balances</p>
+              <p className="text-sm text-muted-foreground">{t('accounts.summary.noActiveBalances')}</p>
             ) : (
               <div className="space-y-2">
                 {metric.reportingAmount !== null ? (
@@ -182,10 +203,10 @@ export default function AccountsGrid() {
                 )}
                 <details className="rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
                   <summary className="cursor-pointer text-[11px] font-600 text-muted-foreground">
-                    View original currencies
+                    {t('accounts.summary.viewOriginalCurrencies')}
                   </summary>
                   <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
-                    <p>Reporting currency: {metric.reportingCurrency}</p>
+                    <p>{t('accounts.summary.reportingCurrency', { value: metric.reportingCurrency })}</p>
                     {metric.originalTotals.map((row) => (
                       <FormattedCurrencyAmount
                         key={`${item.id}-details-${row.currency}`}
@@ -195,11 +216,11 @@ export default function AccountsGrid() {
                         className="block text-[11px] text-muted-foreground"
                       />
                     ))}
-                    {metric.provider ? <p>Provider: {metric.provider}</p> : null}
-                    {metric.rateDate ? <p>Rate date: {metric.rateDate}</p> : null}
-                    {metric.providerTimestamp ? <p>Provider timestamp: {metric.providerTimestamp}</p> : null}
-                    {metric.fetchedAt ? <p>Fetched at: {metric.fetchedAt}</p> : null}
-                    <p>Status: {metric.stale ? 'Stale' : 'Fresh'}</p>
+                    {metric.provider ? <p>{t('accounts.summary.provider', { value: metric.provider })}</p> : null}
+                    {metric.rateDate ? <p>{t('accounts.summary.rateDate', { value: metric.rateDate })}</p> : null}
+                    {metric.providerTimestamp ? <p>{t('accounts.summary.providerTimestamp', { value: metric.providerTimestamp })}</p> : null}
+                    {metric.fetchedAt ? <p>{t('accounts.summary.fetchedAt', { value: metric.fetchedAt })}</p> : null}
+                    <p>{t('accounts.summary.status', { value: metric.stale ? t('accounts.summary.stale') : t('accounts.summary.fresh') })}</p>
                     {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
                   </div>
                 </details>
@@ -212,9 +233,9 @@ export default function AccountsGrid() {
       {/* Active Accounts */}
       <div>
         <div className="mb-3 flex items-center justify-between gap-3 max-[480px]:mb-2">
-          <h2 className="text-base font-700 text-foreground">Active Accounts</h2>
+          <h2 className="text-base font-700 text-foreground">{t('accounts.activeAccounts')}</h2>
           <button onClick={openAdd} className="btn-primary text-sm max-[480px]:hidden">
-            <Plus size={14} /> Add Account
+            <Plus size={14} /> {t('accounts.addAccount')}
           </button>
         </div>
 
@@ -222,9 +243,9 @@ export default function AccountsGrid() {
           <div className="card-elevated p-12">
             <EmptyState
               icon={Wallet}
-              title="No accounts yet"
-              description="Create your first financial account to start tracking your money."
-              action={{ label: 'Add Account', onClick: openAdd }}
+              title={t('accounts.emptyTitle')}
+              description={t('accounts.emptyDescription')}
+              action={{ label: t('accounts.addAccount'), onClick: openAdd }}
             />
           </div>
         ) : (
@@ -243,7 +264,7 @@ export default function AccountsGrid() {
                     <div className="flex items-start justify-between relative">
                       <div>
                         <p className="text-white/70 text-xs font-500 uppercase tracking-wider">
-                          {acct.account_type.replace('_', ' ')}
+                          {getAccountTypeLabel(acct.account_type, t)}
                         </p>
                         <p className="text-white font-700 text-base mt-0.5 truncate max-w-[180px]">{acct.name}</p>
                       </div>
@@ -254,14 +275,14 @@ export default function AccountsGrid() {
                         <button
                           className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
                           onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === acct.id ? null : acct.id); }}
-                          aria-label="Account options"
+                          aria-label={t('accounts.accountOptions')}
                         >
                           <MoreVertical size={15} className="text-white" />
                         </button>
                       </div>
                     </div>
                     <div className="relative mt-4 max-[480px]:mt-3">
-                      <p className="text-white/70 text-[11px] font-500">Current Balance</p>
+                      <p className="text-white/70 text-[11px] font-500">{t('accounts.currentBalance')}</p>
                       <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
                         <FormattedCurrencyAmount
                           amount={acct.current_balance}
@@ -276,21 +297,21 @@ export default function AccountsGrid() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
-                          <Edit2 size={14} className="text-muted-foreground" /> Edit Account
+                          <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
                         </button>
                         <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
-                          <Eye size={14} className="text-muted-foreground" /> View Transactions
+                          <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
                         </button>
                         <hr className="my-1 border-border" />
                         <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning-soft transition-colors" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
-                          <Archive size={14} /> Archive Account
+                          <Archive size={14} /> {t('accounts.archiveAccount')}
                         </button>
                       </div>
                     )}
                   </div>
                   <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">Opening Balance</p>
+                      <p className="text-xs text-muted-foreground">{t('accounts.openingBalance')}</p>
                       <FormattedCurrencyAmount
                         amount={acct.opening_balance}
                         currencyCode={acct.currency}
@@ -311,7 +332,7 @@ export default function AccountsGrid() {
                       </span>
                     </div>
                     <Badge variant={acct.include_in_total ? 'active' : 'default'}>
-                      {acct.include_in_total ? 'In Total' : 'Excluded'}
+                      {acct.include_in_total ? t('accounts.inTotal') : t('accounts.excluded')}
                     </Badge>
                   </div>
                 </div>
@@ -326,7 +347,7 @@ export default function AccountsGrid() {
               <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
                 <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
               </div>
-              <p className="text-sm font-600 text-muted-foreground group-hover:text-accent transition-colors">Add Account</p>
+              <p className="text-sm font-600 text-muted-foreground group-hover:text-accent transition-colors">{t('accounts.addAccount')}</p>
             </button>
           </div>
         )}
@@ -335,7 +356,7 @@ export default function AccountsGrid() {
       {/* Archived Accounts */}
       {archivedAccounts.length > 0 && (
         <div>
-          <h2 className="text-base font-700 text-muted-foreground mb-3">Archived Accounts</h2>
+          <h2 className="text-base font-700 text-muted-foreground mb-3">{t('accounts.archivedAccounts')}</h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {archivedAccounts.map((acct) => {
               const Icon = getIcon(acct.account_type);
@@ -344,7 +365,7 @@ export default function AccountsGrid() {
                   <div className="bg-gradient-to-r from-muted-foreground to-slate-600 p-5">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-white/70 text-xs font-500 uppercase tracking-wider">{acct.account_type.replace('_', ' ')}</p>
+                        <p className="text-white/70 text-xs font-500 uppercase tracking-wider">{getAccountTypeLabel(acct.account_type, t)}</p>
                         <p className="text-white font-700 text-base mt-0.5">{acct.name}</p>
                       </div>
                       <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -360,7 +381,7 @@ export default function AccountsGrid() {
                     </p>
                   </div>
                   <div className="p-3 flex items-center justify-between">
-                    <Badge variant="default">Archived</Badge>
+                    <Badge variant="default">{t('accounts.archived')}</Badge>
                     <span className="text-xs text-muted-foreground">{acct.currency}</span>
                   </div>
                 </div>
@@ -374,7 +395,7 @@ export default function AccountsGrid() {
       <Modal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        title={editingAccount ? 'Edit Account' : 'Add Account'}
+        title={editingAccount ? t('accounts.editAccount') : t('accounts.addAccount')}
         size="md"
       >
         <FinancialAccountForm
@@ -389,11 +410,11 @@ export default function AccountsGrid() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowArchiveConfirm(null)} />
           <div className="relative bg-card border border-border rounded-2xl shadow-card-lg p-6 max-w-sm w-full">
-            <h3 className="text-base font-700 text-foreground mb-2">Archive Account?</h3>
-            <p className="text-sm text-muted-foreground mb-4">This account will be hidden from active views. Your transaction history will be preserved.</p>
+            <h3 className="text-base font-700 text-foreground mb-2">{t('accounts.archiveConfirmTitle')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{t('accounts.archiveConfirmDescription')}</p>
             <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowArchiveConfirm(null)} className="btn-secondary">Cancel</button>
-              <button onClick={() => handleArchive(showArchiveConfirm)} className="btn-primary bg-warning hover:bg-warning/90">Archive</button>
+              <button onClick={() => setShowArchiveConfirm(null)} className="btn-secondary">{t('accounts.cancel')}</button>
+              <button onClick={() => handleArchive(showArchiveConfirm)} className="btn-primary bg-warning hover:bg-warning/90">{t('accounts.archive')}</button>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import {
@@ -35,6 +36,7 @@ export default function AddTransferForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const [accounts, setAccounts] = useState<FinancialAccount[]>(providedAccounts || []);
   const [loadingAccounts, setLoadingAccounts] = useState(!providedAccounts);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +66,7 @@ export default function AddTransferForm({
           setAccounts(nextAccounts.filter((account) => account.is_active));
         }
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to load accounts'))
+      .catch((error) => toast.error(error instanceof Error ? error.message : t('accounts.loadFailed', { ns: 'portal' })))
       .finally(() => {
         if (!cancelled) setLoadingAccounts(false);
       });
@@ -87,7 +89,7 @@ export default function AddTransferForm({
       .catch((error) => {
         if (!cancelled) {
           setLatestSnapshot(null);
-          setLatestSnapshotError(error instanceof Error ? error.message : 'Failed to load exchange rates');
+          setLatestSnapshotError(error instanceof Error ? error.message : t('transfers.form.exchangeRatesFailed', { ns: 'portal' }));
         }
       });
 
@@ -139,7 +141,7 @@ export default function AddTransferForm({
         fetchedAt: null,
         stale: true,
         snapshotId: null,
-        error: latestSnapshotError || 'No valid exchange-rate snapshot is available',
+        error: latestSnapshotError || t('transfers.form.noExchangeRateSnapshot', { ns: 'portal' }),
       };
     }
 
@@ -183,7 +185,7 @@ export default function AddTransferForm({
         fetchedAt: null,
         stale: true,
         snapshotId: latestSnapshot.id,
-        error: error instanceof Error ? error.message : 'Failed to calculate exchange-rate preview',
+        error: error instanceof Error ? error.message : t('transfers.form.previewFailed', { ns: 'portal' }),
       };
     }
   }, [form.amount, fromAccount, latestSnapshot, latestSnapshotError, toAccount]);
@@ -191,15 +193,15 @@ export default function AddTransferForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.from_account_id || !form.to_account_id) {
-      toast.error('Select both accounts');
+      toast.error(t('transfers.form.selectBothAccounts', { ns: 'portal' }));
       return;
     }
     if (form.from_account_id === form.to_account_id) {
-      toast.error('From and To accounts must be different');
+      toast.error(t('transfers.form.chooseDifferentAccounts', { ns: 'portal' }));
       return;
     }
     if (!form.amount || Number(form.amount) <= 0) {
-      toast.error('Enter a valid amount');
+      toast.error(t('settlements.validAmountError', { ns: 'portal' }));
       return;
     }
 
@@ -208,14 +210,14 @@ export default function AddTransferForm({
       const sourceAccount = accounts.find((account) => account.id === form.from_account_id);
       const destinationAccount = accounts.find((account) => account.id === form.to_account_id);
       if (!sourceAccount?.currency || !destinationAccount?.currency) {
-        toast.error('Selected accounts must both have currencies');
+        toast.error(t('transfers.form.accountsNeedCurrencies', { ns: 'portal' }));
         return;
       }
       if (
         sourceAccount.currency !== destinationAccount.currency &&
         (!transferPreview || !transferPreview.available || transferPreview.destinationAmount === null)
       ) {
-        toast.error(transferPreview?.error || 'A valid exchange-rate preview is required for cross-currency transfers');
+        toast.error(transferPreview?.error || t('transfers.form.crossCurrencyPreviewRequired', { ns: 'portal' }));
         return;
       }
 
@@ -234,7 +236,7 @@ export default function AddTransferForm({
         exchange_rate_date: transferPreview?.sameCurrency ? form.transfer_date : transferPreview?.rateDate ?? null,
         exchange_rate_timestamp:
           transferPreview?.sameCurrency ? null : transferPreview?.providerTimestamp ?? transferPreview?.fetchedAt ?? null,
-        description: form.description || 'Transfer',
+        description: form.description || t('transfers.transferFallback', { ns: 'portal' }),
         transfer_date: form.transfer_date,
         notes: form.notes || undefined,
       });
@@ -250,10 +252,10 @@ export default function AddTransferForm({
         source: 'add-transfer-form',
         entities: changedEntities,
       });
-      toast.success('Transfer completed successfully');
+      toast.success(t('transfers.form.completed', { ns: 'portal' }));
       onSuccess();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to complete transfer');
+      toast.error(error instanceof Error ? error.message : t('transfers.form.createFailed', { ns: 'portal' }));
     } finally {
       setIsLoading(false);
     }
@@ -263,7 +265,7 @@ export default function AddTransferForm({
     return (
       <div className="rounded-xl border border-border bg-muted/10 p-6 text-center">
         <Loader2 size={18} className="mx-auto mb-2 animate-spin text-accent" />
-        <p className="text-sm text-muted-foreground">Loading transfer form...</p>
+        <p className="text-sm text-muted-foreground">{t('transfers.form.loading', { ns: 'portal' })}</p>
       </div>
     );
   }
@@ -324,7 +326,7 @@ export default function AddTransferForm({
             transferPreview.available ? 'border-info/20 bg-info-soft/40' : 'border-warning/30 bg-warning-soft/20'
           }`}
         >
-          <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">Transfer Preview</p>
+          <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('transfers.form.preview', { ns: 'portal' })}</p>
           <div className="mt-2 flex items-center gap-2 text-sm font-600 text-foreground">
             <FormattedCurrencyAmount amount={transferPreview.sourceAmount} currencyCode={transferPreview.sourceCurrency} size="sm" />
             <ChevronRight size={14} className="text-muted-foreground" />
@@ -336,9 +338,9 @@ export default function AddTransferForm({
           </div>
           {!transferPreview.sameCurrency && transferPreview.available ? (
             <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-              <p>Provider: {transferPreview.provider}</p>
-              <p>Rate date: {transferPreview.rateDate}</p>
-              {transferPreview.stale ? <p className="text-warning">This preview uses a stale cached rate.</p> : null}
+              <p>{t('accounts.summary.provider', { ns: 'portal', value: transferPreview.provider || t('aiHistory.unknown', { ns: 'portal' }) })}</p>
+              <p>{t('accounts.summary.rateDate', { ns: 'portal', value: transferPreview.rateDate || t('aiHistory.unknown', { ns: 'portal' }) })}</p>
+              {transferPreview.stale ? <p className="text-warning">{t('transfers.form.stalePreview', { ns: 'portal' })}</p> : null}
             </div>
           ) : null}
         </div>
@@ -346,17 +348,17 @@ export default function AddTransferForm({
 
       <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">Description</label>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })}</label>
           <input
             type="text"
             className="input-base h-11 max-[480px]:h-10"
-            placeholder="e.g. Monthly savings transfer"
+            placeholder={t('transfers.form.descriptionPlaceholder', { ns: 'portal' })}
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">Date</label>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settlements.date', { ns: 'portal' })}</label>
           <input
             type="date"
             className="input-base h-11 max-[480px]:h-10"
@@ -367,11 +369,11 @@ export default function AddTransferForm({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">Notes</label>
+        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('reimbursements.notes', { ns: 'portal' })}</label>
         <textarea
           rows={2}
           className="input-base resize-none"
-          placeholder="Optional notes..."
+          placeholder={t('transfers.form.notesPlaceholder', { ns: 'portal' })}
           value={form.notes}
           onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
         />
@@ -379,23 +381,23 @@ export default function AddTransferForm({
 
       <div className="rounded-xl border border-info/20 bg-info-soft/40 p-3">
         <p className="text-xs font-600 text-info">
-          This transfer updates both account balances and creates linked transaction records.
+          {t('transfers.form.helper', { ns: 'portal' })}
         </p>
       </div>
 
       <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
         <div className="flex gap-3">
           <button type="button" onClick={onCancel} className="btn-secondary flex-1">
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button type="submit" disabled={isLoading} className="btn-primary flex-1">
             {isLoading ? (
               <>
                 <Loader2 size={15} className="animate-spin" />
-                Processing...
+                {t('transfers.form.processing', { ns: 'portal' })}
               </>
             ) : (
-              'Complete Transfer'
+              t('transfers.form.completeAction', { ns: 'portal' })
             )}
           </button>
         </div>

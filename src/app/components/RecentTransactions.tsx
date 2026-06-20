@@ -1,19 +1,23 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown, Paperclip, ArrowRight, Receipt } from 'lucide-react';
 import { getTransactions, type Transaction } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 export default function RecentTransactions() {
+  const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,12 +43,12 @@ export default function RecentTransactions() {
 
   return (
     <SectionCard
-      title="Recent Transactions"
-      description="Latest recorded entries across your active accounts."
+      title={t('recentTransactions.title', { ns: 'portal' })}
+      description={t('recentTransactions.description', { ns: 'portal' })}
       className="h-full"
       action={
         <Link href="/transactions" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
-          View all <ArrowRight size={13} />
+          {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
       bodyClassName="p-0"
@@ -67,8 +71,8 @@ export default function RecentTransactions() {
         <div className="px-4 py-8">
           <EmptyState
             icon={Receipt}
-            title="No transactions yet"
-            description="Add your first income or expense to see it here."
+            title={t('empty.noTransactions', { ns: 'common' })}
+            description={t('recentTransactions.emptyDescription', { ns: 'portal' })}
           />
         </div>
       ) : (
@@ -96,7 +100,7 @@ export default function RecentTransactions() {
                     {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {txn.category?.name || 'Uncategorized'} · {txn.account?.name || ''}
+                    {txn.category?.name || t('recentTransactions.uncategorized', { ns: 'portal' })} · {txn.account?.name || ''}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -107,7 +111,12 @@ export default function RecentTransactions() {
                     className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-foreground'}`}
                     showCode
                   />
-                  <span className="text-[11px] text-muted-foreground">{formatDate(txn.transaction_date)}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {formatDate(
+                      txn.transaction_date,
+                      language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US'
+                    )}
+                  </span>
                 </div>
               </div>
             );

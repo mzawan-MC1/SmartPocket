@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { Repeat, Plus, Play, Pause, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -24,6 +25,7 @@ function normalizeCurrencyCode(value: string | null | undefined) {
 }
 
 export default function RecurringPage() {
+  const { t } = useTranslation('portal');
   const [showAddModal, setShowAddModal] = useState(false);
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
@@ -52,10 +54,10 @@ export default function RecurringPage() {
   const handleTogglePause = async (item: RecurringTransaction) => {
     try {
       await updateRecurringTransaction(item.id, { is_active: !item.is_active });
-      toast.success(item.is_active ? `Paused ${item.description}` : `Resumed ${item.description}`);
+      toast.success(item.is_active ? t('recurring.pausedItem', { name: item.description }) : t('recurring.resumedItem', { name: item.description }));
       load();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update');
+      toast.error(e instanceof Error ? e.message : t('recurring.updateFailed'));
     }
   };
 
@@ -63,10 +65,10 @@ export default function RecurringPage() {
     setMarkingId(item.id);
     try {
       await markRecurringAsPaid(item);
-      toast.success(`${item.description} marked as paid — next due date updated`);
+      toast.success(t('recurring.markedPaid', { name: item.description }));
       load();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to mark as paid');
+      toast.error(e instanceof Error ? e.message : t('recurring.markPaidFailed'));
     } finally {
       setMarkingId(null);
     }
@@ -76,10 +78,10 @@ export default function RecurringPage() {
     if (!confirm(`Delete "${item.description}"?`)) return;
     try {
       await updateRecurringTransaction(item.id, { is_active: false });
-      toast.success('Recurring transaction removed');
+      toast.success(t('recurring.removed'));
       load();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Failed to delete');
+      toast.error(e instanceof Error ? e.message : t('recurring.deleteFailed'));
     }
   };
 
@@ -109,15 +111,15 @@ export default function RecurringPage() {
     <AppLayout activeRoute="/recurring">
       <div className="page-section max-[480px]:gap-3">
         <PageHeader
-          title="Recurring Transactions"
-          description="Manage subscriptions, bills, and regular income with clear due-date tracking."
-          badge={<StatusBadge status="info" label="Recurring" />}
+          title={t('recurring.title')}
+          description={t('recurring.description')}
+          badge={<StatusBadge status="info" label={t('recurring.badge')} />}
           compact
           className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
           actionsClassName="w-full sm:w-auto"
           actions={
             <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
-              <Plus size={16} /> Add Recurring
+              <Plus size={16} /> {t('recurring.add')}
             </button>
           }
         />
@@ -125,25 +127,25 @@ export default function RecurringPage() {
         {/* Summary */}
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
           <div className="card-elevated p-4 max-[480px]:p-3">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Expenses</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.scheduledExpenses')}</p>
             <div className="text-xl font-700 font-tabular text-negative">
               {totalMonthly.map((row) => (
                 <FormattedCurrencyAmount key={`expense-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-negative" showCode />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'expense').length} active recurring expenses</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('recurring.activeExpenseCount', { count: activeItems.filter((r) => r.transaction_type === 'expense').length })}</p>
           </div>
           <div className="card-elevated p-4 max-[480px]:p-3">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Income</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.scheduledIncome')}</p>
             <div className="text-xl font-700 font-tabular text-positive">
               {totalIncome.map((row) => (
                 <FormattedCurrencyAmount key={`income-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-positive" showCode />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'income').length} income sources</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('recurring.incomeSourcesCount', { count: activeItems.filter((r) => r.transaction_type === 'income').length })}</p>
           </div>
           <div className="card-elevated p-4 max-[480px]:p-3">
-            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Net Scheduled</p>
+            <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.netScheduled')}</p>
             <div className="text-xl font-700 font-tabular">
               {netMonthly.map((row) => (
                 <FormattedCurrencyAmount
@@ -155,15 +157,15 @@ export default function RecurringPage() {
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Across active supported schedules</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('recurring.acrossSupportedSchedules')}</p>
           </div>
         </div>
 
         {/* Recurring List */}
           <div className="card-elevated overflow-hidden">
           <div className="flex items-center justify-between border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
-            <h2 className="text-base font-700 text-foreground">Active Recurring</h2>
-            <span className="text-xs text-muted-foreground">{activeItems.length} active</span>
+            <h2 className="text-base font-700 text-foreground">{t('recurring.activeRecurring')}</h2>
+            <span className="text-xs text-muted-foreground">{t('recurring.activeCount', { count: activeItems.length })}</span>
           </div>
 
           {loading ? (
@@ -183,9 +185,9 @@ export default function RecurringPage() {
             <div className="p-12">
               <EmptyState
                 icon={Repeat}
-                title="No recurring transactions"
-                description="Add subscriptions, bills, or regular income to track them here."
-                action={{ label: 'Add Recurring', onClick: () => setShowAddModal(true) }}
+                title={t('recurring.emptyTitle')}
+                description={t('recurring.emptyDescription')}
+                action={{ label: t('recurring.add'), onClick: () => setShowAddModal(true) }}
               />
             </div>
           ) : (
@@ -202,11 +204,11 @@ export default function RecurringPage() {
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency)} · Next: {item.next_due_date}
+                      {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency)} · {t('recurring.next', { date: item.next_due_date })}
                       {item.account && ` · ${item.account.name}`}
                     </p>
                     {!canMarkPaid ? (
-                      <p className="mt-1 text-[10px] font-600 text-warning">Recurring schedule is incomplete for automatic next-date calculation.</p>
+                      <p className="mt-1 text-[10px] font-600 text-warning">{t('recurring.incompleteSchedule')}</p>
                     ) : null}
                   </div>
                   <div className="text-right flex-shrink-0">
@@ -223,15 +225,15 @@ export default function RecurringPage() {
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id || !canMarkPaid}
                         className="flex items-center gap-0.5 text-[10px] font-600 text-accent hover:text-teal-600 transition-colors disabled:opacity-50"
-                        aria-label="Mark as paid"
+                        aria-label={t('recurring.markAsPaid')}
                       >
                         {markingId === item.id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
-                        Paid
+                        {t('recurring.paid')}
                       </button>
-                      <button onClick={() => handleTogglePause(item)} className="w-6 h-6 rounded hover:bg-muted flex items-center justify-center" aria-label="Pause">
+                      <button onClick={() => handleTogglePause(item)} className="w-6 h-6 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.pause')}>
                         <Pause size={12} className="text-warning" />
                       </button>
-                      <button onClick={() => handleDelete(item)} className="w-6 h-6 rounded hover:bg-negative-soft flex items-center justify-center" aria-label="Delete">
+                      <button onClick={() => handleDelete(item)} className="w-6 h-6 rounded hover:bg-negative-soft flex items-center justify-center" aria-label={t('common:actions.delete')}>
                         <Trash2 size={12} className="text-negative" />
                       </button>
                     </div>
@@ -246,7 +248,7 @@ export default function RecurringPage() {
         {pausedItems.length > 0 && (
           <div className="card-elevated overflow-hidden">
             <div className="border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
-              <h2 className="text-base font-700 text-muted-foreground">Paused ({pausedItems.length})</h2>
+              <h2 className="text-base font-700 text-muted-foreground">{t('recurring.pausedCount', { count: pausedItems.length })}</h2>
             </div>
             <div className="divide-y divide-border">
               {pausedItems.map((item) => (
@@ -256,10 +258,10 @@ export default function RecurringPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency)} · Paused</p>
+                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency)} · {t('recurring.paused')}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label="Resume">
+                    <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.resume')}>
                       <Play size={13} className="text-positive" />
                     </button>
                   </div>
@@ -271,7 +273,7 @@ export default function RecurringPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title="Add Recurring Transaction" size="md">
+      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('recurring.addModalTitle')} size="md">
         <RecurringTransactionForm
           accounts={accounts}
           categories={categories}

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { DollarSign, Plus } from 'lucide-react';
 import {
@@ -25,6 +26,7 @@ interface NewSettlementModalProps {
 }
 
 function NewSettlementModal({ people, accounts, reimbursements, onClose, onSuccess }: NewSettlementModalProps) {
+  const { t } = useTranslation('portal');
   const { data: referenceData } = useClientReferenceData();
   const initialCurrency = referenceData?.platformDefaultCurrency || '';
   const [personId, setPersonId] = useState('');
@@ -49,9 +51,9 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!personId) { toast.error('Select a person'); return; }
-    if (!amount || Number(amount) <= 0) { toast.error('Enter a valid amount'); return; }
-    if (!description.trim()) { toast.error('Description is required'); return; }
+    if (!personId) { toast.error(t('settlements.selectPersonError')); return; }
+    if (!amount || Number(amount) <= 0) { toast.error(t('settlements.validAmountError')); return; }
+    if (!description.trim()) { toast.error(t('settlements.descriptionRequired')); return; }
     setSaving(true);
     try {
       await createSettlement({
@@ -65,11 +67,11 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
         notes: notes || undefined,
         reimbursement_ids: selectedReimbs.length > 0 ? selectedReimbs : undefined,
       });
-      toast.success('Settlement recorded');
+      toast.success(t('settlements.recorded'));
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      toast.error((err as Error).message || 'Failed to record settlement');
+      toast.error((err as Error).message || t('settlements.recordFailed'));
     } finally {
       setSaving(false);
     }
@@ -79,72 +81,72 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
       <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-700 text-foreground">New Settlement</h3>
+          <h3 className="text-lg font-700 text-foreground">{t('settlements.newSettlement')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Person <span className="text-negative">*</span></label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.person')} <span className="text-negative">*</span></label>
             <select value={personId} onChange={(e) => setPersonId(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-              <option value="">Select person...</option>
+              <option value="">{t('settlements.selectPerson')}</option>
               {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
             </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Amount <span className="text-negative">*</span></label>
-              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" min="0.01" step="0.01"
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.amount')} <span className="text-negative">*</span></label>
+              <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={t('settlements.amountPlaceholder')} min="0.01" step="0.01"
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
             </div>
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency')}</label>
               <CurrencySelector
                 value={currency}
                 onChange={setCurrency}
-                placeholder="Choose currency"
+                placeholder={t('settlements.chooseCurrency')}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Date</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.date')}</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
           </div>
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Payment Method</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.paymentMethod')}</label>
             <select value={method} onChange={(e) => setMethod(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-              <option value="cash">Cash</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="card">Card</option>
-              <option value="digital_wallet">Digital Wallet</option>
-              <option value="other">Other</option>
+              <option value="cash">{t('settlements.methods.cash')}</option>
+              <option value="bank_transfer">{t('settlements.methods.bankTransfer')}</option>
+              <option value="card">{t('settlements.methods.card')}</option>
+              <option value="digital_wallet">{t('settlements.methods.digitalWallet')}</option>
+              <option value="other">{t('settlements.methods.other')}</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Receiving Account (optional)</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.receivingAccount')}</label>
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-              <option value="">None / External</option>
+              <option value="">{t('settlements.noneExternal')}</option>
               {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Description <span className="text-negative">*</span></label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Final settlement"
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
+            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('settlements.descriptionPlaceholder')}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
           </div>
 
           {personReimbs.length > 0 && (
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Clear Reimbursements (optional)</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.clearReimbursements')}</label>
               <div className="space-y-2 max-h-32 overflow-y-auto">
                 {personReimbs.map((r) => (
                   <label key={r.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
@@ -167,17 +169,17 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
           )}
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional"
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.notes')}</label>
+            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('settlements.optional')}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
           </div>
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">Cancel</button>
+              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">{t('settlements.cancel')}</button>
             <button type="submit" disabled={saving}
               className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
-              {saving ? 'Saving...' : 'Record Settlement'}
+              {saving ? t('settlements.saving') : t('settlements.recordSettlement')}
             </button>
           </div>
         </form>
@@ -187,6 +189,7 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
 }
 
 export default function SettlementsPage() {
+  const { t } = useTranslation('portal');
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [people, setPeople] = useState<ManagedPerson[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
@@ -203,9 +206,9 @@ export default function SettlementsPage() {
         getSettlements(), getManagedPeople(), getAccounts(), getReimbursements(),
       ]);
       setSettlements(s); setPeople(p); setAccounts(a); setReimbursements(r);
-    } catch { toast.error('Failed to load settlements'); }
+    } catch { toast.error(t('settlements.loadFailed')); }
     finally { setLoading(false); }
-  }, []);
+  }, [t]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -233,16 +236,16 @@ export default function SettlementsPage() {
     <AppLayout activeRoute="/settlements">
       <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
-          title="Settlements"
-          description="Record and review settlement payments with linked reimbursements and accounts."
-          badge={<StatusBadge status="info" label="Settlements" />}
+          title={t('settlements.title')}
+          description={t('settlements.description')}
+          badge={<StatusBadge status="info" label={t('settlements.badge')} />}
           compact
           className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
           actionsClassName="w-full sm:w-auto"
           actions={
             <button onClick={() => setShowModal(true)} className="btn-primary max-[480px]:w-full">
               <Plus size={16} />
-              <span>New Settlement</span>
+              <span>{t('settlements.newSettlement')}</span>
             </button>
           }
         />
@@ -250,14 +253,14 @@ export default function SettlementsPage() {
         {/* Summary */}
         <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
           <div className="card p-4 max-[480px]:p-3">
-            <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Total Settlements</p>
+            <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">{t('settlements.totalSettlements')}</p>
             <p className="text-lg font-700 text-foreground">{settlements.length}</p>
           </div>
           <div className="card p-4 max-[480px]:p-3">
-            <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Total Amount</p>
+            <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">{t('settlements.totalAmount')}</p>
             <div className="text-lg font-700 text-positive">
               {totalSettledByCurrency.length === 0 ? (
-                'No data'
+                t('settlements.noData')
               ) : (
                 totalSettledByCurrency.map((row) => (
                   <FormattedCurrencyAmount
@@ -277,7 +280,7 @@ export default function SettlementsPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <SearchField
             type="text"
-            placeholder="Search settlements..."
+            placeholder={t('settlements.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             wrapperClassName="flex-1"
@@ -285,7 +288,7 @@ export default function SettlementsPage() {
           />
           <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-            <option value="all">All People</option>
+            <option value="all">{t('settlements.allPeople')}</option>
             {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
           </select>
         </div>
@@ -298,9 +301,9 @@ export default function SettlementsPage() {
         ) : filtered.length === 0 ? (
           <div className="card p-12 text-center">
             <DollarSign size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">No settlements yet</p>
+            <p className="text-muted-foreground">{t('settlements.emptyTitle')}</p>
             <button onClick={() => setShowModal(true)} className="mt-4 text-accent text-sm font-600 hover:underline">
-              Record first settlement
+              {t('settlements.recordFirstSettlement')}
             </button>
           </div>
         ) : (
@@ -311,10 +314,10 @@ export default function SettlementsPage() {
                   <div>
                     <p className="text-sm font-600 text-foreground">{s.description}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {s.person?.full_name} · {s.payment_method} · {s.settlement_date}
+                      {s.person?.full_name} · {t(`settlements.methods.${s.payment_method}`, { defaultValue: s.payment_method })} · {s.settlement_date}
                     </p>
                     {s.receiving_account && (
-                      <p className="text-xs text-muted-foreground">To: {s.receiving_account.name}</p>
+                      <p className="text-xs text-muted-foreground">{t('settlements.toAccount', { name: s.receiving_account.name })}</p>
                     )}
                   </div>
                   <div className="text-right">
@@ -324,7 +327,7 @@ export default function SettlementsPage() {
                       className="text-sm font-700 text-positive"
                       showCode
                     />
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-positive-soft text-positive font-500">Settled</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-positive-soft text-positive font-500">{t('settlements.settled')}</span>
                   </div>
                 </div>
               </div>

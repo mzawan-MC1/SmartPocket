@@ -14,6 +14,7 @@ import {
   Upload,
   Users,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import CurrencySelector from '@/components/CurrencySelector';
@@ -189,6 +190,7 @@ export default function AddTransactionModal({
   categories?: Category[];
   people?: ManagedPerson[];
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const { user } = useAuth();
   const { data: referenceData } = useClientReferenceData();
   const [internalAccounts, setInternalAccounts] = useState<FinancialAccount[]>([]);
@@ -243,7 +245,7 @@ export default function AddTransactionModal({
         if (!providedCategories) setInternalCategories(nextCategories);
         if (!providedPeople) setInternalPeople(nextPeople);
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : 'Failed to load transaction form data'))
+      .catch((error) => toast.error(error instanceof Error ? error.message : t('transactions.form.loadFailed', { ns: 'portal' })))
       .finally(() => setSupportingDataLoading(false));
   }, [isOpen, providedAccounts, providedCategories, providedPeople]);
 
@@ -283,27 +285,27 @@ export default function AddTransactionModal({
     const errors: string[] = [];
     const account = accountMap.get(row.account_id);
 
-    if (!row.account_id) errors.push(`Transaction ${rowIndex + 1}: select an account`);
-    if (!account && row.account_id) errors.push(`Transaction ${rowIndex + 1}: selected account is unavailable`);
-    if (!row.currency) errors.push(`Transaction ${rowIndex + 1}: select a currency`);
+    if (!row.account_id) errors.push(t('transactions.form.rowSelectAccount', { ns: 'portal', index: rowIndex + 1 }));
+    if (!account && row.account_id) errors.push(t('transactions.form.rowAccountUnavailable', { ns: 'portal', index: rowIndex + 1 }));
+    if (!row.currency) errors.push(t('transactions.form.rowSelectCurrency', { ns: 'portal', index: rowIndex + 1 }));
     if (account && row.currency && row.currency !== account.currency) {
-      errors.push(`Transaction ${rowIndex + 1}: currency must match the selected account currency (${account.currency})`);
+      errors.push(t('transactions.form.rowCurrencyMismatch', { ns: 'portal', index: rowIndex + 1, currency: account.currency }));
     }
 
     const amount = Number(row.amount);
     if (!row.amount || !Number.isFinite(amount) || amount <= 0) {
-      errors.push(`Transaction ${rowIndex + 1}: enter a valid amount`);
+      errors.push(t('transactions.form.rowValidAmount', { ns: 'portal', index: rowIndex + 1 }));
     }
-    if (!row.transaction_date) errors.push(`Transaction ${rowIndex + 1}: select a date`);
+    if (!row.transaction_date) errors.push(t('transactions.form.rowSelectDate', { ns: 'portal', index: rowIndex + 1 }));
     if (!row.description.trim() && !row.merchant.trim()) {
-      errors.push(`Transaction ${rowIndex + 1}: enter a description or merchant / source`);
+      errors.push(t('transactions.form.rowDescriptionOrMerchant', { ns: 'portal', index: rowIndex + 1 }));
     }
     if (row.use_held_balance && row.showManagedPerson && !row.person_id) {
-      errors.push(`Transaction ${rowIndex + 1}: choose a managed person before using held balance`);
+      errors.push(t('transactions.form.rowChooseManagedPerson', { ns: 'portal', index: rowIndex + 1 }));
     }
 
     return errors;
-  }, [accountMap]);
+  }, [accountMap, t]);
 
   const closeModalAndReset = useCallback(() => {
     setRowErrors({});
@@ -317,10 +319,10 @@ export default function AddTransactionModal({
 
     const populatedRows = activeDraftRows.filter(isDraftRowPopulated);
     if (populatedRows.length > 1) {
-      const confirmed = window.confirm('Discard the unsaved transactions in this batch?');
+      const confirmed = window.confirm(t('transactions.form.discardBatchConfirm', { ns: 'portal' }));
       if (!confirmed) return;
     } else if (editingTransaction || populatedRows.length === 1) {
-      const confirmed = window.confirm('Discard your unsaved changes?');
+      const confirmed = window.confirm(t('transactions.form.discardChangesConfirm', { ns: 'portal' }));
       if (!confirmed) return;
     }
 
@@ -333,7 +335,7 @@ export default function AddTransactionModal({
     if (mode === 'single') {
       const dirtyRowsBeyondFirst = activeDraftRows.slice(1).filter(isDraftRowPopulated);
       if (dirtyRowsBeyondFirst.length > 0) {
-        const confirmed = window.confirm('Switching to Single mode will discard the additional transaction rows. Continue?');
+        const confirmed = window.confirm(t('transactions.form.switchToSingleConfirm', { ns: 'portal' }));
         if (!confirmed) return;
       }
       setDraftRows((rows) => rows.length > 0 ? [rows[0]] : [buildEmptyDraft()]);
@@ -354,7 +356,7 @@ export default function AddTransactionModal({
     if (draftRows.length === 1) return;
     const row = draftRows.find((draft) => draft.id === rowId);
     if (row && isDraftRowPopulated(row)) {
-      const confirmed = window.confirm(`Remove Transaction ${rowIndex + 1}?`);
+      const confirmed = window.confirm(t('transactions.form.removeRowConfirm', { ns: 'portal', index: rowIndex + 1 }));
       if (!confirmed) return;
     }
 
@@ -381,7 +383,7 @@ export default function AddTransactionModal({
     if (Object.keys(nextRowErrors).length > 0) {
       setRowErrors(nextRowErrors);
       const firstError = Object.values(nextRowErrors)[0]?.[0];
-      toast.error(firstError || 'Please fix the highlighted transaction rows');
+      toast.error(firstError || t('transactions.form.fixHighlightedRows', { ns: 'portal' }));
       return;
     }
 
@@ -396,7 +398,7 @@ export default function AddTransactionModal({
           try {
             await uploadReceipt(savedTxn.id, row.receiptFile, user.id);
           } catch {
-            toast.error('Transaction updated, but receipt upload failed');
+            toast.error(t('transactions.form.updatedReceiptFailed', { ns: 'portal' }));
           }
         }
 
@@ -404,7 +406,7 @@ export default function AddTransactionModal({
           source: 'transactions-modal',
           entities: ['transactions', 'financial_accounts', 'dashboard'],
         });
-        toast.success('Transaction updated successfully');
+        toast.success(t('transactions.form.updatedSuccessfully', { ns: 'portal' }));
         closeModalAndReset();
         return;
       }
@@ -438,9 +440,9 @@ export default function AddTransactionModal({
 
       if (result.failures.length === 0) {
         if (receiptWarningRows.length > 0) {
-          toast.error(`Transactions added, but receipt upload failed for rows ${receiptWarningRows.join(', ')}`);
+          toast.error(t('transactions.form.addedReceiptFailedRows', { ns: 'portal', rows: receiptWarningRows.join(', ') }));
         } else {
-          toast.success(`${result.created.length} transaction${result.created.length === 1 ? '' : 's'} added successfully`);
+          toast.success(t('transactions.form.addedSuccessfully', { ns: 'portal', count: result.created.length }));
         }
         closeModalAndReset();
         return;
@@ -450,7 +452,7 @@ export default function AddTransactionModal({
       result.failures.forEach((failure) => {
         const failedRow = rowsToSave[failure.index];
         if (failedRow) {
-          failureMap[failedRow.id] = [`Row ${failure.index + 1}: ${failure.message}`];
+          failureMap[failedRow.id] = [t('transactions.form.rowFailure', { ns: 'portal', index: failure.index + 1, message: failure.message })];
         }
       });
       setRowErrors(failureMap);
@@ -461,37 +463,37 @@ export default function AddTransactionModal({
       const successCount = result.created.length;
       const failureRows = result.failures.map((failure) => failure.index + 1).join(', ');
       const summary = successCount > 0
-        ? `${successCount} transaction${successCount === 1 ? '' : 's'} added; rows ${failureRows} failed`
-        : `Rows ${failureRows} failed`;
+        ? t('transactions.form.partialSuccessSummary', { ns: 'portal', count: successCount, rows: failureRows })
+        : t('transactions.form.failedRowsSummary', { ns: 'portal', rows: failureRows });
       toast.error(summary);
       if (receiptWarningRows.length > 0) {
-        toast.error(`Receipt upload failed for rows ${receiptWarningRows.join(', ')}`);
+        toast.error(t('transactions.form.receiptFailedRows', { ns: 'portal', rows: receiptWarningRows.join(', ') }));
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save transactions');
+      toast.error(error instanceof Error ? error.message : t('transactions.form.saveFailed', { ns: 'portal' }));
     } finally {
       setIsSaving(false);
       setSaveProgress(null);
     }
-  }, [activeDraftRows, closeModalAndReset, editingTransaction, transactionMode, user?.id, validateDraftRow]);
+  }, [activeDraftRows, closeModalAndReset, editingTransaction, t, transactionMode, user?.id, validateDraftRow]);
 
   const visibleRowCount = activeDraftRows.length;
   const addActionLabel = editingTransaction
-    ? 'Update Transaction'
+    ? t('transactions.form.updateAction', { ns: 'portal' })
     : visibleRowCount === 1
-      ? 'Add Transaction'
-      : `Add ${visibleRowCount} Transactions`;
+      ? t('transactionsHeader.addTransaction', { ns: 'portal' })
+      : t('transactions.form.addManyAction', { ns: 'portal', count: visibleRowCount });
   const savingActionLabel = editingTransaction
-    ? 'Saving transaction...'
+    ? t('transactions.form.savingOne', { ns: 'portal' })
     : visibleRowCount === 1
-      ? 'Adding transaction...'
-      : `Adding ${visibleRowCount} transactions...`;
+      ? t('transactions.form.addingOne', { ns: 'portal' })
+      : t('transactions.form.addingMany', { ns: 'portal', count: visibleRowCount });
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleRequestClose}
-      title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
+      title={editingTransaction ? t('transactions.form.editTitle', { ns: 'portal' }) : t('transactions.form.addTitle', { ns: 'portal' })}
       size="xl"
       mobileLayout="fullscreen"
       bodyClassName="p-0 sm:p-6"
@@ -500,7 +502,7 @@ export default function AddTransactionModal({
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             {transactionMode === 'single' ? (
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="Transaction type">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
                 {(['expense', 'income'] as const).map((type) => {
                   const primaryRow = activeDraftRows[0];
                   const isActive = primaryRow?.transaction_type === type;
@@ -509,7 +511,7 @@ export default function AddTransactionModal({
                       key={type}
                       type="button"
                       aria-pressed={isActive}
-                      aria-label={`Set transaction type to ${type}`}
+                      aria-label={t('transactions.form.setTransactionType', { ns: 'portal', type: t(`transactions.types.${type}` as const, { ns: 'portal' }) })}
                       onClick={() => {
                         const rowIds = [activeDraftRows[0]?.id].filter(Boolean) as string[];
                         if (rowIds.length === 0) return;
@@ -524,14 +526,14 @@ export default function AddTransactionModal({
                       }`}
                     >
                       {type === 'income' ? <TrendingUp size={14} className="mr-1.5 inline" /> : <TrendingDown size={14} className="mr-1.5 inline" />}
-                      {type === 'income' ? 'Income' : 'Expense'}
+                      {t(`transactions.types.${type}` as const, { ns: 'portal' })}
                     </button>
                   );
                 })}
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-                <span>Add up to {MAX_BATCH_ROWS} transactions. Optional fields are under More details.</span>
+                <span>{t('transactions.form.batchHelper', { ns: 'portal', count: MAX_BATCH_ROWS })}</span>
                 <span className="font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
               </div>
             )}
@@ -541,14 +543,14 @@ export default function AddTransactionModal({
                   key={mode}
                   type="button"
                   aria-pressed={transactionMode === mode}
-                  aria-label={`Transaction entry mode: ${mode}`}
+                  aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                   onClick={() => handleModeChange(mode)}
                   disabled={editingTransaction !== null && mode === 'multiple'}
                   className={`rounded-lg px-3 py-1.5 text-sm font-600 transition-colors ${
                     transactionMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   } ${(editingTransaction !== null && mode === 'multiple') ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
-                  {mode === 'single' ? 'Single' : 'Multiple'}
+                  {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
                 </button>
               ))}
             </div>
@@ -557,7 +559,7 @@ export default function AddTransactionModal({
           {supportingDataLoading ? (
             <div className="rounded-2xl border border-border bg-muted/10 p-6 text-center">
               <Loader2 size={18} className="mx-auto mb-2 animate-spin text-accent" />
-              <p className="text-sm text-muted-foreground">Loading transaction form...</p>
+              <p className="text-sm text-muted-foreground">{t('transactions.form.loading', { ns: 'portal' })}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -565,7 +567,11 @@ export default function AddTransactionModal({
                 const account = accountMap.get(row.account_id);
                 const filteredCategories = categories.filter((category) => category.category_type === row.transaction_type || category.category_type === 'transfer');
                 const rowHasErrors = rowErrors[row.id] || [];
-                const rowLabel = transactionMode === 'multiple' && !editingTransaction ? `Transaction ${index + 1}` : editingTransaction ? 'Transaction details' : 'Transaction';
+                const rowLabel = transactionMode === 'multiple' && !editingTransaction
+                  ? t('transactions.form.transactionNumber', { ns: 'portal', index: index + 1 })
+                  : editingTransaction
+                    ? t('transactions.form.detailsTitle', { ns: 'portal' })
+                    : t('transactions.form.transaction', { ns: 'portal' });
 
                 return (
                   <div key={row.id} className="rounded-2xl border border-border bg-card">
@@ -577,7 +583,7 @@ export default function AddTransactionModal({
                           onClick={() => removeDraftRow(row.id, index)}
                           disabled={draftRows.length === 1 || isSaving}
                           className="btn-ghost px-2 py-1 text-xs text-negative disabled:opacity-40"
-                          aria-label={`Remove transaction ${index + 1}`}
+                          aria-label={t('transactions.form.removeTransaction', { ns: 'portal', index: index + 1 })}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -588,14 +594,14 @@ export default function AddTransactionModal({
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
-                            <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">Type</label>
-                            <div className="flex gap-2" role="group" aria-label={`Transaction ${index + 1} type`}>
+                            <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.type', { ns: 'portal' })}</label>
+                            <div className="flex gap-2" role="group" aria-label={t('transactions.form.transactionTypeRow', { ns: 'portal', index: index + 1 })}>
                               {(['expense', 'income'] as const).map((type) => (
                                 <button
                                   key={`${row.id}-${type}`}
                                   type="button"
                                   aria-pressed={row.transaction_type === type}
-                                  aria-label={`Set transaction ${index + 1} type to ${type}`}
+                                  aria-label={t('transactions.form.setTransactionTypeRow', { ns: 'portal', index: index + 1, type: t(`transactions.types.${type}` as const, { ns: 'portal' }) })}
                                   onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_type: type, category_id: '' }))}
                                   className={`flex-1 rounded-xl border px-3 py-2 text-sm font-600 transition-colors ${
                                     row.transaction_type === type
@@ -605,7 +611,7 @@ export default function AddTransactionModal({
                                       : 'border-border text-muted-foreground hover:border-accent/40'
                                   }`}
                                 >
-                                  {type === 'income' ? 'Income' : 'Expense'}
+                                  {t(`transactions.types.${type}` as const, { ns: 'portal' })}
                                 </button>
                               ))}
                             </div>
@@ -617,7 +623,7 @@ export default function AddTransactionModal({
                         <div className="rounded-xl border border-negative/30 bg-negative-soft px-3 py-2 text-sm text-negative">
                           <div className="mb-1 flex items-center gap-2 font-600">
                             <AlertCircle size={14} />
-                            Fix this row before saving
+                            {t('transactions.form.fixRowBeforeSaving', { ns: 'portal' })}
                           </div>
                           <ul className="space-y-1 text-xs">
                             {rowHasErrors.map((error) => <li key={error}>{error}</li>)}
@@ -627,7 +633,7 @@ export default function AddTransactionModal({
 
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-2">
                         <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">Account *</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>
                           <select
                             className="input-base h-10 text-sm"
                             value={row.account_id}
@@ -641,20 +647,20 @@ export default function AddTransactionModal({
                               }));
                             }}
                           >
-                            <option value="">Select account...</option>
+                            <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
                             {accounts.map((accountOption) => (
                               <option key={accountOption.id} value={accountOption.id}>{accountOption.name}</option>
                             ))}
                           </select>
                         </div>
                         <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">Category</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
                           <select
                             className="input-base h-10 text-sm"
                             value={row.category_id}
                             onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
                           >
-                            <option value="">No category</option>
+                            <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
                             {filteredCategories.map((category) => (
                               <option key={category.id} value={category.id}>{category.name}</option>
                             ))}
@@ -664,10 +670,10 @@ export default function AddTransactionModal({
 
                       <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1 max-[480px]:space-y-3">
                         <div className="max-[480px]:hidden">
-                          <label className="mb-1 block text-sm font-600 text-foreground">Amount *</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
                         </div>
                         <div className="hidden max-[480px]:block">
-                          <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">Amount</label>
+                          <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
                         </div>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
@@ -687,16 +693,16 @@ export default function AddTransactionModal({
                             <CurrencySelector
                               value={row.currency}
                               onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
-                              placeholder="Choose currency"
+                              placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
                               disabled={Boolean(account)}
-                              helperText={account ? `Uses ${account.currency} from the selected account.` : 'Choose the transaction currency.'}
+                              helperText={account ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency }) : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' })}
                             />
                           </div>
                         </div>
                       </div>
 
                       <div className="max-[480px]:order-4">
-                        <label className="mb-1 block text-sm font-600 text-foreground">Date *</label>
+                        <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.date', { ns: 'portal' })} *</label>
                         <input
                           type="date"
                           className="input-base h-10 text-sm"
@@ -707,21 +713,21 @@ export default function AddTransactionModal({
 
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-5">
                         <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">Merchant / Source</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</label>
                           <input
                             type="text"
                             className="input-base h-10 text-sm"
-                            placeholder="e.g. Netflix, Salary"
+                            placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
                             value={row.merchant}
                             onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
                           />
                         </div>
                         <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">Description *</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
                           <input
                             type="text"
                             className="input-base h-10 text-sm"
-                            placeholder="Brief description"
+                            placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
                             value={row.description}
                             onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
                           />
@@ -735,20 +741,20 @@ export default function AddTransactionModal({
                           aria-expanded={row.showMoreOptions}
                           className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-600 text-foreground"
                         >
-                          <span>More details</span>
+                          <span>{t('transactions.form.moreDetails', { ns: 'portal' })}</span>
                           {row.showMoreOptions ? <ChevronUpIcon size={15} /> : <ChevronDownIcon size={15} />}
                         </button>
 
                         {row.showMoreOptions ? (
                           <div className="space-y-3 border-t border-border/70 px-3 py-3">
                             <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">Tags</label>
+                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
                               <div className="relative">
                                 <Tag size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                 <input
                                   type="text"
                                   className="input-base h-10 pl-10 pr-3 text-sm"
-                                  placeholder="groceries, rent"
+                                  placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
                                   value={row.tags}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
                                 />
@@ -756,11 +762,11 @@ export default function AddTransactionModal({
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">Notes</label>
+                              <label className="mb-1 block text-sm font-600 text-foreground">{t('reimbursements.notes', { ns: 'portal' })}</label>
                               <textarea
                                 rows={2}
                                 className="input-base resize-none text-sm"
-                                placeholder="Optional notes..."
+                                placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
                                 value={row.notes}
                                 onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
                               />
@@ -788,23 +794,23 @@ export default function AddTransactionModal({
                               >
                                 <span className="flex items-center gap-2">
                                   <Users size={14} className="text-accent" />
-                                  Managed Person / Shared Expense
+                                  {t('transactions.form.managedPersonSharedExpense', { ns: 'portal' })}
                                 </span>
                                 <span className={`rounded-full px-2 py-0.5 text-[11px] font-600 ${row.showManagedPerson ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                                  {row.showManagedPerson ? 'Active' : 'Optional'}
+                                  {row.showManagedPerson ? t('status.active', { ns: 'common' }) : t('reimbursements.optional', { ns: 'portal' })}
                                 </span>
                               </button>
 
                               {row.showManagedPerson ? (
                                 <div className="space-y-3 border-t border-border/70 px-3 py-3">
                                   <div>
-                                    <label className="mb-1 block text-sm font-600 text-foreground">Managed Person</label>
+                                    <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.managedPerson', { ns: 'portal' })}</label>
                                     <select
                                       className="input-base h-10 text-sm"
                                       value={row.person_id}
                                       onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
                                     >
-                                      <option value="">Select person...</option>
+                                      <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
                                       {people.map((person) => (
                                         <option key={person.id} value={person.id}>{person.full_name}</option>
                                       ))}
@@ -813,23 +819,23 @@ export default function AddTransactionModal({
 
                                   <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                                     <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">Expense Belongs To</label>
+                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.expenseBelongsTo', { ns: 'portal' })}</label>
                                       <select className="input-base h-10 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
-                                        <option value="user">Me (User)</option>
-                                        <option value="person">Person</option>
-                                        <option value="shared">Shared</option>
+                                        <option value="user">{t('transactions.form.ownedByMe', { ns: 'portal' })}</option>
+                                        <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
+                                        <option value="shared">{t('transactions.form.shared', { ns: 'portal' })}</option>
                                       </select>
                                     </div>
                                     <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">Paid By</label>
+                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidBy', { ns: 'portal' })}</label>
                                       <select className="input-base h-10 text-sm" value={row.paid_by} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, paid_by: event.target.value }))}>
-                                        <option value="user">Me (User)</option>
-                                        <option value="person">Person</option>
-                                        <option value="third_party">Third Party</option>
+                                        <option value="user">{t('transactions.form.paidByMe', { ns: 'portal' })}</option>
+                                        <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
+                                        <option value="third_party">{t('transactions.form.thirdParty', { ns: 'portal' })}</option>
                                       </select>
                                     </div>
                                     <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">Paid From</label>
+                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidFrom', { ns: 'portal' })}</label>
                                       <select
                                         className="input-base h-10 text-sm"
                                         value={row.use_held_balance ? 'held_balance' : row.paid_from}
@@ -842,10 +848,10 @@ export default function AddTransactionModal({
                                           }));
                                         }}
                                       >
-                                        <option value="account">Account</option>
-                                        <option value="held_balance">Held Balance</option>
-                                        <option value="cash">Cash</option>
-                                        <option value="external">External</option>
+                                        <option value="account">{t('transactions.account', { ns: 'portal' })}</option>
+                                        <option value="held_balance">{t('transactions.form.heldBalance', { ns: 'portal' })}</option>
+                                        <option value="cash">{t('accounts.types.cash', { ns: 'portal' })}</option>
+                                        <option value="external">{t('transactions.form.external', { ns: 'portal' })}</option>
                                       </select>
                                     </div>
                                   </div>
@@ -858,7 +864,7 @@ export default function AddTransactionModal({
                                         onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_required: event.target.checked }))}
                                         className="rounded accent-accent"
                                       />
-                                      Reimbursement required
+                                      {t('transactions.form.reimbursementRequired', { ns: 'portal' })}
                                     </label>
                                     {row.reimbursement_required ? (
                                       <select
@@ -866,12 +872,12 @@ export default function AddTransactionModal({
                                         value={row.reimbursement_status}
                                         onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_status: event.target.value }))}
                                       >
-                                        <option value="">Status (optional)</option>
-                                        <option value="pending">Pending</option>
-                                        <option value="partially_paid">Partially Paid</option>
-                                        <option value="settled">Settled</option>
-                                        <option value="waived">Waived</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        <option value="">{t('transactions.form.reimbursementStatus', { ns: 'portal' })}</option>
+                                        <option value="pending">{t('reimbursements.statuses.pending', { ns: 'portal' })}</option>
+                                        <option value="partially_paid">{t('reimbursements.statuses.partially_paid', { ns: 'portal' })}</option>
+                                        <option value="settled">{t('reimbursements.statuses.settled', { ns: 'portal' })}</option>
+                                        <option value="waived">{t('reimbursements.statuses.waived', { ns: 'portal' })}</option>
+                                        <option value="cancelled">{t('reimbursements.statuses.cancelled', { ns: 'portal' })}</option>
                                       </select>
                                     ) : null}
                                   </div>
@@ -880,7 +886,7 @@ export default function AddTransactionModal({
                             </div>
 
                             <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">Receipt Attachment</label>
+                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
                               <div className="rounded-xl border-2 border-dashed border-border px-4 py-3 text-center">
                                 <input
                                   type="file"
@@ -890,7 +896,7 @@ export default function AddTransactionModal({
                                   onChange={(event) => {
                                     const file = event.target.files?.[0];
                                     if (file && file.size > 5 * 1024 * 1024) {
-                                      toast.error('File size must be under 5MB');
+                                      toast.error(t('transactions.form.receiptSizeError', { ns: 'portal' }));
                                       return;
                                     }
                                     updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: file || null }));
@@ -898,11 +904,11 @@ export default function AddTransactionModal({
                                 />
                                 <label htmlFor={`receipt-upload-${row.id}`} className="cursor-pointer text-sm text-muted-foreground">
                                   <Upload size={18} className="mx-auto mb-1 text-muted-foreground" />
-                                  {row.receiptFile ? row.receiptFile.name : 'Upload receipt (JPG, PNG, PDF · max 5MB)'}
+                                  {row.receiptFile ? row.receiptFile.name : t('transactions.form.uploadReceipt', { ns: 'portal' })}
                                 </label>
                                 {row.receiptFile ? (
                                   <button type="button" onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: null }))} className="mt-2 text-xs text-negative hover:underline">
-                                    Remove
+                                    {t('actions.remove', { ns: 'common' })}
                                   </button>
                                 ) : null}
                               </div>
@@ -915,7 +921,7 @@ export default function AddTransactionModal({
                                 onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, is_recurring: event.target.checked }))}
                                 className="rounded accent-accent"
                               />
-                              Mark as recurring transaction
+                              {t('transactions.form.markAsRecurring', { ns: 'portal' })}
                             </label>
                           </div>
                         ) : null}
@@ -935,7 +941,7 @@ export default function AddTransactionModal({
               className="btn-secondary w-full justify-center"
             >
               <Plus size={14} />
-              Add another transaction
+              {t('transactions.form.addAnotherTransaction', { ns: 'portal' })}
             </button>
           ) : null}
         </div>
@@ -943,11 +949,17 @@ export default function AddTransactionModal({
         <div className="sticky bottom-0 z-10 mt-4 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur sm:px-0 sm:pb-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              {isSaving && saveProgress ? `Saving ${saveProgress.completed} of ${saveProgress.total}...` : activeDraftRows.filter(isDraftRowPopulated).length > 1 ? 'You have multiple unsaved transactions in this batch.' : editingTransaction ? 'Editing the selected transaction.' : null}
+              {isSaving && saveProgress
+                ? t('transactions.form.savingProgress', { ns: 'portal', completed: saveProgress.completed, total: saveProgress.total })
+                : activeDraftRows.filter(isDraftRowPopulated).length > 1
+                  ? t('transactions.form.multipleUnsaved', { ns: 'portal' })
+                  : editingTransaction
+                    ? t('transactions.form.editingSelected', { ns: 'portal' })
+                    : null}
             </div>
             <div className="flex items-center justify-end gap-2 max-[480px]:grid max-[480px]:grid-cols-2">
               <button type="button" onClick={handleRequestClose} disabled={isSaving} className="btn-secondary max-[480px]:w-full">
-                Cancel
+                {t('actions.cancel', { ns: 'common' })}
               </button>
               <button type="button" onClick={handleSave} disabled={isSaving || activeDraftRows.length === 0 || supportingDataLoading} className="btn-primary max-[480px]:w-full">
                 {isSaving ? (

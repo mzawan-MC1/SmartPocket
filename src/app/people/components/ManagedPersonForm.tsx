@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Save, User } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
@@ -33,6 +34,7 @@ export default function ManagedPersonForm({
   onSuccess: (person: ManagedPerson) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const [saving, setSaving] = useState(false);
   const [phoneState, setPhoneState] = useState<InternationalPhoneValue>({
@@ -72,7 +74,7 @@ export default function ManagedPersonForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.full_name.trim()) {
-      toast.error('Full name is required');
+      toast.error(t('people.form.fullNameRequired', { ns: 'portal' }));
       return;
     }
 
@@ -101,10 +103,10 @@ export default function ManagedPersonForm({
         source: 'managed-person-form',
         entities: changedEntities,
       });
-      toast.success(`${person.full_name} added successfully`);
+      toast.success(t('people.form.addedSuccessfully', { ns: 'portal', name: person.full_name }));
       onSuccess(person);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to add person');
+      toast.error(error instanceof Error ? error.message : t('people.form.addFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
@@ -120,20 +122,20 @@ export default function ManagedPersonForm({
 
       <div>
         <label className="mb-1.5 block text-sm font-600 text-foreground">
-          Full Name <span className="text-negative">*</span>
+          {t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span>
         </label>
         <input
           type="text"
           value={form.full_name}
           onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
-          placeholder="e.g. Ahmed Al Mansouri"
+          placeholder={t('people.form.fullNamePlaceholder', { ns: 'portal' })}
           className="input-base h-11 max-[480px]:h-10"
           required
         />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">Relationship</label>
+        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.relationship', { ns: 'portal' })}</label>
         <select
           value={form.relationship}
           onChange={(event) => setForm((current) => ({ ...current, relationship: event.target.value as RelationshipType }))}
@@ -141,7 +143,10 @@ export default function ManagedPersonForm({
         >
           {RELATIONSHIPS.map((relationship) => (
             <option key={relationship.value} value={relationship.value}>
-              {relationship.label}
+              {t(`people.relationships.${relationship.value}` as const, {
+                ns: 'portal',
+                defaultValue: relationship.label,
+              })}
             </option>
           ))}
         </select>
@@ -149,18 +154,18 @@ export default function ManagedPersonForm({
 
       <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">Email</label>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.email', { ns: 'portal' })}</label>
           <input
             type="email"
             value={form.email}
             onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-            placeholder="Optional"
+            placeholder={t('people.form.optional', { ns: 'portal' })}
             className="input-base h-11 max-[480px]:h-10"
           />
         </div>
         <div>
           <InternationalPhoneInput
-            label="Phone"
+            label={t('people.form.phone', { ns: 'portal' })}
             value={form.phone_display}
             countryCode={form.phone_country_code}
             onChange={(phone) => {
@@ -173,26 +178,26 @@ export default function ManagedPersonForm({
                 phone_e164: phone.e164 || '',
               }));
             }}
-            helperText="Uses the selected country code when a local number is entered."
+            helperText={t('people.form.phoneHelper', { ns: 'portal' })}
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">Preferred Currency</label>
+        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.preferredCurrency', { ns: 'portal' })}</label>
         <CurrencySelector
           value={form.preferred_currency}
           onChange={(currencyCode) => setForm((current) => ({ ...current, preferred_currency: currencyCode }))}
-          placeholder="Choose currency"
+          placeholder={t('people.form.chooseCurrency', { ns: 'portal' })}
         />
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">Notes</label>
+        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.notes', { ns: 'portal' })}</label>
         <textarea
           value={form.notes}
           onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-          placeholder="Optional notes"
+          placeholder={t('people.form.notesPlaceholder', { ns: 'portal' })}
           rows={3}
           className="input-base resize-none"
         />
@@ -201,11 +206,11 @@ export default function ManagedPersonForm({
       <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
         <div className="flex gap-3">
           <button type="button" onClick={onCancel} className="btn-secondary flex-1">
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button type="submit" disabled={saving} className="btn-primary flex-1">
             <Save size={16} />
-            {saving ? 'Saving...' : 'Add Person'}
+            {saving ? t('status.saving', { ns: 'common' }) : t('people.addPerson', { ns: 'portal' })}
           </button>
         </div>
       </div>

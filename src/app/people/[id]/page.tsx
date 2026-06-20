@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -25,18 +26,18 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   friend: 'Friend', relative: 'Relative', colleague: 'Colleague', client: 'Client', other: 'Other',
 };
 
-const ENTRY_TYPE_LABELS: Record<string, { label: string; color: string; sign: '+' | '-' }> = {
-  money_received:           { label: 'Money Received',         color: 'text-positive',  sign: '+' },
-  money_returned:           { label: 'Money Returned',         color: 'text-negative',  sign: '-' },
-  expense_from_held:        { label: 'Expense (Held Balance)', color: 'text-negative',  sign: '-' },
-  expense_paid_by_user:     { label: 'Expense (Paid by Me)',   color: 'text-warning',   sign: '-' },
-  expense_paid_by_person:   { label: 'Expense (Paid by Person)', color: 'text-muted-foreground', sign: '-' },
-  reimbursement_due_to_user:   { label: 'Reimbursement Due to Me',     color: 'text-positive', sign: '+' },
-  reimbursement_due_to_person: { label: 'Reimbursement Due to Person', color: 'text-negative', sign: '-' },
-  reimbursement_received:   { label: 'Reimbursement Received', color: 'text-positive',  sign: '+' },
-  reimbursement_paid:       { label: 'Reimbursement Paid',     color: 'text-negative',  sign: '-' },
-  settlement:               { label: 'Settlement',             color: 'text-info',      sign: '+' },
-  adjustment:               { label: 'Adjustment',             color: 'text-muted-foreground', sign: '+' },
+const ENTRY_TYPE_STYLES: Record<string, { color: string; sign: '+' | '-' }> = {
+  money_received: { color: 'text-positive', sign: '+' },
+  money_returned: { color: 'text-negative', sign: '-' },
+  expense_from_held: { color: 'text-negative', sign: '-' },
+  expense_paid_by_user: { color: 'text-warning', sign: '-' },
+  expense_paid_by_person: { color: 'text-muted-foreground', sign: '-' },
+  reimbursement_due_to_user: { color: 'text-positive', sign: '+' },
+  reimbursement_due_to_person: { color: 'text-negative', sign: '-' },
+  reimbursement_received: { color: 'text-positive', sign: '+' },
+  reimbursement_paid: { color: 'text-negative', sign: '-' },
+  settlement: { color: 'text-info', sign: '+' },
+  adjustment: { color: 'text-muted-foreground', sign: '+' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -47,14 +48,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-negative-soft text-negative',
 };
 
-const TABS = [
-  { id: 'overview', label: 'Overview', icon: User },
-  { id: 'ledger', label: 'Ledger', icon: FileText },
-  { id: 'reimbursements', label: 'Reimbursements', icon: RotateCcw },
-  { id: 'settlements', label: 'Settlements', icon: DollarSign },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-];
-
 // ─── Quick Transaction Modal ──────────────────────────────────────────────────
 interface QuickTxnModalProps {
   person: ManagedPerson;
@@ -63,6 +56,7 @@ interface QuickTxnModalProps {
 }
 
 function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const initialCurrency = person.preferred_currency || referenceData?.platformDefaultCurrency || '';
   const [entryType, setEntryType] = useState<string>('money_received');
@@ -78,24 +72,24 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
   }, [currency, initialCurrency]);
 
   const QUICK_TYPES = [
-    { value: 'money_received', label: 'Money Received from Person' },
-    { value: 'money_returned', label: 'Money Returned to Person' },
-    { value: 'expense_from_held', label: 'Expense from Held Balance' },
-    { value: 'expense_paid_by_user', label: 'Expense Paid by Me for Person' },
-    { value: 'expense_paid_by_person', label: 'Expense Paid by Person' },
-    { value: 'reimbursement_received', label: 'Reimbursement Received' },
-    { value: 'reimbursement_paid', label: 'Reimbursement Paid' },
-    { value: 'settlement', label: 'Settlement' },
-    { value: 'adjustment', label: 'Manual Adjustment' },
+    { value: 'money_received', label: t('people.quickTransaction.types.moneyReceived', { ns: 'portal' }) },
+    { value: 'money_returned', label: t('people.quickTransaction.types.moneyReturned', { ns: 'portal' }) },
+    { value: 'expense_from_held', label: t('people.quickTransaction.types.expenseFromHeld', { ns: 'portal' }) },
+    { value: 'expense_paid_by_user', label: t('people.quickTransaction.types.expensePaidByUser', { ns: 'portal' }) },
+    { value: 'expense_paid_by_person', label: t('people.quickTransaction.types.expensePaidByPerson', { ns: 'portal' }) },
+    { value: 'reimbursement_received', label: t('people.quickTransaction.types.reimbursementReceived', { ns: 'portal' }) },
+    { value: 'reimbursement_paid', label: t('people.quickTransaction.types.reimbursementPaid', { ns: 'portal' }) },
+    { value: 'settlement', label: t('people.quickTransaction.types.settlement', { ns: 'portal' }) },
+    { value: 'adjustment', label: t('people.quickTransaction.types.adjustment', { ns: 'portal' }) },
   ];
 
   const handleSave = async () => {
     if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-      toast.error('Enter a valid amount');
+      toast.error(t('people.quickTransaction.validAmountError', { ns: 'portal' }));
       return;
     }
     if (!description.trim()) {
-      toast.error('Description is required');
+      toast.error(t('people.quickTransaction.descriptionRequired', { ns: 'portal' }));
       return;
     }
     setSaving(true);
@@ -122,11 +116,11 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
         });
       }
 
-      toast.success('Transaction recorded');
+      toast.success(t('people.quickTransaction.recorded', { ns: 'portal' }));
       onSuccess();
       onClose();
     } catch (err: unknown) {
-      toast.error((err as Error).message || 'Failed to record transaction');
+      toast.error((err as Error).message || t('people.quickTransaction.recordFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
@@ -136,12 +130,12 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
       <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-700 text-foreground">Record Transaction</h3>
+          <h3 className="text-lg font-700 text-foreground">{t('people.quickTransaction.title', { ns: 'portal' })}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
 
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Transaction Type</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.quickTransaction.transactionType', { ns: 'portal' })}</label>
           <select
             value={entryType}
             onChange={(e) => setEntryType(e.target.value)}
@@ -155,30 +149,30 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Amount</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.amount', { ns: 'portal' })}</label>
             <input
               type="number"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
               min="0.01"
               step="0.01"
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
             />
           </div>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
-            <CurrencySelector value={currency} onChange={setCurrency} placeholder="Choose currency" />
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency', { ns: 'portal' })}</label>
+            <CurrencySelector value={currency} onChange={setCurrency} placeholder={t('people.form.chooseCurrency', { ns: 'portal' })} />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Description</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.descriptionLabel', { ns: 'portal' })}</label>
           <input
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Government fee, Subscription..."
+            placeholder={t('people.quickTransaction.descriptionPlaceholder', { ns: 'portal' })}
             className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
           />
         </div>
@@ -191,7 +185,7 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
               onChange={(e) => setCreateReimb(e.target.checked)}
               className="rounded"
             />
-            <span className="text-sm text-foreground">Create reimbursement ({person.full_name} owes me)</span>
+            <span className="text-sm text-foreground">{t('people.quickTransaction.createReimbursement', { ns: 'portal', name: person.full_name })}</span>
           </label>
         )}
 
@@ -200,14 +194,14 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
             onClick={onClose}
             className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors"
           >
-            Cancel
+            {t('actions.cancel', { ns: 'common' })}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
             className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity disabled:opacity-60"
           >
-            {saving ? 'Saving...' : 'Record'}
+            {saving ? t('status.saving', { ns: 'common' }) : t('people.quickTransaction.record', { ns: 'portal' })}
           </button>
         </div>
       </div>
@@ -217,6 +211,7 @@ function QuickTransactionModal({ person, onClose, onSuccess }: QuickTxnModalProp
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function PersonDetailPage() {
+  const { t } = useTranslation(['portal', 'common']);
   const params = useParams();
   const searchParams = useSearchParams();
   const personId = params.id as string;
@@ -228,6 +223,43 @@ export default function PersonDetailPage() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTxnModal, setShowTxnModal] = useState(false);
+
+  const tabs = [
+    { id: 'overview', label: t('people.detail.tabs.overview', { ns: 'portal' }), icon: User },
+    { id: 'ledger', label: t('people.detail.tabs.ledger', { ns: 'portal' }), icon: FileText },
+    { id: 'reimbursements', label: t('reimbursements.title', { ns: 'portal' }), icon: RotateCcw },
+    { id: 'settlements', label: t('settlements.title', { ns: 'portal' }), icon: DollarSign },
+    { id: 'reports', label: t('reports.pageTitle', { ns: 'portal' }), icon: BarChart3 },
+  ] as const;
+
+  const getEntryTypeMeta = (entryType: string) => {
+    const style = ENTRY_TYPE_STYLES[entryType] || { color: 'text-foreground', sign: '+' as const };
+    const label =
+      entryType === 'money_received'
+        ? t('people.detail.entryTypes.moneyReceived', { ns: 'portal' })
+        : entryType === 'money_returned'
+          ? t('people.detail.entryTypes.moneyReturned', { ns: 'portal' })
+          : entryType === 'expense_from_held'
+            ? t('people.detail.entryTypes.expenseFromHeld', { ns: 'portal' })
+            : entryType === 'expense_paid_by_user'
+              ? t('people.detail.entryTypes.expensePaidByUser', { ns: 'portal' })
+              : entryType === 'expense_paid_by_person'
+                ? t('people.detail.entryTypes.expensePaidByPerson', { ns: 'portal' })
+                : entryType === 'reimbursement_due_to_user'
+                  ? t('people.detail.entryTypes.reimbursementDueToUser', { ns: 'portal' })
+                  : entryType === 'reimbursement_due_to_person'
+                    ? t('people.detail.entryTypes.reimbursementDueToPerson', { ns: 'portal' })
+                    : entryType === 'reimbursement_received'
+                      ? t('people.detail.entryTypes.reimbursementReceived', { ns: 'portal' })
+                      : entryType === 'reimbursement_paid'
+                        ? t('people.detail.entryTypes.reimbursementPaid', { ns: 'portal' })
+                        : entryType === 'settlement'
+                          ? t('people.detail.entryTypes.settlement', { ns: 'portal' })
+                          : entryType === 'adjustment'
+                            ? t('people.detail.entryTypes.adjustment', { ns: 'portal' })
+                            : entryType;
+    return { ...style, label };
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -243,7 +275,7 @@ export default function PersonDetailPage() {
       setReimbursements(r);
       setSettlements(s);
     } catch {
-      toast.error('Failed to load person data');
+      toast.error(t('people.detail.loadFailed', { ns: 'portal' }));
     } finally {
       setLoading(false);
     }
@@ -266,8 +298,8 @@ export default function PersonDetailPage() {
     return (
       <AppLayout activeRoute="/people">
         <div className="text-center py-12">
-          <p className="text-muted-foreground">Person not found</p>
-          <Link href="/people" className="text-accent text-sm mt-2 inline-block">← Back to People</Link>
+          <p className="text-muted-foreground">{t('people.detail.notFound', { ns: 'portal' })}</p>
+          <Link href="/people" className="text-accent text-sm mt-2 inline-block">{t('people.detail.backToPeople', { ns: 'portal' })}</Link>
         </div>
       </AppLayout>
     );
@@ -286,7 +318,7 @@ export default function PersonDetailPage() {
             </Link>
             <div>
               <h1 className="text-xl font-700 text-foreground">{person.full_name}</h1>
-              <p className="text-sm text-muted-foreground capitalize">{RELATIONSHIP_LABELS[person.relationship] || 'Other'}</p>
+              <p className="text-sm text-muted-foreground capitalize">{t(`people.relationships.${person.relationship as keyof typeof RELATIONSHIP_LABELS}` as const, { ns: 'portal', defaultValue: RELATIONSHIP_LABELS[person.relationship] || t('people.relationships.other', { ns: 'portal' }) })}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -301,7 +333,7 @@ export default function PersonDetailPage() {
               className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity"
             >
               <Plus size={16} />
-              <span className="hidden sm:inline">Record</span>
+              <span className="hidden sm:inline">{t('people.quickTransaction.record', { ns: 'portal' })}</span>
             </button>
           </div>
         </div>
@@ -311,21 +343,21 @@ export default function PersonDetailPage() {
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-1">
               <Wallet size={15} className="text-info" />
-              <span className="text-xs font-600 text-muted-foreground">Money Held</span>
+              <span className="text-xs font-600 text-muted-foreground">{t('people.moneyHeld', { ns: 'portal' })}</span>
             </div>
             <FormattedCurrencyAmount amount={person.money_held ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-foreground" showCode />
           </div>
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={15} className="text-positive" />
-              <span className="text-xs font-600 text-muted-foreground">Owes Me</span>
+              <span className="text-xs font-600 text-muted-foreground">{t('people.owesMe', { ns: 'portal' })}</span>
             </div>
             <FormattedCurrencyAmount amount={person.person_owes_user ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-positive" showCode />
           </div>
           <div className="card p-4 col-span-2 sm:col-span-1">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown size={15} className="text-negative" />
-              <span className="text-xs font-600 text-muted-foreground">I Owe</span>
+              <span className="text-xs font-600 text-muted-foreground">{t('people.iOwe', { ns: 'portal' })}</span>
             </div>
             <FormattedCurrencyAmount amount={person.user_owes_person ?? 0} currencyCode={person.preferred_currency} className="text-lg font-700 text-negative" showCode />
           </div>
@@ -337,10 +369,10 @@ export default function PersonDetailPage() {
             <RotateCcw size={18} className="text-warning flex-shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-600 text-foreground">
-                {pendingReimbs.length} pending reimbursement{pendingReimbs.length > 1 ? 's' : ''}
+                {t('people.detail.pendingReimbursementsCount', { ns: 'portal', count: pendingReimbs.length })}
               </p>
               <p className="text-xs text-muted-foreground">
-                Outstanding:
+                {t('reimbursements.outstanding', { ns: 'portal' })}:
                 <FormattedCurrencyAmount
                   amount={pendingReimbs.reduce((s, r) => s + (Number(r.amount) - Number(r.amount_paid)), 0)}
                   currencyCode={person.preferred_currency}
@@ -353,14 +385,14 @@ export default function PersonDetailPage() {
               onClick={() => setActiveTab('reimbursements')}
               className="text-xs font-600 text-warning hover:underline"
             >
-              View
+              {t('actions.view', { ns: 'common' })}
             </button>
           </div>
         )}
 
         {/* Tabs */}
         <div className="flex gap-1 overflow-x-auto scrollbar-none border-b border-border">
-          {TABS.map((tab) => {
+          {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
@@ -384,45 +416,45 @@ export default function PersonDetailPage() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               <div className="card p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Received</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('people.detail.totalReceived', { ns: 'portal' })}</p>
                 <FormattedCurrencyAmount amount={person.total_received ?? 0} currencyCode={person.preferred_currency} className="text-base font-700 text-foreground" showCode />
               </div>
               <div className="card p-4">
-                <p className="text-xs text-muted-foreground mb-1">Total Expenses</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('people.detail.totalExpenses', { ns: 'portal' })}</p>
                 <FormattedCurrencyAmount amount={person.total_expenses ?? 0} currencyCode={person.preferred_currency} className="text-base font-700 text-foreground" showCode />
               </div>
               <div className="card p-4">
-                <p className="text-xs text-muted-foreground mb-1">Reimbursements</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('reimbursements.title', { ns: 'portal' })}</p>
                 <p className="text-base font-700 text-foreground">{reimbursements.length}</p>
               </div>
               <div className="card p-4">
-                <p className="text-xs text-muted-foreground mb-1">Settlements</p>
+                <p className="text-xs text-muted-foreground mb-1">{t('settlements.title', { ns: 'portal' })}</p>
                 <p className="text-base font-700 text-foreground">{settlements.length}</p>
               </div>
             </div>
 
             {/* Profile Info */}
             <div className="card p-5 space-y-3">
-              <h3 className="text-sm font-700 text-foreground">Profile</h3>
+              <h3 className="text-sm font-700 text-foreground">{t('people.detail.profile', { ns: 'portal' })}</h3>
               {person.email && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Email</span>
+                  <span className="text-muted-foreground">{t('people.form.email', { ns: 'portal' })}</span>
                   <span className="text-foreground">{person.email}</span>
                 </div>
               )}
               {person.phone && (
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Phone</span>
+                  <span className="text-muted-foreground">{t('people.form.phone', { ns: 'portal' })}</span>
                   <span className="text-foreground">{person.phone}</span>
                 </div>
               )}
               <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Currency</span>
+                <span className="text-muted-foreground">{t('settlements.currency', { ns: 'portal' })}</span>
                 <span className="text-foreground">{person.preferred_currency}</span>
               </div>
               {person.notes && (
                 <div className="text-sm">
-                  <span className="text-muted-foreground block mb-1">Notes</span>
+                  <span className="text-muted-foreground block mb-1">{t('people.form.notes', { ns: 'portal' })}</span>
                   <span className="text-foreground">{person.notes}</span>
                 </div>
               )}
@@ -432,12 +464,12 @@ export default function PersonDetailPage() {
             {ledger.length > 0 && (
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-700 text-foreground">Recent Activity</h3>
-                  <button onClick={() => setActiveTab('ledger')} className="text-xs text-accent font-600 hover:underline">View All</button>
+                  <h3 className="text-sm font-700 text-foreground">{t('people.detail.recentActivity', { ns: 'portal' })}</h3>
+                  <button onClick={() => setActiveTab('ledger')} className="text-xs text-accent font-600 hover:underline">{t('actions.viewAll', { ns: 'common' })}</button>
                 </div>
                 <div className="space-y-2">
                   {ledger.slice(0, 5).map((entry) => {
-                    const meta = ENTRY_TYPE_LABELS[entry.entry_type] || { label: entry.entry_type, color: 'text-foreground', sign: '+' as const };
+                    const meta = getEntryTypeMeta(entry.entry_type);
                     return (
                       <div key={entry.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                         <div>
@@ -464,15 +496,15 @@ export default function PersonDetailPage() {
             {ledger.length === 0 ? (
               <div className="p-12 text-center">
                 <FileText size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-muted-foreground">No ledger entries yet</p>
+                <p className="text-muted-foreground">{t('people.detail.noLedgerEntries', { ns: 'portal' })}</p>
                 <button onClick={() => setShowTxnModal(true)} className="mt-4 text-accent text-sm font-600 hover:underline">
-                  Record first transaction
+                  {t('people.detail.recordFirstTransaction', { ns: 'portal' })}
                 </button>
               </div>
             ) : (
               <div className="divide-y divide-border">
                 {ledger.map((entry) => {
-                  const meta = ENTRY_TYPE_LABELS[entry.entry_type] || { label: entry.entry_type, color: 'text-foreground', sign: '+' as const };
+                  const meta = getEntryTypeMeta(entry.entry_type);
                   return (
                     <div key={entry.id} className="flex items-center justify-between p-4">
                       <div>
@@ -499,7 +531,7 @@ export default function PersonDetailPage() {
             {reimbursements.length === 0 ? (
               <div className="card p-12 text-center">
                 <RotateCcw size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-muted-foreground">No reimbursements yet</p>
+                <p className="text-muted-foreground">{t('people.detail.noReimbursementsYet', { ns: 'portal' })}</p>
               </div>
             ) : (
               reimbursements.map((r) => (
@@ -508,7 +540,9 @@ export default function PersonDetailPage() {
                     <div>
                       <p className="text-sm font-600 text-foreground">{r.description}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {r.owed_by === 'person' ? `${person.full_name} owes me` : `I owe ${person.full_name}`}
+                        {r.owed_by === 'person'
+                          ? t('people.detail.personOwesMe', { ns: 'portal', name: person.full_name })
+                          : t('people.detail.iOwePerson', { ns: 'portal', name: person.full_name })}
                       </p>
                       <p className="text-xs text-muted-foreground">{r.created_at.slice(0, 10)}</p>
                     </div>
@@ -516,7 +550,7 @@ export default function PersonDetailPage() {
                       <FormattedCurrencyAmount amount={Number(r.amount)} currencyCode={r.currency} className="text-sm font-700 text-foreground" showCode />
                       {Number(r.amount_paid) > 0 && (
                         <div className="text-xs text-positive">
-                          Paid: <FormattedCurrencyAmount amount={Number(r.amount_paid)} currencyCode={r.currency} className="inline-flex text-xs text-positive" showCode />
+                          {t('reimbursements.paid', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(r.amount_paid)} currencyCode={r.currency} className="inline-flex text-xs text-positive" showCode />
                         </div>
                       )}
                       <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
@@ -535,7 +569,7 @@ export default function PersonDetailPage() {
             {settlements.length === 0 ? (
               <div className="card p-12 text-center">
                 <DollarSign size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                <p className="text-muted-foreground">No settlements yet</p>
+                <p className="text-muted-foreground">{t('people.detail.noSettlementsYet', { ns: 'portal' })}</p>
               </div>
             ) : (
               settlements.map((s) => (
@@ -557,13 +591,13 @@ export default function PersonDetailPage() {
           <div className="card p-6 text-center space-y-4">
             <BarChart3 size={40} className="mx-auto text-muted-foreground/40" />
             <div>
-              <h3 className="text-base font-700 text-foreground mb-1">Person Report</h3>
+              <h3 className="text-base font-700 text-foreground mb-1">{t('people.detail.personReport', { ns: 'portal' })}</h3>
               <p className="text-sm text-muted-foreground">
-                Total Received: <FormattedCurrencyAmount amount={Number(person.total_received ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
-                Total Expenses: <FormattedCurrencyAmount amount={Number(person.total_expenses ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
-                Money Held: <FormattedCurrencyAmount amount={Number(person.money_held ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
-                Owes Me: <FormattedCurrencyAmount amount={Number(person.person_owes_user ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
-                I Owe: <FormattedCurrencyAmount amount={Number(person.user_owes_person ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" />
+                {t('people.detail.totalReceived', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(person.total_received ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                {t('people.detail.totalExpenses', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(person.total_expenses ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                {t('people.moneyHeld', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(person.money_held ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                {t('people.owesMe', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(person.person_owes_user ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" /><br />
+                {t('people.iOwe', { ns: 'portal' })}: <FormattedCurrencyAmount amount={Number(person.user_owes_person ?? 0)} currencyCode={person.preferred_currency} className="inline-flex" />
               </p>
             </div>
             <Link
@@ -571,7 +605,7 @@ export default function PersonDetailPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm font-600 text-foreground hover:bg-muted transition-colors"
             >
               <BarChart3 size={15} />
-              Full Reports
+              {t('people.detail.fullReports', { ns: 'portal' })}
             </Link>
           </div>
         )}

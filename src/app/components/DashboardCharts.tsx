@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import dynamic from 'next/dynamic';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
@@ -15,22 +16,23 @@ export default function DashboardCharts({
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
 }) {
+  const { t } = useTranslation('portal');
   const [activeTab, setActiveTab] = useState<'trend' | 'category'>('trend');
   const description = activePeriod.mode === 'month'
-    ? `Income, expenses, and spending composition through ${activePeriod.label}.`
-    : `Income, expenses, and spending composition during ${activePeriod.label}.`;
+    ? t('dashboardCharts.descriptionThrough', { period: activePeriod.label })
+    : t('dashboardCharts.descriptionDuring', { period: activePeriod.label });
 
   return (
     <SectionCard
-      title="Financial Overview"
+      title={t('dashboardCharts.title')}
       description={description}
       className="h-full"
       bodyClassName="pt-3"
       action={
         <Tabs
           items={[
-            { id: 'trend', label: 'Income vs Expenses' },
-            { id: 'category', label: 'By Category' },
+            { id: 'trend', label: t('dashboardCharts.tabs.trend') },
+            { id: 'category', label: t('dashboardCharts.tabs.category') },
           ]}
           activeId={activeTab}
           onChange={setActiveTab}
@@ -39,7 +41,7 @@ export default function DashboardCharts({
     >
       {hasConfigurationWarning ? (
         <div className="mb-3 rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
-          Pay-period charts are using a monthly fallback until your income schedule is completed in Settings.
+          {t('dashboardCharts.warning')}
         </div>
       ) : null}
       <div className="h-[248px]">

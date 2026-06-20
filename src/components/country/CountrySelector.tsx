@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import SearchField from '@/components/ui/SearchField';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getSelectableActiveCountries } from '@/lib/reference-data/collections';
@@ -28,9 +29,10 @@ export default function CountrySelector({
   label,
   className = '',
   disabled = false,
-  placeholder = 'Select country',
+  placeholder,
   helperText = null,
 }: CountrySelectorProps) {
+  const { t } = useTranslation('common');
   const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -39,6 +41,7 @@ export default function CountrySelector({
   const searchRef = useRef<HTMLInputElement>(null);
 
   const snapshot = data?.snapshot;
+  const resolvedPlaceholder = placeholder ?? t('country.select');
   const countries = snapshot?.countries ?? [];
   const selectedCountry = getCountryByCode(countries, value);
   const normalizedValue = normalizeCountryCode(value);
@@ -165,7 +168,9 @@ export default function CountrySelector({
             <p className="whitespace-nowrap text-sm text-muted-foreground">{selectedCountryMeta}</p>
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">{loading ? 'Loading countries...' : placeholder}</span>
+          <span className="text-sm text-muted-foreground">
+            {loading ? t('country.loading') : resolvedPlaceholder}
+          </span>
         )}
         <svg
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
@@ -187,14 +192,14 @@ export default function CountrySelector({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search country, ISO code, calling code, or currency..."
+              placeholder={t('country.search')}
               inputClassName="h-9 text-sm"
             />
           </div>
           <div className="max-h-80 overflow-y-auto p-2">
             {filteredCountries.length === 0 ? (
               <div className="px-4 py-5 text-center text-sm text-muted-foreground">
-                No countries found.
+                {t('country.noneFound')}
               </div>
             ) : (
               <div className="space-y-2">

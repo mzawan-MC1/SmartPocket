@@ -66,7 +66,7 @@ function getAvatarColor(name: string) {
 }
 
 export default function ManagedPeoplePage() {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation('portal');
   const [people, setPeople] = useState<ManagedPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -80,11 +80,11 @@ export default function ManagedPeoplePage() {
       const data = await getManagedPeople(showArchived);
       setPeople(data);
     } catch {
-      toast.error('Failed to load people');
+      toast.error(t('people.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [showArchived]);
+  }, [showArchived, t]);
 
   useEffect(() => { loadPeople(); }, [loadPeople]);
 
@@ -101,10 +101,10 @@ export default function ManagedPeoplePage() {
   const handleArchive = async (id: string, name: string) => {
     try {
       await archiveManagedPerson(id);
-      toast.success(`${name} archived`);
+      toast.success(t('people.archivedPerson', { name }));
       loadPeople();
     } catch {
-      toast.error('Failed to archive');
+      toast.error(t('people.archiveFailed'));
     }
     setOpenMenuId(null);
   };
@@ -117,9 +117,9 @@ export default function ManagedPeoplePage() {
     <AppLayout activeRoute="/people">
       <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
-          title="People"
-          description="Manage finances for family, friends, clients, and anyone you track balances for."
-          badge={<StatusBadge status="info" label="People" />}
+          title={t('people.title')}
+          description={t('people.description')}
+          badge={<StatusBadge status="info" label={t('people.badge')} />}
           compact
           className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
           actionsClassName="w-full sm:w-auto"
@@ -129,7 +129,7 @@ export default function ManagedPeoplePage() {
               className="btn-primary max-[480px]:w-full"
             >
               <UserPlus size={16} />
-              <span>Add Person</span>
+              <span>{t('people.addPerson')}</span>
             </Link>
           }
         />
@@ -139,10 +139,10 @@ export default function ManagedPeoplePage() {
           <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <Wallet size={16} className="text-info" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
+              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.moneyHeld')}</span>
             </div>
             <div className="space-y-1">
-              {totalHeld.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalHeld.map((row) => (
+              {totalHeld.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalHeld.map((row) => (
                 <FormattedCurrencyAmount key={`held-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
               ))}
             </div>
@@ -150,10 +150,10 @@ export default function ManagedPeoplePage() {
           <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={16} className="text-positive" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
+              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.owedToMe')}</span>
             </div>
             <div className="space-y-1">
-              {totalOwedToMe.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalOwedToMe.map((row) => (
+              {totalOwedToMe.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalOwedToMe.map((row) => (
                 <FormattedCurrencyAmount key={`owed-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-positive" />
               ))}
             </div>
@@ -161,10 +161,10 @@ export default function ManagedPeoplePage() {
           <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown size={16} className="text-negative" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
+              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.iOwe')}</span>
             </div>
             <div className="space-y-1">
-              {totalIOwe.length === 0 ? <p className="text-sm text-muted-foreground">No balances</p> : totalIOwe.map((row) => (
+              {totalIOwe.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalIOwe.map((row) => (
                 <FormattedCurrencyAmount key={`owe-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-negative" />
               ))}
             </div>
@@ -175,7 +175,7 @@ export default function ManagedPeoplePage() {
         <div className="flex flex-col gap-3 sm:flex-row">
           <SearchField
             type="text"
-            placeholder="Search people..."
+            placeholder={t('people.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             wrapperClassName="flex-1"
@@ -186,9 +186,9 @@ export default function ManagedPeoplePage() {
             onChange={(e) => setFilterRelationship(e.target.value)}
             className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
-            <option value="all">All Relationships</option>
+            <option value="all">{t('people.allRelationships')}</option>
             {Object.entries(RELATIONSHIP_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>{t(`people.relationships.${k}` as const, { defaultValue: v })}</option>
             ))}
           </select>
           <button
@@ -196,7 +196,7 @@ export default function ManagedPeoplePage() {
             className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-500 transition-colors ${showArchived ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-card text-muted-foreground'}`}
           >
             <Archive size={15} />
-            Archived
+            {t('people.archived')}
           </button>
           <button onClick={loadPeople} className="rounded-xl border border-border bg-card p-2.5 text-muted-foreground transition-colors hover:text-foreground max-[480px]:hidden">
             <RefreshCw size={16} />
@@ -222,10 +222,10 @@ export default function ManagedPeoplePage() {
           <div className="card p-12 text-center">
             <Users size={48} className="mx-auto text-muted-foreground/40 mb-4" />
             <h3 className="text-lg font-600 text-foreground mb-2">
-              {search || filterRelationship !== 'all' ? 'No people found' : 'No people yet'}
+              {search || filterRelationship !== 'all' ? t('people.emptyFilteredTitle') : t('people.emptyTitle')}
             </h3>
             <p className="text-sm text-muted-foreground mb-6">
-              {search || filterRelationship !== 'all' ?'Try adjusting your search or filters' :'Add family members, friends, or anyone whose finances you manage'}
+              {search || filterRelationship !== 'all' ? t('people.emptyFilteredDescription') : t('people.emptyDescription')}
             </p>
             {!search && filterRelationship === 'all' && (
               <Link
@@ -233,7 +233,7 @@ export default function ManagedPeoplePage() {
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
               >
                 <Plus size={16} />
-                Add First Person
+                {t('people.addFirstPerson')}
               </Link>
             )}
           </div>
@@ -256,10 +256,10 @@ export default function ManagedPeoplePage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-600 text-foreground truncate">{person.full_name}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-500 ${RELATIONSHIP_COLORS[person.relationship] || RELATIONSHIP_COLORS.other}`}>
-                        {RELATIONSHIP_LABELS[person.relationship] || 'Other'}
+                        {t(`people.relationships.${person.relationship}` as const, { defaultValue: RELATIONSHIP_LABELS[person.relationship] || RELATIONSHIP_LABELS.other })}
                       </span>
                       {person.is_archived && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-500">Archived</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-500">{t('people.archived')}</span>
                       )}
                     </div>
 
@@ -267,21 +267,21 @@ export default function ManagedPeoplePage() {
                     <div className="flex items-center gap-4 mt-1.5 flex-wrap">
                       {(person.money_held ?? 0) > 0 && (
                         <span className="text-xs text-info font-500">
-                          Held: {formatAmount(person.money_held ?? 0, person.preferred_currency)}
+                          {t('people.held')}: {formatAmount(person.money_held ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {(person.person_owes_user ?? 0) > 0 && (
                         <span className="text-xs text-positive font-500">
-                          Owes me: {formatAmount(person.person_owes_user ?? 0, person.preferred_currency)}
+                          {t('people.owesMe')}: {formatAmount(person.person_owes_user ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {(person.user_owes_person ?? 0) > 0 && (
                         <span className="text-xs text-negative font-500">
-                          I owe: {formatAmount(person.user_owes_person ?? 0, person.preferred_currency)}
+                          {t('people.iOweShort')}: {formatAmount(person.user_owes_person ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {!(person.money_held) && !(person.person_owes_user) && !(person.user_owes_person) && (
-                        <span className="text-xs text-muted-foreground">No outstanding balance</span>
+                        <span className="text-xs text-muted-foreground">{t('people.noOutstandingBalance')}</span>
                       )}
                     </div>
                   </div>
@@ -292,7 +292,7 @@ export default function ManagedPeoplePage() {
                       href={`/people/${person.id}`}
                       className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-600 text-accent transition-colors hover:bg-accent/20"
                     >
-                      View
+                      {t('people.view')}
                       <ChevronRight size={13} />
                     </Link>
                     <div className="relative">
@@ -309,28 +309,28 @@ export default function ManagedPeoplePage() {
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
                             onClick={() => setOpenMenuId(null)}
                           >
-                            Edit Profile
+                            {t('people.editProfile')}
                           </Link>
                           <Link
                             href={`/people/${person.id}?tab=ledger`}
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
                             onClick={() => setOpenMenuId(null)}
                           >
-                            View Ledger
+                            {t('people.viewLedger')}
                           </Link>
                           <Link
                             href={`/people/new?quick=money_received&person=${person.id}`}
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-positive"
                             onClick={() => setOpenMenuId(null)}
                           >
-                            Record Money Received
+                            {t('people.recordMoneyReceived')}
                           </Link>
                           {!person.is_archived && (
                             <button
                               onClick={() => handleArchive(person.id, person.full_name)}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-muted-foreground"
                             >
-                              Archive
+                              {t('people.archive')}
                             </button>
                           )}
                         </div>

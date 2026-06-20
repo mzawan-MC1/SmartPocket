@@ -1,12 +1,14 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, ArrowRight, Landmark } from 'lucide-react';
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 function getAccountIcon(type: string) {
@@ -34,6 +36,8 @@ function getAccountColorClass(type: string, balance: number) {
 }
 
 export default function AccountBalances() {
+  const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,14 +61,33 @@ export default function AccountBalances() {
     await load();
   });
 
+  const getAccountTypeLabel = (type: string) => {
+    switch (type) {
+      case 'bank':
+        return t('accounts.types.bank', { ns: 'portal' });
+      case 'credit_card':
+        return t('accounts.types.creditCard', { ns: 'portal' });
+      case 'savings':
+        return t('accounts.types.savings', { ns: 'portal' });
+      case 'cash':
+        return t('accounts.types.cash', { ns: 'portal' });
+      case 'digital_wallet':
+        return t('accounts.types.digitalWallet', { ns: 'portal' });
+      case 'investment':
+        return t('accounts.types.investment', { ns: 'portal' });
+      default:
+        return t('accounts.types.other', { ns: 'portal' });
+    }
+  };
+
   return (
     <SectionCard
-      title="Accounts"
-      description="Live balances for your active accounts."
+      title={t('accounts.badge', { ns: 'portal' })}
+      description={t('accounts.dashboardDescription', { ns: 'portal' })}
       className="h-full"
       action={
         <Link href="/financial-accounts" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
-          Manage <ArrowRight size={13} />
+          {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
       bodyClassName="p-0"
@@ -87,8 +110,8 @@ export default function AccountBalances() {
         <div className="px-4 py-8">
           <EmptyState
             icon={Wallet}
-            title="No accounts yet"
-            description="Add a financial account to track your balances."
+            title={t('accounts.emptyTitle', { ns: 'portal' })}
+            description={t('accounts.emptyDescription', { ns: 'portal' })}
           />
         </div>
       ) : (
@@ -96,7 +119,10 @@ export default function AccountBalances() {
           {accounts.map((acct) => {
             const Icon = getAccountIcon(acct.account_type);
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
-            const lastActivity = new Date(acct.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const lastActivity = new Date(acct.updated_at).toLocaleDateString(
+              language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
+              { month: 'short', day: 'numeric' }
+            );
             return (
               <div key={acct.id} className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/40">
                 <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
@@ -104,7 +130,7 @@ export default function AccountBalances() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-600 text-foreground truncate">{acct.name}</p>
-                  <p className="text-[11px] text-muted-foreground capitalize">{acct.account_type.replace('_', ' ')}</p>
+                  <p className="text-[11px] text-muted-foreground capitalize">{getAccountTypeLabel(acct.account_type)}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <FormattedCurrencyAmount

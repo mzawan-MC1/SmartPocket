@@ -1,8 +1,10 @@
 'use client';
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { Zap, Calendar, TrendingUp, AlertTriangle, CheckCircle, XCircle, RefreshCw, ArrowUpRight, Clock, History } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SubscriptionSummary {
   has_subscription: boolean;
@@ -97,29 +99,37 @@ function UsageBar({ used, total, label }: { used: number; total: number; label: 
   );
 }
 
-function WarningBanner({ pct }: { pct: number }) {
+function WarningBanner({
+  pct,
+  t,
+}: {
+  pct: number;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
   if (pct < 80) return null;
   if (pct >= 100) return (
     <div className="flex items-center gap-2 p-3 rounded-xl bg-negative-soft border border-negative/20 text-negative text-xs font-600">
       <XCircle size={14} className="flex-shrink-0" />
-      AI credits exhausted. Manual finance entry still available.
+      {t('aiUsage.exhausted')}
     </div>
   );
   if (pct >= 95) return (
     <div className="flex items-center gap-2 p-3 rounded-xl bg-warning-soft border border-warning/20 text-warning text-xs font-600">
       <AlertTriangle size={14} className="flex-shrink-0" />
-      Only {100 - pct}% of AI credits remaining this month.
+      {t('aiUsage.remainingPercent', { percent: 100 - pct })}
     </div>
   );
   return (
     <div className="flex items-center gap-2 p-3 rounded-xl bg-warning-soft border border-warning/20 text-warning text-xs font-600">
       <AlertTriangle size={14} className="flex-shrink-0" />
-      80% of AI credits used this month.
+      {t('aiUsage.eightyUsed')}
     </div>
   );
 }
 
 export default function AIUsageCard() {
+  const { t } = useTranslation('portal');
+  const { language } = useLanguage();
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUnavailable, setIsUnavailable] = useState(false);
@@ -176,15 +186,15 @@ export default function AIUsageCard() {
       <div className="card-elevated p-4">
         <div className="flex items-center gap-2 mb-3">
           <Zap size={16} className="text-accent" />
-          <h3 className="text-sm font-700 text-foreground">AI Usage</h3>
+          <h3 className="text-sm font-700 text-foreground">{t('aiUsage.title')}</h3>
         </div>
         {isUnavailable || summary?.status === 'unavailable' ? (
-          <p className="text-xs text-muted-foreground mb-3">Usage is currently unavailable.</p>
+          <p className="text-xs text-muted-foreground mb-3">{t('aiUsage.unavailable')}</p>
         ) : (
-        <p className="text-xs text-muted-foreground mb-3">No active subscription found.</p>
+        <p className="text-xs text-muted-foreground mb-3">{t('aiUsage.noSubscription')}</p>
         )}
         <Link href="/pricing" className="btn-primary text-xs py-2 px-3 inline-flex items-center gap-1.5">
-          View Plans <ArrowUpRight size={12} />
+          {t('aiUsage.viewPlans')} <ArrowUpRight size={12} />
         </Link>
       </div>
     );
@@ -204,8 +214,11 @@ export default function AIUsageCard() {
     : null;
 
   const resetDate = summary.cycle_end
-    ? new Date(summary.cycle_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : '—';
+    ? new Date(summary.cycle_end).toLocaleDateString(
+      language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
+      { month: 'short', day: 'numeric' }
+    )
+    : t('aiUsage.none');
 
   return (
     <div className="card-elevated space-y-3 p-4">
@@ -216,62 +229,72 @@ export default function AIUsageCard() {
             <Zap size={15} className="text-accent" />
           </div>
           <div>
-            <h3 className="text-sm font-700 text-foreground">AI Usage</h3>
+            <h3 className="text-sm font-700 text-foreground">{t('aiUsage.title')}</h3>
             <p className="text-[11px] text-muted-foreground">{summary.plan_name}</p>
           </div>
         </div>
-        <button onClick={() => void load(true)} className="p-1.5 rounded-lg hover:bg-secondary transition-colors" aria-label="Refresh">
+        <button
+          onClick={() => void load(true)}
+          className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+          aria-label={t('aiHistory.refresh')}
+        >
           <RefreshCw size={13} className="text-muted-foreground" />
         </button>
       </div>
 
       {/* Warning banner */}
-      <WarningBanner pct={creditsPct} />
+        <WarningBanner pct={creditsPct} t={t} />
 
       {/* Trial badge */}
       {isTrialing && trialDaysLeft !== null && (
         <div className="flex items-center gap-1.5 text-xs text-info font-600">
           <Clock size={12} />
-          {trialDaysLeft > 0 ? `${trialDaysLeft} trial days remaining` : 'Trial expired'}
+          {trialDaysLeft > 0 ? t('aiUsage.trialDaysRemaining', { count: trialDaysLeft }) : t('aiUsage.trialExpired')}
         </div>
       )}
 
       {/* Credit bars */}
       <div className="space-y-2.5">
-        <UsageBar used={creditsUsed} total={creditsTotal} label="AI Credits" />
+        <UsageBar used={creditsUsed} total={creditsTotal} label={t('aiUsage.credits')} />
         {voiceTotalMin > 0 && (
-          <UsageBar used={voiceUsedMin} total={voiceTotalMin} label="Voice minutes" />
+          <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
         )}
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
         <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Credits left</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.creditsLeft')}</p>
           <p className={`text-base font-700 ${creditsRemaining === 0 ? 'text-negative' : 'text-foreground'}`}>
             {creditsRemaining}
           </p>
         </div>
         <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Requests today</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.requestsToday')}</p>
           <p className="text-base font-700 text-foreground">
             {summary.requests_today ?? 0}
-            <span className="text-xs font-400 text-muted-foreground">/{summary.daily_ai_request_limit ?? '—'}</span>
+            <span className="text-xs font-400 text-muted-foreground">/{summary.daily_ai_request_limit ?? t('aiUsage.none')}</span>
           </p>
         </div>
         <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Reset date</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.resetDate')}</p>
           <p className="text-sm font-600 text-foreground flex items-center gap-1">
             <Calendar size={11} className="text-muted-foreground" />
             {resetDate}
           </p>
         </div>
         <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Status</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.status')}</p>
           <p className="text-sm font-600 text-foreground capitalize flex items-center gap-1">
             {summary.status === 'active' || summary.status === 'trialing'
               ? <CheckCircle size={11} className="text-positive" />
               : <XCircle size={11} className="text-negative" />}
-            {summary.status}
+            {summary.status === 'active'
+              ? t('status.active', { ns: 'common' })
+              : summary.status === 'trialing'
+                ? t('aiUsage.trialing')
+                : summary.status === 'inactive'
+                  ? t('status.inactive', { ns: 'common' })
+                  : summary.status}
           </p>
         </div>
       </div>
@@ -281,13 +304,13 @@ export default function AIUsageCard() {
         {summary.ai_history_enabled && (
           <Link href="/ai-history" className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
             <History size={12} />
-            AI History
+            {t('aiUsage.history')}
           </Link>
         )}
         {(summary.plan_code === 'free_trial' || summary.status !== 'active') && (
           <Link href="/pricing" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
             <TrendingUp size={12} />
-            Upgrade
+            {t('aiUsage.upgrade')}
           </Link>
         )}
       </div>

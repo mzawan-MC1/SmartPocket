@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import SearchField from '@/components/ui/SearchField';
 import CurrencyOptionRow from '@/components/currency/CurrencyOptionRow';
 import CurrencySymbol from '@/components/currency/CurrencySymbol';
@@ -32,11 +33,12 @@ export default function CurrencySelector({
   label,
   className = '',
   disabled = false,
-  placeholder = 'Select currency',
+  placeholder,
   showCountryCount = false,
   allowInactiveSelection = true,
   helperText = null,
 }: CurrencySelectorProps) {
+  const { t } = useTranslation('common');
   const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -45,6 +47,7 @@ export default function CurrencySelector({
   const searchRef = useRef<HTMLInputElement>(null);
 
   const snapshot = data?.snapshot;
+  const resolvedPlaceholder = placeholder ?? t('currency.select');
   const normalizedValue = normalizeCurrencyCode(value);
 
   const countryNamesByCurrency = useMemo(
@@ -199,7 +202,7 @@ export default function CurrencySelector({
                 <span className="text-sm font-700 text-foreground">{selectedCurrency.code}</span>
                 {!selectedCurrency.isActive ? (
                   <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
-                    Inactive
+                    {t('currency.inactive')}
                   </span>
                 ) : null}
               </div>
@@ -207,7 +210,9 @@ export default function CurrencySelector({
             </div>
           </>
         ) : (
-          <span className="text-sm text-muted-foreground">{loading ? 'Loading currencies...' : placeholder}</span>
+          <span className="text-sm text-muted-foreground">
+            {loading ? t('currency.loading') : resolvedPlaceholder}
+          </span>
         )}
         <svg
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`}
@@ -229,14 +234,14 @@ export default function CurrencySelector({
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search code, name, symbol, or country..."
+              placeholder={t('currency.searchDetailed')}
               inputClassName="h-9 text-sm"
             />
           </div>
           <div className="max-h-80 overflow-y-auto p-2">
             {filteredCurrencies.length === 0 ? (
               <div className="px-4 py-5 text-center text-sm text-muted-foreground">
-                No currencies found.
+                {t('currency.noneFound')}
               </div>
             ) : (
               <div className="space-y-2">
@@ -255,7 +260,7 @@ export default function CurrencySelector({
                           <Check size={14} className="text-accent" />
                         ) : !currency.isActive ? (
                           <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
-                            Inactive
+                            {t('currency.inactive')}
                           </span>
                         ) : null
                       }

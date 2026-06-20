@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
 ];
 
 export default function EditPersonPage() {
+  const { t } = useTranslation(['portal', 'common']);
   const params = useParams();
   const router = useRouter();
   const personId = params.id as string;
@@ -75,8 +77,8 @@ export default function EditPersonPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.full_name.trim()) { toast.error('Full name is required'); return; }
-    if (!form.preferred_currency) { toast.error('Preferred currency is required'); return; }
+    if (!form.full_name.trim()) { toast.error(t('people.form.fullNameRequired', { ns: 'portal' })); return; }
+    if (!form.preferred_currency) { toast.error(t('people.form.preferredCurrencyRequired', { ns: 'portal' })); return; }
     setSaving(true);
     try {
       await updateManagedPerson(personId, {
@@ -90,10 +92,10 @@ export default function EditPersonPage() {
         notes: form.notes || null,
         preferred_currency: form.preferred_currency,
       });
-      toast.success('Profile updated');
+      toast.success(t('people.form.profileUpdated', { ns: 'portal' }));
       router.push(`/people/${personId}`);
     } catch (err: unknown) {
-      toast.error((err as Error).message || 'Failed to update');
+      toast.error((err as Error).message || t('people.form.updateFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
@@ -116,33 +118,33 @@ export default function EditPersonPage() {
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-xl font-700 text-foreground">Edit Profile</h1>
+            <h1 className="text-xl font-700 text-foreground">{t('people.editProfile')}</h1>
             <p className="text-sm text-muted-foreground">{form.full_name}</p>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="card p-6 space-y-5">
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Full Name <span className="text-negative">*</span></label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span></label>
             <input type="text" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" required />
           </div>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Relationship</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.relationship', { ns: 'portal' })}</label>
             <select value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value as RelationshipType })}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-              {RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+              {RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{t(`people.relationships.${r.value}` as const, { ns: 'portal', defaultValue: r.label })}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Email</label>
-              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Optional"
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.email', { ns: 'portal' })}</label>
+              <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('people.form.optional', { ns: 'portal' })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
             </div>
             <div>
               <InternationalPhoneInput
-                label="Phone"
+                label={t('people.form.phone', { ns: 'portal' })}
                 value={form.phone_display}
                 countryCode={form.phone_country_code}
                 onChange={(phone) => {
@@ -155,32 +157,32 @@ export default function EditPersonPage() {
                     phone_e164: phone.e164 || '',
                   }));
                 }}
-                helperText="Existing phone values are preserved until you edit them."
+                helperText={t('people.form.existingPhoneHelper', { ns: 'portal' })}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Preferred Currency</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.preferredCurrency', { ns: 'portal' })}</label>
             <CurrencySelector
               value={form.preferred_currency}
               onChange={(currencyCode) => setForm({ ...form, preferred_currency: currencyCode })}
-              placeholder="Choose currency"
+              placeholder={t('people.form.chooseCurrency', { ns: 'portal' })}
             />
           </div>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.notes', { ns: 'portal' })}</label>
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none" />
           </div>
           <div className="flex gap-3 pt-2">
             <Link href={`/people/${personId}`}
               className="flex-1 py-2.5 rounded-xl border border-border text-center text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">
-              Cancel
+              {t('actions.cancel', { ns: 'common' })}
             </Link>
             <button type="submit" disabled={saving}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
               <Save size={16} />
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? t('status.saving', { ns: 'common' }) : t('people.form.saveChanges', { ns: 'portal' })}
             </button>
           </div>
         </form>

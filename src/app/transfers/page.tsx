@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { ArrowLeftRight, Plus, ChevronRight } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -24,6 +25,7 @@ function groupTransferAmounts(transfers: Transfer[]) {
 }
 
 export default function TransfersPage() {
+  const { t } = useTranslation('portal');
   const [showAddModal, setShowAddModal] = useState(false);
   const [search, setSearch] = useState('');
   const [transfers, setTransfers] = useState<Transfer[]>([]);
@@ -67,14 +69,14 @@ export default function TransfersPage() {
     <AppLayout activeRoute="/transfers">
       <div className="page-section max-[480px]:gap-3">
         <PageHeader
-          title="Transfers"
-          description="Move money between your accounts with a clear view of transfer history."
-          badge={<StatusBadge status="info" label="Internal transfers" />}
+          title={t('transfers.title')}
+          description={t('transfers.description')}
+          badge={<StatusBadge status="info" label={t('transfers.badge')} />}
           compact
           className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
           actions={
             <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
-              <Plus size={16} /> New Transfer
+              <Plus size={16} /> {t('transfers.newTransfer')}
             </button>
           }
         />
@@ -82,20 +84,20 @@ export default function TransfersPage() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
           {[
-            { label: 'Total Transferred', sub: 'This month', grouped: groupedTransferred },
-            { label: 'Transfers Count', value: String(thisMonthTransfers.length), sub: 'This month' },
-            { label: 'Avg Transfer', value: groupedTransferred.length === 1 ? avgTransfer : null, currency: groupedTransferred[0]?.currency, sub: groupedTransferred.length === 1 ? 'Per transfer' : 'Unavailable for mixed currencies' },
+            { label: t('transfers.summary.totalTransferred'), sub: t('transfers.thisMonth'), grouped: groupedTransferred },
+            { label: t('transfers.summary.count'), value: String(thisMonthTransfers.length), sub: t('transfers.thisMonth') },
+            { label: t('transfers.summary.average'), value: groupedTransferred.length === 1 ? avgTransfer : null, currency: groupedTransferred[0]?.currency, sub: groupedTransferred.length === 1 ? t('transfers.perTransfer') : t('transfers.unavailableMixedCurrencies') },
           ].map((item) => (
             <div key={item.label} className="card-elevated p-4 max-[480px]:p-3">
               <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
-              {item.label === 'Total Transferred' ? (
+              {item.label === t('transfers.summary.totalTransferred') ? (
                 <div className="space-y-1">
-                  {groupedTransferred.length === 0 ? <p className="text-sm text-muted-foreground">No transfers</p> : groupedTransferred.map((row) => (
+                  {groupedTransferred.length === 0 ? <p className="text-sm text-muted-foreground">{t('transfers.noTransfers')}</p> : groupedTransferred.map((row) => (
                     <FormattedCurrencyAmount key={`${item.label}-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
                   ))}
                 </div>
               ) : item.value === null ? (
-                <p className="text-sm font-600 text-muted-foreground">Mixed currencies</p>
+                <p className="text-sm font-600 text-muted-foreground">{t('transfers.mixedCurrencies')}</p>
               ) : item.currency ? (
                 <FormattedCurrencyAmount amount={item.value} currencyCode={item.currency} className="text-lg font-700 text-foreground" />
               ) : (
@@ -109,7 +111,7 @@ export default function TransfersPage() {
         {/* Search */}
         <div className="card-elevated p-4 max-[480px]:p-3">
           <SearchField
-            placeholder="Search transfers..."
+            placeholder={t('transfers.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             inputClassName="h-10"
@@ -119,7 +121,7 @@ export default function TransfersPage() {
         {/* Transfers List */}
         <div className="card-elevated overflow-hidden">
           <div className="border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
-            <h2 className="text-base font-700 text-foreground">Transfer History</h2>
+            <h2 className="text-base font-700 text-foreground">{t('transfers.history')}</h2>
           </div>
           {loading ? (
             <div className="divide-y divide-border">
@@ -138,9 +140,9 @@ export default function TransfersPage() {
             <div className="p-12">
               <EmptyState
                 icon={ArrowLeftRight}
-                title="No transfers yet"
-                description="Create your first transfer to move money between accounts."
-                action={{ label: 'New Transfer', onClick: () => setShowAddModal(true) }}
+                title={t('transfers.emptyTitle')}
+                description={t('transfers.emptyDescription')}
+                action={{ label: t('transfers.newTransfer'), onClick: () => setShowAddModal(true) }}
               />
             </div>
           ) : (
@@ -152,12 +154,12 @@ export default function TransfersPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 max-[480px]:flex-wrap">
-                      <span className="text-sm font-600 text-foreground truncate">{transfer.from_account?.name || '—'}</span>
+                      <span className="text-sm font-600 text-foreground truncate">{transfer.from_account?.name || t('transfers.notAvailable')}</span>
                       <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm font-600 text-foreground truncate">{transfer.to_account?.name || '—'}</span>
+                      <span className="text-sm font-600 text-foreground truncate">{transfer.to_account?.name || t('transfers.notAvailable')}</span>
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {transfer.description || 'Transfer'} · {transfer.transfer_date}
+                      {transfer.description || t('transfers.transferFallback')} · {transfer.transfer_date}
                     </p>
                   </div>
                   <div className="flex-shrink-0 text-right">
@@ -177,7 +179,7 @@ export default function TransfersPage() {
                         />
                       </p>
                     ) : null}
-                    <span className="rounded-full bg-positive-soft px-1.5 py-0.5 text-[10px] font-600 text-positive">completed</span>
+                    <span className="rounded-full bg-positive-soft px-1.5 py-0.5 text-[10px] font-600 text-positive">{t('transfers.completed')}</span>
                   </div>
                 </div>
               ))}
@@ -187,7 +189,7 @@ export default function TransfersPage() {
       </div>
 
       {/* Add Transfer Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title="New Transfer" size="md">
+      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('transfers.newTransfer')} size="md">
         <AddTransferForm
           accounts={accounts}
           onSuccess={() => {
