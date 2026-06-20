@@ -50,14 +50,14 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     <header
       className="sticky top-0 z-20 shrink-0 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90"
     >
-      <div className="page-shell flex min-h-[72px] w-full flex-wrap items-center gap-3 py-3 max-[480px]:min-h-[60px] max-[480px]:gap-2 max-[480px]:py-2 sm:gap-4 sm:py-3.5">
+      <div className="page-shell flex min-h-[72px] w-full flex-wrap items-center gap-3 py-3 max-[480px]:min-h-[60px] max-[480px]:gap-1.5 max-[480px]:py-2 sm:gap-4 sm:py-3.5">
         {/* Mobile menu toggle */}
         <button
           onClick={onToggleSidebar}
-          className="btn-ghost h-10 w-10 p-0 max-[480px]:h-9 max-[480px]:w-9 lg:hidden"
+          className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 lg:hidden"
           aria-label="Toggle menu"
         >
-          <Menu size={20} />
+          <Menu size={20} className="max-[480px]:text-foreground" />
         </button>
 
         {/* Search */}
@@ -72,13 +72,13 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         {/* Mobile search toggle */}
         <button
           onClick={() => setSearchOpen(!searchOpen)}
-          className="btn-ghost h-10 w-10 p-0 max-[480px]:h-9 max-[480px]:w-9 sm:hidden"
+          className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 sm:hidden"
           aria-label="Search"
         >
-          {searchOpen ? <X size={18} /> : <Search size={18} />}
+          {searchOpen ? <X size={19} className="text-foreground" /> : <Search size={19} className="text-foreground" />}
         </button>
 
-        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2 max-[480px]:gap-1 sm:gap-2.5">
+        <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2 max-[480px]:gap-1.5 sm:gap-2.5">
           {/* AI Smart Entry button */}
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
@@ -93,10 +93,10 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* Mobile AI button */}
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="btn-ghost h-10 w-10 p-0 max-[480px]:h-9 max-[480px]:w-9 sm:hidden"
+            className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-full max-[480px]:border max-[480px]:border-accent/20 max-[480px]:bg-accent/12 sm:hidden"
             aria-label="AI Smart Entry"
           >
-            <Sparkles size={18} className="text-accent" />
+            <Sparkles size={23} className="text-accent" />
           </button>
 
           {/* Language Switcher */}
@@ -108,11 +108,11 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 max-[480px]:h-9 max-[480px]:gap-1 max-[480px]:px-1.5 hover:border-border hover:bg-secondary/50"
+              className="flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 max-[480px]:h-10 max-[480px]:gap-1 max-[480px]:rounded-xl max-[480px]:px-1.5 hover:border-border hover:bg-secondary/50"
               aria-label="User menu"
               aria-expanded={userMenuOpen}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full gradient-teal text-xs font-700 text-white max-[480px]:h-6.5 max-[480px]:w-6.5">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full gradient-teal text-xs font-700 text-white max-[480px]:h-7 max-[480px]:w-7">
                 {initials}
               </div>
               <span className="hidden max-w-[120px] truncate text-sm font-600 text-foreground lg:block">{displayName}</span>

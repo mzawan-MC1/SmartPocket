@@ -203,10 +203,10 @@ export default function NotificationBell() {
   }, [unreadCount]);
 
   return (
-    <div className="relative" ref={containerRef}>
+    <div className="relative shrink-0" ref={containerRef}>
       <button
         type="button"
-        className="btn-ghost relative h-12 w-12 shrink-0 p-0"
+        className="btn-ghost relative h-12 w-12 shrink-0 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl"
         aria-label="Notifications"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -218,9 +218,9 @@ export default function NotificationBell() {
           }
         }}
       >
-        <Bell className="h-[44px] w-[44px]" />
+        <Bell className="h-[44px] w-[44px] max-[480px]:h-[22px] max-[480px]:w-[22px]" />
         {unreadDot ? (
-          <span className="absolute end-1 top-1 flex min-h-2.5 min-w-2.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-700 text-white ring-2 ring-card">
+          <span className="absolute end-1 top-1 flex min-h-2.5 min-w-2.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-700 text-white ring-2 ring-card max-[480px]:end-1.5 max-[480px]:top-1.5">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         ) : null}
@@ -230,9 +230,9 @@ export default function NotificationBell() {
         <div
           role="dialog"
           aria-label="Notifications"
-          className="absolute end-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg"
+          className="absolute end-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg max-[480px]:fixed max-[480px]:left-3 max-[480px]:right-3 max-[480px]:top-[calc(env(safe-area-inset-top)+4rem)] max-[480px]:mt-0 max-[480px]:w-auto max-[480px]:max-w-[calc(100vw-24px)]"
         >
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
             <div>
               <p className="text-sm font-700 text-foreground">Notifications</p>
               <p className="text-xs text-muted-foreground">{syncing ? 'Refreshing alerts...' : headerLabel}</p>
@@ -248,9 +248,9 @@ export default function NotificationBell() {
             </button>
           </div>
 
-          <div className="max-h-[24rem] overflow-y-auto">
+          <div className="max-h-[24rem] overflow-y-auto max-[480px]:max-h-[min(26rem,calc(100dvh-6rem-env(safe-area-inset-top)))]">
             {loading ? (
-              <div className="space-y-3 px-4 py-4">
+              <div className="space-y-3 px-4 py-4 max-[480px]:px-3.5 max-[480px]:py-3.5">
                 {[0, 1, 2].map((index) => (
                   <div key={`notification-skeleton-${index}`} className="animate-pulse rounded-xl border border-border/70 p-3">
                     <div className="mb-2 h-3 w-28 rounded bg-muted" />
@@ -260,7 +260,7 @@ export default function NotificationBell() {
                 ))}
               </div>
             ) : error ? (
-              <div className="px-4 py-6 text-center">
+              <div className="px-4 py-6 text-center max-[480px]:px-3.5 max-[480px]:py-5">
                 <p className="text-sm font-600 text-foreground">Could not load notifications</p>
                 <p className="mt-1 text-xs text-muted-foreground">{error}</p>
                 <button
@@ -272,7 +272,7 @@ export default function NotificationBell() {
                 </button>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center">
+              <div className="px-4 py-8 text-center max-[480px]:px-3.5 max-[480px]:py-6">
                 <p className="text-sm font-600 text-foreground">No notifications yet</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Budget alerts, recurring reminders, and Smart Entry failures will appear here.
@@ -285,7 +285,7 @@ export default function NotificationBell() {
                     key={notification.id}
                     type="button"
                     onClick={() => void handleNotificationClick(notification)}
-                    className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/40 ${
+                    className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/40 max-[480px]:px-3.5 max-[480px]:py-3 ${
                       notification.is_read ? 'bg-card' : 'bg-accent/5'
                     }`}
                   >
