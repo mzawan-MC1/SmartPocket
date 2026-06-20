@@ -4,7 +4,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import {
+  dispatchSmartPocketDataChanged,
+  type SmartPocketDataEntity,
+} from '@/lib/data-change';
 import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
 import { getLatestExchangeRateSnapshot } from '@/lib/exchange-rates/service';
 import {
@@ -236,9 +239,16 @@ export default function AddTransferForm({
         notes: form.notes || undefined,
       });
 
+      const changedEntities: SmartPocketDataEntity[] = [
+        'transfers',
+        'financial_accounts',
+        'transactions',
+        'dashboard',
+      ];
+
       dispatchSmartPocketDataChanged({
         source: 'add-transfer-form',
-        entities: ['transfers', 'financial_accounts', 'transactions', 'dashboard'],
+        entities: changedEntities,
       });
       toast.success('Transfer completed successfully');
       onSuccess();

@@ -17,6 +17,8 @@ const AIAssistantModalLazy = React.lazy(() => import('@/components/ai/AIAssistan
 
 export default function QuickActionsProvider({ children }: { children: React.ReactNode }) {
   const [activeAction, setActiveAction] = useState<QuickActionId | null>(null);
+  const initialTransactionType: 'income' | 'expense' =
+    activeAction === 'income' ? 'income' : 'expense';
 
   const closeQuickAction = useCallback(() => {
     setActiveAction(null);
@@ -42,7 +44,7 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
         isOpen={activeAction === 'expense' || activeAction === 'income'}
         onClose={closeQuickAction}
         initialMode="single"
-        initialTransactionType={activeAction === 'income' ? 'income' : 'expense'}
+        initialTransactionType={initialTransactionType}
       />
 
       <Modal isOpen={activeAction === 'transfer'} onClose={closeQuickAction} title="New Transfer" size="md">

@@ -47,6 +47,13 @@ function readBrowserLanguage() {
   return isSupportedLanguage(stored) ? stored : null;
 }
 
+function applyDocumentLanguage(language: SupportedLanguage) {
+  if (typeof document === 'undefined') return;
+
+  document.documentElement.lang = language;
+  document.documentElement.dir = isRTL(language) ? 'rtl' : 'ltr';
+}
+
 export function LanguageProvider({
   children,
   initialLanguage = DEFAULT_LANGUAGE,
@@ -58,7 +65,10 @@ export function LanguageProvider({
   const { user, loading: authLoading } = useAuth();
   const { localization } = usePlatformSettings();
   const [language, setLanguageState] = useState<SupportedLanguage>(initialLanguage);
-  const profileRequestRef = useRef<string | null>(null);
+  const languageRef = useRef<SupportedLanguage>(initialLanguage);
+  const lastBrowserPersistedRef = useRef<SupportedLanguage | null>(null);
+  const profileLoadedForRef = useRef<string | null>(null);
+  const profilePersistInFlightRef = useRef<string | null>(null);
   const isAdminRoute = pathname.startsWith('/admin');
   const effectiveLanguage = isAdminRoute ? DEFAULT_LANGUAGE : language;
   const supportedLanguages = useMemo(() => {
@@ -67,10 +77,21 @@ export function LanguageProvider({
   }, [localization.enabledLanguages]);
 
   useEffect(() => {
-    if (isAdminRoute) return;
+    languageRef.current = language;
+  }, [language]);
+
+  useEffect(() => {
+    applyDocumentLanguage(effectiveLanguage);
+  }, [effectiveLanguage]);
+
+  useEffect(() => {
+    if (isAdminRoute) {
+      return;
+    }
 
     const browserLanguage = readBrowserLanguage();
-    if (browserLanguage && browserLanguage !== language) {
+    if (browserLanguage && browserLanguage !== languageRef.current) {
+      languageRef.current = browserLanguage;
       setLanguageState(browserLanguage);
       return;
     }
@@ -78,33 +99,36 @@ export function LanguageProvider({
     const platformLanguage = isSupportedLanguage(localization.defaultLanguage)
       ? localization.defaultLanguage
       : DEFAULT_LANGUAGE;
-    if (platformLanguage !== language) {
+    if (platformLanguage !== languageRef.current) {
+      languageRef.current = platformLanguage;
       setLanguageState(platformLanguage);
     }
-  }, [isAdminRoute, language, localization.defaultLanguage]);
+  }, [isAdminRoute, localization.defaultLanguage]);
 
   useEffect(() => {
-    const dir = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
-    document.documentElement.dir = dir;
-    document.documentElement.lang = effectiveLanguage;
-
-    import('@/i18n/config').then(({ default: i18n }) => {
-      if (i18n.language !== effectiveLanguage) {
-        i18n.changeLanguage(effectiveLanguage);
-      }
-    });
-  }, [effectiveLanguage]);
-
-  useEffect(() => {
-    if (authLoading || isAdminRoute || !user?.id) {
+    if (lastBrowserPersistedRef.current === language) {
       return;
     }
 
-    if (profileRequestRef.current === user.id) {
+    persistBrowserLanguage(language);
+    lastBrowserPersistedRef.current = language;
+  }, [language]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      profileLoadedForRef.current = null;
       return;
     }
 
-    profileRequestRef.current = user.id;
+    if (authLoading || isAdminRoute) {
+      return;
+    }
+
+    if (profileLoadedForRef.current === user.id) {
+      return;
+    }
+
+    profileLoadedForRef.current = user.id;
     const supabase = createClient();
 
     void supabase
@@ -117,25 +141,49 @@ export function LanguageProvider({
         if (error) return;
         if (!isSupportedLanguage(data?.preferred_language)) return;
 
-        if (data.preferred_language !== language) {
+        if (data.preferred_language !== languageRef.current) {
+          languageRef.current = data.preferred_language;
           setLanguageState(data.preferred_language);
         }
-        persistBrowserLanguage(data.preferred_language);
+        if (lastBrowserPersistedRef.current !== data.preferred_language) {
+          persistBrowserLanguage(data.preferred_language);
+          lastBrowserPersistedRef.current = data.preferred_language;
+        }
       });
-  }, [authLoading, isAdminRoute, language, user?.id]);
+  }, [authLoading, isAdminRoute, user?.id]);
 
   const setLanguage = useCallback((lang: SupportedLanguage) => {
-    if (isAdminRoute || !isSupportedLanguage(lang)) return;
+    if (isAdminRoute || !isSupportedLanguage(lang) || lang === languageRef.current) return;
 
+    languageRef.current = lang;
     setLanguageState(lang);
-    persistBrowserLanguage(lang);
+    if (lastBrowserPersistedRef.current !== lang) {
+      persistBrowserLanguage(lang);
+      lastBrowserPersistedRef.current = lang;
+    }
 
     if (user?.id) {
+      const persistKey = `${user.id}:${lang}`;
+      if (profilePersistInFlightRef.current === persistKey) {
+        return;
+      }
+
+      profilePersistInFlightRef.current = persistKey;
       const supabase = createClient();
       void supabase
         .from('user_profiles')
         .update({ preferred_language: lang })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .then(() => {
+          if (profilePersistInFlightRef.current === persistKey) {
+            profilePersistInFlightRef.current = null;
+          }
+        })
+        .catch(() => {
+          if (profilePersistInFlightRef.current === persistKey) {
+            profilePersistInFlightRef.current = null;
+          }
+        });
     }
   }, [isAdminRoute, user?.id]);
 

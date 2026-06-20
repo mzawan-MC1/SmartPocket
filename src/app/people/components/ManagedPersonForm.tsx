@@ -5,7 +5,10 @@ import { Save, User } from 'lucide-react';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import {
+  dispatchSmartPocketDataChanged,
+  type SmartPocketDataEntity,
+} from '@/lib/data-change';
 import { createManagedPerson, type ManagedPerson, type RelationshipType } from '@/lib/people';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 
@@ -87,9 +90,16 @@ export default function ManagedPersonForm({
         preferred_currency: form.preferred_currency,
       });
 
+      const changedEntities: SmartPocketDataEntity[] = [
+        'people',
+        'dashboard',
+        'reimbursements',
+        'settlements',
+      ];
+
       dispatchSmartPocketDataChanged({
         source: 'managed-person-form',
-        entities: ['people', 'dashboard', 'reimbursements', 'settlements'],
+        entities: changedEntities,
       });
       toast.success(`${person.full_name} added successfully`);
       onSuccess(person);

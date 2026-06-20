@@ -5,11 +5,12 @@ import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import type { PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import {
   DEFAULT_LANGUAGE,
-  I18N_COOKIE_NAME,
   isRTL,
   isSupportedLanguage,
   type SupportedLanguage,
 } from '@/i18n/resources';
+
+const I18N_COOKIE_NAME = 'sp_language';
 
 export type InitialI18nState = {
   language: SupportedLanguage;
