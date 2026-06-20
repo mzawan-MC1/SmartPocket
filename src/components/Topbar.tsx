@@ -89,7 +89,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
             title={t('topbar.smartEntryTitle', { ns: 'portal' })}
           >
             <Sparkles size={14} />
-            <span className="hidden lg:inline">Smart Entry</span>
+            <span className="hidden lg:inline">{t('topbar.smartEntry', { ns: 'portal' })}</span>
           </button>
 
           {/* Mobile AI button */}

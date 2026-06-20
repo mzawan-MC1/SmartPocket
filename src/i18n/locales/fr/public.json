@@ -88,5 +88,57 @@
     "togglePassword": "Afficher ou masquer le mot de passe",
     "toastSuccess": "Mot de passe mis à jour avec succès !",
     "toastError": "Impossible de mettre à jour le mot de passe."
+  },
+  "legal": {
+    "privacy": {
+      "metadataTitle": "Privacy Policy",
+      "metadataDescription": "Read how Smart Pocket handles your personal and financial information.",
+      "title": "Privacy Policy",
+      "lastUpdatedLabel": "Last updated:",
+      "lastUpdatedDate": "June 21, 2026",
+      "sections": [
+        {
+          "title": "Information We Collect",
+          "content": "Smart Pocket stores the account, transaction, budget, and profile information you enter so the application can provide budgeting, reporting, and collaboration features."
+        },
+        {
+          "title": "How We Use Information",
+          "content": "We use your data to operate the product, secure your account, respond to support requests, and improve reliability. We do not sell your financial data."
+        },
+        {
+          "title": "Data Storage and Security",
+          "content": "Smart Pocket uses encrypted transport, protected infrastructure, and row-level access controls designed to keep each account's data isolated."
+        },
+        {
+          "title": "Your Choices",
+          "content": "You can update profile details, change language preferences, and contact support about privacy questions or account-data requests at any time."
+        }
+      ]
+    },
+    "terms": {
+      "metadataTitle": "Terms of Service",
+      "metadataDescription": "Read the terms that govern the use of Smart Pocket.",
+      "title": "Terms of Service",
+      "lastUpdatedLabel": "Last updated:",
+      "lastUpdatedDate": "June 21, 2026",
+      "sections": [
+        {
+          "title": "Using Smart Pocket",
+          "content": "You may use Smart Pocket only in compliance with applicable laws and these terms. You are responsible for maintaining the confidentiality of your account credentials."
+        },
+        {
+          "title": "Your Content",
+          "content": "You retain ownership of the financial data and notes you enter. You are responsible for making sure the information you record is accurate and lawful to store."
+        },
+        {
+          "title": "Service Availability",
+          "content": "We work to keep Smart Pocket available and secure, but availability may vary during maintenance, upgrades, or incidents outside our control."
+        },
+        {
+          "title": "Contact",
+          "content": "If you have questions about these terms, please use the contact details published on the Contact page or in Platform Settings."
+        }
+      ]
+    }
   }
 }

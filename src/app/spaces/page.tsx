@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
+import { useTranslation } from 'react-i18next';
 
 import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2 } from 'lucide-react';
 import {
@@ -12,16 +13,7 @@ import {
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-
-const SPACE_TYPE_LABELS: Record<string, string> = {
-  personal: 'Personal', family: 'Family', household: 'Household',
-  child: 'Child', friend: 'Friend', custom: 'Custom',
-};
-
-const ROLE_LABELS: Record<SpaceRole, string> = {
-  owner: 'Owner', manager: 'Manager', contributor: 'Contributor',
-  viewer: 'Viewer', dependent: 'Dependent',
-};
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const ROLE_COLORS: Record<SpaceRole, string> = {
   owner: 'bg-accent/10 text-accent',
@@ -45,6 +37,38 @@ const STATUS_COLORS: Record<string, string> = {
 
 const SPACE_COLORS = ['#0f3460', '#00b4d8', '#7c3aed', '#059669', '#d97706', '#dc2626'];
 
+function getSpaceTypeLabel(
+  type: Space['space_type'],
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  return t(`spaces.types.${type}`, { defaultValue: type });
+}
+
+function getRoleLabel(
+  role: SpaceRole,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  return t(`spaces.roles.${role}`, { defaultValue: role });
+}
+
+function getInvitationStatusLabel(
+  status: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (status) {
+    case 'pending':
+      return t('status.pending', { ns: 'common' });
+    case 'accepted':
+      return t('spaces.status.accepted');
+    case 'declined':
+      return t('spaces.status.declined');
+    case 'revoked':
+      return t('spaces.status.revoked');
+    default:
+      return status;
+  }
+}
+
 interface SpaceFormData {
   name: string;
   space_type: Space['space_type'];
@@ -58,6 +82,8 @@ const DEFAULT_FORM: SpaceFormData = {
 };
 
 export default function SpacesPage() {
+  const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
@@ -84,11 +110,11 @@ export default function SpacesPage() {
         setActiveSpaceId(data[0].id);
       }
     } catch {
-      toast.error('Failed to load spaces');
+      toast.error(t('spaces.loadFailed', { ns: 'portal' }));
     } finally {
       setLoading(false);
     }
-  }, [activeSpaceId]);
+  }, [activeSpaceId, t]);
 
   const loadSpaceDetails = useCallback(async (spaceId: string) => {
     setLoadingDetails(true);
@@ -100,11 +126,11 @@ export default function SpacesPage() {
       setMembers(m);
       setInvitations(inv);
     } catch {
-      toast.error('Failed to load space details');
+      toast.error(t('spaces.loadDetailsFailed', { ns: 'portal' }));
     } finally {
       setLoadingDetails(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { loadSpaces(); }, [loadSpaces]);
   useEffect(() => { if (activeSpaceId) loadSpaceDetails(activeSpaceId); }, [activeSpaceId, loadSpaceDetails]);
@@ -112,95 +138,95 @@ export default function SpacesPage() {
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) || null;
 
   const handleCreate = async () => {
-    if (!form.name.trim()) { toast.error('Space name is required'); return; }
+    if (!form.name.trim()) { toast.error(t('spaces.nameRequired', { ns: 'portal' })); return; }
     setSaving(true);
     try {
       await createSpace(form);
-      toast.success('Space created');
+      toast.success(t('spaces.created', { ns: 'portal' }));
       setShowCreateModal(false);
       setForm(DEFAULT_FORM);
       loadSpaces();
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to create space');
+      toast.error((e as Error).message || t('spaces.createFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleUpdate = async () => {
-    if (!editingSpace || !form.name.trim()) { toast.error('Space name is required'); return; }
+    if (!editingSpace || !form.name.trim()) { toast.error(t('spaces.nameRequired', { ns: 'portal' })); return; }
     setSaving(true);
     try {
       await updateSpace(editingSpace.id, form);
-      toast.success('Space updated');
+      toast.success(t('spaces.updated', { ns: 'portal' }));
       setEditingSpace(null);
       loadSpaces();
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to update space');
+      toast.error((e as Error).message || t('spaces.updateFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleArchive = async (space: Space) => {
-    if (!confirm(`Archive "${space.name}"? Members will lose access.`)) return;
+    if (!confirm(t('spaces.archiveConfirm', { ns: 'portal', name: space.name }))) return;
     try {
       await archiveSpace(space.id);
-      toast.success('Space archived');
+      toast.success(t('spaces.archived', { ns: 'portal' }));
       if (activeSpaceId === space.id) setActiveSpaceId(null);
       loadSpaces();
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to archive');
+      toast.error((e as Error).message || t('spaces.archiveFailed', { ns: 'portal' }));
     }
     setOpenMenuId(null);
   };
 
   const handleInvite = async () => {
-    if (!activeSpaceId || !inviteEmail.trim()) { toast.error('Email is required'); return; }
+    if (!activeSpaceId || !inviteEmail.trim()) { toast.error(t('spaces.emailRequired', { ns: 'portal' })); return; }
     setSaving(true);
     try {
       await inviteToSpace(activeSpaceId, inviteEmail.trim(), inviteRole);
-      toast.success(`Invitation sent to ${inviteEmail}`);
+      toast.success(t('spaces.invitationSent', { ns: 'portal', email: inviteEmail }));
       setShowInviteModal(false);
       setInviteEmail('');
       setInviteRole('viewer');
       loadSpaceDetails(activeSpaceId);
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to send invitation');
+      toast.error((e as Error).message || t('spaces.invitationFailed', { ns: 'portal' }));
     } finally {
       setSaving(false);
     }
   };
 
   const handleRevoke = async (invId: string) => {
-    if (!confirm('Revoke this invitation?')) return;
+    if (!confirm(t('spaces.revokeConfirm', { ns: 'portal' }))) return;
     try {
       await revokeInvitation(invId);
-      toast.success('Invitation revoked');
+      toast.success(t('spaces.revoked', { ns: 'portal' }));
       if (activeSpaceId) loadSpaceDetails(activeSpaceId);
     } catch {
-      toast.error('Failed to revoke invitation');
+      toast.error(t('spaces.revokeFailed', { ns: 'portal' }));
     }
   };
 
   const handleRoleChange = async (memberId: string, newRole: SpaceRole) => {
     try {
       await updateSpaceMemberRole(memberId, newRole);
-      toast.success('Role updated');
+      toast.success(t('spaces.roleUpdated', { ns: 'portal' }));
       if (activeSpaceId) loadSpaceDetails(activeSpaceId);
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to update role');
+      toast.error((e as Error).message || t('spaces.roleUpdateFailed', { ns: 'portal' }));
     }
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
-    if (!confirm(`Remove ${memberName} from this space?`)) return;
+    if (!confirm(t('spaces.removeMemberConfirm', { ns: 'portal', name: memberName }))) return;
     try {
       await removeSpaceMember(memberId);
-      toast.success('Member removed');
+      toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
       if (activeSpaceId) loadSpaceDetails(activeSpaceId);
     } catch (e: unknown) {
-      toast.error((e as Error).message || 'Failed to remove member');
+      toast.error((e as Error).message || t('spaces.memberRemoveFailed', { ns: 'portal' }));
     }
   };
 
@@ -222,16 +248,16 @@ export default function SpacesPage() {
     <AppLayout activeRoute="/spaces">
       <div className="page-section pb-6">
         <PageHeader
-          title="Spaces"
-          description="Manage shared financial spaces, invitations, and member roles."
-          badge={<StatusBadge status="info" label="Shared spaces" />}
+          title={t('spaces.title', { ns: 'portal' })}
+          description={t('spaces.description', { ns: 'portal' })}
+          badge={<StatusBadge status="info" label={t('spaces.badge', { ns: 'portal' })} />}
           actions={
             <button
               onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
               className="btn-primary"
             >
               <Plus size={16} />
-              <span>New Space</span>
+              <span>{t('spaces.newSpace', { ns: 'portal' })}</span>
             </button>
           }
         />
@@ -245,20 +271,22 @@ export default function SpacesPage() {
         ) : spaces.length === 0 ? (
           <div className="card p-12 text-center">
             <Home size={48} className="mx-auto text-muted-foreground/40 mb-4" />
-            <h3 className="text-lg font-600 text-foreground mb-2">No spaces yet</h3>
-            <p className="text-sm text-muted-foreground mb-6">Create a shared space for family, household, or friends</p>
+            <h3 className="text-lg font-600 text-foreground mb-2">{t('spaces.emptyTitle', { ns: 'portal' })}</h3>
+            <p className="text-sm text-muted-foreground mb-6">{t('spaces.emptyDescription', { ns: 'portal' })}</p>
             <button
               onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
             >
-              <Plus size={16} /> Create First Space
+              <Plus size={16} /> {t('spaces.createFirst', { ns: 'portal' })}
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Space List */}
             <div className="space-y-2">
-              <p className="text-xs font-600 uppercase tracking-widest text-muted-foreground px-1 mb-3">Your Spaces</p>
+              <p className="text-xs font-600 uppercase tracking-widest text-muted-foreground px-1 mb-3">
+                {t('spaces.yourSpaces', { ns: 'portal' })}
+              </p>
               {spaces.map((space) => (
                 <div
                   key={space.id}
@@ -274,7 +302,9 @@ export default function SpacesPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-600 text-foreground truncate">{space.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">{SPACE_TYPE_LABELS[space.space_type]}</p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        {getSpaceTypeLabel(space.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
+                      </p>
                     </div>
                     <div className="relative">
                       <button
@@ -289,13 +319,13 @@ export default function SpacesPage() {
                             onClick={(e) => { e.stopPropagation(); openEdit(space); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                           >
-                            <Edit2 size={14} /> Edit
+                            <Edit2 size={14} /> {t('actions.edit', { ns: 'common' })}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleArchive(space); }}
                             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
                           >
-                            <Archive size={14} /> Archive
+                            <Archive size={14} /> {t('spaces.archiveAction', { ns: 'portal' })}
                           </button>
                         </div>
                       )}
@@ -321,7 +351,9 @@ export default function SpacesPage() {
                         </div>
                         <div>
                           <h2 className="text-lg font-700 text-foreground">{activeSpace.name}</h2>
-                          <p className="text-sm text-muted-foreground capitalize">{SPACE_TYPE_LABELS[activeSpace.space_type]}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {getSpaceTypeLabel(activeSpace.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
+                          </p>
                           {activeSpace.description && (
                             <p className="text-xs text-muted-foreground mt-1">{activeSpace.description}</p>
                           )}
@@ -331,7 +363,7 @@ export default function SpacesPage() {
                         onClick={() => setShowInviteModal(true)}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm font-600 text-foreground hover:bg-muted transition-colors"
                       >
-                        <UserPlus size={15} /> Invite
+                        <UserPlus size={15} /> {t('spaces.inviteAction', { ns: 'portal' })}
                       </button>
                     </div>
                   </div>
@@ -345,11 +377,11 @@ export default function SpacesPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
                             <Users size={16} className="text-accent" />
-                            Members ({members.length})
+                            {t('spaces.membersTitle', { ns: 'portal', count: members.length })}
                           </h3>
                         </div>
                         {members.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">No members yet</p>
+                          <p className="text-sm text-muted-foreground text-center py-4">{t('spaces.membersEmpty', { ns: 'portal' })}</p>
                         ) : (
                           <div className="space-y-3">
                             {members.map((member) => {
@@ -361,7 +393,7 @@ export default function SpacesPage() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-600 text-foreground truncate">
-                                      {member.user_profile?.full_name || 'Unknown User'}
+                                      {member.user_profile?.full_name || t('spaces.unknownUser', { ns: 'portal' })}
                                     </p>
                                     <p className="text-xs text-muted-foreground truncate">
                                       {member.user_profile?.email || ''}
@@ -375,19 +407,21 @@ export default function SpacesPage() {
                                         className="text-xs px-2 py-1 rounded-lg border border-border bg-card focus:outline-none focus:ring-1 focus:ring-accent/30"
                                       >
                                         {(['manager', 'contributor', 'viewer', 'dependent'] as SpaceRole[]).map((r) => (
-                                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                                          <option key={r} value={r}>
+                                            {getRoleLabel(r, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                          </option>
                                         ))}
                                       </select>
                                     ) : (
                                       <span className={`text-xs px-2 py-0.5 rounded-full font-500 flex items-center gap-1 ${ROLE_COLORS[member.role]}`}>
-                                        <RoleIcon size={11} /> {ROLE_LABELS[member.role]}
+                                        <RoleIcon size={11} /> {getRoleLabel(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
                                       </span>
                                     )}
                                     {member.role !== 'owner' && (
                                       <button
                                         onClick={() => handleRemoveMember(member.id, member.user_profile?.full_name || 'member')}
                                         className="p-1 rounded text-muted-foreground hover:text-negative transition-colors"
-                                        title="Remove member"
+                                        title={t('spaces.removeMemberAction', { ns: 'portal' })}
                                       >
                                         <Trash2 size={13} />
                                       </button>
@@ -405,11 +439,11 @@ export default function SpacesPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
                             <Mail size={16} className="text-accent" />
-                            Invitations ({invitations.length})
+                            {t('spaces.invitationsTitle', { ns: 'portal', count: invitations.length })}
                           </h3>
                         </div>
                         {invitations.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">No invitations sent</p>
+                          <p className="text-sm text-muted-foreground text-center py-4">{t('spaces.invitationsEmpty', { ns: 'portal' })}</p>
                         ) : (
                           <div className="space-y-3">
                             {invitations.map((inv) => (
@@ -421,12 +455,20 @@ export default function SpacesPage() {
                                   <p className="text-sm font-600 text-foreground truncate">{inv.email}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <span className={`text-xs px-1.5 py-0.5 rounded-full font-500 ${STATUS_COLORS[inv.status] || 'bg-muted text-muted-foreground'}`}>
-                                      {inv.status}
+                                      {getInvitationStatusLabel(inv.status, (key, options) => t(key, { ns: 'portal', ...options }))}
                                     </span>
-                                    <span className="text-xs text-muted-foreground capitalize">{ROLE_LABELS[inv.role]}</span>
+                                    <span className="text-xs text-muted-foreground capitalize">
+                                      {getRoleLabel(inv.role, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                    </span>
                                     {inv.expires_at && (
                                       <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <Clock size={10} /> {new Date(inv.expires_at) < new Date() ? 'Expired' : `Expires ${new Date(inv.expires_at).toLocaleDateString()}`}
+                                        <Clock size={10} />
+                                        {new Date(inv.expires_at) < new Date()
+                                          ? t('spaces.expired', { ns: 'portal' })
+                                          : t('spaces.expiresOn', {
+                                              ns: 'portal',
+                                              date: new Date(inv.expires_at).toLocaleDateString(language),
+                                            })}
                                       </span>
                                     )}
                                   </div>
@@ -436,7 +478,7 @@ export default function SpacesPage() {
                                     onClick={() => handleRevoke(inv.id)}
                                     className="text-xs text-negative font-600 hover:underline flex items-center gap-1"
                                   >
-                                    <XCircle size={13} /> Revoke
+                                    <XCircle size={13} /> {t('spaces.revokeAction', { ns: 'portal' })}
                                   </button>
                                 )}
                               </div>
@@ -450,7 +492,7 @@ export default function SpacesPage() {
               ) : (
                 <div className="card p-12 text-center">
                   <Home size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                  <p className="text-muted-foreground">Select a space to view details</p>
+                  <p className="text-muted-foreground">{t('spaces.selectSpace', { ns: 'portal' })}</p>
                 </div>
               )}
             </div>
@@ -463,47 +505,51 @@ export default function SpacesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-700 text-foreground">{editingSpace ? 'Edit Space' : 'Create Space'}</h3>
+              <h3 className="text-lg font-700 text-foreground">
+                {editingSpace ? t('spaces.editTitle', { ns: 'portal' }) : t('spaces.createTitle', { ns: 'portal' })}
+              </h3>
               <button onClick={() => { setShowCreateModal(false); setEditingSpace(null); }} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Name *</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.name', { ns: 'portal' })}</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="e.g. Family Finances"
+                placeholder={t('spaces.form.namePlaceholder', { ns: 'portal' })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Type</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.type', { ns: 'portal' })}</label>
               <select
                 value={form.space_type}
                 onChange={(e) => setForm({ ...form, space_type: e.target.value as Space['space_type'] })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               >
-                {Object.entries(SPACE_TYPE_LABELS).map(([k, v]) => (
-                  <option key={k} value={k}>{v}</option>
+                {(['personal', 'family', 'household', 'child', 'friend', 'custom'] as Space['space_type'][]).map((spaceType) => (
+                  <option key={spaceType} value={spaceType}>
+                    {getSpaceTypeLabel(spaceType, (key, options) => t(key, { ns: 'portal', ...options }))}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Description</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.description', { ns: 'portal' })}</label>
               <textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Optional description..."
+                placeholder={t('spaces.form.descriptionPlaceholder', { ns: 'portal' })}
                 rows={2}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 resize-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Color</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.color', { ns: 'portal' })}</label>
               <div className="flex gap-2 flex-wrap">
                 {SPACE_COLORS.map((c) => (
                   <button
@@ -521,14 +567,18 @@ export default function SpacesPage() {
                 onClick={() => { setShowCreateModal(false); setEditingSpace(null); }}
                 className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors"
               >
-                Cancel
+                {t('actions.cancel', { ns: 'common' })}
               </button>
               <button
                 onClick={editingSpace ? handleUpdate : handleCreate}
                 disabled={saving}
                 className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {saving ? 'Saving...' : editingSpace ? 'Update' : 'Create'}
+                {saving
+                  ? t('status.saving', { ns: 'common' })
+                  : editingSpace
+                    ? t('actions.update', { ns: 'common' })
+                    : t('actions.create', { ns: 'common' })}
               </button>
             </div>
           </div>
@@ -540,37 +590,39 @@ export default function SpacesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-700 text-foreground">Invite Member</h3>
+              <h3 className="text-lg font-700 text-foreground">{t('spaces.inviteTitle', { ns: 'portal' })}</h3>
               <button onClick={() => setShowInviteModal(false)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Email Address *</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.email', { ns: 'portal' })}</label>
               <input
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="user@example.com"
+                placeholder={t('spaces.form.emailPlaceholder', { ns: 'portal' })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">Role</label>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.role', { ns: 'portal' })}</label>
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as SpaceRole)}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
               >
                 {(['manager', 'contributor', 'viewer', 'dependent'] as SpaceRole[]).map((r) => (
-                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  <option key={r} value={r}>
+                    {getRoleLabel(r, (key, options) => t(key, { ns: 'portal', ...options }))}
+                  </option>
                 ))}
               </select>
               <p className="text-xs text-muted-foreground mt-1.5">
-                {inviteRole === 'manager' && 'Can manage people, transactions, budgets, reimbursements and settlements'}
-                {inviteRole === 'contributor' && 'Can create and edit permitted financial records'}
-                {inviteRole === 'viewer' && 'Read-only access to space data'}
-                {inviteRole === 'dependent' && 'No authenticated access unless linked later'}
+                {inviteRole === 'manager' && t('spaces.roleDescriptions.manager', { ns: 'portal' })}
+                {inviteRole === 'contributor' && t('spaces.roleDescriptions.contributor', { ns: 'portal' })}
+                {inviteRole === 'viewer' && t('spaces.roleDescriptions.viewer', { ns: 'portal' })}
+                {inviteRole === 'dependent' && t('spaces.roleDescriptions.dependent', { ns: 'portal' })}
               </p>
             </div>
 
@@ -579,14 +631,14 @@ export default function SpacesPage() {
                 onClick={() => setShowInviteModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors"
               >
-                Cancel
+                {t('actions.cancel', { ns: 'common' })}
               </button>
               <button
                 onClick={handleInvite}
                 disabled={saving}
                 className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity disabled:opacity-60"
               >
-                {saving ? 'Sending...' : 'Send Invitation'}
+                {saving ? t('spaces.sending', { ns: 'portal' }) : t('spaces.sendInvitation', { ns: 'portal' })}
               </button>
             </div>
           </div>

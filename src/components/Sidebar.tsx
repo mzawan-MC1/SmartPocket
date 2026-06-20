@@ -32,7 +32,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   const navSections = [
     {
-      heading: 'Finance',
+      heading: t('sidebar.sections.finance', { ns: 'portal' }),
       items: [
         { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
         { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },

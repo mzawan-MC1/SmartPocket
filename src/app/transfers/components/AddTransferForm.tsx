@@ -274,13 +274,15 @@ export default function AddTransferForm({
     <form onSubmit={handleSubmit} className="space-y-4 max-[480px]:space-y-3" noValidate>
       <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">From Account *</label>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">
+            {t('transfers.form.fromAccount', { ns: 'portal' })}
+          </label>
           <select
             className="input-base h-11 max-[480px]:h-10"
             value={form.from_account_id}
             onChange={(event) => setForm((current) => ({ ...current, from_account_id: event.target.value }))}
           >
-            <option value="">Select account...</option>
+            <option value="">{t('transactions.form.selectAccount', { ns: 'portal' })}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.name} ({account.currency} {account.current_balance})
@@ -289,13 +291,15 @@ export default function AddTransferForm({
           </select>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">To Account *</label>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">
+            {t('transfers.form.toAccount', { ns: 'portal' })}
+          </label>
           <select
             className="input-base h-11 max-[480px]:h-10"
             value={form.to_account_id}
             onChange={(event) => setForm((current) => ({ ...current, to_account_id: event.target.value }))}
           >
-            <option value="">Select account...</option>
+            <option value="">{t('transactions.form.selectAccount', { ns: 'portal' })}</option>
             {accounts
               .filter((account) => account.id !== form.from_account_id)
               .map((account) => (
@@ -308,7 +312,9 @@ export default function AddTransferForm({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">Amount *</label>
+        <label className="mb-1.5 block text-sm font-600 text-foreground">
+          {t('transactions.form.amount', { ns: 'portal' })}
+        </label>
         <input
           type="number"
           step="0.01"

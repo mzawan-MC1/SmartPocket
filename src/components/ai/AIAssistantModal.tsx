@@ -16,6 +16,7 @@
  } from 'lucide-react';
  import { createPortal } from 'react-dom';
  import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
  import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
  import VoiceRecorder from './VoiceRecorder';
@@ -75,27 +76,31 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
   });
  }
 
- function getPrimaryAccountLabel(purpose: SmartEntryPurpose | undefined) {
+function getPrimaryAccountLabel(
+  purpose: SmartEntryPurpose | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
    switch (purpose) {
     case 'personal_expense':
-      return 'Spend from';
-     case 'borrowed_money':
-       return 'Add borrowed money to';
-     case 'managed_money':
-       return 'Track their money in';
-     case 'managed_return':
-       return 'Return money from';
-     case 'loan_repayment':
-       return 'Pay back from';
-     case 'transfer':
-       return 'Move money from';
-     default:
-       return 'Add money to';
+      return t('smartEntryModal.primaryAccountLabels.spendFrom', { ns: 'portal' });
+    case 'borrowed_money':
+      return t('smartEntryModal.primaryAccountLabels.addBorrowedMoneyTo', { ns: 'portal' });
+    case 'managed_money':
+      return t('smartEntryModal.primaryAccountLabels.trackTheirMoneyIn', { ns: 'portal' });
+    case 'managed_return':
+      return t('smartEntryModal.primaryAccountLabels.returnMoneyFrom', { ns: 'portal' });
+    case 'loan_repayment':
+      return t('smartEntryModal.primaryAccountLabels.payBackFrom', { ns: 'portal' });
+    case 'transfer':
+      return t('smartEntryModal.primaryAccountLabels.moveMoneyFrom', { ns: 'portal' });
+    default:
+      return t('smartEntryModal.primaryAccountLabels.addMoneyTo', { ns: 'portal' });
    }
  }
 
  export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
-   const { isRTL } = useLanguage();
+  const { t } = useTranslation(['portal', 'common']);
+   const { isRTL, language: uiLanguage } = useLanguage();
    const router = useRouter();
    const dialogRef = useRef<HTMLDivElement>(null);
    const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -215,7 +220,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
   const getAuthToken = async (): Promise<string> => {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) throw new Error('Not authenticated');
+    if (!session?.access_token) throw new Error(t('errors.sessionExpired', { ns: 'common' }));
     return session.access_token;
   };
 
@@ -296,7 +301,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
     if (!value) return null;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleString(undefined, {
+    return date.toLocaleString(uiLanguage || undefined, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -308,7 +313,10 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
   const formatRelativeHours = (seconds: number | undefined) => {
     if (typeof seconds !== 'number' || seconds <= 0) return null;
     const hours = Math.max(1, Math.ceil(seconds / 3600));
-    return `Available again in ${hours} hour${hours === 1 ? '' : 's'}`;
+    return t('smartEntryModal.limit.availableAgainIn', {
+      ns: 'portal',
+      count: hours,
+    });
   };
 
   const UsageProgressBar = ({
@@ -328,7 +336,13 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">{label}</span>
-          <span className="font-600 text-foreground">{safeUsed} of {safeTotal}</span>
+          <span className="font-600 text-foreground">
+            {t('smartEntryModal.progress.usedOf', {
+              ns: 'portal',
+              used: safeUsed,
+              total: safeTotal,
+            })}
+          </span>
         </div>
         <div className="h-2 rounded-full bg-secondary overflow-hidden">
           <div
@@ -357,17 +371,20 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
     if (!error) {
       return {
-        title: 'AI unavailable',
-        description: 'AI access is temporarily unavailable.',
-        primaryLabel: 'View Plans',
+        title: t('smartEntryModal.limit.unavailableTitle', { ns: 'portal' }),
+        description: t('smartEntryModal.limit.unavailableDescription', { ns: 'portal' }),
+        primaryLabel: t('smartEntryModal.limit.viewPlans', { ns: 'portal' }),
       };
     }
 
     if (error.code === 'DAILY_REQUEST_LIMIT_REACHED' || error.limitType === 'daily_requests') {
       return {
-        title: 'Daily AI Request Limit Reached',
-        description: `You have used all ${dailyLimit || requestsToday} AI requests available today.`,
-        primaryLabel: 'View Plan',
+        title: t('smartEntryModal.limit.dailyLimitTitle', { ns: 'portal' }),
+        description: t('smartEntryModal.limit.dailyLimitDescription', {
+          ns: 'portal',
+          count: dailyLimit || requestsToday,
+        }),
+        primaryLabel: t('smartEntryModal.limit.viewPlan', { ns: 'portal' }),
         requestsToday,
         dailyLimit,
         creditsUsed,
@@ -379,9 +396,12 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
     if (error.code === 'MONTHLY_CREDIT_LIMIT_REACHED' || error.limitType === 'monthly_credits') {
       return {
-        title: 'Monthly AI Credits Used',
-        description: `You have used all ${creditsAllocated || creditsUsed} AI credits for this billing period.`,
-        primaryLabel: 'View Plans',
+        title: t('smartEntryModal.limit.monthlyCreditsTitle', { ns: 'portal' }),
+        description: t('smartEntryModal.limit.monthlyCreditsDescription', {
+          ns: 'portal',
+          count: creditsAllocated || creditsUsed,
+        }),
+        primaryLabel: t('smartEntryModal.limit.viewPlans', { ns: 'portal' }),
         creditsUsed,
         creditsAllocated,
         creditsRemaining,
@@ -391,9 +411,13 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
     if (error.code === 'INSUFFICIENT_AI_CREDITS' || error.limitType === 'insufficient_credits') {
       return {
-        title: 'Not Enough AI Credits',
-        description: `This action requires ${error.requiredCredits || 0} credits, but you have ${creditsRemaining} remaining.`,
-        primaryLabel: 'View Plans',
+        title: t('smartEntryModal.limit.insufficientCreditsTitle', { ns: 'portal' }),
+        description: t('smartEntryModal.limit.insufficientCreditsDescription', {
+          ns: 'portal',
+          required: error.requiredCredits || 0,
+          remaining: creditsRemaining,
+        }),
+        primaryLabel: t('smartEntryModal.limit.viewPlans', { ns: 'portal' }),
         creditsUsed,
         creditsAllocated,
         creditsRemaining,
@@ -404,9 +428,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
     if (error.code === 'TRIAL_EXPIRED' || error.limitType === 'trial_expired') {
       return {
-        title: 'Trial Expired',
+        title: t('smartEntryModal.limit.trialExpiredTitle', { ns: 'portal' }),
         description: error.message,
-        primaryLabel: 'View Plans',
+        primaryLabel: t('smartEntryModal.limit.viewPlans', { ns: 'portal' }),
         creditsUsed,
         creditsAllocated,
         creditsRemaining,
@@ -415,9 +439,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
     }
 
     return {
-      title: 'Subscription Expired',
+      title: t('smartEntryModal.limit.subscriptionExpiredTitle', { ns: 'portal' }),
       description: error.message,
-      primaryLabel: 'View Plans',
+      primaryLabel: t('smartEntryModal.limit.viewPlans', { ns: 'portal' }),
       creditsUsed,
       creditsAllocated,
       creditsRemaining,
@@ -728,10 +752,10 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
    const handleStartCreateAccount = useCallback((field: 'account' | 'destinationAccount') => {
      const selection = field === 'destinationAccount' ? reviewState?.destinationAccount : reviewState?.account;
      const personName = reviewState?.person?.name;
-     const suggestedName =
-       field === 'account' && isManagedPurpose(reviewState?.purpose)
+    const suggestedName =
+      field === 'account' && isManagedPurpose(reviewState?.purpose)
         ? getManagedAccountName(personName)
-         : selection?.name || 'Cash';
+        : selection?.name || t('accounts.types.cash', { ns: 'portal' });
 
      setAccountDraftTarget(field);
      setAccountDraft({
@@ -882,7 +906,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
       }
 
       if (data.status === 'failed' || !response.ok) {
-        handleApiFailure(data, 'AI processing failed. Please try again.');
+        handleApiFailure(data, t('errors.generic', { ns: 'common' }));
         return;
       }
 
@@ -904,7 +928,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
       setStep('confirming');
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Network error. Please try again.');
+      setErrorMessage(err instanceof Error ? err.message : t('errors.network', { ns: 'common' }));
       setApiError(null);
       setUsageSummary(null);
       setStep('failed');
@@ -961,7 +985,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
       const result = await response.json().catch(() => ({}));
       if (!response.ok || result.status === 'failed') {
         if (result?.status === 'clarification_required' || result?.code === 'account_missing' || result?.code === 'person_missing') {
-          setErrorMessage(result.message || 'This Smart Entry request still needs more details before it can be saved.');
+          setErrorMessage(
+            result.message || t('smartEntryModal.errors.moreDetailsRequired', { ns: 'portal' })
+          );
           setStep('confirming');
           return;
         }
@@ -980,12 +1006,14 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
       });
       router.refresh();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to save records.');
+      setErrorMessage(
+        err instanceof Error ? err.message : t('smartEntryModal.errors.saveFailed', { ns: 'portal' })
+      );
       setApiError(null);
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [parsed, reviewState, previewInstruction?.actions.length, router, unresolvedReviewFields.length, handleApiFailure]);
+  }, [parsed, reviewState, previewInstruction?.actions.length, router, t, unresolvedReviewFields.length, handleApiFailure]);
 
   const handleReset = useCallback(() => {
     resetRequestState();
@@ -995,15 +1023,15 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
     if (isObject(rawError) && typeof rawError.code === 'string') {
       switch (rawError.code) {
         case 'ACCOUNT_CREATE_FAILED':
-          return 'The Cash account could not be created. Please try again or choose an existing account.';
+          return t('smartEntryModal.errors.accountCreateFailed', { ns: 'portal' });
         case 'ACCOUNT_ID_MISSING':
-          return 'The selected account is invalid. Please choose another account.';
+          return t('smartEntryModal.errors.accountInvalid', { ns: 'portal' });
         case 'TRANSACTION_INSERT_FAILED':
-          return 'The transaction could not be saved. No records were created.';
+          return t('smartEntryModal.errors.transactionSaveFailed', { ns: 'portal' });
         case 'INVALID_EXECUTION_PAYLOAD':
-          return 'This Smart Entry request is invalid. Please review it and try again.';
+          return t('smartEntryModal.errors.invalidRequest', { ns: 'portal' });
         case 'AI_REQUEST_UPDATE_FAILED':
-          return 'Smart Entry could not finalize this save request. Please refresh before trying again.';
+          return t('smartEntryModal.errors.finalizeFailed', { ns: 'portal' });
         default:
           break;
       }
@@ -1011,53 +1039,53 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
     const message = typeof rawError === 'string' ? rawError : '';
     if (message.includes('already processed') || message.includes('already being processed') || message.includes('confirmed state')) {
-      return 'This Smart Entry request was already processed. Your transaction was not duplicated.';
+      return t('smartEntryModal.errors.alreadyProcessed', { ns: 'portal' });
     }
     if (message.includes('Request not found')) {
-      return 'This Smart Entry request is no longer available. Please try again.';
+      return t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' });
     }
-    return 'Failed to save records. Please try again.';
+    return t('smartEntryModal.errors.saveFailed', { ns: 'portal' });
   };
 
   const failedStateTitle = (() => {
     switch (apiError?.code) {
       case 'ACCOUNT_CREATE_FAILED':
-        return 'Could not create account';
+        return t('smartEntryModal.failedTitles.accountCreate', { ns: 'portal' });
       case 'ACCOUNT_ID_MISSING':
-        return 'Choose another account';
+        return t('smartEntryModal.failedTitles.chooseAnotherAccount', { ns: 'portal' });
       case 'TRANSACTION_INSERT_FAILED':
-        return 'Could not save transaction';
+        return t('smartEntryModal.failedTitles.transactionSave', { ns: 'portal' });
       case 'INVALID_EXECUTION_PAYLOAD':
-        return 'Review required';
+        return t('smartEntryModal.failedTitles.reviewRequired', { ns: 'portal' });
       default:
-        return 'Something went wrong';
+        return t('smartEntryModal.failedTitles.generic', { ns: 'portal' });
     }
   })();
 
   const getFriendlyConfirmErrorMessage = (rawError: unknown): string => {
     const message = typeof rawError === 'string' ? rawError : '';
     if (message.includes('Unauthorized')) {
-      return 'Your session expired. Please sign in again.';
+      return t('errors.sessionExpired', { ns: 'common' });
     }
     if (message.includes('Forbidden')) {
-      return 'This Smart Entry request belongs to another account.';
+      return t('smartEntryModal.errors.belongsToAnotherAccount', { ns: 'portal' });
     }
     if (message.includes('Request not found')) {
-      return 'This Smart Entry request is no longer available. Please try again.';
+      return t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' });
     }
     if (message.includes('already being processed')) {
-      return 'This Smart Entry request is already being processed. Your transaction was not duplicated.';
+      return t('smartEntryModal.errors.alreadyProcessed', { ns: 'portal' });
     }
     if (message.includes('cannot be confirmed')) {
-      return 'This Smart Entry request is no longer in a confirmable state.';
+      return t('smartEntryModal.errors.notConfirmable', { ns: 'portal' });
     }
     if (message.includes('unresolved account')) {
-      return 'Please resolve the missing account before confirming.';
+      return t('smartEntryModal.errors.resolveAccount', { ns: 'portal' });
     }
     if (message.includes('unresolved managed people')) {
-      return 'Please resolve the managed person before confirming.';
+      return t('smartEntryModal.errors.resolvePerson', { ns: 'portal' });
     }
-    return 'Unable to confirm this Smart Entry request.';
+    return t('smartEntryModal.errors.confirmFailed', { ns: 'portal' });
   };
 
   const LANGUAGES = [
@@ -1074,7 +1102,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
       <button
         type="button"
         className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-        aria-label="Close Smart Entry"
+        aria-label={t('smartEntryModal.close', { ns: 'portal' })}
         onClick={onClose}
       />
       <div
@@ -1093,15 +1121,19 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
               <Sparkles size={16} className="text-white" />
             </div>
             <div>
-              <h2 id="smart-entry-title" className="text-lg font-800 text-foreground">Smart Entry</h2>
-              <p id="smart-entry-description" className="text-sm text-muted-foreground">AI-powered transaction entry with review before save.</p>
+              <h2 id="smart-entry-title" className="text-lg font-800 text-foreground">
+                {t('smartEntryModal.title', { ns: 'portal' })}
+              </h2>
+              <p id="smart-entry-description" className="text-sm text-muted-foreground">
+                {t('smartEntryModal.description', { ns: 'portal' })}
+              </p>
             </div>
           </div>
           <button
             ref={closeButtonRef}
             onClick={onClose}
             className="btn-ghost p-2 rounded-lg"
-            aria-label="Close"
+            aria-label={t('actions.close', { ns: 'common' })}
           >
             <X size={18} />
           </button>
@@ -1116,15 +1148,17 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
               <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                 <Sparkles size={24} className="text-muted-foreground" />
               </div>
-              <p className="text-sm font-600 text-foreground mb-2">AI not configured yet</p>
+              <p className="text-sm font-600 text-foreground mb-2">
+                {t('smartEntryModal.notConfigured.title', { ns: 'portal' })}
+              </p>
               <p className="text-sm text-muted-foreground mb-4">
-                You can continue using manual transaction entry. An administrator can configure AI providers in Admin → AI Settings.
+                {t('smartEntryModal.notConfigured.description', { ns: 'portal' })}
               </p>
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors"
               >
-                Use Manual Entry
+                {t('smartEntryModal.notConfigured.manualAction', { ns: 'portal' })}
               </button>
             </div>
           )}
@@ -1141,7 +1175,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   }`}
                 >
                   <Type size={16} />
-                  Type
+                  {t('smartEntryModal.modeText', { ns: 'portal' })}
                 </button>
                 <button
                   onClick={() => setMode('voice')}
@@ -1150,14 +1184,14 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   }`}
                 >
                   <Mic size={16} />
-                  Voice
+                  {t('smartEntryModal.modeVoice', { ns: 'portal' })}
                 </button>
               </div>
 
               {/* Language selector */}
               <div className="mb-4">
                 <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  Language
+                  {t('smartEntryModal.languageLabel', { ns: 'portal' })}
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {LANGUAGES.map(l => (
@@ -1178,7 +1212,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
               {mode === 'text' ? (
                 <div>
                   <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                    Describe your transaction
+                    {t('smartEntryModal.describeLabel', { ns: 'portal' })}
                   </label>
                   <textarea
                     data-autofocus="true"
@@ -1194,7 +1228,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                     }}
                   />
                   <p className="text-xs text-muted-foreground mt-1.5">
-                    Press Ctrl+Enter to submit
+                    {t('smartEntryModal.submitHint', { ns: 'portal' })}
                   </p>
                   <button
                     onClick={handleTextSubmit}
@@ -1202,7 +1236,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                     className="mt-3 w-full py-3 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                   >
                     <Sparkles size={16} />
-                    Analyse with AI
+                    {t('smartEntryModal.analyzeAction', { ns: 'portal' })}
                   </button>
                 </div>
               ) : (
@@ -1217,7 +1251,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
               {/* Examples */}
               {mode === 'text' && (
                 <div className="mt-5 rounded-2xl border border-border bg-secondary/40 p-4">
-                  <p className="text-sm font-700 text-foreground mb-2">Examples</p>
+                  <p className="text-sm font-700 text-foreground mb-2">
+                    {t('smartEntryModal.examplesTitle', { ns: 'portal' })}
+                  </p>
                   <div className="space-y-1.5">
                     {[
                       'Spent AED 85 on groceries from cash',
@@ -1246,12 +1282,18 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 <Loader2 size={28} className="text-white animate-spin" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-600 text-foreground">Analysing your input...</p>
-                <p className="text-xs text-muted-foreground mt-1">Understanding financial context</p>
+                <p className="text-sm font-600 text-foreground">
+                  {t('smartEntryModal.processingTitle', { ns: 'portal' })}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t('smartEntryModal.processingDescription', { ns: 'portal' })}
+                </p>
               </div>
               {transcript && (
                 <div className="w-full p-3 bg-muted/50 rounded-xl">
-                  <p className="text-xs font-600 text-muted-foreground mb-1">Transcript:</p>
+                  <p className="text-xs font-600 text-muted-foreground mb-1">
+                    {t('smartEntryModal.transcriptLabel', { ns: 'portal' })}:
+                  </p>
                   <p className="text-sm text-foreground italic">"{transcript}"</p>
                 </div>
               )}
@@ -1263,12 +1305,16 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
             <div className="space-y-4 p-5">
               <div className="flex items-center gap-2 mb-4">
                 <CheckCircle size={18} className="text-positive" />
-                <p className="text-sm font-600 text-foreground">Review before saving</p>
+                <p className="text-sm font-600 text-foreground">
+                  {t('smartEntryModal.reviewTitle', { ns: 'portal' })}
+                </p>
               </div>
 
               {transcript && (
                 <div className="p-3 bg-muted/50 rounded-xl mb-4">
-                  <p className="text-xs text-muted-foreground">Input:</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('smartEntryModal.inputLabel', { ns: 'portal' })}:
+                  </p>
                   <p className="text-sm text-foreground mt-0.5 italic">"{transcript || textInput}"</p>
                 </div>
               )}
@@ -1295,7 +1341,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Understanding</p>
+                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                    {t('smartEntryModal.understandingTitle', { ns: 'portal' })}
+                  </p>
                   {reviewState.understanding.map((line, index) => (
                     <p key={index} className="text-sm text-foreground">{line}</p>
                   ))}
@@ -1303,8 +1351,12 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                     <div className="space-y-2 pt-1">
                       <p className="text-sm font-600 text-foreground">
                         {typeof reviewState.receivedAmount === 'number' && reviewState.person?.name
-                          ? `How should the ${formatMoney(reviewState.receivedAmount, reviewState.currency, contextSnapshot?.defaultCurrency)} from ${reviewState.person.name} be treated?`
-                          : 'How should this money be treated?'}
+                          ? t('smartEntryModal.purposeQuestionWithPerson', {
+                              ns: 'portal',
+                              amount: formatMoney(reviewState.receivedAmount, reviewState.currency, contextSnapshot?.defaultCurrency),
+                              name: reviewState.person.name,
+                            })
+                          : t('smartEntryModal.purposeQuestion', { ns: 'portal' })}
                       </p>
                       {reviewState.purposeOptions.map((option) => (
                         <button
@@ -1325,11 +1377,15 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
                 {reviewState.person?.required && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Person</p>
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.personTitle', { ns: 'portal' })}
+                    </p>
                     <div className="rounded-xl bg-card p-3">
-                      <p className="text-xs text-muted-foreground">Person</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('smartEntryModal.personTitle', { ns: 'portal' })}
+                      </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {selectedPerson?.fullName || reviewState.person.name || 'Choose a person'}
+                        {selectedPerson?.fullName || reviewState.person.name || t('smartEntryModal.choosePerson', { ns: 'portal' })}
                       </p>
                     </div>
                     <select
@@ -1337,13 +1393,18 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                       onChange={(e) => handlePersonSelectionChange(e.target.value)}
                       className="input-base w-full text-sm"
                     >
-                      <option value="">Choose person</option>
+                      <option value="">{t('smartEntryModal.choosePerson', { ns: 'portal' })}</option>
                       {people.map((person) => (
                         <option key={person.id} value={person.id}>
                           {person.fullName}
                         </option>
                       ))}
-                      <option value="__create__">Create {reviewState.person.name || 'person'}</option>
+                      <option value="__create__">
+                        {t('smartEntryModal.createPersonAction', {
+                          ns: 'portal',
+                          name: reviewState.person.name || t('people.addPerson', { ns: 'portal' }).toLowerCase(),
+                        })}
+                      </option>
                     </select>
                     {personDraft && (
                       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
@@ -1351,7 +1412,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                           value={personDraft.name}
                           onChange={(e) => setPersonDraft((current) => current ? { ...current, name: e.target.value } : current)}
                           className="input-base w-full text-sm"
-                          placeholder="Person name"
+                          placeholder={t('smartEntryModal.personNamePlaceholder', { ns: 'portal' })}
                         />
                         <select
                           value={personDraft.relationship}
@@ -1362,15 +1423,15 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                           }
                           className="input-base w-full text-sm"
                         >
-                          <option value="other">Other</option>
-                          <option value="friend">Friend</option>
-                          <option value="client">Client</option>
-                          <option value="relative">Relative</option>
-                          <option value="colleague">Colleague</option>
-                          <option value="spouse">Spouse</option>
-                          <option value="child">Child</option>
-                          <option value="parent">Parent</option>
-                          <option value="sibling">Sibling</option>
+                          <option value="other">{t('people.relationships.other', { ns: 'portal' })}</option>
+                          <option value="friend">{t('people.relationships.friend', { ns: 'portal' })}</option>
+                          <option value="client">{t('people.relationships.client', { ns: 'portal' })}</option>
+                          <option value="relative">{t('people.relationships.relative', { ns: 'portal' })}</option>
+                          <option value="colleague">{t('people.relationships.colleague', { ns: 'portal' })}</option>
+                          <option value="spouse">{t('people.relationships.spouse', { ns: 'portal' })}</option>
+                          <option value="child">{t('people.relationships.child', { ns: 'portal' })}</option>
+                          <option value="parent">{t('people.relationships.parent', { ns: 'portal' })}</option>
+                          <option value="sibling">{t('people.relationships.sibling', { ns: 'portal' })}</option>
                         </select>
                         <div className="flex gap-2">
                           <button
@@ -1378,13 +1439,13 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             disabled={!personDraft.name.trim()}
                             className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
                           >
-                            Use This Person
+                            {t('smartEntryModal.useThisPerson', { ns: 'portal' })}
                           </button>
                           <button
                             onClick={() => setPersonDraft(null)}
                             className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
                           >
-                            Back
+                            {t('actions.back', { ns: 'common' })}
                           </button>
                         </div>
                       </div>
@@ -1394,11 +1455,15 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
                 {reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear') && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Account</p>
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.accountTitle', { ns: 'portal' })}
+                    </p>
                     <div className="rounded-xl bg-card p-3">
-                      <p className="text-xs text-muted-foreground">{getPrimaryAccountLabel(reviewState.purpose)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
+                      </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {selectedAccount?.name || reviewState.account.name || 'Choose an account'}
+                        {selectedAccount?.name || reviewState.account.name || t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
                       </p>
                     </div>
                     <select
@@ -1406,13 +1471,18 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                       onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
                       className="input-base w-full text-sm"
                     >
-                      <option value="">Choose account</option>
+                      <option value="">{t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}</option>
                       {eligiblePrimaryAccounts.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name} • {account.type} • {account.currency}
                         </option>
                       ))}
-                      <option value="__create__">Create {reviewState.account.name || 'account'}</option>
+                      <option value="__create__">
+                        {t('smartEntryModal.createAccountAction', {
+                          ns: 'portal',
+                          name: reviewState.account.name || t('accounts.addAccount', { ns: 'portal' }).toLowerCase(),
+                        })}
+                      </option>
                     </select>
                     {accountDraft && accountDraftTarget === 'account' && (
                       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
@@ -1420,7 +1490,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                           value={accountDraft.name}
                           onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
                           className="input-base w-full text-sm"
-                          placeholder="Account name"
+                          placeholder={t('smartEntryModal.accountNamePlaceholder', { ns: 'portal' })}
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <select
@@ -1430,20 +1500,20 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             }
                             className="input-base w-full text-sm"
                           >
-                            <option value="cash">Cash</option>
-                            <option value="bank">Bank</option>
-                            <option value="credit_card">Credit Card</option>
-                            <option value="savings">Savings</option>
-                            <option value="digital_wallet">Digital Wallet</option>
-                            <option value="investment">Investment</option>
-                            <option value="other">Other</option>
+                            <option value="cash">{t('accounts.types.cash', { ns: 'portal' })}</option>
+                            <option value="bank">{t('accounts.types.bank', { ns: 'portal' })}</option>
+                            <option value="credit_card">{t('accounts.types.creditCard', { ns: 'portal' })}</option>
+                            <option value="savings">{t('accounts.types.savings', { ns: 'portal' })}</option>
+                            <option value="digital_wallet">{t('accounts.types.digitalWallet', { ns: 'portal' })}</option>
+                            <option value="investment">{t('accounts.types.investment', { ns: 'portal' })}</option>
+                            <option value="other">{t('accounts.types.other', { ns: 'portal' })}</option>
                           </select>
                           <input
                             value={accountDraft.currency}
                             onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
                             className="input-base w-full text-sm"
                             maxLength={3}
-                            placeholder="Currency"
+                            placeholder={t('smartEntryModal.currencyPlaceholder', { ns: 'portal' })}
                           />
                         </div>
                         <div className="flex gap-2">
@@ -1452,7 +1522,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             disabled={!accountDraft.name.trim()}
                             className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
                           >
-                            Use This Account
+                            {t('smartEntryModal.useThisAccount', { ns: 'portal' })}
                           </button>
                           <button
                             onClick={() => {
@@ -1461,7 +1531,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             }}
                             className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
                           >
-                            Back
+                            {t('actions.back', { ns: 'common' })}
                           </button>
                         </div>
                       </div>
@@ -1471,10 +1541,12 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
                 {reviewState.amountActionIndex !== undefined && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Amount</p>
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.amountTitle', { ns: 'portal' })}
+                    </p>
                     <div className="rounded-xl bg-card p-3 space-y-2">
                       <p className="text-sm font-600 text-foreground">
-                        {reviewState.amountLabel || 'How much was used?'}
+                        {reviewState.amountLabel || t('smartEntryModal.amountFallback', { ns: 'portal' })}
                       </p>
                       <input
                         type="number"
@@ -1482,7 +1554,10 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                         value={typeof reviewState.amount === 'number' ? String(reviewState.amount) : ''}
                         onChange={(e) => handleReviewAmountChange(e.target.value)}
                         className="input-base w-full text-sm"
-                        placeholder={`Enter amount in ${normalizeReviewCurrency(reviewState.currency)}`}
+                        placeholder={t('smartEntryModal.amountPlaceholder', {
+                          ns: 'portal',
+                          currency: normalizeReviewCurrency(reviewState.currency),
+                        })}
                       />
                       {typeof reviewState.amountQuickOptionValue === 'number' && (
                         <button
@@ -1490,7 +1565,10 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                           onClick={handleUseFullAmount}
                           className="rounded-xl border border-border bg-card px-3 py-2 text-sm font-600 text-foreground transition-colors hover:border-accent/40"
                         >
-                          Use full {formatMoney(reviewState.amountQuickOptionValue, reviewState.currency, contextSnapshot?.defaultCurrency)}
+                          {t('smartEntryModal.useFullAmount', {
+                            ns: 'portal',
+                            amount: formatMoney(reviewState.amountQuickOptionValue, reviewState.currency, contextSnapshot?.defaultCurrency),
+                          })}
                         </button>
                       )}
                     </div>
@@ -1499,11 +1577,15 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
 
                 {reviewState.destinationAccount?.required && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Destination Account</p>
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.destinationAccountTitle', { ns: 'portal' })}
+                    </p>
                     <div className="rounded-xl bg-card p-3">
-                      <p className="text-xs text-muted-foreground">Move money to</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('smartEntryModal.moveMoneyTo', { ns: 'portal' })}
+                      </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {selectedDestinationAccount?.name || reviewState.destinationAccount.name || 'Choose a destination account'}
+                        {selectedDestinationAccount?.name || reviewState.destinationAccount.name || t('smartEntryModal.destinationAccountFallback', { ns: 'portal' })}
                       </p>
                     </div>
                     <select
@@ -1511,13 +1593,18 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                       onChange={(e) => handleAccountSelectionChange('destinationAccount', e.target.value)}
                       className="input-base w-full text-sm"
                     >
-                      <option value="">Choose destination account</option>
+                      <option value="">{t('smartEntryModal.destinationAccountFallback', { ns: 'portal' })}</option>
                       {eligibleDestinationAccounts.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name} • {account.type} • {account.currency}
                         </option>
                       ))}
-                      <option value="__create__">Create {reviewState.destinationAccount.name || 'account'}</option>
+                      <option value="__create__">
+                        {t('smartEntryModal.createAccountAction', {
+                          ns: 'portal',
+                          name: reviewState.destinationAccount.name || t('accounts.addAccount', { ns: 'portal' }).toLowerCase(),
+                        })}
+                      </option>
                     </select>
                     {accountDraft && accountDraftTarget === 'destinationAccount' && (
                       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
@@ -1525,7 +1612,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                           value={accountDraft.name}
                           onChange={(e) => setAccountDraft((current) => current ? { ...current, name: e.target.value } : current)}
                           className="input-base w-full text-sm"
-                          placeholder="Account name"
+                          placeholder={t('smartEntryModal.accountNamePlaceholder', { ns: 'portal' })}
                         />
                         <div className="grid grid-cols-2 gap-2">
                           <select
@@ -1535,20 +1622,20 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             }
                             className="input-base w-full text-sm"
                           >
-                            <option value="cash">Cash</option>
-                            <option value="bank">Bank</option>
-                            <option value="credit_card">Credit Card</option>
-                            <option value="savings">Savings</option>
-                            <option value="digital_wallet">Digital Wallet</option>
-                            <option value="investment">Investment</option>
-                            <option value="other">Other</option>
+                            <option value="cash">{t('accounts.types.cash', { ns: 'portal' })}</option>
+                            <option value="bank">{t('accounts.types.bank', { ns: 'portal' })}</option>
+                            <option value="credit_card">{t('accounts.types.creditCard', { ns: 'portal' })}</option>
+                            <option value="savings">{t('accounts.types.savings', { ns: 'portal' })}</option>
+                            <option value="digital_wallet">{t('accounts.types.digitalWallet', { ns: 'portal' })}</option>
+                            <option value="investment">{t('accounts.types.investment', { ns: 'portal' })}</option>
+                            <option value="other">{t('accounts.types.other', { ns: 'portal' })}</option>
                           </select>
                           <input
                             value={accountDraft.currency}
                             onChange={(e) => setAccountDraft((current) => current ? { ...current, currency: e.target.value.toUpperCase() } : current)}
                             className="input-base w-full text-sm"
                             maxLength={3}
-                            placeholder="Currency"
+                            placeholder={t('smartEntryModal.currencyPlaceholder', { ns: 'portal' })}
                           />
                         </div>
                         <div className="flex gap-2">
@@ -1557,7 +1644,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             disabled={!accountDraft.name.trim()}
                             className="flex-1 rounded-xl bg-positive py-2.5 text-sm font-600 text-white transition-colors hover:bg-positive/90 disabled:opacity-50"
                           >
-                            Use This Account
+                            {t('smartEntryModal.useThisAccount', { ns: 'portal' })}
                           </button>
                           <button
                             onClick={() => {
@@ -1566,7 +1653,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                             }}
                             className="rounded-xl bg-muted px-4 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
                           >
-                            Back
+                            {t('actions.back', { ns: 'common' })}
                           </button>
                         </div>
                       </div>
@@ -1575,7 +1662,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 )}
 
                 <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
-                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">Summary</p>
+                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                    {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
+                  </p>
                   <div className="space-y-2">
                     {compactSummaryRows.map((row, index) => (
                       <p key={index} className="text-sm text-foreground">{row}</p>
@@ -1583,25 +1672,48 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   </div>
                   {totals && reviewState.purpose === 'managed_money' && (
                     <p className="text-sm font-600 text-foreground">
-                      Remaining for {reviewState.person?.name || 'them'}: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}
+                      {t('smartEntryModal.summary.remainingFor', {
+                        ns: 'portal',
+                        name: reviewState.person?.name || t('people.title', { ns: 'portal' }).toLowerCase(),
+                        amount: formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency),
+                      })}
                     </p>
                   )}
                   {totals && reviewState.purpose === 'borrowed_money' && (
                     <div className="space-y-1 text-sm font-600 text-foreground">
-                      <p>Cash remaining after spending: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}</p>
-                      <p>Amount still owed to {reviewState.person?.name || 'them'}: {formatMoney(totals.loanAmount, reviewState.currency, contextSnapshot?.defaultCurrency)}</p>
+                      <p>
+                        {t('smartEntryModal.summary.cashRemainingAfterSpending', {
+                          ns: 'portal',
+                          amount: formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency),
+                        })}
+                      </p>
+                      <p>
+                        {t('smartEntryModal.summary.amountStillOwedTo', {
+                          ns: 'portal',
+                          name: reviewState.person?.name || t('people.title', { ns: 'portal' }).toLowerCase(),
+                          amount: formatMoney(totals.loanAmount, reviewState.currency, contextSnapshot?.defaultCurrency),
+                        })}
+                      </p>
                     </div>
                   )}
                   {totals && reviewState.purpose === 'managed_return' && (
                     <p className="text-sm font-600 text-foreground">
-                      Managed balance change: {formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency)}
+                      {t('smartEntryModal.summary.managedBalanceChange', {
+                        ns: 'portal',
+                        amount: formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency),
+                      })}
                     </p>
                   )}
                 </div>
 
                 {unresolvedReviewFields.length > 0 && (
                   <div className="rounded-xl border border-warning/20 bg-warning-soft p-3">
-                    <p className="text-xs font-600 text-warning">Still needed: {unresolvedReviewFields.join(', ')}</p>
+                    <p className="text-xs font-600 text-warning">
+                      {t('smartEntryModal.stillNeeded', {
+                        ns: 'portal',
+                        fields: unresolvedReviewFields.join(', '),
+                      })}
+                    </p>
                   </div>
                 )}
               </div>
@@ -1613,7 +1725,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   className="flex-1 py-3 rounded-xl bg-positive text-white text-sm font-700 hover:bg-positive/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle size={16} />
-                  Confirm & Save
+                  {t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
                 </button>
                 <button
                   onClick={handleReset}
@@ -1623,7 +1735,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 </button>
               </div>
               {unresolvedReviewFields.length > 0 && (
-                <p className="text-xs text-muted-foreground">Please complete the required details above.</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('smartEntryModal.completeRequiredDetails', { ns: 'portal' })}
+                </p>
               )}
             </div>
           )}
@@ -1632,7 +1746,9 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
           {step === 'executing' && (
             <div className="p-8 flex flex-col items-center gap-4">
               <Loader2 size={36} className="text-accent animate-spin" />
-              <p className="text-sm font-600 text-foreground">Saving your records...</p>
+              <p className="text-sm font-600 text-foreground">
+                {t('smartEntryModal.savingRecords', { ns: 'portal' })}
+              </p>
             </div>
           )}
 
@@ -1643,9 +1759,14 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 <CheckCircle size={32} className="text-positive" />
               </div>
               <div>
-                <p className="text-base font-700 text-foreground">Saved successfully!</p>
+                <p className="text-base font-700 text-foreground">
+                  {t('smartEntryModal.successTitle', { ns: 'portal' })}
+                </p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {executionResult.count} record{executionResult.count !== 1 ? 's' : ''} created
+                  {t('smartEntryModal.recordsCreated', {
+                    ns: 'portal',
+                    count: executionResult.count,
+                  })}
                 </p>
               </div>
               <div className="flex gap-2 w-full">
@@ -1653,13 +1774,13 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   onClick={handleReset}
                   className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
                 >
-                  Add Another
+                  {t('smartEntryModal.addAnother', { ns: 'portal' })}
                 </button>
                 <button
                   onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors"
                 >
-                  Done
+                  {t('actions.done', { ns: 'common' })}
                 </button>
               </div>
             </div>
@@ -1687,36 +1808,44 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
               <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
                 {typeof limitView.requestsToday === 'number' && typeof limitView.dailyLimit === 'number' && limitView.dailyLimit > 0 && (
                   <UsageProgressBar
-                    label="Daily requests"
+                    label={t('smartEntryModal.limit.dailyRequests', { ns: 'portal' })}
                     used={limitView.requestsToday}
                     total={limitView.dailyLimit}
                   />
                 )}
                 {typeof limitView.creditsUsed === 'number' && typeof limitView.creditsAllocated === 'number' && limitView.creditsAllocated > 0 && (
                   <UsageProgressBar
-                    label="Monthly AI credits"
+                    label={t('smartEntryModal.limit.monthlyCredits', { ns: 'portal' })}
                     used={limitView.creditsUsed}
                     total={limitView.creditsAllocated}
                   />
                 )}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-xl bg-card p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Credits remaining</p>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.limit.creditsRemaining', { ns: 'portal' })}
+                    </p>
                     <p className="mt-1 text-lg font-700 text-foreground">{Math.max(0, limitView.creditsRemaining || 0)}</p>
                   </div>
                   <div className="rounded-xl bg-card p-3">
-                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Credits reserved</p>
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.limit.creditsReserved', { ns: 'portal' })}
+                    </p>
                     <p className="mt-1 text-lg font-700 text-foreground">{Math.max(0, usageSummary?.creditsReserved || 0)}</p>
                   </div>
                 </div>
                 {typeof limitView.requiredCredits === 'number' && (
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-card p-3">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Required credits</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {t('smartEntryModal.limit.requiredCredits', { ns: 'portal' })}
+                      </p>
                       <p className="mt-1 text-lg font-700 text-foreground">{limitView.requiredCredits}</p>
                     </div>
                     <div className="rounded-xl bg-card p-3">
-                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">Renewal</p>
+                      <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                        {t('smartEntryModal.limit.renewal', { ns: 'portal' })}
+                      </p>
                       <p className="mt-1 text-sm font-600 text-foreground flex items-center gap-1.5">
                         <Calendar size={12} className="text-muted-foreground" />
                         {limitView.renewalLabel || '—'}
@@ -1733,7 +1862,12 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                 {!limitView.resetLabel && limitView.renewalLabel && (
                   <div className="flex items-center gap-2 rounded-xl bg-card p-3 text-sm text-foreground">
                     <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
-                    <span>Next renewal {limitView.renewalLabel}</span>
+                    <span>
+                      {t('smartEntryModal.limit.nextRenewal', {
+                        ns: 'portal',
+                        date: limitView.renewalLabel,
+                      })}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1743,7 +1877,7 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
                 >
-                  Close
+                  {t('actions.close', { ns: 'common' })}
                 </button>
                 <button
                   onClick={() => router.push('/pricing')}
@@ -1775,13 +1909,13 @@ function formatMoney(value: number | undefined, currency?: string, fallbackCurre
                   className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
                 >
                   <RotateCcw size={16} />
-                  Try Again
+                  {t('actions.refresh', { ns: 'common' })}
                 </button>
                 <button
                   onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
                 >
-                  Cancel
+                  {t('actions.cancel', { ns: 'common' })}
                 </button>
               </div>
             </div>

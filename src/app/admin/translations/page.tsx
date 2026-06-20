@@ -103,10 +103,11 @@ export default function AdminTranslationsPage() {
       const contentType = res.headers.get('content-type') || '';
       const json = contentType.includes('application/json') ? await res.json() : null;
       if (!res.ok) {
-        throw new Error(json?.error || 'Failed to import translations');
+        const details = json?.details?.phase ? ` (${json.details.phase})` : '';
+        throw new Error((json?.message || json?.error || 'Failed to import translations') + details);
       }
       toast.success(
-        `Import complete: ${json?.added ?? 0} added, ${json?.existing ?? 0} existing, ${json?.skipped ?? 0} skipped`
+        `Import complete: ${json?.added ?? 0} added, ${json?.existing ?? 0} existing, ${json?.skipped ?? 0} skipped${json?.duplicateSourceKeys ? `, ${json.duplicateSourceKeys} duplicate source keys ignored` : ''}`
       );
       await fetchTranslations();
     } catch (e: any) {
