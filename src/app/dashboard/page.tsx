@@ -179,10 +179,10 @@ export default function DashboardPage() {
 
   return (
     <AppLayout activeRoute="/dashboard">
-      <div className="page-section">
+      <div className="page-section max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
           <div className="section-card">
-            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center">
+            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
               <Loader2 size={22} className="animate-spin text-accent" />
               <div>
                 <p className="text-sm font-600 text-foreground">Loading planning period</p>
@@ -202,8 +202,8 @@ export default function DashboardPage() {
               financialPeriodContext={periodContext}
             />
             <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+            <div className="space-y-3 max-[480px]:space-y-3 sm:space-y-4">
+              <div className="grid grid-cols-1 items-start gap-3 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
                 <div className="xl:col-span-8">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                   <AIUsageCard />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+              <div className="grid grid-cols-1 items-start gap-3 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
                 <div className="xl:col-span-6">
                   <RecentTransactions />
                 </div>
@@ -222,7 +222,7 @@ export default function DashboardPage() {
                   <AccountBalances />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12">
+              <div className="grid grid-cols-1 items-start gap-3 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
                 <div className="xl:col-span-4">
                   <PeopleDashboardWidget />
                 </div>

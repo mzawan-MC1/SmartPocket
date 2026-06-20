@@ -1,7 +1,7 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2 } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 
@@ -47,59 +47,75 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     { id: 'more-settlements', label: 'Settlements', icon: DollarSign, href: '/settlements' },
   ];
 
+  useEffect(() => {
+    setQuickAddOpen(false);
+    setMoreOpen(false);
+  }, [activeRoute]);
+
   return (
     <>
       {(quickAddOpen || moreOpen) && (
         <div
-          className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 fade-in"
+          className="fixed inset-0 z-40 bg-foreground/20 fade-in"
           onClick={() => { setQuickAddOpen(false); setMoreOpen(false); }}
         />
       )}
 
       {quickAddOpen && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 slide-up">
-          <div className="card-elevated-md p-4 min-w-[280px] max-w-[92vw]">
-            <p className="text-xs font-600 uppercase tracking-wider text-muted-foreground mb-3 text-center">Quick Add</p>
-            {/* AI entry buttons */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
+          <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <p className="text-sm font-700 text-foreground">Quick Add</p>
               <button
-                onClick={() => { setAiMode('text'); setAiOpen(true); setQuickAddOpen(false); }}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl text-sm font-600 bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all duration-150"
+                type="button"
+                onClick={() => setQuickAddOpen(false)}
+                className="btn-ghost h-8 w-8 rounded-full p-0"
+                aria-label="Close quick add"
               >
-                <Sparkles size={20} />
-                <span className="text-xs">Smart Entry</span>
-              </button>
-              <button
-                onClick={() => { setAiMode('voice'); setAiOpen(true); setQuickAddOpen(false); }}
-                className="flex flex-col items-center gap-2 p-3 rounded-xl text-sm font-600 bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all duration-150"
-              >
-                <Mic size={20} />
-                <span className="text-xs">Voice Entry</span>
+                <X size={16} />
               </button>
             </div>
-            <div className="border-t border-border pt-3">
-              <div className="grid grid-cols-2 gap-2">
-                {quickActions.map((action) => {
-                  const ActionIcon = action.icon;
-                  const pending = isRoutePending(action.href);
-                  return (
-                    <Link
-                      key={action.id}
-                      href={action.href}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-xl text-sm font-600 transition-all duration-150 hover:scale-105 active:scale-95 ${action.color}`}
-                      onClick={(event) => {
-                        const shouldNavigate = handleNavigationIntent(action.href, event);
-                        if (shouldNavigate) {
-                          setQuickAddOpen(false);
-                        }
-                      }}
-                      aria-busy={pending ? 'true' : undefined}
-                    >
-                      {pending ? <Loader2 size={20} className="animate-spin" /> : <ActionIcon size={20} />}
-                      <span className="text-xs">{action.label}</span>
-                    </Link>
-                  );
-                })}
+            <div className="max-h-[min(60vh,28rem)] space-y-3 overflow-y-auto px-4 py-4 scrollbar-thin">
+              <div className="grid grid-cols-2 gap-2.5">
+                <button
+                  onClick={() => { setAiMode('text'); setAiOpen(true); setQuickAddOpen(false); }}
+                  className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
+                >
+                  <Sparkles size={20} />
+                  <span className="text-xs font-700">Smart Entry</span>
+                </button>
+                <button
+                  onClick={() => { setAiMode('voice'); setAiOpen(true); setQuickAddOpen(false); }}
+                  className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
+                >
+                  <Mic size={20} />
+                  <span className="text-xs font-700">Voice Entry</span>
+                </button>
+              </div>
+              <div className="border-t border-border pt-3">
+                <div className="grid grid-cols-2 gap-2.5">
+                  {quickActions.map((action) => {
+                    const ActionIcon = action.icon;
+                    const pending = isRoutePending(action.href);
+                    return (
+                      <Link
+                        key={action.id}
+                        href={action.href}
+                        className={`flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-3 text-center text-sm font-600 transition-transform duration-150 active:scale-95 ${action.color}`}
+                        onClick={(event) => {
+                          const shouldNavigate = handleNavigationIntent(action.href, event);
+                          if (shouldNavigate) {
+                            setQuickAddOpen(false);
+                          }
+                        }}
+                        aria-busy={pending ? 'true' : undefined}
+                      >
+                        {pending ? <Loader2 size={20} className="animate-spin" /> : <ActionIcon size={20} />}
+                        <span className="text-xs font-700 leading-4">{action.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -107,65 +123,77 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {moreOpen && (
-        <div className="fixed bottom-24 right-4 z-50 slide-up">
-          <div className="card-elevated-md p-3 min-w-[200px] max-w-[88vw]">
-            <p className="text-xs font-600 uppercase tracking-wider text-muted-foreground mb-2 px-2">More</p>
-            {moreItems.map((item) => {
-              const ItemIcon = item.icon;
-              const active = isRouteActive(item.href);
-              const pending = isRoutePending(item.href);
-              return (
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
+          <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <p className="text-sm font-700 text-foreground">More</p>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                className="btn-ghost h-8 w-8 rounded-full p-0"
+                aria-label="Close more menu"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="max-h-[min(56vh,24rem)] overflow-y-auto px-2 py-2 scrollbar-thin">
+              {moreItems.map((item) => {
+                const ItemIcon = item.icon;
+                const active = isRouteActive(item.href);
+                const pending = isRoutePending(item.href);
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-500 transition-colors ${
+                      active ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
+                    }`}
+                    onClick={(event) => {
+                      const shouldNavigate = handleNavigationIntent(item.href, event);
+                      if (shouldNavigate) {
+                        setMoreOpen(false);
+                      }
+                    }}
+                    aria-current={active ? 'page' : undefined}
+                    aria-busy={pending ? 'true' : undefined}
+                  >
+                    {pending ? <Loader2 size={16} className="animate-spin text-accent" /> : <ItemIcon size={16} className={active ? 'text-accent' : 'text-muted-foreground'} />}
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+              <div className="mt-2 border-t border-border pt-2">
                 <Link
-                  key={item.id}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-500 transition-colors ${
-                    active ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
+                  href="/ai-history"
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-500 transition-colors ${
+                    isRouteActive('/ai-history') ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
                   }`}
                   onClick={(event) => {
-                    const shouldNavigate = handleNavigationIntent(item.href, event);
+                    const shouldNavigate = handleNavigationIntent('/ai-history', event);
                     if (shouldNavigate) {
                       setMoreOpen(false);
                     }
                   }}
-                  aria-current={active ? 'page' : undefined}
-                  aria-busy={pending ? 'true' : undefined}
+                  aria-current={isRouteActive('/ai-history') ? 'page' : undefined}
+                  aria-busy={isRoutePending('/ai-history') ? 'true' : undefined}
                 >
-                  {pending ? <Loader2 size={16} className="animate-spin text-accent" /> : <ItemIcon size={16} className={active ? 'text-accent' : 'text-muted-foreground'} />}
-                  {item.label}
-                </Link>
-              );
-            })}
-            <div className="border-t border-border mt-2 pt-2">
-              <Link
-                href="/ai-history"
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-500 transition-colors ${
-                  isRouteActive('/ai-history') ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
-                }`}
-                onClick={(event) => {
-                  const shouldNavigate = handleNavigationIntent('/ai-history', event);
-                  if (shouldNavigate) {
-                    setMoreOpen(false);
+                  {isRoutePending('/ai-history')
+                    ? <Loader2 size={16} className="animate-spin text-accent" />
+                    : <Sparkles size={16} className="text-accent" />
                   }
-                }}
-                aria-current={isRouteActive('/ai-history') ? 'page' : undefined}
-                aria-busy={isRoutePending('/ai-history') ? 'true' : undefined}
-              >
-                {isRoutePending('/ai-history')
-                  ? <Loader2 size={16} className="animate-spin text-accent" />
-                  : <Sparkles size={16} className="text-accent" />
-                }
-                AI History
-              </Link>
+                  AI History
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 bg-card/98 backdrop-blur border-t border-border z-30 safe-area-bottom shadow-[0_-6px_24px_rgba(15,52,96,0.08)]"
-        style={{ height: 'var(--bottom-nav-height)' }}
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/98 backdrop-blur safe-area-bottom shadow-[0_-6px_24px_rgba(15,52,96,0.08)]"
+        style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="flex items-center justify-around h-full px-2 pt-1">
+        <div className="flex h-full items-center justify-around px-1.5 pt-1">
           {navItems.map((item) => {
             const NavIcon = item.icon;
             if (item.isAction) {
@@ -173,10 +201,10 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setQuickAddOpen(!quickAddOpen); setMoreOpen(false); }}
-                  className="relative -top-5 h-[3.75rem] w-[3.75rem] rounded-full gradient-teal flex items-center justify-center shadow-teal-glow transition-all duration-200 active:scale-95 border-4 border-background"
+                  className="relative -top-3.5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background gradient-teal shadow-teal-glow transition-all duration-200 active:scale-95"
                   aria-label="Quick add"
                 >
-                  <Plus size={24} className="text-white transition-transform duration-200" style={{ transform: quickAddOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />
+                  <Plus size={22} className="text-white transition-transform duration-200" style={{ transform: quickAddOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />
                 </button>
               );
             }
@@ -185,10 +213,10 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setMoreOpen(!moreOpen); setQuickAddOpen(false); }}
-                  className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 min-w-[56px] ${moreOpen ? 'text-accent bg-accent/8' : 'text-muted-foreground'}`}
+                  className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${moreOpen ? 'bg-accent/8 text-accent' : 'text-muted-foreground'}`}
                 >
-                  <NavIcon size={20} />
-                  <span className="text-[10px] font-600">{item.label}</span>
+                  <NavIcon size={19} />
+                  <span className="text-[10px] font-700 leading-none">{item.label}</span>
                 </button>
               );
             }
@@ -198,8 +226,8 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-colors duration-150 min-w-[56px] ${
-                  active ? 'text-accent bg-accent/8' : 'text-muted-foreground'
+                className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${
+                  active ? 'bg-accent/8 text-accent' : 'text-muted-foreground'
                 }`}
                 onClick={(event) => {
                   void handleNavigationIntent(item.href, event);
@@ -207,8 +235,8 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 aria-current={active ? 'page' : undefined}
                 aria-busy={pending ? 'true' : undefined}
               >
-                {pending ? <Loader2 size={20} className="animate-spin" /> : <NavIcon size={20} />}
-                <span className="text-[11px] font-700">{item.label}</span>
+                {pending ? <Loader2 size={19} className="animate-spin" /> : <NavIcon size={19} />}
+                <span className="text-[10px] font-700 leading-none">{item.label}</span>
               </Link>
             );
           })}

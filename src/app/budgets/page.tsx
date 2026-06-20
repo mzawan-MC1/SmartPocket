@@ -131,23 +131,26 @@ export default function BudgetsPage() {
 
   return (
     <AppLayout activeRoute="/budgets">
-      <div className="page-section">
+      <div className="page-section max-[480px]:gap-3">
         <PageHeader
           title="Budgets"
           description="Track spending against each budget's own stored period without rewriting it when your planning settings change."
           badge={<StatusBadge status="info" label="Budget planning" />}
+          compact
+          className="max-[480px]:gap-1.5 [&_.page-title]:max-[480px]:text-[1.45rem] [&_.page-subtitle]:max-[480px]:mt-0.5 [&_.page-subtitle]:max-[480px]:text-[13px] [&_.page-subtitle]:max-[480px]:leading-4"
+          actionsClassName="w-full sm:w-auto"
           actions={
-            <>
+            <div className="flex w-full sm:w-auto">
               <button onClick={() => {
                 setEditingBudget(null);
                 setShowAddModal(true);
-              }} className="btn-primary">
+              }} className="btn-primary w-full px-3 py-2.5 text-sm sm:w-auto">
                 <Plus size={16} /> Add Budget
               </button>
-            </>
+            </div>
           }
         />
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 max-[480px]:gap-1.5">
           {PERIOD_FILTERS.map((filterValue) => {
             const selected = periodFilter === filterValue;
             return (
@@ -156,7 +159,7 @@ export default function BudgetsPage() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setPeriodFilter(filterValue)}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
               >
                 {filterValue === 'all' ? 'All budgets' : getBudgetPeriodTypeLabel(filterValue)}
               </button>
@@ -166,15 +169,15 @@ export default function BudgetsPage() {
 
         {/* Overview Card */}
         {loading ? (
-          <div className="card-elevated p-6 animate-pulse">
+          <div className="card-elevated animate-pulse p-6 max-[480px]:p-4">
             <div className="h-6 bg-muted rounded w-48 mb-4" />
             <div className="h-3 bg-muted rounded w-full" />
           </div>
         ) : budgetSummaries.length > 0 ? (
-          <div className="card-elevated p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          <div className="card-elevated p-6 max-[480px]:p-4">
+            <div className="flex flex-col gap-4 max-[480px]:gap-4 lg:flex-row lg:items-center lg:gap-6">
               {singleCurrencySummary ? (
-                <div className="w-40 h-40 flex-shrink-0 mx-auto lg:mx-0">
+                <div className="mx-auto h-32 w-32 flex-shrink-0 max-[480px]:h-28 max-[480px]:w-28 lg:mx-0 lg:h-40 lg:w-40">
                   <BudgetRadialChart
                     pct={singleCurrencySummary.utilizationPct}
                     spent={singleCurrencySummary.totalSpent}
@@ -182,9 +185,9 @@ export default function BudgetsPage() {
                   />
                 </div>
               ) : null}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3 max-[480px]:space-y-3 sm:space-y-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
                     <h2 className="text-base font-700 text-foreground">Budget Overview</h2>
                     {singleCurrencySummary ? (
                       <span className={`text-sm font-700 font-tabular ${statusColor}`}>
@@ -208,7 +211,7 @@ export default function BudgetsPage() {
                   )}
                 </div>
                 {singleCurrencySummary ? (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-3 sm:gap-4">
                     {[
                       {
                         id: 'bov-budget',
@@ -238,14 +241,14 @@ export default function BudgetsPage() {
                         <FormattedCurrencyAmount
                           amount={item.amount}
                           currencyCode={singleCurrencySummary.currency}
-                          className={`text-xl font-700 font-tabular ${item.color}`}
+                          className={`text-lg font-700 font-tabular max-[480px]:text-base ${item.color}`}
                           showCode
                         />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {budgetSummaries.map((summary) => {
                       const summaryBarClass = summary.utilizationPct >= 90
                         ? 'budget-bar-red'
@@ -253,7 +256,7 @@ export default function BudgetsPage() {
                           ? 'budget-bar-amber'
                           : 'budget-bar-green';
                       return (
-                        <div key={summary.currency} className="rounded-2xl border border-border bg-muted/20 p-4">
+                        <div key={summary.currency} className="rounded-2xl border border-border bg-muted/20 p-4 max-[480px]:p-3.5">
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-700 text-foreground">{summary.currency}</p>
                             <span className="text-xs font-600 text-muted-foreground">
@@ -306,7 +309,7 @@ export default function BudgetsPage() {
                     })}
                   </div>
                 )}
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex flex-wrap items-center gap-3 max-[480px]:gap-2">
                   <span className="flex items-center gap-1.5 text-xs font-600 text-positive"><span className="w-2 h-2 rounded-full bg-positive" />{onTrack} on track</span>
                   <span className="flex items-center gap-1.5 text-xs font-600 text-warning"><span className="w-2 h-2 rounded-full bg-warning" />{warning} near limit</span>
                   <span className="flex items-center gap-1.5 text-xs font-600 text-negative"><span className="w-2 h-2 rounded-full bg-negative" />{exceeded} exceeded</span>
@@ -320,21 +323,21 @@ export default function BudgetsPage() {
         ) : null}
 
         {/* Category Budgets */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="space-y-3 max-[480px]:space-y-3 sm:space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-700 text-foreground">Category Budgets</h2>
             <button onClick={() => {
               setEditingBudget(null);
               setShowAddModal(true);
-            }} className="btn-ghost text-sm text-accent">
+            }} className="btn-ghost h-9 px-2.5 text-sm text-accent">
               <Plus size={14} /> Add Category Budget
             </button>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 xl:gap-4 2xl:grid-cols-3">
               {[...Array(4)].map((_, i) => (
-                <div key={`skel-bud-${i}`} className="card-elevated p-5 animate-pulse">
+                <div key={`skel-bud-${i}`} className="card-elevated animate-pulse p-5 max-[480px]:p-4">
                   <div className="h-4 bg-muted rounded w-32 mb-4" />
                   <div className="h-2 bg-muted rounded w-full mb-3" />
                   <div className="h-3 bg-muted rounded w-24" />
@@ -342,7 +345,7 @@ export default function BudgetsPage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="card-elevated p-12">
+            <div className="card-elevated p-12 max-[480px]:p-5">
               <EmptyState
                 icon={Plus}
                 title="No budgets yet"
@@ -357,7 +360,7 @@ export default function BudgetsPage() {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 xl:gap-4 2xl:grid-cols-3">
               {items.map((item) => {
                 const bud = item.budget;
                 const barClass = getBarClass(item.status);
@@ -371,11 +374,11 @@ export default function BudgetsPage() {
                       setDetailSnapshot(null);
                       setDetailReferenceDate(item.period.startDate);
                     }}
-                    className={`card-elevated p-5 hover:shadow-card-md transition-shadow duration-200 ${
+                    className={`card-elevated p-4 transition-shadow duration-200 hover:shadow-card-md max-[480px]:p-3.5 ${
                       item.status === 'over_budget' ? 'border-negative/30 bg-negative-soft/10' : item.status === 'near_limit' ? 'border-warning/30' : ''
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2.5">
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: catColor + '20' }}>
                           <span className="text-base" style={{ color: catColor }}>●</span>
@@ -448,7 +451,7 @@ export default function BudgetsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                       <span>{item.transactionCount} transaction{item.transactionCount === 1 ? '' : 's'} in this period</span>
                       <span>{item.warning ? 'Check Settings or FX history' : item.period.label}</span>
                     </div>
@@ -461,7 +464,7 @@ export default function BudgetsPage() {
                   setEditingBudget(null);
                   setShowAddModal(true);
                 }}
-                className="card-elevated border-dashed border-2 border-border hover:border-accent hover:bg-accent/5 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-8 min-h-[180px] group"
+                className="card-elevated group flex min-h-[160px] flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-6 transition-all duration-200 hover:border-accent hover:bg-accent/5 max-[480px]:min-h-[140px] max-[480px]:p-5"
               >
                 <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
                   <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />

@@ -266,62 +266,62 @@ export default function TransactionsTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 max-[480px]:space-y-3 sm:space-y-4">
       <div className="section-card">
-        <div className="section-card-body">
-          <div className="mb-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="section-card-body max-[480px]:p-3">
+          <div className="mb-3 flex flex-col gap-3 max-[480px]:mb-2.5 max-[480px]:gap-2.5">
+            <div className="flex flex-wrap items-center gap-2 max-[480px]:gap-1.5">
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(0); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'pay_cycle' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'pay_cycle' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Current planning period' : 'Current pay period'}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('pay_cycle'); setPeriodOffset(-1); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'pay_cycle' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'pay_cycle' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 {financialPeriodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'Previous planning period' : 'Previous pay period'}
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('month'); setPeriodOffset(0); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'month' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'month' && periodOffset === 0 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 Current month
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('month'); setPeriodOffset(-1); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'month' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'month' && periodOffset === -1 ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 Previous month
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('all_time'); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'all_time' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'all_time' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 All time
               </button>
               <button
                 type="button"
                 onClick={() => { setDateFilterMode('custom'); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 ${dateFilterMode === 'custom' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${dateFilterMode === 'custom' ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
               >
                 Custom range
               </button>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground">
+            <div className="flex flex-col gap-2 min-[430px]:flex-row min-[430px]:flex-wrap min-[430px]:items-center">
+              <div className="inline-flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-foreground min-[430px]:w-auto">
                 <CalendarRange size={14} className="text-accent" />
                 <span className="font-600">{activeDateFilter.description}:</span>
-                <span>{activeDateFilter.label}</span>
+                <span className="truncate">{activeDateFilter.label}</span>
               </div>
               {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
-                <div className="inline-flex items-center gap-1 rounded-xl border border-border bg-card px-2 py-1">
+                <div className="inline-flex items-center gap-1 self-start rounded-xl border border-border bg-card px-2 py-1">
                   <button
                     type="button"
                     onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
@@ -348,33 +348,33 @@ export default function TransactionsTable({
               ) : null}
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3 max-[480px]:gap-2.5 sm:flex-row">
             <SearchField
               placeholder="Search merchant, category, or tag..."
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               wrapperClassName="flex-1"
-              inputClassName="h-10"
+              inputClassName="h-10 max-[480px]:h-9"
             />
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2 max-[480px]:gap-1.5">
               {(['all', 'income', 'expense', 'transfer'] as const).map((t) => (
                 <button
                   key={`type-filter-${t}`}
                   onClick={() => { setFilterType(t); setPage(1); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-600 transition-all duration-150 border ${
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-600 transition-all duration-150 max-[480px]:px-2.5 ${
                     filterType === t ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent/50'
                   }`}
                 >
                   {t.charAt(0).toUpperCase() + t.slice(1)}
                 </button>
               ))}
-              <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary h-9 px-3 ${showFilters ? 'border-accent text-accent' : ''}`}>
+              <button onClick={() => setShowFilters(!showFilters)} className={`btn-secondary h-9 px-3 text-sm ${showFilters ? 'border-accent text-accent' : ''}`}>
                 <Filter size={14} /> Filters {showFilters && <X size={12} />}
               </button>
             </div>
           </div>
           {showFilters && (
-            <div className="mt-4 pt-4 border-t border-border grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 border-t border-border pt-4 sm:grid-cols-4">
               <div>
                 <label className="block text-sm font-700 text-foreground mb-1.5">Account</label>
                 <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-9 text-sm">
@@ -417,7 +417,7 @@ export default function TransactionsTable({
       </div>
 
       {selectedIds.size > 0 && (
-        <div className="section-card px-4 py-3 flex items-center gap-3 border-accent/40 bg-accent/5">
+        <div className="section-card flex items-center gap-3 border-accent/40 bg-accent/5 px-4 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
           <span className="text-sm font-600 text-foreground">{selectedIds.size} selected</span>
           <div className="flex items-center gap-2 ml-auto">
             <button onClick={() => setSelectedIds(new Set())} className="btn-ghost text-xs py-1.5 px-2"><X size={13} /></button>
@@ -425,14 +425,14 @@ export default function TransactionsTable({
         </div>
       )}
 
-      <div className="data-table-shell">
+      <div className="data-table-shell overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center">
+          <div className="p-8 text-center max-[480px]:p-5">
             <Loader2 size={24} className="animate-spin text-accent mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Loading transactions...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="p-12">
+          <div className="p-12 max-[480px]:p-5">
             <EmptyState
               icon={ArrowUpDown}
               title={transactions.length === 0 && dateFilterMode !== 'all_time' ? 'No transactions in this period' : 'No transactions yet'}
@@ -444,7 +444,93 @@ export default function TransactionsTable({
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto scrollbar-thin">
+            <div className="space-y-3 p-3 sm:hidden">
+              {paginated.map((txn) => {
+                const catColor = txn.category?.color || '#6b7280';
+                const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
+                const hasPerson = !!(txn as any).person_id;
+                const reportingPreview = transactionReportingPreviews[txn.id];
+                const showReportingPreview =
+                  reportingPreview &&
+                  reportingPreview.reportingAmount !== null &&
+                  reportingPreview.originalCurrency !== reportingPreview.reportingCurrency;
+                return (
+                  <div key={`mobile-${txn.id}`} className={`rounded-2xl border border-border bg-card p-3 shadow-card-sm ${selectedIds.has(txn.id) ? 'border-accent/40 bg-accent/5' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 rounded border-border accent-accent"
+                        checked={selectedIds.has(txn.id)}
+                        onChange={() => toggleSelect(txn.id)}
+                        aria-label="Select transaction"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-700 text-foreground">{txn.merchant || txn.description}</p>
+                            <p className="text-xs text-muted-foreground">{txn.transaction_date}</p>
+                          </div>
+                          <Badge variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}>
+                            {txn.transaction_type}
+                          </Badge>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          {txn.category ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: catColor }} />
+                              <span>{txn.category.name}</span>
+                            </span>
+                          ) : (
+                            <span>Uncategorized</span>
+                          )}
+                          <span>{txn.account?.name || 'No account'}</span>
+                          {hasReceipt ? <Paperclip size={11} className="flex-shrink-0" /> : null}
+                          {hasPerson ? <Users size={11} className="flex-shrink-0 text-accent" aria-label="Managed person transaction" /> : null}
+                        </div>
+                        {txn.notes ? (
+                          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{txn.notes}</p>
+                        ) : null}
+                        <div className="mt-3 flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <FormattedCurrencyAmount
+                              amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
+                              currencyCode={txn.currency}
+                              size="sm"
+                              className={txn.transaction_type === 'income' ? 'text-sm font-700 text-positive' : 'text-sm font-700 text-foreground'}
+                            />
+                            {showReportingPreview ? (
+                              <span className="mt-1 block text-[11px] text-muted-foreground">
+                                ≈{' '}
+                                <FormattedCurrencyAmount
+                                  amount={reportingPreview.reportingAmount as number}
+                                  currencyCode={reportingPreview.reportingCurrency}
+                                  size="xs"
+                                  className="text-[11px] text-muted-foreground"
+                                />
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => openEdit(txn)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted" aria-label="Edit">
+                              <Edit2 size={14} className="text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(txn)}
+                              disabled={deletingId === txn.id}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-negative-soft"
+                              aria-label="Delete"
+                            >
+                              {deletingId === txn.id ? <Loader2 size={14} className="animate-spin text-negative" /> : <Trash2 size={14} className="text-negative" />}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden overflow-x-auto scrollbar-thin sm:block">
               <table className="w-full min-w-[760px]">
                 <thead className="data-table-head">
                   <tr className="border-b border-border">
@@ -563,7 +649,7 @@ export default function TransactionsTable({
             </div>
 
             {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3 max-[480px]:px-3">
                 <p className="text-xs text-muted-foreground">
                   Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, filtered.length)} of {filtered.length}
                 </p>

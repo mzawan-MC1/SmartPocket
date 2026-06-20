@@ -39,7 +39,7 @@ export default function TransactionsPage() {
 
   return (
     <AppLayout activeRoute="/transactions">
-      <div className="page-section">
+      <div className="page-section max-[480px]:gap-3">
         <TransactionsHeader
           onAddTransaction={openAddTransaction}
           onExportCSV={handleExport}
@@ -47,7 +47,7 @@ export default function TransactionsPage() {
         />
         {periodLoading || !periodContext ? (
           <div className="section-card">
-            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center">
+            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
               <Loader2 size={22} className="animate-spin text-accent" />
               <div>
                 <p className="text-sm font-600 text-foreground">Loading planning period</p>

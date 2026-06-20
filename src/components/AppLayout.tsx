@@ -21,7 +21,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
   }, [activeRoute]);
 
   return (
-    <div className="min-h-screen bg-background" dir={dir}>
+    <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
       <div className="flex min-h-screen w-full items-stretch">
         {/* Desktop Sidebar — left for LTR, right for RTL */}
         <div
@@ -57,20 +57,20 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
         )}
 
         {/* Main Content Area */}
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
           <Topbar
             onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
           />
 
           <main
-            className="min-h-0 flex-1 overflow-y-auto scrollbar-thin"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
             style={{ background: 'var(--background)' }}
           >
             <div className="flex min-h-full flex-col">
-              <div className="page-shell flex-1 pt-5 pb-8 sm:pt-6 sm:pb-10 lg:pt-6 lg:pb-10">
+              <div className="page-shell flex-1 pt-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pt-3 max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pt-6 sm:pb-10 lg:pt-6 lg:pb-10">
                 {children}
               </div>
-              <div className="pb-[calc(var(--bottom-nav-height)+0.5rem)] lg:pb-0">
+              <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
                 <PortalFooter />
               </div>
             </div>

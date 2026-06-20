@@ -62,11 +62,11 @@ export default function DashboardHeader({
       description={description}
       badge={<StatusBadge status={financialPeriodContext.hasConfigurationWarning ? 'warning' : 'info'} label={badgeLabel} />}
       compact
-      className="items-start gap-2 [&_.page-title]:text-[1.875rem] [&_.page-title]:font-800 [&_.page-subtitle]:mt-1 [&_.page-subtitle]:max-w-[34rem] [&_.page-subtitle]:text-sm [&_.page-subtitle]:leading-5 2xl:grid 2xl:grid-cols-[minmax(280px,1fr)_auto] 2xl:items-center"
+      className="items-start gap-2 max-[480px]:gap-1.5 [&_.page-title]:text-[1.875rem] [&_.page-title]:font-800 max-[480px]:[&_.page-title]:text-[1.45rem] [&_.page-subtitle]:mt-1 [&_.page-subtitle]:max-w-[34rem] [&_.page-subtitle]:text-sm [&_.page-subtitle]:leading-5 max-[480px]:[&_.page-subtitle]:mt-0.5 max-[480px]:[&_.page-subtitle]:text-[13px] max-[480px]:[&_.page-subtitle]:leading-4 2xl:grid 2xl:grid-cols-[minmax(280px,1fr)_auto] 2xl:items-center"
       actionsClassName="w-full min-w-0 xl:w-[40rem] xl:flex-none 2xl:w-auto"
       actions={
-        <div className="flex w-full flex-col gap-1.5 xl:items-end 2xl:flex-row 2xl:items-center 2xl:gap-2">
-          <div className="order-1 flex w-full flex-wrap items-center justify-end gap-1 rounded-2xl border border-border/90 bg-card px-1 py-1 shadow-card xl:flex-nowrap 2xl:order-2 2xl:w-auto 2xl:justify-start">
+        <div className="flex w-full flex-col gap-1.5 max-[480px]:gap-1.5 xl:items-end 2xl:flex-row 2xl:items-center 2xl:gap-2">
+          <div className="order-1 flex w-full flex-wrap items-center justify-start gap-1 rounded-2xl border border-border/90 bg-card px-1 py-1 shadow-card max-[480px]:gap-0.5 max-[480px]:rounded-[18px] xl:flex-nowrap xl:justify-end 2xl:order-2 2xl:w-auto 2xl:justify-start">
               <Tabs
                 items={[
                   { id: 'pay_cycle', label: 'Pay period' },
@@ -74,10 +74,10 @@ export default function DashboardHeader({
                 ]}
                 activeId={viewMode}
                 onChange={onViewModeChange}
-                className="w-auto [&_.tab-button]:min-h-[2rem] [&_.tab-button]:px-2 [&_.tab-button]:py-1 [&_.tab-button]:text-[12px] [&_.tab-button]:leading-4"
+                className="w-auto [&_.tab-button]:min-h-[2rem] [&_.tab-button]:px-2 [&_.tab-button]:py-1 [&_.tab-button]:text-[12px] [&_.tab-button]:leading-4 max-[480px]:[&_.tab-button]:min-h-[1.875rem] max-[480px]:[&_.tab-button]:px-1.5 max-[480px]:[&_.tab-button]:text-[11px]"
               />
               <div className="hidden h-4 w-px bg-border/80 xl:block" />
-              <div className="inline-flex items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5">
+              <div className="inline-flex min-w-0 items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5 max-[480px]:flex-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -87,7 +87,7 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-0.5"
+                  className="btn-ghost min-h-0 rounded-lg p-0.5 max-[480px]:p-0.5"
                   aria-label={viewMode === 'month' ? 'Previous month' : 'Previous pay period'}
                 >
                   <ChevronLeft size={16} className="text-muted-foreground" />
@@ -97,11 +97,11 @@ export default function DashboardHeader({
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                      className="flex h-8 items-center gap-1 rounded-lg px-1.5 hover:bg-card"
+                      className="flex h-8 min-w-0 items-center gap-1 rounded-lg px-1.5 hover:bg-card max-[480px]:flex-1"
                       aria-label="Choose month"
                     >
                       <Calendar size={14} className="text-accent" />
-                      <span className="whitespace-nowrap text-[13px] font-700 text-foreground">
+                      <span className="truncate whitespace-nowrap text-[13px] font-700 text-foreground max-[480px]:text-[12px]">
                         {monthContext.label}
                       </span>
                     </button>
@@ -116,9 +116,9 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-8 items-center gap-1 rounded-lg px-1.5">
+                  <div className="flex h-8 min-w-0 items-center gap-1 rounded-lg px-1.5 max-[480px]:flex-1">
                     <Calendar size={14} className="text-accent" />
-                    <span className="whitespace-nowrap text-[13px] font-700 text-foreground">{activePeriod.label}</span>
+                    <span className="truncate whitespace-nowrap text-[13px] font-700 text-foreground max-[480px]:text-[12px]">{activePeriod.label}</span>
                   </div>
                 )}
                 <button
@@ -139,7 +139,7 @@ export default function DashboardHeader({
                 </button>
               </div>
           </div>
-          <div className="order-2 flex w-full flex-wrap items-center justify-end gap-1 rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-md 2xl:order-1 2xl:w-auto 2xl:flex-nowrap">
+          <div className="order-2 flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-md scrollbar-thin max-[480px]:justify-start max-[480px]:rounded-[18px] 2xl:order-1 2xl:w-auto 2xl:flex-nowrap 2xl:overflow-visible">
             {QUICK_ACTIONS.map((action) => {
               const Icon = action.icon;
               return (
@@ -147,7 +147,7 @@ export default function DashboardHeader({
                   key={action.id}
                   type="button"
                   onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className="inline-flex h-[30px] items-center gap-1 rounded-xl border border-transparent bg-transparent px-1.5 text-[12px] font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75 xl:text-[13px]"
+                  className="inline-flex h-[30px] shrink-0 items-center gap-1 rounded-xl border border-transparent bg-transparent px-1.5 text-[12px] font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75 max-[480px]:h-8 max-[480px]:px-2 xl:text-[13px]"
                   aria-label={action.label}
                 >
                   <Icon size={15} className="text-accent" />
@@ -157,7 +157,7 @@ export default function DashboardHeader({
             })}
           </div>
           {financialPeriodContext.configurationWarning ? (
-            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning lg:max-w-[520px]">
+            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning max-[480px]:px-2.5 max-[480px]:py-2 lg:max-w-[520px]">
               {financialPeriodContext.configurationWarning}
             </div>
           ) : null}
