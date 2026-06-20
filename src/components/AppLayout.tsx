@@ -30,7 +30,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
           className={`hidden self-stretch bg-card lg:flex lg:flex-shrink-0 ${
             dir === 'rtl' ? 'order-last border-s border-border' : 'border-e border-border'
           }`}
-          style={{ width: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-width)' }}
+          style={{ width: sidebarCollapsed ? '60px' : '244px' }}
         >
           <Sidebar
             collapsed={sidebarCollapsed}
@@ -69,7 +69,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
             style={{ background: 'var(--background)' }}
           >
             <div className="flex min-h-full flex-col">
-              <div className="page-shell flex-1 pt-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pt-3 max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pt-6 sm:pb-10 lg:pt-6 lg:pb-10">
+              <div className="page-shell flex-1 pt-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pt-3 max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pt-5 sm:pb-9 lg:pt-5 lg:pb-9">
                 {children}
               </div>
               <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">

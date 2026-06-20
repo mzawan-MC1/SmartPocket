@@ -95,24 +95,24 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               onNavigateItem?.();
             }
           }}
-          className={`group relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-sm font-600 transition-all duration-150 ${
+          className={`group relative flex items-center gap-2.5 overflow-hidden rounded-xl border text-sm font-600 transition-all duration-150 ${
             active
               ? 'border-accent/20 bg-accent/10 text-accent shadow-sm'
               : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/55 hover:text-foreground'
-          } ${compact ? 'px-3 py-2.5' : ''}`}
+          } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'} ${compact ? 'px-3 py-2.5' : ''}`}
           aria-current={active ? 'page' : undefined}
           aria-busy={pending ? 'true' : undefined}
           title={collapsed ? item.label : undefined}
         >
-          <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
+          <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
             active ? 'bg-white/85 text-accent ring-1 ring-accent/10' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
-          }`}>
-            <Icon size={17} />
+          } ${isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
+            <Icon size={isMobileDrawer ? 17 : 15} />
           </span>
           {!collapsed && (
             <span className="flex min-w-0 flex-1 items-center gap-2">
               <span className="truncate">{item.label}</span>
-              {pending ? <Loader2 size={14} className="animate-spin flex-shrink-0 text-accent" /> : null}
+              {pending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
             </span>
           )}
           {collapsed && pending ? (
@@ -136,46 +136,54 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     >
       {/* Logo */}
       <div
-        className="flex h-[76px] shrink-0 items-center gap-3 border-b border-border px-3"
+        className={`flex shrink-0 items-center border-b border-border ${
+          isMobileDrawer ? 'h-[76px] gap-3 px-3' : 'h-[68px] gap-2.5 px-2.5'
+        }`}
       >
         <div className="min-w-0 flex-1">
           <div
-            className={`flex h-12 items-center overflow-hidden rounded-2xl border border-border bg-muted/35 ${
-              collapsed ? 'w-11 justify-center px-1' : 'max-w-[208px] px-3'
+            className={`flex items-center overflow-hidden border border-border bg-muted/35 ${
+              isMobileDrawer
+                ? collapsed
+                  ? 'h-12 w-11 justify-center rounded-2xl px-1'
+                  : 'h-12 max-w-[208px] rounded-2xl px-3'
+                : collapsed
+                  ? 'h-10 w-10 justify-center rounded-xl px-1'
+                  : 'h-10 max-w-[184px] rounded-xl px-2.5'
             }`}
           >
             <AppLogo
-              width={collapsed ? 32 : 160}
-              height={36}
+              width={collapsed ? 28 : isMobileDrawer ? 160 : 146}
+              height={isMobileDrawer ? 36 : 32}
               className={collapsed ? 'justify-center' : 'w-full justify-start'}
             />
           </div>
           {!collapsed && showBrandText && (
-            <span className="mt-2 block truncate text-base font-bold tracking-tight text-primary">
+            <span className={`block truncate font-bold tracking-tight text-primary ${isMobileDrawer ? 'mt-2 text-base' : 'mt-1.5 text-[13px]'}`}>
               {branding.appName}
             </span>
           )}
         </div>
         <button
           onClick={onToggle}
-          className={`btn-ghost h-9 w-9 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
+          className={`btn-ghost h-8.5 w-8.5 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          <ToggleIcon size={22} className="text-muted-foreground" />
+          <ToggleIcon size={18} className="text-muted-foreground" />
         </button>
       </div>
 
       {/* Navigation */}
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 scrollbar-thin">
-        <div className="space-y-3">
+      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2 py-3'}`}>
+        <div className={isMobileDrawer ? 'space-y-3' : 'space-y-2'}>
           {navSections.map((section) => (
-            <div key={section.heading} className="space-y-1.5">
+            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1'}>
               {!collapsed && (
-                <p className="px-3 text-[10px] font-800 uppercase tracking-[0.18em] text-muted-foreground">
+                <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
                   {section.heading}
                 </p>
               )}
-              <ul className="space-y-1">
+              <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
                 {section.items.map((item) => renderNavItem(item))}
               </ul>
             </div>
@@ -184,34 +192,34 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </nav>
 
       {/* User Profile */}
-      <div className={`shrink-0 border-t border-border p-3 ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`shrink-0 border-t border-border ${isMobileDrawer ? 'p-3' : 'p-2.5'} ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
           <button
             onClick={handleSignOut}
-            className="flex h-10 w-10 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white transition-opacity hover:opacity-80"
+            className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white transition-opacity hover:opacity-80 ${isMobileDrawer ? 'h-10 w-10' : 'h-9 w-9'}`}
             title="Sign out"
           >
             {initials}
           </button>
         ) : (
-          <div className="rounded-2xl border border-border bg-secondary/45 p-3 shadow-card-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white">
+          <div className={`border border-border bg-secondary/45 shadow-card-sm ${isMobileDrawer ? 'rounded-2xl p-3' : 'rounded-xl p-2.5'}`}>
+            <div className={`flex items-center ${isMobileDrawer ? 'gap-3' : 'gap-2.5'}`}>
+              <div className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white ${isMobileDrawer ? 'h-10 w-10' : 'h-8.5 w-8.5 text-[13px]'}`}>
                 {initials}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-700 text-foreground">{displayName}</p>
+                <p className={`truncate font-700 text-foreground ${isMobileDrawer ? 'text-sm' : 'text-[13px]'}`}>{displayName}</p>
                 <p className="truncate text-xs text-muted-foreground">{displayEmail}</p>
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-card px-3 py-2">
+            <div className={`flex items-center justify-between gap-2 border border-border/80 bg-card ${isMobileDrawer ? 'mt-3 rounded-xl px-3 py-2' : 'mt-2.5 rounded-lg px-2.5 py-1.5'}`}>
               <div className="min-w-0">
                 <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">Account</p>
-                <p className="truncate text-xs text-muted-foreground">Manage profile options from the top menu.</p>
+                <p className="truncate text-[11px] text-muted-foreground">Manage profile options from the top menu.</p>
               </div>
               <button
                 onClick={handleSignOut}
-                className="inline-flex items-center justify-center rounded-xl border border-negative/20 bg-negative-soft px-3 py-2 text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80"
+                className={`inline-flex items-center justify-center border border-negative/20 bg-negative-soft text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80 ${isMobileDrawer ? 'rounded-xl px-3 py-2' : 'rounded-lg px-2.5 py-1.5'}`}
                 aria-label="Sign out"
                 title="Sign out"
               >
