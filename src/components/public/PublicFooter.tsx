@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
@@ -31,7 +32,42 @@ function LinkedinIcon({ size = 18 }: { size?: number }) {
   );
 }
 
+function getFooterSectionTitle(sectionId: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
+  switch (sectionId) {
+    case 'fs-product':
+      return t('footer.sectionProduct', { defaultValue: fallback });
+    case 'fs-support':
+      return t('footer.sectionSupport', { defaultValue: fallback });
+    case 'fs-legal':
+      return t('footer.sectionLegal', { defaultValue: fallback });
+    default:
+      return fallback;
+  }
+}
+
+function getFooterLinkLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
+  switch (href) {
+    case '/#about':
+      return t('footer.linkAbout', { defaultValue: fallback });
+    case '/#features':
+      return t('footer.linkFeatures', { defaultValue: fallback });
+    case '/#pricing':
+      return t('footer.linkPricing', { defaultValue: fallback });
+    case '/contact':
+      return t('footer.linkContact', { defaultValue: fallback });
+    case '/privacy':
+      return t('footer.privacy', { defaultValue: fallback });
+    case '/terms':
+      return t('footer.terms', { defaultValue: fallback });
+    case '/help':
+      return t('footer.linkHelp', { defaultValue: fallback });
+    default:
+      return fallback;
+  }
+}
+
 export default function PublicFooter() {
+  const { t } = useTranslation('public');
   const { branding, publicUi } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const year = new Date().getFullYear();
@@ -96,17 +132,17 @@ export default function PublicFooter() {
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {publicUi.socialTwitter && (
-                <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Twitter">
+                <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.twitter')}>
                   <TwitterIcon size={15} />
                 </a>
               )}
               {publicUi.socialGithub && (
-                <a href={publicUi.socialGithub} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="GitHub">
+                <a href={publicUi.socialGithub} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.github')}>
                   <GithubIcon size={15} />
                 </a>
               )}
               {publicUi.socialLinkedin && (
-                <a href={publicUi.socialLinkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="LinkedIn">
+                <a href={publicUi.socialLinkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.linkedin')}>
                   <LinkedinIcon size={15} />
                 </a>
               )}
@@ -116,7 +152,7 @@ export default function PublicFooter() {
           {topSections.map((section) => (
             <div key={section.id}>
               <p className="text-[11px] font-800 uppercase tracking-[0.16em] text-foreground mb-3">
-                {section.title}
+                {getFooterSectionTitle(section.id, section.title, t)}
               </p>
               <ul className="space-y-2">
                 {section.links.map((link) => (
@@ -125,7 +161,7 @@ export default function PublicFooter() {
                       href={link.href}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      {link.label}
+                      {getFooterLinkLabel(link.href, link.label, t)}
                     </Link>
                   </li>
                 ))}
@@ -136,7 +172,7 @@ export default function PublicFooter() {
 
         <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span>© {year} {branding.appName}. All rights reserved. Powered by</span>
+            <span>© {year} {branding.appName}. {t('footer.rights')} {t('footer.poweredBy')}</span>
             <Link
               href="https://www.mc1services.com/"
               target="_blank"
@@ -149,13 +185,13 @@ export default function PublicFooter() {
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
               <Link key={link.id} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {link.label}
+                {getFooterLinkLabel(link.href, link.label, t)}
               </Link>
             ))}
             {legalLinks.length === 0 && (
               <>
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</Link>
-                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</Link>
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t('footer.privacy')}</Link>
+                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t('footer.terms')}</Link>
               </>
             )}
           </div>

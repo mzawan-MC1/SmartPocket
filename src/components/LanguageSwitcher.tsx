@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { SupportedLanguage } from '@/i18n/config';
+import { type SupportedLanguage } from '@/i18n/resources';
 import { Globe, Check, ChevronDown } from 'lucide-react';
 
 interface LanguageSwitcherProps {
@@ -11,7 +12,8 @@ interface LanguageSwitcherProps {
 }
 
 export default function LanguageSwitcher({ variant = 'compact', className = '' }: LanguageSwitcherProps) {
-  const { language, setLanguage, supportedLanguages } = useLanguage();
+  const { t } = useTranslation('common');
+  const { language, setLanguage, supportedLanguages, dir } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -37,7 +39,7 @@ export default function LanguageSwitcher({ variant = 'compact', className = '' }
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 btn-ghost px-2.5 py-1.5 rounded-lg text-sm font-500 text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Select language"
+        aria-label={t('language.select')}
         aria-expanded={open}
       >
         <Globe size={15} className="flex-shrink-0" />
@@ -54,7 +56,7 @@ export default function LanguageSwitcher({ variant = 'compact', className = '' }
       {open && (
         <div
           className="absolute top-full mt-1 bg-card border border-border rounded-xl shadow-card-md z-50 min-w-[160px] py-1 overflow-hidden"
-          style={{ [language === 'ar' ? 'right' : 'left']: 0 }}
+          style={{ [dir === 'rtl' ? 'right' : 'left']: 0 }}
         >
           {supportedLanguages.map((lang) => (
             <button

@@ -1,6 +1,7 @@
  'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import DashboardHeader from '@/app/components/DashboardHeader';
 import DashboardMetrics from '@/app/components/DashboardMetrics';
@@ -63,6 +64,7 @@ function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPer
 }
 
 export default function DashboardPage() {
+  const { t } = useTranslation('portal');
   const dashboardLocale = getDashboardLocale();
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
@@ -79,11 +81,11 @@ export default function DashboardPage() {
       setPeriodContext(nextContext);
     } catch (error) {
       console.error(error);
-      toast.error('Failed to load your planning period settings.');
+      toast.error(t('shared.loadingPlanningPeriodDescription'));
     } finally {
       setPeriodLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadPeriodContext();
@@ -185,8 +187,12 @@ export default function DashboardPage() {
             <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
               <Loader2 size={22} className="animate-spin text-accent" />
               <div>
-                <p className="text-sm font-600 text-foreground">Loading planning period</p>
-                <p className="text-xs text-muted-foreground">Smart Pocket is loading your saved pay-cycle and timezone settings.</p>
+                <p className="text-sm font-600 text-foreground">
+                  {t('shared.loadingPlanningPeriodTitle')}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {t('shared.loadingPlanningPeriodDescription')}
+                </p>
               </div>
             </div>
           </div>
@@ -237,25 +243,45 @@ export default function DashboardPage() {
           initialMode="single"
         />
 
-        <Modal isOpen={activeQuickAction === 'account'} onClose={closeQuickAction} title="Add Account" size="md">
+        <Modal
+          isOpen={activeQuickAction === 'account'}
+          onClose={closeQuickAction}
+          title={t('dashboardHeader.quickActions.account')}
+          size="md"
+        >
           <FinancialAccountForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
         </Modal>
 
-        <Modal isOpen={activeQuickAction === 'recurring'} onClose={closeQuickAction} title="Add Recurring Transaction" size="md">
+        <Modal
+          isOpen={activeQuickAction === 'recurring'}
+          onClose={closeQuickAction}
+          title={t('dashboardHeader.quickActions.recurring')}
+          size="md"
+        >
           <RecurringTransactionForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
         </Modal>
 
-        <Modal isOpen={activeQuickAction === 'budget'} onClose={closeQuickAction} title="Set Category Budget" size="md">
+        <Modal
+          isOpen={activeQuickAction === 'budget'}
+          onClose={closeQuickAction}
+          title={t('dashboardHeader.quickActions.budget')}
+          size="md"
+        >
           <AddBudgetForm
             onSuccess={() => {
-              toast.success('Budget created');
+              toast.success(t('budgets.addSuccess'));
               closeQuickAction();
             }}
             onCancel={closeQuickAction}
           />
         </Modal>
 
-        <Modal isOpen={activeQuickAction === 'reimbursement'} onClose={closeQuickAction} title="Add Reimbursement" size="md">
+        <Modal
+          isOpen={activeQuickAction === 'reimbursement'}
+          onClose={closeQuickAction}
+          title={t('dashboardHeader.quickActions.reimbursement')}
+          size="md"
+        >
           <CreateReimbursementForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
         </Modal>
       </div>

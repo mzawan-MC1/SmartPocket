@@ -35,8 +35,6 @@ const LANGUAGES: { code: SupportedLanguage; label: string; dir: 'ltr' | 'rtl' }[
   { code: 'ru', label: 'Русский', dir: 'ltr' },
 ];
 
-const CONTENT_TYPES = ['general', 'homepage', 'auth', 'navigation', 'dashboard', 'transactions', 'budgets', 'reports', 'settings', 'email'];
-
 export default function AdminTranslationsPage() {
   const [translations, setTranslations] = useState<Translation[]>([]);
   const [rows, setRows] = useState<TranslationRow[]>([]);
@@ -107,7 +105,9 @@ export default function AdminTranslationsPage() {
       if (!res.ok) {
         throw new Error(json?.error || 'Failed to import translations');
       }
-      toast.success(`Imported ${json?.rows ?? 0} rows from source`);
+      toast.success(
+        `Import complete: ${json?.added ?? 0} added, ${json?.existing ?? 0} existing, ${json?.skipped ?? 0} skipped`
+      );
       await fetchTranslations();
     } catch (e: any) {
       toast.error(e?.message || 'Failed to import translations');
@@ -209,6 +209,9 @@ export default function AdminTranslationsPage() {
   });
 
   const activeLang = LANGUAGES.find((l) => l.code === activeLanguage)!;
+  const contentTypes = Array.from(new Set(rows.map((row) => row.content_type))).sort((left, right) =>
+    left.localeCompare(right)
+  );
 
   return (
       <div className="space-y-6">
@@ -265,7 +268,7 @@ export default function AdminTranslationsPage() {
             onChange={(e) => setFilterType(e.target.value)}
           >
             <option value="all">All Types</option>
-            {CONTENT_TYPES.map((t) => (
+            {contentTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>

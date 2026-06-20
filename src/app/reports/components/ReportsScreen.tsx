@@ -1,5 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart3, PieChart, TrendingUp, FileText, Target, FileDown, Printer,
   Calendar, Filter, Loader2, ChevronLeft, ChevronRight,
@@ -31,6 +32,7 @@ import {
   type ReportPeriodPreset,
   type ReportPeriodRange,
 } from '@/lib/financial-periods/reports';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
@@ -67,12 +69,37 @@ const reportPresets: Array<{ key: ReportPeriodPreset; label: string }> = [
   { key: 'custom', label: 'Custom range' },
 ];
 
-function getPresetButtonLabel(preset: ReportPeriodPreset, context: UserFinancialPeriodContext | null) {
+function getPresetButtonLabel(
+  preset: ReportPeriodPreset,
+  context: UserFinancialPeriodContext | null,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   if (context?.effectiveConfig.incomeFrequency === 'irregular') {
-    if (preset === 'current_pay_period') return 'Current planning period';
-    if (preset === 'previous_pay_period') return 'Previous planning period';
+    if (preset === 'current_pay_period') return t('reports.presets.currentPlanningPeriod');
+    if (preset === 'previous_pay_period') return t('reports.presets.previousPlanningPeriod');
   }
-  return reportPresets.find((item) => item.key === preset)?.label || preset;
+  switch (preset) {
+    case 'current_pay_period':
+      return t('reports.presets.currentPayPeriod');
+    case 'previous_pay_period':
+      return t('reports.presets.previousPayPeriod');
+    case 'current_month':
+      return t('reports.presets.currentMonth');
+    case 'previous_month':
+      return t('reports.presets.previousMonth');
+    case 'current_quarter':
+      return t('reports.presets.currentQuarter');
+    case 'current_year':
+      return t('reports.presets.currentYear');
+    case 'last_30_days':
+      return t('reports.presets.last30Days');
+    case 'year_to_date':
+      return t('reports.presets.yearToDate');
+    case 'custom':
+      return t('reports.presets.custom');
+    default:
+      return preset;
+  }
 }
 
 const CATEGORY_FALLBACK_COLORS = [
@@ -420,13 +447,28 @@ function renderConvertedMetricDetails(metric: HistoricalReportConvertedMetric) {
   );
 }
 
-function getReportTitle(activeReport: ReportType, grouping: ReportGrouping) {
+function getReportTitle(
+  activeReport: ReportType,
+  grouping: ReportGrouping,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   if (activeReport !== 'monthly-trends') {
-    return reportTypes.find((item) => item.id === activeReport)?.label || 'Report';
+    switch (activeReport) {
+      case 'income-expense':
+        return t('reports.types.incomeExpense');
+      case 'spending-category':
+        return t('reports.types.spendingCategory');
+      case 'budget-performance':
+        return t('reports.types.budgetPerformance');
+      case 'account-statement':
+        return t('reports.types.accountStatement');
+      default:
+        return t('reports.titles.report');
+    }
   }
-  if (grouping === 'day') return 'Daily Trend';
-  if (grouping === 'week') return 'Weekly Trend';
-  return 'Monthly Trends';
+  if (grouping === 'day') return t('reports.titles.dailyTrend');
+  if (grouping === 'week') return t('reports.titles.weeklyTrend');
+  return t('reports.titles.monthlyTrends');
 }
 
 function buildTransactionsCsv(data: ReportViewData) {
@@ -517,6 +559,8 @@ function buildCsvFilename(activeReport: ReportType, range: ReportPeriodRange) {
 }
 
 export default function ReportsScreen() {
+  const { t } = useTranslation('portal');
+  const { language } = useLanguage();
   const [locale, setLocale] = useState('en-US');
   const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
@@ -531,13 +575,13 @@ export default function ReportsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const browserLocale = typeof navigator !== 'undefined' && navigator.language ? navigator.language : 'en-US';
-    setLocale(browserLocale);
-    setGeneratedAtLabel(new Intl.DateTimeFormat(browserLocale, {
+    const nextLocale = language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US';
+    setLocale(nextLocale);
+    setGeneratedAtLabel(new Intl.DateTimeFormat(nextLocale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date()));
-  }, []);
+  }, [language]);
 
   const loadPeriodContext = useCallback(async () => {
     setPeriodLoading(true);
@@ -549,11 +593,11 @@ export default function ReportsScreen() {
       setCustomDateFrom((current) => current || nextContext.currentMonthlyPeriod.startDate);
       setCustomDateTo((current) => current || nextContext.currentBusinessDate);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load report period settings.');
+      toast.error(error instanceof Error ? error.message : t('reports.periodSettingsError'));
     } finally {
       setPeriodLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadPeriodContext();
@@ -591,11 +635,11 @@ export default function ReportsScreen() {
       });
       setReportData(data);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load report data');
+      toast.error(error instanceof Error ? error.message : t('reports.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [activeRange, locale, selectedAccount]);
+  }, [activeRange, locale, selectedAccount, t]);
 
   useEffect(() => {
     void loadReportData();
@@ -632,7 +676,7 @@ export default function ReportsScreen() {
     });
   }, [reportData]);
 
-  const activeTitle = getReportTitle(activeReport, grouping);
+  const activeTitle = getReportTitle(activeReport, grouping, t);
   const incomeMetric = reportData?.incomeMetric || null;
   const expensesMetric = reportData?.expensesMetric || null;
   const netMetric = reportData?.netMetric || null;
@@ -772,9 +816,9 @@ export default function ReportsScreen() {
   return (
     <div className="page-section">
       <PageHeader
-        title="Reports"
-        description="Analyze financial patterns across pay periods, months, quarters, years, and custom ranges without changing stored transactions or budgets."
-        badge={<StatusBadge status="info" label="Analytics" />}
+        title={t('reports.pageTitle')}
+        description={t('reports.pageDescription')}
+        badge={<StatusBadge status="info" label={t('reports.pageBadge')} />}
         compact
         className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
         actionsClassName="w-full sm:w-auto"
@@ -782,11 +826,11 @@ export default function ReportsScreen() {
           <div className="flex flex-wrap gap-2 print:hidden">
             <button onClick={handlePrint} className="btn-secondary">
               <Printer size={14} />
-              <span className="hidden sm:inline">Print / Save as PDF</span>
+              <span className="hidden sm:inline">{t('reports.print')}</span>
             </button>
             <button onClick={handleDownloadCSV} className="btn-secondary">
               <FileDown size={14} />
-              CSV
+              {t('reports.csv')}
             </button>
           </div>
         }
@@ -794,17 +838,37 @@ export default function ReportsScreen() {
 
       <div className="hidden print:block rounded-xl border border-border p-4">
         <p className="text-lg font-700 text-foreground">{activeTitle}</p>
-        <p className="text-sm text-muted-foreground">Range: {activeRange ? formatReportPeriodLabel(activeRange) : 'Loading'}</p>
-        <p className="text-sm text-muted-foreground">Account filter: {selectedAccount === 'all' ? 'All Accounts' : selectedAccount}</p>
-        <p className="text-sm text-muted-foreground">Reporting currency: {reportData?.reportingCurrency || 'Loading'}</p>
-        <p className="text-sm text-muted-foreground">Generated: {generatedAtLabel || 'Loading'}</p>
+        <p className="text-sm text-muted-foreground">{t('reports.range')}: {activeRange ? formatReportPeriodLabel(activeRange) : t('reports.loading')}</p>
+        <p className="text-sm text-muted-foreground">{t('reports.accountFilter')}: {selectedAccount === 'all' ? t('reports.allAccounts') : selectedAccount}</p>
+        <p className="text-sm text-muted-foreground">{t('reports.reportingCurrencyLabel')}: {reportData?.reportingCurrency || t('reports.loading')}</p>
+        <p className="text-sm text-muted-foreground">{t('reports.generated')}: {generatedAtLabel || t('reports.loading')}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <div className="space-y-2 xl:col-span-1 print:hidden">
-          <p className="mb-2 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Report Type</p>
+          <p className="mb-2 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('reports.reportType')}</p>
           {reportTypes.map((rt) => {
             const Icon = rt.icon;
+            const label =
+              rt.id === 'income-expense'
+                ? t('reports.types.incomeExpense')
+                : rt.id === 'spending-category'
+                  ? t('reports.types.spendingCategory')
+                  : rt.id === 'monthly-trends'
+                    ? t('reports.types.trends')
+                    : rt.id === 'budget-performance'
+                      ? t('reports.types.budgetPerformance')
+                      : t('reports.types.accountStatement');
+            const description =
+              rt.id === 'income-expense'
+                ? t('reports.descriptions.incomeExpense')
+                : rt.id === 'spending-category'
+                  ? t('reports.descriptions.spendingCategory')
+                  : rt.id === 'monthly-trends'
+                    ? t('reports.descriptions.trends')
+                    : rt.id === 'budget-performance'
+                      ? t('reports.descriptions.budgetPerformance')
+                      : t('reports.descriptions.accountStatement');
             return (
               <button
                 key={rt.id}
@@ -819,8 +883,8 @@ export default function ReportsScreen() {
                     <Icon size={15} />
                   </div>
                   <div className="min-w-0">
-                    <p className={`truncate text-sm font-600 ${activeReport === rt.id ? 'text-accent' : 'text-foreground'}`}>{rt.label}</p>
-                    <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground max-[480px]:hidden">{rt.description}</p>
+                    <p className={`truncate text-sm font-600 ${activeReport === rt.id ? 'text-accent' : 'text-foreground'}`}>{label}</p>
+                    <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground max-[480px]:hidden">{description}</p>
                   </div>
                 </div>
               </button>
@@ -842,7 +906,7 @@ export default function ReportsScreen() {
                       activePreset === preset.key ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
                     }`}
                   >
-                    {getPresetButtonLabel(preset.key, periodContext)}
+                    {getPresetButtonLabel(preset.key, periodContext, t)}
                   </button>
                 ))}
               </div>
@@ -850,8 +914,8 @@ export default function ReportsScreen() {
               <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
                 <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
                   <Calendar size={14} className="text-muted-foreground" />
-                  <span className="text-[11px] font-600 text-muted-foreground">From</span>
-                  <label className="sr-only" htmlFor="report-date-from">Report start date</label>
+                  <span className="text-[11px] font-600 text-muted-foreground">{t('reports.from')}</span>
+                  <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
                   <input
                     id="report-date-from"
                     type="date"
@@ -862,8 +926,8 @@ export default function ReportsScreen() {
                     }}
                     className="input-base h-8 w-[136px] max-w-full px-2 text-sm"
                   />
-                  <span className="text-[11px] font-600 text-muted-foreground">To</span>
-                  <label className="sr-only" htmlFor="report-date-to">Report end date</label>
+                  <span className="text-[11px] font-600 text-muted-foreground">{t('reports.to')}</span>
+                  <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
                   <input
                     id="report-date-to"
                     type="date"
@@ -876,15 +940,15 @@ export default function ReportsScreen() {
                   />
                   <div className="flex items-center gap-1.5 max-sm:w-full">
                     <Filter size={13} className="text-muted-foreground" />
-                    <span className="text-[11px] font-600 text-muted-foreground">Account</span>
-                    <label className="sr-only" htmlFor="report-account-filter">Filter by account</label>
+                    <span className="text-[11px] font-600 text-muted-foreground">{t('reports.account')}</span>
+                    <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
                     <select
                       id="report-account-filter"
                       value={selectedAccount}
                       onChange={(event) => setSelectedAccount(event.target.value)}
                       className="input-base h-8 min-w-[140px] max-w-full px-2 text-sm"
                     >
-                      <option value="all">All Accounts</option>
+                      <option value="all">{t('reports.allAccounts')}</option>
                       {(reportData?.accounts || []).map((account) => (
                         <option key={account.id} value={account.id}>{account.name}</option>
                       ))}
@@ -898,10 +962,10 @@ export default function ReportsScreen() {
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
                     className="btn-secondary h-8 px-2 text-sm"
-                    aria-label={`Previous ${activeRange?.navigationLabel || 'period'}`}
+                    aria-label={`${t('reports.previous')} ${activeRange?.navigationLabel || t('reports.period')}`}
                   >
                     <ChevronLeft size={14} />
-                    Previous
+                    {t('reports.previous')}
                   </button>
                   <button
                     type="button"
@@ -909,27 +973,27 @@ export default function ReportsScreen() {
                     disabled={periodLoading}
                     className="btn-secondary h-8 px-2 text-sm"
                   >
-                    Current
+                    {t('reports.current')}
                   </button>
                   <button
                     type="button"
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
                     className="btn-secondary h-8 px-2 text-sm"
-                    aria-label={`Next ${activeRange?.navigationLabel || 'period'}`}
+                    aria-label={`${t('reports.next')} ${activeRange?.navigationLabel || t('reports.period')}`}
                   >
-                    Next
+                    {t('reports.next')}
                     <ChevronRight size={14} />
                   </button>
                 </div>
                 <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground xl:text-right">
-                  <span className="font-600 text-foreground">{activeRange?.label || 'Loading period...'}</span>
+                  <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
                   {' · '}
                   {activeRange?.comparisonLabel
-                    ? `Compared with ${activeRange.comparisonLabel}`
+                    ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
                     : activePreset === 'custom'
-                      ? 'Custom report range'
-                      : 'Shared financial-period boundaries'}
+                      ? t('reports.customRange')
+                      : t('reports.sharedBoundaries')}
                 </p>
               </div>
             </div>

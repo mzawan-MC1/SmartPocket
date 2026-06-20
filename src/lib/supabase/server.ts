@@ -14,8 +14,9 @@ type CookieMutation = {
   options: CookieOptions;
 };
 
-export function createMiddlewareSupabaseClient(request: NextRequest) {
-  let response = NextResponse.next({ request });
+export function createMiddlewareSupabaseClient(request: NextRequest, requestHeaders?: Headers) {
+  const nextRequest = requestHeaders ? { headers: requestHeaders } : request;
+  let response = NextResponse.next({ request: nextRequest });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +28,7 @@ export function createMiddlewareSupabaseClient(request: NextRequest) {
         },
         setAll(cookiesToSet: CookieMutation[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = NextResponse.next({ request: nextRequest });
           cookiesToSet.forEach(({ name, value, options }) => {
             response.cookies.set(name, value, options);
           });
@@ -66,6 +67,25 @@ export async function createRouteHandlerSupabaseClient() {
   );
 
   return { supabase, cookieMutations };
+}
+
+export async function createServerComponentSupabaseClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // Server components cannot mutate cookies during render.
+        },
+      },
+    }
+  );
 }
 
 export function applySupabaseCookies(

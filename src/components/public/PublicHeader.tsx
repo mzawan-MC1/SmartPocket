@@ -3,13 +3,36 @@ import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 
+function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
+  switch (href) {
+    case '/#about':
+      return t('footer.linkAbout', { ns: 'public', defaultValue: fallback });
+    case '/#features':
+      return t('footer.linkFeatures', { ns: 'public', defaultValue: fallback });
+    case '/#pricing':
+      return t('footer.linkPricing', { ns: 'public', defaultValue: fallback });
+    case '/contact':
+      return t('footer.linkContact', { ns: 'public', defaultValue: fallback });
+    case '/privacy':
+      return t('footer.privacy', { ns: 'public', defaultValue: fallback });
+    case '/terms':
+      return t('footer.terms', { ns: 'public', defaultValue: fallback });
+    case '/help':
+      return t('footer.linkHelp', { ns: 'public', defaultValue: fallback });
+    default:
+      return fallback;
+  }
+}
+
 export default function PublicHeader() {
   const pathname = usePathname();
+  const { t } = useTranslation(['common', 'public']);
   const { branding, publicUi } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -72,7 +95,7 @@ export default function PublicHeader() {
                     : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                {item.label}
+                {getTranslatedNavLabel(item.href, item.label, t)}
               </Link>
             ))}
           </nav>
@@ -84,10 +107,10 @@ export default function PublicHeader() {
               href="/sign-up-login?mode=login"
               className="btn-ghost text-sm px-3 py-2 text-muted-foreground hover:text-foreground"
             >
-              Sign In
+              {t('nav.signIn', { ns: 'common' })}
             </Link>
             <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2 px-4">
-              Get Started
+              {t('nav.signUp', { ns: 'common' })}
             </Link>
           </div>
 
@@ -97,7 +120,7 @@ export default function PublicHeader() {
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-label={mobileOpen ? t('header.closeMenu', { ns: 'public' }) : t('header.openMenu', { ns: 'public' })}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -123,15 +146,15 @@ export default function PublicHeader() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
                 }`}
               >
-                {item.label}
+                {getTranslatedNavLabel(item.href, item.label, t)}
               </Link>
             ))}
             <div className="pt-3 border-t border-border flex flex-col gap-2">
               <Link href="/sign-up-login?mode=login" className="btn-secondary text-sm py-2.5 justify-center">
-                Sign In
+                {t('nav.signIn', { ns: 'common' })}
               </Link>
               <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2.5 justify-center">
-                Get Started Free
+                {t('header.getStartedFree', { ns: 'public' })}
               </Link>
             </div>
           </div>

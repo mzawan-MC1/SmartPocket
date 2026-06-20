@@ -1,0 +1,108 @@
+{
+  "topbar": {
+    "toggleMenu": "Basculer le menu",
+    "search": "Rechercher",
+    "searchPlaceholder": "Rechercher des transactions, comptes...",
+    "smartEntry": "Saisie intelligente",
+    "smartEntryTitle": "Saisie intelligente (IA)",
+    "userMenu": "Menu utilisateur",
+    "settings": "Paramètres",
+    "help": "Aide et support",
+    "aiHistory": "Historique IA",
+    "adminPortal": "Portail d'administration",
+    "signOut": "Se déconnecter",
+    "signOutSuccess": "Déconnexion réussie",
+    "signOutError": "Échec de la déconnexion",
+    "userFallback": "Utilisateur"
+  },
+  "notifications": {
+    "button": "Notifications",
+    "title": "Notifications",
+    "refreshing": "Actualisation des alertes...",
+    "markAllRead": "Tout marquer comme lu",
+    "noUnread": "Aucune notification non lue",
+    "oneUnread": "1 notification non lue",
+    "manyUnread": "{{count}} notifications non lues",
+    "loadErrorTitle": "Impossible de charger les notifications",
+    "tryAgain": "Réessayer",
+    "emptyTitle": "Aucune notification pour le moment",
+    "emptyDescription": "Les alertes de budget, rappels récurrents et échecs Smart Entry apparaîtront ici."
+  },
+  "sidebar": {
+    "sections": {
+      "finance": "Finance",
+      "manage": "Gestion",
+      "reports": "Rapports"
+    },
+    "nav": {
+      "transfers": "Transferts",
+      "recurring": "Récurrent",
+      "categories": "Catégories",
+      "reimbursements": "Remboursements",
+      "settlements": "Règlements",
+      "people": "Personnes",
+      "spaces": "Espaces",
+      "aiHistory": "Historique IA"
+    },
+    "expand": "Développer la barre latérale",
+    "collapse": "Réduire la barre latérale",
+    "accountTitle": "Compte",
+    "accountDescription": "Gérez le profil depuis le menu supérieur.",
+    "signOut": "Se déconnecter"
+  },
+  "bottomNav": {
+    "more": "Plus",
+    "quickAdd": "Ajout rapide",
+    "closeQuickAdd": "Fermer l'ajout rapide",
+    "closeMore": "Fermer le menu plus",
+    "smartEntry": "Saisie intelligente",
+    "voiceEntry": "Saisie vocale",
+    "expense": "Dépense",
+    "income": "Revenu",
+    "transfer": "Transfert",
+    "account": "Compte",
+    "person": "Personne",
+    "reimbursement": "Remboursement",
+    "reports": "Rapports",
+    "accounts": "Comptes",
+    "people": "Personnes",
+    "aiHistory": "Historique IA"
+  },
+  "dashboardHeader": {
+    "title": "Tableau de bord",
+    "description": "Votre vue d'ensemble financière pour {{period}}",
+    "badgeMonthFallback": "Repli mensuel",
+    "badgeMonthView": "Vue mensuelle",
+    "badgePayPeriodView": "Vue par période de paie",
+    "payPeriod": "Période de paie",
+    "month": "Mois",
+    "previousMonth": "Mois précédent",
+    "previousPayPeriod": "Période de paie précédente",
+    "nextMonth": "Mois suivant",
+    "nextPayPeriod": "Période de paie suivante",
+    "chooseMonth": "Choisir le mois",
+    "dashboardMonth": "Mois du tableau de bord",
+    "more": "Plus"
+  },
+  "shared": {
+    "loadingPlanningPeriodTitle": "Chargement de la période de planification",
+    "loadingPlanningPeriodDescription": "Smart Pocket charge vos paramètres enregistrés de cycle de paie et de fuseau horaire."
+  },
+  "transactionsHeader": {
+    "title": "Transactions",
+    "description": "Consultez, filtrez et gérez revenus, dépenses et transferts depuis un seul registre. Plage active : {{range}}",
+    "badge": "Registre financier",
+    "exportCsv": "Exporter en CSV",
+    "addTransaction": "Ajouter une transaction",
+    "exportEmpty": "Aucune transaction filtrée n'est prête à être exportée"
+  },
+  "budgets": {
+    "badge": "Planification du budget",
+    "description": "Suivez les dépenses selon la période enregistrée de chaque budget sans les réécrire lors d'un changement de configuration.",
+    "allBudgets": "Tous les budgets",
+    "overview": "Vue d'ensemble du budget",
+    "categoryBudgets": "Budgets par catégorie",
+    "emptyTitle": "Aucun budget pour le moment",
+    "emptyDescription": "Créez votre premier budget pour commencer à suivre vos limites de dépenses."
+  }
+}

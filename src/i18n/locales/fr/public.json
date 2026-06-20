@@ -1,0 +1,92 @@
+{
+  "header": {
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu",
+    "getStartedFree": "Commencer gratuitement"
+  },
+  "footer": {
+    "social": {
+      "twitter": "X",
+      "github": "GitHub",
+      "linkedin": "LinkedIn"
+    },
+    "rights": "Tous droits réservés.",
+    "poweredBy": "Propulsé par",
+    "pages": "Pages",
+    "privacy": "Confidentialité",
+    "terms": "Conditions"
+  },
+  "home": {
+    "hero": {
+      "title": "Vos finances,\nclairement visibles",
+      "subtitle": "Smart Pocket suit chaque compte, budget et transaction dans un tableau de bord clair avec des rapports professionnels, la prise en charge multi-devises et une sécurité de niveau bancaire.",
+      "primaryCta": "Commencer gratuitement",
+      "secondaryCta": "Voir les fonctionnalités"
+    },
+    "sections": {
+      "aboutTitle": "Une seule application pour toute votre vie financière",
+      "featuresTitle": "Conçu pour une vraie clarté financière",
+      "stepsTitle": "Prêt en quelques minutes",
+      "platformTitle": "Fonctionne partout où vous travaillez",
+      "securityTitle": "Sécurité et confidentialité d'abord",
+      "pricingTitle": "Des tarifs simples et transparents",
+      "languagesTitle": "Disponible en quatre langues d'interface",
+      "ctaTitle": "Prêt à reprendre le contrôle de votre argent ?"
+    }
+  },
+  "authScreen": {
+    "brandSubtitle": "Un tableau de bord clair pour tous vos comptes, budgets et objectifs financiers.",
+    "featureTrack": "Suivez chaque montant sur tous vos comptes",
+    "featureBudget": "Définissez des budgets et recevez des alertes",
+    "featureReports": "Générez des rapports professionnels et des PDF",
+    "featureSecurity": "Protégez vos données avec un contrôle d'accès par ligne",
+    "footerNote": "Vos données restent les vôtres.",
+    "unavailableTitle": "Authentification indisponible",
+    "unavailableDescription": "Aucune méthode de connexion n'est actuellement activée. Veuillez contacter le support ou réessayer plus tard."
+  },
+  "contact": {
+    "metadataTitle": "Contactez-nous",
+    "metadataDescription": "Contactez Smart Pocket pour le support, la confidentialité ou toute question générale.",
+    "titleFallback": "Contactez-nous",
+    "introFallback": "Vous avez une question ou besoin d'aide ? Utilisez le formulaire ci-dessous et notre équipe vous répondra dès que possible.",
+    "detailsEmail": "E-mail",
+    "detailsPhone": "Téléphone",
+    "detailsAddress": "Adresse",
+    "missingEmail": "Ajoutez un e-mail de support dans les paramètres de la plateforme",
+    "missingPhone": "Ajoutez un numéro de contact dans les paramètres de la plateforme",
+    "missingAddress": "Ajoutez une adresse publique dans les paramètres de la plateforme",
+    "formTitle": "Envoyez-nous un message",
+    "formDescription": "Utilisez le formulaire pour poser une question, demander de l'aide ou partager un commentaire. Nous répondons sous 24 heures.",
+    "detailsPanelTitle": "Coordonnées",
+    "detailsPanelDescription": "Ces informations publiques proviennent des paramètres de la plateforme et restent visibles même pendant la modification du contenu CMS.",
+    "notConfigured": "Non configuré"
+  },
+  "contactForm": {
+    "sentTitle": "Message envoyé !",
+    "sentDescription": "Nous vous répondrons sous 24 heures.",
+    "name": "Nom",
+    "email": "E-mail",
+    "subject": "Sujet",
+    "message": "Message",
+    "namePlaceholder": "Votre nom",
+    "emailPlaceholder": "you@example.com",
+    "subjectPlaceholder": "Comment pouvons-nous vous aider ?",
+    "messagePlaceholder": "Donnez-nous plus de détails...",
+    "submit": "Envoyer le message",
+    "submitting": "Envoi en cours...",
+    "successToast": "Message envoyé ! Nous vous répondrons sous 24 heures."
+  },
+  "resetPassword": {
+    "title": "Définir un nouveau mot de passe",
+    "subtitle": "Saisissez votre nouveau mot de passe ci-dessous",
+    "successTitle": "Mot de passe mis à jour !",
+    "successDescription": "Redirection vers la connexion...",
+    "password": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "submit": "Mettre à jour le mot de passe",
+    "submitting": "Mise à jour...",
+    "togglePassword": "Afficher ou masquer le mot de passe",
+    "toastSuccess": "Mot de passe mis à jour avec succès !",
+    "toastError": "Impossible de mettre à jour le mot de passe."
+  }
+}

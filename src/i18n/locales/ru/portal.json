@@ -1,0 +1,108 @@
+{
+  "topbar": {
+    "toggleMenu": "Переключить меню",
+    "search": "Поиск",
+    "searchPlaceholder": "Искать операции, счета...",
+    "smartEntry": "Умный ввод",
+    "smartEntryTitle": "Умный ввод (AI)",
+    "userMenu": "Меню пользователя",
+    "settings": "Настройки",
+    "help": "Помощь и поддержка",
+    "aiHistory": "История AI",
+    "adminPortal": "Портал администратора",
+    "signOut": "Выйти",
+    "signOutSuccess": "Выход выполнен успешно",
+    "signOutError": "Не удалось выйти",
+    "userFallback": "Пользователь"
+  },
+  "notifications": {
+    "button": "Уведомления",
+    "title": "Уведомления",
+    "refreshing": "Обновление оповещений...",
+    "markAllRead": "Отметить все как прочитанное",
+    "noUnread": "Нет непрочитанных уведомлений",
+    "oneUnread": "1 непрочитанное уведомление",
+    "manyUnread": "{{count}} непрочитанных уведомлений",
+    "loadErrorTitle": "Не удалось загрузить уведомления",
+    "tryAgain": "Повторить",
+    "emptyTitle": "Уведомлений пока нет",
+    "emptyDescription": "Здесь будут появляться бюджетные оповещения, напоминания о повторяющихся платежах и ошибки Smart Entry."
+  },
+  "sidebar": {
+    "sections": {
+      "finance": "Финансы",
+      "manage": "Управление",
+      "reports": "Отчеты"
+    },
+    "nav": {
+      "transfers": "Переводы",
+      "recurring": "Повторяющиеся",
+      "categories": "Категории",
+      "reimbursements": "Возмещения",
+      "settlements": "Расчеты",
+      "people": "Люди",
+      "spaces": "Пространства",
+      "aiHistory": "История AI"
+    },
+    "expand": "Развернуть боковую панель",
+    "collapse": "Свернуть боковую панель",
+    "accountTitle": "Аккаунт",
+    "accountDescription": "Управляйте профилем через верхнее меню.",
+    "signOut": "Выйти"
+  },
+  "bottomNav": {
+    "more": "Еще",
+    "quickAdd": "Быстрое добавление",
+    "closeQuickAdd": "Закрыть быстрое добавление",
+    "closeMore": "Закрыть меню Еще",
+    "smartEntry": "Умный ввод",
+    "voiceEntry": "Голосовой ввод",
+    "expense": "Расход",
+    "income": "Доход",
+    "transfer": "Перевод",
+    "account": "Счет",
+    "person": "Человек",
+    "reimbursement": "Возмещение",
+    "reports": "Отчеты",
+    "accounts": "Счета",
+    "people": "Люди",
+    "aiHistory": "История AI"
+  },
+  "dashboardHeader": {
+    "title": "Панель управления",
+    "description": "Ваш финансовый обзор за период {{period}}",
+    "badgeMonthFallback": "Переход к месяцу",
+    "badgeMonthView": "Вид по месяцу",
+    "badgePayPeriodView": "Вид по периоду выплат",
+    "payPeriod": "Период выплат",
+    "month": "Месяц",
+    "previousMonth": "Предыдущий месяц",
+    "previousPayPeriod": "Предыдущий период выплат",
+    "nextMonth": "Следующий месяц",
+    "nextPayPeriod": "Следующий период выплат",
+    "chooseMonth": "Выбрать месяц",
+    "dashboardMonth": "Месяц панели",
+    "more": "Еще"
+  },
+  "shared": {
+    "loadingPlanningPeriodTitle": "Загрузка периода планирования",
+    "loadingPlanningPeriodDescription": "Smart Pocket загружает сохраненные настройки цикла выплат и часового пояса."
+  },
+  "transactionsHeader": {
+    "title": "Транзакции",
+    "description": "Просматривайте, фильтруйте и управляйте доходами, расходами и переводами из одного журнала. Активный диапазон: {{range}}",
+    "badge": "Финансовый журнал",
+    "exportCsv": "Экспорт CSV",
+    "addTransaction": "Добавить транзакцию",
+    "exportEmpty": "Нет отфильтрованных транзакций, готовых к экспорту"
+  },
+  "budgets": {
+    "badge": "Планирование бюджета",
+    "description": "Отслеживайте расходы по каждому бюджету в его собственной сохраненной периодичности без переписывания при изменении настроек планирования.",
+    "allBudgets": "Все бюджеты",
+    "overview": "Обзор бюджета",
+    "categoryBudgets": "Бюджеты по категориям",
+    "emptyTitle": "Бюджетов пока нет",
+    "emptyDescription": "Создайте свой первый бюджет, чтобы начать отслеживать лимиты расходов."
+  }
+}

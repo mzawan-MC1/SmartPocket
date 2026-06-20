@@ -16,7 +16,7 @@ type AuthMode = 'login' | 'signup' | 'forgot';
 export default function AuthScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useTranslation('auth');
+  const { t } = useTranslation(['auth', 'public']);
   const { branding, updatedAt, auth } = usePlatformSettings();
   const year = new Date().getFullYear();
   const faviconSrc = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
@@ -42,10 +42,10 @@ export default function AuthScreen() {
   }, [router, searchParams]);
 
   const features = [
-    { id: 'feat-track', icon: TrendingUp, text: 'Track every dollar across all accounts' },
-    { id: 'feat-budget', icon: PieChart, text: 'Set budgets and get spending alerts' },
-    { id: 'feat-reports', icon: BarChart3, text: 'Professional reports and PDF statements' },
-    { id: 'feat-secure', icon: ShieldCheck, text: 'Bank-level security with row-level access control' },
+    { id: 'feat-track', icon: TrendingUp, text: t('authScreen.featureTrack', { ns: 'public' }) },
+    { id: 'feat-budget', icon: PieChart, text: t('authScreen.featureBudget', { ns: 'public' }) },
+    { id: 'feat-reports', icon: BarChart3, text: t('authScreen.featureReports', { ns: 'public' }) },
+    { id: 'feat-secure', icon: ShieldCheck, text: t('authScreen.featureSecurity', { ns: 'public' }) },
   ];
 
   return (
@@ -80,7 +80,7 @@ export default function AuthScreen() {
               {branding.tagline}
             </h2>
             <p className="text-white/78 mt-4 text-lg leading-relaxed">
-              One clean dashboard for all your accounts, budgets, and financial goals.
+              {t('authScreen.brandSubtitle', { ns: 'public' })}
             </p>
           </div>
 
@@ -101,7 +101,7 @@ export default function AuthScreen() {
 
         <div className="relative">
           <p className="text-white/40 text-xs">
-            © {year} {branding.appName}. Your data stays yours.
+            © {year} {branding.appName}. {t('authScreen.footerNote', { ns: 'public' })}
           </p>
         </div>
       </div>
@@ -131,9 +131,9 @@ export default function AuthScreen() {
           <Suspense fallback={<div className="w-full h-64 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" /></div>}>
             {!hasAnyAuthMethod ? (
               <div className="py-10 text-center">
-                <h1 className="text-2xl font-700 text-foreground tracking-tight">Authentication unavailable</h1>
+                <h1 className="text-2xl font-700 text-foreground tracking-tight">{t('authScreen.unavailableTitle', { ns: 'public' })}</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  No sign-in methods are currently enabled. Please contact support or try again later.
+                  {t('authScreen.unavailableDescription', { ns: 'public' })}
                 </p>
               </div>
             ) : mode === 'login' ? (

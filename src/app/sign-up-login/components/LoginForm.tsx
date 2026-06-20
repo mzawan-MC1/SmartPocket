@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, Globe, Apple } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
 
 interface LoginFormData {
@@ -39,6 +40,7 @@ export default function LoginForm({
   showMagicLink,
   showEmailPassword,
 }: LoginFormProps) {
+  const { t } = useTranslation(['auth', 'validation']);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -79,13 +81,13 @@ export default function LoginForm({
       if (!contentType.includes('application/json')) {
         const text = await res.text();
         console.error('[LoginForm] Non-JSON login response:', res.status, text.slice(0, 200));
-        throw new Error('The login service returned an invalid response.');
+        throw new Error(t('signIn.invalidResponse', { ns: 'auth' }));
       }
 
       const json = await res.json();
 
       if (!res.ok) {
-        toast.error(json?.error ?? 'Sign in failed. Please check your credentials.');
+        toast.error(json?.error ?? t('signIn.submitFailed', { ns: 'auth' }));
         setIsLoading(false);
         return;
       }
@@ -96,21 +98,23 @@ export default function LoginForm({
       }
 
       if (!destination.startsWith('/')) {
-        throw new Error('The login service returned an invalid destination.');
+        throw new Error(t('signIn.invalidDestination', { ns: 'auth' }));
       }
 
-      toast.success('Welcome back!');
+      toast.success(t('signIn.success', { ns: 'auth' }));
 
       // Hard navigation so the browser sends the new Supabase auth cookies
       // that were set by the server-side route handler.
       window.setTimeout(() => {
         setIsLoading(false);
-        toast.error(`Sign in succeeded, but redirect to ${destination} did not start.`);
+        toast.error(
+          t('signIn.redirectPending', { ns: 'auth', destination })
+        );
       }, 2500);
       window.location.replace(destination);
       // Note: do NOT call setIsLoading(false) — page is navigating away
     } catch (err: any) {
-      const msg = err?.message || 'Sign in failed. Please check your credentials.';
+      const msg = err?.message || t('signIn.submitFailed', { ns: 'auth' });
       toast.error(msg);
       setIsLoading(false);
     }
@@ -131,7 +135,7 @@ export default function LoginForm({
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err?.message || 'Google sign-in failed. Configure Google OAuth in Supabase first.');
+      toast.error(err?.message || t('signIn.oauthFailed', { ns: 'auth', provider: 'Google' }));
       setIsGoogleLoading(false);
     }
   };
@@ -151,7 +155,7 @@ export default function LoginForm({
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err?.message || 'Apple sign-in failed. Configure Apple OAuth in Supabase first.');
+      toast.error(err?.message || t('signIn.oauthFailed', { ns: 'auth', provider: 'Apple' }));
       setIsAppleLoading(false);
     }
   };
@@ -159,7 +163,7 @@ export default function LoginForm({
   const handleMagicLinkSignIn = async () => {
     const email = getValues('email')?.trim();
     if (!email) {
-      toast.error('Enter your email address to receive a magic link.');
+      toast.error(t('validation.email', { ns: 'validation' }));
       return;
     }
 
@@ -179,9 +183,9 @@ export default function LoginForm({
       });
 
       if (error) throw error;
-      toast.success('Magic link sent. Check your email to continue.');
+      toast.success(t('forgotPassword.success', { ns: 'auth' }));
     } catch (err: any) {
-      toast.error(err?.message || 'Magic link sign-in failed. Please try again.');
+      toast.error(err?.message || t('signIn.magicLinkFailed', { ns: 'auth' }));
     } finally {
       setIsMagicLinkLoading(false);
     }
@@ -190,8 +194,8 @@ export default function LoginForm({
   return (
     <div className="fade-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-700 text-foreground tracking-tight">Welcome back</h1>
-        <p className="text-sm text-muted-foreground mt-1.5">Sign in to your Smart Pocket account</p>
+        <h1 className="text-2xl font-700 text-foreground tracking-tight">{t('signIn.title', { ns: 'auth' })}</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">{t('signIn.subtitle', { ns: 'auth' })}</p>
       </div>
 
       {hasOauthProviders ? (
@@ -204,7 +208,7 @@ export default function LoginForm({
               disabled={isGoogleLoading}
             >
               {isGoogleLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-              Continue with Google
+              {t('signIn.google', { ns: 'auth' })}
             </button>
           ) : null}
           {showApple ? (
@@ -215,7 +219,7 @@ export default function LoginForm({
               disabled={isAppleLoading}
             >
               {isAppleLoading ? <Loader2 size={16} className="animate-spin" /> : <Apple size={17} />}
-              Continue with Apple
+              {t('signIn.apple', { ns: 'auth' })}
             </button>
           ) : null}
         </div>
@@ -225,7 +229,9 @@ export default function LoginForm({
         <div className="flex items-center gap-3 mb-6">
           <hr className="flex-1 border-border" />
           <span className="text-xs text-muted-foreground font-500">
-            {showEmailPassword ? 'or sign in with email' : 'or continue with email'}
+            {showEmailPassword
+              ? t('signIn.emailDivider', { ns: 'auth' })
+              : t('signIn.emailContinueDivider', { ns: 'auth' })}
           </span>
           <hr className="flex-1 border-border" />
         </div>
@@ -235,22 +241,23 @@ export default function LoginForm({
         {shouldShowEmailField ? (
           <div>
             <label htmlFor="login-email" className="block text-sm font-600 text-foreground mb-1.5">
-              Email address
+              {t('signIn.email', { ns: 'auth' })}
             </label>
             <input
               id="login-email"
               type="email"
               autoComplete="email"
               className={`input-base ${errors.email ? 'input-error' : ''}`}
-              placeholder="you@example.com"
+              placeholder={t('signIn.emailPlaceholder', { ns: 'auth' })}
               {...register('email', {
-                required: 'Email address is required',
-                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+                required: t('validation.required', {
+                  ns: 'validation',
+                  field: t('signIn.email', { ns: 'auth' }),
+                }),
+                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('validation.email', { ns: 'validation' }) },
               })}
             />
-            {errors.email && (
-              <p className="mt-1.5 text-xs text-negative font-500">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1.5 text-xs text-negative font-500">{errors.email.message}</p>}
           </div>
         ) : null}
 
@@ -262,7 +269,7 @@ export default function LoginForm({
             className="btn-secondary w-full justify-center py-2.5"
           >
             {isMagicLinkLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-            Email me a magic link
+            {t('signIn.magicLink', { ns: 'auth' })}
           </button>
         ) : null}
 
@@ -270,7 +277,7 @@ export default function LoginForm({
           <>
             <div>
               <label htmlFor="login-password" className="block text-sm font-600 text-foreground mb-1.5">
-                Password
+                {t('signIn.password', { ns: 'auth' })}
               </label>
               <div className="relative">
                 <input
@@ -278,17 +285,27 @@ export default function LoginForm({
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   className={`input-base pr-10 ${errors.password ? 'input-error' : ''}`}
-                  placeholder="••••••••"
+                  placeholder={t('signIn.passwordPlaceholder', { ns: 'auth' })}
                   {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                    required: t('validation.required', {
+                      ns: 'validation',
+                      field: t('signIn.password', { ns: 'auth' }),
+                    }),
+                    minLength: {
+                      value: 8,
+                      message: t('validation.minLength', {
+                        ns: 'validation',
+                        field: t('signIn.password', { ns: 'auth' }),
+                        min: 8,
+                      }),
+                    },
                   })}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('signIn.hidePassword', { ns: 'auth' }) : t('signIn.showPassword', { ns: 'auth' })}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -299,7 +316,7 @@ export default function LoginForm({
                   onClick={onForgotPassword}
                   className="text-xs font-600 text-accent hover:text-teal-600 transition-colors"
                 >
-                  Forgot password?
+                  {t('signIn.forgotPassword', { ns: 'auth' })}
                 </button>
               </div>
               {errors.password && (
@@ -315,7 +332,7 @@ export default function LoginForm({
                 {...register('rememberMe')}
               />
               <label htmlFor="login-remember" className="text-sm text-muted-foreground cursor-pointer select-none">
-                Keep me signed in for 30 days
+                {t('signIn.rememberMe', { ns: 'auth' })}
               </label>
             </div>
 
@@ -328,10 +345,10 @@ export default function LoginForm({
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Signing in...
+                  {t('signIn.submitting', { ns: 'auth' })}
                 </>
               ) : (
-                'Sign In to Smart Pocket'
+                t('signIn.submitCta', { ns: 'auth' })
               )}
             </button>
           </>
@@ -339,12 +356,12 @@ export default function LoginForm({
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-6">
-        Don&apos;t have an account?{' '}
+        {t('signIn.noAccount', { ns: 'auth' })}{' '}
         <button
           onClick={onSwitchToSignUp}
           className="font-600 text-accent hover:text-teal-600 transition-colors"
         >
-          Create one free
+          {t('signIn.createAccount', { ns: 'auth' })}
         </button>
       </p>
     </div>

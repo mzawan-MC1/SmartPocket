@@ -5,6 +5,7 @@ import {
   applySupabaseCookies,
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
+import { I18N_NAMESPACES, type TranslationNamespace } from '@/i18n/resources';
 
 type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
 
@@ -22,6 +23,10 @@ function flattenJson(value: unknown, prefix = '', out: Record<string, string> = 
   }
 
   return out;
+}
+
+function isValidTranslationKey(value: string) {
+  return /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(value);
 }
 
 export async function POST() {
@@ -51,20 +56,9 @@ export async function POST() {
 
   try {
     const localesRoot = path.join(process.cwd(), 'src', 'i18n', 'locales');
-    const languages: SupportedLanguage[] = ['en', 'ar', 'fr', 'ru'];
-
-    const contentTypesSet = new Set<string>();
-    for (const lang of languages) {
-      const langDir = path.join(localesRoot, lang);
-      const files = await fs.readdir(langDir);
-      files
-        .filter((f) => f.endsWith('.json'))
-        .forEach((f) => contentTypesSet.add(f.replace(/\.json$/, '')));
-    }
-
-    const contentTypes = Array.from(contentTypesSet.values()).sort();
-
-    const rows: Array<{
+    const sourceLanguage: SupportedLanguage = 'en';
+    const contentTypes = [...I18N_NAMESPACES];
+    const validRows: Array<{
       content_type: string;
       content_key: string;
       language: SupportedLanguage;
@@ -72,43 +66,85 @@ export async function POST() {
       is_approved: boolean;
       is_published: boolean;
     }> = [];
+    const invalid: Array<{ content_type: string; content_key: string; reason: string }> = [];
 
     for (const contentType of contentTypes) {
-      for (const lang of languages) {
-        const filePath = path.join(localesRoot, lang, `${contentType}.json`);
-        const raw = await fs.readFile(filePath, 'utf-8').catch(() => null);
-        if (!raw) continue;
+      const filePath = path.join(localesRoot, sourceLanguage, `${contentType}.json`);
+      const raw = await fs.readFile(filePath, 'utf-8').catch(() => null);
+      if (!raw) continue;
 
-        const parsed = JSON.parse(raw) as unknown;
-        const flat = flattenJson(parsed);
-        for (const [content_key, value] of Object.entries(flat)) {
-          rows.push({
+      const parsed = JSON.parse(raw) as unknown;
+      const flat = flattenJson(parsed);
+      for (const [content_key, value] of Object.entries(flat)) {
+        if (!isValidTranslationKey(content_key)) {
+          invalid.push({
             content_type: contentType,
             content_key,
-            language: lang,
-            value,
-            is_approved: true,
-            is_published: true,
+            reason: 'invalid_key_format',
           });
+          continue;
         }
+
+        validRows.push({
+          content_type: contentType,
+          content_key,
+          language: sourceLanguage,
+          value,
+          is_approved: true,
+          is_published: true,
+        });
       }
     }
 
-    const { error: upsertError } = await supabase
+    const existingKeys = validRows.map((row) => `${row.content_type}::${row.content_key}`);
+    const { data: existingRows, error: existingError } = await supabase
       .from('cms_translations')
-      .upsert(rows, { onConflict: 'content_type,content_key,language' });
+      .select('content_type,content_key,language')
+      .eq('language', sourceLanguage)
+      .in('content_type', contentTypes as TranslationNamespace[])
+      .in('content_key', validRows.map((row) => row.content_key));
 
-    if (upsertError) {
-      console.error('[admin/translations/seed] upsert failed:', upsertError.message);
-      return applySupabaseCookies(
-        NextResponse.json({ error: 'Failed to seed translations.' }, { status: 500 }),
-        cookieMutations
-      );
+    if (existingError) {
+      throw existingError;
     }
+
+    const existingSet = new Set(
+      (existingRows ?? []).map((row) => `${row.content_type}::${row.content_key}`)
+    );
+
+    const rowsToInsert = validRows.filter(
+      (row) => !existingSet.has(`${row.content_type}::${row.content_key}`)
+    );
+
+    if (rowsToInsert.length > 0) {
+      const { error: insertError } = await supabase
+        .from('cms_translations')
+        .insert(rowsToInsert);
+
+      if (insertError) {
+        console.error('[admin/translations/seed] insert failed:', insertError.message);
+        return applySupabaseCookies(
+          NextResponse.json({ error: 'Failed to seed translations.' }, { status: 500 }),
+          cookieMutations
+        );
+      }
+    }
+
+    const added = rowsToInsert.length;
+    const existing = validRows.length - added;
+    const skipped = invalid.length;
 
     return applySupabaseCookies(
       NextResponse.json(
-        { ok: true, content_types: contentTypes.length, rows: rows.length },
+        {
+          ok: true,
+          content_types: contentTypes.length,
+          added,
+          existing,
+          skipped,
+          invalid,
+          rows: validRows.length,
+        },
         { status: 200 }
       ),
       cookieMutations
@@ -121,4 +157,3 @@ export async function POST() {
     );
   }
 }
-

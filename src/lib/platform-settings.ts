@@ -65,11 +65,17 @@ export interface PlatformAuthSettings {
   passwordMinLength: number;
 }
 
+export interface PlatformLocalizationSettings {
+  defaultLanguage: 'en' | 'ar' | 'fr' | 'ru';
+  enabledLanguages: Array<'en' | 'ar' | 'fr' | 'ru'>;
+}
+
 export interface PlatformSettingsSnapshot {
   branding: PlatformBrandingSettings;
   seo: PlatformSeoSettings;
   publicUi: PlatformPublicSettings;
   auth: PlatformAuthSettings;
+  localization: PlatformLocalizationSettings;
   updatedAt?: string;
   raw: Record<string, unknown>;
 }
@@ -198,6 +204,10 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     requireEmailVerification: true,
     passwordMinLength: 8,
   },
+  localization: {
+    defaultLanguage: 'en',
+    enabledLanguages: ['en', 'ar', 'fr', 'ru'],
+  },
   updatedAt: undefined,
   raw: {},
 };
@@ -234,8 +244,23 @@ function sanitizeBoolean(value: unknown, fallback: boolean) {
   return typeof value === 'boolean' ? value : fallback;
 }
 
+function sanitizeSupportedLanguage(value: unknown): PlatformLocalizationSettings['defaultLanguage'] {
+  return value === 'ar' || value === 'fr' || value === 'ru' ? value : 'en';
+}
+
 function sanitizeTwitterCard(value: unknown): PlatformSeoSettings['twitterCard'] {
   return value === 'summary' ? 'summary' : 'summary_large_image';
+}
+
+function normalizeEnabledLanguages(value: unknown) {
+  const fallback = DEFAULT_PLATFORM_SETTINGS.localization.enabledLanguages;
+  if (!Array.isArray(value)) return fallback;
+
+  const normalized = value
+    .map((entry) => sanitizeSupportedLanguage(entry))
+    .filter((entry, index, all) => all.indexOf(entry) === index);
+
+  return normalized.length > 0 ? normalized : fallback;
 }
 
 function normalizeKeywords(value: unknown, fallback: string[]) {
@@ -403,6 +428,10 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
         typeof raw.password_min_length === 'number' && Number.isFinite(raw.password_min_length)
           ? raw.password_min_length
           : DEFAULT_PLATFORM_SETTINGS.auth.passwordMinLength,
+    },
+    localization: {
+      defaultLanguage: sanitizeSupportedLanguage(raw.default_language),
+      enabledLanguages: normalizeEnabledLanguages(raw.enabled_languages),
     },
     updatedAt: typeof raw.updated_at === 'string' ? raw.updated_at : undefined,
     raw,

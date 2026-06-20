@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, Globe, Apple, CheckCircle2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SignUpFormData {
@@ -29,6 +30,7 @@ export default function SignUpForm({
   showMagicLink,
   showEmailPassword,
 }: SignUpFormProps) {
+  const { t } = useTranslation(['auth', 'validation']);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
@@ -59,13 +61,13 @@ export default function SignUpForm({
 
       if (result.requiresEmailVerification) {
         setSuccessState('verify-email');
-        toast.success('Account created! Check your email to verify.');
+        toast.success(t('verification.subtitle', { ns: 'auth' }));
       } else {
         setSuccessState('ready');
-        toast.success('Account created! You can continue to Smart Pocket now.');
+        toast.success(t('signUp.success', { ns: 'auth' }));
       }
     } catch (err: any) {
-      const msg = err?.message || 'Sign up failed. Please try again.';
+      const msg = err?.message || t('signUp.submitFailed', { ns: 'auth' });
       toast.error(msg);
     } finally {
       setIsLoading(false);
@@ -88,7 +90,7 @@ export default function SignUpForm({
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err?.message || 'Google sign-up failed. Configure Google OAuth in Supabase first.');
+      toast.error(err?.message || t('signUp.oauthFailed', { ns: 'auth', provider: 'Google' }));
       setIsGoogleLoading(false);
     }
   };
@@ -109,7 +111,7 @@ export default function SignUpForm({
       });
       if (error) throw error;
     } catch (err: any) {
-      toast.error(err?.message || 'Apple sign-up failed. Configure Apple OAuth in Supabase first.');
+      toast.error(err?.message || t('signUp.oauthFailed', { ns: 'auth', provider: 'Apple' }));
       setIsAppleLoading(false);
     }
   };
@@ -117,7 +119,7 @@ export default function SignUpForm({
   const handleMagicLinkSignUp = async () => {
     const email = getValues('email')?.trim();
     if (!email) {
-      toast.error('Enter your email address to receive a magic link.');
+      toast.error(t('validation.email', { ns: 'validation' }));
       return;
     }
 
@@ -137,9 +139,9 @@ export default function SignUpForm({
       });
 
       if (error) throw error;
-      toast.success('Magic link sent. Check your email to continue.');
+      toast.success(t('forgotPassword.success', { ns: 'auth' }));
     } catch (err: any) {
-      toast.error(err?.message || 'Magic link sign-up failed. Please try again.');
+      toast.error(err?.message || t('signUp.magicLinkFailed', { ns: 'auth' }));
     } finally {
       setIsMagicLinkLoading(false);
     }
@@ -154,12 +156,12 @@ export default function SignUpForm({
           <CheckCircle2 size={32} className="text-positive" />
         </div>
         <h2 className="text-xl font-700 text-foreground mb-2">
-          {needsVerification ? 'Check your inbox' : 'Account created'}
+          {needsVerification ? t('verification.title', { ns: 'auth' }) : t('signUp.success', { ns: 'auth' })}
         </h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
           {needsVerification
-            ? 'We sent a verification link to your email. Click it to activate your Smart Pocket account.'
-            : 'Your account is ready. Continue to Smart Pocket to finish setting up your profile.'}
+            ? t('verification.subtitle', { ns: 'auth' })
+            : t('signUp.subtitle', { ns: 'auth' })}
         </p>
         <button
           onClick={() => {
@@ -172,7 +174,7 @@ export default function SignUpForm({
           }}
           className="btn-primary mx-auto"
         >
-          {needsVerification ? 'Back to Sign In' : 'Continue to Smart Pocket'}
+          {needsVerification ? t('forgotPassword.backToSignIn', { ns: 'auth' }) : t('signUp.continue', { ns: 'auth' })}
         </button>
       </div>
     );
@@ -181,8 +183,8 @@ export default function SignUpForm({
   return (
     <div className="fade-in">
       <div className="mb-8">
-        <h1 className="text-2xl font-700 text-foreground tracking-tight">Create your account</h1>
-        <p className="text-sm text-muted-foreground mt-1.5">Free to use. No credit card needed.</p>
+        <h1 className="text-2xl font-700 text-foreground tracking-tight">{t('signUp.title', { ns: 'auth' })}</h1>
+        <p className="text-sm text-muted-foreground mt-1.5">{t('signUp.subtitle', { ns: 'auth' })}</p>
       </div>
 
       {hasOauthProviders ? (
@@ -195,7 +197,7 @@ export default function SignUpForm({
               disabled={isGoogleLoading}
             >
               {isGoogleLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-              Sign up with Google
+              {t('signUp.google', { ns: 'auth' })}
             </button>
           ) : null}
           {showApple ? (
@@ -206,7 +208,7 @@ export default function SignUpForm({
               disabled={isAppleLoading}
             >
               {isAppleLoading ? <Loader2 size={16} className="animate-spin" /> : <Apple size={17} />}
-              Sign up with Apple
+              {t('signUp.apple', { ns: 'auth' })}
             </button>
           ) : null}
         </div>
@@ -216,7 +218,9 @@ export default function SignUpForm({
         <div className="flex items-center gap-3 mb-6">
           <hr className="flex-1 border-border" />
           <span className="text-xs text-muted-foreground font-500">
-            {showEmailPassword ? 'or sign up with email' : 'or continue with email'}
+            {showEmailPassword
+              ? t('signUp.emailDivider', { ns: 'auth' })
+              : t('signUp.emailContinueDivider', { ns: 'auth' })}
           </span>
           <hr className="flex-1 border-border" />
         </div>
@@ -226,17 +230,27 @@ export default function SignUpForm({
         {showEmailPassword ? (
           <div>
             <label htmlFor="signup-name" className="block text-sm font-600 text-foreground mb-1.5">
-              Full name
+              {t('signUp.fullName', { ns: 'auth' })}
             </label>
             <input
               id="signup-name"
               type="text"
               autoComplete="name"
               className={`input-base ${errors.fullName ? 'input-error' : ''}`}
-              placeholder="Your full name"
+              placeholder={t('signUp.fullNamePlaceholder', { ns: 'auth' })}
               {...register('fullName', {
-                required: 'Your full name is required',
-                minLength: { value: 2, message: 'Name must be at least 2 characters' },
+                required: t('validation.required', {
+                  ns: 'validation',
+                  field: t('signUp.fullName', { ns: 'auth' }),
+                }),
+                minLength: {
+                  value: 2,
+                  message: t('validation.minLength', {
+                    ns: 'validation',
+                    field: t('signUp.fullName', { ns: 'auth' }),
+                    min: 2,
+                  }),
+                },
               })}
             />
             {errors.fullName && (
@@ -248,17 +262,20 @@ export default function SignUpForm({
         {shouldShowEmailField ? (
           <div>
             <label htmlFor="signup-email" className="block text-sm font-600 text-foreground mb-1.5">
-              Email address
+              {t('signUp.email', { ns: 'auth' })}
             </label>
             <input
               id="signup-email"
               type="email"
               autoComplete="email"
               className={`input-base ${errors.email ? 'input-error' : ''}`}
-              placeholder="you@example.com"
+              placeholder={t('signUp.emailPlaceholder', { ns: 'auth' })}
               {...register('email', {
-                required: 'Email address is required',
-                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+                required: t('validation.required', {
+                  ns: 'validation',
+                  field: t('signUp.email', { ns: 'auth' }),
+                }),
+                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('validation.email', { ns: 'validation' }) },
               })}
             />
             {errors.email && (
@@ -275,7 +292,7 @@ export default function SignUpForm({
             className="btn-secondary w-full justify-center py-2.5"
           >
             {isMagicLinkLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-            Email me a magic link
+            {t('signUp.magicLink', { ns: 'auth' })}
           </button>
         ) : null}
 
@@ -283,22 +300,32 @@ export default function SignUpForm({
           <>
             <div>
               <label htmlFor="signup-password" className="block text-sm font-600 text-foreground mb-1.5">
-                Password
+                {t('signUp.password', { ns: 'auth' })}
               </label>
-              <p className="text-xs text-muted-foreground mb-1.5">At least 8 characters with a number or symbol</p>
+              <p className="text-xs text-muted-foreground mb-1.5">{t('signUp.passwordHint', { ns: 'auth' })}</p>
               <div className="relative">
                 <input
                   id="signup-password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`input-base pr-10 ${errors.password ? 'input-error' : ''}`}
-                  placeholder="••••••••"
+                  placeholder={t('signUp.passwordPlaceholder', { ns: 'auth' })}
                   {...register('password', {
-                    required: 'Password is required',
-                    minLength: { value: 8, message: 'At least 8 characters required' },
+                    required: t('validation.required', {
+                      ns: 'validation',
+                      field: t('signUp.password', { ns: 'auth' }),
+                    }),
+                    minLength: {
+                      value: 8,
+                      message: t('validation.minLength', {
+                        ns: 'validation',
+                        field: t('signUp.password', { ns: 'auth' }),
+                        min: 8,
+                      }),
+                    },
                     pattern: {
                       value: /^(?=.*[0-9!@#$%^&*])/,
-                      message: 'Include at least one number or special character',
+                      message: t('validation.passwordStrength', { ns: 'validation' }),
                     },
                   })}
                 />
@@ -306,7 +333,7 @@ export default function SignUpForm({
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-label={showPassword ? t('signUp.hidePassword', { ns: 'auth' }) : t('signUp.showPassword', { ns: 'auth' })}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -318,7 +345,7 @@ export default function SignUpForm({
 
             <div>
               <label htmlFor="signup-confirm" className="block text-sm font-600 text-foreground mb-1.5">
-                Confirm password
+                {t('signUp.confirmPassword', { ns: 'auth' })}
               </label>
               <div className="relative">
                 <input
@@ -326,17 +353,17 @@ export default function SignUpForm({
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`input-base pr-10 ${errors.confirmPassword ? 'input-error' : ''}`}
-                  placeholder="••••••••"
+                  placeholder={t('signUp.confirmPasswordPlaceholder', { ns: 'auth' })}
                   {...register('confirmPassword', {
-                    required: 'Please confirm your password',
-                    validate: (v) => v === passwordValue || 'Passwords do not match',
+                    required: t('signUp.confirmPasswordRequired', { ns: 'auth' }),
+                    validate: (v) => v === passwordValue || t('validation.passwordMatch', { ns: 'validation' }),
                   })}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  aria-label={showConfirm ? t('signUp.hidePassword', { ns: 'auth' }) : t('signUp.showPassword', { ns: 'auth' })}
                 >
                   {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -352,13 +379,13 @@ export default function SignUpForm({
                   id="signup-terms"
                   type="checkbox"
                   className="w-4 h-4 rounded border-border accent-accent cursor-pointer mt-0.5 flex-shrink-0"
-                  {...register('agreeTerms', { required: 'You must agree to the terms to continue' })}
+                  {...register('agreeTerms', { required: t('signUp.agreeRequired', { ns: 'auth' }) })}
                 />
                 <label htmlFor="signup-terms" className="text-sm text-muted-foreground cursor-pointer select-none">
-                  I agree to Smart Pocket&apos;s{' '}
-                  <a href="/terms" className="text-accent hover:underline font-600">Terms of Service</a>
-                  {' '}and{' '}
-                  <a href="/privacy" className="text-accent hover:underline font-600">Privacy Policy</a>
+                  {t('signUp.agreeTerms', { ns: 'auth' })}{' '}
+                  <a href="/terms" className="text-accent hover:underline font-600">{t('signUp.terms', { ns: 'auth' })}</a>
+                  {' '}{t('signUp.and', { ns: 'auth' })}{' '}
+                  <a href="/privacy" className="text-accent hover:underline font-600">{t('signUp.privacy', { ns: 'auth' })}</a>
                 </label>
               </div>
               {errors.agreeTerms && (
@@ -374,10 +401,10 @@ export default function SignUpForm({
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Creating account...
+                  {t('signUp.submitting', { ns: 'auth' })}
                 </>
               ) : (
-                'Create Free Account'
+                t('signUp.submitCta', { ns: 'auth' })
               )}
             </button>
           </>
@@ -385,12 +412,12 @@ export default function SignUpForm({
       </form>
 
       <p className="text-center text-sm text-muted-foreground mt-6">
-        Already have an account?{' '}
+        {t('signUp.hasAccount', { ns: 'auth' })}{' '}
         <button
           onClick={onSwitchToLogin}
           className="font-600 text-accent hover:text-teal-600 transition-colors"
         >
-          Sign in
+          {t('signUp.signIn', { ns: 'auth' })}
         </button>
       </p>
     </div>

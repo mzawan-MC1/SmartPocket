@@ -23,7 +23,7 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateItem, isMobileDrawer = false }: SidebarProps) {
   const { isRTL } = useLanguage();
-  const { t } = useTranslation('common');
+  const { t } = useTranslation(['common', 'portal']);
   const { user, signOut } = useAuth();
   const router = useRouter();
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
@@ -37,26 +37,26 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
         { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },
         { id: 'nav-accounts', label: t('nav.accounts'), icon: Wallet, href: '/financial-accounts' },
-        { id: 'nav-transfers', label: 'Transfers', icon: ArrowUpDown, href: '/transfers' },
+        { id: 'nav-transfers', label: t('sidebar.nav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
         { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
-        { id: 'nav-recurring', label: 'Recurring', icon: Repeat, href: '/recurring' },
-        { id: 'nav-categories', label: 'Categories', icon: Tag, href: '/categories' },
+        { id: 'nav-recurring', label: t('sidebar.nav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
+        { id: 'nav-categories', label: t('sidebar.nav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
       ],
     },
     {
-      heading: 'Manage',
+      heading: t('sidebar.sections.manage', { ns: 'portal' }),
       items: [
-        { id: 'nav-reimbursements', label: 'Reimbursements', icon: RotateCcw, href: '/reimbursements' },
-        { id: 'nav-settlements', label: 'Settlements', icon: DollarSign, href: '/settlements' },
-        { id: 'nav-people', label: 'People', icon: Users, href: '/people' },
-        { id: 'nav-spaces', label: 'Spaces', icon: Home, href: '/spaces' },
+        { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
+        { id: 'nav-settlements', label: t('sidebar.nav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
+        { id: 'nav-people', label: t('sidebar.nav.people', { ns: 'portal' }), icon: Users, href: '/people' },
+        { id: 'nav-spaces', label: t('sidebar.nav.spaces', { ns: 'portal' }), icon: Home, href: '/spaces' },
       ],
     },
     {
-      heading: 'Reports',
+      heading: t('sidebar.sections.reports', { ns: 'portal' }),
       items: [
         { id: 'nav-reports', label: t('nav.reports'), icon: BarChart3, href: '/reports' },
-        { id: 'nav-ai-history', label: 'AI History', icon: History, href: '/ai-history' },
+        { id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' },
       ],
     },
   ];
@@ -65,9 +65,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     try {
       await signOut();
       router.push('/sign-up-login');
-      toast.success('Signed out successfully');
+      toast.success(t('topbar.signOutSuccess', { ns: 'portal' }));
     } catch {
-      toast.error('Failed to sign out');
+      toast.error(t('topbar.signOutError', { ns: 'portal' }));
     }
   };
 
@@ -76,7 +76,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     ? (collapsed ? ChevronLeft : ChevronRight)
     : (collapsed ? ChevronRight : ChevronLeft);
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
   const displayEmail = user?.email || '';
   const initials = displayName.charAt(0).toUpperCase();
 
@@ -167,7 +167,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         <button
           onClick={onToggle}
           className={`btn-ghost h-8.5 w-8.5 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? t('sidebar.expand', { ns: 'portal' }) : t('sidebar.collapse', { ns: 'portal' })}
         >
           <ToggleIcon size={18} className="text-muted-foreground" />
         </button>
@@ -197,7 +197,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           <button
             onClick={handleSignOut}
             className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white transition-opacity hover:opacity-80 ${isMobileDrawer ? 'h-10 w-10' : 'h-9 w-9'}`}
-            title="Sign out"
+            title={t('sidebar.signOut', { ns: 'portal' })}
           >
             {initials}
           </button>
@@ -214,14 +214,14 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </div>
             <div className={`flex items-center justify-between gap-2 border border-border/80 bg-card ${isMobileDrawer ? 'mt-3 rounded-xl px-3 py-2' : 'mt-2.5 rounded-lg px-2.5 py-1.5'}`}>
               <div className="min-w-0">
-                <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">Account</p>
-                <p className="truncate text-[11px] text-muted-foreground">Manage profile options from the top menu.</p>
+                <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('sidebar.accountTitle', { ns: 'portal' })}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{t('sidebar.accountDescription', { ns: 'portal' })}</p>
               </div>
               <button
                 onClick={handleSignOut}
                 className={`inline-flex items-center justify-center border border-negative/20 bg-negative-soft text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80 ${isMobileDrawer ? 'rounded-xl px-3 py-2' : 'rounded-lg px-2.5 py-1.5'}`}
-                aria-label="Sign out"
-                title="Sign out"
+                aria-label={t('sidebar.signOut', { ns: 'portal' })}
+                title={t('sidebar.signOut', { ns: 'portal' })}
               >
                 <LogOut size={14} />
               </button>

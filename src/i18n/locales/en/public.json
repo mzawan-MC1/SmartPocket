@@ -1,0 +1,297 @@
+{
+  "header": {
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "getStartedFree": "Get Started Free"
+  },
+  "footer": {
+    "social": {
+      "twitter": "Twitter",
+      "github": "GitHub",
+      "linkedin": "LinkedIn"
+    },
+    "rights": "All rights reserved.",
+    "poweredBy": "Powered by",
+    "pages": "Pages",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "sectionProduct": "Product",
+    "sectionSupport": "Support",
+    "sectionLegal": "Legal",
+    "linkAbout": "About",
+    "linkFeatures": "Features",
+    "linkPricing": "Pricing",
+    "linkContact": "Contact",
+    "linkHelp": "Help Center"
+  },
+  "home": {
+    "hero": {
+      "title": "Your finances,\nclearly in view",
+      "subtitle": "Smart Pocket tracks every account, budget, and transaction in one clean dashboard with professional reports, multi-currency support, and bank-level security.",
+      "primaryCta": "Get Started Free",
+      "secondaryCta": "See Features"
+    },
+    "trust": {
+      "noCard": "No credit card required",
+      "freePlan": "Free plan available",
+      "oauthEnabled": "Sign in methods follow your current authentication settings"
+    },
+    "sections": {
+      "aboutTitle": "One app for your entire financial life",
+      "aboutDescription": "From daily coffee to monthly rent, every transaction, every account, and every budget stay in one place.",
+      "featuresTitle": "Built for real financial clarity",
+      "featuresDescription": "Every feature is designed around one question: does this help you understand your money better?",
+      "stepsTitle": "Up and running in minutes",
+      "stepsDescription": "No bank connection required. Add your accounts and start tracking immediately.",
+      "platformTitle": "Works everywhere you do",
+      "platformDescription": "Smart Pocket is a Progressive Web App you can install on any device, use in any modern browser, and keep available offline.",
+      "securityTitle": "Security and privacy first",
+      "securityDescription": "Your financial data stays protected with isolation, encryption, and privacy-first defaults.",
+      "pricingTitle": "Simple, transparent pricing",
+      "pricingDescription": "Start free and upgrade only when you need more capacity or collaboration.",
+      "languagesTitle": "Available in four interface languages",
+      "languagesDescription": "Choose English, Arabic, French, or Russian for the application UI while keeping Smart Entry input language separate.",
+      "ctaTitle": "Ready to take control of your money?",
+      "ctaDescription": "Create your account, add your accounts, and start tracking income, expenses, budgets, and reports in minutes."
+    },
+    "benefits": {
+      "balanceTitle": "Real-time balance tracking",
+      "balanceDescription": "See every account balance update the moment a transaction is recorded.",
+      "budgetAlertsTitle": "Budget alerts before overspend",
+      "budgetAlertsDescription": "Get notified when you are approaching your category budget limit.",
+      "reportsTitle": "PDF and CSV reports on demand",
+      "reportsDescription": "Generate professional financial statements for any date range instantly.",
+      "recurringTitle": "Recurring transaction automation",
+      "recurringDescription": "Set up subscriptions and recurring bills once and let Smart Pocket track them.",
+      "remindersTitle": "Upcoming payment reminders",
+      "remindersDescription": "Never miss a bill. The dashboard shows what is due in the next 7 days.",
+      "rlsTitle": "Row-level data isolation",
+      "rlsDescription": "Your data is invisible to every other user and enforced at the database level."
+    },
+    "features": {
+      "accountsTitle": "Multi-account management",
+      "accountsDescription": "Track bank accounts, credit cards, cash, savings, and digital wallets with live balances.",
+      "dashboardTitle": "Smart dashboard",
+      "dashboardDescription": "Review income and expense trends, category spending, and net flow from one screen.",
+      "budgetsTitle": "Budget management",
+      "budgetsDescription": "Create category budgets with visual progress and overspend alerts.",
+      "exportsTitle": "Reports and exports",
+      "exportsDescription": "Generate monthly summaries, budget performance, and income and expense breakdowns in PDF or CSV.",
+      "recurringTitle": "Recurring transactions",
+      "recurringDescription": "Automate subscriptions, rent, and salary entries.",
+      "securityTitle": "Bank-level security",
+      "securityDescription": "Supabase row-level security ensures only you can access your data."
+    },
+    "steps": {
+      "createTitle": "Create your account",
+      "createDescription": "Sign up with the authentication methods currently enabled for your platform.",
+      "accountsTitle": "Add your accounts",
+      "accountsDescription": "Add bank accounts, credit cards, cash, or any wallet type you want to track.",
+      "transactionsTitle": "Log transactions",
+      "transactionsDescription": "Record income, expenses, and transfers, and attach receipts when needed.",
+      "budgetsTitle": "Set budgets",
+      "budgetsDescription": "Create category budgets and watch your spending in real time.",
+      "reportsTitle": "Review reports",
+      "reportsDescription": "Generate PDF or CSV reports for any period, then share or archive them."
+    },
+    "platform": {
+      "mobileTitle": "Mobile (iOS and Android)",
+      "mobileDescription": "Install from the browser without an app store.",
+      "desktopTitle": "Desktop (Windows, macOS, Linux)",
+      "desktopDescription": "Use the full experience in any modern browser.",
+      "tabletTitle": "Tablet and iPad",
+      "tabletDescription": "Responsive layouts adapt cleanly to every screen size.",
+      "pwaTitle": "Install as an app",
+      "pwaDescription": "Add Smart Pocket to your home screen and keep it available offline with background sync."
+    },
+    "security": {
+      "rlsTitle": "Row-level security",
+      "rlsDescription": "Database-enforced isolation keeps your data invisible to other users.",
+      "transitTitle": "Encrypted in transit",
+      "transitDescription": "All data travels over TLS without plain-text transmission.",
+      "restTitle": "Encrypted at rest",
+      "restDescription": "Stored data remains encrypted at the storage layer.",
+      "privacyTitle": "No data selling",
+      "privacyDescription": "Smart Pocket does not sell, share, or monetize your financial data.",
+      "label": "Security & Privacy",
+      "heading": "Your data stays yours",
+      "body": "Smart Pocket uses Supabase with Row Level Security, a database-level policy that makes it technically impossible for one user to read another user's data even if they know the table structure.",
+      "readPrivacy": "Read our Privacy Policy"
+    },
+    "pricing": {
+      "freeName": "Free",
+      "freePrice": "$0",
+      "freePeriod": "forever",
+      "freeCta": "Start Free",
+      "proName": "Pro",
+      "proPrice": "$9.99",
+      "proPeriod": "/month",
+      "proCta": "Start Pro Trial",
+      "familyName": "Family",
+      "familyPrice": "$19.99",
+      "familyPeriod": "/month",
+      "familyCta": "Start Family Trial",
+      "subtitle": "Start free. Upgrade when you need more power.",
+      "mostPopular": "Most Popular",
+      "trialHint": "All paid plans include a 14-day free trial. No credit card required to start.",
+      "viewDetails": "View full pricing details",
+      "freeFeatures": {
+        "1": "3 accounts",
+        "2": "100 transactions per month",
+        "3": "Basic reports",
+        "4": "2 currencies"
+      },
+      "proFeatures": {
+        "1": "Unlimited accounts",
+        "2": "Unlimited transactions",
+        "3": "PDF and CSV exports",
+        "4": "All currencies",
+        "5": "Receipt storage",
+        "6": "Priority support"
+      },
+      "familyFeatures": {
+        "1": "Everything in Pro",
+        "2": "Up to 5 users",
+        "3": "Shared budgets",
+        "4": "Family reports"
+      }
+    },
+    "languages": {
+      "ltr": "LTR",
+      "rtl": "RTL"
+    },
+    "cta": {
+      "primary": "Create Account",
+      "secondary": "Contact Us"
+    },
+    "available": "Available",
+    "learnMore": "Learn More",
+    "lovedWorldwide": "Loved by users worldwide",
+    "preview": {
+      "totalBalance": "Total Balance",
+      "income": "Income",
+      "expenses": "Expenses",
+      "netFlow": "Net Flow",
+      "incomeVsExpenses": "Income vs Expenses - 6 months",
+      "spendingByCategory": "Spending by Category",
+      "food": "Food",
+      "transport": "Transport",
+      "bills": "Bills",
+      "recentTransactions": "Recent Transactions",
+      "groceryStore": "Grocery Store",
+      "salaryDeposit": "Salary Deposit",
+      "subscriptions": "Subscriptions",
+      "balance": "Balance",
+      "inShort": "In",
+      "outShort": "Out"
+    },
+    "auth": {
+      "apple": "Sign in with Apple",
+      "google": "Sign in with Google"
+    },
+    "currency": {
+      "title": "Multi-currency support",
+      "usd": "US Dollar",
+      "eur": "Euro",
+      "aed": "UAE Dirham",
+      "gbp": "British Pound",
+      "supported": "153 active currencies supported"
+    },
+    "reports": {
+      "title": "Professional reports, ready to share",
+      "description": "Generate income and expense summaries, budget performance reports, and spending breakdowns for any date range.",
+      "pdfTitle": "PDF Statements",
+      "pdfDescription": "Print-ready financial statements with your branding. Share with accountants or archive for records.",
+      "csvTitle": "CSV Exports",
+      "csvDescription": "Export raw transaction data to CSV for spreadsheet analysis or accounting software import.",
+      "chartsTitle": "Visual Charts",
+      "chartsDescription": "Income vs expense trends, spending by category, and budget performance are all interactive."
+    },
+    "ai": {
+      "badge": "Coming Soon",
+      "title": "Smart insights are on the roadmap",
+      "description": "Smart Pocket is being built with AI-ready architecture. Future releases will include intelligent spending pattern analysis, anomaly detection, and personalized financial suggestions, all running on your own data privately.",
+      "planned": "Planned",
+      "features": {
+        "1": "Spending pattern analysis",
+        "2": "Anomaly and unusual charge detection",
+        "3": "Personalized saving suggestions",
+        "4": "Predictive budget recommendations"
+      }
+    },
+    "contact": {
+      "badge": "Get in touch",
+      "title": "Have questions? We are here.",
+      "description": "Whether you need help getting started, have a feature request, or want to discuss enterprise pricing, reach out and we will respond within 24 hours."
+    }
+  },
+  "authScreen": {
+    "brandSubtitle": "One clean dashboard for all your accounts, budgets, and financial goals.",
+    "featureTrack": "Track every dollar across all accounts",
+    "featureBudget": "Set budgets and receive spending alerts",
+    "featureReports": "Generate professional reports and PDF statements",
+    "featureSecurity": "Protect your data with row-level access control",
+    "footerNote": "Your data stays yours.",
+    "unavailableTitle": "Authentication unavailable",
+    "unavailableDescription": "No sign-in methods are currently enabled. Please contact support or try again later."
+  },
+  "contact": {
+    "metadataTitle": "Contact Us",
+    "metadataDescription": "Contact Smart Pocket for support, privacy, or general inquiries.",
+    "titleFallback": "Contact Us",
+    "introFallback": "Have a question or need help? Use the form below and our team will get back to you as soon as possible.",
+    "detailsEmail": "Email",
+    "detailsPhone": "Phone",
+    "detailsAddress": "Address",
+    "missingEmail": "Add a support email in Platform Settings",
+    "missingPhone": "Add a contact phone in Platform Settings",
+    "missingAddress": "Add a public address in Platform Settings",
+    "formTitle": "Send us a message",
+    "formDescription": "Use the form to ask questions, request help, or share feedback. We aim to respond within 24 hours.",
+    "detailsPanelTitle": "Contact Details",
+    "detailsPanelDescription": "These public details come from Platform Settings and stay visible even while the CMS introduction is edited.",
+    "notConfigured": "Not configured"
+  },
+  "contactForm": {
+    "sentTitle": "Message sent!",
+    "sentDescription": "We will get back to you within 24 hours.",
+    "name": "Name",
+    "email": "Email",
+    "subject": "Subject",
+    "message": "Message",
+    "namePlaceholder": "Your name",
+    "emailPlaceholder": "you@example.com",
+    "subjectPlaceholder": "How can we help?",
+    "messagePlaceholder": "Tell us more...",
+    "submit": "Send Message",
+    "submitting": "Sending...",
+    "successToast": "Message sent! We will get back to you within 24 hours.",
+    "errors": {
+      "nameRequired": "Name is required",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Invalid email",
+      "subjectRequired": "Subject is required",
+      "messageRequired": "Message is required",
+      "messageMinLength": "Please provide more detail (at least 20 characters)"
+    }
+  },
+  "resetPassword": {
+    "title": "Set new password",
+    "subtitle": "Enter your new password below",
+    "successTitle": "Password updated!",
+    "successDescription": "Redirecting you to sign in...",
+    "password": "New password",
+    "confirmPassword": "Confirm new password",
+    "submit": "Update Password",
+    "submitting": "Updating...",
+    "togglePassword": "Toggle password visibility",
+    "toastSuccess": "Password updated successfully!",
+    "toastError": "Failed to update password.",
+    "errors": {
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "At least 8 characters required",
+      "confirmRequired": "Please confirm your password",
+      "confirmMismatch": "Passwords do not match"
+    }
+  }
+}

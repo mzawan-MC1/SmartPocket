@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, HelpCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
@@ -15,6 +16,7 @@ interface TopbarProps {
 }
 
 export default function Topbar({ onToggleSidebar }: TopbarProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
@@ -22,7 +24,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const quickActions = useQuickActions();
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
   const initials = displayName.charAt(0).toUpperCase();
   const isAdmin = user?.app_metadata?.role === 'admin';
 
@@ -40,9 +42,9 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     try {
       await signOut();
       router.push('/sign-up-login');
-      toast.success('Signed out successfully');
+      toast.success(t('topbar.signOutSuccess', { ns: 'portal' }));
     } catch {
-      toast.error('Failed to sign out');
+      toast.error(t('topbar.signOutError', { ns: 'portal' }));
     }
   };
 
@@ -55,7 +57,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         <button
           onClick={onToggleSidebar}
           className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 lg:hidden"
-          aria-label="Toggle menu"
+          aria-label={t('topbar.toggleMenu', { ns: 'portal' })}
         >
           <Menu size={20} className="max-[480px]:text-foreground" />
         </button>
@@ -63,7 +65,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         {/* Search */}
         <div className={`order-last basis-full transition-all duration-200 max-[480px]:pt-1 sm:order-none sm:basis-auto sm:flex-1 sm:pe-2 ${searchOpen ? 'flex' : 'hidden sm:flex'}`}>
           <SearchField
-            placeholder="Search transactions, accounts..."
+            placeholder={t('topbar.searchPlaceholder', { ns: 'portal' })}
             wrapperClassName="max-w-none sm:max-w-[28rem] lg:max-w-[34rem] xl:max-w-[40rem]"
             inputClassName="border-border/90 bg-secondary/60 max-[480px]:h-9"
           />
@@ -73,7 +75,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         <button
           onClick={() => setSearchOpen(!searchOpen)}
           className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 sm:hidden"
-          aria-label="Search"
+          aria-label={t('topbar.search', { ns: 'portal' })}
         >
           {searchOpen ? <X size={19} className="text-foreground" /> : <Search size={19} className="text-foreground" />}
         </button>
@@ -83,8 +85,8 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
             className="hidden h-10 min-w-[156px] items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-ai-soft px-4 text-sm font-700 text-ai transition-colors hover:bg-purple-100 sm:inline-flex"
-            aria-label="AI Smart Entry"
-            title="Smart Entry (AI)"
+            aria-label={t('topbar.smartEntry', { ns: 'portal' })}
+            title={t('topbar.smartEntryTitle', { ns: 'portal' })}
           >
             <Sparkles size={14} />
             <span className="hidden lg:inline">Smart Entry</span>
@@ -94,7 +96,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
             className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-full max-[480px]:border max-[480px]:border-accent/20 max-[480px]:bg-accent/12 sm:hidden"
-            aria-label="AI Smart Entry"
+            aria-label={t('topbar.smartEntry', { ns: 'portal' })}
           >
             <Sparkles size={23} className="text-accent" />
           </button>
@@ -109,7 +111,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
               className="flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 max-[480px]:h-10 max-[480px]:gap-1 max-[480px]:rounded-xl max-[480px]:px-1.5 hover:border-border hover:bg-secondary/50"
-              aria-label="User menu"
+              aria-label={t('topbar.userMenu', { ns: 'portal' })}
               aria-expanded={userMenuOpen}
             >
               <div className="flex h-7 w-7 items-center justify-center rounded-full gradient-teal text-xs font-700 text-white max-[480px]:h-7 max-[480px]:w-7">
@@ -131,7 +133,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Settings size={14} className="text-muted-foreground" />
-                  Settings
+                  {t('topbar.settings', { ns: 'portal' })}
                 </Link>
                 <Link
                   href="/help"
@@ -139,7 +141,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <HelpCircle size={14} className="text-muted-foreground" />
-                  Help & Support
+                  {t('topbar.help', { ns: 'portal' })}
                 </Link>
                 <Link
                   href="/ai-history"
@@ -147,7 +149,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   onClick={() => setUserMenuOpen(false)}
                 >
                   <Sparkles size={14} className="text-muted-foreground" />
-                  AI History
+                  {t('topbar.aiHistory', { ns: 'portal' })}
                 </Link>
                 {isAdmin && (
                   <Link
@@ -156,7 +158,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                     onClick={() => setUserMenuOpen(false)}
                   >
                     <Shield size={14} className="text-muted-foreground" />
-                    Admin Portal
+                    {t('topbar.adminPortal', { ns: 'portal' })}
                   </Link>
                 )}
                 <hr className="my-1 border-border" />
@@ -165,7 +167,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-negative transition-colors hover:bg-negative-soft"
                 >
                   <LogOut size={14} />
-                  Sign Out
+                  {t('topbar.signOut', { ns: 'portal' })}
                 </button>
               </div>
             )}

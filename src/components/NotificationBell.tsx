@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import {
   getUnreadNotificationCount,
   listNotifications,
@@ -12,14 +13,15 @@ import {
   type AppNotification,
 } from '@/lib/notifications';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const NOTIFICATION_STALE_MS = 60 * 1000;
 
-function formatNotificationTime(value: string) {
+function formatNotificationTime(value: string, language: string) {
   const date = new Date(value);
   const diffMs = date.getTime() - Date.now();
   const diffMinutes = Math.round(diffMs / (60 * 1000));
-  const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const formatter = new Intl.RelativeTimeFormat(language, { numeric: 'auto' });
 
   if (Math.abs(diffMinutes) < 60) {
     return formatter.format(diffMinutes, 'minute');
@@ -35,10 +37,12 @@ function formatNotificationTime(value: string) {
     return formatter.format(diffDays, 'day');
   }
 
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(language, { month: 'short', day: 'numeric' });
 }
 
 export default function NotificationBell() {
+  const { t } = useTranslation('portal');
+  const { language } = useLanguage();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
@@ -76,7 +80,11 @@ export default function NotificationBell() {
         setError(null);
       } catch (refreshError) {
         if (!hasLoadedRef.current) {
-          setError(refreshError instanceof Error ? refreshError.message : 'Failed to load notifications.');
+          setError(
+            refreshError instanceof Error
+              ? refreshError.message
+              : t('notifications.loadErrorTitle')
+          );
         }
       } finally {
         if (shouldShowLoading) {
@@ -101,7 +109,9 @@ export default function NotificationBell() {
         await syncInAppNotificationSignals();
       } catch (syncError) {
         if (!hasLoadedRef.current) {
-          setError(syncError instanceof Error ? syncError.message : 'Failed to refresh alerts.');
+          setError(
+            syncError instanceof Error ? syncError.message : t('notifications.refreshError')
+          );
         }
       } finally {
         setSyncing(false);
@@ -174,9 +184,9 @@ export default function NotificationBell() {
         router.push(notification.action_url);
       }
     } catch (clickError) {
-      setError(clickError instanceof Error ? clickError.message : 'Failed to open notification.');
+      setError(clickError instanceof Error ? clickError.message : t('notifications.openError'));
     }
-  }, [router]);
+  }, [router, t]);
 
   const handleMarkAll = useCallback(async () => {
     setMarkingAll(true);
@@ -185,11 +195,13 @@ export default function NotificationBell() {
       await markAllNotificationsAsRead();
       await refreshLight();
     } catch (markError) {
-      setError(markError instanceof Error ? markError.message : 'Failed to mark notifications as read.');
+      setError(
+        markError instanceof Error ? markError.message : t('notifications.markAllError')
+      );
     } finally {
       setMarkingAll(false);
     }
-  }, [refreshLight]);
+  }, [refreshLight, t]);
 
   const handleRetry = useCallback(async () => {
     await refreshLight({ showLoading: true });
@@ -197,17 +209,17 @@ export default function NotificationBell() {
   }, [refreshLight, runSignalSync]);
 
   const headerLabel = useMemo(() => {
-    if (unreadCount <= 0) return 'No unread notifications';
-    if (unreadCount === 1) return '1 unread notification';
-    return `${unreadCount} unread notifications`;
-  }, [unreadCount]);
+    if (unreadCount <= 0) return t('notifications.noUnread');
+    if (unreadCount === 1) return t('notifications.oneUnread');
+    return t('notifications.manyUnread', { count: unreadCount });
+  }, [t, unreadCount]);
 
   return (
     <div className="relative shrink-0" ref={containerRef}>
       <button
         type="button"
         className="btn-ghost relative h-12 w-12 shrink-0 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl"
-        aria-label="Notifications"
+        aria-label={t('notifications.button')}
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => {
@@ -229,13 +241,15 @@ export default function NotificationBell() {
       {open ? (
         <div
           role="dialog"
-          aria-label="Notifications"
+          aria-label={t('notifications.title')}
           className="absolute end-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg max-[480px]:fixed max-[480px]:left-3 max-[480px]:right-3 max-[480px]:top-[calc(env(safe-area-inset-top)+4rem)] max-[480px]:mt-0 max-[480px]:w-auto max-[480px]:max-w-[calc(100vw-24px)]"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
             <div>
-              <p className="text-sm font-700 text-foreground">Notifications</p>
-              <p className="text-xs text-muted-foreground">{syncing ? 'Refreshing alerts...' : headerLabel}</p>
+              <p className="text-sm font-700 text-foreground">{t('notifications.title')}</p>
+              <p className="text-xs text-muted-foreground">
+                {syncing ? t('notifications.refreshing') : headerLabel}
+              </p>
             </div>
             <button
               type="button"
@@ -244,7 +258,7 @@ export default function NotificationBell() {
               disabled={markingAll || unreadCount === 0}
             >
               {markingAll ? <Loader2 size={12} className="animate-spin" /> : <CheckCheck size={12} />}
-              Mark all read
+              {t('notifications.markAllRead')}
             </button>
           </div>
 
@@ -261,21 +275,23 @@ export default function NotificationBell() {
               </div>
             ) : error ? (
               <div className="px-4 py-6 text-center max-[480px]:px-3.5 max-[480px]:py-5">
-                <p className="text-sm font-600 text-foreground">Could not load notifications</p>
+                <p className="text-sm font-600 text-foreground">
+                  {t('notifications.loadErrorTitle')}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">{error}</p>
                 <button
                   type="button"
                   className="mt-3 btn-secondary text-sm"
                   onClick={() => void handleRetry()}
                 >
-                  Try again
+                  {t('notifications.tryAgain')}
                 </button>
               </div>
             ) : notifications.length === 0 ? (
               <div className="px-4 py-8 text-center max-[480px]:px-3.5 max-[480px]:py-6">
-                <p className="text-sm font-600 text-foreground">No notifications yet</p>
+                <p className="text-sm font-600 text-foreground">{t('notifications.emptyTitle')}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Budget alerts, recurring reminders, and Smart Entry failures will appear here.
+                  {t('notifications.emptyDescription')}
                 </p>
               </div>
             ) : (
@@ -295,7 +311,7 @@ export default function NotificationBell() {
                         <p className="text-sm font-700 text-foreground">{notification.title}</p>
                       </div>
                       <span className="shrink-0 text-[11px] text-muted-foreground">
-                        {formatNotificationTime(notification.created_at)}
+                        {formatNotificationTime(notification.created_at, language)}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">{notification.message}</p>

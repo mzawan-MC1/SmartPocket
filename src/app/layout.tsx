@@ -7,6 +7,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { PlatformSettingsProvider } from '@/contexts/PlatformSettingsContext';
 import I18nProvider from '@/components/I18nProvider';
+import { resolveInitialI18nState } from '@/i18n/server';
 import { buildBrandingCssVariables, getSettingsAssetUrl } from '@/lib/platform-settings';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 
@@ -141,6 +142,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getPlatformSettingsSnapshot();
+  const initialI18nState = await resolveInitialI18nState(settings);
   const fontVariables = [
     plusJakarta.variable,
     inter.variable,
@@ -150,16 +152,21 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const brandingCssVariables = buildBrandingCssVariables(settings.branding);
 
   return (
-    <html lang="en" className={fontVariables} style={brandingCssVariables}>
+    <html
+      lang={initialI18nState.language}
+      dir={initialI18nState.dir}
+      className={fontVariables}
+      style={brandingCssVariables}
+    >
       <body suppressHydrationWarning>
         <PlatformSettingsProvider value={settings}>
-          <I18nProvider>
-            <LanguageProvider>
-              <AuthProvider>
+          <AuthProvider>
+            <LanguageProvider initialLanguage={initialI18nState.language}>
+              <I18nProvider>
                 {children}
-              </AuthProvider>
+              </I18nProvider>
             </LanguageProvider>
-          </I18nProvider>
+          </AuthProvider>
         </PlatformSettingsProvider>
         <Toaster
           position="bottom-right"

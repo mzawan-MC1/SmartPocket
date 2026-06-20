@@ -3,15 +3,22 @@ import { notFound } from 'next/navigation';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import CmsHtml from '@/components/cms/CmsHtml';
 import ContactFormCard from '@/components/public/ContactFormCard';
+import { resolveInitialI18nState } from '@/i18n/server';
+import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 
 export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPlatformSettingsSnapshot();
+  const initialI18nState = await resolveInitialI18nState(settings);
+  const publicText = BASE_I18N_RESOURCES[initialI18nState.language].public as Record<string, any>;
   const page = await getPublicCmsPageBySlug('contact');
   if (!page) {
     return {
-      title: 'Contact Us',
-      description: 'Contact Smart Pocket for support, privacy, or general inquiries.',
+      title: publicText.contact?.metadataTitle || 'Contact Us',
+      description:
+        publicText.contact?.metadataDescription ||
+        'Contact Smart Pocket for support, privacy, or general inquiries.',
     };
   }
 
@@ -25,29 +32,38 @@ function ContactDetails({
   email,
   phone,
   address,
+  labels,
 }: {
   email: string;
   phone: string;
   address: string;
+  labels: {
+    email: string;
+    phone: string;
+    address: string;
+    missingEmail: string;
+    missingPhone: string;
+    missingAddress: string;
+  };
 }) {
   const items = [
     {
       key: 'email',
       icon: <Mail size={18} className="text-accent" />,
-      label: 'Email',
-      value: email || 'Add a support email in Platform Settings',
+      label: labels.email,
+      value: email || labels.missingEmail,
     },
     {
       key: 'phone',
       icon: <Phone size={18} className="text-accent" />,
-      label: 'Phone',
-      value: phone || 'Add a contact phone in Platform Settings',
+      label: labels.phone,
+      value: phone || labels.missingPhone,
     },
     {
       key: 'address',
       icon: <MapPin size={18} className="text-accent" />,
-      label: 'Address',
-      value: address || 'Add a public address in Platform Settings',
+      label: labels.address,
+      value: address || labels.missingAddress,
     },
   ];
 
@@ -81,19 +97,22 @@ export default async function ContactPage() {
     getAnyCmsPageBySlug('contact'),
     getPlatformSettingsSnapshot(),
   ]);
+  const initialI18nState = await resolveInitialI18nState(settings);
+  const publicText = BASE_I18N_RESOURCES[initialI18nState.language].public as Record<string, any>;
 
   if (!cmsPage && anyPage) {
     notFound();
   }
 
   const contactDetails = settings.publicUi;
+  const contactText = publicText.contact || {};
 
   return (
     <div className="py-16 px-4">
       <div className="max-w-5xl mx-auto space-y-10">
         <div className="text-center max-w-3xl mx-auto">
           <h1 className="text-4xl font-700 text-foreground mb-4">
-            {cmsPage?.title || 'Contact Us'}
+            {cmsPage?.title || contactText.titleFallback || 'Contact Us'}
           </h1>
           {cmsPage ? (
             <CmsHtml
@@ -109,36 +128,44 @@ export default async function ContactPage() {
           email={contactDetails.contactEmail}
           phone={contactDetails.contactPhoneFormatted || contactDetails.contactPhone}
           address={contactDetails.contactAddress}
+          labels={{
+            email: contactText.detailsEmail || 'Email',
+            phone: contactText.detailsPhone || 'Phone',
+            address: contactText.detailsAddress || 'Address',
+            missingEmail: contactText.missingEmail || 'Add a support email in Platform Settings',
+            missingPhone: contactText.missingPhone || 'Add a contact phone in Platform Settings',
+            missingAddress: contactText.missingAddress || 'Add a public address in Platform Settings',
+          }}
         />
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="card-elevated p-8">
-            <h2 className="text-xl font-700 text-foreground mb-3">Send us a message</h2>
+            <h2 className="text-xl font-700 text-foreground mb-3">{contactText.formTitle || 'Send us a message'}</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              Use the form to ask questions, request help, or share feedback. We aim to respond within 24 hours.
+              {contactText.formDescription || 'Use the form to ask questions, request help, or share feedback. We aim to respond within 24 hours.'}
             </p>
             <ContactFormCard />
           </div>
 
           <div className="card-elevated p-8">
-            <h2 className="text-xl font-700 text-foreground mb-3">Contact Details</h2>
+            <h2 className="text-xl font-700 text-foreground mb-3">{contactText.detailsPanelTitle || 'Contact Details'}</h2>
             <p className="text-sm text-muted-foreground mb-6">
-              These public details come from Platform Settings and stay visible even while the CMS introduction is edited.
+              {contactText.detailsPanelDescription || 'These public details come from Platform Settings and stay visible even while the CMS introduction is edited.'}
             </p>
             <div className="space-y-5">
               <div>
-                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">Email</p>
-                <p className="text-sm text-foreground break-words">{contactDetails.contactEmail || 'Not configured'}</p>
+                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">{contactText.detailsEmail || 'Email'}</p>
+                <p className="text-sm text-foreground break-words">{contactDetails.contactEmail || contactText.notConfigured || 'Not configured'}</p>
               </div>
               <div>
-                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">Phone</p>
+                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">{contactText.detailsPhone || 'Phone'}</p>
                 <p className="text-sm text-foreground">
-                  {contactDetails.contactPhoneFormatted || contactDetails.contactPhone || 'Not configured'}
+                  {contactDetails.contactPhoneFormatted || contactDetails.contactPhone || contactText.notConfigured || 'Not configured'}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">Address</p>
-                <p className="text-sm text-foreground whitespace-pre-line">{contactDetails.contactAddress || 'Not configured'}</p>
+                <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">{contactText.detailsAddress || 'Address'}</p>
+                <p className="text-sm text-foreground whitespace-pre-line">{contactDetails.contactAddress || contactText.notConfigured || 'Not configured'}</p>
               </div>
             </div>
           </div>

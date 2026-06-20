@@ -11,12 +11,14 @@ import {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-sp-pathname', pathname);
 
   if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
-  const { supabase, getResponse } = createMiddlewareSupabaseClient(request);
+  const { supabase, getResponse } = createMiddlewareSupabaseClient(request, requestHeaders);
   const {
     data: { user },
   } = await supabase.auth.getUser();

@@ -12,7 +12,7 @@ interface BottomNavProps {
 export default function BottomNav({ activeRoute }: BottomNavProps) {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const { t } = useTranslation(['common', 'dashboard']);
+  const { t } = useTranslation(['common', 'portal']);
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const quickActionsController = useQuickActions();
 
@@ -21,27 +21,27 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     { id: 'bottom-transactions', label: t('nav.transactions', { ns: 'common' }), icon: ArrowLeftRight, href: '/transactions' },
     { id: 'bottom-add', label: t('actions.add', { ns: 'common' }), icon: Plus, href: '#', isAction: true },
     { id: 'bottom-budgets', label: t('nav.budgets', { ns: 'common' }), icon: PieChart, href: '/budgets' },
-    { id: 'bottom-more', label: 'More', icon: MoreHorizontal, href: '#', isMore: true },
+    { id: 'bottom-more', label: t('bottomNav.more', { ns: 'portal' }), icon: MoreHorizontal, href: '#', isMore: true },
   ];
 
   const quickActions = [
-    { id: 'qa-expense', label: 'Expense', icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', action: 'expense' as QuickActionId },
-    { id: 'qa-income', label: 'Income', icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
-    { id: 'qa-transfer', label: 'Transfer', icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', action: 'transfer' as QuickActionId },
-    { id: 'qa-account', label: 'Account', icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', action: 'account' as QuickActionId },
-    { id: 'qa-person', label: 'Person', icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', action: 'person' as QuickActionId },
-    { id: 'qa-reimb', label: 'Reimbursement', icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', action: 'reimbursement' as QuickActionId },
+    { id: 'qa-expense', label: t('bottomNav.expense', { ns: 'portal' }), icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', action: 'expense' as QuickActionId },
+    { id: 'qa-income', label: t('bottomNav.income', { ns: 'portal' }), icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
+    { id: 'qa-transfer', label: t('bottomNav.transfer', { ns: 'portal' }), icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', action: 'transfer' as QuickActionId },
+    { id: 'qa-account', label: t('bottomNav.account', { ns: 'portal' }), icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', action: 'account' as QuickActionId },
+    { id: 'qa-person', label: t('bottomNav.person', { ns: 'portal' }), icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', action: 'person' as QuickActionId },
+    { id: 'qa-reimb', label: t('bottomNav.reimbursement', { ns: 'portal' }), icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', action: 'reimbursement' as QuickActionId },
   ];
 
   const moreItems = [
-    { id: 'more-transfers', label: 'Transfers', icon: ArrowUpDown, href: '/transfers' },
-    { id: 'more-recurring', label: 'Recurring', icon: Repeat, href: '/recurring' },
-    { id: 'more-categories', label: 'Categories', icon: Tag, href: '/categories' },
-    { id: 'more-reports', label: 'Reports', icon: BarChart3, href: '/reports' },
-    { id: 'more-accounts', label: 'Accounts', icon: Wallet, href: '/financial-accounts' },
-    { id: 'more-people', label: 'People', icon: Users, href: '/people' },
-    { id: 'more-reimbursements', label: 'Reimbursements', icon: RotateCcw, href: '/reimbursements' },
-    { id: 'more-settlements', label: 'Settlements', icon: DollarSign, href: '/settlements' },
+    { id: 'more-transfers', label: t('bottomNav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
+    { id: 'more-recurring', label: t('bottomNav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
+    { id: 'more-categories', label: t('bottomNav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
+    { id: 'more-reports', label: t('bottomNav.reports', { ns: 'portal' }), icon: BarChart3, href: '/reports' },
+    { id: 'more-accounts', label: t('bottomNav.accounts', { ns: 'portal' }), icon: Wallet, href: '/financial-accounts' },
+    { id: 'more-people', label: t('bottomNav.people', { ns: 'portal' }), icon: Users, href: '/people' },
+    { id: 'more-reimbursements', label: t('bottomNav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
+    { id: 'more-settlements', label: t('bottomNav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
   ];
 
   useEffect(() => {
@@ -62,12 +62,12 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
         <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <p className="text-sm font-700 text-foreground">Quick Add</p>
+              <p className="text-sm font-700 text-foreground">{t('bottomNav.quickAdd', { ns: 'portal' })}</p>
               <button
                 type="button"
                 onClick={() => setQuickAddOpen(false)}
                 className="btn-ghost h-8 w-8 rounded-full p-0"
-                aria-label="Close quick add"
+                aria-label={t('bottomNav.closeQuickAdd', { ns: 'portal' })}
               >
                 <X size={16} />
               </button>
@@ -82,7 +82,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                   className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
                 >
                   <Sparkles size={20} />
-                  <span className="text-xs font-700">Smart Entry</span>
+                  <span className="text-xs font-700">{t('bottomNav.smartEntry', { ns: 'portal' })}</span>
                 </button>
                 <button
                   onClick={() => {
@@ -92,7 +92,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                   className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
                 >
                   <Mic size={20} />
-                  <span className="text-xs font-700">Voice Entry</span>
+                  <span className="text-xs font-700">{t('bottomNav.voiceEntry', { ns: 'portal' })}</span>
                 </button>
               </div>
               <div className="border-t border-border pt-3">
@@ -125,12 +125,12 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
         <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <p className="text-sm font-700 text-foreground">More</p>
+              <p className="text-sm font-700 text-foreground">{t('bottomNav.more', { ns: 'portal' })}</p>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
                 className="btn-ghost h-8 w-8 rounded-full p-0"
-                aria-label="Close more menu"
+                aria-label={t('bottomNav.closeMore', { ns: 'portal' })}
               >
                 <X size={16} />
               </button>
@@ -180,7 +180,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                     ? <Loader2 size={16} className="animate-spin text-accent" />
                     : <Sparkles size={16} className="text-accent" />
                   }
-                  AI History
+                  {t('bottomNav.aiHistory', { ns: 'portal' })}
                 </Link>
               </div>
             </div>
@@ -201,7 +201,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                   key={item.id}
                   onClick={() => { setQuickAddOpen(!quickAddOpen); setMoreOpen(false); }}
                   className="relative -top-3.5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background gradient-teal shadow-teal-glow transition-all duration-200 active:scale-95"
-                  aria-label="Quick add"
+                  aria-label={t('bottomNav.quickAdd', { ns: 'portal' })}
                 >
                   <Plus size={22} className="text-white transition-transform duration-200" style={{ transform: quickAddOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />
                 </button>

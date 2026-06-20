@@ -1,7 +1,19 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { SupportedLanguage, isRTL, SUPPORTED_LANGUAGES } from '@/i18n/config';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
+import { createClient } from '@/lib/supabase/client';
+import {
+  DEFAULT_LANGUAGE,
+  I18N_COOKIE_NAME,
+  I18N_STORAGE_KEY,
+  SUPPORTED_LANGUAGES,
+  isRTL,
+  isSupportedLanguage,
+  type SupportedLanguage,
+} from '@/i18n/resources';
 
 interface LanguageContextValue {
   language: SupportedLanguage;
@@ -21,49 +33,122 @@ const LanguageContext = createContext<LanguageContextValue>({
 
 export const useLanguage = () => useContext(LanguageContext);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<SupportedLanguage>('en');
-  const [mounted, setMounted] = useState(false);
+function persistBrowserLanguage(language: SupportedLanguage) {
+  if (typeof window === 'undefined') return;
+
+  window.localStorage.setItem(I18N_STORAGE_KEY, language);
+  document.cookie = `${I18N_COOKIE_NAME}=${encodeURIComponent(language)}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function readBrowserLanguage() {
+  if (typeof window === 'undefined') return null;
+
+  const stored = window.localStorage.getItem(I18N_STORAGE_KEY);
+  return isSupportedLanguage(stored) ? stored : null;
+}
+
+export function LanguageProvider({
+  children,
+  initialLanguage = DEFAULT_LANGUAGE,
+}: {
+  children: React.ReactNode;
+  initialLanguage?: SupportedLanguage;
+}) {
+  const pathname = usePathname();
+  const { user, loading: authLoading } = useAuth();
+  const { localization } = usePlatformSettings();
+  const [language, setLanguageState] = useState<SupportedLanguage>(initialLanguage);
+  const profileRequestRef = useRef<string | null>(null);
+  const isAdminRoute = pathname.startsWith('/admin');
+  const effectiveLanguage = isAdminRoute ? DEFAULT_LANGUAGE : language;
+  const supportedLanguages = useMemo(() => {
+    const enabled = new Set<SupportedLanguage>(localization.enabledLanguages || []);
+    return SUPPORTED_LANGUAGES.filter((entry) => enabled.has(entry.code as SupportedLanguage));
+  }, [localization.enabledLanguages]);
 
   useEffect(() => {
-    // Read from localStorage on mount
-    const stored = localStorage.getItem('sp_language') as SupportedLanguage | null;
-    const valid = SUPPORTED_LANGUAGES.map((l) => l.code);
-    if (stored && valid.includes(stored)) {
-      setLanguageState(stored);
+    if (isAdminRoute) return;
+
+    const browserLanguage = readBrowserLanguage();
+    if (browserLanguage && browserLanguage !== language) {
+      setLanguageState(browserLanguage);
+      return;
     }
-    setMounted(true);
-  }, []);
+
+    const platformLanguage = isSupportedLanguage(localization.defaultLanguage)
+      ? localization.defaultLanguage
+      : DEFAULT_LANGUAGE;
+    if (platformLanguage !== language) {
+      setLanguageState(platformLanguage);
+    }
+  }, [isAdminRoute, language, localization.defaultLanguage]);
 
   useEffect(() => {
-    if (!mounted) return;
-    // Apply direction to document
-    const dir = isRTL(language) ? 'rtl' : 'ltr';
+    const dir = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
     document.documentElement.dir = dir;
-    document.documentElement.lang = language;
-    // Update i18n
+    document.documentElement.lang = effectiveLanguage;
+
     import('@/i18n/config').then(({ default: i18n }) => {
-      if (i18n.language !== language) {
-        i18n.changeLanguage(language);
+      if (i18n.language !== effectiveLanguage) {
+        i18n.changeLanguage(effectiveLanguage);
       }
     });
-  }, [language, mounted]);
+  }, [effectiveLanguage]);
+
+  useEffect(() => {
+    if (authLoading || isAdminRoute || !user?.id) {
+      return;
+    }
+
+    if (profileRequestRef.current === user.id) {
+      return;
+    }
+
+    profileRequestRef.current = user.id;
+    const supabase = createClient();
+
+    void supabase
+      .from('user_profiles')
+      .select('preferred_language')
+      .eq('id', user.id)
+      .single()
+      .then((result: { data: { preferred_language: string | null } | null; error: unknown }) => {
+        const { data, error } = result;
+        if (error) return;
+        if (!isSupportedLanguage(data?.preferred_language)) return;
+
+        if (data.preferred_language !== language) {
+          setLanguageState(data.preferred_language);
+        }
+        persistBrowserLanguage(data.preferred_language);
+      });
+  }, [authLoading, isAdminRoute, language, user?.id]);
 
   const setLanguage = useCallback((lang: SupportedLanguage) => {
-    setLanguageState(lang);
-    localStorage.setItem('sp_language', lang);
-  }, []);
+    if (isAdminRoute || !isSupportedLanguage(lang)) return;
 
-  const dir = isRTL(language) ? 'rtl' : 'ltr';
+    setLanguageState(lang);
+    persistBrowserLanguage(lang);
+
+    if (user?.id) {
+      const supabase = createClient();
+      void supabase
+        .from('user_profiles')
+        .update({ preferred_language: lang })
+        .eq('id', user.id);
+    }
+  }, [isAdminRoute, user?.id]);
+
+  const dir = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
 
   return (
     <LanguageContext.Provider
       value={{
-        language,
+        language: effectiveLanguage,
         setLanguage,
         dir,
-        isRTL: isRTL(language),
-        supportedLanguages: SUPPORTED_LANGUAGES,
+        isRTL: isRTL(effectiveLanguage),
+        supportedLanguages,
       }}
     >
       {children}
