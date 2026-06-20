@@ -82,7 +82,7 @@ export default function CreateReimbursementForm({
 
       dispatchSmartPocketDataChanged({
         source: 'reimbursement-form',
-        entities: ['dashboard'],
+        entities: ['dashboard', 'people', 'reimbursements', 'settlements'],
       });
       toast.success('Reimbursement created');
       onSuccess();
@@ -103,7 +103,7 @@ export default function CreateReimbursementForm({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-[480px]:space-y-3">
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">Person *</label>
         <select className="input-base" value={form.person_id} onChange={(event) => setForm((current) => ({ ...current, person_id: event.target.value }))}>
@@ -184,11 +184,13 @@ export default function CreateReimbursementForm({
         />
       </div>
 
-      <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
-        <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary">
+      <div className="sticky bottom-0 border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:safe-area-bottom max-[480px]:px-4">
+        <div className="flex gap-2 justify-end max-[480px]:grid max-[480px]:grid-cols-2">
+        <button type="button" onClick={onCancel} className="btn-secondary max-[480px]:w-full">Cancel</button>
+        <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary max-[480px]:w-full">
           {isSaving ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : 'Add Reimbursement'}
         </button>
+        </div>
       </div>
     </div>
   );

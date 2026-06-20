@@ -775,6 +775,9 @@ export default function ReportsScreen() {
         title="Reports"
         description="Analyze financial patterns across pay periods, months, quarters, years, and custom ranges without changing stored transactions or budgets."
         badge={<StatusBadge status="info" label="Analytics" />}
+        compact
+        className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+        actionsClassName="w-full sm:w-auto"
         actions={
           <div className="flex flex-wrap gap-2 print:hidden">
             <button onClick={handlePrint} className="btn-secondary">
@@ -797,9 +800,9 @@ export default function ReportsScreen() {
         <p className="text-sm text-muted-foreground">Generated: {generatedAtLabel || 'Loading'}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <div className="space-y-2 xl:col-span-1 print:hidden">
-          <p className="mb-3 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Report Type</p>
+          <p className="mb-2 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">Report Type</p>
           {reportTypes.map((rt) => {
             const Icon = rt.icon;
             return (
@@ -807,7 +810,7 @@ export default function ReportsScreen() {
                 key={rt.id}
                 onClick={() => setActiveReport(rt.id)}
                 aria-pressed={activeReport === rt.id}
-                className={`w-full rounded-xl border p-3 text-left transition-all duration-150 ${
+                className={`w-full rounded-xl border p-3 text-left transition-all duration-150 max-[480px]:p-2.5 ${
                   activeReport === rt.id ? 'border-accent bg-accent/8 shadow-sm' : 'border-border bg-card hover:border-accent/40 hover:bg-muted/40'
                 }`}
               >
@@ -817,7 +820,7 @@ export default function ReportsScreen() {
                   </div>
                   <div className="min-w-0">
                     <p className={`truncate text-sm font-600 ${activeReport === rt.id ? 'text-accent' : 'text-foreground'}`}>{rt.label}</p>
-                    <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{rt.description}</p>
+                    <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground max-[480px]:hidden">{rt.description}</p>
                   </div>
                 </div>
               </button>
@@ -826,7 +829,7 @@ export default function ReportsScreen() {
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-2.5 print:hidden">
+          <div className="card-elevated p-2.5 print:hidden max-[480px]:p-2">
             <div className="flex flex-col gap-1.5">
               <div className="flex flex-wrap items-center gap-1 xl:flex-nowrap xl:gap-1.5">
                 {reportPresets.map((preset) => (
@@ -932,9 +935,9 @@ export default function ReportsScreen() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
             {summaryByType[activeReport].map((item) => (
-              <div key={item.id} className="card-elevated p-4">
+              <div key={item.id} className="card-elevated p-4 max-[480px]:p-3">
                 <p className="mb-1.5 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{item.label}</p>
                 <div className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
                   {loading || periodLoading ? (
@@ -951,8 +954,8 @@ export default function ReportsScreen() {
             ))}
           </div>
 
-          <div className="card-elevated p-5">
-            <div className="mb-5 flex items-center justify-between">
+          <div className="card-elevated p-5 max-[480px]:p-3">
+            <div className="mb-4 flex items-center justify-between gap-3 max-[480px]:mb-3">
               <div>
                 <h2 className="text-base font-700 text-foreground">{activeTitle}</h2>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -1084,7 +1087,7 @@ export default function ReportsScreen() {
             )}
           </div>
 
-          <div className="card-elevated p-4 print:hidden">
+          <div className="card-elevated p-4 print:hidden max-[480px]:p-3">
             <p className="mb-3 text-sm font-700 text-foreground">Download Options</p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
@@ -1148,7 +1151,66 @@ function AccountStatementTable(args: {
   }
 
   return (
-    <div className="overflow-x-auto scrollbar-thin">
+    <>
+      <div className="space-y-3 sm:hidden">
+        {args.transactions.map((transaction) => {
+          const signedAmount = transaction.transaction_type === 'expense'
+            ? -Math.abs(Number(transaction.amount || 0))
+            : Number(transaction.amount || 0);
+          const conversion = convertHistoricalAmountWithSnapshots({
+            amount: signedAmount,
+            fromCurrency: transaction.currency || args.reportingCurrency,
+            reportingCurrency: args.reportingCurrency,
+            rateDate: transaction.transaction_date,
+            snapshots: args.snapshots,
+          });
+
+          return (
+            <div key={`mobile-${transaction.id}`} className="rounded-2xl border border-border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-700 text-foreground">{transaction.merchant || transaction.description || 'Statement entry'}</p>
+                  <p className="text-xs text-muted-foreground">{transaction.transaction_date} · {transaction.transaction_type}</p>
+                </div>
+                <FormattedCurrencyAmount
+                  amount={signedAmount}
+                  currencyCode={transaction.currency}
+                  className={`text-sm font-700 ${signedAmount >= 0 ? 'text-positive' : 'text-foreground'}`}
+                  showCode
+                />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Category</p>
+                  <p className="text-foreground">{transaction.category?.name || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</p>
+                  <p className="text-foreground">{transaction.account?.name || '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Description</p>
+                  <p className="text-foreground">{transaction.description || '—'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Reporting Equivalent</p>
+                  {conversion.convertedAmount === null ? (
+                    <span className="text-warning">Unavailable</span>
+                  ) : (
+                    <FormattedCurrencyAmount
+                      amount={conversion.convertedAmount}
+                      currencyCode={args.reportingCurrency}
+                      className="font-600 text-muted-foreground"
+                      showCode
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="hidden overflow-x-auto scrollbar-thin sm:block">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border">
@@ -1208,6 +1270,7 @@ function AccountStatementTable(args: {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

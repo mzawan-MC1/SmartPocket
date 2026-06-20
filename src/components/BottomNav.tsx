@@ -4,9 +4,7 @@ import Link from 'next/link';
 import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
-
-
-
+import { useQuickActions, type QuickActionId } from '@/components/quick-actions/QuickActionsContext';
 interface BottomNavProps {
   activeRoute: string;
 }
@@ -14,10 +12,9 @@ interface BottomNavProps {
 export default function BottomNav({ activeRoute }: BottomNavProps) {
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiMode, setAiMode] = useState<'text' | 'voice'>('text');
   const { t } = useTranslation(['common', 'dashboard']);
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
+  const quickActionsController = useQuickActions();
 
   const navItems = [
     { id: 'bottom-dashboard', label: t('nav.dashboard', { ns: 'common' }), icon: LayoutDashboard, href: '/dashboard' },
@@ -28,12 +25,12 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   ];
 
   const quickActions = [
-    { id: 'qa-expense', label: 'Expense', icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', href: '/transactions' },
-    { id: 'qa-income', label: 'Income', icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', href: '/transactions' },
-    { id: 'qa-transfer', label: 'Transfer', icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', href: '/transfers' },
-    { id: 'qa-account', label: 'Account', icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', href: '/financial-accounts' },
-    { id: 'qa-person', label: 'Person', icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', href: '/people/new' },
-    { id: 'qa-reimb', label: 'Reimbursement', icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', href: '/reimbursements' },
+    { id: 'qa-expense', label: 'Expense', icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', action: 'expense' as QuickActionId },
+    { id: 'qa-income', label: 'Income', icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
+    { id: 'qa-transfer', label: 'Transfer', icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', action: 'transfer' as QuickActionId },
+    { id: 'qa-account', label: 'Account', icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', action: 'account' as QuickActionId },
+    { id: 'qa-person', label: 'Person', icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', action: 'person' as QuickActionId },
+    { id: 'qa-reimb', label: 'Reimbursement', icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', action: 'reimbursement' as QuickActionId },
   ];
 
   const moreItems = [
@@ -78,14 +75,20 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
             <div className="max-h-[min(60vh,28rem)] space-y-3 overflow-y-auto px-4 py-4 scrollbar-thin">
               <div className="grid grid-cols-2 gap-2.5">
                 <button
-                  onClick={() => { setAiMode('text'); setAiOpen(true); setQuickAddOpen(false); }}
+                  onClick={() => {
+                    quickActionsController?.openQuickAction('smart_entry');
+                    setQuickAddOpen(false);
+                  }}
                   className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
                 >
                   <Sparkles size={20} />
                   <span className="text-xs font-700">Smart Entry</span>
                 </button>
                 <button
-                  onClick={() => { setAiMode('voice'); setAiOpen(true); setQuickAddOpen(false); }}
+                  onClick={() => {
+                    quickActionsController?.openQuickAction('voice_entry');
+                    setQuickAddOpen(false);
+                  }}
                   className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
                 >
                   <Mic size={20} />
@@ -96,23 +99,19 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <div className="grid grid-cols-2 gap-2.5">
                   {quickActions.map((action) => {
                     const ActionIcon = action.icon;
-                    const pending = isRoutePending(action.href);
                     return (
-                      <Link
+                      <button
                         key={action.id}
-                        href={action.href}
+                        type="button"
                         className={`flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-3 text-center text-sm font-600 transition-transform duration-150 active:scale-95 ${action.color}`}
-                        onClick={(event) => {
-                          const shouldNavigate = handleNavigationIntent(action.href, event);
-                          if (shouldNavigate) {
-                            setQuickAddOpen(false);
-                          }
+                        onClick={() => {
+                          quickActionsController?.openQuickAction(action.action);
+                          setQuickAddOpen(false);
                         }}
-                        aria-busy={pending ? 'true' : undefined}
                       >
-                        {pending ? <Loader2 size={20} className="animate-spin" /> : <ActionIcon size={20} />}
+                        <ActionIcon size={20} />
                         <span className="text-xs font-700 leading-4">{action.label}</span>
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>
@@ -243,17 +242,6 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
         </div>
       </nav>
 
-      {/* AI Assistant Modal */}
-      {aiOpen && (
-        <React.Suspense fallback={null}>
-          <AIAssistantModalLazy
-            onClose={() => setAiOpen(false)}
-            defaultMode={aiMode}
-          />
-        </React.Suspense>
-      )}
     </>
   );
 }
-
-const AIAssistantModalLazy = React.lazy(() => import('@/components/ai/AIAssistantModal'));

@@ -174,6 +174,7 @@ export default function AddTransactionModal({
   isOpen,
   onClose,
   initialMode = 'single',
+  initialTransactionType = 'expense',
   editingTransaction = null,
   accounts: providedAccounts,
   categories: providedCategories,
@@ -182,6 +183,7 @@ export default function AddTransactionModal({
   isOpen: boolean;
   onClose: () => void;
   initialMode?: TransactionModalMode;
+  initialTransactionType?: 'income' | 'expense';
   editingTransaction?: Transaction | null;
   accounts?: FinancialAccount[];
   categories?: Category[];
@@ -198,7 +200,7 @@ export default function AddTransactionModal({
   const [rowErrors, setRowErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<{ completed: number; total: number } | null>(null);
-  const firstAccountFieldRef = useRef<HTMLSelectElement | null>(null);
+  const firstAmountFieldRef = useRef<HTMLInputElement | null>(null);
 
   const accounts = providedAccounts ?? internalAccounts;
   const categories = providedCategories ?? internalCategories;
@@ -214,6 +216,7 @@ export default function AddTransactionModal({
     return {
       id: createDraftId(),
       ...base,
+      transaction_type: initialTransactionType,
       account_id: defaultAccount?.id || base.account_id,
       currency: defaultAccount?.currency || referenceData?.platformDefaultCurrency || base.currency,
       receiptFile: null,
@@ -221,7 +224,7 @@ export default function AddTransactionModal({
       showManagedPerson: false,
       ...overrides,
     };
-  }, [accounts, referenceData?.platformDefaultCurrency]);
+  }, [accounts, initialTransactionType, referenceData?.platformDefaultCurrency]);
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
 
@@ -251,17 +254,17 @@ export default function AddTransactionModal({
       setDraftRows([buildDraftFromTransaction(editingTransaction)]);
     } else {
       setTransactionMode(initialMode);
-      setDraftRows([buildEmptyDraft()]);
+      setDraftRows([buildEmptyDraft({ transaction_type: initialTransactionType })]);
     }
     setRowErrors({});
     setSaveProgress(null);
     setIsSaving(false);
-  }, [buildEmptyDraft, editingTransaction, initialMode, isOpen]);
+  }, [buildEmptyDraft, editingTransaction, initialMode, initialTransactionType, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
     const timer = window.setTimeout(() => {
-      firstAccountFieldRef.current?.focus();
+      firstAmountFieldRef.current?.focus();
     }, 0);
     return () => window.clearTimeout(timer);
   }, [isOpen, transactionMode, draftRows.length]);
@@ -490,12 +493,14 @@ export default function AddTransactionModal({
       onClose={handleRequestClose}
       title={editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
       size="xl"
+      mobileLayout="fullscreen"
+      bodyClassName="p-0 sm:p-6"
     >
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="space-y-4">
+      <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             {transactionMode === 'single' ? (
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Transaction type">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label="Transaction type">
                 {(['expense', 'income'] as const).map((type) => {
                   const primaryRow = activeDraftRows[0];
                   const isActive = primaryRow?.transaction_type === type;
@@ -510,7 +515,7 @@ export default function AddTransactionModal({
                         if (rowIds.length === 0) return;
                         updateDraftRow(rowIds[0], (row) => ({ ...row, transaction_type: type, category_id: '' }));
                       }}
-                      className={`min-w-[140px] rounded-xl border px-3 py-2 text-sm font-600 transition-colors ${
+                      className={`min-h-11 rounded-2xl border px-3 py-2.5 text-sm font-700 transition-colors sm:min-w-[140px] ${
                         isActive
                           ? type === 'income'
                             ? 'border-positive bg-positive-soft text-positive'
@@ -579,7 +584,7 @@ export default function AddTransactionModal({
                       ) : null}
                     </div>
 
-                    <div className="space-y-3 px-4 py-4">
+                    <div className="flex flex-col space-y-3 px-4 py-4 max-[480px]:space-y-4 max-[480px]:px-3.5">
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
@@ -620,11 +625,10 @@ export default function AddTransactionModal({
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-2">
                         <div>
                           <label className="mb-1 block text-sm font-600 text-foreground">Account *</label>
                           <select
-                            ref={index === 0 ? firstAccountFieldRef : undefined}
                             className="input-base h-10 text-sm"
                             value={row.account_id}
                             onChange={(event) => {
@@ -658,31 +662,50 @@ export default function AddTransactionModal({
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div>
+                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1 max-[480px]:space-y-3">
+                        <div className="max-[480px]:hidden">
                           <label className="mb-1 block text-sm font-600 text-foreground">Amount *</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            className="input-base h-10 text-sm font-tabular"
-                            placeholder="0.00"
-                            value={row.amount}
-                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
-                          />
                         </div>
-                        <div>
-                          <CurrencySelector
-                            value={row.currency}
-                            onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
-                            placeholder="Choose currency"
-                            disabled={Boolean(account)}
-                            helperText={account ? `Uses ${account.currency} from the selected account.` : 'Choose the transaction currency.'}
-                          />
+                        <div className="hidden max-[480px]:block">
+                          <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">Amount</label>
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <div>
+                            <input
+                              ref={index === 0 ? firstAmountFieldRef : undefined}
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              inputMode="decimal"
+                              className="input-base h-12 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
+                              placeholder="0.00"
+                              value={row.amount}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <CurrencySelector
+                              value={row.currency}
+                              onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
+                              placeholder="Choose currency"
+                              disabled={Boolean(account)}
+                              helperText={account ? `Uses ${account.currency} from the selected account.` : 'Choose the transaction currency.'}
+                            />
+                          </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <div className="max-[480px]:order-4">
+                        <label className="mb-1 block text-sm font-600 text-foreground">Date *</label>
+                        <input
+                          type="date"
+                          className="input-base h-10 text-sm"
+                          value={row.transaction_date}
+                          onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-5">
                         <div>
                           <label className="mb-1 block text-sm font-600 text-foreground">Merchant / Source</label>
                           <input
@@ -705,17 +728,7 @@ export default function AddTransactionModal({
                         </div>
                       </div>
 
-                      <div>
-                        <label className="mb-1 block text-sm font-600 text-foreground">Date *</label>
-                        <input
-                          type="date"
-                          className="input-base h-10 text-sm"
-                          value={row.transaction_date}
-                          onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
-                        />
-                      </div>
-
-                      <div className="rounded-xl border border-border/70 bg-muted/10">
+                      <div className="rounded-xl border border-border/70 bg-muted/10 max-[480px]:order-6">
                         <button
                           type="button"
                           onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
@@ -927,16 +940,16 @@ export default function AddTransactionModal({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 mt-4 border-t border-border bg-card/95 pt-3 backdrop-blur">
+        <div className="sticky bottom-0 z-10 mt-4 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur sm:px-0 sm:pb-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isSaving && saveProgress ? `Saving ${saveProgress.completed} of ${saveProgress.total}...` : activeDraftRows.filter(isDraftRowPopulated).length > 1 ? 'You have multiple unsaved transactions in this batch.' : editingTransaction ? 'Editing the selected transaction.' : null}
             </div>
-            <div className="flex items-center justify-end gap-2">
-              <button type="button" onClick={handleRequestClose} disabled={isSaving} className="btn-secondary">
+            <div className="flex items-center justify-end gap-2 max-[480px]:grid max-[480px]:grid-cols-2">
+              <button type="button" onClick={handleRequestClose} disabled={isSaving} className="btn-secondary max-[480px]:w-full">
                 Cancel
               </button>
-              <button type="button" onClick={handleSave} disabled={isSaving || activeDraftRows.length === 0 || supportingDataLoading} className="btn-primary">
+              <button type="button" onClick={handleSave} disabled={isSaving || activeDraftRows.length === 0 || supportingDataLoading} className="btn-primary max-[480px]:w-full">
                 {isSaving ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />

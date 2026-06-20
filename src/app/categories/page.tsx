@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import SearchField from '@/components/ui/SearchField';
+import PageHeader from '@/components/ui/PageHeader';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 
 interface Category {
@@ -161,21 +163,24 @@ export default function CategoriesPage() {
 
   return (
     <AppLayout activeRoute="/categories">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-700 text-foreground tracking-tight">Categories</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Organize your transactions with custom categories</p>
-          </div>
-          <button onClick={() => { setEditCategory(null); reset(); setShowAddModal(true); }} className="btn-primary">
-            <Plus size={16} />
-            Add Category
-          </button>
-        </div>
+      <div className="page-section max-[480px]:gap-3">
+        <PageHeader
+          title="Categories"
+          description="Organize your transactions with custom categories."
+          badge={<StatusBadge status="info" label="Categories" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          actionsClassName="w-full sm:w-auto"
+          actions={
+            <button onClick={() => { setEditCategory(null); reset(); setShowAddModal(true); }} className="btn-primary max-[480px]:w-full">
+              <Plus size={16} />
+              Add Category
+            </button>
+          }
+        />
 
         {/* Filters */}
-        <div className="card-elevated p-4 flex flex-col sm:flex-row gap-3">
+        <div className="card-elevated flex flex-col gap-3 p-4 max-[480px]:p-3 sm:flex-row">
           <SearchField
             placeholder="Search categories..."
             value={search}
@@ -183,12 +188,12 @@ export default function CategoriesPage() {
             wrapperClassName="flex-1"
             inputClassName="h-10"
           />
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
             {(['all', 'income', 'expense', 'transfer'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-600 border transition-all ${
+                className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-600 transition-all ${
                   filterType === t ? 'bg-accent text-accent-foreground border-accent' : 'bg-card text-muted-foreground border-border hover:border-accent/50'
                 }`}
               >
@@ -203,7 +208,7 @@ export default function CategoriesPage() {
             <Loader2 size={24} className="animate-spin text-accent" />
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5 max-[480px]:space-y-4">
             {(['income', 'expense', 'transfer'] as const).map((type) => {
               const cats = grouped[type];
               if (cats.length === 0 && filterType !== 'all' && filterType !== type) return null;
@@ -213,9 +218,9 @@ export default function CategoriesPage() {
                     <span className={`w-2 h-2 rounded-full ${type === 'income' ? 'bg-positive' : type === 'expense' ? 'bg-negative' : 'bg-info'}`} />
                     {type} categories ({cats.length})
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {cats.map((cat) => (
-                      <div key={cat.id} className="card-elevated p-4 flex items-center gap-3 group">
+                      <div key={cat.id} className="group card-elevated flex items-center gap-3 p-4 max-[480px]:p-3">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: `${cat.color}20` }}
@@ -229,7 +234,7 @@ export default function CategoriesPage() {
                           )}
                         </div>
                         {!cat.is_system && (
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                             <button
                               onClick={() => handleEdit(cat)}
                               className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center"

@@ -14,6 +14,7 @@ import SearchField from '@/components/ui/SearchField';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 interface NewSettlementModalProps {
   people: ManagedPerson[];
@@ -208,6 +209,10 @@ export default function SettlementsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useSmartPocketDataChanged(['settlements', 'reimbursements', 'people', 'financial_accounts'], 'SettlementsPage', async () => {
+    await loadData();
+  });
+
   const filtered = settlements.filter((s) => {
     const matchPerson = filterPerson === 'all' || s.person_id === filterPerson;
     const matchSearch = !search || s.description.toLowerCase().includes(search.toLowerCase()) ||
@@ -226,13 +231,16 @@ export default function SettlementsPage() {
 
   return (
     <AppLayout activeRoute="/settlements">
-      <div className="page-section pb-6">
+      <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
           title="Settlements"
           description="Record and review settlement payments with linked reimbursements and accounts."
           badge={<StatusBadge status="info" label="Settlements" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          actionsClassName="w-full sm:w-auto"
           actions={
-            <button onClick={() => setShowModal(true)} className="btn-primary">
+            <button onClick={() => setShowModal(true)} className="btn-primary max-[480px]:w-full">
               <Plus size={16} />
               <span>New Settlement</span>
             </button>
@@ -240,12 +248,12 @@ export default function SettlementsPage() {
         />
 
         {/* Summary */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="card p-4">
+        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2">
+          <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Total Settlements</p>
             <p className="text-lg font-700 text-foreground">{settlements.length}</p>
           </div>
-          <div className="card p-4">
+          <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Total Amount</p>
             <div className="text-lg font-700 text-positive">
               {totalSettledByCurrency.length === 0 ? (
@@ -298,7 +306,7 @@ export default function SettlementsPage() {
         ) : (
           <div className="space-y-3">
             {filtered.map((s) => (
-              <div key={s.id} className="card p-4">
+              <div key={s.id} className="card p-4 max-[480px]:p-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-600 text-foreground">{s.description}</p>

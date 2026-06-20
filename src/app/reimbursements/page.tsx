@@ -8,6 +8,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-warning-soft text-warning border border-warning/20',
@@ -128,6 +129,10 @@ export default function ReimbursementsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  useSmartPocketDataChanged(['reimbursements', 'people', 'settlements'], 'ReimbursementsPage', async () => {
+    await loadData();
+  });
+
   const filtered = reimbursements.filter((r) => {
     const matchStatus = filterStatus === 'all' || r.status === filterStatus;
     const matchPerson = filterPerson === 'all' || r.person_id === filterPerson;
@@ -148,22 +153,24 @@ export default function ReimbursementsPage() {
 
   return (
     <AppLayout activeRoute="/reimbursements">
-      <div className="page-section pb-6">
+      <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
           title="Reimbursements"
           description="Track money owed between you and other people, with quick status visibility."
           badge={<StatusBadge status="info" label="People balances" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
         />
 
         {/* Summary */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="card p-4">
+        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-3">
+          <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Pending</p>
             <p className="text-lg font-700 text-warning">
               {reimbursements.filter((r) => r.status === 'pending').length}
             </p>
           </div>
-          <div className="card p-4">
+          <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Outstanding</p>
             <div className="text-lg font-700 text-foreground">
               {totalPendingByCurrency.map((row) => (
@@ -177,7 +184,7 @@ export default function ReimbursementsPage() {
               ))}
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">Settled</p>
             <p className="text-lg font-700 text-positive">
               {reimbursements.filter((r) => r.status === 'settled').length}
@@ -223,7 +230,7 @@ export default function ReimbursementsPage() {
               const remaining = Number(r.amount) - Number(r.amount_paid);
               const canPay = r.status === 'pending' || r.status === 'partially_paid';
               return (
-                <div key={r.id} className="card p-4">
+                <div key={r.id} className="card p-4 max-[480px]:p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

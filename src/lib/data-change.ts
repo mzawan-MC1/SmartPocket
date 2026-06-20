@@ -9,7 +9,12 @@ export type SmartPocketDataEntity =
   | 'budgets'
   | 'dashboard'
   | 'transactions'
+  | 'transfers'
   | 'financial_accounts'
+  | 'categories'
+  | 'people'
+  | 'reimbursements'
+  | 'settlements'
   | 'ai_usage'
   | 'recurring_transactions'
   | 'notifications';

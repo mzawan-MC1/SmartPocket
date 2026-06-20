@@ -107,21 +107,24 @@ export default function RecurringPage() {
 
   return (
     <AppLayout activeRoute="/recurring">
-      <div className="page-section">
+      <div className="page-section max-[480px]:gap-3">
         <PageHeader
           title="Recurring Transactions"
           description="Manage subscriptions, bills, and regular income with clear due-date tracking."
           badge={<StatusBadge status="info" label="Recurring" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          actionsClassName="w-full sm:w-auto"
           actions={
-            <button onClick={() => setShowAddModal(true)} className="btn-primary">
+            <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
               <Plus size={16} /> Add Recurring
             </button>
           }
         />
 
         {/* Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="card-elevated p-4">
+        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
+          <div className="card-elevated p-4 max-[480px]:p-3">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Expenses</p>
             <div className="text-xl font-700 font-tabular text-negative">
               {totalMonthly.map((row) => (
@@ -130,7 +133,7 @@ export default function RecurringPage() {
             </div>
             <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'expense').length} active recurring expenses</p>
           </div>
-          <div className="card-elevated p-4">
+          <div className="card-elevated p-4 max-[480px]:p-3">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Scheduled Income</p>
             <div className="text-xl font-700 font-tabular text-positive">
               {totalIncome.map((row) => (
@@ -139,7 +142,7 @@ export default function RecurringPage() {
             </div>
             <p className="text-xs text-muted-foreground mt-1">{activeItems.filter((r) => r.transaction_type === 'income').length} income sources</p>
           </div>
-          <div className="card-elevated p-4">
+          <div className="card-elevated p-4 max-[480px]:p-3">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">Net Scheduled</p>
             <div className="text-xl font-700 font-tabular">
               {netMonthly.map((row) => (
@@ -157,8 +160,8 @@ export default function RecurringPage() {
         </div>
 
         {/* Recurring List */}
-        <div className="card-elevated overflow-hidden">
-          <div className="p-4 border-b border-border flex items-center justify-between">
+          <div className="card-elevated overflow-hidden">
+          <div className="flex items-center justify-between border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
             <h2 className="text-base font-700 text-foreground">Active Recurring</h2>
             <span className="text-xs text-muted-foreground">{activeItems.length} active</span>
           </div>
@@ -190,7 +193,7 @@ export default function RecurringPage() {
               {activeItems.map((item) => {
                 const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
                 return (
-                <div key={item.id} className="flex items-center gap-4 p-4 hover:bg-muted/30 transition-colors">
+                <div key={item.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[480px]:items-start max-[480px]:gap-3 max-[480px]:p-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.transaction_type === 'income' ? 'bg-positive-soft' : 'bg-negative-soft'}`}>
                     <Repeat size={18} className={item.transaction_type === 'income' ? 'text-positive' : 'text-negative'} />
                   </div>
@@ -242,7 +245,7 @@ export default function RecurringPage() {
         {/* Paused Items */}
         {pausedItems.length > 0 && (
           <div className="card-elevated overflow-hidden">
-            <div className="p-4 border-b border-border">
+            <div className="border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
               <h2 className="text-base font-700 text-muted-foreground">Paused ({pausedItems.length})</h2>
             </div>
             <div className="divide-y divide-border">

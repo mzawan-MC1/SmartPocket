@@ -17,6 +17,7 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AccountDetailPanel from './AccountDetailPanel';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import FinancialAccountForm from './FinancialAccountForm';
+import AccountsHeader from './AccountsHeader';
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -132,14 +133,16 @@ export default function AccountsGrid() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-[480px]:space-y-4">
+      <AccountsHeader onAddAccount={openAdd} />
+
       {/* Summary Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
         {summaryCards.map((item) => {
           const metric = item.isCount ? null : summary?.[item.field] ?? null;
 
           return (
-          <div key={item.id} className="card-elevated p-4">
+          <div key={item.id} className="card-elevated p-4 max-[480px]:p-3">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
             {item.isCount ? (
               <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
@@ -208,9 +211,9 @@ export default function AccountsGrid() {
 
       {/* Active Accounts */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="mb-3 flex items-center justify-between gap-3 max-[480px]:mb-2">
           <h2 className="text-base font-700 text-foreground">Active Accounts</h2>
-          <button onClick={openAdd} className="btn-primary text-sm">
+          <button onClick={openAdd} className="btn-primary text-sm max-[480px]:hidden">
             <Plus size={14} /> Add Account
           </button>
         </div>
@@ -225,7 +228,7 @@ export default function AccountsGrid() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {activeAccounts.map((acct) => {
               const Icon = getIcon(acct.account_type);
               const gradient = GRADIENT_MAP[acct.account_type] || GRADIENT_MAP.other;
@@ -235,7 +238,7 @@ export default function AccountsGrid() {
                   className="card-elevated overflow-hidden hover:shadow-card-md transition-shadow duration-200 cursor-pointer"
                   onClick={() => setSelectedAccount(acct)}
                 >
-                  <div className={`bg-gradient-to-r ${gradient} p-5 relative overflow-hidden`}>
+                  <div className={`relative overflow-hidden bg-gradient-to-r ${gradient} p-5 max-[480px]:p-4`}>
                     <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white opacity-5 translate-x-8 -translate-y-8" />
                     <div className="flex items-start justify-between relative">
                       <div>
@@ -257,7 +260,7 @@ export default function AccountsGrid() {
                         </button>
                       </div>
                     </div>
-                    <div className="mt-4 relative">
+                    <div className="relative mt-4 max-[480px]:mt-3">
                       <p className="text-white/70 text-[11px] font-500">Current Balance</p>
                       <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
                         <FormattedCurrencyAmount
@@ -285,7 +288,7 @@ export default function AccountsGrid() {
                       </div>
                     )}
                   </div>
-                  <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
                     <div>
                       <p className="text-xs text-muted-foreground">Opening Balance</p>
                       <FormattedCurrencyAmount
@@ -318,7 +321,7 @@ export default function AccountsGrid() {
             {/* Add Account Card */}
             <button
               onClick={openAdd}
-              className="card-elevated border-dashed border-2 border-border hover:border-accent hover:bg-accent/5 transition-all duration-200 flex flex-col items-center justify-center gap-2 p-8 min-h-[180px] group"
+              className="group flex min-h-[180px] flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-8 transition-all duration-200 hover:border-accent hover:bg-accent/5 card-elevated max-[480px]:min-h-[140px] max-[480px]:p-5"
             >
               <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
                 <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
@@ -333,7 +336,7 @@ export default function AccountsGrid() {
       {archivedAccounts.length > 0 && (
         <div>
           <h2 className="text-base font-700 text-muted-foreground mb-3">Archived Accounts</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {archivedAccounts.map((acct) => {
               const Icon = getIcon(acct.account_type);
               return (

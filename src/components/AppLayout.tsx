@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import BottomNav from './BottomNav';
 import PortalFooter from './PortalFooter';
+import QuickActionsProvider from '@/components/quick-actions/QuickActionsProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface AppLayoutProps {
@@ -21,8 +22,9 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
   }, [activeRoute]);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
-      <div className="flex min-h-screen w-full items-stretch">
+    <QuickActionsProvider>
+      <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
+        <div className="flex min-h-screen w-full items-stretch">
         {/* Desktop Sidebar — left for LTR, right for RTL */}
         <div
           className={`hidden self-stretch bg-card lg:flex lg:flex-shrink-0 ${
@@ -81,7 +83,8 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
         <div className="lg:hidden">
           <BottomNav activeRoute={activeRoute} />
         </div>
+        </div>
       </div>
-    </div>
+    </QuickActionsProvider>
   );
 }

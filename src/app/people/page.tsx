@@ -10,6 +10,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 const RELATIONSHIP_LABELS: Record<string, string> = {
   spouse: 'Spouse', child: 'Child', parent: 'Parent', sibling: 'Sibling',
@@ -87,6 +88,10 @@ export default function ManagedPeoplePage() {
 
   useEffect(() => { loadPeople(); }, [loadPeople]);
 
+  useSmartPocketDataChanged(['people', 'reimbursements', 'settlements'], 'PeoplePage', async () => {
+    await loadPeople();
+  });
+
   const filtered = people.filter((p) => {
     const matchSearch = !search || p.full_name.toLowerCase().includes(search.toLowerCase());
     const matchRel = filterRelationship === 'all' || p.relationship === filterRelationship;
@@ -110,15 +115,18 @@ export default function ManagedPeoplePage() {
 
   return (
     <AppLayout activeRoute="/people">
-      <div className="page-section pb-6">
+      <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
           title="People"
           description="Manage finances for family, friends, clients, and anyone you track balances for."
           badge={<StatusBadge status="info" label="People" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          actionsClassName="w-full sm:w-auto"
           actions={
             <Link
               href="/people/new"
-              className="btn-primary"
+              className="btn-primary max-[480px]:w-full"
             >
               <UserPlus size={16} />
               <span>Add Person</span>
@@ -127,8 +135,8 @@ export default function ManagedPeoplePage() {
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="card p-4">
+        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:grid-cols-3">
+          <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <Wallet size={16} className="text-info" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Money Held</span>
@@ -139,7 +147,7 @@ export default function ManagedPeoplePage() {
               ))}
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp size={16} className="text-positive" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">Owed to Me</span>
@@ -150,7 +158,7 @@ export default function ManagedPeoplePage() {
               ))}
             </div>
           </div>
-          <div className="card p-4">
+          <div className="card p-4 max-[480px]:p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown size={16} className="text-negative" />
               <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">I Owe</span>
@@ -164,7 +172,7 @@ export default function ManagedPeoplePage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <SearchField
             type="text"
             placeholder="Search people..."
@@ -176,7 +184,7 @@ export default function ManagedPeoplePage() {
           <select
             value={filterRelationship}
             onChange={(e) => setFilterRelationship(e.target.value)}
-            className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             <option value="all">All Relationships</option>
             {Object.entries(RELATIONSHIP_LABELS).map(([k, v]) => (
@@ -185,12 +193,12 @@ export default function ManagedPeoplePage() {
           </select>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-500 transition-colors ${showArchived ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-card text-muted-foreground'}`}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-500 transition-colors ${showArchived ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-card text-muted-foreground'}`}
           >
             <Archive size={15} />
             Archived
           </button>
-          <button onClick={loadPeople} className="p-2.5 rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={loadPeople} className="rounded-xl border border-border bg-card p-2.5 text-muted-foreground transition-colors hover:text-foreground max-[480px]:hidden">
             <RefreshCw size={16} />
           </button>
         </div>
@@ -232,10 +240,10 @@ export default function ManagedPeoplePage() {
         ) : (
           <div className="space-y-3">
             {filtered.map((person) => (
-              <div key={person.id} className="card p-4 hover:shadow-card-md transition-shadow">
-                <div className="flex items-center gap-4">
+              <div key={person.id} className="card p-4 transition-shadow hover:shadow-card-md max-[480px]:p-3">
+                <div className="flex items-center gap-4 max-[480px]:items-start max-[480px]:gap-3">
                   {/* Avatar */}
-                  <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getAvatarColor(person.full_name)} flex items-center justify-center text-white font-700 text-sm flex-shrink-0`}>
+                  <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarColor(person.full_name)} text-sm font-700 text-white max-[480px]:h-11 max-[480px]:w-11`}>
                     {person.photo_url ? (
                       <img src={person.photo_url} alt={person.full_name} className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -279,10 +287,10 @@ export default function ManagedPeoplePage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 self-start flex-shrink-0">
                     <Link
                       href={`/people/${person.id}`}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-600 hover:bg-accent/20 transition-colors"
+                      className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-600 text-accent transition-colors hover:bg-accent/20"
                     >
                       View
                       <ChevronRight size={13} />

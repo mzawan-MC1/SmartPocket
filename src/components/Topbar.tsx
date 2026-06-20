@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import SearchField from '@/components/ui/SearchField';
 import NotificationBell from '@/components/NotificationBell';
+import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -16,10 +17,10 @@ interface TopbarProps {
 export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
   const { user, signOut } = useAuth();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
+  const quickActions = useQuickActions();
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   const initials = displayName.charAt(0).toUpperCase();
@@ -80,7 +81,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         <div className="ms-auto flex min-w-0 shrink-0 items-center gap-2 max-[480px]:gap-1 sm:gap-2.5">
           {/* AI Smart Entry button */}
           <button
-            onClick={() => setAiOpen(true)}
+            onClick={() => quickActions?.openQuickAction('smart_entry')}
             className="hidden h-10 min-w-[156px] items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-ai-soft px-4 text-sm font-700 text-ai transition-colors hover:bg-purple-100 sm:inline-flex"
             aria-label="AI Smart Entry"
             title="Smart Entry (AI)"
@@ -91,7 +92,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
 
           {/* Mobile AI button */}
           <button
-            onClick={() => setAiOpen(true)}
+            onClick={() => quickActions?.openQuickAction('smart_entry')}
             className="btn-ghost h-10 w-10 p-0 max-[480px]:h-9 max-[480px]:w-9 sm:hidden"
             aria-label="AI Smart Entry"
           >
@@ -171,16 +172,6 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           </div>
         </div>
       </div>
-
-      {/* AI Assistant Modal */}
-      {aiOpen && (
-        <React.Suspense fallback={null}>
-          <AIAssistantModalLazy onClose={() => setAiOpen(false)} />
-        </React.Suspense>
-      )}
     </header>
   );
 }
-
-// Lazy-loaded to avoid importing heavy AI components in the main bundle
-const AIAssistantModalLazy = React.lazy(() => import('@/components/ai/AIAssistantModal'));

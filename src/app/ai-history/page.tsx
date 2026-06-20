@@ -187,10 +187,13 @@ export default function AIHistoryPage() {
           title="AI History"
           description="Review recent AI-assisted entries, outcomes, transcript retention, and feedback."
           badge={<StatusBadge status="ai" label="AI activity" />}
+          compact
+          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          actionsClassName="w-full sm:w-auto"
           actions={
             <button
               onClick={loadHistory}
-              className="btn-secondary"
+              className="btn-secondary max-[480px]:w-full"
               aria-label="Refresh"
             >
               <RotateCcw size={16} />
@@ -220,7 +223,7 @@ export default function AIHistoryPage() {
                   {/* Row */}
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : req.id)}
-                    className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/30 transition-colors"
+                    className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/30 max-[480px]:items-start max-[480px]:p-3"
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       req.request_type === 'voice' ? 'bg-accent/10' : 'bg-muted'
@@ -233,7 +236,7 @@ export default function AIHistoryPage() {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-600 text-foreground truncate">{getSummary(req)}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="mt-0.5 flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{formatDate(req.created_at)}</span>
                         {req.overall_intent && (
                           <span className="text-xs text-muted-foreground">· {getIntentLabel(req.overall_intent)}</span>
@@ -252,7 +255,7 @@ export default function AIHistoryPage() {
 
                   {/* Expanded detail */}
                   {isExpanded && (
-                    <div className="border-t border-border p-4 space-y-4">
+                    <div className="space-y-4 border-t border-border p-4 max-[480px]:p-3">
                       {/* Transcript */}
                       {req.transcript && (
                         <div>
