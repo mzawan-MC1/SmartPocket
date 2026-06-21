@@ -999,15 +999,15 @@ export default function DocumentTransactionReviewModal({
                             })}
                           </p>
                         ) : (
-                          <div className="mt-3 space-y-3">
+                          <div className="mt-3 space-y-2.5">
                             {transaction.lineItems.map((item, itemIndex) => {
                               const itemTotal = getTransactionDocumentLineItemTotal(item);
 
                               return (
-                                <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-xl border border-border/70 bg-card p-3">
-                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-5">
-                                    <div className="xl:col-span-2">
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-xl border border-border/70 bg-card p-2.5 sm:p-3">
+                                  <div className="grid grid-cols-1 gap-x-2 gap-y-2 md:grid-cols-6 xl:grid-cols-12 xl:items-end">
+                                    <div className="md:col-span-3 xl:col-span-5">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemName', {
                                           ns: 'portal',
                                           defaultValue: 'Item name',
@@ -1015,7 +1015,7 @@ export default function DocumentTransactionReviewModal({
                                       </label>
                                       <input
                                         type="text"
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-[13px] leading-none"
                                         value={item.name}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1023,8 +1023,8 @@ export default function DocumentTransactionReviewModal({
                                         }))}
                                       />
                                     </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-1 xl:col-span-1">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.quantity', {
                                           ns: 'portal',
                                           defaultValue: 'Quantity',
@@ -1034,7 +1034,7 @@ export default function DocumentTransactionReviewModal({
                                         type="number"
                                         step="0.001"
                                         min="0"
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-[13px] leading-none"
                                         value={formatOptionalNumberInput(item.quantity)}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1042,8 +1042,8 @@ export default function DocumentTransactionReviewModal({
                                         }))}
                                       />
                                     </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-1 xl:col-span-2">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.unitPrice', {
                                           ns: 'portal',
                                           defaultValue: 'Unit price',
@@ -1053,7 +1053,7 @@ export default function DocumentTransactionReviewModal({
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-[13px] leading-none"
                                         value={formatOptionalNumberInput(item.unitPrice)}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1061,8 +1061,8 @@ export default function DocumentTransactionReviewModal({
                                         }))}
                                       />
                                     </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-1 xl:col-span-2">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.lineTotal', {
                                           ns: 'portal',
                                           defaultValue: 'Line total',
@@ -1072,7 +1072,7 @@ export default function DocumentTransactionReviewModal({
                                         type="number"
                                         step="0.01"
                                         min="0"
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-[13px] leading-none"
                                         value={formatOptionalNumberInput(item.total)}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1080,15 +1080,15 @@ export default function DocumentTransactionReviewModal({
                                         }))}
                                       />
                                     </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-3 xl:col-span-4">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemCategory', {
                                           ns: 'portal',
                                           defaultValue: 'Item category',
                                         })}
                                       </label>
                                       <select
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 truncate pr-8 text-[13px] leading-none"
                                         value={item.categoryId || ''}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1103,15 +1103,15 @@ export default function DocumentTransactionReviewModal({
                                         ))}
                                       </select>
                                     </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-2 xl:col-span-3">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemType', {
                                           ns: 'portal',
                                           defaultValue: 'Item type',
                                         })}
                                       </label>
                                       <select
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 truncate pr-8 text-[13px] leading-none"
                                         value={item.itemKind || 'regular'}
                                         onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                           ...current,
@@ -1128,14 +1128,14 @@ export default function DocumentTransactionReviewModal({
                                         ))}
                                       </select>
                                     </div>
-                                    <div className="md:col-span-2 xl:col-span-3">
-                                      <label className="mb-1 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                    <div className="md:col-span-3 xl:col-span-3">
+                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.computedLineTotal', {
                                           ns: 'portal',
                                           defaultValue: 'Calculated line total',
                                         })}
                                       </label>
-                                      <div className="flex h-10 items-center rounded-xl border border-border bg-muted/20 px-3 text-sm font-600 text-foreground">
+                                      <div className="flex h-9 items-center overflow-hidden rounded-xl border border-border bg-muted/20 px-3 text-[13px] font-600 leading-none text-foreground whitespace-nowrap">
                                         {itemTotal > 0
                                           ? formatCurrencyText(itemTotal, {
                                               currencyCode: transaction.currency || undefined,
@@ -1145,11 +1145,11 @@ export default function DocumentTransactionReviewModal({
                                           : '—'}
                                       </div>
                                     </div>
-                                    <div className="flex items-end justify-end">
+                                    <div className="flex items-end justify-end md:col-span-1 xl:col-span-2">
                                       <button
                                         type="button"
                                         onClick={() => removeLineItem(transaction.id, itemIndex)}
-                                        className="btn-ghost h-10 w-full justify-center text-negative md:w-auto"
+                                        className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-negative/30 bg-negative-soft px-3 text-xs font-600 text-negative transition-colors hover:bg-negative-soft/80 md:w-auto"
                                       >
                                         <Trash2 size={14} />
                                         {t('transactions.documentReview.removeItem', {
