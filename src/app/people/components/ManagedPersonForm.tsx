@@ -13,16 +13,16 @@ import {
 import { createManagedPerson, type ManagedPerson, type RelationshipType } from '@/lib/people';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 
-const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
-  { value: 'spouse', label: 'Spouse' },
-  { value: 'child', label: 'Child' },
-  { value: 'parent', label: 'Parent' },
-  { value: 'sibling', label: 'Sibling' },
-  { value: 'friend', label: 'Friend' },
-  { value: 'relative', label: 'Relative' },
-  { value: 'colleague', label: 'Colleague' },
-  { value: 'client', label: 'Client' },
-  { value: 'other', label: 'Other' },
+const RELATIONSHIPS: RelationshipType[] = [
+  'spouse',
+  'child',
+  'parent',
+  'sibling',
+  'friend',
+  'relative',
+  'colleague',
+  'client',
+  'other',
 ];
 
 export default function ManagedPersonForm({
@@ -142,10 +142,9 @@ export default function ManagedPersonForm({
           className="input-base h-11 max-[480px]:h-10"
         >
           {RELATIONSHIPS.map((relationship) => (
-            <option key={relationship.value} value={relationship.value}>
-              {t(`people.relationships.${relationship.value}` as const, {
+            <option key={relationship} value={relationship}>
+              {t(`people.relationships.${relationship}` as const, {
                 ns: 'portal',
-                defaultValue: relationship.label,
               })}
             </option>
           ))}

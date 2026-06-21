@@ -14,7 +14,16 @@
     "poweredBy": "Работает на",
     "pages": "Страницы",
     "privacy": "Конфиденциальность",
-    "terms": "Условия"
+    "terms": "Условия",
+    "sectionProduct": "Продукт",
+    "sectionSupport": "Поддержка",
+    "sectionLegal": "Правовая информация",
+    "linkAbout": "О сервисе",
+    "linkFeatures": "Возможности",
+    "linkPricing": "Тарифы",
+    "linkContact": "Контакты",
+    "linkHelp": "Центр помощи",
+    "backToTop": "Наверх"
   },
   "home": {
     "hero": {
@@ -31,7 +40,189 @@
       "securityTitle": "Безопасность и приватность прежде всего",
       "pricingTitle": "Простые и прозрачные тарифы",
       "languagesTitle": "Доступно на четырех языках интерфейса",
-      "ctaTitle": "Готовы взять деньги под контроль?"
+      "ctaTitle": "Готовы взять деньги под контроль?",
+      "aboutDescription": "От ежедневного кофе до ежемесячной аренды — каждая операция, каждый счет и каждый бюджет остаются в одном месте.",
+      "featuresDescription": "Каждая возможность отвечает на один вопрос: помогает ли она лучше понимать ваши деньги?",
+      "stepsDescription": "Подключение банка не требуется. Добавьте счета и сразу начинайте учет.",
+      "platformDescription": "Smart Pocket — это прогрессивное веб-приложение, которое можно установить на любое устройство, использовать в современном браузере и держать доступным офлайн.",
+      "securityDescription": "Ваши финансовые данные защищены изоляцией, шифрованием и приватными настройками по умолчанию.",
+      "pricingDescription": "Начинайте бесплатно и переходите на платный план только когда нужна большая мощность или совместная работа.",
+      "languagesDescription": "Выберите английский, арабский, французский или русский для интерфейса, сохранив язык ввода Smart Entry отдельным.",
+      "ctaDescription": "Создайте аккаунт, добавьте счета и начните отслеживать доходы, расходы, бюджеты и отчеты за считанные минуты."
+    },
+    "benefits": {
+      "balanceTitle": "Отслеживание баланса в реальном времени",
+      "balanceDescription": "Видите обновление каждого счета сразу после сохранения операции.",
+      "budgetAlertsTitle": "Предупреждения по бюджету до перерасхода",
+      "budgetAlertsDescription": "Получайте уведомления, когда приближаетесь к лимиту категории.",
+      "reportsTitle": "PDF и CSV по запросу",
+      "reportsDescription": "Мгновенно создавайте профессиональные финансовые отчеты за любой период.",
+      "recurringTitle": "Автоматизация регулярных операций",
+      "recurringDescription": "Настройте подписки и регулярные платежи один раз, и Smart Pocket будет их отслеживать.",
+      "remindersTitle": "Напоминания о будущих платежах",
+      "remindersDescription": "Не пропускайте счета. Панель показывает, что нужно оплатить в ближайшие 7 дней.",
+      "rlsTitle": "Изоляция данных на уровне строк",
+      "rlsDescription": "Ваши данные невидимы другим пользователям и защищены на уровне базы данных."
+    },
+    "features": {
+      "accountsTitle": "Управление несколькими счетами",
+      "accountsDescription": "Отслеживайте банковские счета, карты, наличные, сбережения и цифровые кошельки с актуальными остатками.",
+      "dashboardTitle": "Умная панель",
+      "dashboardDescription": "Анализируйте доходы, расходы, категории и чистый поток на одном экране.",
+      "budgetsTitle": "Управление бюджетами",
+      "budgetsDescription": "Создавайте бюджеты по категориям с наглядным прогрессом и предупреждениями.",
+      "exportsTitle": "Отчеты и экспорт",
+      "exportsDescription": "Создавайте ежемесячные сводки, эффективность бюджета и детализацию доходов/расходов в PDF или CSV.",
+      "recurringTitle": "Регулярные операции",
+      "recurringDescription": "Автоматизируйте подписки, аренду и зарплаты.",
+      "securityTitle": "Безопасность банковского уровня",
+      "securityDescription": "Защита на уровне строк в Supabase гарантирует доступ к данным только вам."
+    },
+    "steps": {
+      "createTitle": "Создайте аккаунт",
+      "createDescription": "Зарегистрируйтесь любым способом входа, который сейчас включен на платформе.",
+      "accountsTitle": "Добавьте счета",
+      "accountsDescription": "Добавьте банковские счета, карты, наличные или любой кошелек, который хотите учитывать.",
+      "transactionsTitle": "Записывайте операции",
+      "transactionsDescription": "Фиксируйте доходы, расходы и переводы, при необходимости добавляя чеки.",
+      "budgetsTitle": "Настройте бюджеты",
+      "budgetsDescription": "Создавайте бюджеты по категориям и отслеживайте траты в реальном времени.",
+      "reportsTitle": "Изучайте отчеты",
+      "reportsDescription": "Формируйте PDF- или CSV-отчеты за любой период и делитесь ими или архивируйте."
+    },
+    "platform": {
+      "mobileTitle": "Мобильные устройства (iOS и Android)",
+      "mobileDescription": "Устанавливайте из браузера без магазина приложений.",
+      "desktopTitle": "Компьютер (Windows, macOS, Linux)",
+      "desktopDescription": "Используйте полный интерфейс в любом современном браузере.",
+      "tabletTitle": "Планшет и iPad",
+      "tabletDescription": "Адаптивные интерфейсы чисто подстраиваются под любой экран.",
+      "pwaTitle": "Установите как приложение",
+      "pwaDescription": "Добавьте Smart Pocket на главный экран и держите его доступным офлайн с фоновой синхронизацией."
+    },
+    "security": {
+      "rlsTitle": "Защита на уровне строк",
+      "rlsDescription": "Изоляция, enforced на уровне базы данных, скрывает ваши данные от других пользователей.",
+      "transitTitle": "Шифрование при передаче",
+      "transitDescription": "Все данные передаются по TLS без открытого текста.",
+      "restTitle": "Шифрование при хранении",
+      "restDescription": "Хранимые данные остаются зашифрованными на уровне хранилища.",
+      "privacyTitle": "Мы не продаем данные",
+      "privacyDescription": "Smart Pocket не продает, не передает и не монетизирует ваши финансовые данные.",
+      "label": "Безопасность и конфиденциальность",
+      "heading": "Ваши данные остаются вашими",
+      "body": "Smart Pocket использует Supabase с Row Level Security — политикой на уровне базы, которая технически не позволяет одному пользователю читать данные другого.",
+      "readPrivacy": "Читать политику конфиденциальности"
+    },
+    "pricing": {
+      "freeName": "Бесплатно",
+      "freePrice": "$0",
+      "freePeriod": "навсегда",
+      "freeCta": "Начать бесплатно",
+      "proName": "Pro",
+      "proPrice": "$9.99",
+      "proPeriod": "/месяц",
+      "proCta": "Начать пробный Pro",
+      "familyName": "Семья",
+      "familyPrice": "$19.99",
+      "familyPeriod": "/месяц",
+      "familyCta": "Начать семейный пробный период",
+      "subtitle": "Начните бесплатно. Переходите на платный план, когда нужна большая мощность.",
+      "mostPopular": "Самый популярный",
+      "trialHint": "Все платные планы включают 14-дневный бесплатный пробный период. Банковская карта для старта не требуется.",
+      "viewDetails": "Посмотреть полные тарифы",
+      "freeFeatures": {
+        "1": "3 счета",
+        "2": "100 операций в месяц",
+        "3": "Базовые отчеты",
+        "4": "2 валюты"
+      },
+      "proFeatures": {
+        "1": "Неограниченные счета",
+        "2": "Неограниченные операции",
+        "3": "Экспорт PDF и CSV",
+        "4": "Все валюты",
+        "5": "Хранение чеков",
+        "6": "Приоритетная поддержка"
+      },
+      "familyFeatures": {
+        "1": "Все из Pro",
+        "2": "До 5 пользователей",
+        "3": "Общие бюджеты",
+        "4": "Семейные отчеты"
+      }
+    },
+    "languages": {
+      "ltr": "LTR",
+      "rtl": "RTL",
+      "label": "Языки интерфейса"
+    },
+    "cta": {
+      "primary": "Создать аккаунт",
+      "secondary": "Связаться с нами"
+    },
+    "available": "Доступно",
+    "learnMore": "Подробнее",
+    "lovedWorldwide": "Нравится пользователям по всему миру",
+    "preview": {
+      "totalBalance": "Общий баланс",
+      "income": "Доходы",
+      "expenses": "Расходы",
+      "netFlow": "Чистый поток",
+      "incomeVsExpenses": "Доходы и расходы - 6 месяцев",
+      "spendingByCategory": "Расходы по категориям",
+      "food": "Еда",
+      "transport": "Транспорт",
+      "bills": "Счета",
+      "recentTransactions": "Последние операции",
+      "groceryStore": "Продуктовый магазин",
+      "salaryDeposit": "Зачисление зарплаты",
+      "subscriptions": "Подписки",
+      "balance": "Баланс",
+      "inShort": "Входящие",
+      "outShort": "Исходящие",
+      "dashboardUrl": "smartpocket.app/dashboard",
+      "streamingSubscription": "Стриминговая подписка",
+      "brandName": "Smart Pocket"
+    },
+    "auth": {
+      "apple": "Вход через Apple",
+      "google": "Вход через Google"
+    },
+    "currency": {
+      "title": "Поддержка нескольких валют",
+      "usd": "Доллар США",
+      "eur": "Евро",
+      "aed": "Дирхам ОАЭ",
+      "gbp": "Фунт стерлингов",
+      "supported": "Поддерживается 153 активные валюты"
+    },
+    "reports": {
+      "title": "Профессиональные отчеты, готовые к отправке",
+      "description": "Создавайте сводки доходов и расходов, отчеты по бюджету и разрезы трат за любой период.",
+      "pdfTitle": "PDF-отчеты",
+      "pdfDescription": "Финансовые отчеты, готовые к печати. Делитесь с бухгалтером или храните в архиве.",
+      "csvTitle": "Экспорт CSV",
+      "csvDescription": "Выгружайте сырые данные по операциям в CSV для анализа в таблицах или загрузки в бухгалтерские системы.",
+      "chartsTitle": "Наглядные графики",
+      "chartsDescription": "Тренды доходов и расходов, траты по категориям и эффективность бюджета доступны в интерактивном виде."
+    },
+    "ai": {
+      "badge": "Скоро",
+      "title": "Умные инсайты уже в планах",
+      "description": "Smart Pocket строится на архитектуре, готовой к ИИ. В будущих релизах появятся анализ паттернов расходов, поиск аномалий и персональные финансовые рекомендации на ваших приватных данных.",
+      "planned": "Запланировано",
+      "features": {
+        "1": "Анализ структуры расходов",
+        "2": "Поиск аномалий и необычных списаний",
+        "3": "Персональные советы по накоплениям",
+        "4": "Прогнозные бюджетные рекомендации"
+      }
+    },
+    "contact": {
+      "badge": "Свяжитесь с нами",
+      "title": "Есть вопросы? Мы рядом.",
+      "description": "Если вам нужна помощь со стартом, есть идея функции или вы хотите обсудить корпоративный тариф, напишите нам — ответим в течение 24 часов."
     }
   },
   "authScreen": {
@@ -42,7 +233,8 @@
     "featureSecurity": "Защищайте данные с помощью построчного контроля доступа",
     "footerNote": "Ваши данные остаются вашими.",
     "unavailableTitle": "Аутентификация недоступна",
-    "unavailableDescription": "Сейчас не включены способы входа. Обратитесь в поддержку или попробуйте позже."
+    "unavailableDescription": "Сейчас не включены способы входа. Обратитесь в поддержку или попробуйте позже.",
+    "brandHeadline": "Личные финансы без лишней сложности"
   },
   "contact": {
     "metadataTitle": "Связаться с нами",
@@ -74,7 +266,15 @@
     "messagePlaceholder": "Расскажите подробнее...",
     "submit": "Отправить сообщение",
     "submitting": "Отправка...",
-    "successToast": "Сообщение отправлено! Мы свяжемся с вами в течение 24 часов."
+    "successToast": "Сообщение отправлено! Мы свяжемся с вами в течение 24 часов.",
+    "errors": {
+      "nameRequired": "Имя обязательно",
+      "emailRequired": "Email обязателен",
+      "emailInvalid": "Некорректный email",
+      "subjectRequired": "Тема обязательна",
+      "messageRequired": "Сообщение обязательно",
+      "messageMinLength": "Пожалуйста, добавьте больше деталей (минимум 20 символов)"
+    }
   },
   "resetPassword": {
     "title": "Установить новый пароль",
@@ -91,54 +291,67 @@
   },
   "legal": {
     "privacy": {
-      "metadataTitle": "Privacy Policy",
-      "metadataDescription": "Read how Smart Pocket handles your personal and financial information.",
-      "title": "Privacy Policy",
-      "lastUpdatedLabel": "Last updated:",
-      "lastUpdatedDate": "June 21, 2026",
+      "metadataTitle": "Политика конфиденциальности",
+      "metadataDescription": "Узнайте, как Smart Pocket обрабатывает ваши персональные и финансовые данные.",
+      "title": "Политика конфиденциальности",
+      "lastUpdatedLabel": "Последнее обновление:",
+      "lastUpdatedDate": "21 июня 2026 г.",
       "sections": [
         {
-          "title": "Information We Collect",
-          "content": "Smart Pocket stores the account, transaction, budget, and profile information you enter so the application can provide budgeting, reporting, and collaboration features."
+          "title": "Какие данные мы собираем",
+          "content": "Smart Pocket хранит введенные вами счета, операции, бюджеты и данные профиля, чтобы предоставлять функции учета, отчетности и совместной работы."
         },
         {
-          "title": "How We Use Information",
-          "content": "We use your data to operate the product, secure your account, respond to support requests, and improve reliability. We do not sell your financial data."
+          "title": "Как мы используем данные",
+          "content": "Мы используем данные для работы продукта, защиты аккаунта, ответов службы поддержки и повышения надежности. Мы не продаем ваши финансовые данные."
         },
         {
-          "title": "Data Storage and Security",
-          "content": "Smart Pocket uses encrypted transport, protected infrastructure, and row-level access controls designed to keep each account's data isolated."
+          "title": "Хранение и безопасность данных",
+          "content": "Smart Pocket использует шифрованную передачу, защищенную инфраструктуру и контроль доступа на уровне строк, чтобы данные каждого аккаунта оставались изолированными."
         },
         {
-          "title": "Your Choices",
-          "content": "You can update profile details, change language preferences, and contact support about privacy questions or account-data requests at any time."
+          "title": "Ваш выбор",
+          "content": "Вы можете обновлять профиль, менять языковые предпочтения и обращаться в поддержку по вопросам конфиденциальности и запросам к данным аккаунта в любое время."
         }
       ]
     },
     "terms": {
-      "metadataTitle": "Terms of Service",
-      "metadataDescription": "Read the terms that govern the use of Smart Pocket.",
-      "title": "Terms of Service",
-      "lastUpdatedLabel": "Last updated:",
-      "lastUpdatedDate": "June 21, 2026",
+      "metadataTitle": "Условия использования",
+      "metadataDescription": "Ознакомьтесь с условиями использования Smart Pocket.",
+      "title": "Условия использования",
+      "lastUpdatedLabel": "Последнее обновление:",
+      "lastUpdatedDate": "21 июня 2026 г.",
       "sections": [
         {
-          "title": "Using Smart Pocket",
-          "content": "You may use Smart Pocket only in compliance with applicable laws and these terms. You are responsible for maintaining the confidentiality of your account credentials."
+          "title": "Использование Smart Pocket",
+          "content": "Вы можете использовать Smart Pocket только в соответствии с применимыми законами и этими условиями. Вы отвечаете за конфиденциальность учетных данных своего аккаунта."
         },
         {
-          "title": "Your Content",
-          "content": "You retain ownership of the financial data and notes you enter. You are responsible for making sure the information you record is accurate and lawful to store."
+          "title": "Ваш контент",
+          "content": "Вы сохраняете право собственности на финансовые данные и заметки, которые вводите. Вы отвечаете за их точность и законность хранения."
         },
         {
-          "title": "Service Availability",
-          "content": "We work to keep Smart Pocket available and secure, but availability may vary during maintenance, upgrades, or incidents outside our control."
+          "title": "Доступность сервиса",
+          "content": "Мы стремимся поддерживать Smart Pocket доступным и безопасным, но доступность может меняться во время обслуживания, обновлений и внешних инцидентов."
         },
         {
-          "title": "Contact",
-          "content": "If you have questions about these terms, please use the contact details published on the Contact page or in Platform Settings."
+          "title": "Контакты",
+          "content": "Если у вас есть вопросы по этим условиям, воспользуйтесь контактами на странице Contact или в настройках платформы."
         }
       ]
     }
+  },
+  "getStarted": "Начать",
+  "notFound": {
+    "title": "Страница не найдена",
+    "description": "Страница, которую вы ищете, не существует. Вернем вас обратно.",
+    "goBack": "Назад",
+    "backHome": "На главную"
+  },
+  "offline": {
+    "title": "Вы не в сети",
+    "description": "Smart Pocket нужен доступ к Интернету для синхронизации финансовых данных. Проверьте соединение и попробуйте снова.",
+    "retry": "Попробовать снова",
+    "helper": "Ваши данные в безопасности и синхронизируются после восстановления соединения."
   }
 }

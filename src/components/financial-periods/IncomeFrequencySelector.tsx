@@ -2,20 +2,8 @@
 
 import React from 'react';
 import { CheckCircle2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { IncomeFrequency } from '@/lib/financial-periods';
-
-const OPTIONS: Array<{
-  value: IncomeFrequency;
-  label: string;
-  description: string;
-}> = [
-  { value: 'weekly', label: 'Weekly', description: 'Paid once every week' },
-  { value: 'biweekly', label: 'Every 2 weeks', description: 'Paid every 14 days - usually 26 times per year' },
-  { value: 'semimonthly', label: 'Twice a month', description: 'Paid on two fixed dates - usually 24 times per year' },
-  { value: 'monthly', label: 'Monthly', description: 'Paid once per month' },
-  { value: 'irregular', label: 'Irregular income', description: 'Income does not follow a fixed schedule' },
-  { value: 'custom', label: 'Custom schedule', description: 'Paid on a repeating schedule you define' },
-];
 
 export default function IncomeFrequencySelector({
   value,
@@ -26,14 +14,52 @@ export default function IncomeFrequencySelector({
   onChange: (value: IncomeFrequency) => void;
   error?: string;
 }) {
+  const { t } = useTranslation('portal');
+  const options: Array<{
+    value: IncomeFrequency;
+    label: string;
+    description: string;
+  }> = [
+    {
+      value: 'weekly',
+      label: t('financialPeriods.incomeFrequency.options.weekly.label'),
+      description: t('financialPeriods.incomeFrequency.options.weekly.description'),
+    },
+    {
+      value: 'biweekly',
+      label: t('financialPeriods.incomeFrequency.options.biweekly.label'),
+      description: t('financialPeriods.incomeFrequency.options.biweekly.description'),
+    },
+    {
+      value: 'semimonthly',
+      label: t('financialPeriods.incomeFrequency.options.semimonthly.label'),
+      description: t('financialPeriods.incomeFrequency.options.semimonthly.description'),
+    },
+    {
+      value: 'monthly',
+      label: t('financialPeriods.incomeFrequency.options.monthly.label'),
+      description: t('financialPeriods.incomeFrequency.options.monthly.description'),
+    },
+    {
+      value: 'irregular',
+      label: t('financialPeriods.incomeFrequency.options.irregular.label'),
+      description: t('financialPeriods.incomeFrequency.options.irregular.description'),
+    },
+    {
+      value: 'custom',
+      label: t('financialPeriods.incomeFrequency.options.custom.label'),
+      description: t('financialPeriods.incomeFrequency.options.custom.description'),
+    },
+  ];
+
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-base font-700 text-foreground">How do you usually receive income?</h3>
-        <p className="text-sm text-muted-foreground">Choose the planning rhythm that best matches your income schedule.</p>
+        <h3 className="text-base font-700 text-foreground">{t('financialPeriods.incomeFrequency.title')}</h3>
+        <p className="text-sm text-muted-foreground">{t('financialPeriods.incomeFrequency.description')}</p>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {OPTIONS.map((option) => {
+        {options.map((option) => {
           const selected = value === option.value;
           return (
             <button

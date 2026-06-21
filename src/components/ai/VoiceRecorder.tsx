@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Square, Pause, Play, X, RotateCcw, Type, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type RecordingState =
   | 'idle' |'requesting_permission' |'recording' |'paused' |'processing' |'done' |'error';
@@ -20,6 +21,7 @@ export default function VoiceRecorder({
   maxSeconds = 120,
   language = 'en',
 }: VoiceRecorderProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const [state, setState] = useState<RecordingState>('idle');
   const [elapsed, setElapsed] = useState(0);
   const [audioLevel, setAudioLevel] = useState(0);
@@ -143,18 +145,18 @@ export default function VoiceRecorder({
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Microphone access denied';
       if (msg.includes('denied') || msg.includes('NotAllowed')) {
-        setErrorMessage('Microphone access denied. Please allow microphone access and try again.');
+        setErrorMessage(t('smartEntryModal.voice.errors.permissionDenied', { ns: 'portal' }));
       } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
-        setErrorMessage('No microphone found. Please connect a microphone and try again.');
+        setErrorMessage(t('smartEntryModal.voice.errors.noMicrophone', { ns: 'portal' }));
       } else if (msg.includes('NotSupported') || msg.includes('MediaRecorder')) {
-        setErrorMessage('Voice recording is not supported in this browser. Please use text input instead.');
+        setErrorMessage(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
       } else {
-        setErrorMessage('Could not start recording. Please try again.');
+        setErrorMessage(t('smartEntryModal.voice.errors.startFailed', { ns: 'portal' }));
       }
       setState('error');
       cleanup();
     }
-  }, [maxSeconds, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, cleanup]);
+  }, [cleanup, maxSeconds, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t]);
 
   const stopRecording = useCallback(() => {
     stopTimer();
@@ -213,19 +215,29 @@ export default function VoiceRecorder({
       {/* Status label */}
       <div className="text-center">
         {state === 'idle' && (
-          <p className="text-sm text-muted-foreground">Tap the microphone to start speaking</p>
+          <p className="text-sm text-muted-foreground">
+            {t('smartEntryModal.voice.status.idle', { ns: 'portal' })}
+          </p>
         )}
         {state === 'requesting_permission' && (
-          <p className="text-sm text-muted-foreground">Requesting microphone access...</p>
+          <p className="text-sm text-muted-foreground">
+            {t('smartEntryModal.voice.status.requestingPermission', { ns: 'portal' })}
+          </p>
         )}
         {state === 'recording' && (
-          <p className="text-sm font-600 text-negative animate-pulse">Recording...</p>
+          <p className="text-sm font-600 text-negative animate-pulse">
+            {t('smartEntryModal.voice.status.recording', { ns: 'portal' })}
+          </p>
         )}
         {state === 'paused' && (
-          <p className="text-sm font-600 text-warning">Paused</p>
+          <p className="text-sm font-600 text-warning">
+            {t('smartEntryModal.voice.status.paused', { ns: 'portal' })}
+          </p>
         )}
         {state === 'processing' && (
-          <p className="text-sm font-600 text-accent">Processing your voice...</p>
+          <p className="text-sm font-600 text-accent">
+            {t('smartEntryModal.voice.status.processing', { ns: 'portal' })}
+          </p>
         )}
         {state === 'error' && (
           <p className="text-sm font-600 text-negative">{errorMessage}</p>
@@ -258,7 +270,12 @@ export default function VoiceRecorder({
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Max {formatTime(maxSeconds)}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {t('smartEntryModal.voice.maxDuration', {
+              ns: 'portal',
+              duration: formatTime(maxSeconds),
+            })}
+          </p>
         </div>
       )}
 
@@ -266,7 +283,9 @@ export default function VoiceRecorder({
       {state === 'processing' && (
         <div className="flex flex-col items-center gap-3">
           <Loader2 size={40} className="text-accent animate-spin" />
-          <p className="text-sm text-muted-foreground">Transcribing and analysing...</p>
+          <p className="text-sm text-muted-foreground">
+            {t('smartEntryModal.voice.transcribing', { ns: 'portal' })}
+          </p>
         </div>
       )}
 
@@ -276,7 +295,7 @@ export default function VoiceRecorder({
           <button
             onClick={startRecording}
             className="w-20 h-20 rounded-full gradient-teal flex items-center justify-center shadow-teal-glow hover:scale-105 active:scale-95 transition-all duration-200"
-            aria-label="Start recording"
+            aria-label={t('smartEntryModal.voice.actions.start', { ns: 'portal' })}
           >
             <Mic size={32} className="text-white" />
           </button>
@@ -293,21 +312,21 @@ export default function VoiceRecorder({
             <button
               onClick={pauseRecording}
               className="w-12 h-12 rounded-full bg-warning-soft border border-warning/30 flex items-center justify-center hover:bg-warning/20 transition-colors"
-              aria-label="Pause recording"
+              aria-label={t('smartEntryModal.voice.actions.pause', { ns: 'portal' })}
             >
               <Pause size={20} className="text-warning" />
             </button>
             <button
               onClick={stopRecording}
               className="w-20 h-20 rounded-full bg-negative flex items-center justify-center shadow-lg hover:bg-negative/90 active:scale-95 transition-all duration-200"
-              aria-label="Stop recording"
+              aria-label={t('smartEntryModal.voice.actions.stop', { ns: 'portal' })}
             >
               <Square size={28} className="text-white fill-white" />
             </button>
             <button
               onClick={handleCancel}
               className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-              aria-label="Cancel"
+              aria-label={t('actions.cancel', { ns: 'common' })}
             >
               <X size={20} className="text-muted-foreground" />
             </button>
@@ -319,21 +338,21 @@ export default function VoiceRecorder({
             <button
               onClick={resumeRecording}
               className="w-14 h-14 rounded-full bg-positive flex items-center justify-center hover:bg-positive/90 transition-colors"
-              aria-label="Resume recording"
+              aria-label={t('smartEntryModal.voice.actions.resume', { ns: 'portal' })}
             >
               <Play size={22} className="text-white fill-white" />
             </button>
             <button
               onClick={stopRecording}
               className="w-20 h-20 rounded-full bg-negative flex items-center justify-center shadow-lg hover:bg-negative/90 active:scale-95 transition-all"
-              aria-label="Stop recording"
+              aria-label={t('smartEntryModal.voice.actions.stop', { ns: 'portal' })}
             >
               <Square size={28} className="text-white fill-white" />
             </button>
             <button
               onClick={handleCancel}
               className="w-12 h-12 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-              aria-label="Cancel"
+              aria-label={t('actions.cancel', { ns: 'common' })}
             >
               <X size={20} className="text-muted-foreground" />
             </button>
@@ -347,14 +366,14 @@ export default function VoiceRecorder({
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors"
             >
               <RotateCcw size={16} />
-              Try Again
+              {t('actions.refresh', { ns: 'common' })}
             </button>
             <button
               onClick={onSwitchToText}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
             >
               <Type size={16} />
-              Use Text
+              {t('smartEntryModal.voice.actions.useText', { ns: 'portal' })}
             </button>
           </div>
         )}
@@ -367,7 +386,7 @@ export default function VoiceRecorder({
           className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <Type size={14} />
-          Type instead
+          {t('smartEntryModal.voice.actions.typeInstead', { ns: 'portal' })}
         </button>
       )}
 
@@ -377,7 +396,7 @@ export default function VoiceRecorder({
           onClick={handleCancel}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
-          Cancel
+          {t('actions.cancel', { ns: 'common' })}
         </button>
       )}
     </div>

@@ -19,10 +19,13 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-negative-soft text-negative border border-negative/20',
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending', partially_paid: 'Partially Paid',
-  settled: 'Settled', waived: 'Waived', cancelled: 'Cancelled',
-};
+const STATUSES: ReimbursementStatus[] = [
+  'pending',
+  'partially_paid',
+  'settled',
+  'waived',
+  'cancelled',
+];
 
 function normalizeCurrencyCode(value: string | null | undefined) {
   const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
@@ -208,7 +211,11 @@ export default function ReimbursementsPage() {
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
             <option value="all">{t('reimbursements.allStatuses')}</option>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{t(`reimbursements.statuses.${k}`, { defaultValue: v })}</option>)}
+            {STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t(`reimbursements.statuses.${status}`)}
+              </option>
+            ))}
           </select>
           <select value={filterPerson} onChange={(e) => setFilterPerson(e.target.value)}
             className="px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
@@ -239,7 +246,7 @@ export default function ReimbursementsPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-600 text-foreground">{r.description}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
-                          {t(`reimbursements.statuses.${r.status}`, { defaultValue: STATUS_LABELS[r.status] || r.status })}
+                          {t(`reimbursements.statuses.${r.status}`, { defaultValue: r.status })}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">

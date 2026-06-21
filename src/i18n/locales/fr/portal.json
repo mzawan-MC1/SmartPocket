@@ -82,7 +82,14 @@
     "nextPayPeriod": "Période de paie suivante",
     "chooseMonth": "Choisir le mois",
     "dashboardMonth": "Mois du tableau de bord",
-    "more": "Plus"
+    "more": "Plus",
+    "quickActionShort": {
+      "transaction": "Transaction",
+      "account": "Compte",
+      "recurring": "Recurrent",
+      "reimbursement": "Remboursement",
+      "budget": "Budget"
+    }
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Chargement de la période de planification",
@@ -103,7 +110,39 @@
     "overview": "Vue d'ensemble du budget",
     "categoryBudgets": "Budgets par catégorie",
     "emptyTitle": "Aucun budget pour le moment",
-    "emptyDescription": "Créez votre premier budget pour commencer à suivre vos limites de dépenses."
+    "emptyDescription": "Créez votre premier budget pour commencer à suivre vos limites de dépenses.",
+    "createFailed": "Echec de la creation du budget.",
+    "updateFailed": "Echec de la mise a jour du budget.",
+    "form": {
+      "periodChangeWarning": "Cette modification de periode de budget s'applique immediatement. Les vues historiques sont recalculees avec la nouvelle regle car l'historique date des budgets n'est pas encore stocke.",
+      "categoryRequired": "Selectionnez une categorie.",
+      "amountRequired": "Saisissez un montant valide.",
+      "currencyRequired": "Choisissez une devise.",
+      "loadingPeriodSettings": "Les parametres de periode de budget sont encore en cours de chargement.",
+      "semimonthlyNeedsSettings": "Mettez a jour Revenus et planification dans les Parametres avant de creer un budget deux fois par mois.",
+      "incompletePeriodConfig": "La configuration de la periode de budget est incomplete.",
+      "periodIsolationNotice": "Ce budget conserve sa propre periode. Modifier les Parametres plus tard ne la changera pas.",
+      "category": "Categorie",
+      "selectCategory": "Selectionnez une categorie",
+      "name": "Nom du budget",
+      "namePlaceholder": "ex. Alimentation et restaurants",
+      "amount": "Montant *",
+      "currency": "Devise",
+      "currencyPlaceholder": "Choisissez une devise",
+      "period": "Periode du budget",
+      "alertAtPercent": "Alerter a %",
+      "anchorDate": "Date d'ancrage",
+      "anchorDateHelp": {
+        "weekly": "Les budgets hebdomadaires remplissent automatiquement une date d'ancrage courante, que vous pouvez modifier si besoin.",
+        "biweekly": "Les budgets toutes les 2 semaines utilisent cette date pour calculer des cycles exacts de 14 jours.",
+        "custom": "Les budgets personnalises se repetent a partir de cette date."
+      },
+      "cycleLengthDays": "Longueur du cycle en jours *",
+      "semimonthlyTitle": "Calendrier deux fois par mois",
+      "loadingIncomeSchedule": "Chargement de votre calendrier de revenus enregistre...",
+      "semimonthlyConfigIncomplete": "La configuration de la periode de budget est incomplete. Mettez a jour votre calendrier bimensuel dans",
+      "semimonthlySettingsSuffix": "avant d'utiliser un budget deux fois par mois."
+    }
   },
   "dashboardMetrics": {
     "monthly": "Mensuel",
@@ -215,8 +254,8 @@
     },
     "form": {
       "preview": "Aperçu du transfert",
-      "fromAccount": "From Account",
-      "toAccount": "To Account"
+      "fromAccount": "Compte source",
+      "toAccount": "Compte destination"
     }
   },
   "recurring": {
@@ -302,7 +341,11 @@
       "investment": "Investissement",
       "other": "Autre"
     },
-    "dashboardDescription": "Soldes de vos comptes actifs en espèces, bancaires, cartes et portefeuilles."
+    "dashboardDescription": "Soldes de vos comptes actifs en espèces, bancaires, cartes et portefeuilles.",
+    "form": {
+      "typeRequired": "Le type de compte est obligatoire.",
+      "currency": "Devise"
+    }
   },
   "categories": {
     "title": "Catégories",
@@ -531,200 +574,735 @@
     "noAccount": "Aucun compte"
   },
   "spaces": {
-    "title": "Spaces",
-    "description": "Organize shared finances, household visibility, and delegated access without changing each person's stored records.",
-    "badge": "Shared spaces",
-    "newSpace": "New Space",
-    "loadFailed": "Failed to load spaces.",
-    "loadDetailsFailed": "Failed to load space details.",
-    "nameRequired": "Space name is required.",
-    "created": "Space created",
-    "createFailed": "Failed to create space.",
-    "updated": "Space updated",
-    "updateFailed": "Failed to update space.",
-    "archiveConfirm": "Archive {{name}}?",
-    "archived": "Space archived",
-    "archiveFailed": "Failed to archive space.",
-    "emailRequired": "Enter an email address.",
-    "invitationSent": "Invitation sent to {{email}}",
-    "invitationFailed": "Failed to send invitation.",
-    "revokeConfirm": "Revoke this invitation?",
-    "revoked": "Invitation revoked",
-    "revokeFailed": "Failed to revoke invitation.",
-    "roleUpdated": "Role updated",
-    "roleUpdateFailed": "Failed to update role.",
-    "removeMemberConfirm": "Remove {{name}} from this space?",
-    "memberRemoved": "Member removed",
-    "memberRemoveFailed": "Failed to remove member.",
-    "emptyTitle": "No spaces yet",
-    "emptyDescription": "Create a space to organize shared finances, delegated access, or household views.",
-    "createFirst": "Create First Space",
-    "yourSpaces": "Your Spaces",
-    "archiveAction": "Archive",
-    "inviteAction": "Invite",
-    "membersTitle_one": "{{count}} Member",
-    "membersTitle_other": "{{count}} Members",
-    "membersEmpty": "No members yet.",
-    "unknownUser": "Unknown user",
-    "removeMemberAction": "Remove member",
-    "invitationsTitle_one": "{{count}} Invitation",
-    "invitationsTitle_other": "{{count}} Invitations",
-    "invitationsEmpty": "No invitations yet.",
-    "expired": "Expired",
-    "expiresOn": "Expires on {{date}}",
-    "revokeAction": "Revoke",
-    "selectSpace": "Select a space to view details.",
-    "editTitle": "Edit Space",
-    "createTitle": "Create Space",
-    "inviteTitle": "Invite to Space",
-    "sending": "Sending...",
-    "sendInvitation": "Send Invitation",
+    "title": "Espaces",
+    "description": "Organisez les finances partagees, la visibilite du foyer et les acces delegues sans modifier les enregistrements deja stockes pour chaque personne.",
+    "badge": "Espaces partages",
+    "newSpace": "Nouvel espace",
+    "loadFailed": "Impossible de charger les espaces.",
+    "loadDetailsFailed": "Impossible de charger les details de l'espace.",
+    "nameRequired": "Le nom de l'espace est obligatoire.",
+    "created": "Espace cree",
+    "createFailed": "Impossible de creer l'espace.",
+    "updated": "Espace mis a jour",
+    "updateFailed": "Impossible de mettre a jour l'espace.",
+    "archiveConfirm": "Archiver {{name}} ?",
+    "archived": "Espace archive",
+    "archiveFailed": "Impossible d'archiver l'espace.",
+    "emailRequired": "Saisissez une adresse e-mail.",
+    "invitationSent": "Invitation envoyee a {{email}}",
+    "invitationFailed": "Impossible d'envoyer l'invitation.",
+    "revokeConfirm": "Revoquer cette invitation ?",
+    "revoked": "Invitation revoquee",
+    "revokeFailed": "Impossible de revoquer l'invitation.",
+    "roleUpdated": "Role mis a jour",
+    "roleUpdateFailed": "Impossible de mettre a jour le role.",
+    "removeMemberConfirm": "Retirer {{name}} de cet espace ?",
+    "memberRemoved": "Membre retire",
+    "memberRemoveFailed": "Impossible de retirer le membre.",
+    "emptyTitle": "Aucun espace pour l'instant",
+    "emptyDescription": "Creez un espace pour organiser des finances partagees, un acces delegue ou une vue foyer.",
+    "createFirst": "Creer le premier espace",
+    "yourSpaces": "Vos espaces",
+    "archiveAction": "Archiver",
+    "inviteAction": "Inviter",
+    "membersTitle_one": "{{count}} membre",
+    "membersTitle_other": "{{count}} membres",
+    "membersEmpty": "Aucun membre pour l'instant.",
+    "unknownUser": "Utilisateur inconnu",
+    "removeMemberAction": "Retirer le membre",
+    "invitationsTitle_one": "{{count}} invitation",
+    "invitationsTitle_other": "{{count}} invitations",
+    "invitationsEmpty": "Aucune invitation pour l'instant.",
+    "expired": "Expiree",
+    "expiresOn": "Expire le {{date}}",
+    "revokeAction": "Revoquer",
+    "selectSpace": "Selectionnez un espace pour afficher ses details.",
+    "editTitle": "Modifier l'espace",
+    "createTitle": "Creer un espace",
+    "inviteTitle": "Inviter dans un espace",
+    "sending": "Envoi...",
+    "sendInvitation": "Envoyer l'invitation",
     "status": {
-      "accepted": "Accepted",
-      "declined": "Declined",
-      "revoked": "Revoked"
+      "accepted": "Acceptee",
+      "declined": "Refusee",
+      "revoked": "Revoquee"
     },
     "types": {
-      "personal": "Personal",
-      "family": "Family",
-      "household": "Household",
-      "child": "Child",
-      "friend": "Friend",
-      "custom": "Custom"
+      "personal": "Personnel",
+      "family": "Famille",
+      "household": "Foyer",
+      "child": "Enfant",
+      "friend": "Ami",
+      "custom": "Personnalise"
     },
     "roles": {
-      "owner": "Owner",
-      "manager": "Manager",
-      "contributor": "Contributor",
-      "viewer": "Viewer",
-      "dependent": "Dependent"
+      "owner": "Proprietaire",
+      "manager": "Gestionnaire",
+      "contributor": "Contributeur",
+      "viewer": "Lecteur",
+      "dependent": "Dependant"
     },
     "roleDescriptions": {
-      "manager": "Can manage members and shared configuration.",
-      "contributor": "Can add and update shared records.",
-      "viewer": "Can view shared information only.",
-      "dependent": "Visible for tracked dependents or children."
+      "manager": "Peut gerer les membres et la configuration partagee.",
+      "contributor": "Peut ajouter et modifier les enregistrements partages.",
+      "viewer": "Peut seulement consulter les informations partagees.",
+      "dependent": "Visible pour les enfants ou dependants suivis."
     },
     "form": {
-      "name": "Space Name",
-      "namePlaceholder": "e.g. Family Budget, Shared Home",
-      "type": "Space Type",
+      "name": "Nom de l'espace",
+      "namePlaceholder": "ex. Budget familial, Maison partagee",
+      "type": "Type d'espace",
       "description": "Description",
-      "descriptionPlaceholder": "Optional description...",
-      "color": "Color",
-      "email": "Email",
+      "descriptionPlaceholder": "Description facultative...",
+      "color": "Couleur",
+      "email": "E-mail",
       "emailPlaceholder": "name@example.com",
       "role": "Role"
+    },
+    "invitationPage": {
+      "loading": "Chargement de l'invitation...",
+      "notFoundTitle": "Invitation introuvable",
+      "notFoundDescription": "Ce lien d'invitation est invalide ou a ete supprime.",
+      "goToDashboard": "Aller au tableau de bord",
+      "acceptedTitle": "Invitation acceptee",
+      "acceptedDescription": "Vous avez rejoint {{space}} en tant que {{role}}.",
+      "redirecting": "Redirection vers Espaces...",
+      "declinedTitle": "Invitation refusee",
+      "declinedDescription": "Vous avez refuse cette invitation.",
+      "title": "Invitation a un espace",
+      "description": "Vous avez ete invite a rejoindre un espace partage.",
+      "fallbackSpace": "l'espace",
+      "fallbackUnknownSpace": "Espace inconnu",
+      "fallbackInviter": "Proprietaire de l'espace",
+      "details": {
+        "space": "Espace",
+        "role": "Role",
+        "invitedBy": "Invite par",
+        "sentTo": "Envoye a",
+        "expires": "Expire"
+      },
+      "status": {
+        "accepted": "Vous avez deja accepte cette invitation.",
+        "declined": "Vous avez deja refuse cette invitation.",
+        "revoked": "Cette invitation a ete revoquee par le proprietaire de l'espace."
+      },
+      "expiredBanner": "Cette invitation a expire",
+      "signInTitle": "Connectez-vous pour accepter cette invitation",
+      "signInDescription": "Vous devez vous connecter avec {{email}} pour accepter cette invitation.",
+      "emailMismatch": "Cette invitation a ete envoyee a {{invitedEmail}}, mais vous etes connecte avec {{currentEmail}}. Veuillez utiliser le bon compte.",
+      "decline": "Refuser",
+      "accept": "Accepter",
+      "backToDashboard": "Retour au tableau de bord",
+      "errors": {
+        "notFound": "Invitation introuvable.",
+        "emailMismatch": "Cette invitation a ete envoyee a une autre adresse e-mail.",
+        "expired": "Cette invitation a expire.",
+        "notAuthenticated": "Veuillez vous connecter pour continuer.",
+        "alreadyProcessed": "L'invitation est deja {{status}}.",
+        "respondFailed": "Echec de la reponse a l'invitation."
+      }
     }
   },
   "smartEntryModal": {
-    "title": "Smart Entry",
-    "description": "Review AI-assisted financial entries before saving them.",
-    "close": "Close Smart Entry",
-    "modeText": "Text",
-    "modeVoice": "Voice",
-    "languageLabel": "Input language",
-    "describeLabel": "Describe your transaction",
-    "submitHint": "Press Ctrl+Enter to submit",
-    "analyzeAction": "Analyze with AI",
-    "examplesTitle": "Examples",
-    "processingTitle": "Analyzing your input...",
-    "processingDescription": "Understanding financial context",
-    "reviewTitle": "Review before saving",
-    "inputLabel": "Input",
-    "transcriptLabel": "Transcript",
-    "understandingTitle": "Understanding",
-    "purposeQuestion": "How should this money be treated?",
-    "purposeQuestionWithPerson": "How should the {{amount}} from {{name}} be treated?",
-    "personTitle": "Person",
-    "choosePerson": "Choose a person",
-    "createPersonAction": "Create {{name}}",
-    "personNamePlaceholder": "Person name",
-    "useThisPerson": "Use This Person",
-    "accountTitle": "Account",
-    "destinationAccountTitle": "Destination Account",
-    "primaryAccountFallback": "Choose an account",
-    "destinationAccountFallback": "Choose a destination account",
-    "createAccountAction": "Create {{name}}",
-    "accountNamePlaceholder": "Account name",
-    "currencyPlaceholder": "Currency",
-    "useThisAccount": "Use This Account",
-    "amountTitle": "Amount",
-    "amountFallback": "How much was used?",
-    "amountPlaceholder": "Enter amount in {{currency}}",
-    "useFullAmount": "Use full {{amount}}",
-    "moveMoneyTo": "Move money to",
-    "summaryTitle": "Summary",
-    "stillNeeded": "Still needed: {{fields}}",
-    "confirmAndSave": "Confirm & Save",
-    "completeRequiredDetails": "Please complete the required details above.",
-    "savingRecords": "Saving your records...",
-    "successTitle": "Saved successfully!",
-    "recordsCreated_one": "{{count}} record created",
-    "recordsCreated_other": "{{count}} records created",
-    "addAnother": "Add Another",
+    "title": "Saisie intelligente",
+    "description": "Passez en revue les ecritures financieres assistees par l'IA avant de les enregistrer.",
+    "close": "Fermer la saisie intelligente",
+    "modeText": "Texte",
+    "modeVoice": "Voix",
+    "languageLabel": "Langue d'entree",
+    "describeLabel": "Decrivez votre transaction",
+    "submitHint": "Appuyez sur Ctrl+Entree pour envoyer",
+    "analyzeAction": "Analyser avec l'IA",
+    "examplesTitle": "Exemples",
+    "processingTitle": "Analyse de votre saisie...",
+    "processingDescription": "Comprendre le contexte financier",
+    "reviewTitle": "Verifier avant l'enregistrement",
+    "inputLabel": "Saisie",
+    "transcriptLabel": "Transcription",
+    "understandingTitle": "Ce que nous avons compris",
+    "purposeQuestion": "Comment faut-il traiter cet argent ?",
+    "purposeQuestionWithPerson": "Comment faut-il traiter la somme de {{amount}} provenant de {{name}} ?",
+    "personTitle": "Personne",
+    "choosePerson": "Choisir une personne",
+    "createPersonAction": "Creer {{name}}",
+    "personNamePlaceholder": "Nom de la personne",
+    "useThisPerson": "Utiliser cette personne",
+    "accountTitle": "Compte",
+    "destinationAccountTitle": "Compte de destination",
+    "primaryAccountFallback": "Choisir un compte",
+    "destinationAccountFallback": "Choisir un compte de destination",
+    "createAccountAction": "Creer {{name}}",
+    "accountNamePlaceholder": "Nom du compte",
+    "currencyPlaceholder": "Devise",
+    "useThisAccount": "Utiliser ce compte",
+    "amountTitle": "Montant",
+    "amountFallback": "Quel montant a ete utilise ?",
+    "amountPlaceholder": "Saisissez un montant en {{currency}}",
+    "useFullAmount": "Utiliser la totalite de {{amount}}",
+    "moveMoneyTo": "Deplacer l'argent vers",
+    "summaryTitle": "Resume",
+    "stillNeeded": "Encore necessaire : {{fields}}",
+    "confirmAndSave": "Confirmer et enregistrer",
+    "completeRequiredDetails": "Veuillez completer les informations requises ci-dessus.",
+    "savingRecords": "Enregistrement de vos donnees...",
+    "successTitle": "Enregistre avec succes",
+    "recordsCreated_one": "{{count}} enregistrement cree",
+    "recordsCreated_other": "{{count}} enregistrements crees",
+    "addAnother": "Ajouter un autre",
     "notConfigured": {
-      "title": "AI not configured yet",
-      "description": "You can continue using manual transaction entry. An administrator can configure AI providers in Admin > AI Settings.",
-      "manualAction": "Use Manual Entry"
+      "title": "L'IA n'est pas encore configuree",
+      "description": "Vous pouvez continuer a saisir vos transactions manuellement. Un administrateur peut configurer les fournisseurs d'IA dans Admin > Parametres IA.",
+      "manualAction": "Utiliser la saisie manuelle"
     },
     "progress": {
-      "usedOf": "{{used}} of {{total}}"
+      "usedOf": "{{used}} sur {{total}}"
     },
     "limit": {
-      "unavailableTitle": "AI unavailable",
-      "unavailableDescription": "AI access is temporarily unavailable.",
-      "viewPlans": "View Plans",
-      "viewPlan": "View Plan",
-      "dailyLimitTitle": "Daily AI request limit reached",
-      "dailyLimitDescription": "You have used all {{count}} AI requests available today.",
-      "monthlyCreditsTitle": "Monthly AI credits used",
-      "monthlyCreditsDescription": "You have used all {{count}} AI credits for this billing period.",
-      "insufficientCreditsTitle": "Not enough AI credits",
-      "insufficientCreditsDescription": "This action requires {{required}} credits, but you have {{remaining}} remaining.",
-      "trialExpiredTitle": "Trial expired",
-      "subscriptionExpiredTitle": "Subscription expired",
-      "dailyRequests": "Daily requests",
-      "monthlyCredits": "Monthly AI credits",
-      "creditsRemaining": "Credits remaining",
-      "creditsReserved": "Credits reserved",
-      "requiredCredits": "Required credits",
-      "renewal": "Renewal",
-      "nextRenewal": "Next renewal {{date}}",
-      "availableAgainIn_one": "Available again in {{count}} hour",
-      "availableAgainIn_other": "Available again in {{count}} hours"
+      "unavailableTitle": "IA indisponible",
+      "unavailableDescription": "L'acces a l'IA est temporairement indisponible.",
+      "viewPlans": "Voir les offres",
+      "viewPlan": "Voir l'offre",
+      "dailyLimitTitle": "Limite quotidienne des requetes IA atteinte",
+      "dailyLimitDescription": "Vous avez utilise les {{count}} requetes IA disponibles aujourd'hui.",
+      "monthlyCreditsTitle": "Credits IA mensuels epuises",
+      "monthlyCreditsDescription": "Vous avez utilise la totalite des {{count}} credits IA pour cette periode.",
+      "insufficientCreditsTitle": "Credits IA insuffisants",
+      "insufficientCreditsDescription": "Cette action necessite {{required}} credits, mais il ne vous en reste que {{remaining}}.",
+      "trialExpiredTitle": "Essai expire",
+      "subscriptionExpiredTitle": "Abonnement expire",
+      "dailyRequests": "Requetes quotidiennes",
+      "monthlyCredits": "Credits IA mensuels",
+      "creditsRemaining": "Credits restants",
+      "creditsReserved": "Credits reserves",
+      "requiredCredits": "Credits requis",
+      "renewal": "Renouvellement",
+      "nextRenewal": "Prochain renouvellement {{date}}",
+      "availableAgainIn_one": "Disponible de nouveau dans {{count}} heure",
+      "availableAgainIn_other": "Disponible de nouveau dans {{count}} heures"
     },
     "success": {
       "done": "Done"
     },
     "summary": {
-      "remainingFor": "Remaining for {{name}}: {{amount}}",
-      "cashRemainingAfterSpending": "Cash remaining after spending: {{amount}}",
-      "amountStillOwedTo": "Amount still owed to {{name}}: {{amount}}",
-      "managedBalanceChange": "Managed balance change: {{amount}}"
+      "remainingFor": "Reste pour {{name}} : {{amount}}",
+      "cashRemainingAfterSpending": "Argent restant apres depense : {{amount}}",
+      "amountStillOwedTo": "Montant encore du a {{name}} : {{amount}}",
+      "managedBalanceChange": "Variation du solde gere : {{amount}}",
+      "amountNeeded": "Montant requis",
+      "someone": "quelqu'un",
+      "oneAccount": "un compte",
+      "anotherAccount": "un autre compte"
     },
     "failedTitles": {
-      "accountCreate": "Account creation failed",
-      "chooseAnotherAccount": "Choose another account",
-      "transactionSave": "Transaction save failed",
-      "reviewRequired": "Review required",
-      "generic": "Smart Entry failed"
+      "accountCreate": "Echec de creation du compte",
+      "chooseAnotherAccount": "Choisir un autre compte",
+      "transactionSave": "Echec d'enregistrement de la transaction",
+      "reviewRequired": "Verification requise",
+      "generic": "Echec de la saisie intelligente"
     },
     "errors": {
-      "moreDetailsRequired": "More details are required before this entry can be saved.",
-      "saveFailed": "Failed to save Smart Entry results.",
-      "accountCreateFailed": "Failed to create the selected account.",
-      "accountInvalid": "The selected account is no longer valid.",
-      "transactionSaveFailed": "Failed to save the transaction.",
-      "invalidRequest": "The Smart Entry request is no longer valid.",
-      "finalizeFailed": "Failed to finalize the Smart Entry request.",
-      "alreadyProcessed": "This Smart Entry request has already been processed.",
-      "noLongerAvailable": "This Smart Entry request is no longer available.",
-      "belongsToAnotherAccount": "This Smart Entry request belongs to another account.",
-      "notConfirmable": "This Smart Entry request can no longer be confirmed.",
-      "resolveAccount": "Please resolve the account selection before confirming.",
-      "resolvePerson": "Please resolve the person selection before confirming.",
-      "confirmFailed": "Failed to confirm the Smart Entry request."
+      "moreDetailsRequired": "Des details supplementaires sont necessaires avant d'enregistrer cette saisie.",
+      "saveFailed": "Echec de l'enregistrement des resultats Smart Entry.",
+      "accountCreateFailed": "Echec de creation du compte selectionne.",
+      "accountInvalid": "Le compte selectionne n'est plus valide.",
+      "transactionSaveFailed": "Echec de l'enregistrement de la transaction.",
+      "invalidRequest": "La demande Smart Entry n'est plus valide.",
+      "finalizeFailed": "Echec de finalisation de la demande Smart Entry.",
+      "alreadyProcessed": "Cette demande Smart Entry a deja ete traitee.",
+      "noLongerAvailable": "Cette demande Smart Entry n'est plus disponible.",
+      "belongsToAnotherAccount": "Cette demande Smart Entry appartient a un autre compte.",
+      "notConfirmable": "Cette demande Smart Entry ne peut plus etre confirmee.",
+      "resolveAccount": "Veuillez regler le choix du compte avant de confirmer.",
+      "resolvePerson": "Veuillez regler le choix de la personne avant de confirmer.",
+      "confirmFailed": "Echec de confirmation de la demande Smart Entry."
+    },
+    "examples": {
+      "placeholder": {
+        "en": "ex. : I spent AED 85 on groceries today from cash",
+        "ar": "ex. arabe : أنفقت 85 درهما على البقالة من النقد",
+        "fr": "ex. : j'ai dépensé 85 AED aujourd'hui pour les courses depuis mon compte espèces",
+        "ru": "ex. russe : я потратил 85 AED на продукты с наличного счета"
+      },
+      "items": {
+        "en": {
+          "1": "Spent AED 85 on groceries from cash",
+          "2": "Ahmed gave me AED 2,300 today",
+          "3": "Transfer AED 1,000 from bank to cash",
+          "4": "I paid AED 600 for Ahmed's subscription from my credit card"
+        },
+        "ar": {
+          "1": "أنفقت 85 درهما على البقالة من حساب النقد",
+          "2": "أحمد أعطاني 2300 درهم اليوم",
+          "3": "حوّل 1000 درهم من البنك إلى النقد",
+          "4": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية"
+        },
+        "fr": {
+          "1": "J'ai dépensé 85 AED pour les courses depuis mon compte espèces",
+          "2": "Ahmed m'a donné 2 300 AED aujourd'hui",
+          "3": "Transférer 1 000 AED de la banque vers les espèces",
+          "4": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit"
+        },
+        "ru": {
+          "1": "Потратил 85 AED на продукты с наличного счета",
+          "2": "Ахмед дал мне сегодня 2 300 AED",
+          "3": "Переведи 1 000 AED из банка в наличные",
+          "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
+        }
+      }
+    },
+    "voice": {
+      "status": {
+        "idle": "Touchez le microphone pour commencer à parler",
+        "requestingPermission": "Demande d'accès au microphone...",
+        "recording": "Enregistrement...",
+        "paused": "En pause",
+        "processing": "Traitement de votre voix..."
+      },
+      "maxDuration": "Max {{duration}}",
+      "transcribing": "Transcription et analyse...",
+      "actions": {
+        "start": "Démarrer l'enregistrement",
+        "pause": "Mettre en pause",
+        "resume": "Reprendre l'enregistrement",
+        "stop": "Arrêter l'enregistrement",
+        "useText": "Utiliser le texte",
+        "typeInstead": "Saisir à la place"
+      },
+      "errors": {
+        "permissionDenied": "Accès au microphone refusé. Veuillez l'autoriser puis réessayer.",
+        "noMicrophone": "Aucun microphone trouvé. Branchez un microphone puis réessayez.",
+        "notSupported": "L'enregistrement vocal n'est pas pris en charge par ce navigateur. Veuillez utiliser la saisie texte.",
+        "startFailed": "Impossible de démarrer l'enregistrement. Veuillez réessayer."
+      }
+    },
+    "missingFields": {
+      "purpose": "objectif",
+      "person": "personne",
+      "account": "compte",
+      "destinationAccount": "compte de destination",
+      "amount": "montant",
+      "currency": "devise"
+    },
+    "purposeOptions": {
+      "personalIncome": {
+        "label": "Mon argent / paiement",
+        "description": "Ajoutez-le à mon propre compte et considérez-le comme de l'argent reçu."
+      },
+      "borrowedMoney": {
+        "label": "Emprunté auprès d'eux",
+        "description": "Ajoutez-le à mon compte et enregistrez que je leur dois encore cet argent."
+      },
+      "managedMoney": {
+        "label": "Géré pour eux",
+        "description": "Conservez leur argent séparé dans leur propre compte suivi."
+      },
+      "reimbursement": {
+        "label": "Remboursement / autre",
+        "description": "Ils vous remboursent quelque chose d'antérieur, ou cela nécessite une autre interprétation."
+      }
+    },
+    "summaryRows": {
+      "income": "+ {{amount}} reçu",
+      "loanReceived": "+ {{amount}} emprunté à {{personName}}",
+      "receivedFromPerson": "+ {{amount}} reçu de {{personName}}",
+      "expense": "- {{amount}} {{categoryName}}",
+      "loanRepayment": "- {{amount}} remboursé à {{personName}}",
+      "reimbursementPayment": "+ {{amount}} remboursé par {{personName}}",
+      "moneyReturned": "- {{amount}} rendu à {{personName}}",
+      "transfer": "{{amount}} transféré de {{sourceAccount}} vers {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "primaryAccountLabels": {
+      "spendFrom": "Depenser depuis",
+      "addBorrowedMoneyTo": "Ajouter l'argent emprunte a",
+      "trackTheirMoneyIn": "Suivre leur argent dans",
+      "returnMoneyFrom": "Rendre l'argent depuis",
+      "payBackFrom": "Rembourser depuis",
+      "moveMoneyFrom": "Deplacer l'argent depuis",
+      "addMoneyTo": "Ajouter l'argent a"
+    },
+    "amountQuestion": "Quel montant a ete utilise ?",
+    "amountQuestionWithContext": "Quel montant a ete utilise pour {{context}} ?",
+    "understanding": {
+      "unknownAmount": "un montant inconnu",
+      "someone": "quelqu'un",
+      "oneAccount": "un compte",
+      "anotherAccount": "un autre compte",
+      "income": "{{personName}} vous a paye {{amount}}",
+      "expense": "Vous avez depense {{amount}} {{categoryName}}",
+      "loanReceived": "Vous avez emprunte {{amount}} a {{personName}}",
+      "loanRepayment": "Vous avez rembourse {{amount}} a {{personName}}",
+      "moneyReceivedFromPerson": "Vous avez recu {{amount}} de {{personName}}",
+      "moneyReturnedToPerson": "Vous avez rendu {{amount}} a {{personName}}",
+      "expenseFromHeldBalance": "Vous avez depense {{amount}} depuis le solde conserve de {{personName}} {{categoryName}}",
+      "expensePaidForPerson": "Vous avez paye {{amount}} pour {{personName}} {{categoryName}}",
+      "reimbursementPayment": "{{personName}} vous a rembourse {{amount}}",
+      "transfer": "Vous avez deplace {{amount}} de {{sourceAccount}} vers {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "warnings": {
+      "purposeUnclear": "L'objectif de cet argent reste flou.",
+      "expenseAmountMissing": "Le montant de la depense doit encore etre confirme.",
+      "intentUnknown": "La demande n'a pas encore pu etre comprise."
+    },
+    "personFallbackName": "cette personne",
+    "accountFallbackName": "ce compte",
+    "referenceLabel": "Reference"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "description": "Gérez votre profil, votre langue, votre devise, votre sécurité et vos notifications.",
+    "badge": "Paramètres du compte",
+    "saved": "Paramètres enregistrés avec succès",
+    "savedShort": "Enregistré",
+    "saveFailed": "Impossible d'enregistrer les paramètres",
+    "saveAction": "Enregistrer les modifications",
+    "tabs": {
+      "profile": "Profil",
+      "preferences": "Préférences",
+      "planning": "Revenus et planification",
+      "security": "Sécurité",
+      "notifications": "Notifications"
+    },
+    "profile": {
+      "title": "Informations du profil",
+      "description": "Mettez à jour votre nom, votre pays et vos préférences de revenu.",
+      "fullName": "Nom complet",
+      "email": "Adresse e-mail",
+      "emailHelper": "L'adresse e-mail ne peut pas être modifiée ici. Contactez le support si nécessaire.",
+      "country": "Pays",
+      "countryPlaceholder": "Choisissez votre pays",
+      "monthlyIncome": "Revenu mensuel (facultatif)",
+      "monthlyIncomePlaceholder": "0.00",
+      "errors": {
+        "fullNameRequired": "Le nom est requis"
+      }
+    },
+    "preferences": {
+      "title": "Langue et devise",
+      "description": "Choisissez les valeurs par défaut utilisées dans Smart Pocket.",
+      "language": "Langue",
+      "defaultCurrency": "Devise par défaut",
+      "recommendedCurrency": "Recommandée pour {{country}} : {{currency}} ({{code}})",
+      "useRecommended": "Utiliser la devise recommandée {{code}}",
+      "defaultCurrencyPlaceholder": "Choisissez votre devise par défaut",
+      "inactiveCurrency": "Cette devise enregistrée est inactive et conservée pour compatibilité.",
+      "legacyMonthStartHelper": "Le jour de début du mois est conservé dans votre profil uniquement pour compatibilité historique et n'est pas utilisé par le moteur partagé de planification."
+    },
+    "planning": {
+      "title": "Revenus et calendrier de planification",
+      "description": "Gérez votre rythme de revenus, les valeurs de planification, le début de semaine et le fuseau horaire sans modifier les transactions ni les budgets existants.",
+      "validationFallback": "Veuillez vérifier votre calendrier de revenus et de planification."
+    },
+    "security": {
+      "title": "Sécurité",
+      "description": "Réinitialisation de mot de passe et actions liées au cycle de vie du compte.",
+      "changePasswordTitle": "Changer le mot de passe",
+      "changePasswordDescription": "Nous enverrons un lien de réinitialisation à votre adresse e-mail.",
+      "sendResetEmail": "Envoyer l'e-mail de réinitialisation",
+      "resetEmailSent": "E-mail de réinitialisation envoyé !",
+      "deleteAccountTitle": "Supprimer le compte",
+      "deleteAccountDescription": "Supprimez définitivement votre compte et toutes vos données. Cette action est irréversible.",
+      "requestDeletion": "Demander la suppression du compte",
+      "deleteAccountSupportOnly": "La suppression du compte nécessite de contacter le support."
+    },
+    "notifications": {
+      "title": "Préférences de notification",
+      "description": "Gérez les types d'alertes et les résumés hebdomadaires.",
+      "loading": "Chargement des paramètres de notification...",
+      "loadFailed": "Impossible de charger les paramètres de notification",
+      "loadFailedTitle": "Les paramètres de notification n'ont pas pu être chargés.",
+      "saved": "Paramètres de notification enregistrés avec succès",
+      "saveFailed": "Impossible d'enregistrer les paramètres de notification",
+      "saveAction": "Enregistrer les notifications",
+      "availabilityNote": "Les notifications par e-mail et push navigateur ne sont pas encore implémentées, elles ne sont donc pas affichées comme actives.",
+      "toggle": "Basculer {{label}}",
+      "items": {
+        "inApp": {
+          "label": "Notifications dans l'application",
+          "description": "Affiche les notifications dans le menu cloche de l'application."
+        },
+        "recurringReminders": {
+          "label": "Rappels de paie et de factures",
+          "description": "Crée des rappels pour les périodes de paie, les factures à venir, les paiements récurrents et les montants importants dus pendant cette période."
+        },
+        "budgetAlerts": {
+          "label": "Alertes budget",
+          "description": "Prévenez lorsque les dépenses atteignent le seuil d'alerte enregistré ou dépassent une période budgétaire active."
+        },
+        "reimbursements": {
+          "label": "Remboursements et règlements",
+          "description": "Prévenez lorsque des remboursements ou règlements sont créés ou mis à jour."
+        },
+        "accountSecurity": {
+          "label": "Notifications de compte et de sécurité",
+          "description": "Prévenez lors d'événements importants liés à l'accès au compte."
+        },
+        "aiFailures": {
+          "label": "Échecs d'exécution IA",
+          "description": "Prévenez lorsque Smart Entry ne peut pas enregistrer les éléments confirmés."
+        }
+      }
+    }
+  },
+  "help": {
+    "title": "Aide et support",
+    "description": "Retrouvez des conseils rapides, des canaux d'assistance et les reponses aux questions les plus frequentes sur Smart Pocket.",
+    "badge": "Support",
+    "faqTitle": "Questions frequentes",
+    "faqDescription": "Des reponses utiles sur l'onboarding, la saisie de donnees, la securite et les rapports.",
+    "quickLinks": {
+      "documentation": {
+        "title": "Documentation",
+        "description": "Guides et tutoriels"
+      },
+      "community": {
+        "title": "Communaute",
+        "description": "Poser une question a la communaute"
+      },
+      "email": {
+        "title": "Support e-mail"
+      }
+    },
+    "faq": {
+      "1": {
+        "question": "Comment ajouter une transaction ?",
+        "answer": "Ouvrez Transactions et choisissez Ajouter une transaction, ou utilisez le bouton plus dans la navigation du bas."
+      },
+      "2": {
+        "question": "Comment configurer un budget ?",
+        "answer": "Ouvrez Budgets, choisissez Ajouter un budget, selectionnez une categorie, saisissez un montant et choisissez votre seuil d'alerte."
+      },
+      "3": {
+        "question": "Puis-je importer des transactions bancaires ?",
+        "answer": "L'import CSV est prevu dans une future version. Pour l'instant, les transactions doivent etre saisies manuellement."
+      },
+      "4": {
+        "question": "Comment changer ma devise ?",
+        "answer": "Allez dans Parametres, ouvrez Preferences, puis choisissez votre devise par defaut."
+      },
+      "5": {
+        "question": "Mes donnees sont-elles securisees ?",
+        "answer": "Oui. Vos donnees sont protegees par chiffrement et par la securite au niveau des lignes de Supabase."
+      },
+      "6": {
+        "question": "Comment passer a l'arabe (RTL) ?",
+        "answer": "Utilisez le selecteur de langue dans la barre superieure et choisissez l'arabe. La mise en page passe automatiquement en droite a gauche."
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Configurer Smart Pocket",
+    "description": "Quelques etapes rapides pour personnaliser votre experience et les valeurs par defaut du tableau de bord.",
+    "steps": {
+      "welcome": "Bienvenue",
+      "languageRegion": "Langue et region",
+      "currency": "Devise",
+      "incomeSchedule": "Revenus",
+      "planning": "Planification"
+    },
+    "welcome": {
+      "title": "Comment devons-nous vous appeler ?",
+      "description": "Cela apparait dans le message d'accueil du tableau de bord.",
+      "fullNamePlaceholder": "Votre nom complet",
+      "country": "Pays",
+      "countryPlaceholder": "Choisissez votre pays"
+    },
+    "language": {
+      "title": "Choisissez votre langue",
+      "description": "Smart Pocket prend en charge l'anglais, l'arabe, le francais et le russe, y compris le mode RTL pour l'arabe."
+    },
+    "currency": {
+      "title": "Devise par defaut",
+      "description": "Utilisee pour les montants, soldes et rapports.",
+      "recommended": "Recommande pour {{country}} : {{currency}} ({{code}})",
+      "placeholder": "Choisissez votre devise par defaut"
+    },
+    "income": {
+      "title": "Comment recevez-vous habituellement vos revenus ?",
+      "description": "Definissez des indications facultatives sur vos revenus et votre rythme habituel.",
+      "monthlyIncome": "Revenu mensuel",
+      "monthlyIncomeHelp": "Laissez vide pour ignorer. Vous pourrez le definir plus tard dans les Parametres."
+    },
+    "planning": {
+      "title": "Preferences de planification",
+      "description": "Choisissez la vue par defaut du tableau de bord, le rythme du budget, le debut de semaine et le fuseau horaire."
+    },
+    "validation": {
+      "fullName": "Veuillez saisir votre nom",
+      "country": "Veuillez selectionner votre pays",
+      "currency": "Veuillez selectionner votre devise"
+    },
+    "toasts": {
+      "reviewPlanningSettings": "Veuillez verifier vos parametres de revenus et de planification.",
+      "profileReady": "Profil configure. Bienvenue dans Smart Pocket.",
+      "saveFailed": "Echec de l'enregistrement des preferences."
+    },
+    "skipForNow": "Ignorer pour le moment et terminer plus tard dans les Parametres"
+  },
+  "financialPeriods": {
+    "incomeFrequency": {
+      "title": "Comment recevez-vous habituellement vos revenus ?",
+      "description": "Choisissez le rythme de planification qui correspond le mieux a votre calendrier de revenus.",
+      "options": {
+        "weekly": {
+          "label": "Hebdomadaire",
+          "description": "Paye une fois par semaine"
+        },
+        "biweekly": {
+          "label": "Toutes les 2 semaines",
+          "description": "Paye tous les 14 jours, generalement 26 fois par an"
+        },
+        "semimonthly": {
+          "label": "Deux fois par mois",
+          "description": "Paye a deux dates fixes, generalement 24 fois par an"
+        },
+        "monthly": {
+          "label": "Mensuel",
+          "description": "Paye une fois par mois"
+        },
+        "irregular": {
+          "label": "Revenus irreguliers",
+          "description": "Les revenus ne suivent pas de calendrier fixe"
+        },
+        "custom": {
+          "label": "Calendrier personnalise",
+          "description": "Paye selon un rythme repetitif que vous definissez"
+        }
+      }
+    },
+    "budgetPeriods": {
+      "weekly": "Hebdomadaire",
+      "biweekly": "Toutes les 2 semaines",
+      "semimonthly": "Deux fois par mois",
+      "monthly": "Mensuel",
+      "custom": "Cycle personnalise"
+    },
+    "weekdays": {
+      "monday": "Lundi",
+      "tuesday": "Mardi",
+      "wednesday": "Mercredi",
+      "thursday": "Jeudi",
+      "friday": "Vendredi",
+      "saturday": "Samedi",
+      "sunday": "Dimanche"
+    },
+    "paySchedule": {
+      "lastDayOfMonth": "Dernier jour du mois",
+      "weekly": {
+        "anchorDate": "Selectionnez une date de paie recente ou a venir",
+        "anchorDateHelp": "Smart Pocket utilise cette date comme ancrage pour chaque cycle de paie de 7 jours.",
+        "weekdayFallback": "Jour de paie de secours",
+        "useAnchorOnly": "Utiliser uniquement la date d'ancrage",
+        "weekdayFallbackHelp": "Facultatif. Utilisez-le seulement si vous souhaitez enregistrer aussi le jour de la semaine."
+      },
+      "biweekly": {
+        "anchorDate": "Selectionnez une date de paie recente ou a venir",
+        "anchorDateHelp": "Smart Pocket utilise cette date pour calculer les periodes de paie de 14 jours."
+      },
+      "semimonthly": {
+        "firstPayday": "Premier jour de paie",
+        "chooseFirst": "Choisissez le premier jour de paie",
+        "secondPayday": "Second jour de paie",
+        "chooseSecond": "Choisissez le second jour de paie",
+        "help": "Smart Pocket considere qu'une periode de paie commence un jour de paie et se termine la veille du suivant."
+      },
+      "monthly": {
+        "title": "Regle du jour de paie mensuel",
+        "specificDayNumber": "Numero du jour precis",
+        "specificDayHelp": "Si un mois est plus court, Smart Pocket utilise en toute securite le dernier jour de ce mois."
+      },
+      "monthlyRules": {
+        "specificDay": "Jour precis",
+        "lastDay": "Dernier jour du mois",
+        "lastWorkingDay": "Dernier jour ouvrable"
+      },
+      "irregularNote": "Smart Pocket utilise par defaut une planification mensuelle pour les revenus irreguliers.",
+      "custom": {
+        "anchorDate": "Date d'ancrage",
+        "daysPerCycle": "Jours dans chaque cycle"
+      }
+    },
+    "validation": {
+      "timezone": "Saisissez un fuseau horaire IANA valide tel que Europe/London ou Asia/Dubai.",
+      "customWeekStartDay": "Le debut de semaine personnalise doit etre un index de jour entre 0 et 6.",
+      "weeklyAnchorDate": "Les rythmes hebdomadaires ont besoin d'une date d'ancrage de paie recente ou a venir.",
+      "biweeklyAnchorDate": "Les rythmes toutes les 2 semaines ont besoin d'une date d'ancrage de paie recente ou a venir.",
+      "customAnchorDate": "Les rythmes personnalises ont besoin d'une date d'ancrage.",
+      "customCycleDays": "Les rythmes personnalises doivent se repeter tous les {{min}}-{{max}} jours.",
+      "semimonthlyDay1Required": "Choisissez le premier jour de paie bimensuel.",
+      "semimonthlyDay2Required": "Choisissez le second jour de paie bimensuel.",
+      "semimonthlyDay1Range": "Le jour 1 bimensuel doit etre entre 1 et 31 ou le dernier jour du mois.",
+      "semimonthlyDay2Range": "Le jour 2 bimensuel doit etre entre 1 et 31 ou le dernier jour du mois.",
+      "semimonthlyDifferentDays": "Les rythmes deux fois par mois necessitent deux positions de paie differentes.",
+      "semimonthlyDayOrder": "Le second jour de paie bimensuel doit etre plus tard dans le mois que le premier.",
+      "monthlyRuleRequired": "Choisissez comment calculer le jour de paie mensuel.",
+      "monthlyDayRange": "Le jour de paie mensuel specifique doit etre un jour entre 1 et 31.",
+      "irregularDashboardPeriod": "Les revenus irreguliers utilisent le mois en cours comme vue par defaut du tableau de bord."
+    },
+    "preferences": {
+      "dashboardTitle": "Comment souhaitez-vous ouvrir le tableau de bord ?",
+      "dashboardDescription": "Cela definit la vue par defaut pour les nouvelles sessions.",
+      "dashboardOptions": {
+        "payCycle": "Periode de paie en cours",
+        "month": "Mois en cours"
+      },
+      "defaultBudgetPeriod": "Periode par defaut pour les nouveaux budgets",
+      "defaultBudgetPeriodHelp": "Cela definit uniquement la valeur par defaut pour les nouveaux budgets. Chaque budget peut etre modifie separement.",
+      "weekStartsOn": "La semaine commence le",
+      "customDay": "Jour personnalise",
+      "customWeekStartDayIndex": "Index du jour de debut de semaine personnalise",
+      "customWeekStartDayHelp": "Utilisez 0 pour dimanche jusqu'a 6 pour samedi.",
+      "timezone": "Fuseau horaire",
+      "timezonePlaceholder": "ex. Europe/London",
+      "useBrowserTimezone": "Utiliser le fuseau du navigateur",
+      "recommendedBrowserTimezone": "Recommande pour ce navigateur : {{timezone}}",
+      "compatibilityNote": "Cela modifie seulement votre vue de planification par defaut. Les transactions, rythmes recurrents et budgets existants ne seront pas modifies."
+    }
+  },
+  "peopleReports": {
+    "title": "Rapports sur les personnes",
+    "description": "Grand livre, argent detenu, depenses, remboursements et reglements",
+    "loadFailed": "Echec du chargement du rapport.",
+    "noDataToExport": "Aucune donnee a exporter.",
+    "clearFilters": "Effacer les filtres",
+    "allTypes": "Tous les types",
+    "allStatuses": "Tous les statuts",
+    "entriesCount": "{{count}} entrees",
+    "recordsCount": "{{count}} enregistrements",
+    "settlementsCount": "{{count}} reglements",
+    "heldTitle": "Releve de solde detenu",
+    "expenseTitle": "Entrees de depenses",
+    "tabs": {
+      "ledger": "Grand livre",
+      "held": "Argent detenu",
+      "expenses": "Depenses",
+      "reimbursements": "Remboursements",
+      "settlements": "Reglements"
+    },
+    "csv": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Montant",
+      "currency": "Devise",
+      "notes": "Notes",
+      "paid": "Paye",
+      "outstanding": "Restant",
+      "status": "Statut",
+      "owedBy": "Du par",
+      "paymentMethod": "Mode de paiement"
+    },
+    "empty": {
+      "ledger": "Aucune entree de grand livre",
+      "held": "Aucune entree d'argent detenu",
+      "expenses": "Aucune entree de depense",
+      "reimbursements": "Aucun remboursement",
+      "settlements": "Aucun reglement"
+    },
+    "owedBy": {
+      "person": "La personne me doit",
+      "user": "Je dois a la personne"
     }
   }
 }

@@ -10,21 +10,18 @@ import {
 } from 'lucide-react';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import {
   getManagedPerson, getPersonLedger, getReimbursements, getSettlements,
   addLedgerEntry, createReimbursement,
   type ManagedPerson, type PersonLedgerEntry, type Reimbursement, type Settlement
 } from '@/lib/people';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
 
-
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  spouse: 'Spouse', child: 'Child', parent: 'Parent', sibling: 'Sibling',
-  friend: 'Friend', relative: 'Relative', colleague: 'Colleague', client: 'Client', other: 'Other',
-};
 
 const ENTRY_TYPE_STYLES: Record<string, { color: string; sign: '+' | '-' }> = {
   money_received: { color: 'text-positive', sign: '+' },
@@ -223,6 +220,7 @@ export default function PersonDetailPage() {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTxnModal, setShowTxnModal] = useState(false);
+  const [showRepaymentModal, setShowRepaymentModal] = useState(false);
 
   const tabs = [
     { id: 'overview', label: t('people.detail.tabs.overview', { ns: 'portal' }), icon: User },
@@ -282,6 +280,9 @@ export default function PersonDetailPage() {
   }, [personId]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useSmartPocketDataChanged(['people', 'settlements', 'transactions', 'financial_accounts', 'dashboard'], 'PersonDetailPage', async () => {
+    await loadData();
+  });
 
   if (loading) {
     return (
@@ -318,7 +319,12 @@ export default function PersonDetailPage() {
             </Link>
             <div>
               <h1 className="text-xl font-700 text-foreground">{person.full_name}</h1>
-              <p className="text-sm text-muted-foreground capitalize">{t(`people.relationships.${person.relationship as keyof typeof RELATIONSHIP_LABELS}` as const, { ns: 'portal', defaultValue: RELATIONSHIP_LABELS[person.relationship] || t('people.relationships.other', { ns: 'portal' }) })}</p>
+              <p className="text-sm text-muted-foreground capitalize">
+                {t(`people.relationships.${person.relationship}` as const, {
+                  ns: 'portal',
+                  defaultValue: t('people.relationships.other', { ns: 'portal' }),
+                })}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -328,6 +334,12 @@ export default function PersonDetailPage() {
             >
               <Edit2 size={16} />
             </Link>
+            <button
+              onClick={() => setShowRepaymentModal(true)}
+              className="rounded-xl border border-border px-4 py-2 text-sm font-600 text-foreground hover:bg-muted transition-colors"
+            >
+              {t('people.detail.recordRepayment', { ns: 'portal', defaultValue: 'Record Repayment' })}
+            </button>
             <button
               onClick={() => setShowTxnModal(true)}
               className="flex items-center gap-2 px-4 py-2 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity"
@@ -554,7 +566,10 @@ export default function PersonDetailPage() {
                         </div>
                       )}
                       <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-500 ${STATUS_COLORS[r.status] || 'bg-muted text-muted-foreground'}`}>
-                        {r.status.replace('_', ' ')}
+                        {t(`reimbursements.statuses.${r.status}` as const, {
+                          ns: 'portal',
+                          defaultValue: r.status,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -618,6 +633,15 @@ export default function PersonDetailPage() {
           onSuccess={loadData}
         />
       )}
+      <AddTransactionModal
+        isOpen={showRepaymentModal}
+        onClose={() => setShowRepaymentModal(false)}
+        initialMode="single"
+        initialTransactionType="expense"
+        initialEntryKind="loan_repayment"
+        preselectedPersonId={person.id}
+        onSaved={loadData}
+      />
     </AppLayout>
   );
 }

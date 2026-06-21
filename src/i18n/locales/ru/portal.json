@@ -82,7 +82,14 @@
     "nextPayPeriod": "Следующий период выплат",
     "chooseMonth": "Выбрать месяц",
     "dashboardMonth": "Месяц панели",
-    "more": "Еще"
+    "more": "Еще",
+    "quickActionShort": {
+      "transaction": "Операция",
+      "account": "Счет",
+      "recurring": "Регулярно",
+      "reimbursement": "Возмещение",
+      "budget": "Бюджет"
+    }
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Загрузка периода планирования",
@@ -103,7 +110,39 @@
     "overview": "Обзор бюджета",
     "categoryBudgets": "Бюджеты по категориям",
     "emptyTitle": "Бюджетов пока нет",
-    "emptyDescription": "Создайте свой первый бюджет, чтобы начать отслеживать лимиты расходов."
+    "emptyDescription": "Создайте свой первый бюджет, чтобы начать отслеживать лимиты расходов.",
+    "createFailed": "Не удалось создать бюджет.",
+    "updateFailed": "Не удалось обновить бюджет.",
+    "form": {
+      "periodChangeWarning": "Это изменение периода бюджета применяется сразу. Исторические представления пересчитываются по новому правилу, потому что история периодов бюджета по датам пока не хранится.",
+      "categoryRequired": "Выберите категорию.",
+      "amountRequired": "Введите корректную сумму.",
+      "currencyRequired": "Выберите валюту.",
+      "loadingPeriodSettings": "Настройки периода бюджета еще загружаются.",
+      "semimonthlyNeedsSettings": "Обновите Доход и планирование в Настройках перед созданием бюджета дважды в месяц.",
+      "incompletePeriodConfig": "Конфигурация периода бюджета неполная.",
+      "periodIsolationNotice": "Этот бюджет сохраняет собственный период. Изменение Настроек позже его не изменит.",
+      "category": "Категория",
+      "selectCategory": "Выберите категорию",
+      "name": "Название бюджета",
+      "namePlaceholder": "например, Еда и рестораны",
+      "amount": "Сумма *",
+      "currency": "Валюта",
+      "currencyPlaceholder": "Выберите валюту",
+      "period": "Период бюджета",
+      "alertAtPercent": "Предупреждать на %",
+      "anchorDate": "Опорная дата",
+      "anchorDateHelp": {
+        "weekly": "Для еженедельных бюджетов текущая опорная дата подставляется автоматически, и вы можете изменить ее при необходимости.",
+        "biweekly": "Бюджеты раз в 2 недели используют эту дату для точного расчета 14-дневных циклов.",
+        "custom": "Пользовательские бюджеты повторяются от этой опорной даты."
+      },
+      "cycleLengthDays": "Длина цикла в днях *",
+      "semimonthlyTitle": "График дважды в месяц",
+      "loadingIncomeSchedule": "Загрузка сохраненного графика доходов...",
+      "semimonthlyConfigIncomplete": "Конфигурация периода бюджета неполная. Обновите полумесячный график в",
+      "semimonthlySettingsSuffix": "перед использованием бюджета дважды в месяц."
+    }
   },
   "dashboardMetrics": {
     "monthly": "Месячный",
@@ -215,8 +254,8 @@
     },
     "form": {
       "preview": "Предпросмотр перевода",
-      "fromAccount": "From Account",
-      "toAccount": "To Account"
+      "fromAccount": "Со счета",
+      "toAccount": "На счет"
     }
   },
   "recurring": {
@@ -302,7 +341,11 @@
       "investment": "Инвестиции",
       "other": "Другое"
     },
-    "dashboardDescription": "Балансы ваших активных наличных, банковских, карточных и кошельковых счетов."
+    "dashboardDescription": "Балансы ваших активных наличных, банковских, карточных и кошельковых счетов.",
+    "form": {
+      "typeRequired": "Тип счета обязателен.",
+      "currency": "Валюта"
+    }
   },
   "categories": {
     "title": "Категории",
@@ -531,200 +574,735 @@
     "noAccount": "Нет счета"
   },
   "spaces": {
-    "title": "Spaces",
-    "description": "Organize shared finances, household visibility, and delegated access without changing each person's stored records.",
-    "badge": "Shared spaces",
-    "newSpace": "New Space",
-    "loadFailed": "Failed to load spaces.",
-    "loadDetailsFailed": "Failed to load space details.",
-    "nameRequired": "Space name is required.",
-    "created": "Space created",
-    "createFailed": "Failed to create space.",
-    "updated": "Space updated",
-    "updateFailed": "Failed to update space.",
-    "archiveConfirm": "Archive {{name}}?",
-    "archived": "Space archived",
-    "archiveFailed": "Failed to archive space.",
-    "emailRequired": "Enter an email address.",
-    "invitationSent": "Invitation sent to {{email}}",
-    "invitationFailed": "Failed to send invitation.",
-    "revokeConfirm": "Revoke this invitation?",
-    "revoked": "Invitation revoked",
-    "revokeFailed": "Failed to revoke invitation.",
-    "roleUpdated": "Role updated",
-    "roleUpdateFailed": "Failed to update role.",
-    "removeMemberConfirm": "Remove {{name}} from this space?",
-    "memberRemoved": "Member removed",
-    "memberRemoveFailed": "Failed to remove member.",
-    "emptyTitle": "No spaces yet",
-    "emptyDescription": "Create a space to organize shared finances, delegated access, or household views.",
-    "createFirst": "Create First Space",
-    "yourSpaces": "Your Spaces",
-    "archiveAction": "Archive",
-    "inviteAction": "Invite",
-    "membersTitle_one": "{{count}} Member",
-    "membersTitle_other": "{{count}} Members",
-    "membersEmpty": "No members yet.",
-    "unknownUser": "Unknown user",
-    "removeMemberAction": "Remove member",
-    "invitationsTitle_one": "{{count}} Invitation",
-    "invitationsTitle_other": "{{count}} Invitations",
-    "invitationsEmpty": "No invitations yet.",
-    "expired": "Expired",
-    "expiresOn": "Expires on {{date}}",
-    "revokeAction": "Revoke",
-    "selectSpace": "Select a space to view details.",
-    "editTitle": "Edit Space",
-    "createTitle": "Create Space",
-    "inviteTitle": "Invite to Space",
-    "sending": "Sending...",
-    "sendInvitation": "Send Invitation",
+    "title": "Пространства",
+    "description": "Организуйте общие финансы, видимость для семьи и делегированный доступ без изменения сохраненных записей каждого человека.",
+    "badge": "Общие пространства",
+    "newSpace": "Новое пространство",
+    "loadFailed": "Не удалось загрузить пространства.",
+    "loadDetailsFailed": "Не удалось загрузить детали пространства.",
+    "nameRequired": "Название пространства обязательно.",
+    "created": "Пространство создано",
+    "createFailed": "Не удалось создать пространство.",
+    "updated": "Пространство обновлено",
+    "updateFailed": "Не удалось обновить пространство.",
+    "archiveConfirm": "Архивировать {{name}}?",
+    "archived": "Пространство отправлено в архив",
+    "archiveFailed": "Не удалось архивировать пространство.",
+    "emailRequired": "Введите адрес электронной почты.",
+    "invitationSent": "Приглашение отправлено на {{email}}",
+    "invitationFailed": "Не удалось отправить приглашение.",
+    "revokeConfirm": "Отозвать это приглашение?",
+    "revoked": "Приглашение отозвано",
+    "revokeFailed": "Не удалось отозвать приглашение.",
+    "roleUpdated": "Роль обновлена",
+    "roleUpdateFailed": "Не удалось обновить роль.",
+    "removeMemberConfirm": "Удалить {{name}} из этого пространства?",
+    "memberRemoved": "Участник удален",
+    "memberRemoveFailed": "Не удалось удалить участника.",
+    "emptyTitle": "Пространств пока нет",
+    "emptyDescription": "Создайте пространство для общих финансов, делегированного доступа или семейного обзора.",
+    "createFirst": "Создать первое пространство",
+    "yourSpaces": "Ваши пространства",
+    "archiveAction": "Архивировать",
+    "inviteAction": "Пригласить",
+    "membersTitle_one": "{{count}} участник",
+    "membersTitle_other": "{{count}} участников",
+    "membersEmpty": "Участников пока нет.",
+    "unknownUser": "Неизвестный пользователь",
+    "removeMemberAction": "Удалить участника",
+    "invitationsTitle_one": "{{count}} приглашение",
+    "invitationsTitle_other": "{{count}} приглашений",
+    "invitationsEmpty": "Приглашений пока нет.",
+    "expired": "Истекло",
+    "expiresOn": "Истекает {{date}}",
+    "revokeAction": "Отозвать",
+    "selectSpace": "Выберите пространство, чтобы увидеть детали.",
+    "editTitle": "Изменить пространство",
+    "createTitle": "Создать пространство",
+    "inviteTitle": "Пригласить в пространство",
+    "sending": "Отправка...",
+    "sendInvitation": "Отправить приглашение",
     "status": {
-      "accepted": "Accepted",
-      "declined": "Declined",
-      "revoked": "Revoked"
+      "accepted": "Принято",
+      "declined": "Отклонено",
+      "revoked": "Отозвано"
     },
     "types": {
-      "personal": "Personal",
-      "family": "Family",
-      "household": "Household",
-      "child": "Child",
-      "friend": "Friend",
-      "custom": "Custom"
+      "personal": "Личное",
+      "family": "Семейное",
+      "household": "Домашнее",
+      "child": "Ребенок",
+      "friend": "Друг",
+      "custom": "Пользовательское"
     },
     "roles": {
-      "owner": "Owner",
-      "manager": "Manager",
-      "contributor": "Contributor",
-      "viewer": "Viewer",
-      "dependent": "Dependent"
+      "owner": "Владелец",
+      "manager": "Менеджер",
+      "contributor": "Участник",
+      "viewer": "Наблюдатель",
+      "dependent": "Зависимый"
     },
     "roleDescriptions": {
-      "manager": "Can manage members and shared configuration.",
-      "contributor": "Can add and update shared records.",
-      "viewer": "Can view shared information only.",
-      "dependent": "Visible for tracked dependents or children."
+      "manager": "Может управлять участниками и общими настройками.",
+      "contributor": "Может добавлять и обновлять общие записи.",
+      "viewer": "Может только просматривать общую информацию.",
+      "dependent": "Используется для отслеживаемых детей и зависимых лиц."
     },
     "form": {
-      "name": "Space Name",
-      "namePlaceholder": "e.g. Family Budget, Shared Home",
-      "type": "Space Type",
-      "description": "Description",
-      "descriptionPlaceholder": "Optional description...",
-      "color": "Color",
-      "email": "Email",
+      "name": "Название пространства",
+      "namePlaceholder": "например, Семейный бюджет, Общий дом",
+      "type": "Тип пространства",
+      "description": "Описание",
+      "descriptionPlaceholder": "Необязательное описание...",
+      "color": "Цвет",
+      "email": "Электронная почта",
       "emailPlaceholder": "name@example.com",
-      "role": "Role"
+      "role": "Роль"
+    },
+    "invitationPage": {
+      "loading": "Загрузка приглашения...",
+      "notFoundTitle": "Приглашение не найдено",
+      "notFoundDescription": "Ссылка-приглашение недействительна или была удалена.",
+      "goToDashboard": "Перейти на панель",
+      "acceptedTitle": "Приглашение принято",
+      "acceptedDescription": "Вы присоединились к {{space}} в роли {{role}}.",
+      "redirecting": "Переход в Пространства...",
+      "declinedTitle": "Приглашение отклонено",
+      "declinedDescription": "Вы отклонили это приглашение.",
+      "title": "Приглашение в пространство",
+      "description": "Вас пригласили присоединиться к общему пространству.",
+      "fallbackSpace": "пространству",
+      "fallbackUnknownSpace": "Неизвестное пространство",
+      "fallbackInviter": "Владелец пространства",
+      "details": {
+        "space": "Пространство",
+        "role": "Роль",
+        "invitedBy": "Пригласил",
+        "sentTo": "Отправлено на",
+        "expires": "Истекает"
+      },
+      "status": {
+        "accepted": "Вы уже приняли это приглашение.",
+        "declined": "Вы уже отклонили это приглашение.",
+        "revoked": "Это приглашение было отозвано владельцем пространства."
+      },
+      "expiredBanner": "Срок действия приглашения истек",
+      "signInTitle": "Войдите, чтобы принять приглашение",
+      "signInDescription": "Чтобы принять приглашение, войдите с адресом {{email}}.",
+      "emailMismatch": "Это приглашение было отправлено на {{invitedEmail}}, но вы вошли как {{currentEmail}}. Пожалуйста, войдите под правильной учетной записью.",
+      "decline": "Отклонить",
+      "accept": "Принять",
+      "backToDashboard": "Назад на панель",
+      "errors": {
+        "notFound": "Приглашение не найдено.",
+        "emailMismatch": "Это приглашение было отправлено на другой адрес электронной почты.",
+        "expired": "Срок действия приглашения истек.",
+        "notAuthenticated": "Пожалуйста, войдите, чтобы продолжить.",
+        "alreadyProcessed": "Приглашение уже имеет статус {{status}}.",
+        "respondFailed": "Не удалось ответить на приглашение."
+      }
     }
   },
   "smartEntryModal": {
-    "title": "Smart Entry",
-    "description": "Review AI-assisted financial entries before saving them.",
-    "close": "Close Smart Entry",
-    "modeText": "Text",
-    "modeVoice": "Voice",
-    "languageLabel": "Input language",
-    "describeLabel": "Describe your transaction",
-    "submitHint": "Press Ctrl+Enter to submit",
-    "analyzeAction": "Analyze with AI",
-    "examplesTitle": "Examples",
-    "processingTitle": "Analyzing your input...",
-    "processingDescription": "Understanding financial context",
-    "reviewTitle": "Review before saving",
-    "inputLabel": "Input",
-    "transcriptLabel": "Transcript",
-    "understandingTitle": "Understanding",
-    "purposeQuestion": "How should this money be treated?",
-    "purposeQuestionWithPerson": "How should the {{amount}} from {{name}} be treated?",
-    "personTitle": "Person",
-    "choosePerson": "Choose a person",
-    "createPersonAction": "Create {{name}}",
-    "personNamePlaceholder": "Person name",
-    "useThisPerson": "Use This Person",
-    "accountTitle": "Account",
-    "destinationAccountTitle": "Destination Account",
-    "primaryAccountFallback": "Choose an account",
-    "destinationAccountFallback": "Choose a destination account",
-    "createAccountAction": "Create {{name}}",
-    "accountNamePlaceholder": "Account name",
-    "currencyPlaceholder": "Currency",
-    "useThisAccount": "Use This Account",
-    "amountTitle": "Amount",
-    "amountFallback": "How much was used?",
-    "amountPlaceholder": "Enter amount in {{currency}}",
-    "useFullAmount": "Use full {{amount}}",
-    "moveMoneyTo": "Move money to",
-    "summaryTitle": "Summary",
-    "stillNeeded": "Still needed: {{fields}}",
-    "confirmAndSave": "Confirm & Save",
-    "completeRequiredDetails": "Please complete the required details above.",
-    "savingRecords": "Saving your records...",
-    "successTitle": "Saved successfully!",
-    "recordsCreated_one": "{{count}} record created",
-    "recordsCreated_other": "{{count}} records created",
-    "addAnother": "Add Another",
+    "title": "Умный ввод",
+    "description": "Проверьте финансовые записи, подготовленные ИИ, перед сохранением.",
+    "close": "Закрыть умный ввод",
+    "modeText": "Текст",
+    "modeVoice": "Голос",
+    "languageLabel": "Язык ввода",
+    "describeLabel": "Опишите вашу операцию",
+    "submitHint": "Нажмите Ctrl+Enter для отправки",
+    "analyzeAction": "Проанализировать с помощью ИИ",
+    "examplesTitle": "Примеры",
+    "processingTitle": "Анализируем ваш ввод...",
+    "processingDescription": "Понимаем финансовый контекст",
+    "reviewTitle": "Проверьте перед сохранением",
+    "inputLabel": "Ввод",
+    "transcriptLabel": "Расшифровка",
+    "understandingTitle": "Что мы поняли",
+    "purposeQuestion": "Как нужно трактовать эти деньги?",
+    "purposeQuestionWithPerson": "Как нужно трактовать сумму {{amount}} от {{name}}?",
+    "personTitle": "Человек",
+    "choosePerson": "Выберите человека",
+    "createPersonAction": "Создать {{name}}",
+    "personNamePlaceholder": "Имя человека",
+    "useThisPerson": "Использовать этого человека",
+    "accountTitle": "Счет",
+    "destinationAccountTitle": "Счет назначения",
+    "primaryAccountFallback": "Выберите счет",
+    "destinationAccountFallback": "Выберите счет назначения",
+    "createAccountAction": "Создать {{name}}",
+    "accountNamePlaceholder": "Название счета",
+    "currencyPlaceholder": "Валюта",
+    "useThisAccount": "Использовать этот счет",
+    "amountTitle": "Сумма",
+    "amountFallback": "Какая сумма была использована?",
+    "amountPlaceholder": "Введите сумму в {{currency}}",
+    "useFullAmount": "Использовать всю сумму {{amount}}",
+    "moveMoneyTo": "Перевести деньги на",
+    "summaryTitle": "Сводка",
+    "stillNeeded": "Все еще требуется: {{fields}}",
+    "confirmAndSave": "Подтвердить и сохранить",
+    "completeRequiredDetails": "Пожалуйста, заполните обязательные данные выше.",
+    "savingRecords": "Сохраняем ваши записи...",
+    "successTitle": "Успешно сохранено",
+    "recordsCreated_one": "Создана {{count}} запись",
+    "recordsCreated_other": "Создано {{count}} записей",
+    "addAnother": "Добавить еще",
     "notConfigured": {
-      "title": "AI not configured yet",
-      "description": "You can continue using manual transaction entry. An administrator can configure AI providers in Admin > AI Settings.",
-      "manualAction": "Use Manual Entry"
+      "title": "ИИ пока не настроен",
+      "description": "Вы можете продолжить ручной ввод операций. Администратор может настроить провайдеров ИИ в разделе Admin > AI Settings.",
+      "manualAction": "Использовать ручной ввод"
     },
     "progress": {
-      "usedOf": "{{used}} of {{total}}"
+      "usedOf": "{{used}} из {{total}}"
     },
     "limit": {
-      "unavailableTitle": "AI unavailable",
-      "unavailableDescription": "AI access is temporarily unavailable.",
-      "viewPlans": "View Plans",
-      "viewPlan": "View Plan",
-      "dailyLimitTitle": "Daily AI request limit reached",
-      "dailyLimitDescription": "You have used all {{count}} AI requests available today.",
-      "monthlyCreditsTitle": "Monthly AI credits used",
-      "monthlyCreditsDescription": "You have used all {{count}} AI credits for this billing period.",
-      "insufficientCreditsTitle": "Not enough AI credits",
-      "insufficientCreditsDescription": "This action requires {{required}} credits, but you have {{remaining}} remaining.",
-      "trialExpiredTitle": "Trial expired",
-      "subscriptionExpiredTitle": "Subscription expired",
-      "dailyRequests": "Daily requests",
-      "monthlyCredits": "Monthly AI credits",
-      "creditsRemaining": "Credits remaining",
-      "creditsReserved": "Credits reserved",
-      "requiredCredits": "Required credits",
-      "renewal": "Renewal",
-      "nextRenewal": "Next renewal {{date}}",
-      "availableAgainIn_one": "Available again in {{count}} hour",
-      "availableAgainIn_other": "Available again in {{count}} hours"
+      "unavailableTitle": "ИИ недоступен",
+      "unavailableDescription": "Доступ к ИИ временно недоступен.",
+      "viewPlans": "Посмотреть тарифы",
+      "viewPlan": "Посмотреть тариф",
+      "dailyLimitTitle": "Достигнут дневной лимит запросов ИИ",
+      "dailyLimitDescription": "Вы использовали все {{count}} запросов ИИ, доступных сегодня.",
+      "monthlyCreditsTitle": "Ежемесячные кредиты ИИ израсходованы",
+      "monthlyCreditsDescription": "Вы использовали все {{count}} кредитов ИИ за текущий период.",
+      "insufficientCreditsTitle": "Недостаточно кредитов ИИ",
+      "insufficientCreditsDescription": "Для этого действия требуется {{required}} кредитов, а у вас осталось {{remaining}}.",
+      "trialExpiredTitle": "Пробный период истек",
+      "subscriptionExpiredTitle": "Подписка истекла",
+      "dailyRequests": "Дневные запросы",
+      "monthlyCredits": "Ежемесячные кредиты ИИ",
+      "creditsRemaining": "Осталось кредитов",
+      "creditsReserved": "Зарезервировано кредитов",
+      "requiredCredits": "Требуемые кредиты",
+      "renewal": "Продление",
+      "nextRenewal": "Следующее продление {{date}}",
+      "availableAgainIn_one": "Снова будет доступно через {{count}} час",
+      "availableAgainIn_other": "Снова будет доступно через {{count}} часов"
     },
     "success": {
       "done": "Done"
     },
     "summary": {
-      "remainingFor": "Remaining for {{name}}: {{amount}}",
-      "cashRemainingAfterSpending": "Cash remaining after spending: {{amount}}",
-      "amountStillOwedTo": "Amount still owed to {{name}}: {{amount}}",
-      "managedBalanceChange": "Managed balance change: {{amount}}"
+      "remainingFor": "Остаток для {{name}}: {{amount}}",
+      "cashRemainingAfterSpending": "Наличными осталось после трат: {{amount}}",
+      "amountStillOwedTo": "Все еще должны {{name}}: {{amount}}",
+      "managedBalanceChange": "Изменение управляемого баланса: {{amount}}",
+      "amountNeeded": "Нужна сумма",
+      "someone": "кто-то",
+      "oneAccount": "один счет",
+      "anotherAccount": "другой счет"
     },
     "failedTitles": {
-      "accountCreate": "Account creation failed",
-      "chooseAnotherAccount": "Choose another account",
-      "transactionSave": "Transaction save failed",
-      "reviewRequired": "Review required",
-      "generic": "Smart Entry failed"
+      "accountCreate": "Не удалось создать счет",
+      "chooseAnotherAccount": "Выберите другой счет",
+      "transactionSave": "Не удалось сохранить операцию",
+      "reviewRequired": "Требуется проверка",
+      "generic": "Ошибка умного ввода"
     },
     "errors": {
-      "moreDetailsRequired": "More details are required before this entry can be saved.",
-      "saveFailed": "Failed to save Smart Entry results.",
-      "accountCreateFailed": "Failed to create the selected account.",
-      "accountInvalid": "The selected account is no longer valid.",
-      "transactionSaveFailed": "Failed to save the transaction.",
-      "invalidRequest": "The Smart Entry request is no longer valid.",
-      "finalizeFailed": "Failed to finalize the Smart Entry request.",
-      "alreadyProcessed": "This Smart Entry request has already been processed.",
-      "noLongerAvailable": "This Smart Entry request is no longer available.",
-      "belongsToAnotherAccount": "This Smart Entry request belongs to another account.",
-      "notConfirmable": "This Smart Entry request can no longer be confirmed.",
-      "resolveAccount": "Please resolve the account selection before confirming.",
-      "resolvePerson": "Please resolve the person selection before confirming.",
-      "confirmFailed": "Failed to confirm the Smart Entry request."
+      "moreDetailsRequired": "Перед сохранением этой записи нужны дополнительные детали.",
+      "saveFailed": "Не удалось сохранить результаты умного ввода.",
+      "accountCreateFailed": "Не удалось создать выбранный счет.",
+      "accountInvalid": "Выбранный счет больше недоступен.",
+      "transactionSaveFailed": "Не удалось сохранить операцию.",
+      "invalidRequest": "Запрос умного ввода больше недействителен.",
+      "finalizeFailed": "Не удалось завершить запрос умного ввода.",
+      "alreadyProcessed": "Этот запрос умного ввода уже обработан.",
+      "noLongerAvailable": "Этот запрос умного ввода больше недоступен.",
+      "belongsToAnotherAccount": "Этот запрос умного ввода относится к другому счету.",
+      "notConfirmable": "Этот запрос умного ввода больше нельзя подтвердить.",
+      "resolveAccount": "Пожалуйста, уточните выбор счета перед подтверждением.",
+      "resolvePerson": "Пожалуйста, уточните выбор человека перед подтверждением.",
+      "confirmFailed": "Не удалось подтвердить запрос умного ввода."
+    },
+    "examples": {
+      "placeholder": {
+        "en": "например: I spent AED 85 on groceries today from cash",
+        "ar": "пример на арабском: أنفقت 85 درهما على البقالة من النقد",
+        "fr": "пример на французском: j'ai dépensé 85 AED pour les courses",
+        "ru": "например: я потратил 85 AED на продукты сегодня с наличного счета"
+      },
+      "items": {
+        "en": {
+          "1": "Spent AED 85 on groceries from cash",
+          "2": "Ahmed gave me AED 2,300 today",
+          "3": "Transfer AED 1,000 from bank to cash",
+          "4": "I paid AED 600 for Ahmed's subscription from my credit card"
+        },
+        "ar": {
+          "1": "أنفقت 85 درهما على البقالة من حساب النقد",
+          "2": "أحمد أعطاني 2300 درهم اليوم",
+          "3": "حوّل 1000 درهم من البنك إلى النقد",
+          "4": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية"
+        },
+        "fr": {
+          "1": "J'ai dépensé 85 AED pour les courses depuis mon compte espèces",
+          "2": "Ahmed m'a donné 2 300 AED aujourd'hui",
+          "3": "Transférer 1 000 AED de la banque vers les espèces",
+          "4": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit"
+        },
+        "ru": {
+          "1": "Потратил 85 AED на продукты с наличного счета",
+          "2": "Ахмед дал мне сегодня 2 300 AED",
+          "3": "Переведи 1 000 AED из банка в наличные",
+          "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
+        }
+      }
+    },
+    "voice": {
+      "status": {
+        "idle": "Нажмите на микрофон, чтобы начать говорить",
+        "requestingPermission": "Запрашивается доступ к микрофону...",
+        "recording": "Идет запись...",
+        "paused": "Пауза",
+        "processing": "Обрабатываем ваш голос..."
+      },
+      "maxDuration": "Макс. {{duration}}",
+      "transcribing": "Расшифровка и анализ...",
+      "actions": {
+        "start": "Начать запись",
+        "pause": "Поставить на паузу",
+        "resume": "Продолжить запись",
+        "stop": "Остановить запись",
+        "useText": "Использовать текст",
+        "typeInstead": "Ввести текст"
+      },
+      "errors": {
+        "permissionDenied": "Доступ к микрофону запрещен. Разрешите доступ и попробуйте снова.",
+        "noMicrophone": "Микрофон не найден. Подключите микрофон и попробуйте снова.",
+        "notSupported": "Запись голоса не поддерживается в этом браузере. Используйте текстовый ввод.",
+        "startFailed": "Не удалось начать запись. Попробуйте еще раз."
+      }
+    },
+    "missingFields": {
+      "purpose": "назначение",
+      "person": "человек",
+      "account": "счет",
+      "destinationAccount": "счет назначения",
+      "amount": "сумма",
+      "currency": "валюта"
+    },
+    "purposeOptions": {
+      "personalIncome": {
+        "label": "Мои деньги / оплата",
+        "description": "Добавить на мой счет и считать это полученными мной деньгами."
+      },
+      "borrowedMoney": {
+        "label": "Занял у них",
+        "description": "Добавить на мой счет и отметить, что я все еще должен эти деньги."
+      },
+      "managedMoney": {
+        "label": "Управляю для них",
+        "description": "Держать их деньги отдельно на их собственном отслеживаемом счете."
+      },
+      "reimbursement": {
+        "label": "Возмещение / другое",
+        "description": "Они возвращают вам более раннюю сумму, либо здесь нужен другой смысл."
+      }
+    },
+    "summaryRows": {
+      "income": "+ получено {{amount}}",
+      "loanReceived": "+ занято {{amount}} у {{personName}}",
+      "receivedFromPerson": "+ получено {{amount}} от {{personName}}",
+      "expense": "- {{amount}} {{categoryName}}",
+      "loanRepayment": "- возвращено {{amount}} для {{personName}}",
+      "reimbursementPayment": "+ возмещено {{amount}} от {{personName}}",
+      "moneyReturned": "- возвращено {{amount}} {{personName}}",
+      "transfer": "{{amount}} переведено со счета {{sourceAccount}} на счет {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "primaryAccountLabels": {
+      "spendFrom": "Списать со счета",
+      "addBorrowedMoneyTo": "Добавить заемные деньги на",
+      "trackTheirMoneyIn": "Учитывать их деньги в",
+      "returnMoneyFrom": "Вернуть деньги со счета",
+      "payBackFrom": "Погасить долг со счета",
+      "moveMoneyFrom": "Перевести деньги со счета",
+      "addMoneyTo": "Добавить деньги на"
+    },
+    "amountQuestion": "Какая сумма была использована?",
+    "amountQuestionWithContext": "Какая сумма была использована для {{context}}?",
+    "understanding": {
+      "unknownAmount": "неизвестная сумма",
+      "someone": "кто-то",
+      "oneAccount": "один счет",
+      "anotherAccount": "другой счет",
+      "income": "{{personName}} заплатил вам {{amount}}",
+      "expense": "Вы потратили {{amount}} {{categoryName}}",
+      "loanReceived": "Вы заняли {{amount}} у {{personName}}",
+      "loanRepayment": "Вы вернули {{amount}} {{personName}}",
+      "moneyReceivedFromPerson": "Вы получили {{amount}} от {{personName}}",
+      "moneyReturnedToPerson": "Вы вернули {{amount}} {{personName}}",
+      "expenseFromHeldBalance": "Вы потратили {{amount}} из удерживаемого баланса {{personName}} {{categoryName}}",
+      "expensePaidForPerson": "Вы оплатили {{amount}} за {{personName}} {{categoryName}}",
+      "reimbursementPayment": "{{personName}} возместил вам {{amount}}",
+      "transfer": "Вы перевели {{amount}} со счета {{sourceAccount}} на счет {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "warnings": {
+      "purposeUnclear": "Назначение этих денег все еще неясно.",
+      "expenseAmountMissing": "Сумму расхода все еще нужно подтвердить.",
+      "intentUnknown": "Пока не удалось понять смысл запроса."
+    },
+    "personFallbackName": "этот человек",
+    "accountFallbackName": "этот счет",
+    "referenceLabel": "Ссылка"
+  },
+  "settings": {
+    "title": "Настройки",
+    "description": "Управляйте профилем, языком, валютой, безопасностью и уведомлениями.",
+    "badge": "Настройки аккаунта",
+    "saved": "Настройки успешно сохранены",
+    "savedShort": "Сохранено",
+    "saveFailed": "Не удалось сохранить настройки",
+    "saveAction": "Сохранить изменения",
+    "tabs": {
+      "profile": "Профиль",
+      "preferences": "Параметры",
+      "planning": "Доходы и планирование",
+      "security": "Безопасность",
+      "notifications": "Уведомления"
+    },
+    "profile": {
+      "title": "Информация профиля",
+      "description": "Обновите имя, страну и параметры дохода.",
+      "fullName": "Полное имя",
+      "email": "Адрес электронной почты",
+      "emailHelper": "Здесь нельзя изменить адрес электронной почты. При необходимости свяжитесь с поддержкой.",
+      "country": "Страна",
+      "countryPlaceholder": "Выберите страну",
+      "monthlyIncome": "Ежемесячный доход (необязательно)",
+      "monthlyIncomePlaceholder": "0.00",
+      "errors": {
+        "fullNameRequired": "Имя обязательно"
+      }
+    },
+    "preferences": {
+      "title": "Язык и валюта",
+      "description": "Выберите значения по умолчанию для Smart Pocket.",
+      "language": "Язык",
+      "defaultCurrency": "Валюта по умолчанию",
+      "recommendedCurrency": "Рекомендуется для {{country}}: {{currency}} ({{code}})",
+      "useRecommended": "Использовать рекомендуемую {{code}}",
+      "defaultCurrencyPlaceholder": "Выберите валюту по умолчанию",
+      "inactiveCurrency": "Сохраненная валюта неактивна и оставлена для совместимости.",
+      "legacyMonthStartHelper": "День начала месяца хранится только для совместимости со старыми данными и не используется общим движком планирования."
+    },
+    "planning": {
+      "title": "Доходы и график планирования",
+      "description": "Управляйте ритмом доходов, параметрами планирования, началом недели и часовым поясом без изменения существующих операций и бюджетов.",
+      "validationFallback": "Проверьте график доходов и планирования."
+    },
+    "security": {
+      "title": "Безопасность",
+      "description": "Сброс пароля и действия, связанные с жизненным циклом аккаунта.",
+      "changePasswordTitle": "Сменить пароль",
+      "changePasswordDescription": "Мы отправим ссылку для сброса пароля на ваш адрес электронной почты.",
+      "sendResetEmail": "Отправить письмо для сброса",
+      "resetEmailSent": "Письмо для сброса пароля отправлено!",
+      "deleteAccountTitle": "Удалить аккаунт",
+      "deleteAccountDescription": "Навсегда удалить аккаунт и все данные. Это действие нельзя отменить.",
+      "requestDeletion": "Запросить удаление аккаунта",
+      "deleteAccountSupportOnly": "Удаление аккаунта возможно только через поддержку."
+    },
+    "notifications": {
+      "title": "Настройки уведомлений",
+      "description": "Управляйте типами оповещений и еженедельными сводками.",
+      "loading": "Загрузка настроек уведомлений...",
+      "loadFailed": "Не удалось загрузить настройки уведомлений",
+      "loadFailedTitle": "Не удалось загрузить настройки уведомлений.",
+      "saved": "Настройки уведомлений успешно сохранены",
+      "saveFailed": "Не удалось сохранить настройки уведомлений",
+      "saveAction": "Сохранить настройки уведомлений",
+      "availabilityNote": "Уведомления по электронной почте и push в браузере пока не реализованы, поэтому не отображаются как активные настройки.",
+      "toggle": "Переключить {{label}}",
+      "items": {
+        "inApp": {
+          "label": "Уведомления в приложении",
+          "description": "Показывать уведомления в меню колокольчика по всему приложению."
+        },
+        "recurringReminders": {
+          "label": "Напоминания о зарплате и счетах",
+          "description": "Создавать напоминания о платежных периодах, предстоящих счетах, регулярных платежах и крупных суммах в этой периодизации."
+        },
+        "budgetAlerts": {
+          "label": "Предупреждения по бюджету",
+          "description": "Уведомлять, когда траты достигают заданного порога или превышают активный бюджетный период."
+        },
+        "reimbursements": {
+          "label": "Возмещения и взаиморасчеты",
+          "description": "Уведомлять, когда возмещения или расчеты создаются или обновляются."
+        },
+        "accountSecurity": {
+          "label": "Уведомления по аккаунту и безопасности",
+          "description": "Уведомлять о важных событиях доступа к аккаунту."
+        },
+        "aiFailures": {
+          "label": "Ошибки выполнения ИИ",
+          "description": "Уведомлять, когда Smart Entry не может сохранить подтвержденные записи."
+        }
+      }
+    }
+  },
+  "help": {
+    "title": "Помощь и поддержка",
+    "description": "Найдите быстрые подсказки, каналы поддержки и ответы на самые частые вопросы о Smart Pocket.",
+    "badge": "Поддержка",
+    "faqTitle": "Частые вопросы",
+    "faqDescription": "Полезные ответы по настройке, вводу данных, безопасности и отчетам.",
+    "quickLinks": {
+      "documentation": {
+        "title": "Документация",
+        "description": "Руководства и инструкции"
+      },
+      "community": {
+        "title": "Сообщество",
+        "description": "Задать вопрос сообществу"
+      },
+      "email": {
+        "title": "Поддержка по почте"
+      }
+    },
+    "faq": {
+      "1": {
+        "question": "Как добавить транзакцию?",
+        "answer": "Откройте Транзакции и выберите Добавить транзакцию или используйте кнопку плюс в нижней навигации."
+      },
+      "2": {
+        "question": "Как настроить бюджет?",
+        "answer": "Откройте Бюджеты, выберите Добавить бюджет, укажите категорию, сумму и порог оповещения."
+      },
+      "3": {
+        "question": "Можно ли импортировать банковские операции?",
+        "answer": "Импорт CSV запланирован в будущей версии. Пока операции нужно вводить вручную."
+      },
+      "4": {
+        "question": "Как изменить валюту?",
+        "answer": "Перейдите в Настройки, откройте Предпочтения и выберите валюту по умолчанию."
+      },
+      "5": {
+        "question": "Мои данные защищены?",
+        "answer": "Да. Ваши данные защищены шифрованием и политиками Supabase Row Level Security."
+      },
+      "6": {
+        "question": "Как переключиться на арабский язык и RTL?",
+        "answer": "Используйте переключатель языка в верхней панели и выберите арабский. Интерфейс автоматически перейдет в режим справа налево."
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Настройка Smart Pocket",
+    "description": "Всего несколько быстрых шагов, чтобы персонализировать интерфейс и значения по умолчанию.",
+    "steps": {
+      "welcome": "Добро пожаловать",
+      "languageRegion": "Язык и регион",
+      "currency": "Валюта",
+      "incomeSchedule": "График доходов",
+      "planning": "Планирование"
+    },
+    "welcome": {
+      "title": "Как к вам обращаться?",
+      "description": "Это имя будет отображаться в приветствии на панели.",
+      "fullNamePlaceholder": "Ваше полное имя",
+      "country": "Страна",
+      "countryPlaceholder": "Выберите страну"
+    },
+    "language": {
+      "title": "Выберите язык",
+      "description": "Smart Pocket поддерживает английский, арабский, французский и русский, включая RTL для арабского."
+    },
+    "currency": {
+      "title": "Валюта по умолчанию",
+      "description": "Используется для сумм, балансов и отчетов.",
+      "recommended": "Рекомендуется для {{country}}: {{currency}} ({{code}})",
+      "placeholder": "Выберите валюту по умолчанию"
+    },
+    "income": {
+      "title": "Как вы обычно получаете доход?",
+      "description": "Задайте дополнительные ориентиры по доходу и ваш обычный график выплат.",
+      "monthlyIncome": "Ежемесячный доход",
+      "monthlyIncomeHelp": "Оставьте пустым, если хотите пропустить. Позже это можно настроить в разделе Настройки."
+    },
+    "planning": {
+      "title": "Параметры планирования",
+      "description": "Выберите вид панели по умолчанию, ритм бюджета, начало недели и часовой пояс."
+    },
+    "validation": {
+      "fullName": "Введите ваше имя",
+      "country": "Выберите страну",
+      "currency": "Выберите валюту"
+    },
+    "toasts": {
+      "reviewPlanningSettings": "Проверьте настройки доходов и планирования.",
+      "profileReady": "Профиль настроен. Добро пожаловать в Smart Pocket.",
+      "saveFailed": "Не удалось сохранить настройки."
+    },
+    "skipForNow": "Пропустить сейчас и завершить позже в Настройках"
+  },
+  "financialPeriods": {
+    "incomeFrequency": {
+      "title": "Как вы обычно получаете доход?",
+      "description": "Выберите ритм планирования, который лучше всего соответствует вашему графику доходов.",
+      "options": {
+        "weekly": {
+          "label": "Еженедельно",
+          "description": "Выплата раз в неделю"
+        },
+        "biweekly": {
+          "label": "Раз в 2 недели",
+          "description": "Выплата каждые 14 дней, обычно 26 раз в год"
+        },
+        "semimonthly": {
+          "label": "Два раза в месяц",
+          "description": "Выплата в две фиксированные даты, обычно 24 раза в год"
+        },
+        "monthly": {
+          "label": "Ежемесячно",
+          "description": "Выплата раз в месяц"
+        },
+        "irregular": {
+          "label": "Нерегулярный доход",
+          "description": "Доход не следует фиксированному графику"
+        },
+        "custom": {
+          "label": "Пользовательский график",
+          "description": "Выплата по повторяющемуся графику, который вы задаете"
+        }
+      }
+    },
+    "budgetPeriods": {
+      "weekly": "Еженедельно",
+      "biweekly": "Раз в 2 недели",
+      "semimonthly": "Два раза в месяц",
+      "monthly": "Ежемесячно",
+      "custom": "Пользовательский цикл"
+    },
+    "weekdays": {
+      "monday": "Понедельник",
+      "tuesday": "Вторник",
+      "wednesday": "Среда",
+      "thursday": "Четверг",
+      "friday": "Пятница",
+      "saturday": "Суббота",
+      "sunday": "Воскресенье"
+    },
+    "paySchedule": {
+      "lastDayOfMonth": "Последний день месяца",
+      "weekly": {
+        "anchorDate": "Выберите недавний или ближайший день выплаты",
+        "anchorDateHelp": "Smart Pocket использует эту дату как опорную для каждого 7-дневного цикла выплат.",
+        "weekdayFallback": "Резервный день недели для выплаты",
+        "useAnchorOnly": "Использовать только опорную дату",
+        "weekdayFallbackHelp": "Необязательно. Используйте это, если хотите хранить и день недели, и опорную дату."
+      },
+      "biweekly": {
+        "anchorDate": "Выберите недавний или ближайший день выплаты",
+        "anchorDateHelp": "Smart Pocket использует эту дату для расчета 14-дневных периодов выплат."
+      },
+      "semimonthly": {
+        "firstPayday": "Первый день выплаты",
+        "chooseFirst": "Выберите первый день выплаты",
+        "secondPayday": "Второй день выплаты",
+        "chooseSecond": "Выберите второй день выплаты",
+        "help": "Smart Pocket считает, что каждый период выплат начинается в день выплаты и заканчивается за день до следующего."
+      },
+      "monthly": {
+        "title": "Правило ежемесячной выплаты",
+        "specificDayNumber": "Номер конкретного дня",
+        "specificDayHelp": "Если месяц короче, Smart Pocket безопасно использует последний день этого месяца."
+      },
+      "monthlyRules": {
+        "specificDay": "Конкретный день",
+        "lastDay": "Последний день месяца",
+        "lastWorkingDay": "Последний рабочий день"
+      },
+      "irregularNote": "Для нерегулярного дохода Smart Pocket по умолчанию использует помесячное планирование.",
+      "custom": {
+        "anchorDate": "Опорная дата",
+        "daysPerCycle": "Дней в каждом цикле"
+      }
+    },
+    "validation": {
+      "timezone": "Введите корректный часовой пояс IANA, например Europe/London или Asia/Dubai.",
+      "customWeekStartDay": "Пользовательский день начала недели должен быть числом от 0 до 6.",
+      "weeklyAnchorDate": "Для еженедельного графика нужна недавняя или будущая опорная дата выплаты.",
+      "biweeklyAnchorDate": "Для графика раз в 2 недели нужна недавняя или будущая опорная дата выплаты.",
+      "customAnchorDate": "Для пользовательского графика нужна опорная дата.",
+      "customCycleDays": "Пользовательский график должен повторяться каждые {{min}}-{{max}} дней.",
+      "semimonthlyDay1Required": "Выберите первый день выплаты для графика дважды в месяц.",
+      "semimonthlyDay2Required": "Выберите второй день выплаты для графика дважды в месяц.",
+      "semimonthlyDay1Range": "Первый день должен быть от 1 до 31 или последним днем месяца.",
+      "semimonthlyDay2Range": "Второй день должен быть от 1 до 31 или последним днем месяца.",
+      "semimonthlyDifferentDays": "Для графика дважды в месяц нужны две разные позиции выплат.",
+      "semimonthlyDayOrder": "Второй день выплаты должен быть позже в месяце, чем первый.",
+      "monthlyRuleRequired": "Выберите способ расчета ежемесячного дня выплаты.",
+      "monthlyDayRange": "Конкретный день ежемесячной выплаты должен быть от 1 до 31.",
+      "irregularDashboardPeriod": "Для нерегулярного дохода панель по умолчанию открывается на текущем месяце."
+    },
+    "preferences": {
+      "dashboardTitle": "Как должна открываться панель управления?",
+      "dashboardDescription": "Это задает вид по умолчанию для новых сессий панели.",
+      "dashboardOptions": {
+        "payCycle": "Текущий платежный период",
+        "month": "Текущий месяц"
+      },
+      "defaultBudgetPeriod": "Период по умолчанию для новых бюджетов",
+      "defaultBudgetPeriodHelp": "Это влияет только на новые бюджеты. Каждый бюджет можно изменить отдельно.",
+      "weekStartsOn": "Неделя начинается с",
+      "customDay": "Пользовательский день",
+      "customWeekStartDayIndex": "Индекс пользовательского дня начала недели",
+      "customWeekStartDayHelp": "Используйте 0 для воскресенья и 6 для субботы.",
+      "timezone": "Часовой пояс",
+      "timezonePlaceholder": "например, Europe/London",
+      "useBrowserTimezone": "Использовать часовой пояс браузера",
+      "recommendedBrowserTimezone": "Рекомендуется для этого браузера: {{timezone}}",
+      "compatibilityNote": "Это изменит только вид планирования по умолчанию. Существующие транзакции, повторяющиеся операции и бюджеты не изменятся."
+    }
+  },
+  "peopleReports": {
+    "title": "Отчеты по людям",
+    "description": "Книга операций, удержанные средства, расходы, возмещения и расчеты",
+    "loadFailed": "Не удалось загрузить отчет.",
+    "noDataToExport": "Нет данных для экспорта.",
+    "clearFilters": "Очистить фильтры",
+    "allTypes": "Все типы",
+    "allStatuses": "Все статусы",
+    "entriesCount": "{{count}} записей",
+    "recordsCount": "{{count}} записей",
+    "settlementsCount": "{{count}} расчетов",
+    "heldTitle": "Выписка по удержанным средствам",
+    "expenseTitle": "Записи расходов",
+    "tabs": {
+      "ledger": "Журнал",
+      "held": "Удержанные средства",
+      "expenses": "Расходы",
+      "reimbursements": "Возмещения",
+      "settlements": "Расчеты"
+    },
+    "csv": {
+      "date": "Дата",
+      "type": "Тип",
+      "description": "Описание",
+      "amount": "Сумма",
+      "currency": "Валюта",
+      "notes": "Заметки",
+      "paid": "Оплачено",
+      "outstanding": "Остаток",
+      "status": "Статус",
+      "owedBy": "Кем должен",
+      "paymentMethod": "Способ оплаты"
+    },
+    "empty": {
+      "ledger": "Записи журнала не найдены",
+      "held": "Нет записей по удержанным средствам",
+      "expenses": "Нет записей расходов",
+      "reimbursements": "Возмещений не найдено",
+      "settlements": "Расчеты не найдены"
+    },
+    "owedBy": {
+      "person": "Человек должен мне",
+      "user": "Я должен человеку"
     }
   }
 }

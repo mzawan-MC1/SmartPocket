@@ -58,6 +58,8 @@ export default function DashboardHeader({
     { id: 'reimbursement' as QuickActionId, label: t('dashboardHeader.quickActions.reimbursement'), icon: RotateCcw },
     { id: 'budget' as QuickActionId, label: t('dashboardHeader.quickActions.budget'), icon: Target },
   ];
+  const quickActionShortLabel = (actionId: QuickActionId) =>
+    t(`dashboardHeader.quickActionShort.${actionId}`);
   const directActions = quickActions.filter((action) => action.id === 'transaction' || action.id === 'account');
   const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
 
@@ -185,7 +187,7 @@ export default function DashboardHeader({
                   aria-label={action.label}
                 >
                   <Icon size={15} className="text-accent" />
-                  <span>{action.label.replace('Add ', '')}</span>
+                  <span>{quickActionShortLabel(action.id)}</span>
                 </button>
               );
             })}
@@ -202,7 +204,7 @@ export default function DashboardHeader({
                   aria-label={action.label}
                 >
                   <Icon size={15} className="text-accent lg:h-4 lg:w-4" />
-                  <span>{action.label.replace('Add ', '')}</span>
+                  <span>{quickActionShortLabel(action.id)}</span>
                 </button>
               );
             })}
@@ -237,7 +239,7 @@ export default function DashboardHeader({
                         className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] font-700 text-foreground transition-colors hover:bg-muted/70 lg:text-[13px]"
                       >
                         <Icon size={15} className="text-accent" />
-                        <span>{action.label.replace('Add ', '')}</span>
+                        <span>{quickActionShortLabel(action.id)}</span>
                       </button>
                     );
                   })}

@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getSettingsAssetUrl } from '@/lib/platform-settings';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 
 type AuthMode = 'login' | 'signup' | 'forgot';
@@ -17,6 +18,7 @@ export default function AuthScreen() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useTranslation(['auth', 'public']);
+  const { language } = useLanguage();
   const { branding, updatedAt, auth } = usePlatformSettings();
   const year = new Date().getFullYear();
   const faviconSrc = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
@@ -33,6 +35,10 @@ export default function AuthScreen() {
     auth.googleOauthEnabled ||
     auth.appleOauthEnabled ||
     auth.magicLinkEnabled;
+  const showSingleLanguageBrandingTagline = language === 'en';
+  const brandHeadline = showSingleLanguageBrandingTagline && branding.tagline
+    ? branding.tagline
+    : t('authScreen.brandHeadline', { ns: 'public', defaultValue: branding.appName });
 
   const setMode = useCallback((nextMode: AuthMode) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -77,7 +83,7 @@ export default function AuthScreen() {
         <div className="relative space-y-6">
           <div className="max-w-xl">
             <h2 className="text-4xl xl:text-5xl font-800 text-white leading-[1.05] text-balance">
-              {branding.tagline}
+              {brandHeadline}
             </h2>
             <p className="text-white/78 mt-4 text-lg leading-relaxed">
               {t('authScreen.brandSubtitle', { ns: 'public' })}
@@ -122,7 +128,9 @@ export default function AuthScreen() {
             </div>
             <div className="min-w-0">
               <span className="block font-700 text-lg text-primary">{branding.appName}</span>
-              <span className="block text-xs text-muted-foreground">{branding.tagline}</span>
+              {showSingleLanguageBrandingTagline && branding.tagline ? (
+                <span className="block text-xs text-muted-foreground">{branding.tagline}</span>
+              ) : null}
             </div>
           </div>
         </div>

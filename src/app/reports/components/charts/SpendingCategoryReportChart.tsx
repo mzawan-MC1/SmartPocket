@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart,
   Bar,
@@ -26,7 +27,7 @@ function formatAxisValue(value: number, currencyCode: string) {
   }).text;
 }
 
-function CustomTooltip({ active, payload, label, currencyCode }: any) {
+function CustomTooltip({ active, payload, label, currencyCode, t }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="card-elevated-md p-3">
@@ -34,7 +35,7 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
       <p className="text-sm font-700 font-tabular text-foreground mt-0.5">
         {formatCurrencyValue(payload[0].value, { currencyCode }).text}
       </p>
-      <p className="text-xs text-muted-foreground">Reporting currency total</p>
+      <p className="text-xs text-muted-foreground">{t('reports.chartLabels.reportingCurrencyTotal')}</p>
     </div>
   );
 }
@@ -46,6 +47,7 @@ export default function SpendingCategoryReportChart({
   data: SpendingCategoryChartRow[];
   currencyCode: string;
 }) {
+  const { t } = useTranslation('portal');
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -64,7 +66,7 @@ export default function SpendingCategoryReportChart({
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="category" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
-        <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+        <Tooltip content={<CustomTooltip currencyCode={currencyCode} t={t} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
         <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
           {safeData.map((entry) => (
             <Cell key={entry.id} fill={entry.color} />

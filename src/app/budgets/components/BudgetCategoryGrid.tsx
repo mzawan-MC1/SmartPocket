@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Home,
   Utensils,
@@ -19,6 +20,8 @@ import Modal from '@/components/ui/Modal';
 import { toast } from 'sonner';
 import AddBudgetForm from './AddBudgetForm';
 import Icon from '@/components/ui/AppIcon';
+import { formatCurrencyText } from '@/lib/currency-formatting';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 
 // Backend integration point: fetch from /api/budgets?month=YYYY-MM&userId=current
@@ -39,23 +42,24 @@ function getBarClass(pct: number) {
   return 'budget-bar-green';
 }
 
-function getStatus(pct: number): { label: string; variant: 'exceeded' | 'warning' | 'active' | 'default' } {
-  if (pct >= 100) return { label: 'Exceeded', variant: 'exceeded' };
-  if (pct >= 80) return { label: 'Near Limit', variant: 'warning' };
-  if (pct === 0) return { label: 'Not Started', variant: 'default' };
-  return { label: 'On Track', variant: 'active' };
+function getStatus(pct: number): { variant: 'exceeded' | 'warning' | 'active' | 'default' } {
+  if (pct >= 100) return { variant: 'exceeded' };
+  if (pct >= 80) return { variant: 'warning' };
+  if (pct === 0) return { variant: 'default' };
+  return { variant: 'active' };
 }
 
 export default function BudgetCategoryGrid() {
+  const { t } = useTranslation(['portal', 'common']);
   const [showAddModal, setShowAddModal] = useState(false);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-700 text-foreground">Category Budgets</h2>
+        <h2 className="text-base font-700 text-foreground">{t('budgets.categoryBudgets', { ns: 'portal' })}</h2>
         <button onClick={() => setShowAddModal(true)} className="btn-ghost text-sm text-accent">
           <Plus size={14} />
-          Add Category Budget
+          {t('budgets.addCategoryBudget', { ns: 'portal' })}
         </button>
       </div>
 
@@ -65,6 +69,14 @@ export default function BudgetCategoryGrid() {
           const pct = bud.allocated > 0 ? (bud.spent / bud.allocated) * 100 : 0;
           const remaining = bud.allocated - bud.spent;
           const status = getStatus(pct);
+          const categoryLabel = translateSystemCategoryName(bud.category, t);
+          const statusLabel = status.variant === 'exceeded'
+            ? t('budgets.status.exceeded', { ns: 'portal' })
+            : status.variant === 'warning'
+              ? t('budgets.status.nearLimit', { ns: 'portal' })
+              : status.variant === 'default'
+                ? t('budgets.status.notStarted', { ns: 'portal' })
+                : t('budgets.status.onTrack', { ns: 'portal' });
           const barClass = getBarClass(pct);
 
           return (
@@ -82,7 +94,7 @@ export default function BudgetCategoryGrid() {
                     <Icon size={16} />
                   </div>
                   <div>
-                    <p className="text-sm font-700 text-foreground">{bud.category}</p>
+                    <p className="text-sm font-700 text-foreground">{categoryLabel}</p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {pct >= 100 && <AlertCircle size={11} className="text-negative" />}
                       {pct >= 80 && pct < 100 && <AlertTriangle size={11} className="text-warning" />}
@@ -91,15 +103,15 @@ export default function BudgetCategoryGrid() {
                         status.variant === 'warning' ? 'text-warning' :
                         status.variant === 'active'? 'text-positive' : 'text-muted-foreground'
                       }`}>
-                        {status.label}
+                        {statusLabel}
                       </span>
                     </div>
                   </div>
                 </div>
                 <button
                   className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                  title={`Edit ${bud.category} budget`}
-                  onClick={() => toast.info(`Editing ${bud.category} budget`)}
+                  title={t('budgets.editAction', { ns: 'portal' })}
+                  onClick={() => toast.info(t('budgets.editBudget', { ns: 'portal', name: categoryLabel }))}
                 >
                   <Edit2 size={13} />
                 </button>
@@ -109,7 +121,7 @@ export default function BudgetCategoryGrid() {
               <div className="mb-3">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs text-muted-foreground">
-                    ${bud.spent.toLocaleString('en-US', { minimumFractionDigits: 2 })} spent
+                    {formatCurrencyText(bud.spent, { currencyCode: 'USD' })} {t('budgets.spent', { ns: 'portal' }).toLowerCase()}
                   </span>
                   <span className="text-xs font-600 font-tabular text-muted-foreground">
                     {pct.toFixed(0)}%
@@ -126,17 +138,17 @@ export default function BudgetCategoryGrid() {
               {/* Amounts */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[11px] text-muted-foreground">Allocated</p>
+                  <p className="text-[11px] text-muted-foreground">{t('reports.chartLabels.allocated', { ns: 'portal' })}</p>
                   <p className="text-sm font-700 font-tabular text-foreground">
-                    ${bud.allocated.toLocaleString()}
+                    {formatCurrencyText(bud.allocated, { currencyCode: 'USD' })}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[11px] text-muted-foreground">
-                    {remaining >= 0 ? 'Remaining' : 'Over by'}
+                    {remaining >= 0 ? t('budgets.remaining', { ns: 'portal' }) : t('budgets.overBy', { ns: 'portal' })}
                   </p>
                   <p className={`text-sm font-700 font-tabular ${remaining >= 0 ? 'text-positive' : 'text-negative'}`}>
-                    {remaining < 0 ? '-' : ''}${Math.abs(remaining).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    {formatCurrencyText(remaining, { currencyCode: 'USD' })}
                   </p>
                 </div>
               </div>
@@ -153,7 +165,7 @@ export default function BudgetCategoryGrid() {
             <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
           </div>
           <p className="text-sm font-600 text-muted-foreground group-hover:text-accent transition-colors">
-            Add Category Budget
+            {t('budgets.addCategoryBudget', { ns: 'portal' })}
           </p>
         </button>
       </div>
@@ -161,12 +173,12 @@ export default function BudgetCategoryGrid() {
       <Modal
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
-        title="Set Category Budget"
-        description="Allocate a monthly spending limit for a category"
+        title={t('budgets.setCategoryBudget', { ns: 'portal' })}
+        description={t('budgets.form.modalDescription', { ns: 'portal' })}
         size="md"
       >
         <AddBudgetForm
-          onSuccess={() => { setShowAddModal(false); toast.success('Budget set successfully'); }}
+          onSuccess={() => { setShowAddModal(false); toast.success(t('budgets.addSuccess', { ns: 'portal' })); }}
           onCancel={() => setShowAddModal(false)}
         />
       </Modal>

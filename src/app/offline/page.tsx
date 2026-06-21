@@ -1,6 +1,10 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 export default function OfflinePage() {
+  const { t } = useTranslation('public');
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="text-center max-w-sm">
@@ -15,18 +19,18 @@ export default function OfflinePage() {
             <line x1="12" y1="20" x2="12.01" y2="20" />
           </svg>
         </div>
-        <h1 className="text-2xl font-700 text-foreground mb-2">You&apos;re offline</h1>
+        <h1 className="text-2xl font-700 text-foreground mb-2">{t('offline.title')}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Smart Pocket requires an internet connection to sync your financial data. Please check your connection and try again.
+          {t('offline.description')}
         </p>
         <button
           onClick={() => window.location?.reload()}
           className="btn-primary mx-auto"
         >
-          Try Again
+          {t('offline.retry')}
         </button>
         <p className="text-xs text-muted-foreground mt-4">
-          Your data is safe and will sync when you reconnect.
+          {t('offline.helper')}
         </p>
       </div>
     </div>

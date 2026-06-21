@@ -41,7 +41,8 @@
     "refresh": "Actualiser",
     "apply": "Appliquer",
     "reset": "Réinitialiser",
-    "submit": "Soumettre"
+    "submit": "Soumettre",
+    "continue": "Continuer"
   },
   "status": {
     "loading": "Chargement...",
@@ -55,7 +56,9 @@
     "inactive": "Inactif",
     "pending": "En attente",
     "completed": "Terminé",
-    "archived": "Archivé"
+    "archived": "Archivé",
+    "creating": "Creation en cours...",
+    "processing": "Traitement en cours..."
   },
   "empty": {
     "noData": "Aucune donnée disponible",
@@ -140,5 +143,26 @@
     "searchPhone": "Rechercher un pays ou un indicatif...",
     "loading": "Chargement des pays...",
     "noneFound": "Aucun pays trouvé"
+  },
+  "validation": {
+    "validAmount": "Saisissez un montant valide"
+  },
+  "systemCategories": {
+    "salary": "Salaire",
+    "freelance": "Freelance",
+    "investmentReturns": "Rendements d'investissement",
+    "otherIncome": "Autre revenu",
+    "foodDining": "Alimentation et restaurants",
+    "housing": "Logement",
+    "transport": "Transport",
+    "utilities": "Services publics",
+    "shopping": "Shopping",
+    "healthcare": "Sante",
+    "entertainment": "Divertissement",
+    "travel": "Voyage",
+    "education": "Education",
+    "subscriptions": "Abonnements",
+    "savings": "Epargne",
+    "transfer": "Transfert"
   }
 }

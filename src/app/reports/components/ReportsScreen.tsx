@@ -23,6 +23,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
   formatReportPeriodLabel,
   getInitialReportPreset,
@@ -377,7 +378,11 @@ function buildSpendingCategoryChartState(args: {
       };
     }
 
-    const categoryName = transaction.category?.name || args.t('transactions.uncategorized');
+    const categoryName = transaction.category?.name
+      ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+          args.t(key, { ...(options || {}), ns: 'common' })
+        )
+      : args.t('transactions.uncategorized');
     const current = totals.get(categoryName) || {
       id: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       category: categoryName,
@@ -524,7 +529,11 @@ function buildTransactionsCsv(
       getTransactionTypeLabel(transaction.transaction_type, t),
       transaction.merchant || '',
       transaction.description || '',
-      transaction.category?.name || '',
+      transaction.category?.name
+        ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+            t(key, { ...(options || {}), ns: 'common' })
+          )
+        : '',
       transaction.account?.name || '',
       signedOriginalAmount.toFixed(2),
       transaction.currency || '',
@@ -559,8 +568,18 @@ function buildBudgetPerformanceCsv(
     t('reports.budgetPerformanceCsv.reportingCurrency'),
   ];
   const rows = items.map((item) => [
-    item.budget.name || item.budget.category?.name || t('reports.budget'),
-    item.budget.category?.name || '',
+    item.budget.name ||
+      (item.budget.category?.name
+        ? translateSystemCategoryName(item.budget.category.name, (key, options) =>
+            t(key, { ...(options || {}), ns: 'common' })
+          )
+        : '') ||
+      t('reports.budget'),
+    item.budget.category?.name
+      ? translateSystemCategoryName(item.budget.category.name, (key, options) =>
+          t(key, { ...(options || {}), ns: 'common' })
+        )
+      : '',
     item.period.label || '',
     item.periodTypeLabel,
     Number(item.budget.amount || 0).toFixed(2),
@@ -1102,7 +1121,13 @@ export default function ReportsScreen() {
                       <div key={item.budget.id} className="rounded-xl border border-border p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="text-sm font-700 text-foreground">{item.budget.category?.name || item.budget.name || t('reports.budget')}</p>
+                            <p className="text-sm font-700 text-foreground">
+                              {item.budget.category?.name
+                                ? translateSystemCategoryName(item.budget.category.name, (key, options) =>
+                                    t(key, { ...(options || {}), ns: 'common' })
+                                  )
+                                : item.budget.name || t('reports.budget')}
+                            </p>
                             <p className="text-xs text-muted-foreground">{item.periodTypeLabel} · {item.period.label}</p>
                           </div>
                           <StatusBadge
@@ -1287,7 +1312,13 @@ function AccountStatementTable(args: {
               <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.category')}</p>
-                  <p className="text-foreground">{transaction.category?.name || '—'}</p>
+                  <p className="text-foreground">
+                    {transaction.category?.name
+                      ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+                          args.t(key, { ...(options || {}), ns: 'common' })
+                        )
+                      : '—'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.account')}</p>
@@ -1348,7 +1379,13 @@ function AccountStatementTable(args: {
                 <td className="px-3 py-2.5 text-muted-foreground">{getTransactionTypeLabel(transaction.transaction_type, args.t)}</td>
                 <td className="px-3 py-2.5 text-foreground">{transaction.merchant || '—'}</td>
                 <td className="max-w-[220px] truncate px-3 py-2.5 text-foreground">{transaction.description || '—'}</td>
-                <td className="px-3 py-2.5 text-muted-foreground">{transaction.category?.name || '—'}</td>
+                <td className="px-3 py-2.5 text-muted-foreground">
+                  {transaction.category?.name
+                    ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+                        args.t(key, { ...(options || {}), ns: 'common' })
+                      )
+                    : '—'}
+                </td>
                 <td className="px-3 py-2.5 text-muted-foreground">{transaction.account?.name || '—'}</td>
                 <td className="px-3 py-2.5 text-right">
                   <FormattedCurrencyAmount

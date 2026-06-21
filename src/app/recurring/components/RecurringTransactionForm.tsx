@@ -14,6 +14,7 @@ import {
   type FinancialAccount,
   type RecurringTransaction,
 } from '@/lib/finance';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 interface RecurringFormData {
   description: string;
@@ -177,7 +178,13 @@ export default function RecurringTransactionForm({
         <label htmlFor="rec-category-shared" className="block text-sm font-600 text-foreground mb-1.5">{t('categories.title', { ns: 'portal' })}</label>
         <select id="rec-category-shared" className="input-base" {...register('category_id')}>
           <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
-          {filteredCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          {filteredCategories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {translateSystemCategoryName(category.name, (key, options) =>
+                t(key, { ...(options || {}), ns: 'common' })
+              )}
+            </option>
+          ))}
         </select>
       </div>
 

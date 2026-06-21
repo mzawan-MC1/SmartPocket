@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { Loader2, ChevronRight, ChevronLeft, CheckCircle2, Globe, DollarSign, User, TrendingUp, CalendarDays } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { createClient } from '@/lib/supabase/client';
@@ -27,14 +28,6 @@ import {
   withFrequencyDefaults,
 } from '@/lib/financial-periods/profile';
 
-const STEPS = [
-  { id: 1, title: 'Welcome', icon: User },
-  { id: 2, title: 'Language & Region', icon: Globe },
-  { id: 3, title: 'Currency', icon: DollarSign },
-  { id: 4, title: 'Income Schedule', icon: TrendingUp },
-  { id: 5, title: 'Planning', icon: CalendarDays },
-];
-
 interface OnboardingData {
   fullName: string;
   country: string;
@@ -56,13 +49,6 @@ interface OnboardingData {
   timezone: string;
   custom_cycle_days: string;
 }
-
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧' },
-  { code: 'ar', name: 'العربية', flag: '🇦🇪' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-];
 
 const camelCaseFieldErrorMap: Record<keyof FinancialPeriodFormValues, keyof FinancialPeriodFieldErrors> = {
   income_frequency: 'incomeFrequency',
@@ -99,6 +85,7 @@ function buildPlanningValues(data: Pick<OnboardingData, keyof FinancialPeriodFor
 }
 
 export default function OnboardingPage() {
+  const { t } = useTranslation(['portal', 'common']);
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyManuallySelected, setCurrencyManuallySelected] = useState(false);
@@ -130,6 +117,19 @@ export default function OnboardingPage() {
   const selectedCountryRecord = getCountryByCode(snapshot?.countries ?? [], selectedCountry);
   const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
   const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
+  const languages = [
+    { code: 'en', name: t('language.en', { ns: 'common' }), flag: '🇬🇧' },
+    { code: 'ar', name: t('language.ar', { ns: 'common' }), flag: '🇦🇪' },
+    { code: 'fr', name: t('language.fr', { ns: 'common' }), flag: '🇫🇷' },
+    { code: 'ru', name: t('language.ru', { ns: 'common' }), flag: '🇷🇺' },
+  ];
+  const steps = [
+    { id: 1, title: t('onboarding.steps.welcome', { ns: 'portal' }), icon: User },
+    { id: 2, title: t('onboarding.steps.languageRegion', { ns: 'portal' }), icon: Globe },
+    { id: 3, title: t('onboarding.steps.currency', { ns: 'portal' }), icon: DollarSign },
+    { id: 4, title: t('onboarding.steps.incomeSchedule', { ns: 'portal' }), icon: TrendingUp },
+    { id: 5, title: t('onboarding.steps.planning', { ns: 'portal' }), icon: CalendarDays },
+  ];
   const financialPeriodValues: FinancialPeriodFormValues = {
     income_frequency: incomeFrequency,
     pay_cycle_anchor_date: watch('pay_cycle_anchor_date'),
@@ -178,7 +178,7 @@ export default function OnboardingPage() {
       const validation = validateFinancialPeriodForm(planningValues);
       if (!validation.isValid) {
         setFinancialPeriodErrors(validation.fieldErrors);
-        toast.error(validation.errors[0] || 'Please review your income and planning settings.');
+        toast.error(validation.errors[0] || t('onboarding.toasts.reviewPlanningSettings', { ns: 'portal' }));
         return;
       }
 
@@ -193,7 +193,7 @@ export default function OnboardingPage() {
 
       const currentUser = authUser ?? user;
       if (!currentUser) {
-        throw new Error('Your session expired. Please sign in again.');
+        throw new Error(t('errors.sessionExpired', { ns: 'common' }));
       }
 
       const { error } = await supabase
@@ -215,16 +215,16 @@ export default function OnboardingPage() {
         source: 'OnboardingPage',
         entities: ['profile', 'dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
       });
-      toast.success('Profile set up! Welcome to Smart Pocket.');
+      toast.success(t('onboarding.toasts.profileReady', { ns: 'portal' }));
       router.replace('/dashboard');
     } catch (err: any) {
-      toast.error(err?.message || 'Failed to save preferences.');
+      toast.error(err?.message || t('onboarding.toasts.saveFailed', { ns: 'portal' }));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const progress = ((step - 1) / (steps.length - 1)) * 100;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8 bg-[radial-gradient(circle_at_top_right,rgba(15,159,152,0.08),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,59,99,0.08),transparent_35%)]">
@@ -232,14 +232,14 @@ export default function OnboardingPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <AppLogo size={48} className="mx-auto mb-3" />
-          <h1 className="text-3xl font-800 text-foreground">Set up Smart Pocket</h1>
-          <p className="text-base text-muted-foreground mt-2">Just a few quick steps to personalize your experience and dashboard defaults.</p>
+          <h1 className="text-3xl font-800 text-foreground">{t('onboarding.title', { ns: 'portal' })}</h1>
+          <p className="text-base text-muted-foreground mt-2">{t('onboarding.description', { ns: 'portal' })}</p>
         </div>
 
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            {STEPS.map((s) => (
+            {steps.map((s) => (
               <div key={s.id} className="flex flex-col items-center gap-1">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-700 transition-all ${
                   step > s.id ? 'bg-positive text-white' :
@@ -266,29 +266,29 @@ export default function OnboardingPage() {
             {step === 1 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">What should we call you?</h2>
-                  <p className="text-sm text-muted-foreground">This will appear in your dashboard greeting</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.welcome.title', { ns: 'portal' })}</h2>
+                  <p className="text-sm text-muted-foreground">{t('onboarding.welcome.description', { ns: 'portal' })}</p>
                 </div>
                 <div>
-                  <label htmlFor="ob-name" className="block text-sm font-600 text-foreground mb-1.5">Full name</label>
+                  <label htmlFor="ob-name" className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.fullName', { ns: 'portal' })}</label>
                   <input
                     id="ob-name"
                     type="text"
                     autoComplete="name"
                     className={`input-base ${errors.fullName ? 'input-error' : ''}`}
-                    placeholder="Your full name"
-                    {...register('fullName', { required: 'Please enter your name' })}
+                    placeholder={t('onboarding.welcome.fullNamePlaceholder', { ns: 'portal' })}
+                    {...register('fullName', { required: t('onboarding.validation.fullName', { ns: 'portal' }) })}
                   />
                   {errors.fullName && <p className="mt-1.5 text-xs text-negative font-500">{errors.fullName.message}</p>}
                 </div>
                 <div>
-                  <label htmlFor="ob-country" className="block text-sm font-600 text-foreground mb-1.5">Country</label>
+                  <label htmlFor="ob-country" className="block text-sm font-600 text-foreground mb-1.5">{t('onboarding.welcome.country', { ns: 'portal' })}</label>
                   <CountrySelector
                     value={selectedCountry}
                     onChange={(countryCode) => setValue('country', countryCode, { shouldDirty: true })}
-                    placeholder="Choose your country"
+                    placeholder={t('onboarding.welcome.countryPlaceholder', { ns: 'portal' })}
                   />
-                  <input type="hidden" {...register('country', { required: 'Please select your country' })} />
+                  <input type="hidden" {...register('country', { required: t('onboarding.validation.country', { ns: 'portal' }) })} />
                   {errors.country && <p className="mt-1.5 text-xs text-negative font-500">{errors.country.message}</p>}
                 </div>
               </div>
@@ -298,11 +298,11 @@ export default function OnboardingPage() {
             {step === 2 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">Choose your language</h2>
-                  <p className="text-sm text-muted-foreground">Smart Pocket supports 4 languages including Arabic RTL</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.language.title', { ns: 'portal' })}</h2>
+                  <p className="text-sm text-muted-foreground">{t('onboarding.language.description', { ns: 'portal' })}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  {LANGUAGES.map((lang) => (
+                  {languages.map((lang) => (
                     <button
                       key={lang.code}
                       type="button"
@@ -330,12 +330,17 @@ export default function OnboardingPage() {
             {step === 3 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">Default currency</h2>
-                  <p className="text-sm text-muted-foreground">Used for all amounts and reports</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.currency.title', { ns: 'portal' })}</h2>
+                  <p className="text-sm text-muted-foreground">{t('onboarding.currency.description', { ns: 'portal' })}</p>
                 </div>
                 {selectedCountryRecord && recommendedCurrency ? (
                   <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground">
-                    Recommended for {selectedCountryRecord.name}: {recommendedCurrency.name} ({recommendedCurrency.code})
+                    {t('onboarding.currency.recommended', {
+                      ns: 'portal',
+                      country: selectedCountryRecord.name,
+                      currency: recommendedCurrency.name,
+                      code: recommendedCurrency.code,
+                    })}
                   </div>
                 ) : null}
                 <CurrencySelector
@@ -345,9 +350,9 @@ export default function OnboardingPage() {
                     setValue('defaultCurrency', currencyCode, { shouldDirty: true });
                   }}
                   showCountryCount
-                  placeholder="Choose your default currency"
+                  placeholder={t('onboarding.currency.placeholder', { ns: 'portal' })}
                 />
-                <input type="hidden" {...register('defaultCurrency', { required: 'Please select your currency' })} />
+                <input type="hidden" {...register('defaultCurrency', { required: t('onboarding.validation.currency', { ns: 'portal' }) })} />
                 {errors.defaultCurrency ? (
                   <p className="mt-1.5 text-xs text-negative font-500">{errors.defaultCurrency.message}</p>
                 ) : null}
@@ -358,12 +363,12 @@ export default function OnboardingPage() {
             {step === 4 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">How do you usually receive income?</h2>
-                  <p className="text-sm text-muted-foreground">Set optional income guidance and your usual income schedule.</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.income.title', { ns: 'portal' })}</h2>
+                  <p className="text-sm text-muted-foreground">{t('onboarding.income.description', { ns: 'portal' })}</p>
                 </div>
                 <div>
                   <label htmlFor="ob-income" className="block text-sm font-600 text-foreground mb-1.5">
-                    Monthly income
+                    {t('onboarding.income.monthlyIncome', { ns: 'portal' })}
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-600">
@@ -379,7 +384,7 @@ export default function OnboardingPage() {
                       {...register('monthlyIncome')}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">Leave blank to skip — you can set this later in settings</p>
+                  <p className="text-xs text-muted-foreground mt-1.5">{t('onboarding.income.monthlyIncomeHelp', { ns: 'portal' })}</p>
                 </div>
                 <IncomeFrequencySelector
                   value={financialPeriodValues.income_frequency}
@@ -400,8 +405,8 @@ export default function OnboardingPage() {
             {step === 5 && (
               <div className="space-y-5 fade-in">
                 <div>
-                  <h2 className="text-lg font-700 text-foreground mb-1">Planning preferences</h2>
-                  <p className="text-sm text-muted-foreground">Choose the default dashboard view, budget rhythm, week start, and timezone.</p>
+                  <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.planning.title', { ns: 'portal' })}</h2>
+                  <p className="text-sm text-muted-foreground">{t('onboarding.planning.description', { ns: 'portal' })}</p>
                 </div>
                 <PlanningPreferencesFields
                   values={financialPeriodValues}
@@ -440,21 +445,21 @@ export default function OnboardingPage() {
               Back
             </button>
 
-            {step < STEPS.length ? (
+            {step < steps.length ? (
               <button
                 type="button"
                 onClick={() => setStep((s) => s + 1)}
                 className="btn-primary"
               >
-                Continue
+                {t('actions.continue', { ns: 'common' })}
                 <ChevronRight size={16} />
               </button>
             ) : (
               <button type="submit" disabled={isLoading} className="btn-primary">
                 {isLoading ? (
-                  <><Loader2 size={16} className="animate-spin" />Saving...</>
+                  <><Loader2 size={16} className="animate-spin" />{t('status.saving', { ns: 'common' })}</>
                 ) : (
-                  <>Get Started <CheckCircle2 size={16} /></>
+                  <>{t('getStarted', { ns: 'public' })} <CheckCircle2 size={16} /></>
                 )}
               </button>
             )}
@@ -462,7 +467,7 @@ export default function OnboardingPage() {
 
           <p className="text-center text-xs text-muted-foreground mt-4">
             <button type="button" onClick={() => router.replace('/dashboard')} className="hover:text-accent transition-colors">
-              Skip for now — set up later in Settings
+              {t('onboarding.skipForNow', { ns: 'portal' })}
             </button>
           </p>
         </form>

@@ -104,6 +104,13 @@
       "recurring": "Add Recurring",
       "reimbursement": "Add Reimbursement",
       "budget": "Add Budget"
+    },
+    "quickActionShort": {
+      "transaction": "Transaction",
+      "account": "Account",
+      "recurring": "Recurring",
+      "reimbursement": "Reimbursement",
+      "budget": "Budget"
     }
   },
   "shared": {
@@ -167,7 +174,39 @@
     "noSpendingInPeriod": "No spending in this period.",
     "expenseFallback": "Expense",
     "editAction": "Edit Budget",
-    "archiveAction": "Archive Budget"
+    "archiveAction": "Archive Budget",
+    "createFailed": "Failed to create budget.",
+    "updateFailed": "Failed to update budget.",
+    "form": {
+      "periodChangeWarning": "This budget period change applies immediately. Historical views are recalculated using the new period rule because effective-dated budget history is not stored yet.",
+      "categoryRequired": "Select a category.",
+      "amountRequired": "Enter a valid amount.",
+      "currencyRequired": "Choose a currency.",
+      "loadingPeriodSettings": "Budget period settings are still loading.",
+      "semimonthlyNeedsSettings": "Update Income & Planning in Settings before creating a twice-a-month budget.",
+      "incompletePeriodConfig": "Budget period configuration is incomplete.",
+      "periodIsolationNotice": "This budget keeps its own period. Changing Settings later will not modify it.",
+      "category": "Category",
+      "selectCategory": "Select a category",
+      "name": "Budget name",
+      "namePlaceholder": "e.g. Food & Dining",
+      "amount": "Amount *",
+      "currency": "Currency",
+      "currencyPlaceholder": "Choose currency",
+      "period": "Budget period",
+      "alertAtPercent": "Alert at %",
+      "anchorDate": "Anchor date",
+      "anchorDateHelp": {
+        "weekly": "Weekly budgets auto-fill a current weekly anchor, and you can change it if needed.",
+        "biweekly": "Every 2 weeks budgets use this anchor date to calculate exact 14-day cycles.",
+        "custom": "Custom budgets repeat from this anchor date."
+      },
+      "cycleLengthDays": "Cycle length in days *",
+      "semimonthlyTitle": "Twice a month schedule",
+      "loadingIncomeSchedule": "Loading your saved income schedule...",
+      "semimonthlyConfigIncomplete": "Budget period configuration is incomplete. Update your semimonthly schedule in",
+      "semimonthlySettingsSuffix": "before using a twice-a-month budget."
+    }
   },
   "reports": {
     "noData": "No data",
@@ -558,7 +597,9 @@
       "openingBalanceHelper": "Current balance of this account. Use negative for credit card debt.",
       "notesPlaceholder": "Optional notes...",
       "includeInTotal": "Include in total balance calculation",
-      "updateAction": "Update Account"
+      "updateAction": "Update Account",
+      "typeRequired": "Account type is required.",
+      "currency": "Currency"
     }
   },
   "categories": {
@@ -1092,6 +1133,49 @@
       "email": "Email",
       "emailPlaceholder": "name@example.com",
       "role": "Role"
+    },
+    "invitationPage": {
+      "loading": "Loading invitation...",
+      "notFoundTitle": "Invitation Not Found",
+      "notFoundDescription": "This invitation link is invalid or has been removed.",
+      "goToDashboard": "Go to Dashboard",
+      "acceptedTitle": "Invitation Accepted!",
+      "acceptedDescription": "You have joined {{space}} as {{role}}.",
+      "redirecting": "Redirecting to Spaces...",
+      "declinedTitle": "Invitation Declined",
+      "declinedDescription": "You have declined this invitation.",
+      "title": "Space Invitation",
+      "description": "You have been invited to join a shared space.",
+      "fallbackSpace": "the space",
+      "fallbackUnknownSpace": "Unknown Space",
+      "fallbackInviter": "Space Owner",
+      "details": {
+        "space": "Space",
+        "role": "Role",
+        "invitedBy": "Invited by",
+        "sentTo": "Sent to",
+        "expires": "Expires"
+      },
+      "status": {
+        "accepted": "You have already accepted this invitation.",
+        "declined": "You have already declined this invitation.",
+        "revoked": "This invitation has been revoked by the space owner."
+      },
+      "expiredBanner": "This invitation has expired",
+      "signInTitle": "Sign in to accept this invitation",
+      "signInDescription": "You must sign in with {{email}} to accept this invitation.",
+      "emailMismatch": "This invitation was sent to {{invitedEmail}}, but you are signed in as {{currentEmail}}. Please sign in with the correct account.",
+      "decline": "Decline",
+      "accept": "Accept",
+      "backToDashboard": "Back to Dashboard",
+      "errors": {
+        "notFound": "Invitation not found.",
+        "emailMismatch": "This invitation was sent to a different email address.",
+        "expired": "This invitation has expired.",
+        "notAuthenticated": "Please sign in to continue.",
+        "alreadyProcessed": "Invitation is already {{status}}.",
+        "respondFailed": "Failed to respond to invitation."
+      }
     }
   },
   "smartEntryModal": {
@@ -1187,7 +1271,11 @@
       "remainingFor": "Remaining for {{name}}: {{amount}}",
       "cashRemainingAfterSpending": "Cash remaining after spending: {{amount}}",
       "amountStillOwedTo": "Amount still owed to {{name}}: {{amount}}",
-      "managedBalanceChange": "Managed balance change: {{amount}}"
+      "managedBalanceChange": "Managed balance change: {{amount}}",
+      "amountNeeded": "Amount needed",
+      "someone": "someone",
+      "oneAccount": "one account",
+      "anotherAccount": "another account"
     },
     "failedTitles": {
       "accountCreate": "Account creation failed",
@@ -1211,6 +1299,485 @@
       "resolveAccount": "Please resolve the account selection before confirming.",
       "resolvePerson": "Please resolve the person selection before confirming.",
       "confirmFailed": "Failed to confirm the Smart Entry request."
+    },
+    "examples": {
+      "placeholder": {
+        "en": "e.g. \"I spent AED 85 on groceries today from cash\" or \"Ahmed gave me AED 2,300\"",
+        "ar": "مثال: أنفقت 85 درهما على البقالة اليوم من حساب النقد",
+        "fr": "ex. : j'ai dépensé 85 AED aujourd'hui pour les courses depuis mon compte espèces",
+        "ru": "например: я потратил 85 AED на продукты сегодня с наличного счета"
+      },
+      "items": {
+        "en": {
+          "1": "Spent AED 85 on groceries from cash",
+          "2": "Ahmed gave me AED 2,300 today",
+          "3": "Transfer AED 1,000 from bank to cash",
+          "4": "I paid AED 600 for Ahmed's subscription from my credit card"
+        },
+        "ar": {
+          "1": "أنفقت 85 درهما على البقالة من حساب النقد",
+          "2": "أحمد أعطاني 2300 درهم اليوم",
+          "3": "حوّل 1000 درهم من الحساب البنكي إلى النقد",
+          "4": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية"
+        },
+        "fr": {
+          "1": "J'ai dépensé 85 AED pour les courses depuis mon compte espèces",
+          "2": "Ahmed m'a donné 2 300 AED aujourd'hui",
+          "3": "Transférer 1 000 AED de la banque vers les espèces",
+          "4": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit"
+        },
+        "ru": {
+          "1": "Потратил 85 AED на продукты с наличного счета",
+          "2": "Ахмед дал мне сегодня 2 300 AED",
+          "3": "Переведи 1 000 AED из банка в наличные",
+          "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
+        }
+      }
+    },
+    "voice": {
+      "status": {
+        "idle": "Tap the microphone to start speaking",
+        "requestingPermission": "Requesting microphone access...",
+        "recording": "Recording...",
+        "paused": "Paused",
+        "processing": "Processing your voice..."
+      },
+      "maxDuration": "Max {{duration}}",
+      "transcribing": "Transcribing and analyzing...",
+      "actions": {
+        "start": "Start recording",
+        "pause": "Pause recording",
+        "resume": "Resume recording",
+        "stop": "Stop recording",
+        "useText": "Use text",
+        "typeInstead": "Type instead"
+      },
+      "errors": {
+        "permissionDenied": "Microphone access denied. Please allow microphone access and try again.",
+        "noMicrophone": "No microphone found. Please connect a microphone and try again.",
+        "notSupported": "Voice recording is not supported in this browser. Please use text input instead.",
+        "startFailed": "Could not start recording. Please try again."
+      }
+    },
+    "missingFields": {
+      "purpose": "purpose",
+      "person": "person",
+      "account": "account",
+      "destinationAccount": "destination account",
+      "amount": "amount",
+      "currency": "currency"
+    },
+    "purposeOptions": {
+      "personalIncome": {
+        "label": "My money / payment",
+        "description": "Add it to my own account and treat it as money I received."
+      },
+      "borrowedMoney": {
+        "label": "Borrowed from them",
+        "description": "Add it to my own account and record that I still owe them."
+      },
+      "managedMoney": {
+        "label": "Managing for them",
+        "description": "Keep their money separate in their own tracked account."
+      },
+      "reimbursement": {
+        "label": "Reimbursement / other",
+        "description": "They are paying you back for something earlier, or this needs a different meaning."
+      }
+    },
+    "summaryRows": {
+      "income": "+ {{amount}} received",
+      "loanReceived": "+ {{amount}} borrowed from {{personName}}",
+      "receivedFromPerson": "+ {{amount}} received from {{personName}}",
+      "expense": "- {{amount}} {{categoryName}}",
+      "loanRepayment": "- {{amount}} paid back to {{personName}}",
+      "reimbursementPayment": "+ {{amount}} reimbursed by {{personName}}",
+      "moneyReturned": "- {{amount}} returned to {{personName}}",
+      "transfer": "{{amount}} moved from {{sourceAccount}} to {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "personFallbackName": "this person",
+    "accountFallbackName": "this account",
+    "referenceLabel": "Reference",
+    "amountQuestion": "How much was used?",
+    "amountQuestionWithContext": "How much was used for {{context}}?",
+    "understanding": {
+      "unknownAmount": "an unknown amount",
+      "someone": "Someone",
+      "oneAccount": "one account",
+      "anotherAccount": "another account",
+      "income": "{{personName}} paid you {{amount}}",
+      "expense": "You spent {{amount}} {{categoryName}}",
+      "loanReceived": "You borrowed {{amount}} from {{personName}}",
+      "loanRepayment": "You repaid {{amount}} to {{personName}}",
+      "moneyReceivedFromPerson": "You received {{amount}} from {{personName}}",
+      "moneyReturnedToPerson": "You returned {{amount}} to {{personName}}",
+      "expenseFromHeldBalance": "You spent {{amount}} from {{personName}}'s held balance {{categoryName}}",
+      "expensePaidForPerson": "You paid {{amount}} for {{personName}} {{categoryName}}",
+      "reimbursementPayment": "{{personName}} reimbursed you {{amount}}",
+      "transfer": "You moved {{amount}} from {{sourceAccount}} to {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "warnings": {
+      "purposeUnclear": "The purpose of this money is still unclear.",
+      "expenseAmountMissing": "The expense amount still needs confirmation.",
+      "intentUnknown": "The request could not be understood yet."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your profile, language, currency, security preferences, and notification behavior.",
+    "badge": "Account settings",
+    "saved": "Settings saved successfully",
+    "savedShort": "Saved",
+    "saveFailed": "Failed to save settings",
+    "saveAction": "Save Changes",
+    "tabs": {
+      "profile": "Profile",
+      "preferences": "Preferences",
+      "planning": "Income & Planning",
+      "security": "Security",
+      "notifications": "Notifications"
+    },
+    "profile": {
+      "title": "Profile Information",
+      "description": "Update your name, country, and income preferences.",
+      "fullName": "Full name",
+      "email": "Email address",
+      "emailHelper": "Email cannot be changed here. Contact support if needed.",
+      "country": "Country",
+      "countryPlaceholder": "Choose your country",
+      "monthlyIncome": "Monthly income (optional)",
+      "monthlyIncomePlaceholder": "0.00",
+      "errors": {
+        "fullNameRequired": "Name is required"
+      }
+    },
+    "preferences": {
+      "title": "Language & Currency",
+      "description": "Choose the defaults used throughout Smart Pocket.",
+      "language": "Language",
+      "defaultCurrency": "Default currency",
+      "recommendedCurrency": "Recommended for {{country}}: {{currency}} ({{code}})",
+      "useRecommended": "Use recommended {{code}}",
+      "defaultCurrencyPlaceholder": "Choose your default currency",
+      "inactiveCurrency": "This saved currency is inactive and is kept for compatibility.",
+      "legacyMonthStartHelper": "Month start day remains in your profile only for legacy compatibility and is not used by the shared planning-period engine."
+    },
+    "planning": {
+      "title": "Income & Planning Schedule",
+      "description": "Manage your income rhythm, planning defaults, week start, and timezone without changing existing transactions or budgets.",
+      "validationFallback": "Please review your income and planning schedule."
+    },
+    "security": {
+      "title": "Security",
+      "description": "Password resets and account lifecycle actions.",
+      "changePasswordTitle": "Change Password",
+      "changePasswordDescription": "We will send a password reset link to your email address.",
+      "sendResetEmail": "Send Reset Email",
+      "resetEmailSent": "Password reset email sent!",
+      "deleteAccountTitle": "Delete Account",
+      "deleteAccountDescription": "Permanently delete your account and all data. This cannot be undone.",
+      "requestDeletion": "Request Account Deletion",
+      "deleteAccountSupportOnly": "Account deletion requires contacting support."
+    },
+    "notifications": {
+      "title": "Notification Preferences",
+      "description": "Manage alert types and weekly summaries.",
+      "loading": "Loading notification settings...",
+      "loadFailed": "Failed to load notification settings",
+      "loadFailedTitle": "Notification settings could not be loaded.",
+      "saved": "Notification settings saved successfully",
+      "saveFailed": "Failed to save notification settings",
+      "saveAction": "Save Notification Settings",
+      "availabilityNote": "Email and browser push notifications are not implemented yet, so they are not shown as active settings.",
+      "toggle": "Toggle {{label}}",
+      "items": {
+        "inApp": {
+          "label": "In-app notifications",
+          "description": "Show notifications in the bell menu across the app."
+        },
+        "recurringReminders": {
+          "label": "Payday and bill reminders",
+          "description": "Create reminders for pay periods, due bills, recurring payments, and large charges due this period."
+        },
+        "budgetAlerts": {
+          "label": "Budget warnings",
+          "description": "Notify when spending reaches the saved alert threshold or exceeds an active budget period."
+        },
+        "reimbursements": {
+          "label": "Reimbursements and settlements",
+          "description": "Notify when reimbursements or settlements are created or updated."
+        },
+        "accountSecurity": {
+          "label": "Account and security notifications",
+          "description": "Notify about important account access events."
+        },
+        "aiFailures": {
+          "label": "AI execution failures",
+          "description": "Notify when Smart Entry cannot save confirmed records."
+        }
+      }
+    }
+  },
+  "help": {
+    "title": "Help & Support",
+    "description": "Find quick guidance, support channels, and answers to the most common Smart Pocket questions.",
+    "badge": "Support",
+    "faqTitle": "Frequently Asked Questions",
+    "faqDescription": "Helpful answers for onboarding, data entry, security, and reporting.",
+    "quickLinks": {
+      "documentation": {
+        "title": "Documentation",
+        "description": "Guides and tutorials"
+      },
+      "community": {
+        "title": "Community",
+        "description": "Ask the community"
+      },
+      "email": {
+        "title": "Email Support"
+      }
+    },
+    "faq": {
+      "1": {
+        "question": "How do I add a transaction?",
+        "answer": "Go to Transactions and choose Add Transaction, or use the plus button in the bottom navigation."
+      },
+      "2": {
+        "question": "How do I set up a budget?",
+        "answer": "Open Budgets, choose Add Budget, select a category, set an amount, and choose your alert threshold."
+      },
+      "3": {
+        "question": "Can I import bank transactions?",
+        "answer": "CSV import is planned for a future release. For now, enter transactions manually."
+      },
+      "4": {
+        "question": "How do I change my currency?",
+        "answer": "Go to Settings, open Preferences, and select your default currency."
+      },
+      "5": {
+        "question": "Is my data secure?",
+        "answer": "Yes. Your data is protected with encryption and Supabase Row Level Security so only you can access it."
+      },
+      "6": {
+        "question": "How do I switch to Arabic (RTL)?",
+        "answer": "Use the language switcher in the top bar and choose Arabic. The layout switches to right-to-left automatically."
+      }
+    }
+  },
+  "onboarding": {
+    "title": "Set up Smart Pocket",
+    "description": "Just a few quick steps to personalize your experience and dashboard defaults.",
+    "steps": {
+      "welcome": "Welcome",
+      "languageRegion": "Language & Region",
+      "currency": "Currency",
+      "incomeSchedule": "Income Schedule",
+      "planning": "Planning"
+    },
+    "welcome": {
+      "title": "What should we call you?",
+      "description": "This appears in your dashboard greeting.",
+      "fullNamePlaceholder": "Your full name",
+      "country": "Country",
+      "countryPlaceholder": "Choose your country"
+    },
+    "language": {
+      "title": "Choose your language",
+      "description": "Smart Pocket supports English, Arabic, French, and Russian, including RTL for Arabic."
+    },
+    "currency": {
+      "title": "Default currency",
+      "description": "Used for amounts, balances, and reports.",
+      "recommended": "Recommended for {{country}}: {{currency}} ({{code}})",
+      "placeholder": "Choose your default currency"
+    },
+    "income": {
+      "title": "How do you usually receive income?",
+      "description": "Set optional income guidance and your usual income schedule.",
+      "monthlyIncome": "Monthly income",
+      "monthlyIncomeHelp": "Leave this blank to skip. You can set it later in Settings."
+    },
+    "planning": {
+      "title": "Planning preferences",
+      "description": "Choose the default dashboard view, budget rhythm, week start, and timezone."
+    },
+    "validation": {
+      "fullName": "Please enter your name",
+      "country": "Please select your country",
+      "currency": "Please select your currency"
+    },
+    "toasts": {
+      "reviewPlanningSettings": "Please review your income and planning settings.",
+      "profileReady": "Profile set up. Welcome to Smart Pocket.",
+      "saveFailed": "Failed to save preferences."
+    },
+    "skipForNow": "Skip for now and finish later in Settings"
+  },
+  "financialPeriods": {
+    "incomeFrequency": {
+      "title": "How do you usually receive income?",
+      "description": "Choose the planning rhythm that best matches your income schedule.",
+      "options": {
+        "weekly": {
+          "label": "Weekly",
+          "description": "Paid once every week"
+        },
+        "biweekly": {
+          "label": "Every 2 weeks",
+          "description": "Paid every 14 days, usually 26 times per year"
+        },
+        "semimonthly": {
+          "label": "Twice a month",
+          "description": "Paid on two fixed dates, usually 24 times per year"
+        },
+        "monthly": {
+          "label": "Monthly",
+          "description": "Paid once per month"
+        },
+        "irregular": {
+          "label": "Irregular income",
+          "description": "Income does not follow a fixed schedule"
+        },
+        "custom": {
+          "label": "Custom schedule",
+          "description": "Paid on a repeating schedule you define"
+        }
+      }
+    },
+    "budgetPeriods": {
+      "weekly": "Weekly",
+      "biweekly": "Every 2 weeks",
+      "semimonthly": "Twice a month",
+      "monthly": "Monthly",
+      "custom": "Custom cycle"
+    },
+    "weekdays": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "paySchedule": {
+      "lastDayOfMonth": "Last day of the month",
+      "weekly": {
+        "anchorDate": "Select a recent or next payday",
+        "anchorDateHelp": "Smart Pocket uses this as the anchor for each 7-day pay cycle.",
+        "weekdayFallback": "Payday weekday fallback",
+        "useAnchorOnly": "Use the anchor date only",
+        "weekdayFallbackHelp": "Optional. Use this only if you want to store a weekday as well as an anchor date."
+      },
+      "biweekly": {
+        "anchorDate": "Select one recent or next payday",
+        "anchorDateHelp": "Smart Pocket uses this to calculate future 14-day pay periods."
+      },
+      "semimonthly": {
+        "firstPayday": "First payday",
+        "chooseFirst": "Choose the first payday",
+        "secondPayday": "Second payday",
+        "chooseSecond": "Choose the second payday",
+        "help": "Smart Pocket treats each pay period as starting on a payday and ending one day before the next payday."
+      },
+      "monthly": {
+        "title": "Monthly payday rule",
+        "specificDayNumber": "Specific day number",
+        "specificDayHelp": "If a month is shorter, Smart Pocket safely uses that month's last day."
+      },
+      "monthlyRules": {
+        "specificDay": "Specific day",
+        "lastDay": "Last day of the month",
+        "lastWorkingDay": "Last working day"
+      },
+      "irregularNote": "Smart Pocket uses monthly planning by default for irregular income.",
+      "custom": {
+        "anchorDate": "Anchor date",
+        "daysPerCycle": "Days in each cycle"
+      }
+    },
+    "validation": {
+      "timezone": "Enter a valid IANA timezone such as Europe/London or Asia/Dubai.",
+      "customWeekStartDay": "Custom week start must be a day index from 0 to 6.",
+      "weeklyAnchorDate": "Weekly schedules need a recent or upcoming payday anchor date.",
+      "biweeklyAnchorDate": "Every 2 weeks schedules need one recent or upcoming payday anchor date.",
+      "customAnchorDate": "Custom schedules need an anchor date.",
+      "customCycleDays": "Custom schedules must repeat every {{min}}-{{max}} days.",
+      "semimonthlyDay1Required": "Choose the first semimonthly payday.",
+      "semimonthlyDay2Required": "Choose the second semimonthly payday.",
+      "semimonthlyDay1Range": "Semimonthly day 1 must be 1-31 or the last day of the month.",
+      "semimonthlyDay2Range": "Semimonthly day 2 must be 1-31 or the last day of the month.",
+      "semimonthlyDifferentDays": "Twice-a-month schedules need two different payday positions.",
+      "semimonthlyDayOrder": "The second semimonthly payday must be later in the month than the first.",
+      "monthlyRuleRequired": "Choose how monthly payday should be calculated.",
+      "monthlyDayRange": "Specific monthly payday must be a day from 1 to 31.",
+      "irregularDashboardPeriod": "Irregular income uses current month as the dashboard default."
+    },
+    "preferences": {
+      "dashboardTitle": "How would you like your dashboard to open?",
+      "dashboardDescription": "This sets the default view for new dashboard sessions.",
+      "dashboardOptions": {
+        "payCycle": "Current pay period",
+        "month": "Current month"
+      },
+      "defaultBudgetPeriod": "Default period for new budgets",
+      "defaultBudgetPeriodHelp": "This only sets the default for new budgets. Each budget can be changed separately.",
+      "weekStartsOn": "Week starts on",
+      "customDay": "Custom day",
+      "customWeekStartDayIndex": "Custom week start day index",
+      "customWeekStartDayHelp": "Use 0 for Sunday through 6 for Saturday.",
+      "timezone": "Timezone",
+      "timezonePlaceholder": "e.g. Europe/London",
+      "useBrowserTimezone": "Use browser timezone",
+      "recommendedBrowserTimezone": "Recommended for this browser: {{timezone}}",
+      "compatibilityNote": "This changes your default planning view. Existing transactions, recurring schedules, and budgets will not be modified."
+    }
+  },
+  "peopleReports": {
+    "title": "Person Reports",
+    "description": "Ledger, held balance, expenses, reimbursements, and settlements",
+    "loadFailed": "Failed to load report.",
+    "noDataToExport": "No data to export.",
+    "clearFilters": "Clear Filters",
+    "allTypes": "All Types",
+    "allStatuses": "All Statuses",
+    "entriesCount": "{{count}} entries",
+    "recordsCount": "{{count}} records",
+    "settlementsCount": "{{count}} settlements",
+    "heldTitle": "Held Balance Statement",
+    "expenseTitle": "Expense Entries",
+    "tabs": {
+      "ledger": "Ledger",
+      "held": "Money Held",
+      "expenses": "Expenses",
+      "reimbursements": "Reimbursements",
+      "settlements": "Settlements"
+    },
+    "csv": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Amount",
+      "currency": "Currency",
+      "notes": "Notes",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Status",
+      "owedBy": "Owed By",
+      "paymentMethod": "Payment Method"
+    },
+    "empty": {
+      "ledger": "No ledger entries found",
+      "held": "No held balance entries",
+      "expenses": "No expense entries",
+      "reimbursements": "No reimbursements found",
+      "settlements": "No settlements found"
+    },
+    "owedBy": {
+      "person": "Person owes me",
+      "user": "I owe person"
     }
   }
 }

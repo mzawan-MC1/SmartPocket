@@ -37,7 +37,6 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
    applySmartEntryReviewToInstruction,
    buildInitialSmartEntryReview,
   getEligibleAccountsForPurpose,
-   getCompactSummaryRows,
   getManagedAccountName,
    getSmartEntryMissingFields,
    getSmartEntryTotals,
@@ -46,6 +45,7 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
   isManagedPurpose,
    sanitizeCurrency,
  } from '@/lib/smart-entry';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
  type AssistantStep =
    | 'entry'
@@ -97,6 +97,231 @@ function getPrimaryAccountLabel(
       return t('smartEntryModal.primaryAccountLabels.addMoneyTo', { ns: 'portal' });
    }
  }
+
+function getAccountTypeLabel(
+  type: SuggestedAccount['type'] | string | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (type) {
+    case 'cash':
+      return t('accounts.types.cash', { ns: 'portal' });
+    case 'bank':
+      return t('accounts.types.bank', { ns: 'portal' });
+    case 'credit_card':
+      return t('accounts.types.creditCard', { ns: 'portal' });
+    case 'savings':
+      return t('accounts.types.savings', { ns: 'portal' });
+    case 'digital_wallet':
+      return t('accounts.types.digitalWallet', { ns: 'portal' });
+    case 'investment':
+      return t('accounts.types.investment', { ns: 'portal' });
+    default:
+      return t('accounts.types.other', { ns: 'portal' });
+  }
+}
+
+function getMissingFieldLabel(
+  field: ReturnType<typeof getSmartEntryMissingFields>[number],
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (field) {
+    case 'purpose':
+      return t('smartEntryModal.missingFields.purpose', { ns: 'portal' });
+    case 'person':
+      return t('smartEntryModal.missingFields.person', { ns: 'portal' });
+    case 'account':
+      return t('smartEntryModal.missingFields.account', { ns: 'portal' });
+    case 'destinationAccount':
+      return t('smartEntryModal.missingFields.destinationAccount', { ns: 'portal' });
+    case 'amount':
+      return t('smartEntryModal.missingFields.amount', { ns: 'portal' });
+    case 'currency':
+      return t('smartEntryModal.missingFields.currency', { ns: 'portal' });
+    default:
+      return field;
+  }
+}
+
+function getPurposeOptionText(
+  optionId: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (optionId) {
+    case 'personal_income':
+      return {
+        label: t('smartEntryModal.purposeOptions.personalIncome.label', { ns: 'portal' }),
+        description: t('smartEntryModal.purposeOptions.personalIncome.description', { ns: 'portal' }),
+      };
+    case 'borrowed_money':
+      return {
+        label: t('smartEntryModal.purposeOptions.borrowedMoney.label', { ns: 'portal' }),
+        description: t('smartEntryModal.purposeOptions.borrowedMoney.description', { ns: 'portal' }),
+      };
+    case 'managed_money':
+      return {
+        label: t('smartEntryModal.purposeOptions.managedMoney.label', { ns: 'portal' }),
+        description: t('smartEntryModal.purposeOptions.managedMoney.description', { ns: 'portal' }),
+      };
+    case 'reimbursement':
+      return {
+        label: t('smartEntryModal.purposeOptions.reimbursement.label', { ns: 'portal' }),
+        description: t('smartEntryModal.purposeOptions.reimbursement.description', { ns: 'portal' }),
+      };
+    default:
+      return null;
+  }
+}
+
+function getCompactSummaryRowsLocalized(
+  instruction: ParsedFinancialInstruction,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  fallbackCurrency?: string
+) {
+  return instruction.actions
+    .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
+    .map((action) => {
+      const amount = typeof action.amount === 'number'
+        ? formatMoney(action.amount, action.currency, fallbackCurrency)
+        : t('smartEntryModal.summary.amountNeeded', { ns: 'portal' });
+      const personName = action.personName || t('smartEntryModal.summary.someone', { ns: 'portal' });
+      const categoryName = action.categoryName
+        ? translateSystemCategoryName(action.categoryName, (key, options) =>
+            t(key, { ...(options || {}), ns: 'common' })
+          )
+        : '';
+
+      switch (action.actionType) {
+        case 'income':
+          return t('smartEntryModal.summaryRows.income', { ns: 'portal', amount });
+        case 'loan_received':
+          return t('smartEntryModal.summaryRows.loanReceived', { ns: 'portal', amount, personName });
+        case 'money_received_from_person':
+          return t('smartEntryModal.summaryRows.receivedFromPerson', { ns: 'portal', amount, personName });
+        case 'expense':
+        case 'expense_from_held_balance':
+          return t('smartEntryModal.summaryRows.expense', {
+            ns: 'portal',
+            amount,
+            categoryName,
+          }).trim();
+        case 'loan_repayment':
+          return t('smartEntryModal.summaryRows.loanRepayment', { ns: 'portal', amount, personName });
+        case 'reimbursement_payment':
+          return t('smartEntryModal.summaryRows.reimbursementPayment', { ns: 'portal', amount, personName });
+        case 'money_returned_to_person':
+          return t('smartEntryModal.summaryRows.moneyReturned', { ns: 'portal', amount, personName });
+        case 'transfer':
+          return t('smartEntryModal.summaryRows.transfer', {
+            ns: 'portal',
+            amount,
+            sourceAccount: action.accountName || t('smartEntryModal.summary.oneAccount', { ns: 'portal' }),
+            destinationAccount: action.destinationAccountName || t('smartEntryModal.summary.anotherAccount', { ns: 'portal' }),
+          });
+        default:
+          return action.description || t('smartEntryModal.summaryRows.fallback', {
+            ns: 'portal',
+            actionType: action.actionType,
+            amount,
+          });
+      }
+    });
+}
+
+function getUnderstandingLinesLocalized(
+  instruction: ParsedFinancialInstruction,
+  t: (key: string, options?: Record<string, unknown>) => string,
+  fallbackCurrency?: string
+) {
+  return instruction.actions
+    .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
+    .map((action) => {
+      const amount = typeof action.amount === 'number'
+        ? formatMoney(action.amount, action.currency, fallbackCurrency)
+        : t('smartEntryModal.understanding.unknownAmount', { ns: 'portal' });
+      const personName = action.personName || t('smartEntryModal.understanding.someone', { ns: 'portal' });
+      const categoryName = action.categoryName
+        ? translateSystemCategoryName(action.categoryName, (key, options) =>
+            t(key, { ...(options || {}), ns: 'common' })
+          )
+        : '';
+
+      switch (action.actionType) {
+        case 'income':
+          return t('smartEntryModal.understanding.income', { ns: 'portal', personName, amount });
+        case 'expense':
+          return t('smartEntryModal.understanding.expense', { ns: 'portal', amount, categoryName }).trim();
+        case 'loan_received':
+          return t('smartEntryModal.understanding.loanReceived', { ns: 'portal', personName, amount });
+        case 'loan_repayment':
+          return t('smartEntryModal.understanding.loanRepayment', { ns: 'portal', personName, amount });
+        case 'money_received_from_person':
+          return t('smartEntryModal.understanding.moneyReceivedFromPerson', { ns: 'portal', personName, amount });
+        case 'money_returned_to_person':
+          return t('smartEntryModal.understanding.moneyReturnedToPerson', { ns: 'portal', personName, amount });
+        case 'expense_from_held_balance':
+          return t('smartEntryModal.understanding.expenseFromHeldBalance', { ns: 'portal', personName, amount, categoryName }).trim();
+        case 'expense_paid_for_person':
+          return t('smartEntryModal.understanding.expensePaidForPerson', { ns: 'portal', personName, amount, categoryName }).trim();
+        case 'reimbursement_payment':
+          return t('smartEntryModal.understanding.reimbursementPayment', { ns: 'portal', personName, amount });
+        case 'transfer':
+          return t('smartEntryModal.understanding.transfer', {
+            ns: 'portal',
+            amount,
+            sourceAccount: action.accountName || t('smartEntryModal.understanding.oneAccount', { ns: 'portal' }),
+            destinationAccount: action.destinationAccountName || t('smartEntryModal.understanding.anotherAccount', { ns: 'portal' }),
+          });
+        default:
+          return action.description || t('smartEntryModal.understanding.fallback', {
+            ns: 'portal',
+            actionType: action.actionType,
+            amount,
+          });
+      }
+    });
+}
+
+function getLocalizedAmountPrompt(
+  review: SmartEntryReview,
+  instruction: ParsedFinancialInstruction,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const actions = instruction.actions.filter(
+    (action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person'
+  );
+  const targetAction = typeof review.amountActionIndex === 'number'
+    ? actions[review.amountActionIndex]
+    : actions.find((action) => typeof action.amount !== 'number');
+  const contextLabel = targetAction?.categoryName || targetAction?.description;
+
+  if (!contextLabel) {
+    return t('smartEntryModal.amountQuestion', { ns: 'portal' });
+  }
+
+  return t('smartEntryModal.amountQuestionWithContext', {
+    ns: 'portal',
+    context: translateSystemCategoryName(contextLabel, (key, options) =>
+      t(key, { ...(options || {}), ns: 'common' })
+    ),
+  });
+}
+
+function translateSmartEntryWarning(
+  warning: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (warning) {
+    case 'The purpose of this money is unclear.':
+      return t('smartEntryModal.warnings.purposeUnclear', { ns: 'portal' });
+    case 'The expense amount is not explicit yet.':
+    case 'The expense amount needs confirmation.':
+      return t('smartEntryModal.warnings.expenseAmountMissing', { ns: 'portal' });
+    case 'Could not determine intent from input':
+      return t('smartEntryModal.warnings.intentUnknown', { ns: 'portal' });
+    default:
+      return warning;
+  }
+}
 
  export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { t } = useTranslation(['portal', 'common']);
@@ -455,8 +680,18 @@ function getPrimaryAccountLabel(
          review: reviewState,
        })
      : null;
-   const unresolvedReviewFields = previewInstruction ? getSmartEntryMissingFields(previewInstruction) : [];
-   const compactSummaryRows = previewInstruction ? getCompactSummaryRows(previewInstruction) : [];
+  const unresolvedReviewFields = previewInstruction
+    ? getSmartEntryMissingFields(previewInstruction).map((field) => getMissingFieldLabel(field, t))
+    : [];
+  const compactSummaryRows = previewInstruction
+    ? getCompactSummaryRowsLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
+    : [];
+  const understandingLines = previewInstruction
+    ? getUnderstandingLinesLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
+    : [];
+  const amountPromptLabel = previewInstruction && reviewState
+    ? getLocalizedAmountPrompt(reviewState, previewInstruction, t)
+    : t('smartEntryModal.amountFallback', { ns: 'portal' });
    const totals = previewInstruction ? getSmartEntryTotals(previewInstruction) : null;
    const accounts = contextSnapshot?.accounts || [];
    const people = contextSnapshot?.people || [];
@@ -1089,11 +1324,22 @@ function getPrimaryAccountLabel(
   };
 
   const LANGUAGES = [
-    { code: 'en', label: 'English' },
-    { code: 'ar', label: 'العربية' },
-    { code: 'fr', label: 'Français' },
-    { code: 'ru', label: 'Русский' },
+    { code: 'en', label: t('language.en', { ns: 'common' }) },
+    { code: 'ar', label: t('language.ar', { ns: 'common' }) },
+    { code: 'fr', label: t('language.fr', { ns: 'common' }) },
+    { code: 'ru', label: t('language.ru', { ns: 'common' }) },
   ];
+
+  const examplePlaceholder = t(`smartEntryModal.examples.placeholder.${language}`, {
+    ns: 'portal',
+    defaultValue: t('smartEntryModal.examples.placeholder.en', { ns: 'portal' }),
+  });
+  const exampleItems = [1, 2, 3, 4].map((index) =>
+    t(`smartEntryModal.examples.items.${language}.${index}`, {
+      ns: 'portal',
+      defaultValue: t(`smartEntryModal.examples.items.en.${index}`, { ns: 'portal' }),
+    })
+  );
 
   if (!mounted) return null;
 
@@ -1218,9 +1464,7 @@ function getPrimaryAccountLabel(
                     data-autofocus="true"
                     value={textInput}
                     onChange={e => setTextInput(e.target.value)}
-                    placeholder={
-                      language === 'ar' ?'مثال: أنفقت 85 درهم على البقالة اليوم من حساب النقد' :'e.g. "I spent AED 85 on groceries today from cash" or "Ahmed gave me AED 2,300"'
-                    }
+                    placeholder={examplePlaceholder}
                     className="input-base w-full min-h-[8.5rem] resize-y text-sm"
                     dir={language === 'ar' ? 'rtl' : 'ltr'}
                     onKeyDown={e => {
@@ -1255,12 +1499,7 @@ function getPrimaryAccountLabel(
                     {t('smartEntryModal.examplesTitle', { ns: 'portal' })}
                   </p>
                   <div className="space-y-1.5">
-                    {[
-                      'Spent AED 85 on groceries from cash',
-                      'Ahmed gave me AED 2,300 today',
-                      'Transfer AED 1,000 from bank to cash',
-                      'I paid AED 600 for Ahmed\'s subscription from my credit card',
-                    ].map((ex, i) => (
+                    {exampleItems.map((ex, i) => (
                       <button
                         key={i}
                         onClick={() => setTextInput(ex)}
@@ -1333,7 +1572,7 @@ function getPrimaryAccountLabel(
                   {previewInstruction.warnings.map((w, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <AlertTriangle size={14} className="text-warning mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-warning">{w}</p>
+                      <p className="text-xs text-warning">{translateSmartEntryWarning(w, t)}</p>
                     </div>
                   ))}
                 </div>
@@ -1344,7 +1583,7 @@ function getPrimaryAccountLabel(
                   <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                     {t('smartEntryModal.understandingTitle', { ns: 'portal' })}
                   </p>
-                  {reviewState.understanding.map((line, index) => (
+                  {understandingLines.map((line, index) => (
                     <p key={index} className="text-sm text-foreground">{line}</p>
                   ))}
                   {reviewState.purposeOptions && reviewState.purposeOptions.length > 0 && (
@@ -1359,6 +1598,9 @@ function getPrimaryAccountLabel(
                           : t('smartEntryModal.purposeQuestion', { ns: 'portal' })}
                       </p>
                       {reviewState.purposeOptions.map((option) => (
+                        (() => {
+                          const localizedOption = getPurposeOptionText(option.id, t);
+                          return (
                         <button
                           key={option.id}
                           type="button"
@@ -1367,9 +1609,15 @@ function getPrimaryAccountLabel(
                             reviewState.purpose === option.id ? 'border-accent bg-accent/10' : 'border-border bg-card hover:border-accent/40'
                           }`}
                         >
-                          <p className="text-sm font-600 text-foreground">{option.label}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+                          <p className="text-sm font-600 text-foreground">
+                            {localizedOption?.label || option.label}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {localizedOption?.description || option.description}
+                          </p>
                         </button>
+                          );
+                        })()
                       ))}
                     </div>
                   )}
@@ -1402,7 +1650,7 @@ function getPrimaryAccountLabel(
                       <option value="__create__">
                         {t('smartEntryModal.createPersonAction', {
                           ns: 'portal',
-                          name: reviewState.person.name || t('people.addPerson', { ns: 'portal' }).toLowerCase(),
+                          name: reviewState.person.name || t('smartEntryModal.personFallbackName', { ns: 'portal' }),
                         })}
                       </option>
                     </select>
@@ -1474,13 +1722,13 @@ function getPrimaryAccountLabel(
                       <option value="">{t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}</option>
                       {eligiblePrimaryAccounts.map((account) => (
                         <option key={account.id} value={account.id}>
-                          {account.name} • {account.type} • {account.currency}
+                          {account.name} • {getAccountTypeLabel(account.type, t)} • {account.currency}
                         </option>
                       ))}
                       <option value="__create__">
                         {t('smartEntryModal.createAccountAction', {
                           ns: 'portal',
-                          name: reviewState.account.name || t('accounts.addAccount', { ns: 'portal' }).toLowerCase(),
+                          name: reviewState.account.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
                         })}
                       </option>
                     </select>
@@ -1546,7 +1794,7 @@ function getPrimaryAccountLabel(
                     </p>
                     <div className="rounded-xl bg-card p-3 space-y-2">
                       <p className="text-sm font-600 text-foreground">
-                        {reviewState.amountLabel || t('smartEntryModal.amountFallback', { ns: 'portal' })}
+                        {amountPromptLabel}
                       </p>
                       <input
                         type="number"
@@ -1596,13 +1844,13 @@ function getPrimaryAccountLabel(
                       <option value="">{t('smartEntryModal.destinationAccountFallback', { ns: 'portal' })}</option>
                       {eligibleDestinationAccounts.map((account) => (
                         <option key={account.id} value={account.id}>
-                          {account.name} • {account.type} • {account.currency}
+                          {account.name} • {getAccountTypeLabel(account.type, t)} • {account.currency}
                         </option>
                       ))}
                       <option value="__create__">
                         {t('smartEntryModal.createAccountAction', {
                           ns: 'portal',
-                          name: reviewState.destinationAccount.name || t('accounts.addAccount', { ns: 'portal' }).toLowerCase(),
+                          name: reviewState.destinationAccount.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
                         })}
                       </option>
                     </select>
@@ -1674,7 +1922,7 @@ function getPrimaryAccountLabel(
                     <p className="text-sm font-600 text-foreground">
                       {t('smartEntryModal.summary.remainingFor', {
                         ns: 'portal',
-                        name: reviewState.person?.name || t('people.title', { ns: 'portal' }).toLowerCase(),
+                        name: reviewState.person?.name || t('smartEntryModal.personFallbackName', { ns: 'portal' }),
                         amount: formatMoney(totals.net, reviewState.currency, contextSnapshot?.defaultCurrency),
                       })}
                     </p>
@@ -1690,7 +1938,7 @@ function getPrimaryAccountLabel(
                       <p>
                         {t('smartEntryModal.summary.amountStillOwedTo', {
                           ns: 'portal',
-                          name: reviewState.person?.name || t('people.title', { ns: 'portal' }).toLowerCase(),
+                          name: reviewState.person?.name || t('smartEntryModal.personFallbackName', { ns: 'portal' }),
                           amount: formatMoney(totals.loanAmount, reviewState.currency, contextSnapshot?.defaultCurrency),
                         })}
                       </p>
@@ -1730,6 +1978,7 @@ function getPrimaryAccountLabel(
                 <button
                   onClick={handleReset}
                   className="px-4 py-3 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                  aria-label={t('actions.reset', { ns: 'common' })}
                 >
                   <RotateCcw size={16} />
                 </button>
@@ -1900,7 +2149,9 @@ function getPrimaryAccountLabel(
                 <p className="text-base font-700 text-foreground">{failedStateTitle}</p>
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
                 {apiError?.requestId && (
-                  <p className="text-xs text-muted-foreground mt-2">Reference: {apiError.requestId}</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t('smartEntryModal.referenceLabel', { ns: 'portal' })}: {apiError.requestId}
+                  </p>
                 )}
               </div>
               <div className="flex gap-2 w-full">

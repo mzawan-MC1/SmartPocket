@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import SearchField from '@/components/ui/SearchField';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 
 interface Category {
@@ -152,7 +153,11 @@ export default function CategoriesPage() {
   };
 
   const filtered = categories.filter((c) => {
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase());
+    const displayName = translateSystemCategoryName(c.name, t);
+    const matchSearch =
+      !search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      displayName.toLowerCase().includes(search.toLowerCase());
     const matchType = filterType === 'all' || c.category_type === filterType;
     return matchSearch && matchType;
   });
@@ -244,7 +249,9 @@ export default function CategoriesPage() {
                           <Tag size={18} style={{ color: cat.color }} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-600 text-foreground truncate">{cat.name}</p>
+                          <p className="text-sm font-600 text-foreground truncate">
+                            {translateSystemCategoryName(cat.name, t)}
+                          </p>
                           {cat.is_system && (
                             <span className="text-[10px] text-muted-foreground">{t('categories.system')}</span>
                           )}

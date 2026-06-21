@@ -98,6 +98,13 @@
       "recurring": "إضافة معاملة متكررة",
       "reimbursement": "إضافة تعويض",
       "budget": "إضافة ميزانية"
+    },
+    "quickActionShort": {
+      "transaction": "معاملة",
+      "account": "حساب",
+      "recurring": "متكررة",
+      "reimbursement": "تعويض",
+      "budget": "ميزانية"
     }
   },
   "shared": {
@@ -134,7 +141,39 @@
     "addCategoryBudget": "إضافة ميزانية فئة",
     "emptyTitle": "لا توجد ميزانيات بعد",
     "emptyDescription": "أنشئ أول ميزانية لبدء تتبع حدود الإنفاق الأسبوعية أو الشهرية أو المخصصة.",
-    "editBudget": "تعديل ميزانية {{name}}"
+    "editBudget": "تعديل ميزانية {{name}}",
+    "createFailed": "فشل إنشاء الميزانية.",
+    "updateFailed": "فشل تحديث الميزانية.",
+    "form": {
+      "periodChangeWarning": "يُطبق تغيير فترة الميزانية هذا فورًا. تتم إعادة حساب العروض التاريخية وفق القاعدة الجديدة لأن سجل فترات الميزانية حسب التاريخ غير محفوظ بعد.",
+      "categoryRequired": "اختر فئة.",
+      "amountRequired": "أدخل مبلغًا صالحًا.",
+      "currencyRequired": "اختر عملة.",
+      "loadingPeriodSettings": "لا تزال إعدادات فترة الميزانية قيد التحميل.",
+      "semimonthlyNeedsSettings": "حدّث الدخل والتخطيط في الإعدادات قبل إنشاء ميزانية مرتين في الشهر.",
+      "incompletePeriodConfig": "إعداد فترة الميزانية غير مكتمل.",
+      "periodIsolationNotice": "تحتفظ هذه الميزانية بفترتها الخاصة. لن يؤدي تغيير الإعدادات لاحقًا إلى تعديلها.",
+      "category": "الفئة",
+      "selectCategory": "اختر فئة",
+      "name": "اسم الميزانية",
+      "namePlaceholder": "مثال: الطعام والمطاعم",
+      "amount": "المبلغ *",
+      "currency": "العملة",
+      "currencyPlaceholder": "اختر العملة",
+      "period": "فترة الميزانية",
+      "alertAtPercent": "التنبيه عند %",
+      "anchorDate": "تاريخ الربط",
+      "anchorDateHelp": {
+        "weekly": "تملأ الميزانيات الأسبوعية تاريخ الربط الحالي تلقائيًا ويمكنك تغييره إذا لزم الأمر.",
+        "biweekly": "تستخدم ميزانيات كل أسبوعين هذا التاريخ لحساب دورات 14 يومًا بدقة.",
+        "custom": "تتكرر الميزانيات المخصصة بدءًا من هذا التاريخ."
+      },
+      "cycleLengthDays": "طول الدورة بالأيام *",
+      "semimonthlyTitle": "جدول مرتين في الشهر",
+      "loadingIncomeSchedule": "جارٍ تحميل جدول الدخل المحفوظ...",
+      "semimonthlyConfigIncomplete": "إعداد فترة الميزانية غير مكتمل. حدّث جدولك نصف الشهري في",
+      "semimonthlySettingsSuffix": "قبل استخدام ميزانية مرتين في الشهر."
+    }
   },
   "dashboardMetrics": {
     "monthly": "شهري",
@@ -246,8 +285,8 @@
     },
     "form": {
       "preview": "معاينة التحويل",
-      "fromAccount": "From Account",
-      "toAccount": "To Account"
+      "fromAccount": "من الحساب",
+      "toAccount": "إلى الحساب"
     }
   },
   "recurring": {
@@ -333,7 +372,11 @@
       "investment": "استثمار",
       "other": "أخرى"
     },
-    "dashboardDescription": "أرصدة حساباتك النشطة من النقد والبنك والبطاقات والمحافظ."
+    "dashboardDescription": "أرصدة حساباتك النشطة من النقد والبنك والبطاقات والمحافظ.",
+    "form": {
+      "typeRequired": "نوع الحساب مطلوب.",
+      "currency": "العملة"
+    }
   },
   "categories": {
     "title": "الفئات",
@@ -562,200 +605,735 @@
     "noAccount": "بدون حساب"
   },
   "spaces": {
-    "title": "Spaces",
-    "description": "Organize shared finances, household visibility, and delegated access without changing each person's stored records.",
-    "badge": "Shared spaces",
-    "newSpace": "New Space",
-    "loadFailed": "Failed to load spaces.",
-    "loadDetailsFailed": "Failed to load space details.",
-    "nameRequired": "Space name is required.",
-    "created": "Space created",
-    "createFailed": "Failed to create space.",
-    "updated": "Space updated",
-    "updateFailed": "Failed to update space.",
-    "archiveConfirm": "Archive {{name}}?",
-    "archived": "Space archived",
-    "archiveFailed": "Failed to archive space.",
-    "emailRequired": "Enter an email address.",
-    "invitationSent": "Invitation sent to {{email}}",
-    "invitationFailed": "Failed to send invitation.",
-    "revokeConfirm": "Revoke this invitation?",
-    "revoked": "Invitation revoked",
-    "revokeFailed": "Failed to revoke invitation.",
-    "roleUpdated": "Role updated",
-    "roleUpdateFailed": "Failed to update role.",
-    "removeMemberConfirm": "Remove {{name}} from this space?",
-    "memberRemoved": "Member removed",
-    "memberRemoveFailed": "Failed to remove member.",
-    "emptyTitle": "No spaces yet",
-    "emptyDescription": "Create a space to organize shared finances, delegated access, or household views.",
-    "createFirst": "Create First Space",
-    "yourSpaces": "Your Spaces",
-    "archiveAction": "Archive",
-    "inviteAction": "Invite",
-    "membersTitle_one": "{{count}} Member",
-    "membersTitle_other": "{{count}} Members",
-    "membersEmpty": "No members yet.",
-    "unknownUser": "Unknown user",
-    "removeMemberAction": "Remove member",
-    "invitationsTitle_one": "{{count}} Invitation",
-    "invitationsTitle_other": "{{count}} Invitations",
-    "invitationsEmpty": "No invitations yet.",
-    "expired": "Expired",
-    "expiresOn": "Expires on {{date}}",
-    "revokeAction": "Revoke",
-    "selectSpace": "Select a space to view details.",
-    "editTitle": "Edit Space",
-    "createTitle": "Create Space",
-    "inviteTitle": "Invite to Space",
-    "sending": "Sending...",
-    "sendInvitation": "Send Invitation",
+    "title": "المساحات",
+    "description": "نظّم الشؤون المالية المشتركة ووضوح الأسرة وصلاحيات الوصول المفوضة دون تغيير السجلات المحفوظة لكل شخص.",
+    "badge": "مساحات مشتركة",
+    "newSpace": "مساحة جديدة",
+    "loadFailed": "فشل تحميل المساحات.",
+    "loadDetailsFailed": "فشل تحميل تفاصيل المساحة.",
+    "nameRequired": "اسم المساحة مطلوب.",
+    "created": "تم إنشاء المساحة",
+    "createFailed": "فشل إنشاء المساحة.",
+    "updated": "تم تحديث المساحة",
+    "updateFailed": "فشل تحديث المساحة.",
+    "archiveConfirm": "هل تريد أرشفة {{name}}؟",
+    "archived": "تمت أرشفة المساحة",
+    "archiveFailed": "فشل أرشفة المساحة.",
+    "emailRequired": "أدخل عنوان بريد إلكتروني.",
+    "invitationSent": "تم إرسال الدعوة إلى {{email}}",
+    "invitationFailed": "فشل إرسال الدعوة.",
+    "revokeConfirm": "هل تريد سحب هذه الدعوة؟",
+    "revoked": "تم سحب الدعوة",
+    "revokeFailed": "فشل سحب الدعوة.",
+    "roleUpdated": "تم تحديث الدور",
+    "roleUpdateFailed": "فشل تحديث الدور.",
+    "removeMemberConfirm": "هل تريد إزالة {{name}} من هذه المساحة؟",
+    "memberRemoved": "تمت إزالة العضو",
+    "memberRemoveFailed": "فشل إزالة العضو.",
+    "emptyTitle": "لا توجد مساحات بعد",
+    "emptyDescription": "أنشئ مساحة لتنظيم الشؤون المالية المشتركة أو الوصول المفوض أو عروض الأسرة.",
+    "createFirst": "أنشئ أول مساحة",
+    "yourSpaces": "مساحاتك",
+    "archiveAction": "أرشفة",
+    "inviteAction": "دعوة",
+    "membersTitle_one": "عضو واحد",
+    "membersTitle_other": "{{count}} أعضاء",
+    "membersEmpty": "لا يوجد أعضاء بعد.",
+    "unknownUser": "مستخدم غير معروف",
+    "removeMemberAction": "إزالة العضو",
+    "invitationsTitle_one": "دعوة واحدة",
+    "invitationsTitle_other": "{{count}} دعوات",
+    "invitationsEmpty": "لا توجد دعوات بعد.",
+    "expired": "منتهية",
+    "expiresOn": "تنتهي في {{date}}",
+    "revokeAction": "سحب",
+    "selectSpace": "اختر مساحة لعرض التفاصيل.",
+    "editTitle": "تعديل المساحة",
+    "createTitle": "إنشاء مساحة",
+    "inviteTitle": "دعوة إلى مساحة",
+    "sending": "جار الإرسال...",
+    "sendInvitation": "إرسال الدعوة",
     "status": {
-      "accepted": "Accepted",
-      "declined": "Declined",
-      "revoked": "Revoked"
+      "accepted": "مقبولة",
+      "declined": "مرفوضة",
+      "revoked": "مسحوبة"
     },
     "types": {
-      "personal": "Personal",
-      "family": "Family",
-      "household": "Household",
-      "child": "Child",
-      "friend": "Friend",
-      "custom": "Custom"
+      "personal": "شخصية",
+      "family": "عائلية",
+      "household": "منزلية",
+      "child": "طفل",
+      "friend": "صديق",
+      "custom": "مخصصة"
     },
     "roles": {
-      "owner": "Owner",
-      "manager": "Manager",
-      "contributor": "Contributor",
-      "viewer": "Viewer",
-      "dependent": "Dependent"
+      "owner": "المالك",
+      "manager": "المدير",
+      "contributor": "مساهم",
+      "viewer": "مشاهد",
+      "dependent": "تابع"
     },
     "roleDescriptions": {
-      "manager": "Can manage members and shared configuration.",
-      "contributor": "Can add and update shared records.",
-      "viewer": "Can view shared information only.",
-      "dependent": "Visible for tracked dependents or children."
+      "manager": "يمكنه إدارة الأعضاء والإعدادات المشتركة.",
+      "contributor": "يمكنه إضافة السجلات المشتركة وتحديثها.",
+      "viewer": "يمكنه عرض المعلومات المشتركة فقط.",
+      "dependent": "مخصص للمعالين أو الأطفال الذين تتم متابعتهم."
     },
     "form": {
-      "name": "Space Name",
-      "namePlaceholder": "e.g. Family Budget, Shared Home",
-      "type": "Space Type",
-      "description": "Description",
-      "descriptionPlaceholder": "Optional description...",
-      "color": "Color",
-      "email": "Email",
+      "name": "اسم المساحة",
+      "namePlaceholder": "مثال: ميزانية العائلة، المنزل المشترك",
+      "type": "نوع المساحة",
+      "description": "الوصف",
+      "descriptionPlaceholder": "وصف اختياري...",
+      "color": "اللون",
+      "email": "البريد الإلكتروني",
       "emailPlaceholder": "name@example.com",
-      "role": "Role"
+      "role": "الدور"
+    },
+    "invitationPage": {
+      "loading": "جار تحميل الدعوة...",
+      "notFoundTitle": "الدعوة غير موجودة",
+      "notFoundDescription": "رابط الدعوة غير صالح أو تمت إزالته.",
+      "goToDashboard": "الذهاب إلى لوحة التحكم",
+      "acceptedTitle": "تم قبول الدعوة",
+      "acceptedDescription": "لقد انضممت إلى {{space}} بصلاحية {{role}}.",
+      "redirecting": "جار التحويل إلى المساحات...",
+      "declinedTitle": "تم رفض الدعوة",
+      "declinedDescription": "لقد رفضت هذه الدعوة.",
+      "title": "دعوة إلى مساحة",
+      "description": "تمت دعوتك للانضمام إلى مساحة مشتركة.",
+      "fallbackSpace": "المساحة",
+      "fallbackUnknownSpace": "مساحة غير معروفة",
+      "fallbackInviter": "مالك المساحة",
+      "details": {
+        "space": "المساحة",
+        "role": "الدور",
+        "invitedBy": "تمت الدعوة بواسطة",
+        "sentTo": "أرسلت إلى",
+        "expires": "تنتهي"
+      },
+      "status": {
+        "accepted": "لقد قبلت هذه الدعوة بالفعل.",
+        "declined": "لقد رفضت هذه الدعوة بالفعل.",
+        "revoked": "تم سحب هذه الدعوة بواسطة مالك المساحة."
+      },
+      "expiredBanner": "انتهت صلاحية هذه الدعوة",
+      "signInTitle": "سجل الدخول لقبول هذه الدعوة",
+      "signInDescription": "يجب أن تسجل الدخول باستخدام {{email}} لقبول هذه الدعوة.",
+      "emailMismatch": "أرسلت هذه الدعوة إلى {{invitedEmail}}، لكنك مسجل الدخول باسم {{currentEmail}}. يرجى استخدام الحساب الصحيح.",
+      "decline": "رفض",
+      "accept": "قبول",
+      "backToDashboard": "العودة إلى لوحة التحكم",
+      "errors": {
+        "notFound": "لم يتم العثور على الدعوة.",
+        "emailMismatch": "أرسلت هذه الدعوة إلى عنوان بريد مختلف.",
+        "expired": "انتهت صلاحية هذه الدعوة.",
+        "notAuthenticated": "يرجى تسجيل الدخول للمتابعة.",
+        "alreadyProcessed": "تمت معالجة الدعوة بالفعل بالحالة {{status}}.",
+        "respondFailed": "فشل الرد على الدعوة."
+      }
     }
   },
   "smartEntryModal": {
-    "title": "Smart Entry",
-    "description": "Review AI-assisted financial entries before saving them.",
-    "close": "Close Smart Entry",
-    "modeText": "Text",
-    "modeVoice": "Voice",
-    "languageLabel": "Input language",
-    "describeLabel": "Describe your transaction",
-    "submitHint": "Press Ctrl+Enter to submit",
-    "analyzeAction": "Analyze with AI",
-    "examplesTitle": "Examples",
-    "processingTitle": "Analyzing your input...",
-    "processingDescription": "Understanding financial context",
-    "reviewTitle": "Review before saving",
-    "inputLabel": "Input",
-    "transcriptLabel": "Transcript",
-    "understandingTitle": "Understanding",
-    "purposeQuestion": "How should this money be treated?",
-    "purposeQuestionWithPerson": "How should the {{amount}} from {{name}} be treated?",
-    "personTitle": "Person",
-    "choosePerson": "Choose a person",
-    "createPersonAction": "Create {{name}}",
-    "personNamePlaceholder": "Person name",
-    "useThisPerson": "Use This Person",
-    "accountTitle": "Account",
-    "destinationAccountTitle": "Destination Account",
-    "primaryAccountFallback": "Choose an account",
-    "destinationAccountFallback": "Choose a destination account",
-    "createAccountAction": "Create {{name}}",
-    "accountNamePlaceholder": "Account name",
-    "currencyPlaceholder": "Currency",
-    "useThisAccount": "Use This Account",
-    "amountTitle": "Amount",
-    "amountFallback": "How much was used?",
-    "amountPlaceholder": "Enter amount in {{currency}}",
-    "useFullAmount": "Use full {{amount}}",
-    "moveMoneyTo": "Move money to",
-    "summaryTitle": "Summary",
-    "stillNeeded": "Still needed: {{fields}}",
-    "confirmAndSave": "Confirm & Save",
-    "completeRequiredDetails": "Please complete the required details above.",
-    "savingRecords": "Saving your records...",
-    "successTitle": "Saved successfully!",
-    "recordsCreated_one": "{{count}} record created",
-    "recordsCreated_other": "{{count}} records created",
-    "addAnother": "Add Another",
+    "title": "الإدخال الذكي",
+    "description": "راجع الإدخالات المالية المدعومة بالذكاء الاصطناعي قبل حفظها.",
+    "close": "إغلاق الإدخال الذكي",
+    "modeText": "نص",
+    "modeVoice": "صوت",
+    "languageLabel": "لغة الإدخال",
+    "describeLabel": "صف معاملتك",
+    "submitHint": "اضغط Ctrl+Enter للإرسال",
+    "analyzeAction": "حلل باستخدام الذكاء الاصطناعي",
+    "examplesTitle": "أمثلة",
+    "processingTitle": "جار تحليل إدخالك...",
+    "processingDescription": "جار فهم السياق المالي",
+    "reviewTitle": "راجع قبل الحفظ",
+    "inputLabel": "الإدخال",
+    "transcriptLabel": "التفريغ النصي",
+    "understandingTitle": "ما فهمناه",
+    "purposeQuestion": "كيف يجب التعامل مع هذا المال؟",
+    "purposeQuestionWithPerson": "كيف يجب التعامل مع مبلغ {{amount}} من {{name}}؟",
+    "personTitle": "الشخص",
+    "choosePerson": "اختر شخصا",
+    "createPersonAction": "إنشاء {{name}}",
+    "personNamePlaceholder": "اسم الشخص",
+    "useThisPerson": "استخدام هذا الشخص",
+    "accountTitle": "الحساب",
+    "destinationAccountTitle": "حساب الوجهة",
+    "primaryAccountFallback": "اختر حسابا",
+    "destinationAccountFallback": "اختر حساب وجهة",
+    "createAccountAction": "إنشاء {{name}}",
+    "accountNamePlaceholder": "اسم الحساب",
+    "currencyPlaceholder": "العملة",
+    "useThisAccount": "استخدام هذا الحساب",
+    "amountTitle": "المبلغ",
+    "amountFallback": "كم المبلغ المستخدم؟",
+    "amountPlaceholder": "أدخل المبلغ بعملة {{currency}}",
+    "useFullAmount": "استخدم كامل {{amount}}",
+    "moveMoneyTo": "انقل المال إلى",
+    "summaryTitle": "الملخص",
+    "stillNeeded": "ما يزال مطلوبا: {{fields}}",
+    "confirmAndSave": "تأكيد وحفظ",
+    "completeRequiredDetails": "يرجى إكمال التفاصيل المطلوبة أعلاه.",
+    "savingRecords": "جار حفظ سجلاتك...",
+    "successTitle": "تم الحفظ بنجاح",
+    "recordsCreated_one": "تم إنشاء سجل واحد",
+    "recordsCreated_other": "تم إنشاء {{count}} سجلات",
+    "addAnother": "إضافة أخرى",
     "notConfigured": {
-      "title": "AI not configured yet",
-      "description": "You can continue using manual transaction entry. An administrator can configure AI providers in Admin > AI Settings.",
-      "manualAction": "Use Manual Entry"
+      "title": "الذكاء الاصطناعي غير مهيأ بعد",
+      "description": "يمكنك متابعة الإدخال اليدوي للمعاملات. يستطيع المسؤول إعداد مزودي الذكاء الاصطناعي من الإدارة > إعدادات الذكاء الاصطناعي.",
+      "manualAction": "استخدام الإدخال اليدوي"
     },
     "progress": {
-      "usedOf": "{{used}} of {{total}}"
+      "usedOf": "{{used}} من {{total}}"
     },
     "limit": {
-      "unavailableTitle": "AI unavailable",
-      "unavailableDescription": "AI access is temporarily unavailable.",
-      "viewPlans": "View Plans",
-      "viewPlan": "View Plan",
-      "dailyLimitTitle": "Daily AI request limit reached",
-      "dailyLimitDescription": "You have used all {{count}} AI requests available today.",
-      "monthlyCreditsTitle": "Monthly AI credits used",
-      "monthlyCreditsDescription": "You have used all {{count}} AI credits for this billing period.",
-      "insufficientCreditsTitle": "Not enough AI credits",
-      "insufficientCreditsDescription": "This action requires {{required}} credits, but you have {{remaining}} remaining.",
-      "trialExpiredTitle": "Trial expired",
-      "subscriptionExpiredTitle": "Subscription expired",
-      "dailyRequests": "Daily requests",
-      "monthlyCredits": "Monthly AI credits",
-      "creditsRemaining": "Credits remaining",
-      "creditsReserved": "Credits reserved",
-      "requiredCredits": "Required credits",
-      "renewal": "Renewal",
-      "nextRenewal": "Next renewal {{date}}",
-      "availableAgainIn_one": "Available again in {{count}} hour",
-      "availableAgainIn_other": "Available again in {{count}} hours"
+      "unavailableTitle": "الذكاء الاصطناعي غير متاح",
+      "unavailableDescription": "الوصول إلى الذكاء الاصطناعي غير متاح مؤقتا.",
+      "viewPlans": "عرض الخطط",
+      "viewPlan": "عرض الخطة",
+      "dailyLimitTitle": "تم الوصول إلى الحد اليومي لطلبات الذكاء الاصطناعي",
+      "dailyLimitDescription": "لقد استخدمت كل {{count}} طلبات الذكاء الاصطناعي المتاحة اليوم.",
+      "monthlyCreditsTitle": "تم استهلاك رصيد الذكاء الاصطناعي الشهري",
+      "monthlyCreditsDescription": "لقد استخدمت كل {{count}} أرصدة الذكاء الاصطناعي لهذه الدورة.",
+      "insufficientCreditsTitle": "لا يوجد رصيد ذكاء اصطناعي كاف",
+      "insufficientCreditsDescription": "يتطلب هذا الإجراء {{required}} رصيدا، بينما لديك {{remaining}} فقط.",
+      "trialExpiredTitle": "انتهت الفترة التجريبية",
+      "subscriptionExpiredTitle": "انتهت الاشتراك",
+      "dailyRequests": "الطلبات اليومية",
+      "monthlyCredits": "الأرصدة الشهرية",
+      "creditsRemaining": "الرصيد المتبقي",
+      "creditsReserved": "الرصيد المحجوز",
+      "requiredCredits": "الرصيد المطلوب",
+      "renewal": "التجديد",
+      "nextRenewal": "التجديد القادم {{date}}",
+      "availableAgainIn_one": "سيصبح متاحا مجددا خلال ساعة واحدة",
+      "availableAgainIn_other": "سيصبح متاحا مجددا خلال {{count}} ساعات"
     },
     "success": {
       "done": "Done"
     },
     "summary": {
-      "remainingFor": "Remaining for {{name}}: {{amount}}",
-      "cashRemainingAfterSpending": "Cash remaining after spending: {{amount}}",
-      "amountStillOwedTo": "Amount still owed to {{name}}: {{amount}}",
-      "managedBalanceChange": "Managed balance change: {{amount}}"
+      "remainingFor": "المتبقي لـ {{name}}: {{amount}}",
+      "cashRemainingAfterSpending": "المتبقي نقدا بعد الإنفاق: {{amount}}",
+      "amountStillOwedTo": "المبلغ الذي ما زال مستحقا لـ {{name}}: {{amount}}",
+      "managedBalanceChange": "تغير الرصيد المدار: {{amount}}",
+      "amountNeeded": "المبلغ مطلوب",
+      "someone": "شخص ما",
+      "oneAccount": "حساب واحد",
+      "anotherAccount": "حساب آخر"
     },
     "failedTitles": {
-      "accountCreate": "Account creation failed",
-      "chooseAnotherAccount": "Choose another account",
-      "transactionSave": "Transaction save failed",
-      "reviewRequired": "Review required",
-      "generic": "Smart Entry failed"
+      "accountCreate": "فشل إنشاء الحساب",
+      "chooseAnotherAccount": "اختر حسابا آخر",
+      "transactionSave": "فشل حفظ المعاملة",
+      "reviewRequired": "المراجعة مطلوبة",
+      "generic": "فشل الإدخال الذكي"
     },
     "errors": {
-      "moreDetailsRequired": "More details are required before this entry can be saved.",
-      "saveFailed": "Failed to save Smart Entry results.",
-      "accountCreateFailed": "Failed to create the selected account.",
-      "accountInvalid": "The selected account is no longer valid.",
-      "transactionSaveFailed": "Failed to save the transaction.",
-      "invalidRequest": "The Smart Entry request is no longer valid.",
-      "finalizeFailed": "Failed to finalize the Smart Entry request.",
-      "alreadyProcessed": "This Smart Entry request has already been processed.",
-      "noLongerAvailable": "This Smart Entry request is no longer available.",
-      "belongsToAnotherAccount": "This Smart Entry request belongs to another account.",
-      "notConfirmable": "This Smart Entry request can no longer be confirmed.",
-      "resolveAccount": "Please resolve the account selection before confirming.",
-      "resolvePerson": "Please resolve the person selection before confirming.",
-      "confirmFailed": "Failed to confirm the Smart Entry request."
+      "moreDetailsRequired": "هناك حاجة إلى مزيد من التفاصيل قبل حفظ هذا الإدخال.",
+      "saveFailed": "فشل حفظ نتائج الإدخال الذكي.",
+      "accountCreateFailed": "فشل إنشاء الحساب المحدد.",
+      "accountInvalid": "الحساب المحدد لم يعد صالحا.",
+      "transactionSaveFailed": "فشل حفظ المعاملة.",
+      "invalidRequest": "طلب الإدخال الذكي لم يعد صالحا.",
+      "finalizeFailed": "فشل إنهاء طلب الإدخال الذكي.",
+      "alreadyProcessed": "تمت معالجة طلب الإدخال الذكي هذا بالفعل.",
+      "noLongerAvailable": "طلب الإدخال الذكي هذا لم يعد متاحا.",
+      "belongsToAnotherAccount": "طلب الإدخال الذكي هذا يخص حسابا آخر.",
+      "notConfirmable": "لا يمكن تأكيد طلب الإدخال الذكي هذا الآن.",
+      "resolveAccount": "يرجى حل اختيار الحساب قبل التأكيد.",
+      "resolvePerson": "يرجى حل اختيار الشخص قبل التأكيد.",
+      "confirmFailed": "فشل تأكيد طلب الإدخال الذكي."
+    },
+    "examples": {
+      "placeholder": {
+        "en": "مثال باللغة الإنجليزية: I spent AED 85 on groceries today from cash",
+        "ar": "مثال: أنفقت 85 درهما على البقالة اليوم من حساب النقد",
+        "fr": "مثال بالفرنسية: j'ai dépensé 85 AED pour les courses depuis le compte النقدي",
+        "ru": "مثال بالروسية: я потратил 85 AED на продукты с наличного счета"
+      },
+      "items": {
+        "en": {
+          "1": "Spent AED 85 on groceries from cash",
+          "2": "Ahmed gave me AED 2,300 today",
+          "3": "Transfer AED 1,000 from bank to cash",
+          "4": "I paid AED 600 for Ahmed's subscription from my credit card"
+        },
+        "ar": {
+          "1": "أنفقت 85 درهما على البقالة من حساب النقد",
+          "2": "أحمد أعطاني 2300 درهم اليوم",
+          "3": "حوّل 1000 درهم من البنك إلى النقد",
+          "4": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية"
+        },
+        "fr": {
+          "1": "J'ai dépensé 85 AED pour les courses depuis mon compte espèces",
+          "2": "Ahmed m'a donné 2 300 AED aujourd'hui",
+          "3": "Transférer 1 000 AED de la banque vers les espèces",
+          "4": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit"
+        },
+        "ru": {
+          "1": "Потратил 85 AED на продукты с наличного счета",
+          "2": "Ахмед дал мне сегодня 2 300 AED",
+          "3": "Переведи 1 000 AED из банка в наличные",
+          "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
+        }
+      }
+    },
+    "voice": {
+      "status": {
+        "idle": "اضغط على الميكروفون لبدء التحدث",
+        "requestingPermission": "جار طلب إذن الميكروفون...",
+        "recording": "جار التسجيل...",
+        "paused": "متوقف مؤقتا",
+        "processing": "جار معالجة صوتك..."
+      },
+      "maxDuration": "الحد الأقصى {{duration}}",
+      "transcribing": "جار التفريغ والتحليل...",
+      "actions": {
+        "start": "بدء التسجيل",
+        "pause": "إيقاف التسجيل مؤقتا",
+        "resume": "استئناف التسجيل",
+        "stop": "إيقاف التسجيل",
+        "useText": "استخدم النص",
+        "typeInstead": "اكتب بدلا من ذلك"
+      },
+      "errors": {
+        "permissionDenied": "تم رفض الوصول إلى الميكروفون. يرجى السماح به ثم المحاولة مرة أخرى.",
+        "noMicrophone": "لم يتم العثور على ميكروفون. يرجى توصيل ميكروفون ثم المحاولة مرة أخرى.",
+        "notSupported": "تسجيل الصوت غير مدعوم في هذا المتصفح. يرجى استخدام الإدخال النصي بدلا من ذلك.",
+        "startFailed": "تعذر بدء التسجيل. يرجى المحاولة مرة أخرى."
+      }
+    },
+    "missingFields": {
+      "purpose": "الغرض",
+      "person": "الشخص",
+      "account": "الحساب",
+      "destinationAccount": "حساب الوجهة",
+      "amount": "المبلغ",
+      "currency": "العملة"
+    },
+    "purposeOptions": {
+      "personalIncome": {
+        "label": "مالي / دفعة لي",
+        "description": "أضفه إلى حسابي الشخصي واعتبره مبلغا استلمته."
+      },
+      "borrowedMoney": {
+        "label": "اقتراض منهم",
+        "description": "أضفه إلى حسابي وسجّل أنني ما زلت مدينا لهم."
+      },
+      "managedMoney": {
+        "label": "أديره نيابة عنهم",
+        "description": "احتفظ بمالهم منفصلا في حساب متابع خاص بهم."
+      },
+      "reimbursement": {
+        "label": "استرداد / أمر آخر",
+        "description": "هم يعيدون لك مبلغا سابقا أو أن هذه الحالة تحتاج معنى مختلفا."
+      }
+    },
+    "summaryRows": {
+      "income": "+ تم استلام {{amount}}",
+      "loanReceived": "+ تم اقتراض {{amount}} من {{personName}}",
+      "receivedFromPerson": "+ تم استلام {{amount}} من {{personName}}",
+      "expense": "- {{amount}} {{categoryName}}",
+      "loanRepayment": "- تم سداد {{amount}} إلى {{personName}}",
+      "reimbursementPayment": "+ تم تعويض {{amount}} بواسطة {{personName}}",
+      "moneyReturned": "- تم إرجاع {{amount}} إلى {{personName}}",
+      "transfer": "تم نقل {{amount}} من {{sourceAccount}} إلى {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "primaryAccountLabels": {
+      "spendFrom": "الصرف من",
+      "addBorrowedMoneyTo": "إضافة المال المقترض إلى",
+      "trackTheirMoneyIn": "تتبع أموالهم في",
+      "returnMoneyFrom": "إرجاع المال من",
+      "payBackFrom": "سداد المال من",
+      "moveMoneyFrom": "نقل المال من",
+      "addMoneyTo": "إضافة المال إلى"
+    },
+    "amountQuestion": "كم المبلغ المستخدم؟",
+    "amountQuestionWithContext": "كم المبلغ المستخدم لـ {{context}}؟",
+    "understanding": {
+      "unknownAmount": "مبلغ غير معروف",
+      "someone": "شخص ما",
+      "oneAccount": "حساب واحد",
+      "anotherAccount": "حساب آخر",
+      "income": "قام {{personName}} بدفع {{amount}} لك",
+      "expense": "أنفقت {{amount}} {{categoryName}}",
+      "loanReceived": "اقترضت {{amount}} من {{personName}}",
+      "loanRepayment": "سددت {{amount}} إلى {{personName}}",
+      "moneyReceivedFromPerson": "استلمت {{amount}} من {{personName}}",
+      "moneyReturnedToPerson": "أعدت {{amount}} إلى {{personName}}",
+      "expenseFromHeldBalance": "أنفقت {{amount}} من الرصيد المحتفظ به لـ {{personName}} {{categoryName}}",
+      "expensePaidForPerson": "دفعت {{amount}} نيابة عن {{personName}} {{categoryName}}",
+      "reimbursementPayment": "قام {{personName}} بتعويضك بمبلغ {{amount}}",
+      "transfer": "نقلت {{amount}} من {{sourceAccount}} إلى {{destinationAccount}}",
+      "fallback": "{{actionType}} {{amount}}"
+    },
+    "warnings": {
+      "purposeUnclear": "ما يزال الغرض من هذا المال غير واضح.",
+      "expenseAmountMissing": "ما يزال مبلغ المصروف بحاجة إلى تأكيد.",
+      "intentUnknown": "تعذر فهم الطلب بشكل كاف حتى الآن."
+    },
+    "personFallbackName": "هذا الشخص",
+    "accountFallbackName": "هذا الحساب",
+    "referenceLabel": "المرجع"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "description": "أدر ملفك الشخصي واللغة والعملة وتفضيلات الأمان والإشعارات.",
+    "badge": "إعدادات الحساب",
+    "saved": "تم حفظ الإعدادات بنجاح",
+    "savedShort": "تم الحفظ",
+    "saveFailed": "فشل حفظ الإعدادات",
+    "saveAction": "حفظ التغييرات",
+    "tabs": {
+      "profile": "الملف الشخصي",
+      "preferences": "التفضيلات",
+      "planning": "الدخل والتخطيط",
+      "security": "الأمان",
+      "notifications": "الإشعارات"
+    },
+    "profile": {
+      "title": "معلومات الملف الشخصي",
+      "description": "حدّث اسمك وبلدك وتفضيلات الدخل.",
+      "fullName": "الاسم الكامل",
+      "email": "البريد الإلكتروني",
+      "emailHelper": "لا يمكن تغيير البريد الإلكتروني هنا. تواصل مع الدعم عند الحاجة.",
+      "country": "البلد",
+      "countryPlaceholder": "اختر بلدك",
+      "monthlyIncome": "الدخل الشهري (اختياري)",
+      "monthlyIncomePlaceholder": "0.00",
+      "errors": {
+        "fullNameRequired": "الاسم مطلوب"
+      }
+    },
+    "preferences": {
+      "title": "اللغة والعملة",
+      "description": "اختر الإعدادات الافتراضية المستخدمة في Smart Pocket.",
+      "language": "اللغة",
+      "defaultCurrency": "العملة الافتراضية",
+      "recommendedCurrency": "الموصى بها لـ {{country}}: {{currency}} ({{code}})",
+      "useRecommended": "استخدم {{code}} الموصى بها",
+      "defaultCurrencyPlaceholder": "اختر عملتك الافتراضية",
+      "inactiveCurrency": "هذه العملة المحفوظة غير نشطة وتم الإبقاء عليها للتوافق.",
+      "legacyMonthStartHelper": "يبقى يوم بداية الشهر في ملفك الشخصي للتوافق القديم فقط ولا يستخدمه محرك فترات التخطيط المشتركة."
+    },
+    "planning": {
+      "title": "الدخل وجدول التخطيط",
+      "description": "أدر إيقاع دخلك وافتراضات التخطيط وبداية الأسبوع والمنطقة الزمنية دون تغيير المعاملات أو الميزانيات الحالية.",
+      "validationFallback": "يرجى مراجعة جدول الدخل والتخطيط."
+    },
+    "security": {
+      "title": "الأمان",
+      "description": "إعادة تعيين كلمة المرور وإجراءات دورة حياة الحساب.",
+      "changePasswordTitle": "تغيير كلمة المرور",
+      "changePasswordDescription": "سنرسل رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.",
+      "sendResetEmail": "إرسال رسالة إعادة التعيين",
+      "resetEmailSent": "تم إرسال رسالة إعادة تعيين كلمة المرور!",
+      "deleteAccountTitle": "حذف الحساب",
+      "deleteAccountDescription": "احذف حسابك وكل بياناتك نهائيا. لا يمكن التراجع عن هذا الإجراء.",
+      "requestDeletion": "طلب حذف الحساب",
+      "deleteAccountSupportOnly": "يتطلب حذف الحساب التواصل مع الدعم."
+    },
+    "notifications": {
+      "title": "تفضيلات الإشعارات",
+      "description": "أدر أنواع التنبيهات والملخصات الأسبوعية.",
+      "loading": "جار تحميل إعدادات الإشعارات...",
+      "loadFailed": "فشل تحميل إعدادات الإشعارات",
+      "loadFailedTitle": "تعذر تحميل إعدادات الإشعارات.",
+      "saved": "تم حفظ إعدادات الإشعارات بنجاح",
+      "saveFailed": "فشل حفظ إعدادات الإشعارات",
+      "saveAction": "حفظ إعدادات الإشعارات",
+      "availabilityNote": "إشعارات البريد الإلكتروني والمتصفح لم تُنفذ بعد، لذلك لا تظهر كإعدادات نشطة.",
+      "toggle": "تبديل {{label}}",
+      "items": {
+        "inApp": {
+          "label": "إشعارات داخل التطبيق",
+          "description": "اعرض الإشعارات في قائمة الجرس داخل التطبيق."
+        },
+        "recurringReminders": {
+          "label": "تذكيرات الراتب والفواتير",
+          "description": "أنشئ تذكيرات لفترات الرواتب والفواتير المستحقة والمدفوعات المتكررة والمبالغ الكبيرة المستحقة خلال هذه الفترة."
+        },
+        "budgetAlerts": {
+          "label": "تحذيرات الميزانية",
+          "description": "نبّه عند وصول الإنفاق إلى حد التنبيه المحفوظ أو تجاوزه ميزانية نشطة."
+        },
+        "reimbursements": {
+          "label": "التعويضات والتسويات",
+          "description": "نبّه عند إنشاء التعويضات أو التسويات أو تحديثها."
+        },
+        "accountSecurity": {
+          "label": "إشعارات الحساب والأمان",
+          "description": "نبّه بشأن أحداث الوصول المهمة إلى الحساب."
+        },
+        "aiFailures": {
+          "label": "فشل تنفيذ الذكاء الاصطناعي",
+          "description": "نبّه عندما يتعذر على Smart Entry حفظ السجلات المؤكدة."
+        }
+      }
+    }
+  },
+  "help": {
+    "title": "المساعدة والدعم",
+    "description": "اعثر على إرشادات سريعة وقنوات الدعم وإجابات أكثر أسئلة Smart Pocket شيوعًا.",
+    "badge": "الدعم",
+    "faqTitle": "الأسئلة الشائعة",
+    "faqDescription": "إجابات مفيدة حول الإعداد الأولي وإدخال البيانات والأمان والتقارير.",
+    "quickLinks": {
+      "documentation": {
+        "title": "التوثيق",
+        "description": "أدلة ودروس"
+      },
+      "community": {
+        "title": "المجتمع",
+        "description": "اسأل المجتمع"
+      },
+      "email": {
+        "title": "الدعم عبر البريد"
+      }
+    },
+    "faq": {
+      "1": {
+        "question": "كيف أضيف معاملة؟",
+        "answer": "انتقل إلى صفحة المعاملات واختر إضافة معاملة، أو استخدم زر الإضافة في شريط التنقل السفلي."
+      },
+      "2": {
+        "question": "كيف أُنشئ ميزانية؟",
+        "answer": "افتح صفحة الميزانيات، واختر إضافة ميزانية، وحدد الفئة والمبلغ وحد التنبيه."
+      },
+      "3": {
+        "question": "هل يمكنني استيراد معاملات البنك؟",
+        "answer": "استيراد CSV مخطط له في إصدار لاحق. حاليًا يجب إدخال المعاملات يدويًا."
+      },
+      "4": {
+        "question": "كيف أغيّر العملة؟",
+        "answer": "اذهب إلى الإعدادات ثم التفضيلات واختر العملة الافتراضية."
+      },
+      "5": {
+        "question": "هل بياناتي آمنة؟",
+        "answer": "نعم. بياناتك محمية بالتشفير وبسياسات Supabase على مستوى الصفوف، ولا يمكن لأحد غيرك الوصول إليها."
+      },
+      "6": {
+        "question": "كيف أتحول إلى العربية واتجاه RTL؟",
+        "answer": "استخدم مبدل اللغة في الشريط العلوي واختر العربية، وسيتحول التخطيط تلقائيًا إلى الاتجاه من اليمين إلى اليسار."
+      }
+    }
+  },
+  "onboarding": {
+    "title": "إعداد Smart Pocket",
+    "description": "بضع خطوات سريعة لتخصيص تجربتك وإعدادات لوحة التحكم الافتراضية.",
+    "steps": {
+      "welcome": "مرحبًا",
+      "languageRegion": "اللغة والمنطقة",
+      "currency": "العملة",
+      "incomeSchedule": "جدول الدخل",
+      "planning": "التخطيط"
+    },
+    "welcome": {
+      "title": "بأي اسم تريد أن نخاطبك؟",
+      "description": "سيظهر هذا في ترحيب لوحة التحكم.",
+      "fullNamePlaceholder": "اسمك الكامل",
+      "country": "الدولة",
+      "countryPlaceholder": "اختر دولتك"
+    },
+    "language": {
+      "title": "اختر لغتك",
+      "description": "يدعم Smart Pocket الإنجليزية والعربية والفرنسية والروسية، بما في ذلك اتجاه RTL للعربية."
+    },
+    "currency": {
+      "title": "العملة الافتراضية",
+      "description": "تُستخدم للمبالغ والأرصدة والتقارير.",
+      "recommended": "الموصى بها لـ {{country}}: {{currency}} ({{code}})",
+      "placeholder": "اختر عملتك الافتراضية"
+    },
+    "income": {
+      "title": "كيف تستلم دخلك عادة؟",
+      "description": "اضبط إرشادات الدخل الاختيارية وجدول دخلك المعتاد.",
+      "monthlyIncome": "الدخل الشهري",
+      "monthlyIncomeHelp": "اتركه فارغًا إذا أردت التخطي. يمكنك ضبطه لاحقًا في الإعدادات."
+    },
+    "planning": {
+      "title": "تفضيلات التخطيط",
+      "description": "اختر العرض الافتراضي للوحة التحكم وإيقاع الميزانية وبداية الأسبوع والمنطقة الزمنية."
+    },
+    "validation": {
+      "fullName": "يرجى إدخال اسمك",
+      "country": "يرجى اختيار دولتك",
+      "currency": "يرجى اختيار عملتك"
+    },
+    "toasts": {
+      "reviewPlanningSettings": "يرجى مراجعة إعدادات الدخل والتخطيط.",
+      "profileReady": "تم إعداد الملف الشخصي. مرحبًا بك في Smart Pocket.",
+      "saveFailed": "فشل حفظ التفضيلات."
+    },
+    "skipForNow": "تخطَّ الآن وأكمل الإعداد لاحقًا من الإعدادات"
+  },
+  "financialPeriods": {
+    "incomeFrequency": {
+      "title": "كيف تستلم دخلك عادة؟",
+      "description": "اختر إيقاع التخطيط الذي يناسب جدول دخلك.",
+      "options": {
+        "weekly": {
+          "label": "أسبوعي",
+          "description": "يُدفع مرة كل أسبوع"
+        },
+        "biweekly": {
+          "label": "كل أسبوعين",
+          "description": "يُدفع كل 14 يومًا، غالبًا 26 مرة في السنة"
+        },
+        "semimonthly": {
+          "label": "مرتان في الشهر",
+          "description": "يُدفع في تاريخين ثابتين، غالبًا 24 مرة في السنة"
+        },
+        "monthly": {
+          "label": "شهري",
+          "description": "يُدفع مرة كل شهر"
+        },
+        "irregular": {
+          "label": "دخل غير منتظم",
+          "description": "لا يتبع الدخل جدولًا ثابتًا"
+        },
+        "custom": {
+          "label": "جدول مخصص",
+          "description": "يُدفع وفق جدول متكرر تحدده أنت"
+        }
+      }
+    },
+    "budgetPeriods": {
+      "weekly": "أسبوعي",
+      "biweekly": "كل أسبوعين",
+      "semimonthly": "مرتان في الشهر",
+      "monthly": "شهري",
+      "custom": "دورة مخصصة"
+    },
+    "weekdays": {
+      "monday": "الاثنين",
+      "tuesday": "الثلاثاء",
+      "wednesday": "الأربعاء",
+      "thursday": "الخميس",
+      "friday": "الجمعة",
+      "saturday": "السبت",
+      "sunday": "الأحد"
+    },
+    "paySchedule": {
+      "lastDayOfMonth": "آخر يوم من الشهر",
+      "weekly": {
+        "anchorDate": "اختر آخر أو أقرب يوم قبض",
+        "anchorDateHelp": "يستخدم Smart Pocket هذا كتاريخ مرجعي لكل دورة دفع مدتها 7 أيام.",
+        "weekdayFallback": "اليوم الاحتياطي ليوم القبض",
+        "useAnchorOnly": "استخدم تاريخ الربط فقط",
+        "weekdayFallbackHelp": "اختياري. استخدمه فقط إذا كنت تريد حفظ يوم الأسبوع إضافة إلى تاريخ الربط."
+      },
+      "biweekly": {
+        "anchorDate": "اختر يوم قبض حديث أو قادم",
+        "anchorDateHelp": "يستخدم Smart Pocket هذا لحساب فترات الدفع ذات 14 يومًا."
+      },
+      "semimonthly": {
+        "firstPayday": "يوم القبض الأول",
+        "chooseFirst": "اختر يوم القبض الأول",
+        "secondPayday": "يوم القبض الثاني",
+        "chooseSecond": "اختر يوم القبض الثاني",
+        "help": "يعتبر Smart Pocket أن كل فترة دفع تبدأ في يوم قبض وتنتهي قبل يوم من يوم القبض التالي."
+      },
+      "monthly": {
+        "title": "قاعدة يوم القبض الشهري",
+        "specificDayNumber": "رقم يوم محدد",
+        "specificDayHelp": "إذا كان الشهر أقصر، يستخدم Smart Pocket آخر يوم في ذلك الشهر بأمان."
+      },
+      "monthlyRules": {
+        "specificDay": "يوم محدد",
+        "lastDay": "آخر يوم من الشهر",
+        "lastWorkingDay": "آخر يوم عمل"
+      },
+      "irregularNote": "يستخدم Smart Pocket التخطيط الشهري افتراضيًا للدخل غير المنتظم.",
+      "custom": {
+        "anchorDate": "تاريخ الربط",
+        "daysPerCycle": "عدد الأيام في كل دورة"
+      }
+    },
+    "validation": {
+      "timezone": "أدخل منطقة زمنية صحيحة من نوع IANA مثل Europe/London أو Asia/Dubai.",
+      "customWeekStartDay": "يجب أن يكون يوم بداية الأسبوع المخصص رقمًا من 0 إلى 6.",
+      "weeklyAnchorDate": "تحتاج الجداول الأسبوعية إلى تاريخ ربط ليوم قبض حديث أو قادم.",
+      "biweeklyAnchorDate": "تحتاج الجداول كل أسبوعين إلى تاريخ ربط ليوم قبض حديث أو قادم.",
+      "customAnchorDate": "تحتاج الجداول المخصصة إلى تاريخ ربط.",
+      "customCycleDays": "يجب أن تتكرر الجداول المخصصة كل {{min}}-{{max}} يومًا.",
+      "semimonthlyDay1Required": "اختر يوم القبض الأول للنظام نصف الشهري.",
+      "semimonthlyDay2Required": "اختر يوم القبض الثاني للنظام نصف الشهري.",
+      "semimonthlyDay1Range": "يجب أن يكون اليوم الأول بين 1 و31 أو آخر يوم من الشهر.",
+      "semimonthlyDay2Range": "يجب أن يكون اليوم الثاني بين 1 و31 أو آخر يوم من الشهر.",
+      "semimonthlyDifferentDays": "تحتاج الجداول نصف الشهرية إلى موضعين مختلفين ليومي القبض.",
+      "semimonthlyDayOrder": "يجب أن يكون يوم القبض الثاني لاحقًا في الشهر من اليوم الأول.",
+      "monthlyRuleRequired": "اختر طريقة حساب يوم القبض الشهري.",
+      "monthlyDayRange": "يجب أن يكون يوم القبض الشهري المحدد بين 1 و31.",
+      "irregularDashboardPeriod": "يستخدم الدخل غير المنتظم الشهر الحالي كافتراضي للوحة التحكم."
+    },
+    "preferences": {
+      "dashboardTitle": "كيف تريد أن تُفتح لوحة التحكم؟",
+      "dashboardDescription": "يحدد هذا العرض الافتراضي لجلسات لوحة التحكم الجديدة.",
+      "dashboardOptions": {
+        "payCycle": "فترة الدفع الحالية",
+        "month": "الشهر الحالي"
+      },
+      "defaultBudgetPeriod": "الفترة الافتراضية للميزانيات الجديدة",
+      "defaultBudgetPeriodHelp": "يحدد هذا الافتراضي فقط للميزانيات الجديدة. يمكن تعديل كل ميزانية بشكل منفصل.",
+      "weekStartsOn": "يبدأ الأسبوع في",
+      "customDay": "يوم مخصص",
+      "customWeekStartDayIndex": "رقم يوم بداية الأسبوع المخصص",
+      "customWeekStartDayHelp": "استخدم 0 للأحد وحتى 6 للسبت.",
+      "timezone": "المنطقة الزمنية",
+      "timezonePlaceholder": "مثال: Europe/London",
+      "useBrowserTimezone": "استخدم منطقة المتصفح الزمنية",
+      "recommendedBrowserTimezone": "الموصى بها لهذا المتصفح: {{timezone}}",
+      "compatibilityNote": "يؤثر هذا على عرض التخطيط الافتراضي فقط. لن يتم تعديل المعاملات أو الجداول المتكررة أو الميزانيات الحالية."
+    }
+  },
+  "peopleReports": {
+    "title": "تقارير الأشخاص",
+    "description": "دفتر القيود والأموال المحتفظ بها والمصروفات والتسويات وطلبات السداد",
+    "loadFailed": "فشل تحميل التقرير.",
+    "noDataToExport": "لا توجد بيانات للتصدير.",
+    "clearFilters": "مسح المرشحات",
+    "allTypes": "كل الأنواع",
+    "allStatuses": "كل الحالات",
+    "entriesCount": "{{count}} إدخال",
+    "recordsCount": "{{count}} سجل",
+    "settlementsCount": "{{count}} تسوية",
+    "heldTitle": "كشف الرصيد المحتفظ به",
+    "expenseTitle": "إدخالات المصروفات",
+    "tabs": {
+      "ledger": "دفتر القيود",
+      "held": "الأموال المحتفظ بها",
+      "expenses": "المصروفات",
+      "reimbursements": "طلبات السداد",
+      "settlements": "التسويات"
+    },
+    "csv": {
+      "date": "التاريخ",
+      "type": "النوع",
+      "description": "الوصف",
+      "amount": "المبلغ",
+      "currency": "العملة",
+      "notes": "ملاحظات",
+      "paid": "المدفوع",
+      "outstanding": "المتبقي",
+      "status": "الحالة",
+      "owedBy": "على من",
+      "paymentMethod": "طريقة الدفع"
+    },
+    "empty": {
+      "ledger": "لا توجد إدخالات في دفتر القيود",
+      "held": "لا توجد إدخالات للأموال المحتفظ بها",
+      "expenses": "لا توجد إدخالات مصروفات",
+      "reimbursements": "لا توجد طلبات سداد",
+      "settlements": "لا توجد تسويات"
+    },
+    "owedBy": {
+      "person": "الشخص مدين لي",
+      "user": "أنا مدين للشخص"
     }
   }
 }

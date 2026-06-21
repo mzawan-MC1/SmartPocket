@@ -30,15 +30,18 @@ import {
   updateTransaction,
   uploadReceipt,
 } from '@/lib/finance';
-import { getManagedPeople, type ManagedPerson } from '@/lib/people';
+import { createLoanRepayment, getManagedPeople, type ManagedPerson } from '@/lib/people';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 type TransactionModalMode = 'single' | 'multiple';
+type TransactionEntryKind = 'standard' | 'loan_repayment';
 
 interface TxnFormData {
   account_id: string;
   category_id: string;
+  entry_kind: TransactionEntryKind;
   transaction_type: 'income' | 'expense';
   amount: string;
   currency: string;
@@ -74,6 +77,7 @@ function buildBaseForm(): TxnFormData {
   return {
     account_id: '',
     category_id: '',
+    entry_kind: 'standard',
     transaction_type: 'expense',
     amount: '',
     currency: '',
@@ -121,6 +125,7 @@ function buildDraftFromTransaction(txn: Transaction): TransactionDraftRow {
     id: createDraftId(),
     account_id: txn.account_id,
     category_id: txn.category_id || '',
+    entry_kind: 'standard',
     transaction_type: txn.transaction_type as 'income' | 'expense',
     amount: String(txn.amount),
     currency: txn.currency,
@@ -176,19 +181,25 @@ export default function AddTransactionModal({
   onClose,
   initialMode = 'single',
   initialTransactionType = 'expense',
+  initialEntryKind = 'standard',
+  preselectedPersonId,
   editingTransaction = null,
   accounts: providedAccounts,
   categories: providedCategories,
   people: providedPeople,
+  onSaved,
 }: {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: TransactionModalMode;
   initialTransactionType?: 'income' | 'expense';
+  initialEntryKind?: TransactionEntryKind;
+  preselectedPersonId?: string;
   editingTransaction?: Transaction | null;
   accounts?: FinancialAccount[];
   categories?: Category[];
   people?: ManagedPerson[];
+  onSaved?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { user } = useAuth();
@@ -218,15 +229,17 @@ export default function AddTransactionModal({
     return {
       id: createDraftId(),
       ...base,
-      transaction_type: initialTransactionType,
+      entry_kind: initialEntryKind,
+      transaction_type: initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType,
       account_id: defaultAccount?.id || base.account_id,
       currency: defaultAccount?.currency || referenceData?.platformDefaultCurrency || base.currency,
+      person_id: preselectedPersonId || '',
       receiptFile: null,
-      showMoreOptions: false,
+      showMoreOptions: initialEntryKind === 'loan_repayment',
       showManagedPerson: false,
       ...overrides,
     };
-  }, [accounts, initialTransactionType, referenceData?.platformDefaultCurrency]);
+  }, [accounts, initialEntryKind, initialTransactionType, preselectedPersonId, referenceData?.platformDefaultCurrency]);
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
 
@@ -255,13 +268,19 @@ export default function AddTransactionModal({
       setTransactionMode('single');
       setDraftRows([buildDraftFromTransaction(editingTransaction)]);
     } else {
-      setTransactionMode(initialMode);
-      setDraftRows([buildEmptyDraft({ transaction_type: initialTransactionType })]);
+      setTransactionMode(initialEntryKind === 'loan_repayment' ? 'single' : initialMode);
+      setDraftRows([
+        buildEmptyDraft({
+          entry_kind: initialEntryKind,
+          transaction_type: initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType,
+          person_id: preselectedPersonId || '',
+        }),
+      ]);
     }
     setRowErrors({});
     setSaveProgress(null);
     setIsSaving(false);
-  }, [buildEmptyDraft, editingTransaction, initialMode, initialTransactionType, isOpen]);
+  }, [buildEmptyDraft, editingTransaction, initialEntryKind, initialMode, initialTransactionType, isOpen, preselectedPersonId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -297,7 +316,21 @@ export default function AddTransactionModal({
       errors.push(t('transactions.form.rowValidAmount', { ns: 'portal', index: rowIndex + 1 }));
     }
     if (!row.transaction_date) errors.push(t('transactions.form.rowSelectDate', { ns: 'portal', index: rowIndex + 1 }));
-    if (!row.description.trim() && !row.merchant.trim()) {
+    if (row.entry_kind === 'loan_repayment' && !row.person_id) {
+      errors.push(t('transactions.form.rowSelectLoanPerson', {
+        ns: 'portal',
+        index: rowIndex + 1,
+        defaultValue: 'Transaction {{index}}: choose a person for the loan repayment',
+      }));
+    }
+    if (row.entry_kind === 'loan_repayment' && !row.notes.trim()) {
+      errors.push(t('transactions.form.rowLoanRepaymentNotes', {
+        ns: 'portal',
+        index: rowIndex + 1,
+        defaultValue: 'Transaction {{index}}: enter notes for the loan repayment',
+      }));
+    }
+    if (row.entry_kind === 'standard' && !row.description.trim() && !row.merchant.trim()) {
       errors.push(t('transactions.form.rowDescriptionOrMerchant', { ns: 'portal', index: rowIndex + 1 }));
     }
     if (row.use_held_balance && row.showManagedPerson && !row.person_id) {
@@ -331,6 +364,13 @@ export default function AddTransactionModal({
 
   const handleModeChange = (mode: TransactionModalMode) => {
     if (editingTransaction || mode === transactionMode) return;
+    if (mode === 'multiple' && activeDraftRows[0]?.entry_kind === 'loan_repayment') {
+      toast.error(t('transactions.form.loanRepaymentSingleOnly', {
+        ns: 'portal',
+        defaultValue: 'Loan repayment is available in Single mode only.',
+      }));
+      return;
+    }
 
     if (mode === 'single') {
       const dirtyRowsBeyondFirst = activeDraftRows.slice(1).filter(isDraftRowPopulated);
@@ -406,7 +446,43 @@ export default function AddTransactionModal({
           source: 'transactions-modal',
           entities: ['transactions', 'financial_accounts', 'dashboard'],
         });
+        await onSaved?.();
         toast.success(t('transactions.form.updatedSuccessfully', { ns: 'portal' }));
+        closeModalAndReset();
+        return;
+      }
+
+      if (rowsToSave.length === 1 && rowsToSave[0]?.entry_kind === 'loan_repayment') {
+        const row = rowsToSave[0];
+        const repayment = await createLoanRepayment({
+          person_id: row.person_id,
+          account_id: row.account_id,
+          amount: Number(row.amount),
+          currency: row.currency,
+          repayment_date: row.transaction_date,
+          notes: row.notes.trim(),
+          description: row.description.trim() || undefined,
+        });
+
+        if (row.receiptFile && user?.id) {
+          try {
+            await uploadReceipt(repayment.transaction.id, row.receiptFile, user.id);
+          } catch {
+            toast.error(t('transactions.form.updatedReceiptFailed', { ns: 'portal' }));
+          }
+        }
+
+        dispatchSmartPocketDataChanged({
+          source: 'loan-repayment-modal',
+          entities: ['transactions', 'financial_accounts', 'dashboard', 'people', 'settlements'],
+        });
+        await onSaved?.();
+        toast.success(t('transactions.form.loanRepaymentSaved', {
+          ns: 'portal',
+          amount: repayment.remainingOutstanding.toFixed(2),
+          currency: row.currency,
+          defaultValue: 'Loan repayment saved. Remaining balance: {{currency}} {{amount}}',
+        }));
         closeModalAndReset();
         return;
       }
@@ -436,6 +512,7 @@ export default function AddTransactionModal({
           source: 'transactions-modal',
           entities: ['transactions', 'financial_accounts', 'dashboard'],
         });
+        await onSaved?.();
       }
 
       if (result.failures.length === 0) {
@@ -475,17 +552,28 @@ export default function AddTransactionModal({
       setIsSaving(false);
       setSaveProgress(null);
     }
-  }, [activeDraftRows, closeModalAndReset, editingTransaction, t, transactionMode, user?.id, validateDraftRow]);
+  }, [activeDraftRows, closeModalAndReset, editingTransaction, onSaved, t, transactionMode, user?.id, validateDraftRow]);
 
   const visibleRowCount = activeDraftRows.length;
+  const isLoanRepaymentMode = activeDraftRows[0]?.entry_kind === 'loan_repayment';
   const addActionLabel = editingTransaction
     ? t('transactions.form.updateAction', { ns: 'portal' })
-    : visibleRowCount === 1
+    : isLoanRepaymentMode
+      ? t('transactions.form.loanRepaymentAction', {
+        ns: 'portal',
+        defaultValue: 'Record Loan Repayment',
+      })
+      : visibleRowCount === 1
       ? t('transactionsHeader.addTransaction', { ns: 'portal' })
       : t('transactions.form.addManyAction', { ns: 'portal', count: visibleRowCount });
   const savingActionLabel = editingTransaction
     ? t('transactions.form.savingOne', { ns: 'portal' })
-    : visibleRowCount === 1
+    : isLoanRepaymentMode
+      ? t('transactions.form.loanRepaymentSaving', {
+        ns: 'portal',
+        defaultValue: 'Saving loan repayment...',
+      })
+      : visibleRowCount === 1
       ? t('transactions.form.addingOne', { ns: 'portal' })
       : t('transactions.form.addingMany', { ns: 'portal', count: visibleRowCount });
 
@@ -502,31 +590,55 @@ export default function AddTransactionModal({
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             {transactionMode === 'single' ? (
-              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
-                {(['expense', 'income'] as const).map((type) => {
+              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
+                {([
+                  { kind: 'standard' as const, type: 'expense' as const },
+                  { kind: 'standard' as const, type: 'income' as const },
+                  { kind: 'loan_repayment' as const, type: 'expense' as const },
+                ]).map((option) => {
                   const primaryRow = activeDraftRows[0];
-                  const isActive = primaryRow?.transaction_type === type;
+                  const isLoanRepaymentOption = option.kind === 'loan_repayment';
+                  const isActive = isLoanRepaymentOption
+                    ? primaryRow?.entry_kind === 'loan_repayment'
+                    : primaryRow?.entry_kind === 'standard' && primaryRow?.transaction_type === option.type;
+                  const label = isLoanRepaymentOption
+                    ? t('transactions.form.loanRepaymentType', { ns: 'portal', defaultValue: 'Loan Repayment' })
+                    : t(`transactions.types.${option.type}` as const, { ns: 'portal' });
                   return (
                     <button
-                      key={type}
+                      key={`${option.kind}-${option.type}`}
                       type="button"
                       aria-pressed={isActive}
-                      aria-label={t('transactions.form.setTransactionType', { ns: 'portal', type: t(`transactions.types.${type}` as const, { ns: 'portal' }) })}
+                      aria-label={t('transactions.form.setTransactionType', { ns: 'portal', type: label })}
                       onClick={() => {
                         const rowIds = [activeDraftRows[0]?.id].filter(Boolean) as string[];
                         if (rowIds.length === 0) return;
-                        updateDraftRow(rowIds[0], (row) => ({ ...row, transaction_type: type, category_id: '' }));
+                        updateDraftRow(rowIds[0], (row) => ({
+                          ...row,
+                          entry_kind: option.kind,
+                          transaction_type: option.type,
+                          category_id: '',
+                          merchant: option.kind === 'loan_repayment' ? '' : row.merchant,
+                          showManagedPerson: option.kind === 'loan_repayment' ? false : row.showManagedPerson,
+                          showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
+                        }));
                       }}
                       className={`min-h-11 rounded-2xl border px-3 py-2.5 text-sm font-700 transition-colors sm:min-w-[140px] ${
                         isActive
-                          ? type === 'income'
+                          ? option.type === 'income'
                             ? 'border-positive bg-positive-soft text-positive'
                             : 'border-negative bg-negative-soft text-negative'
                           : 'border-border text-muted-foreground hover:border-accent/40'
                       }`}
                     >
-                      {type === 'income' ? <TrendingUp size={14} className="mr-1.5 inline" /> : <TrendingDown size={14} className="mr-1.5 inline" />}
-                      {t(`transactions.types.${type}` as const, { ns: 'portal' })}
+                      {isLoanRepaymentOption ? (
+                        <Users size={14} className="mr-1.5 inline" />
+                      ) : option.type === 'income' ? (
+                        <TrendingUp size={14} className="mr-1.5 inline" />
+                      ) : (
+                        <TrendingDown size={14} className="mr-1.5 inline" />
+                      )}
+                      {label}
                     </button>
                   );
                 })}
@@ -545,10 +657,10 @@ export default function AddTransactionModal({
                   aria-pressed={transactionMode === mode}
                   aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                   onClick={() => handleModeChange(mode)}
-                  disabled={editingTransaction !== null && mode === 'multiple'}
+                  disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
                   className={`rounded-lg px-3 py-1.5 text-sm font-600 transition-colors ${
                     transactionMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  } ${(editingTransaction !== null && mode === 'multiple') ? 'cursor-not-allowed opacity-60' : ''}`}
+                  } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
                 </button>
@@ -565,6 +677,7 @@ export default function AddTransactionModal({
             <div className="space-y-3">
               {activeDraftRows.map((row, index) => {
                 const account = accountMap.get(row.account_id);
+                const isLoanRepaymentRow = row.entry_kind === 'loan_repayment';
                 const filteredCategories = categories.filter((category) => category.category_type === row.transaction_type || category.category_type === 'transfer');
                 const rowHasErrors = rowErrors[row.id] || [];
                 const rowLabel = transactionMode === 'multiple' && !editingTransaction
@@ -653,19 +766,41 @@ export default function AddTransactionModal({
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
-                          <select
-                            className="input-base h-10 text-sm"
-                            value={row.category_id}
-                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
-                          >
-                            <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
-                            {filteredCategories.map((category) => (
-                              <option key={category.id} value={category.id}>{category.name}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {isLoanRepaymentRow ? (
+                          <div>
+                            <label className="mb-1 block text-sm font-600 text-foreground">
+                              {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
+                            </label>
+                            <select
+                              className="input-base h-10 text-sm"
+                              value={row.person_id}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
+                            >
+                              <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
+                              {people.map((person) => (
+                                <option key={person.id} value={person.id}>{person.full_name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
+                            <select
+                              className="input-base h-10 text-sm"
+                              value={row.category_id}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
+                            >
+                              <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
+                              {filteredCategories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {translateSystemCategoryName(category.name, (key, options) =>
+                                    t(key, { ...(options || {}), ns: 'common' })
+                                  )}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                       </div>
 
                       <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1 max-[480px]:space-y-3">
@@ -711,28 +846,43 @@ export default function AddTransactionModal({
                         />
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-5">
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</label>
-                          <input
-                            type="text"
-                            className="input-base h-10 text-sm"
-                            placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
-                            value={row.merchant}
-                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
+                      {isLoanRepaymentRow ? (
+                        <div className="max-[480px]:order-5">
+                          <label className="mb-1 block text-sm font-600 text-foreground">
+                            {t('reimbursements.notes', { ns: 'portal' })} *
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="input-base resize-none text-sm"
+                            placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
+                            value={row.notes}
+                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
-                          <input
-                            type="text"
-                            className="input-base h-10 text-sm"
-                            placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
-                            value={row.description}
-                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
-                          />
+                      ) : (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-5">
+                          <div>
+                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</label>
+                            <input
+                              type="text"
+                              className="input-base h-10 text-sm"
+                              placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
+                              value={row.merchant}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label className="mb-1 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
+                            <input
+                              type="text"
+                              className="input-base h-10 text-sm"
+                              placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
+                              value={row.description}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
+                            />
+                          </div>
                         </div>
-                      </div>
+                      )}
 
                       <div className="rounded-xl border border-border/70 bg-muted/10 max-[480px]:order-6">
                         <button
@@ -747,32 +897,24 @@ export default function AddTransactionModal({
 
                         {row.showMoreOptions ? (
                           <div className="space-y-3 border-t border-border/70 px-3 py-3">
-                            <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
-                              <div className="relative">
-                                <Tag size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                  type="text"
-                                  className="input-base h-10 pl-10 pr-3 text-sm"
-                                  placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
-                                  value={row.tags}
-                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
-                                />
+                            {!isLoanRepaymentRow ? (
+                              <div>
+                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
+                                <div className="relative">
+                                  <Tag size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                  <input
+                                    type="text"
+                                    className="input-base h-10 pl-10 pr-3 text-sm"
+                                    placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
+                                    value={row.tags}
+                                    onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
+                                  />
+                                </div>
                               </div>
-                            </div>
+                            ) : null}
 
-                            <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">{t('reimbursements.notes', { ns: 'portal' })}</label>
-                              <textarea
-                                rows={2}
-                                className="input-base resize-none text-sm"
-                                placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
-                                value={row.notes}
-                                onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
-                              />
-                            </div>
-
-                            <div className="rounded-xl border border-border/70 overflow-hidden">
+                            {!isLoanRepaymentRow ? (
+                              <div className="rounded-xl border border-border/70 overflow-hidden">
                               <button
                                 type="button"
                                 onClick={() => updateDraftRow(row.id, (draft) => ({
@@ -883,7 +1025,8 @@ export default function AddTransactionModal({
                                   </div>
                                 </div>
                               ) : null}
-                            </div>
+                              </div>
+                            ) : null}
 
                             <div>
                               <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
@@ -914,15 +1057,17 @@ export default function AddTransactionModal({
                               </div>
                             </div>
 
-                            <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
-                              <input
-                                type="checkbox"
-                                checked={row.is_recurring}
-                                onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, is_recurring: event.target.checked }))}
-                                className="rounded accent-accent"
-                              />
-                              {t('transactions.form.markAsRecurring', { ns: 'portal' })}
-                            </label>
+                            {!isLoanRepaymentRow ? (
+                              <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={row.is_recurring}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, is_recurring: event.target.checked }))}
+                                  className="rounded accent-accent"
+                                />
+                                {t('transactions.form.markAsRecurring', { ns: 'portal' })}
+                              </label>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>

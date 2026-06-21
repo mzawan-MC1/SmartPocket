@@ -1,5 +1,6 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
+import type { Transaction } from '@/lib/finance';
 import { getClientReferenceData } from '@/lib/reference-data/client';
 import {
   ensureZeroCurrencyTotal,
@@ -167,6 +168,18 @@ export interface PersonBalance {
 async function resolveFallbackCurrency(preferredCurrency?: string | null) {
   return resolveUserDefaultCurrency(preferredCurrency);
 }
+
+function roundMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+type LoanRepaymentRpcRow = {
+  transaction_id: string;
+  ledger_entry_id: string;
+  settlement_id: string;
+  remaining_outstanding: number | string;
+  account_balance: number | string;
+};
 
 // ─── Managed People ───────────────────────────────────────────────────────────
 
@@ -464,6 +477,8 @@ export async function addLedgerEntry(payload: {
   currency?: string;
   description: string;
   transaction_id?: string | null;
+  reference_id?: string | null;
+  reference_type?: string | null;
   notes?: string;
   entry_date?: string;
 }): Promise<PersonLedgerEntry> {
@@ -748,6 +763,115 @@ export async function createSettlement(payload: {
   });
 
   return data as Settlement;
+}
+
+export async function createLoanRepayment(payload: {
+  person_id: string;
+  account_id: string;
+  amount: number;
+  repayment_date: string;
+  notes: string;
+  currency?: string;
+  description?: string;
+}): Promise<{
+  transaction: Transaction;
+  ledgerEntry: PersonLedgerEntry;
+  settlement: Settlement;
+  remainingOutstanding: number;
+}> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const amount = roundMoney(Number(payload.amount || 0));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error('Repayment amount must be greater than 0');
+  }
+  if (!payload.notes.trim()) {
+    throw new Error('Notes are required for a loan repayment');
+  }
+  const requestedCurrency = normalizeCurrencyCode(payload.currency) || undefined;
+  const trimmedDescription = payload.description?.trim() || null;
+  const trimmedNotes = payload.notes.trim();
+
+  const { data: rpcData, error: rpcError } = await supabase.rpc('rpc_record_loan_repayment', {
+    p_person_id: payload.person_id,
+    p_account_id: payload.account_id,
+    p_amount: amount,
+    p_repayment_date: payload.repayment_date,
+    p_notes: trimmedNotes,
+    p_currency: requestedCurrency || null,
+    p_description: trimmedDescription,
+  });
+
+  if (rpcError) throw rpcError;
+
+  const rpcRow = (Array.isArray(rpcData) ? rpcData[0] : rpcData) as LoanRepaymentRpcRow | null;
+  if (!rpcRow?.transaction_id || !rpcRow.ledger_entry_id || !rpcRow.settlement_id) {
+    throw new Error('Loan repayment RPC did not return linked record ids');
+  }
+
+  const [{ data: transactionData, error: transactionError }, { data: ledgerData, error: ledgerError }, { data: settlementData, error: settlementError }, { data: personData, error: personError }] = await Promise.all([
+    supabase
+      .from('transactions')
+      .select('*')
+      .eq('id', rpcRow.transaction_id)
+      .single(),
+    supabase
+      .from('person_ledger_entries')
+      .select('*')
+      .eq('id', rpcRow.ledger_entry_id)
+      .single(),
+    supabase
+      .from('settlements')
+      .select('*')
+      .eq('id', rpcRow.settlement_id)
+      .single(),
+    supabase
+      .from('managed_people')
+      .select('full_name')
+      .eq('id', payload.person_id)
+      .single(),
+  ]);
+
+  if (transactionError || !transactionData) throw transactionError || new Error('Loan repayment transaction could not be loaded');
+  if (ledgerError || !ledgerData) throw ledgerError || new Error('Loan repayment ledger entry could not be loaded');
+  if (settlementError || !settlementData) throw settlementError || new Error('Loan repayment settlement could not be loaded');
+  if (personError || !personData) throw personError || new Error('Loan repayment person could not be loaded');
+
+  const effectiveCurrency = transactionData.currency || requestedCurrency || 'AED';
+  const effectiveDescription = transactionData.description || trimmedDescription || `Loan repayment to ${personData.full_name}`;
+
+  await logActivity(user.id, 'loan_repayment_recorded', 'person_ledger_entries', ledgerData.id, null, {
+    person_id: payload.person_id,
+    transaction_id: transactionData.id,
+    settlement_id: settlementData.id,
+    amount,
+    currency: effectiveCurrency,
+  });
+
+  await createNotificationIfEnabled('reimbursement_updates', {
+    type: 'settlement_completed',
+    title: 'Loan repayment recorded',
+    message: `${effectiveDescription} was recorded for ${effectiveCurrency} ${amount.toFixed(2)}.`,
+    actionUrl: `/people/${payload.person_id}`,
+    metadata: {
+      person_id: payload.person_id,
+      transaction_id: transactionData.id,
+      settlement_id: settlementData.id,
+      amount,
+      currency: effectiveCurrency,
+      remaining_outstanding: Number(rpcRow.remaining_outstanding || 0),
+    },
+    sourceKey: `loan_repayment:${transactionData.id}`,
+  });
+
+  return {
+    transaction: transactionData as Transaction,
+    ledgerEntry: ledgerData as PersonLedgerEntry,
+    settlement: settlementData as Settlement,
+    remainingOutstanding: Math.max(0, roundMoney(Number(rpcRow.remaining_outstanding || 0))),
+  };
 }
 
 // ─── Spaces ───────────────────────────────────────────────────────────────────

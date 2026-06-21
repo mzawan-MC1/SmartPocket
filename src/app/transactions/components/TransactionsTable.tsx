@@ -17,6 +17,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import AddTransactionModal from './AddTransactionModal';
 import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { formatFinancialPeriodLabel, getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey } from '@/lib/financial-periods';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -228,14 +229,18 @@ export default function TransactionsTable({
   };
 
   const filtered = useMemo(() => {
-    let result = transactions.filter((t) => {
+    let result = transactions.filter((transaction) => {
+      const categoryDisplayName = translateSystemCategoryName(transaction.category?.name, (key, options) =>
+        t(key, { ...(options || {}), ns: 'common' })
+      );
       const matchSearch = !search ||
-        (t.merchant || '').toLowerCase().includes(search.toLowerCase()) ||
-        t.description.toLowerCase().includes(search.toLowerCase()) ||
-        (t.category?.name || '').toLowerCase().includes(search.toLowerCase()) ||
-        (t.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
-      const matchAccount = filterAccount === 'all' || t.account_id === filterAccount;
-      const matchCategory = filterCategory === 'all' || t.category_id === filterCategory;
+        (transaction.merchant || '').toLowerCase().includes(search.toLowerCase()) ||
+        transaction.description.toLowerCase().includes(search.toLowerCase()) ||
+        (transaction.category?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        categoryDisplayName.toLowerCase().includes(search.toLowerCase()) ||
+        (transaction.tags || []).some((tag) => tag.toLowerCase().includes(search.toLowerCase()));
+      const matchAccount = filterAccount === 'all' || transaction.account_id === filterAccount;
+      const matchCategory = filterCategory === 'all' || transaction.category_id === filterCategory;
       return matchSearch && matchAccount && matchCategory;
     });
     if (sortKey && sortDir) {
@@ -249,7 +254,7 @@ export default function TransactionsTable({
       });
     }
     return result;
-  }, [transactions, search, filterAccount, filterCategory, sortKey, sortDir]);
+  }, [transactions, search, filterAccount, filterCategory, sortKey, sortDir, t]);
 
   const exportFilteredTransactions = useCallback(() => {
     if (filtered.length === 0) {
@@ -406,7 +411,13 @@ export default function TransactionsTable({
                   <option value="all">{t('transactions.allCategories', { ns: 'portal' })}</option>
                   {categories
                     .filter((category) => filterType === 'all' || category.category_type === filterType)
-                    .map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+                    .map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {translateSystemCategoryName(category.name, (key, options) =>
+                          t(key, { ...(options || {}), ns: 'common' })
+                        )}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div>
@@ -496,7 +507,9 @@ export default function TransactionsTable({
                           {txn.category ? (
                             <span className="inline-flex items-center gap-1.5">
                               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: catColor }} />
-                              <span>{txn.category.name}</span>
+                              <span>{translateSystemCategoryName(txn.category.name, (key, options) =>
+                                t(key, { ...(options || {}), ns: 'common' })
+                              )}</span>
                             </span>
                           ) : (
                             <span>{t('transactions.uncategorized', { ns: 'portal' })}</span>
@@ -606,7 +619,11 @@ export default function TransactionsTable({
                           {txn.category ? (
                             <span className="flex items-center gap-1.5">
                               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
-                              <span className="text-sm text-foreground">{txn.category.name}</span>
+                              <span className="text-sm text-foreground">
+                                {translateSystemCategoryName(txn.category.name, (key, options) =>
+                                  t(key, { ...(options || {}), ns: 'common' })
+                                )}
+                              </span>
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">—</span>

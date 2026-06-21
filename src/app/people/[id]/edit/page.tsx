@@ -11,12 +11,8 @@ import CurrencySelector from '@/components/CurrencySelector';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 
-const RELATIONSHIPS: { value: RelationshipType; label: string }[] = [
-  { value: 'spouse', label: 'Spouse' }, { value: 'child', label: 'Child' },
-  { value: 'parent', label: 'Parent' }, { value: 'sibling', label: 'Sibling' },
-  { value: 'friend', label: 'Friend' }, { value: 'relative', label: 'Relative' },
-  { value: 'colleague', label: 'Colleague' }, { value: 'client', label: 'Client' },
-  { value: 'other', label: 'Other' },
+const RELATIONSHIPS: RelationshipType[] = [
+  'spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other',
 ];
 
 export default function EditPersonPage() {
@@ -133,7 +129,11 @@ export default function EditPersonPage() {
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.relationship', { ns: 'portal' })}</label>
             <select value={form.relationship} onChange={(e) => setForm({ ...form, relationship: e.target.value as RelationshipType })}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-              {RELATIONSHIPS.map((r) => <option key={r.value} value={r.value}>{t(`people.relationships.${r.value}` as const, { ns: 'portal', defaultValue: r.label })}</option>)}
+              {RELATIONSHIPS.map((relationship) => (
+                <option key={relationship} value={relationship}>
+                  {t(`people.relationships.${relationship}` as const, { ns: 'portal' })}
+                </option>
+              ))}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-4">

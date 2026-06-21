@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const SHOW_OFFSET = 280;
 
 export default function PublicBackToTop() {
+  const { t } = useTranslation('public');
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export default function PublicBackToTop() {
     <button
       type="button"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      aria-label="Back to top"
+      aria-label={t('footer.backToTop')}
       className="fixed bottom-5 right-4 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card/95 text-primary shadow-card backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:bottom-6 sm:right-6"
     >
       <ArrowUp size={18} />

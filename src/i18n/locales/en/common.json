@@ -41,7 +41,8 @@
     "refresh": "Refresh",
     "apply": "Apply",
     "reset": "Reset",
-    "submit": "Submit"
+    "submit": "Submit",
+    "continue": "Continue"
   },
   "status": {
     "loading": "Loading...",
@@ -55,7 +56,9 @@
     "inactive": "Inactive",
     "pending": "Pending",
     "completed": "Completed",
-    "archived": "Archived"
+    "archived": "Archived",
+    "creating": "Creating...",
+    "processing": "Processing..."
   },
   "empty": {
     "noData": "No data available",
@@ -140,5 +143,26 @@
     "searchPhone": "Search country or phone code...",
     "loading": "Loading countries...",
     "noneFound": "No countries found"
+  },
+  "validation": {
+    "validAmount": "Enter a valid amount"
+  },
+  "systemCategories": {
+    "salary": "Salary",
+    "freelance": "Freelance",
+    "investmentReturns": "Investment Returns",
+    "otherIncome": "Other Income",
+    "foodDining": "Food & Dining",
+    "housing": "Housing",
+    "transport": "Transport",
+    "utilities": "Utilities",
+    "shopping": "Shopping",
+    "healthcare": "Healthcare",
+    "entertainment": "Entertainment",
+    "travel": "Travel",
+    "education": "Education",
+    "subscriptions": "Subscriptions",
+    "savings": "Savings",
+    "transfer": "Transfer"
   }
 }

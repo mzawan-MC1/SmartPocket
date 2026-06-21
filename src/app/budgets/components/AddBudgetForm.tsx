@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 import { createBudget, getCategories, updateBudget, type Budget, type Category } from '@/lib/finance';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -43,14 +44,17 @@ function buildInitialFormState(budget: Budget | null): BudgetFormState {
   };
 }
 
-function formatSemimonthlySchedule(context: UserFinancialPeriodContext | null) {
+function formatSemimonthlySchedule(
+  context: UserFinancialPeriodContext | null,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
   const config = context?.config;
   if (!config || config.semimonthlyDay1 === null || config.semimonthlyDay2 === null) {
     return null;
   }
   const formatDay = (value: number) => {
     if (value === 0) {
-      return 'last day of the month';
+      return t('financialPeriods.paySchedule.lastDayOfMonth', { ns: 'portal' });
     }
     const mod100 = value % 100;
     if (mod100 >= 11 && mod100 <= 13) {
@@ -65,6 +69,73 @@ function formatSemimonthlySchedule(context: UserFinancialPeriodContext | null) {
   return `${formatDay(config.semimonthlyDay1)} and ${formatDay(config.semimonthlyDay2)}`;
 }
 
+function getBudgetPeriodLabel(
+  period: BudgetPeriod,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (period) {
+    case 'weekly':
+      return t('financialPeriods.budgetPeriods.weekly', { ns: 'portal' });
+    case 'biweekly':
+      return t('financialPeriods.budgetPeriods.biweekly', { ns: 'portal' });
+    case 'semimonthly':
+      return t('financialPeriods.budgetPeriods.semimonthly', { ns: 'portal' });
+    case 'custom':
+      return t('financialPeriods.budgetPeriods.custom', { ns: 'portal' });
+    case 'monthly':
+    default:
+      return t('financialPeriods.budgetPeriods.monthly', { ns: 'portal' });
+  }
+}
+
+function translateBudgetValidationError(
+  message: string | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (!message) return null;
+
+  switch (message) {
+    case 'Enter a valid IANA timezone such as Europe/London or Asia/Dubai.':
+      return t('financialPeriods.validation.timezone', { ns: 'portal' });
+    case 'Custom week start must be a day index from 0 to 6.':
+      return t('financialPeriods.validation.customWeekStartDay', { ns: 'portal' });
+    case 'Weekly schedules need a recent or upcoming payday anchor date.':
+      return t('financialPeriods.validation.weeklyAnchorDate', { ns: 'portal' });
+    case 'Every 2 weeks schedules need one recent or upcoming payday anchor date.':
+      return t('financialPeriods.validation.biweeklyAnchorDate', { ns: 'portal' });
+    case 'Custom schedules need an anchor date.':
+      return t('financialPeriods.validation.customAnchorDate', { ns: 'portal' });
+    case 'Choose the first semimonthly payday.':
+      return t('financialPeriods.validation.semimonthlyDay1Required', { ns: 'portal' });
+    case 'Choose the second semimonthly payday.':
+      return t('financialPeriods.validation.semimonthlyDay2Required', { ns: 'portal' });
+    case 'Semimonthly day 1 must be 1-31 or Last day of the month.':
+      return t('financialPeriods.validation.semimonthlyDay1Range', { ns: 'portal' });
+    case 'Semimonthly day 2 must be 1-31 or Last day of the month.':
+      return t('financialPeriods.validation.semimonthlyDay2Range', { ns: 'portal' });
+    case 'Twice-a-month schedules need two different payday positions.':
+      return t('financialPeriods.validation.semimonthlyDifferentDays', { ns: 'portal' });
+    case 'The second semimonthly payday must be later in the month than the first.':
+      return t('financialPeriods.validation.semimonthlyDayOrder', { ns: 'portal' });
+    case 'Choose how monthly payday should be calculated.':
+      return t('financialPeriods.validation.monthlyRuleRequired', { ns: 'portal' });
+    case 'Specific monthly payday must be a day from 1 to 31.':
+      return t('financialPeriods.validation.monthlyDayRange', { ns: 'portal' });
+    case 'Irregular income uses current month as the dashboard default.':
+      return t('financialPeriods.validation.irregularDashboardPeriod', { ns: 'portal' });
+    default:
+      if (message.startsWith('Custom schedules must repeat every ')) {
+        const match = message.match(/(\d+)-(\d+)/);
+        return t('financialPeriods.validation.customCycleDays', {
+          ns: 'portal',
+          min: match?.[1] ?? '2',
+          max: match?.[2] ?? '90',
+        });
+      }
+      return message;
+  }
+}
+
 function getLegacyPeriodValue(budgetPeriod: BudgetPeriod): Budget['period'] {
   if (budgetPeriod === 'monthly') return 'monthly';
   if (budgetPeriod === 'weekly') return 'weekly';
@@ -72,6 +143,7 @@ function getLegacyPeriodValue(budgetPeriod: BudgetPeriod): Budget['period'] {
 }
 
 export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: AddBudgetFormProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const [isLoading, setIsLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
@@ -132,7 +204,7 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
     };
   }, [referenceData?.platformDefaultCurrency]);
 
-  const scheduleLabel = useMemo(() => formatSemimonthlySchedule(periodContext), [periodContext]);
+  const scheduleLabel = useMemo(() => formatSemimonthlySchedule(periodContext, t), [periodContext, t]);
   const budgetValidation = useMemo(() => {
     if (!periodContext) return null;
     return validateBudgetPeriodConfig({
@@ -149,27 +221,27 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
       || (budget.period_anchor_date || '') !== form.period_anchor_date
       || String(budget.custom_period_days || '') !== form.custom_period_days;
     return hasChanged
-      ? 'This budget period change applies immediately. Historical views are recalculated using the new period rule because effective-dated budget history is not stored yet.'
+      ? t('budgets.form.periodChangeWarning', { ns: 'portal' })
       : null;
-  }, [budget, form.budget_period, form.custom_period_days, form.period_anchor_date]);
+  }, [budget, form.budget_period, form.custom_period_days, form.period_anchor_date, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.category_id) { toast.error('Select a category'); return; }
-    if (!form.amount || parseFloat(form.amount) <= 0) { toast.error('Enter a valid amount'); return; }
-    if (!form.currency) { toast.error('Choose a currency'); return; }
-    if (!periodContext) { toast.error('Budget period settings are still loading'); return; }
+    if (!form.category_id) { toast.error(t('budgets.form.categoryRequired', { ns: 'portal' })); return; }
+    if (!form.amount || parseFloat(form.amount) <= 0) { toast.error(t('budgets.form.amountRequired', { ns: 'portal' })); return; }
+    if (!form.currency) { toast.error(t('budgets.form.currencyRequired', { ns: 'portal' })); return; }
+    if (!periodContext) { toast.error(t('budgets.form.loadingPeriodSettings', { ns: 'portal' })); return; }
     if (form.budget_period === 'semimonthly' && !scheduleLabel) {
-      toast.error('Update Income & Planning in Settings before creating a Twice a month budget');
+      toast.error(t('budgets.form.semimonthlyNeedsSettings', { ns: 'portal' }));
       return;
     }
     if (!budgetValidation?.isValid) {
-      toast.error(budgetValidation?.error || 'Budget period configuration is incomplete');
+      toast.error(translateBudgetValidationError(budgetValidation?.error, t) || t('budgets.form.incompletePeriodConfig', { ns: 'portal' }));
       return;
     }
     setIsLoading(true);
     try {
-      const budgetName = form.name.trim() || categories.find((c) => c.id === form.category_id)?.name || 'Budget';
+      const budgetName = form.name.trim() || categories.find((c) => c.id === form.category_id)?.name || t('budgets.budgetFallback', { ns: 'portal' });
       const resolvedPeriod = getCurrentBudgetPeriod({
         budget_period: form.budget_period,
         period_anchor_date: form.period_anchor_date || null,
@@ -201,7 +273,7 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
       });
       onSuccess();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : `Failed to ${budget ? 'update' : 'create'} budget`);
+      toast.error(e instanceof Error ? e.message : t(budget ? 'budgets.updateFailed' : 'budgets.createFailed', { ns: 'portal' }));
     } finally {
       setIsLoading(false);
     }
@@ -210,7 +282,7 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-        This budget keeps its own period. Changing your Settings later will not modify it.
+        {t('budgets.form.periodIsolationNotice', { ns: 'portal' })}
       </div>
       {periodChangeWarning ? (
         <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning">
@@ -218,36 +290,36 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
         </div>
       ) : null}
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">Category</label>
+        <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.category', { ns: 'portal' })}</label>
         <select className="input-base" value={form.category_id} onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}>
-          <option value="">Select a category</option>
+          <option value="">{t('budgets.form.selectCategory', { ns: 'portal' })}</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">Budget Name</label>
-        <input type="text" className="input-base" placeholder="e.g. Food & Dining" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+        <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.name', { ns: 'portal' })}</label>
+        <input type="text" className="input-base" placeholder={t('budgets.form.namePlaceholder', { ns: 'portal' })} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Amount *</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.amount', { ns: 'portal' })}</label>
           <input type="number" step="0.01" min="0.01" className="input-base font-tabular" placeholder="0.00" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
         </div>
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Currency</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.currency', { ns: 'portal' })}</label>
           <CurrencySelector
             value={form.currency}
             onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
-            placeholder="Choose currency"
+            placeholder={t('budgets.form.currencyPlaceholder', { ns: 'portal' })}
           />
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Budget period</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.period', { ns: 'portal' })}</label>
           <select
             className="input-base"
-            aria-label="Budget period"
+            aria-label={t('budgets.form.period', { ns: 'portal' })}
             value={form.budget_period}
             onChange={(e) => {
               const nextPeriod = e.target.value as BudgetPeriod;
@@ -264,19 +336,19 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
             }}
           >
             {(['weekly', 'biweekly', 'semimonthly', 'monthly', 'custom'] as BudgetPeriod[]).map((period) => (
-              <option key={period} value={period}>{getBudgetPeriodTypeLabel(period)}</option>
+              <option key={period} value={period}>{getBudgetPeriodLabel(period, t)}</option>
             ))}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Alert at %</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.alertAtPercent', { ns: 'portal' })}</label>
           <input type="number" min="1" max="100" className="input-base" value={form.alert_at_percent} onChange={(e) => setForm((f) => ({ ...f, alert_at_percent: e.target.value }))} />
         </div>
       </div>
       {form.budget_period === 'weekly' || form.budget_period === 'biweekly' || form.budget_period === 'custom' ? (
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">
-            {form.budget_period === 'weekly' ? 'Anchor date' : form.budget_period === 'biweekly' ? 'Anchor date *' : 'Anchor date *'}
+            {t('budgets.form.anchorDate', { ns: 'portal' })}
           </label>
           <input
             type="date"
@@ -286,16 +358,16 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
           />
           <p className="mt-1 text-xs text-muted-foreground">
             {form.budget_period === 'weekly'
-              ? 'Weekly budgets auto-fill a current weekly anchor, and you can change it if needed.'
+              ? t('budgets.form.anchorDateHelp.weekly', { ns: 'portal' })
               : form.budget_period === 'biweekly'
-                ? 'Every 2 weeks budgets use this anchor date to calculate exact 14-day cycles.'
-                : 'Custom budgets repeat from this anchor date.'}
+                ? t('budgets.form.anchorDateHelp.biweekly', { ns: 'portal' })
+                : t('budgets.form.anchorDateHelp.custom', { ns: 'portal' })}
           </p>
         </div>
       ) : null}
       {form.budget_period === 'custom' ? (
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Cycle length in days *</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.cycleLengthDays', { ns: 'portal' })}</label>
           <input
             type="number"
             min="2"
@@ -308,31 +380,31 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
       ) : null}
       {form.budget_period === 'semimonthly' ? (
         <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm">
-          <p className="font-600 text-foreground mb-1">Twice a month schedule</p>
+          <p className="font-600 text-foreground mb-1">{t('budgets.form.semimonthlyTitle', { ns: 'portal' })}</p>
           {scheduleLabel ? (
             <p className="text-muted-foreground">{scheduleLabel}</p>
           ) : profileLoading ? (
-            <p className="text-muted-foreground">Loading your saved income schedule...</p>
+            <p className="text-muted-foreground">{t('budgets.form.loadingIncomeSchedule', { ns: 'portal' })}</p>
           ) : (
             <p className="text-warning">
-              Budget period configuration is incomplete. Update your semimonthly schedule in{' '}
+              {t('budgets.form.semimonthlyConfigIncomplete', { ns: 'portal' })}{' '}
               <Link href="/settings" className="underline underline-offset-2">
-                Settings
+                {t('settings.title', { ns: 'portal' })}
               </Link>
-              {' '}before using a Twice a month budget.
+              {' '}{t('budgets.form.semimonthlySettingsSuffix', { ns: 'portal' })}
             </p>
           )}
         </div>
       ) : null}
       {budgetValidation && !budgetValidation.isValid ? (
         <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning">
-          {budgetValidation.error}
+          {translateBudgetValidationError(budgetValidation.error, t)}
         </div>
       ) : null}
       <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn-secondary">{t('actions.cancel', { ns: 'common' })}</button>
         <button type="submit" disabled={isLoading} className="btn-primary">
-          {isLoading ? <><Loader2 size={15} className="animate-spin" /> {budget ? 'Saving...' : 'Creating...'}</> : budget ? 'Save Budget' : 'Create Budget'}
+          {isLoading ? <><Loader2 size={15} className="animate-spin" /> {budget ? t('status.saving', { ns: 'common' }) : t('status.creating', { ns: 'common' })}</> : budget ? t('budgets.editAction', { ns: 'portal' }) : t('budgets.addCategoryBudget', { ns: 'portal' })}
         </button>
       </div>
     </form>

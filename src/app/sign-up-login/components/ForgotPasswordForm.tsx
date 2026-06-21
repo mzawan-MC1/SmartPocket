@@ -37,7 +37,7 @@ export default function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) 
       setSent(true);
       toast.success(t('forgotPassword.success', { ns: 'auth' }));
     } catch (err: any) {
-      toast.error(err?.message || `${t('forgotPassword.submit', { ns: 'auth' })} failed.`);
+      toast.error(err?.message || t('forgotPassword.submitFailed', { ns: 'auth' }));
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +57,7 @@ export default function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) 
           <h2 className="text-xl font-700 text-foreground mb-2">{t('forgotPassword.submit', { ns: 'auth' })}</h2>
           <p className="text-sm text-muted-foreground max-w-xs mx-auto">
             {t('forgotPassword.sentMessage', { ns: 'auth' })}{' '}
-            <span className="font-600 text-foreground">{getValues('email')}</span>. Check your inbox.
+            <span className="font-600 text-foreground">{getValues('email')}</span>. {t('forgotPassword.checkInbox', { ns: 'auth' })}
           </p>
           <p className="text-xs text-muted-foreground mt-3">
             {t('forgotPassword.sentHelp', { ns: 'auth' })}{' '}

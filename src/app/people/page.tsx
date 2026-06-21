@@ -12,10 +12,17 @@ import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 
-const RELATIONSHIP_LABELS: Record<string, string> = {
-  spouse: 'Spouse', child: 'Child', parent: 'Parent', sibling: 'Sibling',
-  friend: 'Friend', relative: 'Relative', colleague: 'Colleague', client: 'Client', other: 'Other',
-};
+const RELATIONSHIPS = [
+  'spouse',
+  'child',
+  'parent',
+  'sibling',
+  'friend',
+  'relative',
+  'colleague',
+  'client',
+  'other',
+] as const;
 
 const RELATIONSHIP_COLORS: Record<string, string> = {
   spouse: 'bg-pink-100 text-pink-700',
@@ -187,8 +194,10 @@ export default function ManagedPeoplePage() {
             className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             <option value="all">{t('people.allRelationships')}</option>
-            {Object.entries(RELATIONSHIP_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{t(`people.relationships.${k}` as const, { defaultValue: v })}</option>
+            {RELATIONSHIPS.map((relationship) => (
+              <option key={relationship} value={relationship}>
+                {t(`people.relationships.${relationship}` as const)}
+              </option>
             ))}
           </select>
           <button
@@ -256,7 +265,9 @@ export default function ManagedPeoplePage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-600 text-foreground truncate">{person.full_name}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-500 ${RELATIONSHIP_COLORS[person.relationship] || RELATIONSHIP_COLORS.other}`}>
-                        {t(`people.relationships.${person.relationship}` as const, { defaultValue: RELATIONSHIP_LABELS[person.relationship] || RELATIONSHIP_LABELS.other })}
+                        {t(`people.relationships.${person.relationship}` as const, {
+                          defaultValue: t('people.relationships.other'),
+                        })}
                       </span>
                       {person.is_archived && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-500">{t('people.archived')}</span>

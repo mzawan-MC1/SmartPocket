@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -100,7 +101,11 @@ export default function RecentTransactions() {
                     {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
-                    {txn.category?.name || t('recentTransactions.uncategorized', { ns: 'portal' })} · {txn.account?.name || ''}
+                    {txn.category?.name
+                      ? translateSystemCategoryName(txn.category.name, (key, options) =>
+                          t(key, { ...(options || {}), ns: 'common' })
+                        )
+                      : t('recentTransactions.uncategorized', { ns: 'portal' })} · {txn.account?.name || ''}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">

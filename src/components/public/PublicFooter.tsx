@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Social icon components using SVG to avoid lucide-react version issues
 function TwitterIcon({ size = 18 }: { size?: number }) {
@@ -68,8 +69,10 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
 
 export default function PublicFooter() {
   const { t } = useTranslation('public');
+  const { language } = useLanguage();
   const { branding, publicUi } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
+  const showSingleLanguageFooterTagline = language === 'en';
   const year = new Date().getFullYear();
   const legalSection = publicUi.footerSections.find(
     (section) => section.title.trim().toLowerCase() === 'legal'
@@ -93,13 +96,15 @@ export default function PublicFooter() {
                   <span className="block font-800 text-sm tracking-tight text-primary">
                     {branding.appName}
                   </span>
-                  <span className="block text-xs text-muted-foreground mt-1">
-                    {publicUi.footerTagline}
-                  </span>
+                  {showSingleLanguageFooterTagline && publicUi.footerTagline ? (
+                    <span className="block text-xs text-muted-foreground mt-1">
+                      {publicUi.footerTagline}
+                    </span>
+                  ) : null}
                 </div>
               )}
             </Link>
-            {!showBrandText && publicUi.footerTagline && (
+            {!showBrandText && showSingleLanguageFooterTagline && publicUi.footerTagline && (
               <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
                 {publicUi.footerTagline}
               </p>

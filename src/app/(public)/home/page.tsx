@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeroSettings {
   hero_title?: string;
@@ -77,7 +78,7 @@ function DashboardPreview() {
           <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
           <span className="w-3 h-3 rounded-full bg-green-400/70" />
           <div className="flex-1 mx-4 h-6 rounded-md bg-muted/60 flex items-center px-3">
-            <span className="text-[10px] text-muted-foreground">smartpocket.app/dashboard</span>
+            <span className="text-[10px] text-muted-foreground">{t('home.preview.dashboardUrl')}</span>
           </div>
         </div>
 
@@ -161,7 +162,7 @@ function DashboardPreview() {
               {[
                 { name: t('home.preview.groceryStore'), cat: t('home.preview.food'), amount: '-$84.20', color: 'text-destructive' },
                 { name: t('home.preview.salaryDeposit'), cat: t('home.preview.income'), amount: '+$3,200', color: 'text-positive' },
-                { name: 'Netflix', cat: t('home.preview.subscriptions'), amount: '-$15.99', color: 'text-destructive' },
+                { name: t('home.preview.streamingSubscription'), cat: t('home.preview.subscriptions'), amount: '-$15.99', color: 'text-destructive' },
               ].map((tx) => (
                 <div key={tx.name} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
                   <div className="flex items-center gap-2">
@@ -184,7 +185,7 @@ function DashboardPreview() {
       {/* Floating mobile card */}
       <div className="absolute -bottom-6 -right-4 sm:-right-8 w-28 sm:w-36 rounded-2xl border border-border bg-card shadow-xl overflow-hidden hidden sm:block">
         <div className="bg-accent px-3 py-2">
-          <p className="text-[9px] font-700 text-accent-foreground uppercase tracking-wider">Smart Pocket</p>
+          <p className="text-[9px] font-700 text-accent-foreground uppercase tracking-wider">{t('home.preview.brandName')}</p>
         </div>
         <div className="p-3 space-y-2">
           <div>
@@ -214,6 +215,7 @@ function DashboardPreview() {
 
 export default function HomePage() {
   const { t } = useTranslation(['public', 'common']);
+  const { language } = useLanguage();
   const [hero, setHero] = useState<HeroSettings>({});
 
   useEffect(() => {
@@ -224,10 +226,11 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
-  const heroTitle = hero.hero_title || t('home.hero.title');
-  const heroSubtitle = hero.hero_subtitle || t('home.hero.subtitle');
-  const heroCTAPrimary = hero.hero_cta_primary || t('home.hero.primaryCta');
-  const heroCTASecondary = hero.hero_cta_secondary || t('home.hero.secondaryCta');
+  const canUseSingleLanguageHeroOverride = language === 'en';
+  const heroTitle = canUseSingleLanguageHeroOverride && hero.hero_title ? hero.hero_title : t('home.hero.title');
+  const heroSubtitle = canUseSingleLanguageHeroOverride && hero.hero_subtitle ? hero.hero_subtitle : t('home.hero.subtitle');
+  const heroCTAPrimary = canUseSingleLanguageHeroOverride && hero.hero_cta_primary ? hero.hero_cta_primary : t('home.hero.primaryCta');
+  const heroCTASecondary = canUseSingleLanguageHeroOverride && hero.hero_cta_secondary ? hero.hero_cta_secondary : t('home.hero.secondaryCta');
   const plans = PLANS.map((plan) => ({
     ...plan,
     name: t(`home.pricing.${plan.id}Name`),

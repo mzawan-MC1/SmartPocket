@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   BarChart,
   Bar,
@@ -53,6 +54,7 @@ export default function MonthlyTrendsChart({
   data: MonthlyTrendsChartRow[];
   currencyCode: string;
 }) {
+  const { t } = useTranslation('portal');
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -71,9 +73,9 @@ export default function MonthlyTrendsChart({
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
         <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
-        <Bar dataKey="income" fill="var(--positive)" radius={[3, 3, 0, 0]} barSize={20} />
-        <Bar dataKey="expenses" fill="var(--negative)" radius={[3, 3, 0, 0]} barSize={20} />
-        <Bar dataKey="savings" fill="var(--accent)" radius={[3, 3, 0, 0]} barSize={20} />
+        <Bar dataKey="income" name={t('reports.summary.totalIncome')} fill="var(--positive)" radius={[3, 3, 0, 0]} barSize={20} />
+        <Bar dataKey="expenses" name={t('reports.summary.totalExpenses')} fill="var(--negative)" radius={[3, 3, 0, 0]} barSize={20} />
+        <Bar dataKey="savings" name={t('reports.summary.netSavings')} fill="var(--accent)" radius={[3, 3, 0, 0]} barSize={20} />
       </BarChart>
     </ResponsiveContainer>
   );

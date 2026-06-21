@@ -1,9 +1,11 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { X, TrendingDown, TrendingUp, ArrowUpDown, Receipt } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getTransactions, type Transaction, type FinancialAccount } from '@/lib/finance';
 import EmptyState from '@/components/ui/EmptyState';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 interface AccountDetailPanelProps {
   account: FinancialAccount;
@@ -11,6 +13,7 @@ interface AccountDetailPanelProps {
 }
 
 export default function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,13 +44,13 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
             <button
               onClick={onClose}
               className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              aria-label="Close panel"
+              aria-label={t('actions.close', { ns: 'common' })}
             >
               <X size={16} className="text-white" />
             </button>
           </div>
           <div>
-            <p className="text-white/60 text-xs">Current Balance</p>
+            <p className="text-white/60 text-xs">{t('accounts.currentBalance', { ns: 'portal' })}</p>
             <p className={`text-3xl font-800 font-tabular mt-0.5 ${account.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
               <FormattedCurrencyAmount
                 amount={account.current_balance}
@@ -61,7 +64,7 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 p-4 border-b border-border">
           <div className="bg-muted/40 rounded-xl p-3">
-            <p className="text-xs text-muted-foreground mb-1">Opening Balance</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('accounts.openingBalance', { ns: 'portal' })}</p>
             <FormattedCurrencyAmount
               amount={account.opening_balance}
               currencyCode={account.currency}
@@ -69,7 +72,7 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
             />
           </div>
           <div className="bg-muted/40 rounded-xl p-3">
-            <p className="text-xs text-muted-foreground mb-1">Net Change</p>
+            <p className="text-xs text-muted-foreground mb-1">{t('reports.summary.netChange', { ns: 'portal' })}</p>
             <FormattedCurrencyAmount
               amount={account.current_balance - account.opening_balance}
               currencyCode={account.currency}
@@ -81,7 +84,7 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
         {/* Notes */}
         {account.notes && (
           <div className="px-4 py-3 border-b border-border">
-            <p className="text-xs font-600 text-muted-foreground mb-1">Notes</p>
+            <p className="text-xs font-600 text-muted-foreground mb-1">{t('people.form.notes', { ns: 'portal' })}</p>
             <p className="text-sm text-foreground">{account.notes}</p>
           </div>
         )}
@@ -89,7 +92,7 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
         {/* Recent Transactions */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-700 text-foreground">Recent Transactions</h3>
+            <h3 className="text-sm font-700 text-foreground">{t('transactions.recentTransactions', { ns: 'portal', defaultValue: 'Recent Transactions' })}</h3>
           </div>
           {loading ? (
             <div className="divide-y divide-border">
@@ -106,7 +109,7 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
             </div>
           ) : transactions.length === 0 ? (
             <div className="px-4 py-8">
-              <EmptyState icon={Receipt} title="No transactions" description="No transactions for this account yet." />
+              <EmptyState icon={Receipt} title={t('common.empty.noTransactions', { defaultValue: t('empty.noTransactions', { ns: 'common' }) })} description={t('accounts.detail.noTransactionsYet', { ns: 'portal', defaultValue: 'No transactions for this account yet.' })} />
             </div>
           ) : (
             <div className="divide-y divide-border">
@@ -125,7 +128,11 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-600 text-foreground truncate">{txn.merchant || txn.description}</p>
                     <p className="text-xs text-muted-foreground">
-                      {txn.category?.name || 'Uncategorized'} · {txn.transaction_date}
+                      {txn.category?.name
+                        ? translateSystemCategoryName(txn.category.name, (key, options) =>
+                            t(key, { ...(options || {}), ns: 'common' })
+                          )
+                        : t('reports.chartLabels.uncategorized', { ns: 'portal' })} · {txn.transaction_date}
                     </p>
                   </div>
                   <span className={`text-sm font-700 font-tabular flex-shrink-0 ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>

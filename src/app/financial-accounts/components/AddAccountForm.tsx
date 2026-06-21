@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface AddAccountFormData {
   name: string;
@@ -16,10 +17,11 @@ interface AddAccountFormProps {
   onCancel: () => void;
 }
 
-const accountTypes = ['Bank', 'Credit Card', 'Savings', 'Cash', 'Digital Wallet', 'Investment', 'Custom'];
+const accountTypes = ['bank', 'credit_card', 'savings', 'cash', 'digital_wallet', 'investment', 'other'] as const;
 const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'];
 
 export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
+  const { t } = useTranslation(['portal', 'common']);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -27,7 +29,7 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
     handleSubmit,
     formState: { errors },
   } = useForm<AddAccountFormData>({
-    defaultValues: { currency: 'USD', type: 'Bank', openingBalance: '0.00' },
+    defaultValues: { currency: 'USD', type: 'bank', openingBalance: '0.00' },
   });
 
   // Backend integration point: POST /api/accounts
@@ -44,29 +46,33 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="sm:col-span-2">
           <label htmlFor="acct-name" className="block text-sm font-600 text-foreground mb-1.5">
-            Account Name <span className="text-negative">*</span>
+            {t('accounts.form.name', { ns: 'portal' })} <span className="text-negative">*</span>
           </label>
           <input
             id="acct-name"
             type="text"
             className={`input-base ${errors.name ? 'input-error' : ''}`}
-            placeholder="e.g. Chase Checking, Cash Wallet"
-            {...register('name', { required: 'Account name is required' })}
+            placeholder={t('accounts.form.namePlaceholder', { ns: 'portal' })}
+            {...register('name', { required: t('accounts.form.nameRequired', { ns: 'portal' }) })}
           />
           {errors.name && <p className="mt-1.5 text-xs text-negative font-500">{errors.name.message}</p>}
         </div>
 
         <div>
           <label htmlFor="acct-type" className="block text-sm font-600 text-foreground mb-1.5">
-            Account Type <span className="text-negative">*</span>
+            {t('accounts.form.type', { ns: 'portal' })} <span className="text-negative">*</span>
           </label>
           <select
             id="acct-type"
             className={`input-base ${errors.type ? 'input-error' : ''}`}
-            {...register('type', { required: 'Account type is required' })}
+            {...register('type', { required: t('accounts.form.typeRequired', { ns: 'portal' }) })}
           >
-            {accountTypes.map((t) => (
-              <option key={`acct-type-${t}`} value={t}>{t}</option>
+            {accountTypes.map((accountType) => (
+              <option key={`acct-type-${accountType}`} value={accountType}>
+                {accountType === 'credit_card'
+                  ? t('accounts.types.creditCard', { ns: 'portal' })
+                  : t(`accounts.types.${accountType === 'digital_wallet' ? 'digitalWallet' : accountType}`, { ns: 'portal' })}
+              </option>
             ))}
           </select>
           {errors.type && <p className="mt-1.5 text-xs text-negative font-500">{errors.type.message}</p>}
@@ -74,7 +80,7 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
 
         <div>
           <label htmlFor="acct-currency" className="block text-sm font-600 text-foreground mb-1.5">
-            Currency <span className="text-negative">*</span>
+            {t('accounts.form.currency', { ns: 'portal', defaultValue: t('settings.preferences.defaultCurrency', { ns: 'portal' }) })} <span className="text-negative">*</span>
           </label>
           <select
             id="acct-currency"
@@ -89,10 +95,10 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
 
         <div className="sm:col-span-2">
           <label htmlFor="acct-opening" className="block text-sm font-600 text-foreground mb-1.5">
-            Opening Balance
+            {t('accounts.openingBalance', { ns: 'portal' })}
           </label>
           <p className="text-xs text-muted-foreground mb-1.5">
-            The current balance of this account. Use a negative number for credit card debt.
+            {t('accounts.form.openingBalanceHelper', { ns: 'portal' })}
           </p>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-600">$</span>
@@ -103,7 +109,7 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
               className={`input-base pl-7 font-tabular ${errors.openingBalance ? 'input-error' : ''}`}
               placeholder="0.00"
               {...register('openingBalance', {
-                pattern: { value: /^-?\d+(\.\d{0,2})?$/, message: 'Enter a valid amount' },
+                pattern: { value: /^-?\d+(\.\d{0,2})?$/, message: t('validation.validAmount', { ns: 'common' }) },
               })}
             />
           </div>
@@ -114,25 +120,25 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
 
         <div className="sm:col-span-2">
           <label htmlFor="acct-notes" className="block text-sm font-600 text-foreground mb-1.5">
-            Notes
+            {t('people.form.notes', { ns: 'portal' })}
           </label>
           <textarea
             id="acct-notes"
             rows={2}
             className="input-base resize-none"
-            placeholder="Optional notes about this account..."
+            placeholder={t('accounts.form.notesPlaceholder', { ns: 'portal' })}
             {...register('notes')}
           />
         </div>
       </div>
 
       <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">Cancel</button>
+        <button type="button" onClick={onCancel} className="btn-secondary">{t('actions.cancel', { ns: 'common' })}</button>
         <button type="submit" disabled={isLoading} className="btn-primary">
           {isLoading ? (
-            <><Loader2 size={15} className="animate-spin" />Adding Account...</>
+            <><Loader2 size={15} className="animate-spin" />{t('status.creating', { ns: 'common' })}</>
           ) : (
-            'Add Account'
+            t('accounts.addAccount', { ns: 'portal' })
           )}
         </button>
       </div>

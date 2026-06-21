@@ -22,7 +22,8 @@
     "linkFeatures": "Features",
     "linkPricing": "Pricing",
     "linkContact": "Contact",
-    "linkHelp": "Help Center"
+    "linkHelp": "Help Center",
+    "backToTop": "Back to top"
   },
   "home": {
     "hero": {
@@ -158,7 +159,8 @@
     },
     "languages": {
       "ltr": "LTR",
-      "rtl": "RTL"
+      "rtl": "RTL",
+      "label": "Interface languages"
     },
     "cta": {
       "primary": "Create Account",
@@ -183,7 +185,10 @@
       "subscriptions": "Subscriptions",
       "balance": "Balance",
       "inShort": "In",
-      "outShort": "Out"
+      "outShort": "Out",
+      "dashboardUrl": "smartpocket.app/dashboard",
+      "streamingSubscription": "Streaming Subscription",
+      "brandName": "Smart Pocket"
     },
     "auth": {
       "apple": "Sign in with Apple",
@@ -233,7 +238,8 @@
     "featureSecurity": "Protect your data with row-level access control",
     "footerNote": "Your data stays yours.",
     "unavailableTitle": "Authentication unavailable",
-    "unavailableDescription": "No sign-in methods are currently enabled. Please contact support or try again later."
+    "unavailableDescription": "No sign-in methods are currently enabled. Please contact support or try again later.",
+    "brandHeadline": "Personal Finance, Simplified"
   },
   "contact": {
     "metadataTitle": "Contact Us",
@@ -345,5 +351,18 @@
         }
       ]
     }
+  },
+  "getStarted": "Get Started",
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist. Let's get you back.",
+    "goBack": "Go Back",
+    "backHome": "Back to Home"
+  },
+  "offline": {
+    "title": "You're offline",
+    "description": "Smart Pocket requires an internet connection to sync your financial data. Please check your connection and try again.",
+    "retry": "Try Again",
+    "helper": "Your data is safe and will sync when you reconnect."
   }
 }

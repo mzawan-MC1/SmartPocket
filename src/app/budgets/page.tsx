@@ -23,6 +23,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import type { BudgetPeriod } from '@/lib/financial-periods';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
 
@@ -71,7 +72,7 @@ function groupBudgetSummaries(items: BudgetTrackingItem[]) {
 const PERIOD_FILTERS: Array<'all' | BudgetPeriod> = ['all', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'custom'];
 
 export default function BudgetsPage() {
-  const { t } = useTranslation('portal');
+  const { t } = useTranslation(['portal', 'common']);
   const [overview, setOverview] = useState<BudgetTrackingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -390,7 +391,13 @@ export default function BudgetsPage() {
                           <span className="text-base" style={{ color: catColor }}>●</span>
                         </div>
                         <div>
-                          <p className="text-sm font-700 text-foreground">{bud.category?.name || bud.name}</p>
+                          <p className="text-sm font-700 text-foreground">
+                            {bud.category?.name
+                              ? translateSystemCategoryName(bud.category.name, (key, options) =>
+                                  t(key, { ...(options || {}), ns: 'common' })
+                                )
+                              : bud.name}
+                          </p>
                           <p className="text-[11px] text-muted-foreground">
                             {t('budgets.periodBudget', { period: item.periodTypeLabel })}
                           </p>
@@ -513,7 +520,11 @@ export default function BudgetsPage() {
         isOpen={!!editingBudget && !showAddModal}
         onClose={() => setEditingBudget(null)}
         title={t('budgets.editBudget', {
-          name: editingBudget?.category?.name || editingBudget?.name || t('budgets.budgetFallback'),
+          name: editingBudget?.category?.name
+            ? translateSystemCategoryName(editingBudget.category.name, (key, options) =>
+                t(key, { ...(options || {}), ns: 'common' })
+              )
+            : editingBudget?.name || t('budgets.budgetFallback'),
         })}
         size="md"
       >
@@ -532,7 +543,13 @@ export default function BudgetsPage() {
           setDetailSnapshot(null);
           setDetailReferenceDate(null);
         }}
-        title={detailBudget?.category?.name || detailBudget?.name || t('budgets.detailsTitle')}
+        title={
+          detailBudget?.category?.name
+            ? translateSystemCategoryName(detailBudget.category.name, (key, options) =>
+                t(key, { ...(options || {}), ns: 'common' })
+              )
+            : detailBudget?.name || t('budgets.detailsTitle')
+        }
         size="lg"
       >
         {detailLoading || !detailSnapshot ? (

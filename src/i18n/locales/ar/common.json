@@ -41,7 +41,8 @@
     "refresh": "تحديث",
     "apply": "تطبيق",
     "reset": "إعادة تعيين",
-    "submit": "إرسال"
+    "submit": "إرسال",
+    "continue": "متابعة"
   },
   "status": {
     "loading": "جارٍ التحميل...",
@@ -55,7 +56,9 @@
     "inactive": "غير نشط",
     "pending": "قيد الانتظار",
     "completed": "مكتمل",
-    "archived": "مؤرشف"
+    "archived": "مؤرشف",
+    "creating": "جارٍ الإنشاء...",
+    "processing": "جارٍ المعالجة..."
   },
   "empty": {
     "noData": "لا توجد بيانات",
@@ -140,5 +143,26 @@
     "searchPhone": "ابحث عن دولة أو رمز اتصال...",
     "loading": "جارٍ تحميل الدول...",
     "noneFound": "لم يتم العثور على دول"
+  },
+  "validation": {
+    "validAmount": "أدخل مبلغًا صالحًا"
+  },
+  "systemCategories": {
+    "salary": "الراتب",
+    "freelance": "العمل الحر",
+    "investmentReturns": "عوائد الاستثمار",
+    "otherIncome": "دخل آخر",
+    "foodDining": "الطعام والمطاعم",
+    "housing": "السكن",
+    "transport": "المواصلات",
+    "utilities": "المرافق",
+    "shopping": "التسوق",
+    "healthcare": "الرعاية الصحية",
+    "entertainment": "الترفيه",
+    "travel": "السفر",
+    "education": "التعليم",
+    "subscriptions": "الاشتراكات",
+    "savings": "المدخرات",
+    "transfer": "تحويل"
   }
 }

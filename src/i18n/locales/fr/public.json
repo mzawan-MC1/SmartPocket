@@ -14,7 +14,16 @@
     "poweredBy": "Propulsé par",
     "pages": "Pages",
     "privacy": "Confidentialité",
-    "terms": "Conditions"
+    "terms": "Conditions",
+    "sectionProduct": "Produit",
+    "sectionSupport": "Support",
+    "sectionLegal": "Juridique",
+    "linkAbout": "À propos",
+    "linkFeatures": "Fonctionnalités",
+    "linkPricing": "Tarifs",
+    "linkContact": "Contact",
+    "linkHelp": "Centre d'aide",
+    "backToTop": "Retour en haut"
   },
   "home": {
     "hero": {
@@ -31,7 +40,190 @@
       "securityTitle": "Sécurité et confidentialité d'abord",
       "pricingTitle": "Des tarifs simples et transparents",
       "languagesTitle": "Disponible en quatre langues d'interface",
-      "ctaTitle": "Prêt à reprendre le contrôle de votre argent ?"
+      "ctaTitle": "Prêt à reprendre le contrôle de votre argent ?",
+      "aboutDescription": "Du café quotidien au loyer mensuel, chaque transaction, chaque compte et chaque budget restent au même endroit.",
+      "featuresDescription": "Chaque fonctionnalité est conçue autour d'une seule question : vous aide-t-elle à mieux comprendre votre argent ?",
+      "stepsDescription": "Aucune connexion bancaire requise. Ajoutez vos comptes et commencez à suivre immédiatement.",
+      "platformDescription": "Smart Pocket est une application web progressive que vous pouvez installer sur n'importe quel appareil, utiliser dans n'importe quel navigateur moderne et garder disponible hors ligne.",
+      "securityDescription": "Vos données financières restent protégées grâce à l'isolation, au chiffrement et à des paramètres respectueux de la confidentialité.",
+      "pricingDescription": "Commencez gratuitement et passez à une offre supérieure seulement lorsque vous avez besoin de plus de capacité ou de collaboration.",
+      "languagesDescription": "Choisissez l'anglais, l'arabe, le français ou le russe pour l'interface tout en gardant la langue d'entrée Smart Entry séparée.",
+      "ctaDescription": "Créez votre compte, ajoutez vos comptes, puis suivez revenus, dépenses, budgets et rapports en quelques minutes."
+    },
+    "benefits": {
+      "balanceTitle": "Suivi des soldes en temps réel",
+      "balanceDescription": "Voyez chaque solde de compte se mettre à jour dès qu'une transaction est enregistrée.",
+      "budgetAlertsTitle": "Alertes budget avant dépassement",
+      "budgetAlertsDescription": "Recevez une alerte lorsque vous approchez de la limite d'une catégorie.",
+      "reportsTitle": "Rapports PDF et CSV à la demande",
+      "reportsDescription": "Générez instantanément des états financiers professionnels pour toute période.",
+      "recurringTitle": "Automatisation des opérations récurrentes",
+      "recurringDescription": "Configurez abonnements et factures récurrentes une seule fois, puis laissez Smart Pocket les suivre.",
+      "remindersTitle": "Rappels des paiements à venir",
+      "remindersDescription": "Ne ratez plus aucune facture. Le tableau de bord affiche ce qui arrive à échéance dans les 7 prochains jours.",
+      "rlsTitle": "Isolation des données au niveau des lignes",
+      "rlsDescription": "Vos données sont invisibles pour tout autre utilisateur, avec application directe en base."
+    },
+    "features": {
+      "accountsTitle": "Gestion multi-comptes",
+      "accountsDescription": "Suivez comptes bancaires, cartes, espèces, épargne et portefeuilles numériques avec soldes à jour.",
+      "dashboardTitle": "Tableau de bord intelligent",
+      "dashboardDescription": "Analysez revenus, dépenses, catégories et flux nets depuis un seul écran.",
+      "budgetsTitle": "Gestion des budgets",
+      "budgetsDescription": "Créez des budgets par catégorie avec progression visuelle et alertes de dépassement.",
+      "exportsTitle": "Rapports et exports",
+      "exportsDescription": "Générez des synthèses mensuelles, performances budgétaires et détails revenus/dépenses en PDF ou CSV.",
+      "recurringTitle": "Transactions récurrentes",
+      "recurringDescription": "Automatisez abonnements, loyer et salaires.",
+      "securityTitle": "Sécurité de niveau bancaire",
+      "securityDescription": "La sécurité au niveau des lignes de Supabase garantit que vous seul pouvez accéder à vos données."
+    },
+    "steps": {
+      "createTitle": "Créez votre compte",
+      "createDescription": "Inscrivez-vous avec les méthodes d'authentification actuellement activées sur votre plateforme.",
+      "accountsTitle": "Ajoutez vos comptes",
+      "accountsDescription": "Ajoutez comptes bancaires, cartes, espèces ou tout portefeuille que vous souhaitez suivre.",
+      "transactionsTitle": "Enregistrez les opérations",
+      "transactionsDescription": "Enregistrez revenus, dépenses et transferts, et joignez des reçus si nécessaire.",
+      "budgetsTitle": "Définissez des budgets",
+      "budgetsDescription": "Créez des budgets par catégorie et surveillez vos dépenses en temps réel.",
+      "reportsTitle": "Consultez les rapports",
+      "reportsDescription": "Générez des rapports PDF ou CSV pour n'importe quelle période, puis partagez-les ou archivez-les."
+    },
+    "platform": {
+      "mobileTitle": "Mobile (iOS et Android)",
+      "mobileDescription": "Installez-la depuis le navigateur sans boutique d'applications.",
+      "desktopTitle": "Ordinateur (Windows, macOS, Linux)",
+      "desktopDescription": "Profitez de l'expérience complète dans n'importe quel navigateur moderne.",
+      "tabletTitle": "Tablette et iPad",
+      "tabletDescription": "Les mises en page responsives s'adaptent proprement à toutes les tailles d'écran.",
+      "pwaTitle": "Installer comme une application",
+      "pwaDescription": "Ajoutez Smart Pocket à votre écran d'accueil et gardez-la disponible hors ligne avec synchronisation en arrière-plan."
+    },
+    "security": {
+      "rlsTitle": "Sécurité au niveau des lignes",
+      "rlsDescription": "L'isolation appliquée par la base garde vos données invisibles aux autres utilisateurs.",
+      "transitTitle": "Chiffré en transit",
+      "transitDescription": "Toutes les données transitent via TLS sans transmission en clair.",
+      "restTitle": "Chiffré au repos",
+      "restDescription": "Les données stockées restent chiffrées au niveau du stockage.",
+      "privacyTitle": "Aucune revente des données",
+      "privacyDescription": "Smart Pocket ne vend, ne partage ni ne monétise vos données financières.",
+      "label": "Sécurité et confidentialité",
+      "heading": "Vos données restent les vôtres",
+      "body": "Smart Pocket utilise Supabase avec Row Level Security, une politique au niveau de la base qui rend techniquement impossible pour un utilisateur de lire les données d'un autre.",
+      "readPrivacy": "Lire notre politique de confidentialité"
+    },
+    "pricing": {
+      "aboutTitle": "Une seule application pour toute votre vie financière",
+      "freeName": "Gratuit",
+      "freePrice": "$0",
+      "freePeriod": "à vie",
+      "freeCta": "Commencer gratuitement",
+      "proName": "Pro",
+      "proPrice": "$9.99",
+      "proPeriod": "/mois",
+      "proCta": "Démarrer l'essai Pro",
+      "familyName": "Famille",
+      "familyPrice": "$19.99",
+      "familyPeriod": "/mois",
+      "familyCta": "Démarrer l'essai Famille",
+      "subtitle": "Commencez gratuitement. Passez à l'offre supérieure quand vous avez besoin de plus de puissance.",
+      "mostPopular": "Le plus populaire",
+      "trialHint": "Toutes les offres payantes incluent un essai gratuit de 14 jours. Aucune carte bancaire requise pour commencer.",
+      "viewDetails": "Voir tous les détails tarifaires",
+      "freeFeatures": {
+        "1": "3 comptes",
+        "2": "100 transactions par mois",
+        "3": "Rapports de base",
+        "4": "2 devises"
+      },
+      "proFeatures": {
+        "1": "Comptes illimités",
+        "2": "Transactions illimitées",
+        "3": "Exports PDF et CSV",
+        "4": "Toutes les devises",
+        "5": "Stockage des reçus",
+        "6": "Support prioritaire"
+      },
+      "familyFeatures": {
+        "1": "Tout ce qui est dans Pro",
+        "2": "Jusqu'à 5 utilisateurs",
+        "3": "Budgets partagés",
+        "4": "Rapports familiaux"
+      }
+    },
+    "languages": {
+      "ltr": "LTR",
+      "rtl": "RTL",
+      "label": "Langues d'interface"
+    },
+    "cta": {
+      "primary": "Créer un compte",
+      "secondary": "Nous contacter"
+    },
+    "available": "Disponible",
+    "learnMore": "En savoir plus",
+    "lovedWorldwide": "Adoré par des utilisateurs dans le monde entier",
+    "preview": {
+      "totalBalance": "Solde total",
+      "income": "Revenus",
+      "expenses": "Dépenses",
+      "netFlow": "Flux net",
+      "incomeVsExpenses": "Revenus vs dépenses - 6 mois",
+      "spendingByCategory": "Dépenses par catégorie",
+      "food": "Alimentation",
+      "transport": "Transport",
+      "bills": "Factures",
+      "recentTransactions": "Transactions récentes",
+      "groceryStore": "Épicerie",
+      "salaryDeposit": "Versement du salaire",
+      "subscriptions": "Abonnements",
+      "balance": "Solde",
+      "inShort": "Entrées",
+      "outShort": "Sorties",
+      "dashboardUrl": "smartpocket.app/dashboard",
+      "streamingSubscription": "Abonnement streaming",
+      "brandName": "Smart Pocket"
+    },
+    "auth": {
+      "apple": "Connexion avec Apple",
+      "google": "Connexion avec Google"
+    },
+    "currency": {
+      "title": "Prise en charge multi-devises",
+      "usd": "Dollar américain",
+      "eur": "Euro",
+      "aed": "Dirham des Émirats",
+      "gbp": "Livre sterling",
+      "supported": "153 devises actives prises en charge"
+    },
+    "reports": {
+      "title": "Rapports professionnels prêts à partager",
+      "description": "Générez des synthèses revenus/dépenses, des rapports de performance budgétaire et des ventilations des dépenses pour toute période.",
+      "pdfTitle": "États PDF",
+      "pdfDescription": "États financiers prêts à imprimer avec votre image. Partagez-les avec un comptable ou archivez-les.",
+      "csvTitle": "Exports CSV",
+      "csvDescription": "Exportez les transactions brutes en CSV pour analyse tableur ou import comptable.",
+      "chartsTitle": "Graphiques visuels",
+      "chartsDescription": "Tendances revenus/dépenses, dépenses par catégorie et performance budgétaire sont interactives."
+    },
+    "ai": {
+      "badge": "Bientôt disponible",
+      "title": "Des analyses intelligentes sur la feuille de route",
+      "description": "Smart Pocket est conçu avec une architecture prête pour l'IA. Les prochaines versions incluront l'analyse intelligente des habitudes de dépense, la détection d'anomalies et des suggestions financières personnalisées, toujours sur vos propres données.",
+      "planned": "Prévu",
+      "features": {
+        "1": "Analyse des habitudes de dépense",
+        "2": "Détection des anomalies et frais inhabituels",
+        "3": "Suggestions d'épargne personnalisées",
+        "4": "Recommandations budgétaires prédictives"
+      }
+    },
+    "contact": {
+      "badge": "Nous joindre",
+      "title": "Des questions ? Nous sommes là.",
+      "description": "Que vous ayez besoin d'aide pour commencer, d'une nouvelle fonctionnalité ou d'une offre entreprise, contactez-nous et nous répondrons sous 24 heures."
     }
   },
   "authScreen": {
@@ -42,7 +234,8 @@
     "featureSecurity": "Protégez vos données avec un contrôle d'accès par ligne",
     "footerNote": "Vos données restent les vôtres.",
     "unavailableTitle": "Authentification indisponible",
-    "unavailableDescription": "Aucune méthode de connexion n'est actuellement activée. Veuillez contacter le support ou réessayer plus tard."
+    "unavailableDescription": "Aucune méthode de connexion n'est actuellement activée. Veuillez contacter le support ou réessayer plus tard.",
+    "brandHeadline": "Vos finances, simplifiées"
   },
   "contact": {
     "metadataTitle": "Contactez-nous",
@@ -74,7 +267,15 @@
     "messagePlaceholder": "Donnez-nous plus de détails...",
     "submit": "Envoyer le message",
     "submitting": "Envoi en cours...",
-    "successToast": "Message envoyé ! Nous vous répondrons sous 24 heures."
+    "successToast": "Message envoyé ! Nous vous répondrons sous 24 heures.",
+    "errors": {
+      "nameRequired": "Le nom est requis",
+      "emailRequired": "L'e-mail est requis",
+      "emailInvalid": "Adresse e-mail invalide",
+      "subjectRequired": "Le sujet est requis",
+      "messageRequired": "Le message est requis",
+      "messageMinLength": "Veuillez donner plus de détails (au moins 20 caractères)"
+    }
   },
   "resetPassword": {
     "title": "Définir un nouveau mot de passe",
@@ -91,54 +292,67 @@
   },
   "legal": {
     "privacy": {
-      "metadataTitle": "Privacy Policy",
-      "metadataDescription": "Read how Smart Pocket handles your personal and financial information.",
-      "title": "Privacy Policy",
-      "lastUpdatedLabel": "Last updated:",
-      "lastUpdatedDate": "June 21, 2026",
+      "metadataTitle": "Politique de confidentialité",
+      "metadataDescription": "Découvrez comment Smart Pocket traite vos informations personnelles et financières.",
+      "title": "Politique de confidentialité",
+      "lastUpdatedLabel": "Dernière mise à jour :",
+      "lastUpdatedDate": "21 juin 2026",
       "sections": [
         {
-          "title": "Information We Collect",
-          "content": "Smart Pocket stores the account, transaction, budget, and profile information you enter so the application can provide budgeting, reporting, and collaboration features."
+          "title": "Informations collectées",
+          "content": "Smart Pocket stocke les comptes, transactions, budgets et informations de profil que vous saisissez afin de fournir le suivi financier, les rapports et la collaboration."
         },
         {
-          "title": "How We Use Information",
-          "content": "We use your data to operate the product, secure your account, respond to support requests, and improve reliability. We do not sell your financial data."
+          "title": "Utilisation des informations",
+          "content": "Nous utilisons vos données pour faire fonctionner le produit, sécuriser votre compte, répondre au support et améliorer la fiabilité. Nous ne vendons pas vos données financières."
         },
         {
-          "title": "Data Storage and Security",
-          "content": "Smart Pocket uses encrypted transport, protected infrastructure, and row-level access controls designed to keep each account's data isolated."
+          "title": "Stockage et sécurité des données",
+          "content": "Smart Pocket utilise un transport chiffré, une infrastructure protégée et des contrôles d'accès au niveau des lignes pour garder les données de chaque compte isolées."
         },
         {
-          "title": "Your Choices",
-          "content": "You can update profile details, change language preferences, and contact support about privacy questions or account-data requests at any time."
+          "title": "Vos choix",
+          "content": "Vous pouvez mettre à jour votre profil, modifier vos préférences de langue et contacter le support pour toute question de confidentialité ou demande liée aux données du compte."
         }
       ]
     },
     "terms": {
-      "metadataTitle": "Terms of Service",
-      "metadataDescription": "Read the terms that govern the use of Smart Pocket.",
-      "title": "Terms of Service",
-      "lastUpdatedLabel": "Last updated:",
-      "lastUpdatedDate": "June 21, 2026",
+      "metadataTitle": "Conditions d'utilisation",
+      "metadataDescription": "Consultez les conditions qui régissent l'utilisation de Smart Pocket.",
+      "title": "Conditions d'utilisation",
+      "lastUpdatedLabel": "Dernière mise à jour :",
+      "lastUpdatedDate": "21 juin 2026",
       "sections": [
         {
-          "title": "Using Smart Pocket",
-          "content": "You may use Smart Pocket only in compliance with applicable laws and these terms. You are responsible for maintaining the confidentiality of your account credentials."
+          "title": "Utilisation de Smart Pocket",
+          "content": "Vous ne pouvez utiliser Smart Pocket qu'en conformité avec les lois applicables et les présentes conditions. Vous êtes responsable de la confidentialité de vos identifiants."
         },
         {
-          "title": "Your Content",
-          "content": "You retain ownership of the financial data and notes you enter. You are responsible for making sure the information you record is accurate and lawful to store."
+          "title": "Votre contenu",
+          "content": "Vous conservez la propriété des données financières et des notes que vous saisissez. Vous êtes responsable de l'exactitude et de la légalité de ces informations."
         },
         {
-          "title": "Service Availability",
-          "content": "We work to keep Smart Pocket available and secure, but availability may vary during maintenance, upgrades, or incidents outside our control."
+          "title": "Disponibilité du service",
+          "content": "Nous faisons le nécessaire pour maintenir Smart Pocket disponible et sécurisé, mais la disponibilité peut varier pendant la maintenance, les mises à niveau ou des incidents hors de notre contrôle."
         },
         {
           "title": "Contact",
-          "content": "If you have questions about these terms, please use the contact details published on the Contact page or in Platform Settings."
+          "content": "Si vous avez des questions sur ces conditions, utilisez les coordonnées publiées sur la page Contact ou dans les paramètres de la plateforme."
         }
       ]
     }
+  },
+  "getStarted": "Commencer",
+  "notFound": {
+    "title": "Page introuvable",
+    "description": "La page que vous recherchez n'existe pas. Revenons au bon endroit.",
+    "goBack": "Retour",
+    "backHome": "Retour a l'accueil"
+  },
+  "offline": {
+    "title": "Vous etes hors ligne",
+    "description": "Smart Pocket a besoin d'une connexion Internet pour synchroniser vos donnees financieres. Verifiez votre connexion puis reessayez.",
+    "retry": "Reessayer",
+    "helper": "Vos donnees sont en securite et seront synchronisees lorsque la connexion reviendra."
   }
 }

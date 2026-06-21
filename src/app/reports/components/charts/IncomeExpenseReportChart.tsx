@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   AreaChart,
   Area,
@@ -26,7 +27,7 @@ function formatAxisValue(value: number, currencyCode: string) {
   }).text;
 }
 
-function CustomTooltip({ active, payload, label, currencyCode }: any) {
+function CustomTooltip({ active, payload, label, currencyCode, t }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="card-elevated-md p-3 min-w-[150px]">
@@ -44,7 +45,7 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
       ))}
       <div className="mt-1.5 pt-1.5 border-t border-border">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Net</span>
+          <span className="text-xs text-muted-foreground">{t('reports.summary.netChange')}</span>
           <span className={`text-xs font-700 font-tabular ${payload[0]?.value - payload[1]?.value >= 0 ? 'text-positive' : 'text-negative'}`}>
             {formatCurrencyValue(payload[0]?.value - payload[1]?.value, { currencyCode }).text}
           </span>
@@ -61,6 +62,7 @@ export default function IncomeExpenseReportChart({
   data: IncomeExpenseChartRow[];
   currencyCode: string;
 }) {
+  const { t } = useTranslation('portal');
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -87,10 +89,10 @@ export default function IncomeExpenseReportChart({
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
         <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
-        <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} />
+        <Tooltip content={<CustomTooltip currencyCode={currencyCode} t={t} />} />
         <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
-        <Area type="monotone" dataKey="income" stroke="var(--positive)" strokeWidth={2} fill="url(#rptIncomeGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-        <Area type="monotone" dataKey="expenses" stroke="var(--negative)" strokeWidth={2} fill="url(#rptExpenseGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Area type="monotone" dataKey="income" name={t('reports.summary.totalIncome')} stroke="var(--positive)" strokeWidth={2} fill="url(#rptIncomeGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+        <Area type="monotone" dataKey="expenses" name={t('reports.summary.totalExpenses')} stroke="var(--negative)" strokeWidth={2} fill="url(#rptExpenseGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
       </AreaChart>
     </ResponsiveContainer>
   );

@@ -41,7 +41,8 @@
     "refresh": "Обновить",
     "apply": "Применить",
     "reset": "Сбросить",
-    "submit": "Отправить"
+    "submit": "Отправить",
+    "continue": "Продолжить"
   },
   "status": {
     "loading": "Загрузка...",
@@ -55,7 +56,9 @@
     "inactive": "Неактивный",
     "pending": "В ожидании",
     "completed": "Завершено",
-    "archived": "В архиве"
+    "archived": "В архиве",
+    "creating": "Создание...",
+    "processing": "Обработка..."
   },
   "empty": {
     "noData": "Нет данных",
@@ -140,5 +143,26 @@
     "searchPhone": "Поиск страны или телефонного кода...",
     "loading": "Загрузка стран...",
     "noneFound": "Страны не найдены"
+  },
+  "validation": {
+    "validAmount": "Введите корректную сумму"
+  },
+  "systemCategories": {
+    "salary": "Зарплата",
+    "freelance": "Фриланс",
+    "investmentReturns": "Доход от инвестиций",
+    "otherIncome": "Прочий доход",
+    "foodDining": "Еда и рестораны",
+    "housing": "Жилье",
+    "transport": "Транспорт",
+    "utilities": "Коммунальные услуги",
+    "shopping": "Покупки",
+    "healthcare": "Здравоохранение",
+    "entertainment": "Развлечения",
+    "travel": "Путешествия",
+    "education": "Образование",
+    "subscriptions": "Подписки",
+    "savings": "Сбережения",
+    "transfer": "Перевод"
   }
 }

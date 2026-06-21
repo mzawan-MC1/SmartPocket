@@ -8,6 +8,7 @@ import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
   switch (href) {
@@ -33,8 +34,10 @@ function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, 
 export default function PublicHeader() {
   const pathname = usePathname();
   const { t } = useTranslation(['common', 'public']);
+  const { language } = useLanguage();
   const { branding, publicUi } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
+  const showSingleLanguageTagline = language === 'en';
   const [mobileOpen, setMobileOpen] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
 
@@ -76,9 +79,11 @@ export default function PublicHeader() {
             {showBrandText && (
               <div className="min-w-0">
                 <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>
-                <span className="hidden lg:block text-xs text-muted-foreground truncate">
-                  {branding.tagline}
-                </span>
+                {showSingleLanguageTagline && branding.tagline ? (
+                  <span className="hidden lg:block text-xs text-muted-foreground truncate">
+                    {branding.tagline}
+                  </span>
+                ) : null}
               </div>
             )}
           </Link>
@@ -133,7 +138,9 @@ export default function PublicHeader() {
             {showBrandText && (
               <div className="px-3.5 pb-3">
                 <p className="text-sm font-700 text-primary">{branding.appName}</p>
-                <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
+                {showSingleLanguageTagline && branding.tagline ? (
+                  <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
+                ) : null}
               </div>
             )}
             {publicUi.headerMenu.map((item) => (

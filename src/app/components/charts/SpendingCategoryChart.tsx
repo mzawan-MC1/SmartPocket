@@ -1,5 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   PieChart,
   Pie,
@@ -18,6 +19,7 @@ import {
   type DashboardActivePeriod,
   type Transaction,
 } from '@/lib/finance';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
 
@@ -44,7 +46,7 @@ function formatCurrencyValue(value: number, currencyCode: string) {
   }
 }
 
-function CustomTooltip({ active, payload, currencyCode }: any) {
+function CustomTooltip({ active, payload, currencyCode, t }: any) {
   if (!active || !payload?.length) return null;
   const item = payload[0];
   const total = item?.payload?.total ?? 1;
@@ -55,7 +57,7 @@ function CustomTooltip({ active, payload, currencyCode }: any) {
         {formatCurrencyValue(Number(item.value || 0), currencyCode)}
       </p>
       <p className="text-xs text-muted-foreground">
-        {((item.value / total) * 100).toFixed(1)}% of total
+        {t('reports.chartLabels.ofTotal', { percent: ((item.value / total) * 100).toFixed(1) })}
       </p>
     </div>
   );
@@ -66,6 +68,7 @@ export default function SpendingCategoryChart({
 }: {
   activePeriod: DashboardActivePeriod;
 }) {
+  const { t } = useTranslation('portal');
   const [activeId, setActiveId] = useState<string | null>(null);
   const [data, setData] = useState<CategorySpend[]>([]);
   const [total, setTotal] = useState(0);
@@ -109,7 +112,11 @@ export default function SpendingCategoryChart({
         if (!shouldIncludeInBudgetSpending(transaction, ledgerSummaryByTransactionId, accountInclusionById)) continue;
         const category = Array.isArray(transaction.category) ? transaction.category[0] : transaction.category;
         const key = category?.id ?? 'uncategorized';
-        const name = category?.name ?? 'Uncategorized';
+        const name = category?.name
+          ? translateSystemCategoryName(category.name, (key, options) =>
+              t(key, { ...(options || {}), ns: 'common' })
+            )
+          : t('reports.chartLabels.uncategorized');
         const color = category?.color ?? null;
         const conversion = convertHistoricalAmountWithSnapshots({
           amount: Number(transaction.amount || 0),
@@ -144,15 +151,15 @@ export default function SpendingCategoryChart({
       setTotal(grandTotal);
       setData(sorted.map((item) => ({ ...item, total: grandTotal } as CategorySpend)));
       if (hadMissingRates) {
-        setErrorMessage('Some historical exchange rates are unavailable for this period, so the chart omits those points.');
+        setErrorMessage(t('reports.chartLabels.missingHistoricalRates'));
       }
     } catch (error) {
       console.error('SpendingCategoryChart error:', error);
-      setErrorMessage('The chart period could not be calculated.');
+      setErrorMessage(t('reports.chartLabels.chartPeriodFailed'));
     } finally {
       setLoading(false);
     }
-  }, [activePeriod.endDate, activePeriod.startDate]);
+  }, [activePeriod.endDate, activePeriod.startDate, t]);
 
   useEffect(() => {
     void load();
@@ -169,8 +176,10 @@ export default function SpendingCategoryChart({
   if (!data.length) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
-        <p className="text-sm text-muted-foreground">{errorMessage || `No expense data for this ${activePeriod.mode === 'month' ? 'month' : 'pay period'}`}</p>
-        <p className="text-xs text-muted-foreground">Add expense transactions to see spending by category.</p>
+        <p className="text-sm text-muted-foreground">
+          {errorMessage || t(activePeriod.mode === 'month' ? 'reports.chartLabels.noExpenseDataMonth' : 'reports.chartLabels.noExpenseDataPayPeriod')}
+        </p>
+        <p className="text-xs text-muted-foreground">{t('reports.chartLabels.addExpensesToSeeCategories')}</p>
       </div>
     );
   }
@@ -200,7 +209,7 @@ export default function SpendingCategoryChart({
                 />
               ))}
             </Pie>
-            <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} />} />
+            <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} t={t} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
