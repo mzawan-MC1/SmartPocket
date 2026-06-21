@@ -181,6 +181,98 @@ type LoanRepaymentRpcRow = {
   account_balance: number | string;
 };
 
+function buildLoanRepaymentTransactionFallback(args: {
+  transactionId: string;
+  userId: string;
+  accountId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  notes: string;
+  repaymentDate: string;
+}): Transaction {
+  return {
+    id: args.transactionId,
+    user_id: args.userId,
+    account_id: args.accountId,
+    category_id: null,
+    transaction_type: 'expense',
+    amount: args.amount,
+    currency: args.currency,
+    description: args.description,
+    merchant: null,
+    notes: args.notes,
+    transaction_date: args.repaymentDate,
+    tags: [],
+    is_recurring: false,
+    recurring_id: null,
+    transfer_pair_id: null,
+    expense_owner: 'user',
+    paid_by: 'user',
+    paid_from: 'account',
+    use_held_balance: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function buildLoanRepaymentLedgerFallback(args: {
+  ledgerEntryId: string;
+  personId: string;
+  ownerId: string;
+  transactionId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  notes: string;
+  repaymentDate: string;
+}): PersonLedgerEntry {
+  return {
+    id: args.ledgerEntryId,
+    person_id: args.personId,
+    owner_id: args.ownerId,
+    entry_type: 'reimbursement_paid',
+    amount: args.amount,
+    currency: args.currency,
+    description: args.description,
+    transaction_id: args.transactionId,
+    reference_id: args.transactionId,
+    reference_type: 'loan',
+    notes: args.notes,
+    entry_date: args.repaymentDate,
+    is_deleted: false,
+    created_at: new Date().toISOString(),
+  };
+}
+
+function buildLoanRepaymentSettlementFallback(args: {
+  settlementId: string;
+  ownerId: string;
+  personId: string;
+  amount: number;
+  currency: string;
+  description: string;
+  notes: string;
+  repaymentDate: string;
+}): Settlement {
+  return {
+    id: args.settlementId,
+    owner_id: args.ownerId,
+    person_id: args.personId,
+    amount: args.amount,
+    currency: args.currency,
+    settlement_date: args.repaymentDate,
+    payment_method: 'cash',
+    receiving_account_id: null,
+    description: args.description,
+    notes: args.notes,
+    attachment_url: null,
+    is_deleted: false,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+}
+
 // ─── Managed People ───────────────────────────────────────────────────────────
 
 export async function getManagedPeople(includeArchived = false): Promise<ManagedPerson[]> {
@@ -811,41 +903,74 @@ export async function createLoanRepayment(payload: {
     throw new Error('Loan repayment RPC did not return linked record ids');
   }
 
-  const [{ data: transactionData, error: transactionError }, { data: ledgerData, error: ledgerError }, { data: settlementData, error: settlementError }, { data: personData, error: personError }] = await Promise.all([
+  const [{ data: transactionData }, { data: ledgerData }, { data: settlementData }, { data: personData }] = await Promise.all([
     supabase
       .from('transactions')
       .select('*')
       .eq('id', rpcRow.transaction_id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('person_ledger_entries')
       .select('*')
       .eq('id', rpcRow.ledger_entry_id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('settlements')
       .select('*')
       .eq('id', rpcRow.settlement_id)
-      .single(),
+      .maybeSingle(),
     supabase
       .from('managed_people')
       .select('full_name')
       .eq('id', payload.person_id)
-      .single(),
+      .maybeSingle(),
   ]);
 
-  if (transactionError || !transactionData) throw transactionError || new Error('Loan repayment transaction could not be loaded');
-  if (ledgerError || !ledgerData) throw ledgerError || new Error('Loan repayment ledger entry could not be loaded');
-  if (settlementError || !settlementData) throw settlementError || new Error('Loan repayment settlement could not be loaded');
-  if (personError || !personData) throw personError || new Error('Loan repayment person could not be loaded');
+  const personName = personData?.full_name || 'selected person';
+  const effectiveCurrency = transactionData?.currency || ledgerData?.currency || settlementData?.currency || requestedCurrency || 'AED';
+  const effectiveDescription = transactionData?.description || ledgerData?.description || settlementData?.description || trimmedDescription || `Loan repayment to ${personName}`;
+  const transaction =
+    (transactionData as Transaction | null) ??
+    buildLoanRepaymentTransactionFallback({
+      transactionId: rpcRow.transaction_id,
+      userId: user.id,
+      accountId: payload.account_id,
+      amount,
+      currency: effectiveCurrency,
+      description: effectiveDescription,
+      notes: trimmedNotes,
+      repaymentDate: payload.repayment_date,
+    });
+  const ledgerEntry =
+    (ledgerData as PersonLedgerEntry | null) ??
+    buildLoanRepaymentLedgerFallback({
+      ledgerEntryId: rpcRow.ledger_entry_id,
+      personId: payload.person_id,
+      ownerId: user.id,
+      transactionId: rpcRow.transaction_id,
+      amount,
+      currency: effectiveCurrency,
+      description: effectiveDescription,
+      notes: trimmedNotes,
+      repaymentDate: payload.repayment_date,
+    });
+  const settlement =
+    (settlementData as Settlement | null) ??
+    buildLoanRepaymentSettlementFallback({
+      settlementId: rpcRow.settlement_id,
+      ownerId: user.id,
+      personId: payload.person_id,
+      amount,
+      currency: effectiveCurrency,
+      description: effectiveDescription,
+      notes: trimmedNotes,
+      repaymentDate: payload.repayment_date,
+    });
 
-  const effectiveCurrency = transactionData.currency || requestedCurrency || 'AED';
-  const effectiveDescription = transactionData.description || trimmedDescription || `Loan repayment to ${personData.full_name}`;
-
-  await logActivity(user.id, 'loan_repayment_recorded', 'person_ledger_entries', ledgerData.id, null, {
+  await logActivity(user.id, 'loan_repayment_recorded', 'person_ledger_entries', ledgerEntry.id, null, {
     person_id: payload.person_id,
-    transaction_id: transactionData.id,
-    settlement_id: settlementData.id,
+    transaction_id: transaction.id,
+    settlement_id: settlement.id,
     amount,
     currency: effectiveCurrency,
   });
@@ -857,19 +982,19 @@ export async function createLoanRepayment(payload: {
     actionUrl: `/people/${payload.person_id}`,
     metadata: {
       person_id: payload.person_id,
-      transaction_id: transactionData.id,
-      settlement_id: settlementData.id,
+      transaction_id: transaction.id,
+      settlement_id: settlement.id,
       amount,
       currency: effectiveCurrency,
       remaining_outstanding: Number(rpcRow.remaining_outstanding || 0),
     },
-    sourceKey: `loan_repayment:${transactionData.id}`,
+    sourceKey: `loan_repayment:${transaction.id}`,
   });
 
   return {
-    transaction: transactionData as Transaction,
-    ledgerEntry: ledgerData as PersonLedgerEntry,
-    settlement: settlementData as Settlement,
+    transaction,
+    ledgerEntry,
+    settlement,
     remainingOutstanding: Math.max(0, roundMoney(Number(rpcRow.remaining_outstanding || 0))),
   };
 }

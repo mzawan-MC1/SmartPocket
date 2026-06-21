@@ -584,11 +584,12 @@ export default function AddTransactionModal({
       title={editingTransaction ? t('transactions.form.editTitle', { ns: 'portal' }) : t('transactions.form.addTitle', { ns: 'portal' })}
       size="xl"
       mobileLayout="fullscreen"
-      bodyClassName="p-0 sm:p-6"
+      contentClassName="sm:max-w-[40rem] lg:max-w-[40rem]"
+      bodyClassName="p-0 sm:p-4"
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
+          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             {transactionMode === 'single' ? (
               <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
                 {([
@@ -674,7 +675,7 @@ export default function AddTransactionModal({
               <p className="text-sm text-muted-foreground">{t('transactions.form.loading', { ns: 'portal' })}</p>
             </div>
           ) : (
-            <div className="space-y-3">
+              <div className="space-y-2.5">
               {activeDraftRows.map((row, index) => {
                 const account = accountMap.get(row.account_id);
                 const isLoanRepaymentRow = row.entry_kind === 'loan_repayment';
@@ -688,7 +689,7 @@ export default function AddTransactionModal({
 
                 return (
                   <div key={row.id} className="rounded-2xl border border-border bg-card">
-                    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-3.5 py-2.5">
                       <p className="text-sm font-700 text-foreground">{rowLabel}</p>
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <button
@@ -703,7 +704,7 @@ export default function AddTransactionModal({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-col space-y-3 px-4 py-4 max-[480px]:space-y-4 max-[480px]:px-3.5">
+                    <div className="flex flex-col space-y-2.5 px-3.5 py-3.5 max-[480px]:space-y-4 max-[480px]:px-3.5">
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
@@ -744,7 +745,7 @@ export default function AddTransactionModal({
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-2">
+                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 max-[480px]:order-2">
                         <div>
                           <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>
                           <select
@@ -803,14 +804,14 @@ export default function AddTransactionModal({
                         )}
                       </div>
 
-                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1 max-[480px]:space-y-3">
+                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-2.5 max-[480px]:order-1 max-[480px]:space-y-3">
                         <div className="max-[480px]:hidden">
                           <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
                         </div>
                         <div className="hidden max-[480px]:block">
                           <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
                         </div>
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
                           <div>
                             <input
                               ref={index === 0 ? firstAmountFieldRef : undefined}
@@ -860,7 +861,7 @@ export default function AddTransactionModal({
                           />
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 max-[480px]:order-5">
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 max-[480px]:order-5">
                           <div>
                             <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</label>
                             <input
@@ -896,7 +897,7 @@ export default function AddTransactionModal({
                         </button>
 
                         {row.showMoreOptions ? (
-                          <div className="space-y-3 border-t border-border/70 px-3 py-3">
+                          <div className="space-y-2.5 border-t border-border/70 px-3 py-2.5">
                             {!isLoanRepaymentRow ? (
                               <div>
                                 <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
@@ -944,7 +945,7 @@ export default function AddTransactionModal({
                               </button>
 
                               {row.showManagedPerson ? (
-                                <div className="space-y-3 border-t border-border/70 px-3 py-3">
+                                <div className="space-y-2.5 border-t border-border/70 px-3 py-2.5">
                                   <div>
                                     <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.managedPerson', { ns: 'portal' })}</label>
                                     <select
@@ -959,7 +960,7 @@ export default function AddTransactionModal({
                                     </select>
                                   </div>
 
-                                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
                                     <div>
                                       <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.expenseBelongsTo', { ns: 'portal' })}</label>
                                       <select className="input-base h-10 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
@@ -998,7 +999,7 @@ export default function AddTransactionModal({
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_200px]">
+                                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_180px]">
                                     <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
                                       <input
                                         type="checkbox"
@@ -1091,8 +1092,8 @@ export default function AddTransactionModal({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-4 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur sm:px-0 sm:pb-0">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-0 z-10 mt-3 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2.5 backdrop-blur sm:px-0 sm:pb-0">
+          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isSaving && saveProgress
                 ? t('transactions.form.savingProgress', { ns: 'portal', completed: saveProgress.completed, total: saveProgress.total })
