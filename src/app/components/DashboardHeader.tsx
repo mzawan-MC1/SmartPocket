@@ -1,11 +1,9 @@
 'use client';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import {
   Calendar,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Ellipsis,
   Plus,
   Repeat,
   RotateCcw,
@@ -34,6 +32,7 @@ export default function DashboardHeader({
   onSelectedMonthChange,
   onSelectedPayPeriodChange,
   onQuickAction,
+  activeQuickAction,
   financialPeriodContext,
 }: {
   activePeriod: DashboardActivePeriod;
@@ -42,13 +41,12 @@ export default function DashboardHeader({
   onSelectedMonthChange: (monthKey: string) => void;
   onSelectedPayPeriodChange: (startDate: string) => void;
   onQuickAction: (action: QuickActionId, trigger: HTMLElement | null) => void;
+  activeQuickAction: QuickActionId | null;
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const { t } = useTranslation('portal');
   const { user } = useAuth();
   const monthInputRef = useRef<HTMLInputElement | null>(null);
-  const moreMenuRef = useRef<HTMLDivElement | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const monthContext = useMemo(
     () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone),
     [activePeriod.monthKey, financialPeriodContext.timezone]
@@ -84,37 +82,12 @@ export default function DashboardHeader({
   ];
   const quickActionShortLabel = (actionId: QuickActionId) =>
     t(`dashboardHeader.quickActionShort.${actionId}`);
-  const directActions = quickActions.filter((action) => action.id === 'transaction' || action.id === 'account');
-  const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
-  const quickActionSubtitle = (actionId: 'transaction' | 'account' | 'more') =>
-    t(`dashboardHeader.quickActionSubtitles.${actionId}`);
-
-  useEffect(() => {
-    const handlePointerDown = (event: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMoreOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
 
   return (
     <section className="space-y-2">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,30rem)] lg:items-center xl:grid-cols-[minmax(14rem,1fr)_minmax(26rem,28rem)_17.25rem] xl:gap-3">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(34rem,1.45fr)] lg:items-center xl:grid-cols-[minmax(12rem,0.86fr)_minmax(36rem,1.6fr)_16.5rem] xl:gap-3">
         <div className="min-w-0 space-y-0.5">
-          <h1 className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[1.78rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.55rem] xl:flex-nowrap xl:text-[1.95rem]">
+          <h1 className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[1.68rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.55rem] xl:flex-nowrap xl:text-[1.78rem]">
             <span className="truncate">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
@@ -124,79 +97,34 @@ export default function DashboardHeader({
         </div>
 
         <div className="min-w-0 overflow-x-auto rounded-[22px] border border-border/80 bg-card px-1.5 py-1.5 shadow-card-sm scrollbar-thin lg:overflow-visible">
-          <div className="grid min-w-[28rem] grid-cols-[minmax(8.2rem,1fr)_minmax(8.2rem,1fr)_minmax(9.9rem,1.12fr)] items-stretch divide-x divide-border/70 rtl:divide-x-reverse">
-                {directActions.map((action) => {
-                  const Icon = action.icon;
-                  return (
-                    <button
-                      key={action.id}
-                      type="button"
-                      onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                      className="group flex min-w-0 items-center gap-2.5 rounded-[16px] px-3 py-2.5 text-left transition-colors hover:bg-muted/45"
-                      aria-label={action.label}
-                    >
-                      <span className="flex h-8.5 w-8.5 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                        <Icon size={16} />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block text-[13px] font-700 leading-4 text-foreground whitespace-nowrap">
-                          {quickActionShortLabel(action.id)}
-                        </span>
-                        <span className="mt-0.5 block text-[11px] leading-[1.05rem] text-muted-foreground whitespace-nowrap">
-                          {quickActionSubtitle(action.id as 'transaction' | 'account')}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                })}
-                <div className="relative flex-1" ref={moreMenuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setMoreOpen((value) => !value)}
-                    className="group flex h-full w-full min-w-0 items-center gap-2.5 rounded-[16px] px-3 py-2.5 text-left transition-colors hover:bg-muted/45"
-                    aria-haspopup="menu"
-                    aria-expanded={moreOpen}
-                  >
-                    <span className="flex h-8.5 w-8.5 flex-shrink-0 items-center justify-center rounded-xl bg-muted/70 text-foreground">
-                      <Ellipsis size={16} />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-700 leading-4 text-foreground whitespace-nowrap">
-                        {t('dashboardHeader.more')}
-                      </span>
-                      <span className="mt-0.5 block text-[11px] leading-[1.05rem] text-muted-foreground whitespace-nowrap">
-                        {quickActionSubtitle('more')}
-                      </span>
-                    </span>
-                    <ChevronDown size={15} className={`text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {moreOpen ? (
-                    <div
-                      role="menu"
-                      aria-label={t('dashboardHeader.moreActions')}
-                      className="absolute end-0 top-full z-20 mt-2 flex min-w-[14rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg"
-                    >
-                      {moreActions.map((action) => {
-                        const Icon = action.icon;
-                        return (
-                          <button
-                            key={action.id}
-                            type="button"
-                            role="menuitem"
-                            onClick={(event) => {
-                              setMoreOpen(false);
-                              onQuickAction(action.id, event.currentTarget);
-                            }}
-                            className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
-                          >
-                            <Icon size={16} className="text-accent" />
-                            <span>{quickActionShortLabel(action.id)}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
+          <div className="grid min-w-[34rem] grid-cols-5 items-stretch gap-1">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              const isSelected = activeQuickAction === action.id;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={(event) => onQuickAction(action.id, event.currentTarget)}
+                  className={`group flex min-w-0 items-center justify-center gap-2 rounded-[16px] border px-2.5 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
+                    isSelected
+                      ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
+                      : 'border-transparent text-foreground hover:border-border/80 hover:bg-muted/45'
+                  }`}
+                  aria-label={action.label}
+                  aria-pressed={isSelected}
+                >
+                  <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-colors ${
+                    isSelected ? 'bg-accent/15 text-accent' : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
+                  }`}>
+                    <Icon size={15} />
+                  </span>
+                  <span className="truncate whitespace-nowrap text-[12.5px] font-700 leading-4">
+                    {quickActionShortLabel(action.id)}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

@@ -205,6 +205,7 @@ export default function DashboardPage() {
               onSelectedMonthChange={handleSelectedMonthChange}
               onSelectedPayPeriodChange={handlePayPeriodChange}
               onQuickAction={openQuickAction}
+              activeQuickAction={activeQuickAction}
               financialPeriodContext={periodContext}
             />
             <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
