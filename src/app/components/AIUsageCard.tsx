@@ -202,9 +202,11 @@ export default function AIUsageCard() {
               <Sparkles size={18} className="relative z-[1]" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
-                <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.14em] text-violet-600">{t('aiUsage.beta')}</span>
+                <Link href="/ai-history" className="text-sm font-700 text-violet-700 transition-colors hover:text-violet-800">
+                  ({t('aiUsage.history')})
+                </Link>
               </div>
               <p className="text-xs text-muted-foreground">{t('aiUsage.companion')}</p>
             </div>
@@ -272,9 +274,11 @@ export default function AIUsageCard() {
               <Sparkles size={18} className="relative z-[1]" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
-                <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.14em] text-violet-600">{t('aiUsage.beta')}</span>
+                <Link href="/ai-history" className="text-sm font-700 text-violet-700 transition-colors hover:text-violet-800">
+                  ({t('aiUsage.history')})
+                </Link>
               </div>
               <p className="text-[12.5px] text-muted-foreground">{t('aiUsage.companion')}</p>
             </div>
@@ -345,11 +349,6 @@ export default function AIUsageCard() {
             {t('aiUsage.openAssistant')}
           </button>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12.5px] text-violet-700">
-            {summary.ai_history_enabled ? (
-              <Link href="/ai-history" className="font-600 transition-colors hover:text-violet-800">
-                {t('aiUsage.history')}
-              </Link>
-            ) : null}
             {(summary.plan_code === 'free_trial' || summary.status !== 'active') ? (
               <Link href="/pricing" className="font-600 transition-colors hover:text-violet-800">
                 {t('aiUsage.upgrade')}

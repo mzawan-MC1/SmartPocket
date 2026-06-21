@@ -1,9 +1,11 @@
 'use client';
-import React, { useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Ellipsis,
   Plus,
   Repeat,
   RotateCcw,
@@ -47,6 +49,8 @@ export default function DashboardHeader({
   const { t } = useTranslation('portal');
   const { user } = useAuth();
   const monthInputRef = useRef<HTMLInputElement | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const monthContext = useMemo(
     () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone),
     [activePeriod.monthKey, financialPeriodContext.timezone]
@@ -82,6 +86,29 @@ export default function DashboardHeader({
   ];
   const quickActionShortLabel = (actionId: QuickActionId) =>
     t(`dashboardHeader.quickActionShort.${actionId}`);
+  const directActions = quickActions.filter((action) => action.id === 'transaction' || action.id === 'account');
+  const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMoreOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <section className="space-y-2">
@@ -97,8 +124,8 @@ export default function DashboardHeader({
         </div>
 
         <div className="min-w-0 overflow-x-auto rounded-[22px] border border-border/80 bg-card px-1.5 py-1.5 shadow-card-sm scrollbar-thin lg:overflow-visible">
-          <div className="grid min-w-[34rem] grid-cols-5 items-stretch gap-1">
-            {quickActions.map((action) => {
+          <div className="grid min-w-[28rem] grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8.5rem,0.95fr)] items-stretch gap-1">
+            {directActions.map((action) => {
               const Icon = action.icon;
               const isSelected = activeQuickAction === action.id;
               return (
@@ -125,6 +152,60 @@ export default function DashboardHeader({
                 </button>
               );
             })}
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                type="button"
+                onClick={() => setMoreOpen((value) => !value)}
+                className={`group flex h-full w-full min-w-0 items-center justify-center gap-2 rounded-[16px] border px-2.5 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
+                  activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
+                    ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
+                    : 'border-transparent text-foreground hover:border-border/80 hover:bg-muted/45'
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={moreOpen}
+              >
+                <span className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl transition-colors ${
+                  activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
+                    ? 'bg-accent/15 text-accent'
+                    : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
+                }`}>
+                  <Ellipsis size={15} />
+                </span>
+                <span className="truncate whitespace-nowrap text-[12.5px] font-700 leading-4">
+                  {t('dashboardHeader.more')}
+                </span>
+                <ChevronDown size={14} className={`flex-shrink-0 text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {moreOpen ? (
+                <div
+                  role="menu"
+                  aria-label={t('dashboardHeader.moreActions')}
+                  className="absolute end-0 top-full z-20 mt-2 flex min-w-[13rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg"
+                >
+                  {moreActions.map((action) => {
+                    const Icon = action.icon;
+                    const isSelected = activeQuickAction === action.id;
+                    return (
+                      <button
+                        key={action.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={(event) => {
+                          setMoreOpen(false);
+                          onQuickAction(action.id, event.currentTarget);
+                        }}
+                        className={`inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 transition-colors ${
+                          isSelected ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted/70'
+                        }`}
+                      >
+                        <Icon size={16} className={isSelected ? 'text-accent' : 'text-muted-foreground'} />
+                        <span>{quickActionShortLabel(action.id)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 

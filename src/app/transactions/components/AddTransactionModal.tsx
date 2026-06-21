@@ -592,81 +592,83 @@ export default function AddTransactionModal({
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-3.5 sm:py-3">
           <div className="grid grid-cols-1 gap-2">
             {transactionMode === 'single' ? (
-              <div
-                className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.8fr)_minmax(0,0.9fr)]"
-                role="group"
-                aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
-              >
-                {([
-                  { kind: 'standard' as const, type: 'expense' as const },
-                  { kind: 'standard' as const, type: 'income' as const },
-                  { kind: 'loan_repayment' as const, type: 'expense' as const },
-                ]).map((option) => {
-                  const primaryRow = activeDraftRows[0];
-                  const isLoanRepaymentOption = option.kind === 'loan_repayment';
-                  const isActive = isLoanRepaymentOption
-                    ? primaryRow?.entry_kind === 'loan_repayment'
-                    : primaryRow?.entry_kind === 'standard' && primaryRow?.transaction_type === option.type;
-                  const label = isLoanRepaymentOption
-                    ? t('transactions.form.loanRepaymentType', { ns: 'portal', defaultValue: 'Loan Repayment' })
-                    : t(`transactions.types.${option.type}` as const, { ns: 'portal' });
-                  return (
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] sm:items-center">
+                <div
+                  className="grid grid-cols-3 gap-1 rounded-2xl border border-border bg-muted/20 p-1"
+                  role="group"
+                  aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
+                >
+                  {([
+                    { kind: 'standard' as const, type: 'expense' as const },
+                    { kind: 'standard' as const, type: 'income' as const },
+                    { kind: 'loan_repayment' as const, type: 'expense' as const },
+                  ]).map((option) => {
+                    const primaryRow = activeDraftRows[0];
+                    const isLoanRepaymentOption = option.kind === 'loan_repayment';
+                    const isActive = isLoanRepaymentOption
+                      ? primaryRow?.entry_kind === 'loan_repayment'
+                      : primaryRow?.entry_kind === 'standard' && primaryRow?.transaction_type === option.type;
+                    const label = isLoanRepaymentOption
+                      ? t('transactions.form.loanRepaymentType', { ns: 'portal', defaultValue: 'Loan Repayment' })
+                      : t(`transactions.types.${option.type}` as const, { ns: 'portal' });
+                    return (
+                      <button
+                        key={`${option.kind}-${option.type}`}
+                        type="button"
+                        aria-pressed={isActive}
+                        aria-label={t('transactions.form.setTransactionType', { ns: 'portal', type: label })}
+                        onClick={() => {
+                          const rowIds = [activeDraftRows[0]?.id].filter(Boolean) as string[];
+                          if (rowIds.length === 0) return;
+                          updateDraftRow(rowIds[0], (row) => ({
+                            ...row,
+                            entry_kind: option.kind,
+                            transaction_type: option.type,
+                            category_id: '',
+                            merchant: option.kind === 'loan_repayment' ? '' : row.merchant,
+                            showManagedPerson: option.kind === 'loan_repayment' ? false : row.showManagedPerson,
+                            showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
+                          }));
+                        }}
+                        className={`flex min-h-10 items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-[13px] font-700 transition-colors whitespace-nowrap ${
+                          isActive
+                            ? option.type === 'income'
+                              ? 'border-positive bg-positive-soft text-positive'
+                              : 'border-negative bg-negative-soft text-negative'
+                            : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
+                        }`}
+                      >
+                        {isLoanRepaymentOption ? (
+                          <Users size={13} />
+                        ) : option.type === 'income' ? (
+                          <TrendingUp size={13} />
+                        ) : (
+                          <TrendingDown size={13} />
+                        )}
+                        <span className="truncate">{label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="grid grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1">
+                  {(['single', 'multiple'] as const).map((mode) => (
                     <button
-                      key={`${option.kind}-${option.type}`}
+                      key={mode}
                       type="button"
-                      aria-pressed={isActive}
-                      aria-label={t('transactions.form.setTransactionType', { ns: 'portal', type: label })}
-                      onClick={() => {
-                        const rowIds = [activeDraftRows[0]?.id].filter(Boolean) as string[];
-                        if (rowIds.length === 0) return;
-                        updateDraftRow(rowIds[0], (row) => ({
-                          ...row,
-                          entry_kind: option.kind,
-                          transaction_type: option.type,
-                          category_id: '',
-                          merchant: option.kind === 'loan_repayment' ? '' : row.merchant,
-                          showManagedPerson: option.kind === 'loan_repayment' ? false : row.showManagedPerson,
-                          showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
-                        }));
-                      }}
-                      className={`min-h-10 rounded-2xl border px-2 py-2 text-[13px] font-700 transition-colors whitespace-nowrap ${
-                        isLoanRepaymentOption ? 'col-span-2 sm:col-span-1' : ''
-                      } ${
-                        isActive
-                          ? option.type === 'income'
-                            ? 'border-positive bg-positive-soft text-positive'
-                            : 'border-negative bg-negative-soft text-negative'
-                          : 'border-border text-muted-foreground hover:border-accent/40'
-                      }`}
+                      aria-pressed={transactionMode === mode}
+                      aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
+                      onClick={() => handleModeChange(mode)}
+                      disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
+                      className={`min-h-10 rounded-xl border px-2.5 py-2 text-[13px] font-600 transition-colors whitespace-nowrap ${
+                        transactionMode === mode
+                          ? 'border-border bg-card text-foreground shadow-sm'
+                          : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
+                      } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
                     >
-                      {isLoanRepaymentOption ? (
-                        <Users size={13} className="mr-1 inline" />
-                      ) : option.type === 'income' ? (
-                        <TrendingUp size={13} className="mr-1 inline" />
-                      ) : (
-                        <TrendingDown size={13} className="mr-1 inline" />
-                      )}
-                      {label}
+                      {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
                     </button>
-                  );
-                })}
-                {(['single', 'multiple'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    aria-pressed={transactionMode === mode}
-                    aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
-                    onClick={() => handleModeChange(mode)}
-                    disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
-                    className={`min-h-10 rounded-2xl border px-2 py-2 text-[13px] font-600 transition-colors whitespace-nowrap ${
-                      transactionMode === mode
-                        ? 'border-border bg-card text-foreground shadow-sm'
-                        : 'border-border bg-muted/20 text-muted-foreground hover:text-foreground'
-                    } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
-                  </button>
-                ))}
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
@@ -928,10 +930,10 @@ export default function AddTransactionModal({
                               <div>
                                 <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
                                 <div className="relative">
-                                  <Tag size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                  <Tag size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                   <input
                                     type="text"
-                                    className="input-base h-9 pl-10 pr-3 text-sm"
+                                    className="input-base h-9 pl-11 pr-3 text-sm"
                                     placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
                                     value={row.tags}
                                     onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
