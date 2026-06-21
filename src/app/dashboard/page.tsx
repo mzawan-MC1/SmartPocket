@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout activeRoute="/dashboard">
-      <div className="page-section gap-4 md:gap-4 lg:gap-5 max-[480px]:gap-3">
+      <div className="page-section gap-3 md:gap-3 lg:gap-4 max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
           <div className="section-card">
             <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">

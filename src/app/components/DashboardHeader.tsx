@@ -111,21 +111,20 @@ export default function DashboardHeader({
   }, []);
 
   return (
-    <section className="space-y-3">
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start xl:gap-5">
-        <div className="min-w-0 space-y-1">
-          <h1 className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[2rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.55rem] xl:flex-nowrap">
+    <section className="space-y-2">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(28rem,30rem)] lg:items-center xl:grid-cols-[minmax(14rem,1fr)_minmax(26rem,28rem)_17.25rem] xl:gap-3">
+        <div className="min-w-0 space-y-0.5">
+          <h1 className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[1.78rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.55rem] xl:flex-nowrap xl:text-[1.95rem]">
             <span className="truncate">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
-          <p className="text-sm text-muted-foreground md:text-[15px]">
+          <p className="text-[13px] leading-5 text-muted-foreground md:text-[14px]">
             {description}
           </p>
         </div>
 
-        <div className="grid min-w-0 grid-cols-1 gap-3 lg:grid-cols-[minmax(34rem,1fr)_18.75rem] lg:items-start xl:w-[54rem]">
-          <div className="min-w-0 overflow-x-auto rounded-[26px] border border-border/80 bg-card px-2 py-2 shadow-card-sm scrollbar-thin lg:overflow-visible">
-            <div className="grid min-w-[32rem] grid-cols-[minmax(9.4rem,1fr)_minmax(9.4rem,1fr)_minmax(11.1rem,1.18fr)] items-stretch divide-x divide-border/80 rtl:divide-x-reverse">
+        <div className="min-w-0 overflow-x-auto rounded-[22px] border border-border/80 bg-card px-1.5 py-1.5 shadow-card-sm scrollbar-thin lg:overflow-visible">
+          <div className="grid min-w-[28rem] grid-cols-[minmax(8.2rem,1fr)_minmax(8.2rem,1fr)_minmax(9.9rem,1.12fr)] items-stretch divide-x divide-border/70 rtl:divide-x-reverse">
                 {directActions.map((action) => {
                   const Icon = action.icon;
                   return (
@@ -133,17 +132,17 @@ export default function DashboardHeader({
                       key={action.id}
                       type="button"
                       onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                      className="group flex min-w-0 items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-colors hover:bg-muted/45"
+                      className="group flex min-w-0 items-center gap-2.5 rounded-[16px] px-3 py-2.5 text-left transition-colors hover:bg-muted/45"
                       aria-label={action.label}
                     >
-                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                        <Icon size={18} />
+                      <span className="flex h-8.5 w-8.5 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                        <Icon size={16} />
                       </span>
                       <span className="min-w-0">
-                        <span className="block text-sm font-700 text-foreground whitespace-nowrap">
+                        <span className="block text-[13px] font-700 leading-4 text-foreground whitespace-nowrap">
                           {quickActionShortLabel(action.id)}
                         </span>
-                        <span className="block text-[12.5px] leading-4 text-muted-foreground whitespace-nowrap">
+                        <span className="mt-0.5 block text-[11px] leading-[1.05rem] text-muted-foreground whitespace-nowrap">
                           {quickActionSubtitle(action.id as 'transaction' | 'account')}
                         </span>
                       </span>
@@ -154,18 +153,18 @@ export default function DashboardHeader({
                   <button
                     type="button"
                     onClick={() => setMoreOpen((value) => !value)}
-                    className="group flex h-full w-full min-w-0 items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-colors hover:bg-muted/45"
+                    className="group flex h-full w-full min-w-0 items-center gap-2.5 rounded-[16px] px-3 py-2.5 text-left transition-colors hover:bg-muted/45"
                     aria-haspopup="menu"
                     aria-expanded={moreOpen}
                   >
-                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-foreground">
-                      <Ellipsis size={18} />
+                    <span className="flex h-8.5 w-8.5 flex-shrink-0 items-center justify-center rounded-xl bg-muted/70 text-foreground">
+                      <Ellipsis size={16} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-700 text-foreground whitespace-nowrap">
+                      <span className="block text-[13px] font-700 leading-4 text-foreground whitespace-nowrap">
                         {t('dashboardHeader.more')}
                       </span>
-                      <span className="block text-[12.5px] leading-4 text-muted-foreground whitespace-nowrap">
+                      <span className="mt-0.5 block text-[11px] leading-[1.05rem] text-muted-foreground whitespace-nowrap">
                         {quickActionSubtitle('more')}
                       </span>
                     </span>
@@ -198,22 +197,22 @@ export default function DashboardHeader({
                     </div>
                   ) : null}
                 </div>
-            </div>
           </div>
+        </div>
 
-          <div className="flex w-full flex-col gap-2 rounded-[22px] border border-border/80 bg-card px-2.5 py-2.5 shadow-card-sm">
-            <div className="overflow-hidden">
-              <Tabs
-                items={[
-                  { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
-                  { id: 'month', label: t('dashboardHeader.month') },
-                ]}
-                activeId={viewMode}
-                onChange={onViewModeChange}
-                className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-[2.1rem] [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-2.5 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[12px] [&_.tab-button]:font-700"
-              />
-            </div>
-            <div className="flex items-center gap-1 rounded-2xl bg-muted/35 p-1">
+        <div className="flex w-full flex-col gap-1.5 rounded-[20px] border border-border/80 bg-card px-2 py-2 shadow-card-sm">
+          <div className="overflow-hidden">
+            <Tabs
+              items={[
+                { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
+                { id: 'month', label: t('dashboardHeader.month') },
+              ]}
+              activeId={viewMode}
+              onChange={onViewModeChange}
+              className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-8 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-xl [&_.tab-button]:px-2 [&_.tab-button]:py-1 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700"
+            />
+          </div>
+          <div className="flex items-center gap-1 rounded-xl bg-muted/35 p-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -223,20 +222,20 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-card"
+                  className="flex h-7.5 w-7.5 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card"
                   aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
                 >
-                  <ChevronLeft size={16} />
+                  <ChevronLeft size={15} />
                 </button>
                 {viewMode === 'month' ? (
                   <>
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                      className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 text-sm font-700 text-foreground transition-colors hover:bg-card"
+                      className="flex h-7.5 min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 text-[12px] font-700 text-foreground transition-colors hover:bg-card"
                       aria-label={t('dashboardHeader.chooseMonth')}
                     >
-                      <Calendar size={15} className="text-accent" />
+                      <Calendar size={14} className="text-accent" />
                       <span className="truncate whitespace-nowrap">{monthContext.label}</span>
                     </button>
                     <input
@@ -250,8 +249,8 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-8 min-w-0 flex-1 items-center gap-2 rounded-xl px-2.5 text-sm font-700 text-foreground">
-                    <Calendar size={15} className="text-accent" />
+                  <div className="flex h-7.5 min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 text-[12px] font-700 text-foreground">
+                    <Calendar size={14} className="text-accent" />
                     <span className="truncate whitespace-nowrap">{activePeriod.label}</span>
                   </div>
                 )}
@@ -265,21 +264,20 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
+                  className="flex h-7.5 w-7.5 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
                   aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
                   disabled={!canMoveNext}
                 >
-                  <ChevronRight size={16} />
+                  <ChevronRight size={15} />
                 </button>
-            </div>
           </div>
-
-          {financialPeriodContext.configurationWarning ? (
-            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning lg:max-w-[32rem]">
-              {financialPeriodContext.configurationWarning}
-            </div>
-          ) : null}
         </div>
+
+        {financialPeriodContext.configurationWarning ? (
+          <div className="lg:col-span-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+            {financialPeriodContext.configurationWarning}
+          </div>
+        ) : null}
       </div>
     </section>
   );
