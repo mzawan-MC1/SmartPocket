@@ -27,6 +27,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface ChartPoint {
   label: string;
@@ -55,9 +56,13 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
             <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
             <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
           </div>
-          <span className="text-xs font-700 font-tabular text-foreground">
-            {formatCompactCurrency(Number(entry.value || 0), currencyCode)}
-          </span>
+          <FormattedCurrencyAmount
+            amount={Number(entry.value || 0)}
+            currencyCode={currencyCode}
+            compact
+            size="sm"
+            className="text-xs font-700 font-tabular text-foreground"
+          />
         </div>
       ))}
     </div>

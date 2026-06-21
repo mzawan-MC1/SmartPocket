@@ -26,17 +26,6 @@ export interface FormattedCurrencyResult {
   usesCodeToken: boolean;
 }
 
-const FALLBACK_CURRENCY_METADATA: Record<string, Partial<CurrencyReference>> = {
-  AED: {
-    name: 'UAE Dirham',
-    symbol: 'د.إ',
-    narrowSymbol: 'د.إ',
-    fallbackSymbol: 'د.إ',
-    symbolType: 'fallback',
-    minorUnits: 2,
-  },
-};
-
 export function getRichCurrencyToken(
   currency: Pick<CurrencyReference, 'code' | 'symbol' | 'narrowSymbol' | 'fallbackSymbol' | 'symbolType'>
 ) {
@@ -71,24 +60,20 @@ function resolveCurrency(args: CurrencyFormattingOptions) {
   const requestedCode = normalizeCurrencyCode(args.currencyCode);
   const fallbackCode = normalizeCurrencyCode(args.fallbackCurrencyCode) || 'USD';
   const currencies = args.currencies ?? [];
-  const fallbackMetadata =
-    FALLBACK_CURRENCY_METADATA[requestedCode] ||
-    FALLBACK_CURRENCY_METADATA[fallbackCode] ||
-    {};
 
   return (
     getCurrencyByCode(currencies, requestedCode) ||
     getCurrencyByCode(currencies, fallbackCode) || {
       code: requestedCode || fallbackCode,
       numericCode: null,
-      name: fallbackMetadata.name || requestedCode || fallbackCode,
+      name: requestedCode || fallbackCode,
       nativeName: null,
-      symbol: fallbackMetadata.symbol || requestedCode || fallbackCode,
-      narrowSymbol: fallbackMetadata.narrowSymbol || null,
-      fallbackSymbol: fallbackMetadata.fallbackSymbol || requestedCode || fallbackCode,
-      symbolType: fallbackMetadata.symbolType || 'fallback' as const,
+      symbol: requestedCode || fallbackCode,
+      narrowSymbol: null,
+      fallbackSymbol: requestedCode || fallbackCode,
+      symbolType: 'fallback' as const,
       symbolAssetPath: null,
-      minorUnits: fallbackMetadata.minorUnits ?? 2,
+      minorUnits: 2,
       isActive: true,
       isFeatured: false,
       featuredSortOrder: 999,
@@ -121,10 +106,6 @@ function formatNumber(
 }
 
 function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormattingOptions) {
-  if (currency.code === 'AED') {
-    return { token: getRichCurrencyToken(currency), usesCodeToken: false };
-  }
-
   if (options.textOnly || options.displayMode === 'code') {
     return { token: currency.code, usesCodeToken: true };
   }
@@ -145,7 +126,6 @@ function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormatti
 
 function shouldUseSpacing(token: string, usesCodeToken: boolean) {
   if (usesCodeToken) return true;
-  if (token === 'د.إ') return true;
   return /^[A-Z]{3,}$/.test(token);
 }
 

@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 type SpendingCategoryChartRow = {
   id: string;
@@ -32,9 +33,12 @@ function CustomTooltip({ active, payload, label, currencyCode, t }: any) {
   return (
     <div className="card-elevated-md p-3">
       <p className="text-xs font-600 text-foreground">{label}</p>
-      <p className="text-sm font-700 font-tabular text-foreground mt-0.5">
-        {formatCurrencyValue(payload[0].value, { currencyCode }).text}
-      </p>
+      <FormattedCurrencyAmount
+        amount={payload[0].value}
+        currencyCode={currencyCode}
+        size="sm"
+        className="mt-0.5 text-sm font-700 font-tabular text-foreground"
+      />
       <p className="text-xs text-muted-foreground">{t('reports.chartLabels.reportingCurrencyTotal')}</p>
     </div>
   );

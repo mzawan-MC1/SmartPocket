@@ -4,6 +4,8 @@ import { formatRecurringFrequencyLabel, getBudgets } from '@/lib/finance';
 import { getCurrentFinancialPeriod, getNextFinancialPeriod } from '@/lib/financial-periods';
 import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import { getClientReferenceData } from '@/lib/reference-data/client';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 
 export interface AppNotification {
   id: string;
@@ -53,16 +55,21 @@ function addDays(dateString: string, amount: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function formatCurrencyTotal(currency: string, amount: number) {
+async function formatCurrencyTotal(currency: string, amount: number) {
+  const referenceData = await getClientReferenceData();
+  const resolvedCurrency = getCurrencyByCode(referenceData.snapshot.currencies, currency);
   return formatCurrencyValue(amount, {
+    currency: resolvedCurrency,
+    currencies: referenceData.snapshot.currencies,
     currencyCode: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).text;
 }
 
-function formatGroupedCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
-  return rows.map((row) => formatCurrencyTotal(row.currency, row.amount)).join(', ');
+async function formatGroupedCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
+  const parts = await Promise.all(rows.map((row) => formatCurrencyTotal(row.currency, row.amount)));
+  return parts.join(', ');
 }
 
 function sumRecurringDueByCurrency(rows: Array<{ currency: string | null; amount: number | null }>) {
@@ -356,10 +363,11 @@ export async function syncInAppNotificationSignals(): Promise<void> {
       const dueBills = billsBeforePayday || [];
       if (dueBills.length > 0) {
         const dueTotals = sumRecurringDueByCurrency(dueBills);
+        const dueTotalsText = await formatGroupedCurrencyTotals(dueTotals);
         await createNotificationOnce({
           type: 'bills_before_next_payday',
           title: 'Bills due before next payday',
-          message: `${formatGroupedCurrencyTotals(dueTotals)} in bills is due before your next payday on ${nextFinancialPeriod.startDate}.`,
+          message: `${dueTotalsText} in bills is due before your next payday on ${nextFinancialPeriod.startDate}.`,
           actionUrl: '/recurring',
           metadata: {
             next_payday: nextFinancialPeriod.startDate,
@@ -405,10 +413,14 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         recurring.next_due_date <= currentFinancialPeriod.endDate &&
         Math.abs(Number(recurring.amount || 0)) >= 500
       ) {
+        const largePaymentText = await formatCurrencyTotal(
+          recurring.currency || 'USD',
+          Math.abs(Number(recurring.amount || 0))
+        );
         await createNotificationOnce({
           type: 'large_payment_due_this_period',
           title: 'Large payment due this pay period',
-          message: `${recurring.description || 'A recurring payment'} of ${formatCurrencyTotal(recurring.currency || 'USD', Math.abs(Number(recurring.amount || 0)))} is due this ${periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period'}.`,
+          message: `${recurring.description || 'A recurring payment'} of ${largePaymentText} is due this ${periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning period' : 'pay period'}.`,
           actionUrl: '/recurring',
           metadata: {
             recurring_id: recurring.id,

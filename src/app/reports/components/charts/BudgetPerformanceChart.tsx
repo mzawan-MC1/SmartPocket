@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer,  } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 type BudgetPerformanceChartRow = {
   id: string;
@@ -30,13 +31,21 @@ function CustomTooltip({ active, payload, label, currencyCode, t }: any) {
       <div className="space-y-1">
         <div className="flex justify-between gap-4">
           <span className="text-xs text-muted-foreground">{t('reports.chartLabels.allocated')}</span>
-          <span className="text-xs font-700 font-tabular">{formatCurrencyValue(allocated, { currencyCode }).text}</span>
+          <FormattedCurrencyAmount
+            amount={allocated}
+            currencyCode={currencyCode}
+            size="sm"
+            className="text-xs font-700 font-tabular"
+          />
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-xs text-muted-foreground">{t('budgets.spent')}</span>
-          <span className={`text-xs font-700 font-tabular ${spent > allocated ? 'text-negative' : 'text-foreground'}`}>
-            {formatCurrencyValue(spent, { currencyCode }).text}
-          </span>
+          <FormattedCurrencyAmount
+            amount={spent}
+            currencyCode={currencyCode}
+            size="sm"
+            className={`text-xs font-700 font-tabular ${spent > allocated ? 'text-negative' : 'text-foreground'}`}
+          />
         </div>
         <div className="flex justify-between gap-4 pt-1 border-t border-border">
           <span className="text-xs text-muted-foreground">{t('reports.chartLabels.usage')}</span>

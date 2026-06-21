@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 type MonthlyTrendsChartRow = {
   month: string;
@@ -38,9 +39,12 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
             <span className="w-2 h-2 rounded-sm" style={{ background: entry.color }} />
             <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
           </div>
-          <span className="text-xs font-700 font-tabular">
-            {formatCurrencyValue(entry.value, { currencyCode }).text}
-          </span>
+          <FormattedCurrencyAmount
+            amount={entry.value}
+            currencyCode={currencyCode}
+            size="sm"
+            className="text-xs font-700 font-tabular"
+          />
         </div>
       ))}
     </div>

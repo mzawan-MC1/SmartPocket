@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 type IncomeExpenseChartRow = {
   month: string;
@@ -38,17 +39,23 @@ function CustomTooltip({ active, payload, label, currencyCode, t }: any) {
             <span className="w-2 h-2 rounded-full" style={{ background: entry.color }} />
             <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
           </div>
-          <span className="text-xs font-700 font-tabular">
-            {formatCurrencyValue(entry.value, { currencyCode }).text}
-          </span>
+          <FormattedCurrencyAmount
+            amount={entry.value}
+            currencyCode={currencyCode}
+            size="sm"
+            className="text-xs font-700 font-tabular"
+          />
         </div>
       ))}
       <div className="mt-1.5 pt-1.5 border-t border-border">
         <div className="flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{t('reports.summary.netChange')}</span>
-          <span className={`text-xs font-700 font-tabular ${payload[0]?.value - payload[1]?.value >= 0 ? 'text-positive' : 'text-negative'}`}>
-            {formatCurrencyValue(payload[0]?.value - payload[1]?.value, { currencyCode }).text}
-          </span>
+          <FormattedCurrencyAmount
+            amount={payload[0]?.value - payload[1]?.value}
+            currencyCode={currencyCode}
+            size="sm"
+            className={`text-xs font-700 font-tabular ${payload[0]?.value - payload[1]?.value >= 0 ? 'text-positive' : 'text-negative'}`}
+          />
         </div>
       </div>
     </div>
