@@ -2926,15 +2926,14 @@ export async function uploadReceipt(
     .upload(path, file, { upsert: true });
   if (uploadErr) throw uploadErr;
 
-  const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(path);
-
   const { data, error } = await supabase
     .from('receipt_attachments')
     .insert({
       transaction_id: transactionId,
       user_id: userId,
       file_name: file.name,
-      file_url: urlData.publicUrl,
+      // Store the private storage path instead of a public URL.
+      file_url: path,
       file_size: file.size,
       mime_type: file.type,
     })

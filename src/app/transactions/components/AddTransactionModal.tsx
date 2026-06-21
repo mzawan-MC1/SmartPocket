@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import CurrencySelector from '@/components/CurrencySelector';
+import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
   createTransactionsBatch,
@@ -34,6 +35,10 @@ import { createLoanRepayment, getManagedPeople, type ManagedPerson } from '@/lib
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import {
+  classifyTransactionDocumentError,
+  validateTransactionDocumentFile,
+} from '@/lib/transaction-documents';
 
 type TransactionModalMode = 'single' | 'multiple';
 type TransactionEntryKind = 'standard' | 'loan_repayment';
@@ -102,6 +107,22 @@ function createDraftId() {
     return crypto.randomUUID();
   }
   return `txn-draft-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function getLocalizedDocumentValidationError(
+  t: ReturnType<typeof useTranslation>['t'],
+  error: unknown
+) {
+  switch (classifyTransactionDocumentError(error)) {
+    case 'invalid_type':
+      return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
+    case 'file_too_large':
+      return t('transactions.documentReview.errors.fileTooLarge', { ns: 'portal' });
+    case 'pdf_too_many_pages':
+      return t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
+    default:
+      return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
+  }
 }
 
 function isDraftRowPopulated(row: TransactionDraftRow) {
@@ -213,6 +234,7 @@ export default function AddTransactionModal({
   const [rowErrors, setRowErrors] = useState<Record<string, string[]>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
   const firstAmountFieldRef = useRef<HTMLInputElement | null>(null);
 
   const accounts = providedAccounts ?? internalAccounts;
@@ -280,6 +302,7 @@ export default function AddTransactionModal({
     setRowErrors({});
     setSaveProgress(null);
     setIsSaving(false);
+    setDocumentReviewFile(null);
   }, [buildEmptyDraft, editingTransaction, initialEntryKind, initialMode, initialTransactionType, isOpen, preselectedPersonId]);
 
   useEffect(() => {
@@ -554,6 +577,16 @@ export default function AddTransactionModal({
     }
   }, [activeDraftRows, closeModalAndReset, editingTransaction, onSaved, t, transactionMode, user?.id, validateDraftRow]);
 
+  const handleOpenDocumentReview = useCallback(async (file: File | null | undefined) => {
+    if (!file) return;
+    try {
+      await validateTransactionDocumentFile(file);
+      setDocumentReviewFile(file);
+    } catch (error) {
+      toast.error(getLocalizedDocumentValidationError(t, error));
+    }
+  }, [t]);
+
   const visibleRowCount = activeDraftRows.length;
   const isLoanRepaymentMode = activeDraftRows[0]?.entry_kind === 'loan_repayment';
   const addActionLabel = editingTransaction
@@ -591,6 +624,49 @@ export default function AddTransactionModal({
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-3.5 sm:py-3">
           <div className="grid grid-cols-1 gap-2">
+            {!editingTransaction ? (
+              <div className="rounded-2xl border border-border bg-card p-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-700 text-foreground">
+                      {t('transactions.documentReview.entryTitle', {
+                        ns: 'portal',
+                        defaultValue: 'Receipt / Document',
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('transactions.documentReview.entryDescription', {
+                        ns: 'portal',
+                        defaultValue: 'Upload a JPG, PNG, or PDF to extract draft transaction data for review before saving.',
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="transaction-document-review-upload"
+                      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                      className="hidden"
+                      onChange={(event) => {
+                        const nextFile = event.target.files?.[0];
+                        void handleOpenDocumentReview(nextFile);
+                        event.currentTarget.value = '';
+                      }}
+                    />
+                    <label
+                      htmlFor="transaction-document-review-upload"
+                      className="btn-secondary inline-flex cursor-pointer items-center justify-center"
+                    >
+                      <Upload size={14} />
+                      {t('transactions.documentReview.openAction', {
+                        ns: 'portal',
+                        defaultValue: 'Review Document',
+                      })}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             {transactionMode === 'single' ? (
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] sm:items-center">
                 <div
@@ -1063,15 +1139,19 @@ export default function AddTransactionModal({
                                 <input
                                   type="file"
                                   id={`receipt-upload-${row.id}`}
-                                  accept="image/*,.pdf"
+                                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
                                   className="hidden"
-                                  onChange={(event) => {
+                                  onChange={async (event) => {
                                     const file = event.target.files?.[0];
-                                    if (file && file.size > 5 * 1024 * 1024) {
-                                      toast.error(t('transactions.form.receiptSizeError', { ns: 'portal' }));
-                                      return;
+                                    try {
+                                      if (file) {
+                                        await validateTransactionDocumentFile(file);
+                                      }
+                                      updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: file || null }));
+                                    } catch (error) {
+                                      toast.error(getLocalizedDocumentValidationError(t, error));
                                     }
-                                    updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: file || null }));
+                                    event.currentTarget.value = '';
                                   }}
                                 />
                                 <label htmlFor={`receipt-upload-${row.id}`} className="cursor-pointer text-sm text-muted-foreground">
@@ -1152,6 +1232,20 @@ export default function AddTransactionModal({
           </div>
         </div>
       </div>
+      <DocumentTransactionReviewModal
+        isOpen={isOpen && !!documentReviewFile}
+        file={documentReviewFile}
+        sourceSurface="add_transaction"
+        onClose={() => setDocumentReviewFile(null)}
+        onSaved={async () => {
+          dispatchSmartPocketDataChanged({
+            source: 'transactions-document-review',
+            entities: ['transactions', 'financial_accounts', 'dashboard'],
+          });
+          await onSaved?.();
+          closeModalAndReset();
+        }}
+      />
     </Modal>
   );
 }

@@ -625,7 +625,76 @@
     "emptyDescription": "أضف أول معاملة دخل أو مصروف للبدء.",
     "emptyInPeriodDescription": "جرّب فترة تخطيط مختلفة أو التبديل إلى كل الوقت أو توسيع عوامل التصفية.",
     "uncategorized": "غير مصنفة",
-    "noAccount": "بدون حساب"
+    "noAccount": "بدون حساب",
+    "types": {
+      "income": "دخل",
+      "expense": "مصروف",
+      "transfer": "تحويل"
+    },
+    "account": "الحساب",
+    "category": "الفئة",
+    "date": "التاريخ",
+    "merchantSource": "التاجر / المصدر",
+    "amount": "المبلغ",
+    "currency": "العملة",
+    "notes": "ملاحظات",
+    "selectAccount": "اختر حسابا...",
+    "noCategory": "بلا فئة",
+    "form": {
+      "receiptSizeError": "يجب أن يكون الملف بصيغة JPG أو JPEG أو PNG أو PDF وبحجم لا يتجاوز 10 ميجابايت.",
+      "uploadReceipt": "ارفع إيصالا (JPG أو PNG أو PDF - بحد أقصى 10 ميجابايت)",
+      "tax": "الضريبة"
+    },
+    "documentReview": {
+      "entryTitle": "إيصال / مستند",
+      "entryDescription": "ارفع ملف JPG أو PNG أو PDF لاستخراج مسودة بيانات المعاملة ومراجعتها قبل الحفظ.",
+      "openAction": "مراجعة المستند",
+      "invalidFile": "هذا الملف غير مدعوم لمراجعة الإيصال أو المستند.",
+      "title": "مراجعة الإيصال / المستند",
+      "extractingTitle": "جار استخراج مسودات المعاملات",
+      "extractingDescription": "جار التحقق من الملف وقراءة المستند وإعداد مسودة للمراجعة.",
+      "extractFailed": "تعذر استخراج بيانات المستند المرفوع.",
+      "extractErrorTitle": "فشل استخراج المستند",
+      "previewTitle": "المعاينة الأصلية",
+      "duplicateTitle": "تم اكتشاف احتمال تكرار",
+      "duplicateUnknownMerchant": "مستند موجود",
+      "duplicateConfirmLabel": "راجعت التحذير وما زلت أريد الحفظ.",
+      "detectedTransaction": "مسودة المعاملة {{index}}",
+      "needsReview": "تحتاج إلى مراجعة",
+      "readyLabel": "تبدو جيدة",
+      "confidenceLabel": "نسبة الثقة {{value}}%",
+      "accountCurrencyHint": "العملة تتبع الحساب المحدد.",
+      "receiptNumber": "رقم الإيصال / المرجع",
+      "lineItemsTitle": "العناصر المكتشفة",
+      "noTransactions": "لم يتم اكتشاف أي مسودات معاملات من هذا المستند.",
+      "completeRequiredFields": "أكمل حقول المعاملة المطلوبة قبل الحفظ.",
+      "confirmDuplicateWarning": "أكد أنك تريد المتابعة رغم تحذير التكرار.",
+      "readyToSave": "المراجعة مكتملة وجاهزة للحفظ.",
+      "savingAction": "جار الحفظ...",
+      "confirmAndSave": "تأكيد وحفظ",
+      "saveFailed": "فشل حفظ معاملات المستند التي تمت مراجعتها.",
+      "savedSuccessfully": "تم حفظ معاملات المستند بنجاح.",
+      "errors": {
+        "unauthorized": "انتهت جلستك. يرجى تسجيل الدخول مرة أخرى ثم المحاولة.",
+        "fileRequired": "ملف الإيصال أو المستند مطلوب.",
+        "invalidType": "الأنواع المدعومة فقط هي JPG وJPEG وPNG وPDF.",
+        "fileTooLarge": "يجب ألا يزيد حجم الملف عن 10 ميجابايت.",
+        "pdfTooManyPages": "يمكن أن يحتوي ملف PDF على 10 صفحات كحد أقصى.",
+        "pdfExtractionUnavailable": "استخراج هذا الملف PDF غير متاح مؤقتا. يرجى مراجعة الملف والمحاولة مرة أخرى.",
+        "extractFailed": "تعذر استخراج بيانات المستند المرفوع.",
+        "jobRequired": "جلسة مراجعة المستند مفقودة. يرجى رفع الملف مرة أخرى.",
+        "reviewRequired": "يلزم وجود معاملة واحدة مراجعة على الأقل قبل الحفظ.",
+        "invalidReviewPayload": "بيانات المستند التي تمت مراجعتها غير صالحة. يرجى مراجعة الحقول والمحاولة مرة أخرى.",
+        "invalidAmount": "أدخل مبلغا صالحا قبل الحفظ.",
+        "invalidAccount": "اختر حسابا صالحا قبل الحفظ.",
+        "invalidDate": "اختر تاريخا صالحا قبل الحفظ.",
+        "currencyMismatch": "يجب أن تطابق عملة الحساب المحدد عملة المعاملة.",
+        "invalidCategory": "اختر فئة صالحة لنوع هذه المعاملة.",
+        "alreadySaved": "تم حفظ مراجعة هذا المستند بالفعل.",
+        "jobNotFound": "جلسة مراجعة هذا المستند لم تعد متاحة. يرجى رفع الملف مرة أخرى.",
+        "saveFailed": "فشل حفظ معاملات المستند التي تمت مراجعتها."
+      }
+    }
   },
   "spaces": {
     "title": "المساحات",
@@ -1001,7 +1070,13 @@
     },
     "personFallbackName": "هذا الشخص",
     "accountFallbackName": "هذا الحساب",
-    "referenceLabel": "المرجع"
+    "referenceLabel": "المرجع",
+    "document": {
+      "title": "إيصال / مستند",
+      "description": "ارفع إيصالا أو فاتورة أو ملاحظة أو ملف PDF لاستخراج مسودات معاملات للمراجعة.",
+      "action": "مراجعة المستند",
+      "invalidFile": "هذا الملف غير مدعوم لمراجعة الإيصال أو المستند."
+    }
   },
   "settings": {
     "title": "الإعدادات",

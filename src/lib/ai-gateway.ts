@@ -2,13 +2,41 @@
 // Server-side only. Never import this from browser components.
 // All provider secrets are resolved from environment variables.
 
-import type { AIGatewayConfig, AIAssistantRequest, AIAssistantResponse, ParseRequest, ParsedFinancialInstruction, AudioInput, TranscriptResult, LanguageProvider, SpeechProvider, ProviderHealthResult,  } from './ai-types';
+import type { AIGatewayConfig, AIAssistantRequest, AIAssistantResponse, ParseRequest, ParsedFinancialInstruction, AudioInput, TranscriptResult, LanguageProvider, SpeechProvider, ProviderHealthResult, FinancialContext } from './ai-types';
 import {
   validateParsedInstruction,
   safeParseJSON,
   FINANCIAL_SYSTEM_PROMPT,
 } from './ai-types';
 import { createClientId } from './uuid';
+import {
+  TRANSACTION_DOCUMENT_SYSTEM_PROMPT,
+  validateTransactionDocumentExtraction,
+  type TransactionDocumentExtraction,
+} from './transaction-documents';
+
+export interface TransactionDocumentAIRequest {
+  fileName: string;
+  fileMimeType: string;
+  fileDataUrl: string;
+  language?: string;
+  pageCount?: number;
+  sourceSurface?: string;
+  context?: FinancialContext;
+  requestId?: string;
+}
+
+export interface TransactionDocumentAIResponse {
+  requestId: string;
+  status: 'parsed' | 'failed' | 'not_configured';
+  parsed?: TransactionDocumentExtraction;
+  errorMessage?: string;
+  errorCategory?: string;
+  providerUsed?: string;
+  fallbackUsed?: boolean;
+  durationMs?: number;
+  rawOutput?: unknown;
+}
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
 
@@ -1174,6 +1202,61 @@ export async function processAIRequest(
   }
 }
 
+export async function processTransactionDocumentAIRequest(
+  request: TransactionDocumentAIRequest,
+  config: AIGatewayConfig
+): Promise<TransactionDocumentAIResponse> {
+  const startTime = Date.now();
+
+  if (!config.aiEnabled) {
+    return {
+      requestId: createClientId(),
+      status: 'not_configured',
+      errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
+      errorCategory: 'not_configured',
+    };
+  }
+
+  const normalizedMimeType = request.fileMimeType.trim().toLowerCase();
+  const requestId = request.requestId || createClientId();
+
+  try {
+    const [primaryLang, fallbackLang] = getProviderOrder(config);
+    const { result, fallbackUsed } = await withFallback(
+      () => parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId }),
+      () => parseTransactionDocumentWithProvider(fallbackLang, { ...request, requestId }),
+      config.enableAutoFallback
+    );
+
+    const validated = validateTransactionDocumentExtraction(result.parsed);
+    return {
+      requestId: validated.requestId,
+      status: 'parsed',
+      parsed: {
+        ...validated,
+        providerUsed: result.providerUsed,
+        modelUsed: result.modelUsed,
+      },
+      providerUsed: result.providerUsed,
+      fallbackUsed,
+      durationMs: Date.now() - startTime,
+      rawOutput: result.rawOutput,
+    };
+  } catch (error) {
+    let message = error instanceof Error ? error.message : 'Unknown error';
+    if (normalizedMimeType === 'application/pdf' && /file|pdf|plugin/i.test(message)) {
+      message = 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.';
+    }
+    return {
+      requestId,
+      status: 'failed',
+      errorMessage: sanitizeError(message),
+      errorCategory: categorizeError(message),
+      durationMs: Date.now() - startTime,
+    };
+  }
+}
+
 export async function runHealthChecks(config: AIGatewayConfig): Promise<ProviderHealthResult[]> {
   const providers = [
     createLanguageProvider('openrouter', 5000),
@@ -1195,6 +1278,153 @@ function getProviderOrder(config: AIGatewayConfig): [string, string] {
     case 'cloud_primary':
     default:              return [config.primaryLanguageProvider, config.fallbackLanguageProvider];
   }
+}
+
+async function parseTransactionDocumentWithProvider(
+  providerName: string,
+  input: TransactionDocumentAIRequest
+): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+  switch (providerName) {
+    case 'openrouter':
+      return parseTransactionDocumentWithOpenRouter(input);
+    case 'vps_ai':
+      return parseTransactionDocumentWithVps(input);
+    case 'mock':
+      if (isMockAllowed()) {
+        return {
+          parsed: buildMockDocumentExtraction(input),
+          providerUsed: 'mock',
+          modelUsed: 'mock-v1',
+          rawOutput: buildMockDocumentExtraction(input),
+        };
+      }
+      throw new Error('Mock provider is not available in production mode');
+    default:
+      if (isMockAllowed()) {
+        return {
+          parsed: buildMockDocumentExtraction(input),
+          providerUsed: 'mock',
+          modelUsed: 'mock-v1',
+          rawOutput: buildMockDocumentExtraction(input),
+        };
+      }
+      throw new Error(`Unknown language provider: ${providerName}. AI is not configured.`);
+  }
+}
+
+async function parseTransactionDocumentWithOpenRouter(
+  input: TransactionDocumentAIRequest
+): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+  const apiKey = process.env.OPENROUTER_API_KEY || '';
+  if (!apiKey) throw new Error('OpenRouter not configured');
+
+  const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://smartpocket.app',
+      'X-Title': 'Smart Pocket AI',
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: buildTransactionDocumentUserContent(input),
+        },
+      ],
+      plugins:
+        input.fileMimeType === 'application/pdf'
+          ? [
+              {
+                id: 'file-parser',
+                pdf: {
+                  engine: 'mistral-ocr',
+                },
+              },
+            ]
+          : undefined,
+      temperature: 0.1,
+      max_tokens: 2500,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`OpenRouter error ${response.status}: ${sanitizeError(errText)}`);
+  }
+
+  const rawOutput = await response.json();
+  const content = rawOutput?.choices?.[0]?.message?.content;
+  const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
+  if (!parsed) {
+    throw new Error('Invalid JSON from OpenRouter');
+  }
+
+  return {
+    parsed,
+    providerUsed: 'openrouter',
+    modelUsed: model,
+    rawOutput,
+  };
+}
+
+async function parseTransactionDocumentWithVps(
+  input: TransactionDocumentAIRequest
+): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+  const baseUrl = process.env.LOCAL_AI_BASE_URL || '';
+  if (!baseUrl) throw new Error('VPS AI not configured');
+
+  const model = process.env.LOCAL_AI_MODEL || 'llama3';
+  const authToken = process.env.LOCAL_AI_AUTH_TOKEN || '';
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content: buildTransactionDocumentUserContent(input),
+        },
+      ],
+      temperature: 0.1,
+      max_tokens: 2500,
+      response_format: { type: 'json_object' },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`VPS AI error ${response.status}: ${sanitizeError(errText)}`);
+  }
+
+  const rawOutput = await response.json();
+  const content = rawOutput?.choices?.[0]?.message?.content;
+  const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
+  if (!parsed) {
+    throw new Error('Invalid JSON from VPS AI');
+  }
+
+  return {
+    parsed,
+    providerUsed: 'vps_ai',
+    modelUsed: model,
+    rawOutput,
+  };
 }
 
 function buildUserMessage(input: ParseRequest): string {
@@ -1219,6 +1449,90 @@ function buildUserMessage(input: ParseRequest): string {
     }
   }
   return msg;
+}
+
+function buildTransactionDocumentUserContent(input: TransactionDocumentAIRequest) {
+  const parts: Array<Record<string, unknown>> = [
+    {
+      type: 'text',
+      text: buildTransactionDocumentUserMessage(input),
+    },
+  ];
+
+  if (input.fileMimeType === 'application/pdf') {
+    parts.push({
+      type: 'file',
+      file: {
+        filename: input.fileName,
+        file_data: input.fileDataUrl,
+      },
+    });
+  } else {
+    parts.push({
+      type: 'image_url',
+      image_url: {
+        url: input.fileDataUrl,
+      },
+    });
+  }
+
+  return parts;
+}
+
+function buildTransactionDocumentUserMessage(input: TransactionDocumentAIRequest) {
+  let message = `Extract draft transactions from this document.\nrequestId: ${input.requestId || createClientId()}`;
+  message += `\nLanguage hint: ${input.language || 'en'}`;
+  message += `\nSource surface: ${input.sourceSurface || 'unknown'}`;
+  message += `\nFile name: ${input.fileName}`;
+  message += `\nMIME type: ${input.fileMimeType}`;
+  if (typeof input.pageCount === 'number') {
+    message += `\nPDF page count: ${input.pageCount}`;
+  }
+  if (input.context?.defaultCurrency) {
+    message += `\nDefault currency: ${input.context.defaultCurrency}`;
+  }
+  if (input.context?.categories?.length) {
+    message += `\nAvailable categories: ${input.context.categories.map((category) => category.name).join(', ')}`;
+  }
+  return message;
+}
+
+function buildMockDocumentExtraction(input: TransactionDocumentAIRequest): TransactionDocumentExtraction {
+  const defaultCurrency = input.context?.defaultCurrency || 'USD';
+  return {
+    requestId: input.requestId || createClientId(),
+    language: input.language || 'en',
+    documentKind: input.fileMimeType === 'application/pdf' ? 'note' : 'receipt',
+    confidence: 0.72,
+    warnings: ['Mock document extraction result. Configure a real AI provider for production extraction.'],
+    transactions: [
+      {
+        transactionType: 'expense',
+        merchant: 'Sample Merchant',
+        date: new Date().toISOString().slice(0, 10),
+        total: 42.5,
+        tax: 2.02,
+        currency: defaultCurrency,
+        categorySuggestion: 'Groceries',
+        description: 'Document draft transaction',
+        notes: input.fileMimeType === 'application/pdf'
+          ? 'Detected from uploaded PDF.'
+          : 'Detected from uploaded image.',
+        receiptNumber: 'MOCK-001',
+        confidence: 0.72,
+        needsReview: true,
+        lineItems: [
+          {
+            name: 'Sample item',
+            quantity: 1,
+            unitPrice: 42.5,
+            total: 42.5,
+            confidence: 0.61,
+          },
+        ],
+      },
+    ],
+  };
 }
 
 function sanitizeError(msg: string): string {

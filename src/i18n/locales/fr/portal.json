@@ -594,7 +594,76 @@
     "emptyDescription": "Ajoutez votre première transaction de revenu ou de dépense pour commencer.",
     "emptyInPeriodDescription": "Essayez une autre période de planification, passez à toute la période, ou élargissez vos filtres.",
     "uncategorized": "Non catégorisé",
-    "noAccount": "Aucun compte"
+    "noAccount": "Aucun compte",
+    "types": {
+      "income": "Revenu",
+      "expense": "Depense",
+      "transfer": "Transfert"
+    },
+    "account": "Compte",
+    "category": "Categorie",
+    "date": "Date",
+    "merchantSource": "Marchand / Source",
+    "amount": "Montant",
+    "currency": "Devise",
+    "notes": "Notes",
+    "selectAccount": "Choisir un compte...",
+    "noCategory": "Aucune categorie",
+    "form": {
+      "receiptSizeError": "Le fichier doit etre au format JPG, JPEG, PNG ou PDF et ne pas depasser 10 Mo.",
+      "uploadReceipt": "Televerser un recu (JPG, PNG, PDF - max 10 Mo)",
+      "tax": "Taxe"
+    },
+    "documentReview": {
+      "entryTitle": "Recu / Document",
+      "entryDescription": "Televersez un fichier JPG, PNG ou PDF pour extraire une ebauche de transaction a verifier avant l'enregistrement.",
+      "openAction": "Verifier le document",
+      "invalidFile": "Ce fichier n'est pas pris en charge pour la verification de recu ou de document.",
+      "title": "Verifier le recu / document",
+      "extractingTitle": "Extraction des ebauches de transactions",
+      "extractingDescription": "Validation du fichier, lecture du document et preparation d'une ebauche a verifier.",
+      "extractFailed": "Impossible d'extraire le document televerse.",
+      "extractErrorTitle": "Echec de l'extraction du document",
+      "previewTitle": "Apercu original",
+      "duplicateTitle": "Doublon possible detecte",
+      "duplicateUnknownMerchant": "Document existant",
+      "duplicateConfirmLabel": "J'ai verifie l'alerte et je souhaite quand meme enregistrer.",
+      "detectedTransaction": "Ebauche de transaction {{index}}",
+      "needsReview": "Verification requise",
+      "readyLabel": "Semble correct",
+      "confidenceLabel": "Confiance {{value}}%",
+      "accountCurrencyHint": "La devise suit le compte selectionne.",
+      "receiptNumber": "Numero de recu / reference",
+      "lineItemsTitle": "Articles detectes",
+      "noTransactions": "Aucune ebauche de transaction n'a ete detectee a partir de ce document.",
+      "completeRequiredFields": "Completez les champs obligatoires avant d'enregistrer.",
+      "confirmDuplicateWarning": "Confirmez que vous souhaitez continuer malgre l'alerte de doublon.",
+      "readyToSave": "La verification est complete et prete a etre enregistree.",
+      "savingAction": "Enregistrement...",
+      "confirmAndSave": "Confirmer et enregistrer",
+      "saveFailed": "Impossible d'enregistrer les transactions verifiees du document.",
+      "savedSuccessfully": "Les transactions du document ont ete enregistrees avec succes.",
+      "errors": {
+        "unauthorized": "Votre session a expire. Reconnectez-vous puis reessayez.",
+        "fileRequired": "Un fichier de recu ou de document est requis.",
+        "invalidType": "Seuls les fichiers JPG, JPEG, PNG et PDF sont pris en charge.",
+        "fileTooLarge": "La taille du fichier doit etre inferieure ou egale a 10 Mo.",
+        "pdfTooManyPages": "Les fichiers PDF peuvent contenir au maximum 10 pages.",
+        "pdfExtractionUnavailable": "L'extraction est temporairement indisponible pour ce PDF. Verifiez le fichier puis reessayez.",
+        "extractFailed": "Impossible d'extraire le document televerse.",
+        "jobRequired": "La session de verification du document est manquante. Televersez le fichier de nouveau.",
+        "reviewRequired": "Au moins une transaction verifiee est requise avant l'enregistrement.",
+        "invalidReviewPayload": "Les donnees verifiees du document sont invalides. Verifiez les champs puis reessayez.",
+        "invalidAmount": "Saisissez un montant valide avant l'enregistrement.",
+        "invalidAccount": "Choisissez un compte valide avant l'enregistrement.",
+        "invalidDate": "Choisissez une date valide avant l'enregistrement.",
+        "currencyMismatch": "La devise du compte selectionne doit correspondre a celle de la transaction.",
+        "invalidCategory": "Choisissez une categorie valide pour ce type de transaction.",
+        "alreadySaved": "Cette verification de document a deja ete enregistree.",
+        "jobNotFound": "Cette session de verification n'est plus disponible. Televersez le fichier de nouveau.",
+        "saveFailed": "Impossible d'enregistrer les transactions verifiees du document."
+      }
+    }
   },
   "spaces": {
     "title": "Espaces",
@@ -970,7 +1039,13 @@
     },
     "personFallbackName": "cette personne",
     "accountFallbackName": "ce compte",
-    "referenceLabel": "Reference"
+    "referenceLabel": "Reference",
+    "document": {
+      "title": "Recu / Document",
+      "description": "Televersez un recu, une facture, une note ou un PDF pour extraire des ebauches de transactions a verifier.",
+      "action": "Verifier le document",
+      "invalidFile": "Ce fichier n'est pas pris en charge pour la verification de recu ou de document."
+    }
   },
   "settings": {
     "title": "Paramètres",

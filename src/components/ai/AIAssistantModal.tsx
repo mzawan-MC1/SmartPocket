@@ -6,6 +6,7 @@
    Type,
    AlertTriangle,
    CheckCircle,
+  FileText,
    Loader2,
    RotateCcw,
    Sparkles,
@@ -20,6 +21,7 @@ import { useTranslation } from 'react-i18next';
  import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
  import VoiceRecorder from './VoiceRecorder';
+import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
  import type {
    ParsedFinancialInstruction,
    FinancialContext,
@@ -46,6 +48,10 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
    sanitizeCurrency,
  } from '@/lib/smart-entry';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import {
+  classifyTransactionDocumentError,
+  validateTransactionDocumentFile,
+} from '@/lib/transaction-documents';
 
  type AssistantStep =
    | 'entry'
@@ -323,6 +329,22 @@ function translateSmartEntryWarning(
   }
 }
 
+function getLocalizedDocumentValidationError(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  error: unknown
+) {
+  switch (classifyTransactionDocumentError(error)) {
+    case 'invalid_type':
+      return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
+    case 'file_too_large':
+      return t('transactions.documentReview.errors.fileTooLarge', { ns: 'portal' });
+    case 'pdf_too_many_pages':
+      return t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
+    default:
+      return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
+  }
+}
+
  export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { t } = useTranslation(['portal', 'common']);
    const { isRTL, language: uiLanguage } = useLanguage();
@@ -357,6 +379,7 @@ function translateSmartEntryWarning(
      relationship: NonNullable<NonNullable<SmartEntryReview['person']>['relationship']>;
      notes: string;
    } | null>(null);
+   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
 
   // Check AI configuration on mount
   useEffect(() => {
@@ -1254,6 +1277,17 @@ function translateSmartEntryWarning(
     resetRequestState();
   }, [resetRequestState]);
 
+  const handleOpenDocumentReview = useCallback(async (file: File | null | undefined) => {
+    if (!file) return;
+    try {
+      await validateTransactionDocumentFile(file);
+      setDocumentReviewFile(file);
+    } catch (error) {
+      setErrorMessage(getLocalizedDocumentValidationError(t, error));
+      setStep('failed');
+    }
+  }, [t]);
+
   const getFriendlyExecutionErrorMessage = (rawError: unknown): string => {
     if (isObject(rawError) && typeof rawError.code === 'string') {
       switch (rawError.code) {
@@ -1452,6 +1486,48 @@ function translateSmartEntryWarning(
                       {l.label}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              <div className="mb-5 rounded-2xl border border-border bg-secondary/30 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-700 text-foreground">
+                      {t('smartEntryModal.document.title', {
+                        ns: 'portal',
+                        defaultValue: 'Receipt / Document',
+                      })}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {t('smartEntryModal.document.description', {
+                        ns: 'portal',
+                        defaultValue: 'Upload a receipt, invoice, note, or PDF to extract draft transactions for review.',
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      id="smart-entry-document-upload"
+                      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                      className="hidden"
+                      onChange={(event) => {
+                        const nextFile = event.target.files?.[0];
+                        void handleOpenDocumentReview(nextFile);
+                        event.currentTarget.value = '';
+                      }}
+                    />
+                    <label
+                      htmlFor="smart-entry-document-upload"
+                      className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-card px-4 py-2.5 text-sm font-600 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-muted"
+                    >
+                      <FileText size={16} className="me-2" />
+                      {t('smartEntryModal.document.action', {
+                        ns: 'portal',
+                        defaultValue: 'Review Document',
+                      })}
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -2173,6 +2249,20 @@ function translateSmartEntryWarning(
           )}
         </div>
       </div>
+      <DocumentTransactionReviewModal
+        isOpen={!!documentReviewFile}
+        file={documentReviewFile}
+        sourceSurface="smart_entry"
+        onClose={() => setDocumentReviewFile(null)}
+        onSaved={async () => {
+          dispatchSmartPocketDataChanged({
+            source: 'smart-entry-document-review',
+            entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
+          });
+          router.refresh();
+          onClose();
+        }}
+      />
     </div>,
     document.body
   );
