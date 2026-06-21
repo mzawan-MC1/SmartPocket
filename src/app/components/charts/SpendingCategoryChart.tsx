@@ -79,7 +79,6 @@ export default function SpendingCategoryChart({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reportingCurrency, setReportingCurrency] = useState('USD');
   const topCategory = data[0] ?? null;
-  const averagePerCategory = data.length > 0 ? total / data.length : 0;
   const summaryCards = useMemo(() => ([
     {
       id: 'total',
@@ -92,17 +91,7 @@ export default function SpendingCategoryChart({
       value: topCategory?.name || '—',
       detail: topCategory ? formatCurrencyValue(topCategory.value, reportingCurrency) : undefined,
     },
-    {
-      id: 'count',
-      label: t('dashboardCharts.categorySummary.activeCategories', { defaultValue: 'Active categories' }),
-      value: String(data.length),
-    },
-    {
-      id: 'average',
-      label: t('dashboardCharts.categorySummary.averagePerCategory', { defaultValue: 'Average per category' }),
-      value: formatCurrencyValue(averagePerCategory, reportingCurrency),
-    },
-  ]), [averagePerCategory, data.length, reportingCurrency, t, topCategory]);
+  ]), [reportingCurrency, t, topCategory]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -263,7 +252,7 @@ export default function SpendingCategoryChart({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
           {summaryCards.map((card) => (
             <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-3 shadow-card-sm">
               <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
