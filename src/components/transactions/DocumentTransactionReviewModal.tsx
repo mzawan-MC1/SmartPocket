@@ -523,7 +523,7 @@ export default function DocumentTransactionReviewModal({
       })}
       size="xl"
       mobileLayout="fullscreen"
-      contentClassName="sm:max-w-[62rem] sm:max-h-[92vh]"
+      contentClassName="sm:w-[94vw] sm:max-w-[72rem] sm:max-h-[92vh]"
       bodyClassName="overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col">
@@ -575,7 +575,7 @@ export default function DocumentTransactionReviewModal({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(260px,0.75fr)_minmax(0,1.45fr)] xl:gap-5">
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-card p-4">
                   <div className="mb-3 flex items-center gap-2">
@@ -999,164 +999,172 @@ export default function DocumentTransactionReviewModal({
                             })}
                           </p>
                         ) : (
-                          <div className="mt-3 space-y-2.5">
+                          <div className="mt-3 space-y-3">
                             {transaction.lineItems.map((item, itemIndex) => {
                               const itemTotal = getTransactionDocumentLineItemTotal(item);
 
                               return (
-                                <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-xl border border-border/70 bg-card p-2.5 sm:p-3">
-                                  <div className="grid grid-cols-1 gap-x-2 gap-y-2 md:grid-cols-6 xl:grid-cols-12 xl:items-end">
-                                    <div className="md:col-span-3 xl:col-span-5">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-xl border border-border/70 bg-card p-3">
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_120px] xl:items-end">
+                                      <div className="min-w-0">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemName', {
                                           ns: 'portal',
                                           defaultValue: 'Item name',
                                         })}
-                                      </label>
-                                      <input
-                                        type="text"
-                                        className="input-base h-9 text-[13px] leading-none"
-                                        value={item.name}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          name: event.target.value,
-                                        }))}
-                                      />
+                                        </label>
+                                        <input
+                                          type="text"
+                                          className="input-base h-9 w-full min-w-0 text-[13px]"
+                                          value={item.name}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            name: event.target.value,
+                                          }))}
+                                        />
+                                      </div>
+                                      <div className="min-w-0 xl:w-[120px]">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                          {t('transactions.documentReview.lineTotal', {
+                                            ns: 'portal',
+                                            defaultValue: 'Line total',
+                                          })}
+                                        </label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          className="input-base h-9 w-full min-w-0 text-[13px]"
+                                          value={formatOptionalNumberInput(item.total)}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            total: parseOptionalNumber(event.target.value),
+                                          }))}
+                                        />
+                                      </div>
                                     </div>
-                                    <div className="md:col-span-1 xl:col-span-1">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[82px_116px_minmax(145px,1fr)_116px] xl:items-end">
+                                      <div className="min-w-0 xl:w-[82px]">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.quantity', {
                                           ns: 'portal',
                                           defaultValue: 'Quantity',
                                         })}
-                                      </label>
-                                      <input
-                                        type="number"
-                                        step="0.001"
-                                        min="0"
-                                        className="input-base h-9 text-[13px] leading-none"
-                                        value={formatOptionalNumberInput(item.quantity)}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          quantity: parseOptionalNumber(event.target.value),
-                                        }))}
-                                      />
-                                    </div>
-                                    <div className="md:col-span-1 xl:col-span-2">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                        </label>
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          min="0"
+                                          className="input-base h-9 w-full min-w-0 text-[13px]"
+                                          value={formatOptionalNumberInput(item.quantity)}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            quantity: parseOptionalNumber(event.target.value),
+                                          }))}
+                                        />
+                                      </div>
+                                      <div className="min-w-0 xl:w-[116px]">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.unitPrice', {
                                           ns: 'portal',
                                           defaultValue: 'Unit price',
                                         })}
-                                      </label>
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        className="input-base h-9 text-[13px] leading-none"
-                                        value={formatOptionalNumberInput(item.unitPrice)}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          unitPrice: parseOptionalNumber(event.target.value),
-                                        }))}
-                                      />
-                                    </div>
-                                    <div className="md:col-span-1 xl:col-span-2">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.lineTotal', {
-                                          ns: 'portal',
-                                          defaultValue: 'Line total',
-                                        })}
-                                      </label>
-                                      <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        className="input-base h-9 text-[13px] leading-none"
-                                        value={formatOptionalNumberInput(item.total)}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          total: parseOptionalNumber(event.target.value),
-                                        }))}
-                                      />
-                                    </div>
-                                    <div className="md:col-span-3 xl:col-span-4">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                        </label>
+                                        <input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          className="input-base h-9 w-full min-w-0 text-[13px]"
+                                          value={formatOptionalNumberInput(item.unitPrice)}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            unitPrice: parseOptionalNumber(event.target.value),
+                                          }))}
+                                        />
+                                      </div>
+                                      <div className="min-w-0">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemCategory', {
                                           ns: 'portal',
                                           defaultValue: 'Item category',
                                         })}
-                                      </label>
-                                      <select
-                                        className="input-base h-9 truncate pr-8 text-[13px] leading-none"
-                                        value={item.categoryId || ''}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          categoryId: event.target.value || null,
-                                        }))}
-                                      >
-                                        <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
-                                        {lineItemCategories.map((category) => (
-                                          <option key={category.id} value={category.id}>
-                                            {category.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div className="md:col-span-2 xl:col-span-3">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                        </label>
+                                        <select
+                                          className="input-base h-9 w-full min-w-0 pr-10 text-[13px]"
+                                          value={item.categoryId || ''}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            categoryId: event.target.value || null,
+                                          }))}
+                                        >
+                                          <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
+                                          {lineItemCategories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                              {category.name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                      <div className="min-w-0 xl:w-[116px]">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.itemType', {
                                           ns: 'portal',
                                           defaultValue: 'Item type',
                                         })}
-                                      </label>
-                                      <select
-                                        className="input-base h-9 truncate pr-8 text-[13px] leading-none"
-                                        value={item.itemKind || 'regular'}
-                                        onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                          ...current,
-                                          itemKind: event.target.value as TransactionDocumentItemKind,
-                                        }))}
-                                      >
-                                        {TRANSACTION_DOCUMENT_ITEM_KINDS.map((itemKind) => (
-                                          <option key={`${transaction.id}-${itemIndex}-${itemKind}`} value={itemKind}>
-                                            {t(`transactions.documentReview.itemKinds.${itemKind}` as const, {
-                                              ns: 'portal',
-                                              defaultValue: itemKind,
-                                            })}
-                                          </option>
-                                        ))}
-                                      </select>
+                                        </label>
+                                        <select
+                                          className="input-base h-9 w-full min-w-0 pr-10 text-[13px]"
+                                          value={item.itemKind || 'regular'}
+                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                            ...current,
+                                            itemKind: event.target.value as TransactionDocumentItemKind,
+                                          }))}
+                                        >
+                                          {TRANSACTION_DOCUMENT_ITEM_KINDS.map((itemKind) => (
+                                            <option key={`${transaction.id}-${itemIndex}-${itemKind}`} value={itemKind}>
+                                              {t(`transactions.documentReview.itemKinds.${itemKind}` as const, {
+                                                ns: 'portal',
+                                                defaultValue: itemKind,
+                                              })}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      </div>
                                     </div>
-                                    <div className="md:col-span-3 xl:col-span-3">
-                                      <label className="mb-1 block truncate whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                      <div className="min-w-0 sm:flex-1">
+                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                                         {t('transactions.documentReview.computedLineTotal', {
                                           ns: 'portal',
                                           defaultValue: 'Calculated line total',
                                         })}
-                                      </label>
-                                      <div className="flex h-9 items-center overflow-hidden rounded-xl border border-border bg-muted/20 px-3 text-[13px] font-600 leading-none text-foreground whitespace-nowrap">
-                                        {itemTotal > 0
-                                          ? formatCurrencyText(itemTotal, {
-                                              currencyCode: transaction.currency || undefined,
-                                              fallbackCurrencyCode: transaction.currency || 'USD',
-                                              textOnly: true,
-                                            })
-                                          : '—'}
+                                        </label>
+                                        <div className="flex h-9 items-center rounded-xl border border-border bg-muted/20 px-3 text-[13px] font-600 text-foreground whitespace-nowrap">
+                                          {itemTotal > 0
+                                            ? formatCurrencyText(itemTotal, {
+                                                currencyCode: transaction.currency || undefined,
+                                                fallbackCurrencyCode: transaction.currency || 'USD',
+                                                textOnly: true,
+                                              })
+                                            : '—'}
+                                        </div>
                                       </div>
-                                    </div>
-                                    <div className="flex items-end justify-end md:col-span-1 xl:col-span-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => removeLineItem(transaction.id, itemIndex)}
-                                        className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-negative/30 bg-negative-soft px-3 text-xs font-600 text-negative transition-colors hover:bg-negative-soft/80 md:w-auto"
-                                      >
-                                        <Trash2 size={14} />
-                                        {t('transactions.documentReview.removeItem', {
-                                          ns: 'portal',
-                                          defaultValue: 'Remove',
-                                        })}
-                                      </button>
+                                      <div className="flex items-end justify-end">
+                                        <button
+                                          type="button"
+                                          onClick={() => removeLineItem(transaction.id, itemIndex)}
+                                          className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-lg border border-negative/30 bg-negative-soft px-3 text-xs font-600 text-negative transition-colors hover:bg-negative-soft/80 sm:w-auto"
+                                        >
+                                          <Trash2 size={14} />
+                                          {t('transactions.documentReview.removeItem', {
+                                            ns: 'portal',
+                                            defaultValue: 'Remove',
+                                          })}
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
