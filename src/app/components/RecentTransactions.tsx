@@ -46,13 +46,13 @@ export default function RecentTransactions() {
     <SectionCard
       title={t('recentTransactions.title', { ns: 'portal' })}
       description={t('recentTransactions.description', { ns: 'portal' })}
-      className="h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm"
       action={
         <Link href="/transactions" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
-      bodyClassName="p-0"
+      bodyClassName="flex flex-1 flex-col p-0"
     >
 
       {loading ? (
@@ -69,16 +69,19 @@ export default function RecentTransactions() {
           ))}
         </div>
       ) : transactions.length === 0 ? (
-        <div className="px-4 py-8">
-          <EmptyState
-            icon={Receipt}
-            title={t('empty.noTransactions', { ns: 'common' })}
-            description={t('recentTransactions.emptyDescription', { ns: 'portal' })}
-          />
+        <div className="flex flex-1 items-start justify-center px-4 pb-6 pt-3">
+          <div className="flex max-w-[15rem] flex-col items-center text-center">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/55 text-muted-foreground">
+              <Receipt size={22} />
+            </div>
+            <p className="text-sm font-700 text-foreground">{t('empty.noTransactions', { ns: 'common' })}</p>
+            <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{t('recentTransactions.emptyDescription', { ns: 'portal' })}</p>
+          </div>
         </div>
       ) : (
-        <div className="divide-y divide-border">
-          {transactions.slice(0, 6).map((txn) => {
+        <div className="flex flex-1 flex-col">
+          <div className="divide-y divide-border">
+          {transactions.slice(0, 5).map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
             const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
@@ -126,6 +129,7 @@ export default function RecentTransactions() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </SectionCard>

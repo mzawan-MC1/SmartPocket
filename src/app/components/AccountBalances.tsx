@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, ArrowRight, Landmark } from 'lucide-react';
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
-import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -90,13 +89,13 @@ export default function AccountBalances() {
     <SectionCard
       title={t('dashboardAccounts.title', { ns: 'portal' })}
       description={t('accounts.dashboardDescription', { ns: 'portal' })}
-      className="h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm"
       action={
         <Link href="/financial-accounts" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
-      bodyClassName="p-0"
+      bodyClassName="flex flex-1 flex-col p-0"
     >
 
       {loading ? (
@@ -113,16 +112,19 @@ export default function AccountBalances() {
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="px-4 py-8">
-          <EmptyState
-            icon={Wallet}
-            title={t('accounts.emptyTitle', { ns: 'portal' })}
-            description={t('accounts.emptyDescription', { ns: 'portal' })}
-          />
+        <div className="flex flex-1 items-start justify-center px-4 pb-6 pt-4">
+          <div className="flex max-w-[15rem] flex-col items-center text-center">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+              <Wallet size={22} />
+            </div>
+            <p className="text-sm font-700 text-foreground">{t('accounts.emptyTitle', { ns: 'portal' })}</p>
+            <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{t('accounts.emptyDescription', { ns: 'portal' })}</p>
+          </div>
         </div>
       ) : (
-        <div className="divide-y divide-border">
-          {accounts.slice(0, 6).map((acct) => {
+        <div className="flex flex-1 flex-col">
+          <div className="divide-y divide-border">
+          {accounts.slice(0, 5).map((acct) => {
             const Icon = getAccountIcon(acct.account_type);
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
             const lastActivity = new Date(acct.updated_at).toLocaleDateString(
@@ -151,6 +153,7 @@ export default function AccountBalances() {
               </div>
             );
           })}
+          </div>
           <div className="flex items-start justify-between gap-3 bg-muted/20 px-4 py-3.5">
             <div>
               <p className="text-sm font-700 text-foreground">{t('dashboardAccounts.totalBalance', { ns: 'portal' })}</p>

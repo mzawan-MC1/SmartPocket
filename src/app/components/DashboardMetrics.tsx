@@ -68,7 +68,7 @@ export default function DashboardMetrics({
     return (
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {skeletonCards.map((_, i) => (
-          <div key={`skel-${i}`} className="metric-card h-full min-h-[112px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:px-3.5 max-[480px]:py-3">
+          <div key={`skel-${i}`} className="metric-card h-full min-h-[110px] animate-pulse rounded-[24px] px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
             <div className="mb-3 flex items-start justify-between">
               <div className="space-y-2">
                 <div className="h-3.5 w-24 rounded bg-muted" />
@@ -380,8 +380,8 @@ export default function DashboardMetrics({
     const Icon = metric.icon;
     const isHero = metric.hero;
     const valueClassName = isHero
-      ? 'inline-flex items-baseline text-[1.52rem] font-800 tracking-[-0.03em] md:text-[1.45rem]'
-      : 'inline-flex items-baseline text-[1.24rem] font-800 tracking-[-0.025em] md:text-[1.18rem]';
+      ? 'inline-flex items-baseline text-[1.48rem] font-800 tracking-[-0.03em] md:text-[1.42rem]'
+      : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] md:text-[1.14rem]';
     const helperChangeLabel = metric.id === 'metric-netflow'
       ? t('dashboardMetrics.netOfIncomeAndExpenses')
       : metric.id === 'metric-upcoming'
@@ -391,16 +391,16 @@ export default function DashboardMetrics({
     return (
       <div
         key={metric.id}
-        className={`metric-card flex h-full min-h-[112px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[108px] max-[480px]:rounded-[22px] max-[480px]:px-3.5 max-[480px]:py-3 ${
+        className={`metric-card flex h-full min-h-[110px] flex-col rounded-[24px] border border-border/80 px-4 py-3 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[108px] max-[480px]:rounded-[22px] max-[480px]:px-3.5 max-[480px]:py-3 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
           metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
         }`}
       >
-        <div className="mb-2 flex items-start justify-between gap-3">
+        <div className="mb-1.5 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[13px] font-700 leading-5 text-foreground">{metric.label}</p>
-            <div className="mt-1 font-tabular leading-tight text-foreground">
+            <p className="text-[13px] font-700 leading-[1.25rem] text-foreground">{metric.label}</p>
+            <div className="mt-0.5 font-tabular leading-tight text-foreground">
               {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
             </div>
           </div>
@@ -409,21 +409,23 @@ export default function DashboardMetrics({
           </div>
         </div>
         <div className="mt-auto space-y-1">
-          <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+          <div className="flex items-start gap-1.5">
             {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
             {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
-            <div className={`text-sm font-700 font-tabular leading-none ${
-            metric.changeDir === 'up' ? 'text-positive' :
-            metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
-            }`}>
-              {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+            <div className="min-w-0">
+              <div className={`text-sm font-700 font-tabular leading-none ${
+                metric.changeDir === 'up' ? 'text-positive' :
+                metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
+              }`}>
+                {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+              </div>
+              <p className="mt-1 text-[12.5px] leading-4 text-muted-foreground line-clamp-2">
+                {helperChangeLabel}
+              </p>
             </div>
-            <span className="text-[12px] leading-[1.3] text-muted-foreground">
-              {helperChangeLabel}
-            </span>
           </div>
           {metric.subtext ? (
-            <p className="text-[12px] leading-[1.3] text-muted-foreground">{metric.subtext}</p>
+            <p className="text-[12.5px] leading-4 text-muted-foreground">{metric.subtext}</p>
           ) : null}
           {renderMetricDetails(metric.valueMetric)}
         </div>

@@ -217,14 +217,14 @@ export default function DashboardPage() {
                   <AIUsageCard />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12 xl:gap-4">
-                <div className="xl:col-span-5">
+              <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
+                <div>
                   <RecentTransactions />
                 </div>
-                <div className="xl:col-span-4">
+                <div>
                   <UpcomingRecurring activePeriod={activePeriod} />
                 </div>
-                <div className="xl:col-span-3">
+                <div>
                   <AccountBalances />
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Zap, Calendar, TrendingUp, AlertTriangle, CheckCircle, XCircle, RefreshCw, ArrowUpRight, Clock, Sparkles } from 'lucide-react';
+import { Zap, Calendar, AlertTriangle, CheckCircle, XCircle, RefreshCw, Clock, Sparkles } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
@@ -197,8 +197,9 @@ export default function AIUsageCard() {
       <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-5">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
-              <Sparkles size={18} />
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
+              <span className="absolute inset-1 rounded-xl bg-violet-500/10 blur-md" />
+              <Sparkles size={18} className="relative z-[1]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -221,9 +222,14 @@ export default function AIUsageCard() {
         ) : (
           <p className="mb-4 text-sm text-muted-foreground">{t('aiUsage.noSubscription')}</p>
         )}
-        <Link href="/pricing" className="inline-flex items-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700">
-          {t('aiUsage.viewPlans')} <ArrowUpRight size={12} />
-        </Link>
+        <button
+          type="button"
+          onClick={() => quickActions?.openQuickAction('smart_entry')}
+          className="inline-flex items-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+        >
+          <Zap size={13} />
+          {t('aiUsage.openAssistant')}
+        </button>
       </div>
     );
   }
@@ -260,15 +266,17 @@ export default function AIUsageCard() {
       <div className="flex h-full flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_14px_28px_-22px_rgba(139,92,246,0.95)]">
-              <Sparkles size={18} />
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_14px_28px_-22px_rgba(139,92,246,0.95)]">
+              <span className="absolute -inset-1 rounded-[20px] bg-violet-400/18 blur-lg" />
+              <span className="absolute inset-1 rounded-xl bg-white/70" />
+              <Sparkles size={18} className="relative z-[1]" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
                 <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.14em] text-violet-600">{t('aiUsage.beta')}</span>
               </div>
-              <p className="text-xs text-muted-foreground">{t('aiUsage.companion')}</p>
+              <p className="text-[12.5px] text-muted-foreground">{t('aiUsage.companion')}</p>
             </div>
           </div>
           <button
@@ -327,25 +335,27 @@ export default function AIUsageCard() {
           </div>
         </div>
 
-        <div className="mt-auto flex items-center gap-2">
+        <div className="mt-auto space-y-2">
           <button
             type="button"
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
           >
             <Zap size={14} />
             {t('aiUsage.openAssistant')}
           </button>
-          {(summary.plan_code === 'free_trial' || summary.status !== 'active') && (
-            <Link href="/pricing" className="inline-flex items-center justify-center rounded-2xl border border-violet-200 bg-white/80 px-3 py-3 text-xs font-700 text-violet-700 transition-colors hover:bg-white">
-              <TrendingUp size={13} />
-            </Link>
-          )}
-          {summary.ai_history_enabled && (
-            <Link href="/ai-history" className="inline-flex items-center justify-center rounded-2xl border border-violet-200 bg-white/80 px-3 py-3 text-xs font-700 text-violet-700 transition-colors hover:bg-white">
-              <ArrowUpRight size={13} />
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12.5px] text-violet-700">
+            {summary.ai_history_enabled ? (
+              <Link href="/ai-history" className="font-600 transition-colors hover:text-violet-800">
+                {t('aiUsage.history')}
+              </Link>
+            ) : null}
+            {(summary.plan_code === 'free_trial' || summary.status !== 'active') ? (
+              <Link href="/pricing" className="font-600 transition-colors hover:text-violet-800">
+                {t('aiUsage.upgrade')}
+              </Link>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

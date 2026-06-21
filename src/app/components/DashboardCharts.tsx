@@ -51,8 +51,8 @@ export default function DashboardCharts({
         </div>
       ) : null}
       <div className="px-2 pb-2 pt-4 max-[480px]:px-1">
-        <div className="h-[310px] max-[480px]:h-[260px]">
-        {activeTab === 'trend' ? <IncomeExpenseChart activePeriod={activePeriod} /> : <SpendingCategoryChart activePeriod={activePeriod} />}
+        <div className={activeTab === 'category' ? 'h-[300px] max-[480px]:h-[248px]' : ''}>
+          {activeTab === 'trend' ? <IncomeExpenseChart activePeriod={activePeriod} /> : <SpendingCategoryChart activePeriod={activePeriod} />}
         </div>
       </div>
     </section>

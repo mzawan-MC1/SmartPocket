@@ -1,6 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ChartNoAxesCombined } from 'lucide-react';
 import {
   isPersonalExpenseTransaction,
   convertHistoricalAmountWithSnapshots,
@@ -210,27 +211,37 @@ export default function IncomeExpenseChart({
   });
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return (
+      <div className="flex h-[280px] items-center justify-center max-[480px]:h-[240px]">
+        <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      </div>
+    );
   }
 
   if (data.every((d) => d.income === 0 && d.expenses === 0)) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2">
-        <p className="text-sm text-muted-foreground">
-          {errorMessage || 'No transaction data in this period'}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {activePeriod.mode === 'month'
-            ? 'Add income and expense transactions to see monthly trends.'
-            : 'Add income and expense transactions to see pay-period trends.'}
-        </p>
+      <div className="flex min-h-[176px] items-start justify-center px-4 pb-4 pt-2 max-[480px]:min-h-[160px]">
+        <div className="flex max-w-[18rem] flex-col items-center text-center">
+          <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),rgba(255,255,255,0.98)_68%)] shadow-[0_18px_36px_-28px_rgba(16,185,129,0.8)]">
+            <ChartNoAxesCombined size={24} className="text-accent" />
+          </div>
+          <p className="text-sm font-700 text-foreground">
+            {errorMessage || 'No transaction data in this period'}
+          </p>
+          <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">
+            {activePeriod.mode === 'month'
+              ? 'Add income and expense transactions to see monthly trends.'
+              : 'Add income and expense transactions to see pay-period trends.'}
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+    <div className="h-[280px] max-[480px]:h-[240px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
         <defs>
           <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="var(--positive)" stopOpacity={0.2} />
@@ -290,7 +301,8 @@ export default function IncomeExpenseChart({
           iconSize={8}
           wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }}
         />
-      </AreaChart>
-    </ResponsiveContainer>
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
