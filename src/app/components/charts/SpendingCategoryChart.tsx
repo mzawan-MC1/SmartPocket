@@ -57,7 +57,10 @@ function CustomTooltip({ active, payload, currencyCode, t }: any) {
         {formatCurrencyValue(Number(item.value || 0), currencyCode)}
       </p>
       <p className="text-xs text-muted-foreground">
-        {t('reports.chartLabels.ofTotal', { percent: ((item.value / total) * 100).toFixed(1) })}
+        {t('reports.chartLabels.ofTotal', {
+          percent: ((item.value / total) * 100).toFixed(1),
+          defaultValue: '{{percent}}% of total',
+        })}
       </p>
     </div>
   );
@@ -141,7 +144,7 @@ export default function SpendingCategoryChart({
           ? translateSystemCategoryName(category.name, (key, options) =>
               t(key, { ...(options || {}), ns: 'common' })
             )
-          : t('reports.chartLabels.uncategorized');
+          : t('reports.chartLabels.uncategorized', { defaultValue: 'Uncategorized' });
         const color = category?.color ?? null;
         const conversion = convertHistoricalAmountWithSnapshots({
           amount: Number(transaction.amount || 0),
@@ -176,11 +179,15 @@ export default function SpendingCategoryChart({
       setTotal(grandTotal);
       setData(sorted.map((item) => ({ ...item, total: grandTotal } as CategorySpend)));
       if (hadMissingRates) {
-        setErrorMessage(t('reports.chartLabels.missingHistoricalRates'));
+        setErrorMessage(t('reports.chartLabels.missingHistoricalRates', {
+          defaultValue: 'Some historical exchange rates are unavailable for this period.',
+        }));
       }
     } catch (error) {
       console.error('SpendingCategoryChart error:', error);
-      setErrorMessage(t('reports.chartLabels.chartPeriodFailed'));
+      setErrorMessage(t('reports.chartLabels.chartPeriodFailed', {
+        defaultValue: 'Unable to load category spending for this period.',
+      }));
     } finally {
       setLoading(false);
     }
@@ -202,16 +209,24 @@ export default function SpendingCategoryChart({
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-sm text-muted-foreground">
-          {errorMessage || t(activePeriod.mode === 'month' ? 'reports.chartLabels.noExpenseDataMonth' : 'reports.chartLabels.noExpenseDataPayPeriod')}
+          {errorMessage || t(activePeriod.mode === 'month' ? 'reports.chartLabels.noExpenseDataMonth' : 'reports.chartLabels.noExpenseDataPayPeriod', {
+            defaultValue: activePeriod.mode === 'month'
+              ? 'No expense transactions in this month'
+              : 'No expense transactions in this pay period',
+          })}
         </p>
-        <p className="text-[12.5px] text-muted-foreground">{t('reports.chartLabels.addExpensesToSeeCategories')}</p>
+        <p className="text-[12.5px] text-muted-foreground">
+          {t('reports.chartLabels.addExpensesToSeeCategories', {
+            defaultValue: 'Add expense transactions to see category breakdown.',
+          })}
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.9fr)_minmax(0,1.1fr)] lg:items-start">
-      <div className="grid gap-3 sm:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)] lg:grid-cols-1">
+    <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
+      <div className="grid gap-3 sm:grid-cols-[minmax(14rem,15.5rem)_minmax(0,1fr)] lg:grid-cols-1">
         <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4">
           <div className="mx-auto h-[190px] w-full max-w-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -248,7 +263,7 @@ export default function SpendingCategoryChart({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2">
           {summaryCards.map((card) => (
             <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-3 shadow-card-sm">
               <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
@@ -261,7 +276,7 @@ export default function SpendingCategoryChart({
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
         {data.map((item) => (
           <div
             key={item.id}
@@ -285,7 +300,10 @@ export default function SpendingCategoryChart({
                     {formatCurrencyValue(item.value, reportingCurrency)}
                   </span>
                   <span className="text-[12px] text-muted-foreground">
-                    {t('reports.chartLabels.ofTotal', { percent: ((item.value / total) * 100).toFixed(1) })}
+                    {t('reports.chartLabels.ofTotal', {
+                      percent: ((item.value / total) * 100).toFixed(1),
+                      defaultValue: '{{percent}}% of total',
+                    })}
                   </span>
                 </div>
               </div>

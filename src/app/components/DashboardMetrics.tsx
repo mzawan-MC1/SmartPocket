@@ -239,7 +239,7 @@ export default function DashboardMetrics({
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
       hero: true,
-      subtext: t('dashboardMetrics.acrossActiveAccounts'),
+      subtext: t('dashboardMetrics.netBalanceChange', { defaultValue: 'Net balance change' }),
     },
     {
       id: 'metric-income',
