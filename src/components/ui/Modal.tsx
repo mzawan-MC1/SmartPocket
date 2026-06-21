@@ -13,6 +13,7 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
   mobileLayout?: 'sheet' | 'fullscreen';
   contentClassName?: string;
+  headerClassName?: string;
   bodyClassName?: string;
 }
 
@@ -33,6 +34,7 @@ export default function Modal({
   size = 'md',
   mobileLayout = 'sheet',
   contentClassName = '',
+  headerClassName = '',
   bodyClassName = '',
 }: ModalProps) {
   const { t } = useTranslation('common');
@@ -74,7 +76,7 @@ export default function Modal({
         aria-label={title}
         className={`relative flex max-h-[92vh] w-full flex-col overflow-hidden border border-border bg-card shadow-card-lg scale-in rounded-t-[24px] sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
-        <div className="flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4">
+        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4 ${headerClassName}`}>
           <div>
             <h2 className="text-lg font-800 text-foreground">{title}</h2>
             {description && <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>}

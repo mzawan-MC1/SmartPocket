@@ -584,12 +584,13 @@ export default function AddTransactionModal({
       title={editingTransaction ? t('transactions.form.editTitle', { ns: 'portal' }) : t('transactions.form.addTitle', { ns: 'portal' })}
       size="xl"
       mobileLayout="fullscreen"
-      contentClassName="sm:max-w-[40rem] lg:max-w-[40rem]"
-      bodyClassName="p-0 sm:p-4"
+      contentClassName="sm:max-w-[35rem] lg:max-w-[35rem] sm:max-h-[88vh]"
+      headerClassName="sm:px-4 sm:py-3"
+      bodyClassName="overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-0 sm:py-0">
-          <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-3.5 sm:py-3">
+          <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
             {transactionMode === 'single' ? (
               <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
                 {([
@@ -624,7 +625,7 @@ export default function AddTransactionModal({
                           showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
                         }));
                       }}
-                      className={`min-h-11 rounded-2xl border px-3 py-2.5 text-sm font-700 transition-colors sm:min-w-[140px] ${
+                      className={`min-h-10 rounded-2xl border px-2.5 py-2 text-sm font-700 transition-colors sm:min-w-[116px] ${
                         isActive
                           ? option.type === 'income'
                             ? 'border-positive bg-positive-soft text-positive'
@@ -650,7 +651,7 @@ export default function AddTransactionModal({
                 <span className="font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/20 p-1">
+            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/20 p-1">
               {(['single', 'multiple'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -659,7 +660,7 @@ export default function AddTransactionModal({
                   aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                   onClick={() => handleModeChange(mode)}
                   disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-600 transition-colors ${
+                  className={`rounded-lg px-2.5 py-1.5 text-sm font-600 transition-colors ${
                     transactionMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
@@ -675,7 +676,7 @@ export default function AddTransactionModal({
               <p className="text-sm text-muted-foreground">{t('transactions.form.loading', { ns: 'portal' })}</p>
             </div>
           ) : (
-              <div className="space-y-2.5">
+            <div className="space-y-2">
               {activeDraftRows.map((row, index) => {
                 const account = accountMap.get(row.account_id);
                 const isLoanRepaymentRow = row.entry_kind === 'loan_repayment';
@@ -689,7 +690,7 @@ export default function AddTransactionModal({
 
                 return (
                   <div key={row.id} className="rounded-2xl border border-border bg-card">
-                    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-3.5 py-2.5">
+                    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-3 py-2">
                       <p className="text-sm font-700 text-foreground">{rowLabel}</p>
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <button
@@ -704,7 +705,7 @@ export default function AddTransactionModal({
                       ) : null}
                     </div>
 
-                    <div className="flex flex-col space-y-2.5 px-3.5 py-3.5 max-[480px]:space-y-4 max-[480px]:px-3.5">
+                    <div className="flex flex-col space-y-2 px-3 py-2.5 max-[480px]:space-y-4 max-[480px]:px-3.5">
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
@@ -745,11 +746,11 @@ export default function AddTransactionModal({
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 max-[480px]:order-2">
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
                         <div>
                           <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>
                           <select
-                            className="input-base h-10 text-sm"
+                            className="input-base h-9 text-sm"
                             value={row.account_id}
                             onChange={(event) => {
                               const nextAccountId = event.target.value;
@@ -773,7 +774,7 @@ export default function AddTransactionModal({
                               {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
                             </label>
                             <select
-                              className="input-base h-10 text-sm"
+                              className="input-base h-9 text-sm"
                               value={row.person_id}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
                             >
@@ -787,7 +788,7 @@ export default function AddTransactionModal({
                           <div>
                             <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
                             <select
-                              className="input-base h-10 text-sm"
+                              className="input-base h-9 text-sm"
                               value={row.category_id}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
                             >
@@ -804,14 +805,14 @@ export default function AddTransactionModal({
                         )}
                       </div>
 
-                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-2.5 max-[480px]:order-1 max-[480px]:space-y-3">
+                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-2 max-[480px]:order-1 max-[480px]:space-y-3">
                         <div className="max-[480px]:hidden">
                           <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
                         </div>
                         <div className="hidden max-[480px]:block">
                           <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
                         </div>
-                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                           <div>
                             <input
                               ref={index === 0 ? firstAmountFieldRef : undefined}
@@ -819,7 +820,7 @@ export default function AddTransactionModal({
                               step="0.01"
                               min="0.01"
                               inputMode="decimal"
-                              className="input-base h-12 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
+                              className="input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
                               placeholder="0.00"
                               value={row.amount}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
@@ -841,7 +842,7 @@ export default function AddTransactionModal({
                         <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.date', { ns: 'portal' })} *</label>
                         <input
                           type="date"
-                          className="input-base h-10 text-sm"
+                          className="input-base h-9 text-sm"
                           value={row.transaction_date}
                           onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
                         />
@@ -861,12 +862,12 @@ export default function AddTransactionModal({
                           />
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 max-[480px]:order-5">
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-5">
                           <div>
                             <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</label>
                             <input
                               type="text"
-                              className="input-base h-10 text-sm"
+                              className="input-base h-9 text-sm"
                               placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
                               value={row.merchant}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
@@ -876,7 +877,7 @@ export default function AddTransactionModal({
                             <label className="mb-1 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
                             <input
                               type="text"
-                              className="input-base h-10 text-sm"
+                              className="input-base h-9 text-sm"
                               placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
                               value={row.description}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
@@ -890,14 +891,14 @@ export default function AddTransactionModal({
                           type="button"
                           onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
                           aria-expanded={row.showMoreOptions}
-                          className="flex w-full items-center justify-between px-3 py-2.5 text-left text-sm font-600 text-foreground"
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-600 text-foreground"
                         >
                           <span>{t('transactions.form.moreDetails', { ns: 'portal' })}</span>
                           {row.showMoreOptions ? <ChevronUpIcon size={15} /> : <ChevronDownIcon size={15} />}
                         </button>
 
                         {row.showMoreOptions ? (
-                          <div className="space-y-2.5 border-t border-border/70 px-3 py-2.5">
+                          <div className="space-y-2 border-t border-border/70 px-3 py-2">
                             {!isLoanRepaymentRow ? (
                               <div>
                                 <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
@@ -905,7 +906,7 @@ export default function AddTransactionModal({
                                   <Tag size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                                   <input
                                     type="text"
-                                    className="input-base h-10 pl-10 pr-3 text-sm"
+                                    className="input-base h-9 pl-10 pr-3 text-sm"
                                     placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
                                     value={row.tags}
                                     onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
@@ -933,7 +934,7 @@ export default function AddTransactionModal({
                                     }
                                     : {}),
                                 }))}
-                                className="flex w-full items-center justify-between bg-muted/30 px-3 py-2.5 text-sm font-600 text-foreground"
+                                className="flex w-full items-center justify-between bg-muted/30 px-3 py-2 text-sm font-600 text-foreground"
                               >
                                 <span className="flex items-center gap-2">
                                   <Users size={14} className="text-accent" />
@@ -945,7 +946,7 @@ export default function AddTransactionModal({
                               </button>
 
                               {row.showManagedPerson ? (
-                                <div className="space-y-2.5 border-t border-border/70 px-3 py-2.5">
+                                <div className="space-y-2 border-t border-border/70 px-3 py-2">
                                   <div>
                                     <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.managedPerson', { ns: 'portal' })}</label>
                                     <select
@@ -960,10 +961,10 @@ export default function AddTransactionModal({
                                     </select>
                                   </div>
 
-                                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3">
+                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                                     <div>
                                       <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.expenseBelongsTo', { ns: 'portal' })}</label>
-                                      <select className="input-base h-10 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
+                                      <select className="input-base h-9 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
                                         <option value="user">{t('transactions.form.ownedByMe', { ns: 'portal' })}</option>
                                         <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
                                         <option value="shared">{t('transactions.form.shared', { ns: 'portal' })}</option>
@@ -971,7 +972,7 @@ export default function AddTransactionModal({
                                     </div>
                                     <div>
                                       <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidBy', { ns: 'portal' })}</label>
-                                      <select className="input-base h-10 text-sm" value={row.paid_by} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, paid_by: event.target.value }))}>
+                                      <select className="input-base h-9 text-sm" value={row.paid_by} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, paid_by: event.target.value }))}>
                                         <option value="user">{t('transactions.form.paidByMe', { ns: 'portal' })}</option>
                                         <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
                                         <option value="third_party">{t('transactions.form.thirdParty', { ns: 'portal' })}</option>
@@ -980,7 +981,7 @@ export default function AddTransactionModal({
                                     <div>
                                       <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidFrom', { ns: 'portal' })}</label>
                                       <select
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-sm"
                                         value={row.use_held_balance ? 'held_balance' : row.paid_from}
                                         onChange={(event) => {
                                           const value = event.target.value;
@@ -999,8 +1000,8 @@ export default function AddTransactionModal({
                                     </div>
                                   </div>
 
-                                  <div className="grid grid-cols-1 gap-2.5 md:grid-cols-[minmax(0,1fr)_180px]">
-                                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_170px]">
+                                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm text-foreground">
                                       <input
                                         type="checkbox"
                                         checked={row.reimbursement_required}
@@ -1011,7 +1012,7 @@ export default function AddTransactionModal({
                                     </label>
                                     {row.reimbursement_required ? (
                                       <select
-                                        className="input-base h-10 text-sm"
+                                        className="input-base h-9 text-sm"
                                         value={row.reimbursement_status}
                                         onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_status: event.target.value }))}
                                       >
@@ -1031,7 +1032,7 @@ export default function AddTransactionModal({
 
                             <div>
                               <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
-                              <div className="rounded-xl border-2 border-dashed border-border px-4 py-3 text-center">
+                              <div className="rounded-xl border-2 border-dashed border-border px-3.5 py-2.5 text-center">
                                 <input
                                   type="file"
                                   id={`receipt-upload-${row.id}`}
@@ -1059,7 +1060,7 @@ export default function AddTransactionModal({
                             </div>
 
                             {!isLoanRepaymentRow ? (
-                              <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                              <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm text-foreground">
                                 <input
                                   type="checkbox"
                                   checked={row.is_recurring}
@@ -1092,8 +1093,8 @@ export default function AddTransactionModal({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-3 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2.5 backdrop-blur sm:px-0 sm:pb-0">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky bottom-0 z-10 mt-2 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 backdrop-blur sm:px-3.5 sm:pb-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
               {isSaving && saveProgress
                 ? t('transactions.form.savingProgress', { ns: 'portal', completed: saveProgress.completed, total: saveProgress.total })
