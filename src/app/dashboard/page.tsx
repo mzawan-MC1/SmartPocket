@@ -217,7 +217,6 @@ export default function DashboardPage() {
                 </div>
                 <div className="space-y-4 lg:col-span-4">
                   <AIUsageCard />
-                  <ReceiptInsightsCard activePeriod={activePeriod} />
                 </div>
               </div>
               <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
@@ -231,9 +230,12 @@ export default function DashboardPage() {
                   <AccountBalances />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12 xl:gap-4">
-                <div className="xl:col-span-4">
+              <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2 lg:gap-4">
+                <div className="h-full">
                   <PeopleDashboardWidget />
+                </div>
+                <div className="h-full">
+                  <ReceiptInsightsCard activePeriod={activePeriod} />
                 </div>
               </div>
             </div>

@@ -44,7 +44,7 @@ export default function PeopleDashboardWidget() {
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse p-4">
+      <div className="card-elevated h-full animate-pulse p-4">
         <div className="h-4 bg-muted rounded w-1/3 mb-4" />
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map((i) => <div key={i} className="h-16 bg-muted rounded-xl" />)}
@@ -76,7 +76,7 @@ export default function PeopleDashboardWidget() {
   };
 
   return (
-    <div className="card-elevated p-4">
+    <div className="card-elevated h-full p-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users size={18} className="text-accent" />

@@ -67,7 +67,7 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
   };
 
   return (
-    <div className="card-elevated rounded-[28px] border border-border/80 p-5">
+    <div className="card-elevated h-full rounded-[28px] border border-border/80 p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
