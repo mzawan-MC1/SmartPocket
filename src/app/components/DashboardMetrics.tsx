@@ -66,9 +66,9 @@ export default function DashboardMetrics({
     const skeletonCards = Array.from({ length: 8 });
 
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {skeletonCards.map((_, i) => (
-          <div key={`skel-${i}`} className="metric-card h-full min-h-[110px] animate-pulse rounded-[24px] px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
+          <div key={`skel-${i}`} className="metric-card h-full min-h-[110px] animate-pulse rounded-[24px] px-4 py-3 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5">
             <div className="mb-3 flex items-start justify-between">
               <div className="space-y-2">
                 <div className="h-3.5 w-24 rounded bg-muted" />
@@ -380,8 +380,8 @@ export default function DashboardMetrics({
     const Icon = metric.icon;
     const isHero = metric.hero;
     const valueClassName = isHero
-      ? 'inline-flex items-baseline text-[1.48rem] font-800 tracking-[-0.03em] md:text-[1.42rem]'
-      : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] md:text-[1.14rem]';
+      ? 'inline-flex items-baseline text-[1.48rem] font-800 tracking-[-0.03em] max-[480px]:text-[1.22rem] md:text-[1.42rem]'
+      : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] max-[480px]:text-[1.02rem] md:text-[1.14rem]';
     const helperChangeLabel = metric.id === 'metric-netflow'
       ? t('dashboardMetrics.netOfIncomeAndExpenses')
       : metric.id === 'metric-upcoming'
@@ -391,21 +391,21 @@ export default function DashboardMetrics({
     return (
       <div
         key={metric.id}
-        className={`metric-card flex h-full min-h-[110px] flex-col rounded-[24px] border border-border/80 px-4 py-3 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[108px] max-[480px]:rounded-[22px] max-[480px]:px-3.5 max-[480px]:py-3 ${
+        className={`metric-card flex h-full min-h-[110px] flex-col rounded-[24px] border border-border/80 px-4 py-3 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
           metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
         }`}
       >
-        <div className="mb-1.5 flex items-start justify-between gap-3">
+        <div className="mb-1.5 flex items-start justify-between gap-2.5">
           <div className="min-w-0">
-            <p className="text-[13px] font-700 leading-[1.25rem] text-foreground">{metric.label}</p>
+            <p className="text-[13px] font-700 leading-[1.25rem] text-foreground max-[480px]:text-[12px] max-[480px]:leading-[1.1rem]">{metric.label}</p>
             <div className="mt-0.5 font-tabular leading-tight text-foreground">
               {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
             </div>
           </div>
-          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${metric.iconBg}`}>
-            <Icon size={18} className={metric.iconColor} />
+          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl ${metric.iconBg}`}>
+            <Icon size={18} className={`${metric.iconColor} max-[480px]:h-4 max-[480px]:w-4`} />
           </div>
         </div>
         <div className="mt-auto space-y-1">
@@ -413,19 +413,19 @@ export default function DashboardMetrics({
             {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
             {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
             <div className="min-w-0">
-              <div className={`text-sm font-700 font-tabular leading-none ${
+              <div className={`text-sm font-700 font-tabular leading-none max-[480px]:text-[12px] ${
                 metric.changeDir === 'up' ? 'text-positive' :
                 metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
               }`}>
                 {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
               </div>
-              <p className="mt-1 text-[12.5px] leading-4 text-muted-foreground line-clamp-2">
+              <p className="mt-1 text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2">
                 {helperChangeLabel}
               </p>
             </div>
           </div>
           {metric.subtext ? (
-            <p className="text-[12.5px] leading-4 text-muted-foreground">{metric.subtext}</p>
+            <p className="text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem]">{metric.subtext}</p>
           ) : null}
           {renderMetricDetails(metric.valueMetric)}
         </div>
@@ -448,7 +448,7 @@ export default function DashboardMetrics({
       {hasConfigurationWarning ? (
         <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
       ) : null}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {metricCards.map((metric) => renderMetricCard(metric))}
       </div>
     </div>

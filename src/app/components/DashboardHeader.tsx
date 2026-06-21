@@ -114,8 +114,8 @@ export default function DashboardHeader({
     <section className="space-y-2">
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.18fr)_minmax(31rem,1fr)] lg:items-center xl:grid-cols-[minmax(20rem,1.25fr)_minmax(24.5rem,0.96fr)_15.5rem] xl:gap-3">
         <div className="min-w-0 space-y-0.5">
-          <h1 className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-[1.56rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.5rem] xl:flex-nowrap xl:text-[1.66rem]">
-            <span className="truncate">{greeting}</span>
+          <h1 className="flex items-center gap-x-1 gap-y-0 text-[1.56rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.28rem] max-[480px]:tracking-[-0.04em] max-[360px]:flex-wrap max-[360px]:text-[1.14rem] xl:flex-nowrap xl:text-[1.66rem]">
+            <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
           <p className="text-[13px] leading-5 text-muted-foreground md:text-[14px]">
@@ -123,8 +123,8 @@ export default function DashboardHeader({
           </p>
         </div>
 
-        <div className="min-w-0 overflow-x-auto rounded-[20px] border border-border/80 bg-card px-1 py-1 shadow-card-sm scrollbar-thin lg:overflow-visible">
-          <div className="grid min-w-[24.5rem] grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.94fr)] items-stretch divide-x divide-border/70 rtl:divide-x-reverse">
+        <div className="min-w-0 rounded-[20px] border border-border/80 bg-card px-1 py-1 shadow-card-sm">
+          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.94fr)] items-stretch divide-x divide-border/70 rtl:divide-x-reverse">
             {directActions.map((action) => {
               const Icon = action.icon;
               const isSelected = activeQuickAction === action.id;
@@ -133,7 +133,7 @@ export default function DashboardHeader({
                   key={action.id}
                   type="button"
                   onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className={`group flex min-w-0 items-center justify-center gap-1.5 rounded-[14px] border border-transparent px-2 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 ${
+                  className={`group flex min-w-0 items-center justify-center gap-1 rounded-[14px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1 max-[480px]:py-1.5 ${
                     isSelected
                       ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
                       : 'text-foreground hover:bg-muted/45'
@@ -141,12 +141,12 @@ export default function DashboardHeader({
                   aria-label={action.label}
                   aria-pressed={isSelected}
                 >
-                  <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+                  <span className={`flex h-6.5 w-6.5 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-6 max-[480px]:w-6 ${
                     isSelected ? 'bg-accent/15 text-accent' : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
                   }`}>
                     <Icon size={14} />
                   </span>
-                  <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4">
+                  <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4 max-[480px]:text-[11.5px]">
                     {quickActionShortLabel(action.id)}
                   </span>
                 </button>
@@ -156,7 +156,7 @@ export default function DashboardHeader({
               <button
                 type="button"
                 onClick={() => setMoreOpen((value) => !value)}
-                className={`group flex h-full w-full min-w-0 items-center justify-center gap-1.5 rounded-[14px] border border-transparent px-2 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 ${
+                className={`group flex h-full w-full min-w-0 items-center justify-center gap-1 rounded-[14px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1 max-[480px]:py-1.5 ${
                   activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
                     ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
                     : 'text-foreground hover:bg-muted/45'
@@ -164,14 +164,14 @@ export default function DashboardHeader({
                 aria-haspopup="menu"
                 aria-expanded={moreOpen}
               >
-                <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
+                <span className={`flex h-6.5 w-6.5 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-6 max-[480px]:w-6 ${
                   activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
                     ? 'bg-accent/15 text-accent'
                     : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
                 }`}>
                   <Ellipsis size={14} />
                 </span>
-                <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4">
+                <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4 max-[480px]:text-[11.5px]">
                   {t('dashboardHeader.more')}
                 </span>
                 <ChevronDown size={14} className={`flex-shrink-0 text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
