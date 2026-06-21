@@ -63,29 +63,22 @@ export default function DashboardMetrics({
   });
 
   if (loading) {
-    const topSkeletonCards = Array.from({ length: 4 });
-    const bottomSkeletonCards = Array.from({ length: 5 });
+    const skeletonCards = Array.from({ length: 8 });
 
     return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-1 gap-3 max-[480px]:grid-cols-2 max-[480px]:gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          {topSkeletonCards.map((_, i) => (
-            <div key={`skel-top-${i}`} className="metric-card h-full min-h-[176px] animate-pulse px-4 py-3 max-[480px]:min-h-[142px] max-[480px]:px-3 max-[480px]:py-2.5">
-              <div className="mb-2.5 h-3.5 w-28 rounded bg-muted max-[480px]:mb-2 max-[480px]:h-3 max-[480px]:w-20" />
-              <div className="mb-2 h-8 w-32 rounded bg-muted max-[480px]:mb-1.5 max-[480px]:h-6 max-[480px]:w-24" />
-              <div className="h-3 w-20 rounded bg-muted max-[480px]:h-2.5 max-[480px]:w-16" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {skeletonCards.map((_, i) => (
+          <div key={`skel-${i}`} className="metric-card h-full min-h-[112px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:px-3.5 max-[480px]:py-3">
+            <div className="mb-3 flex items-start justify-between">
+              <div className="space-y-2">
+                <div className="h-3.5 w-24 rounded bg-muted" />
+                <div className="h-6 w-28 rounded bg-muted" />
+              </div>
+              <div className="h-10 w-10 rounded-2xl bg-muted" />
             </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 gap-3 max-[480px]:grid-cols-2 max-[480px]:gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {bottomSkeletonCards.map((_, i) => (
-            <div key={`skel-bottom-${i}`} className="metric-card h-full min-h-[176px] animate-pulse px-4 py-3 max-[480px]:min-h-[142px] max-[480px]:px-3 max-[480px]:py-2.5">
-              <div className="mb-2.5 h-3.5 w-28 rounded bg-muted max-[480px]:mb-2 max-[480px]:h-3 max-[480px]:w-20" />
-              <div className="mb-2 h-8 w-32 rounded bg-muted max-[480px]:mb-1.5 max-[480px]:h-6 max-[480px]:w-24" />
-              <div className="h-3 w-20 rounded bg-muted max-[480px]:h-2.5 max-[480px]:w-16" />
-            </div>
-          ))}
-        </div>
+            <div className="h-3 w-24 rounded bg-muted" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -332,21 +325,6 @@ export default function DashboardMetrics({
     },
   ];
 
-  const managedCards: DashboardMetricCard[] = [
-    {
-      id: 'metric-managed-total',
-      label: t('dashboardMetrics.cards.managedMoney'),
-      valueMetric: metrics.managedMoney,
-      change: `${metrics.managedPeopleCount}`,
-      changeDir: 'neutral' as const,
-      changeLabel: t('dashboardMetrics.peopleWithManagedMoney', { count: metrics.managedPeopleCount }),
-      icon: Wallet,
-      iconBg: 'bg-info-soft',
-      iconColor: 'text-info',
-      hero: false,
-    },
-  ];
-
   const loanCards: DashboardMetricCard[] = [
     {
       id: 'metric-loan-outstanding',
@@ -356,8 +334,8 @@ export default function DashboardMetrics({
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.borrowedIn', { period: activePeriod.label }),
       icon: TrendingDown,
-      iconBg: 'bg-negative-soft',
-      iconColor: 'text-negative',
+      iconBg: 'bg-rose-50',
+      iconColor: 'text-rose-500',
       hero: false,
     },
     {
@@ -368,21 +346,42 @@ export default function DashboardMetrics({
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.paidIn', { period: activePeriod.label }),
       icon: ArrowUpDown,
-      iconBg: 'bg-accent/10',
-      iconColor: 'text-accent',
+      iconBg: 'bg-cyan-50',
+      iconColor: 'text-cyan-500',
       hero: false,
     },
   ];
 
-  const topRowCards = [personalCards[0], personalCards[1], personalCards[2], personalCards[3]];
-  const bottomRowCards = [personalCards[4], personalCards[5], managedCards[0], loanCards[0], loanCards[1]];
+  personalCards[0].iconBg = 'bg-blue-50';
+  personalCards[0].iconColor = 'text-blue-500';
+  personalCards[1].iconBg = 'bg-emerald-50';
+  personalCards[1].iconColor = 'text-emerald-500';
+  personalCards[2].iconBg = 'bg-rose-50';
+  personalCards[2].iconColor = 'text-rose-500';
+  personalCards[3].iconBg = 'bg-indigo-50';
+  personalCards[3].iconColor = 'text-indigo-500';
+  personalCards[4].iconBg = 'bg-amber-50';
+  personalCards[4].iconColor = 'text-amber-500';
+  personalCards[5].iconBg = 'bg-violet-50';
+  personalCards[5].iconColor = 'text-violet-500';
+
+  const metricCards = [
+    personalCards[0],
+    personalCards[1],
+    personalCards[2],
+    personalCards[3],
+    personalCards[4],
+    personalCards[5],
+    loanCards[0],
+    loanCards[1],
+  ];
 
   const renderMetricCard = (metric: DashboardMetricCard) => {
     const Icon = metric.icon;
     const isHero = metric.hero;
     const valueClassName = isHero
-      ? 'inline-flex items-baseline text-[1.56rem] font-800 tracking-[-0.03em] md:text-[1.42rem] lg:text-[1.52rem] xl:text-[1.68rem]'
-      : 'inline-flex items-baseline text-[1.2rem] font-800 tracking-[-0.025em] md:text-[1.08rem] lg:text-[1.14rem] xl:text-[1.24rem]';
+      ? 'inline-flex items-baseline text-[1.52rem] font-800 tracking-[-0.03em] md:text-[1.45rem]'
+      : 'inline-flex items-baseline text-[1.24rem] font-800 tracking-[-0.025em] md:text-[1.18rem]';
     const helperChangeLabel = metric.id === 'metric-netflow'
       ? t('dashboardMetrics.netOfIncomeAndExpenses')
       : metric.id === 'metric-upcoming'
@@ -392,44 +391,40 @@ export default function DashboardMetrics({
     return (
       <div
         key={metric.id}
-        className={`metric-card flex h-full min-h-[156px] flex-col px-3.5 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-lg md:min-h-[148px] lg:min-h-[154px] xl:min-h-[160px] max-[480px]:min-h-[148px] max-[480px]:px-3 max-[480px]:py-2.5 ${
-          metric.alert ? 'border-negative/30 bg-negative-soft/30' : ''
+        className={`metric-card flex h-full min-h-[112px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[108px] max-[480px]:rounded-[22px] max-[480px]:px-3.5 max-[480px]:py-3 ${
+          metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
-          metric.id === 'metric-balance' ? 'border-primary/20 bg-primary/[0.03]' : ''
+          metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
         }`}
       >
-        {isHero && (
-          <div className="absolute top-0 right-0 h-32 w-32 opacity-5">
-            <div className="h-full w-full translate-x-8 -translate-y-8 rounded-full bg-primary" />
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[13px] font-700 leading-5 text-foreground">{metric.label}</p>
+            <div className="mt-1 font-tabular leading-tight text-foreground">
+              {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
+            </div>
           </div>
-        )}
-        <div className="relative mb-1.5 flex items-start justify-between gap-2.5 md:mb-1.5 lg:mb-2 max-[480px]:mb-2 max-[480px]:gap-2">
-          <p className="pr-2 text-[11px] font-800 uppercase tracking-[0.12em] text-foreground/88 md:leading-4 lg:text-[11.5px] max-[480px]:pr-1 max-[480px]:text-[10px] max-[480px]:leading-4 max-[480px]:tracking-[0.1em]">{metric.label}</p>
-          <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl ${metric.iconBg} ring-1 ring-black/5 md:h-8 md:w-8 lg:h-9 lg:w-9 xl:h-9.5 xl:w-9.5 max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl`}>
-            <Icon size={17} className={`${metric.iconColor} md:h-[15px] md:w-[15px] lg:h-4 lg:w-4 max-[480px]:h-4 max-[480px]:w-4`} />
+          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl ${metric.iconBg}`}>
+            <Icon size={18} className={metric.iconColor} />
           </div>
         </div>
-        <div className="mb-0.5 font-tabular leading-tight text-foreground max-[480px]:mb-0.5">
-          {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
-        </div>
-        {metric.subtext ? (
-          <p className="mb-1 text-[12px] leading-[1.3] text-muted-foreground md:hidden max-[480px]:mb-1 max-[480px]:text-[11px] max-[480px]:leading-4">{metric.subtext}</p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 md:gap-y-0 max-[480px]:gap-x-1 max-[480px]:gap-y-0.5">
-          {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0 max-[480px]:h-3 max-[480px]:w-3" />}
-          {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0 max-[480px]:h-3 max-[480px]:w-3" />}
-          <div className={`text-sm font-700 font-tabular leading-none ${
+        <div className="mt-auto space-y-1">
+          <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+            {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
+            {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
+            <div className={`text-sm font-700 font-tabular leading-none ${
             metric.changeDir === 'up' ? 'text-positive' :
             metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
-          } md:text-[12px] max-[480px]:text-[11px]`}>
-            {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+            }`}>
+              {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+            </div>
+            <span className="text-[12px] leading-[1.3] text-muted-foreground">
+              {helperChangeLabel}
+            </span>
           </div>
-          <span className="text-[12px] leading-[1.25] text-muted-foreground md:text-[11px] max-[480px]:text-[11px] max-[480px]:leading-4">
-            <span className="hidden md:inline">{helperChangeLabel}</span>
-            <span className="md:hidden max-[480px]:hidden">{metric.changeLabel}</span>
-          </span>
-        </div>
-        <div className="mt-auto pt-1.5 max-[480px]:pt-1.5">
+          {metric.subtext ? (
+            <p className="text-[12px] leading-[1.3] text-muted-foreground">{metric.subtext}</p>
+          ) : null}
           {renderMetricDetails(metric.valueMetric)}
         </div>
         {metric.warningState && metric.budgetPct !== undefined && (
@@ -447,23 +442,12 @@ export default function DashboardMetrics({
   };
 
   return (
-      <div className="space-y-2.5 md:space-y-2 lg:space-y-2.5">
-      <div className="flex items-center justify-between gap-2.5 md:gap-2">
-        <div>
-          <p className="text-base font-800 text-foreground md:text-[15px]">{t('dashboardMetrics.summary')}</p>
-          <p className="text-sm text-muted-foreground md:text-[13px] max-[480px]:hidden">
-            {t('dashboardMetrics.summaryDescription', { period: activePeriod.label })}
-          </p>
-          {hasConfigurationWarning ? (
-            <p className="mt-0.5 text-sm text-warning md:text-[13px] max-[480px]:text-xs">{t('dashboardMetrics.monthFallbackWarning')}</p>
-          ) : null}
-        </div>
-      </div>
-      <div className="grid grid-cols-1 gap-3 md:gap-2.5 lg:gap-3 max-[480px]:grid-cols-2 max-[480px]:gap-2 sm:grid-cols-2 xl:grid-cols-4">
-        {topRowCards.map((metric) => renderMetricCard(metric))}
-      </div>
-      <div className="grid grid-cols-1 gap-3 md:gap-2.5 lg:gap-3 max-[480px]:grid-cols-2 max-[480px]:gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {bottomRowCards.map((metric) => renderMetricCard(metric))}
+    <div className="space-y-2.5">
+      {hasConfigurationWarning ? (
+        <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
+      ) : null}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {metricCards.map((metric) => renderMetricCard(metric))}
       </div>
     </div>
   );

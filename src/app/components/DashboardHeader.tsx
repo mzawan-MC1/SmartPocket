@@ -1,13 +1,29 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Plus, Repeat, RotateCcw, Target, Wallet } from 'lucide-react';
+import {
+  Calendar,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Ellipsis,
+  Plus,
+  Repeat,
+  RotateCcw,
+  Target,
+  Wallet,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import PageHeader from '@/components/ui/PageHeader';
-import StatusBadge from '@/components/ui/StatusBadge';
 import Tabs from '@/components/ui/Tabs';
 import type { DashboardActivePeriod } from '@/lib/finance';
-import { getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey, type DashboardPeriodPreference } from '@/lib/financial-periods';
+import {
+  getMonthContext,
+  getNextFinancialPeriod,
+  getPreviousFinancialPeriod,
+  shiftMonthKey,
+  type DashboardPeriodPreference,
+} from '@/lib/financial-periods';
 import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import { useAuth } from '@/contexts/AuthContext';
 
 type QuickActionId = 'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget';
 
@@ -29,6 +45,7 @@ export default function DashboardHeader({
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const { t } = useTranslation('portal');
+  const { user } = useAuth();
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -46,11 +63,18 @@ export default function DashboardHeader({
   const description = t('dashboardHeader.description', {
     period: activePeriod.label,
   });
-  const badgeLabel = financialPeriodContext.hasConfigurationWarning
-    ? t('dashboardHeader.badgeMonthFallback')
-    : activePeriod.mode === 'month'
-      ? t('dashboardHeader.badgeMonthView')
-      : t('dashboardHeader.badgePayPeriodView');
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
+  const currentHour = Number(new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hour12: false,
+    timeZone: financialPeriodContext.timezone,
+  }).format(new Date()));
+  const greetingKey = currentHour < 12
+    ? 'dashboardHeader.greeting.morning'
+    : currentHour < 18
+      ? 'dashboardHeader.greeting.afternoon'
+      : 'dashboardHeader.greeting.evening';
+  const greeting = t(greetingKey, { name: displayName });
   const quickActions = [
     { id: 'transaction' as QuickActionId, label: t('dashboardHeader.quickActions.transaction'), icon: Plus },
     { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.account'), icon: Wallet },
@@ -62,6 +86,8 @@ export default function DashboardHeader({
     t(`dashboardHeader.quickActionShort.${actionId}`);
   const directActions = quickActions.filter((action) => action.id === 'transaction' || action.id === 'account');
   const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
+  const quickActionSubtitle = (actionId: 'transaction' | 'account' | 'more') =>
+    t(`dashboardHeader.quickActionSubtitles.${actionId}`);
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -85,16 +111,97 @@ export default function DashboardHeader({
   }, []);
 
   return (
-    <PageHeader
-      title={t('dashboardHeader.title')}
-      description={description}
-      badge={<StatusBadge status={financialPeriodContext.hasConfigurationWarning ? 'warning' : 'info'} label={badgeLabel} />}
-      compact
-      className="items-start gap-2 md:gap-1.5 max-[480px]:gap-1.5 [&_.page-title]:text-[1.875rem] [&_.page-title]:font-800 md:[&_.page-title]:text-[1.72rem] lg:[&_.page-title]:text-[1.78rem] max-[480px]:[&_.page-title]:text-[1.45rem] [&_.page-subtitle]:mt-1 [&_.page-subtitle]:max-w-[34rem] [&_.page-subtitle]:text-sm [&_.page-subtitle]:leading-5 md:[&_.page-subtitle]:mt-0.5 md:[&_.page-subtitle]:text-[13px] md:[&_.page-subtitle]:leading-[1.35] max-[480px]:[&_.page-subtitle]:mt-0.5 max-[480px]:[&_.page-subtitle]:text-[13px] max-[480px]:[&_.page-subtitle]:leading-4 2xl:grid 2xl:grid-cols-[minmax(280px,1fr)_auto] 2xl:items-center"
-      actionsClassName="w-full min-w-0 xl:w-[39rem] xl:flex-none 2xl:w-auto"
-      actions={
-        <div className="flex w-full flex-col gap-1.5 max-[480px]:gap-1.5 xl:items-end 2xl:flex-row 2xl:items-center 2xl:gap-2">
-          <div className="order-1 flex w-full flex-wrap items-center justify-start gap-1 rounded-2xl border border-border/90 bg-card px-1 py-1 shadow-card md:gap-0.5 md:rounded-xl md:px-0.5 md:py-0.5 max-[480px]:gap-0.5 max-[480px]:rounded-[18px] xl:flex-nowrap xl:justify-end 2xl:order-2 2xl:w-auto 2xl:justify-start">
+    <section className="space-y-3">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h1 className="text-[2rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.55rem]">
+            {greeting}
+          </h1>
+          <p className="text-sm text-muted-foreground md:text-[15px]">
+            {description}
+          </p>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-3 xl:items-end">
+          <div className="flex w-full min-w-0 flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-end">
+            <div className="min-w-0 overflow-x-auto rounded-[26px] border border-border/80 bg-card px-2 py-2 shadow-card-sm scrollbar-thin lg:overflow-visible">
+              <div className="flex min-w-max items-stretch divide-x divide-border/80 rtl:divide-x-reverse">
+                {directActions.map((action) => {
+                  const Icon = action.icon;
+                  return (
+                    <button
+                      key={action.id}
+                      type="button"
+                      onClick={(event) => onQuickAction(action.id, event.currentTarget)}
+                      className="group flex min-w-[164px] flex-1 items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-colors hover:bg-muted/45"
+                      aria-label={action.label}
+                    >
+                      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                        <Icon size={18} />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-700 text-foreground">
+                          {quickActionShortLabel(action.id)}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {quickActionSubtitle(action.id as 'transaction' | 'account')}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+                <div className="relative flex-1" ref={moreMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen((value) => !value)}
+                    className="group flex min-w-[164px] w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-colors hover:bg-muted/45"
+                    aria-haspopup="menu"
+                    aria-expanded={moreOpen}
+                  >
+                    <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-muted/70 text-foreground">
+                      <Ellipsis size={18} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-700 text-foreground">
+                        {t('dashboardHeader.more')}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {quickActionSubtitle('more')}
+                      </span>
+                    </span>
+                    <ChevronDown size={15} className={`text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {moreOpen ? (
+                    <div
+                      role="menu"
+                      aria-label={t('dashboardHeader.moreActions')}
+                      className="absolute end-0 top-full z-20 mt-2 flex min-w-[14rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg"
+                    >
+                      {moreActions.map((action) => {
+                        const Icon = action.icon;
+                        return (
+                          <button
+                            key={action.id}
+                            type="button"
+                            role="menuitem"
+                            onClick={(event) => {
+                              setMoreOpen(false);
+                              onQuickAction(action.id, event.currentTarget);
+                            }}
+                            className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
+                          >
+                            <Icon size={16} className="text-accent" />
+                            <span>{quickActionShortLabel(action.id)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2 rounded-[22px] border border-border/80 bg-card px-2 py-2 shadow-card-sm">
               <Tabs
                 items={[
                   { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
@@ -102,10 +209,10 @@ export default function DashboardHeader({
                 ]}
                 activeId={viewMode}
                 onChange={onViewModeChange}
-                className="w-auto [&_.tab-button]:min-h-[2rem] [&_.tab-button]:px-2 [&_.tab-button]:py-1 [&_.tab-button]:text-[12px] [&_.tab-button]:leading-4 md:[&_.tab-button]:min-h-[1.875rem] md:[&_.tab-button]:px-1.5 md:[&_.tab-button]:text-[11px] max-[480px]:[&_.tab-button]:min-h-[1.875rem] max-[480px]:[&_.tab-button]:px-1.5 max-[480px]:[&_.tab-button]:text-[11px]"
+                className="w-auto [&_.tab-button]:min-h-[2.25rem] [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-3 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[12px] [&_.tab-button]:font-700"
               />
-              <div className="hidden h-4 w-px bg-border/80 xl:block" />
-              <div className="inline-flex min-w-0 items-center gap-0.5 rounded-xl bg-muted/35 px-0.5 py-0.5 md:rounded-lg max-[480px]:flex-1">
+              <div className="h-8 w-px bg-border/80" />
+              <div className="flex items-center gap-1 rounded-2xl bg-muted/35 p-1">
                 <button
                   type="button"
                   onClick={() => {
@@ -115,27 +222,21 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-0.5 md:rounded-md"
-                  aria-label={
-                    viewMode === 'month'
-                      ? t('dashboardHeader.previousMonth')
-                      : t('dashboardHeader.previousPayPeriod')
-                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-card"
+                  aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
                 >
-                  <ChevronLeft size={16} className="text-muted-foreground md:h-[15px] md:w-[15px]" />
+                  <ChevronLeft size={16} />
                 </button>
                 {viewMode === 'month' ? (
                   <>
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                      className="flex h-8 min-w-0 items-center gap-1 rounded-lg px-1.5 hover:bg-card md:h-7 md:rounded-md md:px-1.25 max-[480px]:flex-1"
+                      className="flex h-8 min-w-[9.75rem] items-center gap-2 rounded-xl px-2.5 text-sm font-700 text-foreground transition-colors hover:bg-card"
                       aria-label={t('dashboardHeader.chooseMonth')}
                     >
-                      <Calendar size={14} className="text-accent md:h-[13px] md:w-[13px]" />
-                      <span className="truncate whitespace-nowrap text-[13px] font-700 text-foreground md:text-[12px] max-[480px]:text-[12px]">
-                        {monthContext.label}
-                      </span>
+                      <Calendar size={15} className="text-accent" />
+                      <span className="truncate whitespace-nowrap">{monthContext.label}</span>
                     </button>
                     <input
                       ref={monthInputRef}
@@ -148,9 +249,9 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-8 min-w-0 items-center gap-1 rounded-lg px-1.5 md:h-7 md:rounded-md md:px-1.25 max-[480px]:flex-1">
-                    <Calendar size={14} className="text-accent md:h-[13px] md:w-[13px]" />
-                    <span className="truncate whitespace-nowrap text-[13px] font-700 text-foreground md:text-[12px] max-[480px]:text-[12px]">{activePeriod.label}</span>
+                  <div className="flex h-8 min-w-[9.75rem] items-center gap-2 rounded-xl px-2.5 text-sm font-700 text-foreground">
+                    <Calendar size={15} className="text-accent" />
+                    <span className="truncate whitespace-nowrap">{activePeriod.label}</span>
                   </div>
                 )}
                 <button
@@ -163,97 +264,23 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="btn-ghost min-h-0 rounded-lg p-0.5 md:rounded-md disabled:opacity-40"
-                  aria-label={
-                    viewMode === 'month'
-                      ? t('dashboardHeader.nextMonth')
-                      : t('dashboardHeader.nextPayPeriod')
-                  }
+                  className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
+                  aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
                   disabled={!canMoveNext}
                 >
-                  <ChevronRight size={16} className="text-muted-foreground md:h-[15px] md:w-[15px]" />
+                  <ChevronRight size={16} />
                 </button>
               </div>
-          </div>
-          <div className="order-2 flex w-full items-center gap-1 overflow-x-auto rounded-2xl border border-border/90 bg-card px-1.5 py-1.5 shadow-card-md scrollbar-thin max-[480px]:justify-start max-[480px]:rounded-[18px] md:hidden 2xl:order-1 2xl:w-auto 2xl:flex-nowrap 2xl:overflow-visible">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.id}
-                  type="button"
-                  onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className="inline-flex h-[30px] shrink-0 items-center gap-1 rounded-xl border border-transparent bg-transparent px-1.5 text-[12px] font-700 text-foreground transition-colors hover:border-border/80 hover:bg-muted/75 max-[480px]:h-8 max-[480px]:px-2 xl:text-[13px]"
-                  aria-label={action.label}
-                >
-                  <Icon size={15} className="text-accent" />
-                  <span>{quickActionShortLabel(action.id)}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="order-2 hidden w-full items-center justify-end gap-1.5 md:flex 2xl:order-1 2xl:w-auto">
-            {directActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.id}
-                  type="button"
-                  onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-border/80 bg-card px-2.5 text-[12px] font-700 text-foreground shadow-card-sm transition-colors hover:bg-muted/70 lg:h-[34px] lg:px-3 lg:text-[13px]"
-                  aria-label={action.label}
-                >
-                  <Icon size={15} className="text-accent lg:h-4 lg:w-4" />
-                  <span>{quickActionShortLabel(action.id)}</span>
-                </button>
-              );
-            })}
-            <div className="relative" ref={moreMenuRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((value) => !value)}
-                className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg border border-border/80 bg-card px-2.5 text-[12px] font-700 text-foreground shadow-card-sm transition-colors hover:bg-muted/70 lg:h-[34px] lg:px-3 lg:text-[13px]"
-                aria-haspopup="menu"
-                aria-expanded={moreOpen}
-              >
-                <span>{t('dashboardHeader.more')}</span>
-                <ChevronDown size={14} className={`text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {moreOpen ? (
-                <div
-                  role="menu"
-                  aria-label={t('dashboardHeader.moreActions')}
-                  className="absolute end-0 top-full z-20 mt-2 flex min-w-[12rem] flex-col overflow-hidden rounded-xl border border-border bg-card p-1 shadow-card-lg"
-                >
-                  {moreActions.map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <button
-                        key={action.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={(event) => {
-                          setMoreOpen(false);
-                          onQuickAction(action.id, event.currentTarget);
-                        }}
-                        className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] font-700 text-foreground transition-colors hover:bg-muted/70 lg:text-[13px]"
-                      >
-                        <Icon size={15} className="text-accent" />
-                        <span>{quickActionShortLabel(action.id)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
             </div>
           </div>
+
           {financialPeriodContext.configurationWarning ? (
-            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning md:rounded-xl md:px-2.5 md:py-1.5 max-[480px]:px-2.5 max-[480px]:py-2 lg:max-w-[520px]">
+            <div className="w-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning lg:max-w-[32rem]">
               {financialPeriodContext.configurationWarning}
             </div>
           ) : null}
         </div>
-      }
-    />
+      </div>
+    </section>
   );
 }

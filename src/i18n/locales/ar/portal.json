@@ -79,6 +79,11 @@
   "dashboardHeader": {
     "title": "لوحة التحكم",
     "description": "نظرتك المالية العامة للفترة {{period}}",
+    "greeting": {
+      "morning": "صباح الخير، {{name}}! 👋",
+      "afternoon": "مساء الخير، {{name}}! 👋",
+      "evening": "مساء الخير، {{name}}! 👋"
+    },
     "badgeMonthFallback": "الرجوع إلى الشهر",
     "badgeMonthView": "عرض شهري",
     "badgePayPeriodView": "عرض فترة الدفع",
@@ -105,6 +110,11 @@
       "recurring": "متكررة",
       "reimbursement": "تعويض",
       "budget": "ميزانية"
+    },
+    "quickActionSubtitles": {
+      "transaction": "إضافة جديد",
+      "account": "إدارة",
+      "more": "أدوات وإجراءات"
     }
   },
   "shared": {
@@ -238,10 +248,18 @@
     "tabs": {
       "trend": "الدخل مقابل المصروفات",
       "category": "حسب الفئة"
+    },
+    "legend": {
+      "income": "الدخل",
+      "expenses": "المصروفات",
+      "cashFlow": "التدفق النقدي"
     }
   },
   "aiUsage": {
     "title": "استخدام الذكاء الاصطناعي",
+    "assistantTitle": "مساعد الذكاء الاصطناعي",
+    "beta": "بيتا",
+    "companion": "مرافقك المالي الذكي",
     "unavailable": "الاستخدام غير متاح حاليًا.",
     "noSubscription": "لا توجد باقة نشطة.",
     "viewPlans": "عرض الخطط",
@@ -256,10 +274,15 @@
     "requestsToday": "طلبات اليوم",
     "resetDate": "تاريخ إعادة الضبط",
     "status": "الحالة",
+    "openAssistant": "فتح مساعد الذكاء الاصطناعي",
     "history": "سجل الذكاء الاصطناعي",
     "upgrade": "الترقية",
     "none": "لا شيء",
     "trialing": "تجريبي"
+  },
+  "dashboardAccounts": {
+    "title": "نظرة عامة على الحسابات",
+    "totalBalance": "إجمالي الرصيد"
   },
   "transfers": {
     "title": "التحويلات",

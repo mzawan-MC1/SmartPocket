@@ -95,17 +95,17 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               onNavigateItem?.();
             }
           }}
-          className={`group relative flex items-center gap-2.5 overflow-hidden rounded-xl border text-sm font-600 transition-all duration-150 ${
+          className={`group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
             active
-              ? 'border-accent/20 bg-accent/10 text-accent shadow-sm'
-              : 'border-transparent text-muted-foreground hover:border-border hover:bg-muted/55 hover:text-foreground'
+              ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
+              : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
           } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'} ${compact ? 'px-3 py-2.5' : ''}`}
           aria-current={active ? 'page' : undefined}
           aria-busy={pending ? 'true' : undefined}
           title={collapsed ? item.label : undefined}
         >
           <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
-            active ? 'bg-white/85 text-accent ring-1 ring-accent/10' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
+            active ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
           } ${isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
             <Icon size={isMobileDrawer ? 17 : 15} />
           </span>
@@ -136,7 +136,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     >
       {/* Logo */}
       <div
-        className={`flex shrink-0 items-center border-b border-border ${
+        className={`flex shrink-0 items-center border-b border-border/70 bg-white ${
           isMobileDrawer ? 'h-[76px] gap-3 px-3' : 'h-[68px] gap-2.5 px-2.5'
         }`}
       >
@@ -149,7 +149,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                   : 'h-12 max-w-[208px] rounded-2xl px-3'
                 : collapsed
                   ? 'h-10 w-10 justify-center rounded-xl px-1'
-                  : 'h-10 max-w-[184px] rounded-xl px-2.5'
+                  : 'h-10 max-w-[184px] rounded-2xl px-2.5'
             }`}
           >
             <AppLogo
@@ -174,12 +174,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </div>
 
       {/* Navigation */}
-      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2 py-3'}`}>
-        <div className={isMobileDrawer ? 'space-y-3' : 'space-y-2'}>
+      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2.5 py-4'}`}>
+        <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3'}>
           {navSections.map((section) => (
-            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1'}>
+            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
               {!collapsed && (
-                <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
+                <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
                   {section.heading}
                 </p>
               )}
@@ -192,7 +192,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </nav>
 
       {/* User Profile */}
-      <div className={`shrink-0 border-t border-border ${isMobileDrawer ? 'p-3' : 'p-2.5'} ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`shrink-0 border-t border-border/70 bg-white ${isMobileDrawer ? 'p-3' : 'p-3'} ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
           <button
             onClick={handleSignOut}
@@ -202,7 +202,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             {initials}
           </button>
         ) : (
-          <div className={`border border-border bg-secondary/45 shadow-card-sm ${isMobileDrawer ? 'rounded-2xl p-3' : 'rounded-xl p-2.5'}`}>
+          <div className={`border border-border/80 bg-secondary/35 shadow-card-sm ${isMobileDrawer ? 'rounded-2xl p-3' : 'rounded-[22px] p-3'}`}>
             <div className={`flex items-center ${isMobileDrawer ? 'gap-3' : 'gap-2.5'}`}>
               <div className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white ${isMobileDrawer ? 'h-10 w-10' : 'h-8.5 w-8.5 text-[13px]'}`}>
                 {initials}

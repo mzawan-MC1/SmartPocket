@@ -2,9 +2,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Zap, Calendar, TrendingUp, AlertTriangle, CheckCircle, XCircle, RefreshCw, ArrowUpRight, Clock, History } from 'lucide-react';
+import { Zap, Calendar, TrendingUp, AlertTriangle, CheckCircle, XCircle, RefreshCw, ArrowUpRight, Clock, Sparkles } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 
 interface SubscriptionSummary {
   has_subscription: boolean;
@@ -130,6 +131,7 @@ function WarningBanner({
 export default function AIUsageCard() {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
+  const quickActions = useQuickActions();
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUnavailable, setIsUnavailable] = useState(false);
@@ -171,11 +173,20 @@ export default function AIUsageCard() {
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse p-4">
-        <div className="h-4 bg-secondary rounded w-1/2 mb-4" />
-        <div className="space-y-3">
-          <div className="h-3 bg-secondary rounded" />
-          <div className="h-3 bg-secondary rounded w-3/4" />
+      <div className="card-elevated animate-pulse rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="h-4 w-28 rounded bg-secondary" />
+            <div className="h-3 w-36 rounded bg-secondary" />
+          </div>
+          <div className="h-12 w-12 rounded-full bg-secondary" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-2 rounded bg-secondary" />
+          <div className="h-2 rounded bg-secondary" />
+          <div className="grid grid-cols-2 gap-2">
+            {[1, 2, 3, 4].map((item) => <div key={item} className="h-16 rounded-2xl bg-secondary" />)}
+          </div>
         </div>
       </div>
     );
@@ -183,17 +194,34 @@ export default function AIUsageCard() {
 
   if (!summary?.has_subscription) {
     return (
-      <div className="card-elevated p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap size={16} className="text-accent" />
-          <h3 className="text-sm font-700 text-foreground">{t('aiUsage.title')}</h3>
+      <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
+                <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.14em] text-violet-600">{t('aiUsage.beta')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('aiUsage.companion')}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => void load(true)}
+            className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-white/80"
+            aria-label={t('aiHistory.refresh')}
+          >
+            <RefreshCw size={14} />
+          </button>
         </div>
         {isUnavailable || summary?.status === 'unavailable' ? (
-          <p className="text-xs text-muted-foreground mb-3">{t('aiUsage.unavailable')}</p>
+          <p className="mb-4 text-sm text-muted-foreground">{t('aiUsage.unavailable')}</p>
         ) : (
-        <p className="text-xs text-muted-foreground mb-3">{t('aiUsage.noSubscription')}</p>
+          <p className="mb-4 text-sm text-muted-foreground">{t('aiUsage.noSubscription')}</p>
         )}
-        <Link href="/pricing" className="btn-primary text-xs py-2 px-3 inline-flex items-center gap-1.5">
+        <Link href="/pricing" className="inline-flex items-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700">
           {t('aiUsage.viewPlans')} <ArrowUpRight size={12} />
         </Link>
       </div>
@@ -219,100 +247,106 @@ export default function AIUsageCard() {
       { month: 'short', day: 'numeric' }
     )
     : t('aiUsage.none');
+  const statusLabel = summary.status === 'active'
+    ? t('status.active', { ns: 'common' })
+    : summary.status === 'trialing'
+      ? t('aiUsage.trialing')
+      : summary.status === 'inactive'
+        ? t('status.inactive', { ns: 'common' })
+        : summary.status;
 
   return (
-    <div className="card-elevated space-y-3 p-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
-            <Zap size={15} className="text-accent" />
+    <div className="card-elevated h-full rounded-[28px] border border-violet-100 bg-[linear-gradient(180deg,rgba(139,92,246,0.12),rgba(255,255,255,0.98))] p-5 shadow-[0_24px_70px_-48px_rgba(124,58,237,0.75)]">
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_14px_28px_-22px_rgba(139,92,246,0.95)]">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
+                <span className="rounded-full bg-violet-500/12 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.14em] text-violet-600">{t('aiUsage.beta')}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('aiUsage.companion')}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-700 text-foreground">{t('aiUsage.title')}</h3>
-            <p className="text-[11px] text-muted-foreground">{summary.plan_name}</p>
-          </div>
+          <button
+            onClick={() => void load(true)}
+            className="rounded-xl p-2 text-muted-foreground transition-colors hover:bg-white/80"
+            aria-label={t('aiHistory.refresh')}
+          >
+            <RefreshCw size={14} className="text-muted-foreground" />
+          </button>
         </div>
-        <button
-          onClick={() => void load(true)}
-          className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
-          aria-label={t('aiHistory.refresh')}
-        >
-          <RefreshCw size={13} className="text-muted-foreground" />
-        </button>
-      </div>
-
-      {/* Warning banner */}
         <WarningBanner pct={creditsPct} t={t} />
+        {isTrialing && trialDaysLeft !== null ? (
+          <div className="flex items-center gap-1.5 text-xs font-600 text-violet-700">
+            <Clock size={12} />
+            {trialDaysLeft > 0 ? t('aiUsage.trialDaysRemaining', { count: trialDaysLeft }) : t('aiUsage.trialExpired')}
+          </div>
+        ) : null}
 
-      {/* Trial badge */}
-      {isTrialing && trialDaysLeft !== null && (
-        <div className="flex items-center gap-1.5 text-xs text-info font-600">
-          <Clock size={12} />
-          {trialDaysLeft > 0 ? t('aiUsage.trialDaysRemaining', { count: trialDaysLeft }) : t('aiUsage.trialExpired')}
+        <div className="space-y-3">
+          <UsageBar used={creditsUsed} total={creditsTotal} label={t('aiUsage.credits')} />
+          {voiceTotalMin > 0 && (
+            <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
+          )}
         </div>
-      )}
 
-      {/* Credit bars */}
-      <div className="space-y-2.5">
-        <UsageBar used={creditsUsed} total={creditsTotal} label={t('aiUsage.credits')} />
-        {voiceTotalMin > 0 && (
-          <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
-        )}
-      </div>
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.creditsLeft')}</p>
+            <p className={`text-lg font-800 ${creditsRemaining === 0 ? 'text-negative' : 'text-foreground'}`}>
+              {creditsRemaining}
+              <span className="ms-1 text-xs font-600 text-muted-foreground">/ {creditsTotal}</span>
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.requestsToday')}</p>
+            <p className="text-lg font-800 text-foreground">
+              {summary.requests_today ?? 0}
+              <span className="ms-1 text-xs font-600 text-muted-foreground">/ {summary.daily_ai_request_limit ?? t('aiUsage.none')}</span>
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.resetDate')}</p>
+            <p className="flex items-center gap-1 text-sm font-700 text-foreground">
+              <Calendar size={12} className="text-muted-foreground" />
+              {resetDate}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.status')}</p>
+            <p className="flex items-center gap-1 text-sm font-700 text-foreground">
+              {summary.status === 'active' || summary.status === 'trialing'
+                ? <CheckCircle size={12} className="text-positive" />
+                : <XCircle size={12} className="text-negative" />}
+              {statusLabel}
+            </p>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
-        <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.creditsLeft')}</p>
-          <p className={`text-base font-700 ${creditsRemaining === 0 ? 'text-negative' : 'text-foreground'}`}>
-            {creditsRemaining}
-          </p>
+        <div className="mt-auto flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => quickActions?.openQuickAction('smart_entry')}
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+          >
+            <Zap size={14} />
+            {t('aiUsage.openAssistant')}
+          </button>
+          {(summary.plan_code === 'free_trial' || summary.status !== 'active') && (
+            <Link href="/pricing" className="inline-flex items-center justify-center rounded-2xl border border-violet-200 bg-white/80 px-3 py-3 text-xs font-700 text-violet-700 transition-colors hover:bg-white">
+              <TrendingUp size={13} />
+            </Link>
+          )}
+          {summary.ai_history_enabled && (
+            <Link href="/ai-history" className="inline-flex items-center justify-center rounded-2xl border border-violet-200 bg-white/80 px-3 py-3 text-xs font-700 text-violet-700 transition-colors hover:bg-white">
+              <ArrowUpRight size={13} />
+            </Link>
+          )}
         </div>
-        <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.requestsToday')}</p>
-          <p className="text-base font-700 text-foreground">
-            {summary.requests_today ?? 0}
-            <span className="text-xs font-400 text-muted-foreground">/{summary.daily_ai_request_limit ?? t('aiUsage.none')}</span>
-          </p>
-        </div>
-        <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.resetDate')}</p>
-          <p className="text-sm font-600 text-foreground flex items-center gap-1">
-            <Calendar size={11} className="text-muted-foreground" />
-            {resetDate}
-          </p>
-        </div>
-        <div className="rounded-xl bg-secondary/50 p-3">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">{t('aiUsage.status')}</p>
-          <p className="text-sm font-600 text-foreground capitalize flex items-center gap-1">
-            {summary.status === 'active' || summary.status === 'trialing'
-              ? <CheckCircle size={11} className="text-positive" />
-              : <XCircle size={11} className="text-negative" />}
-            {summary.status === 'active'
-              ? t('status.active', { ns: 'common' })
-              : summary.status === 'trialing'
-                ? t('aiUsage.trialing')
-                : summary.status === 'inactive'
-                  ? t('status.inactive', { ns: 'common' })
-                  : summary.status}
-          </p>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex gap-2 pt-1">
-        {summary.ai_history_enabled && (
-          <Link href="/ai-history" className="btn-secondary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
-            <History size={12} />
-            {t('aiUsage.history')}
-          </Link>
-        )}
-        {(summary.plan_code === 'free_trial' || summary.status !== 'active') && (
-          <Link href="/pricing" className="btn-primary text-xs py-2 px-3 flex items-center gap-1.5 flex-1 justify-center">
-            <TrendingUp size={12} />
-            {t('aiUsage.upgrade')}
-          </Link>
-        )}
       </div>
     </div>
   );

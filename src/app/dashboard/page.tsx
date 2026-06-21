@@ -181,7 +181,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout activeRoute="/dashboard">
-      <div className="page-section gap-4 md:gap-[1.125rem] lg:gap-4 max-[480px]:gap-3">
+      <div className="page-section gap-4 md:gap-4 lg:gap-5 max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
           <div className="section-card">
             <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
@@ -208,27 +208,27 @@ export default function DashboardPage() {
               financialPeriodContext={periodContext}
             />
             <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
-            <div className="space-y-3 md:space-y-[0.875rem] lg:space-y-4 max-[480px]:space-y-3">
-              <div className="grid grid-cols-1 items-start gap-3 md:gap-[0.875rem] lg:gap-4 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
-                <div className="xl:col-span-8">
+            <div className="space-y-4 md:space-y-4 lg:space-y-5 max-[480px]:space-y-3">
+              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-4">
+                <div className="lg:col-span-8">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
-                <div className="xl:col-span-4">
+                <div className="lg:col-span-4">
                   <AIUsageCard />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-3 md:gap-[0.875rem] lg:gap-4 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
-                <div className="xl:col-span-6">
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12 xl:gap-4">
+                <div className="xl:col-span-5">
                   <RecentTransactions />
                 </div>
-                <div className="xl:col-span-3">
+                <div className="xl:col-span-4">
                   <UpcomingRecurring activePeriod={activePeriod} />
                 </div>
                 <div className="xl:col-span-3">
                   <AccountBalances />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-start gap-3 md:gap-[0.875rem] lg:gap-4 max-[480px]:gap-3 xl:grid-cols-12 xl:gap-4">
+              <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-12 xl:gap-4">
                 <div className="xl:col-span-4">
                   <PeopleDashboardWidget />
                 </div>

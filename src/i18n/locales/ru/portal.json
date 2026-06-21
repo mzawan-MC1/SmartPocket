@@ -71,6 +71,11 @@
   "dashboardHeader": {
     "title": "Панель управления",
     "description": "Ваш финансовый обзор за период {{period}}",
+    "greeting": {
+      "morning": "Доброе утро, {{name}}! 👋",
+      "afternoon": "Добрый день, {{name}}! 👋",
+      "evening": "Добрый вечер, {{name}}! 👋"
+    },
     "badgeMonthFallback": "Переход к месяцу",
     "badgeMonthView": "Вид по месяцу",
     "badgePayPeriodView": "Вид по периоду выплат",
@@ -89,6 +94,11 @@
       "recurring": "Регулярно",
       "reimbursement": "Возмещение",
       "budget": "Бюджет"
+    },
+    "quickActionSubtitles": {
+      "transaction": "Добавить",
+      "account": "Управление",
+      "more": "Инструменты и действия"
     }
   },
   "shared": {
@@ -207,10 +217,18 @@
     "tabs": {
       "trend": "Доходы и расходы",
       "category": "По категориям"
+    },
+    "legend": {
+      "income": "Доходы",
+      "expenses": "Расходы",
+      "cashFlow": "Денежный поток"
     }
   },
   "aiUsage": {
     "title": "Использование AI",
+    "assistantTitle": "AI Assistant",
+    "beta": "Beta",
+    "companion": "Ваш AI-помощник по финансам",
     "unavailable": "Использование сейчас недоступно.",
     "noSubscription": "Активная подписка не найдена.",
     "viewPlans": "Посмотреть тарифы",
@@ -225,10 +243,15 @@
     "requestsToday": "Запросов сегодня",
     "resetDate": "Дата сброса",
     "status": "Статус",
+    "openAssistant": "Открыть AI Assistant",
     "history": "История AI",
     "upgrade": "Обновить тариф",
     "none": "Нет",
     "trialing": "Пробный период"
+  },
+  "dashboardAccounts": {
+    "title": "Обзор счетов",
+    "totalBalance": "Общий баланс"
   },
   "transfers": {
     "title": "Переводы",

@@ -79,14 +79,20 @@ export default function AccountBalances() {
         return t('accounts.types.other', { ns: 'portal' });
     }
   };
+  const totalByCurrency = Array.from(
+    accounts.reduce((map, account) => {
+      map.set(account.currency, (map.get(account.currency) || 0) + Number(account.current_balance || 0));
+      return map;
+    }, new Map<string, number>())
+  );
 
   return (
     <SectionCard
-      title={t('accounts.badge', { ns: 'portal' })}
+      title={t('dashboardAccounts.title', { ns: 'portal' })}
       description={t('accounts.dashboardDescription', { ns: 'portal' })}
-      className="h-full"
+      className="h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm"
       action={
-        <Link href="/financial-accounts" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
+        <Link href="/financial-accounts" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
@@ -116,7 +122,7 @@ export default function AccountBalances() {
         </div>
       ) : (
         <div className="divide-y divide-border">
-          {accounts.map((acct) => {
+          {accounts.slice(0, 6).map((acct) => {
             const Icon = getAccountIcon(acct.account_type);
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
             const lastActivity = new Date(acct.updated_at).toLocaleDateString(
@@ -124,12 +130,12 @@ export default function AccountBalances() {
               { month: 'short', day: 'numeric' }
             );
             return (
-              <div key={acct.id} className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/40">
-                <div className={`w-8 h-8 rounded-lg ${colorClass} flex items-center justify-center flex-shrink-0`}>
+              <div key={acct.id} className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${colorClass} flex-shrink-0`}>
                   <Icon size={15} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-600 text-foreground truncate">{acct.name}</p>
+                  <p className="text-sm font-700 text-foreground truncate">{acct.name}</p>
                   <p className="text-[11px] text-muted-foreground capitalize">{getAccountTypeLabel(acct.account_type)}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -145,6 +151,24 @@ export default function AccountBalances() {
               </div>
             );
           })}
+          <div className="flex items-start justify-between gap-3 bg-muted/20 px-4 py-3.5">
+            <div>
+              <p className="text-sm font-700 text-foreground">{t('dashboardAccounts.totalBalance', { ns: 'portal' })}</p>
+              <p className="text-xs text-muted-foreground">{t('dashboardMetrics.acrossActiveAccounts', { ns: 'portal' })}</p>
+            </div>
+            <div className="text-right">
+              {totalByCurrency.map(([currency, amount]) => (
+                <FormattedCurrencyAmount
+                  key={currency}
+                  amount={amount}
+                  currencyCode={currency}
+                  size="sm"
+                  className="text-sm font-800 font-tabular text-foreground"
+                  showCode
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </SectionCard>

@@ -1,5 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { CalendarClock, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -87,8 +88,15 @@ export default function UpcomingRecurring({
       description={activePeriod.mode === 'month'
         ? t('recurring.widgetDescriptionMonth', { ns: 'portal', period: activePeriod.label })
         : t('recurring.widgetDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-      className="h-full"
-      action={<StatusBadge status="pending" label={activePeriod.label} />}
+      className="h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      action={
+        <div className="flex items-center gap-2">
+          <StatusBadge status="pending" label={activePeriod.label} />
+          <Link href="/recurring" className="text-sm font-700 text-accent transition-colors hover:text-teal-600">
+            {t('actions.viewAll', { ns: 'common' })}
+          </Link>
+        </div>
+      }
       bodyClassName="p-0"
     >
 
@@ -105,14 +113,18 @@ export default function UpcomingRecurring({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="px-4 py-8">
-          <EmptyState
-            icon={CalendarClock}
-            title={t('recurring.noUpcomingTitle', { ns: 'portal' })}
-            description={activePeriod.mode === 'month'
+        <div className="flex flex-col items-center justify-center px-6 py-10 text-center">
+          <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.22),rgba(255,255,255,0.95)_65%)] shadow-[0_22px_46px_-30px_rgba(147,51,234,0.7)]">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-violet-500/12 text-violet-600">
+              <CalendarClock size={30} />
+            </div>
+          </div>
+          <p className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('recurring.noUpcomingTitle', { ns: 'portal' })}</p>
+          <p className="mt-2 max-w-[16rem] text-sm leading-6 text-muted-foreground">
+            {activePeriod.mode === 'month'
               ? t('recurring.noUpcomingDescriptionMonth', { ns: 'portal', period: activePeriod.label })
               : t('recurring.noUpcomingDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-          />
+          </p>
         </div>
       ) : (
         <>
@@ -172,7 +184,7 @@ export default function UpcomingRecurring({
               );
             })}
           </div>
-          <div className="border-t border-border bg-muted/30 px-4 py-3">
+          <div className="border-t border-border bg-muted/20 px-4 py-3">
             <p className="text-xs text-muted-foreground text-center">
               {activePeriod.mode === 'month'
                 ? t('recurring.totalScheduled', { ns: 'portal' })

@@ -1,5 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   isPersonalExpenseTransaction,
   convertHistoricalAmountWithSnapshots,
@@ -13,6 +14,7 @@ import {
 import {
   AreaChart,
   Area,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -28,6 +30,7 @@ interface ChartPoint {
   label: string;
   income: number;
   expenses: number;
+  cashFlow: number;
 }
 
 type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'currency' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
@@ -70,6 +73,7 @@ export default function IncomeExpenseChart({
 }: {
   activePeriod: DashboardActivePeriod;
 }) {
+  const { t } = useTranslation('portal');
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -111,6 +115,7 @@ export default function IncomeExpenseChart({
             label: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period.startDate}T12:00:00Z`)),
             income: 0,
             expenses: 0,
+            cashFlow: 0,
           });
         }
       } else {
@@ -133,6 +138,7 @@ export default function IncomeExpenseChart({
               : new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart),
             income: 0,
             expenses: 0,
+            cashFlow: 0,
           });
         }
       }
@@ -181,7 +187,12 @@ export default function IncomeExpenseChart({
         setErrorMessage('Some historical exchange rates are unavailable for this period, so the chart cannot be shown accurately yet.');
       }
 
-      setData(Array.from(bucketMap.values()));
+      const normalizedPoints = Array.from(bucketMap.values()).map((point) => ({
+        ...point,
+        cashFlow: point.income - point.expenses,
+      }));
+
+      setData(normalizedPoints);
     } catch (error) {
       console.error('IncomeExpenseChart error:', error);
       setErrorMessage('The chart period could not be calculated.');
@@ -247,6 +258,7 @@ export default function IncomeExpenseChart({
         <Area
           type="monotone"
           dataKey="income"
+          name={t('dashboardCharts.legend.income')}
           stroke="var(--positive)"
           strokeWidth={2}
           fill="url(#incomeGrad)"
@@ -256,9 +268,20 @@ export default function IncomeExpenseChart({
         <Area
           type="monotone"
           dataKey="expenses"
+          name={t('dashboardCharts.legend.expenses')}
           stroke="var(--negative)"
           strokeWidth={2}
           fill="url(#expenseGrad)"
+          dot={false}
+          activeDot={{ r: 4, strokeWidth: 0 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="cashFlow"
+          name={t('dashboardCharts.legend.cashFlow')}
+          stroke="#3b82f6"
+          strokeWidth={2}
+          strokeDasharray="6 4"
           dot={false}
           activeDot={{ r: 4, strokeWidth: 0 }}
         />

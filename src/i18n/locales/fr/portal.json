@@ -71,6 +71,11 @@
   "dashboardHeader": {
     "title": "Tableau de bord",
     "description": "Votre vue d'ensemble financière pour {{period}}",
+    "greeting": {
+      "morning": "Bonjour, {{name}}! 👋",
+      "afternoon": "Bon apres-midi, {{name}}! 👋",
+      "evening": "Bonsoir, {{name}}! 👋"
+    },
     "badgeMonthFallback": "Repli mensuel",
     "badgeMonthView": "Vue mensuelle",
     "badgePayPeriodView": "Vue par période de paie",
@@ -89,6 +94,11 @@
       "recurring": "Recurrent",
       "reimbursement": "Remboursement",
       "budget": "Budget"
+    },
+    "quickActionSubtitles": {
+      "transaction": "Ajouter",
+      "account": "Gerer",
+      "more": "Outils et actions"
     }
   },
   "shared": {
@@ -207,10 +217,18 @@
     "tabs": {
       "trend": "Revenus vs dépenses",
       "category": "Par catégorie"
+    },
+    "legend": {
+      "income": "Revenus",
+      "expenses": "Depenses",
+      "cashFlow": "Flux net"
     }
   },
   "aiUsage": {
     "title": "Utilisation IA",
+    "assistantTitle": "Assistant IA",
+    "beta": "Beta",
+    "companion": "Votre compagnon financier IA",
     "unavailable": "L'utilisation est actuellement indisponible.",
     "noSubscription": "Aucun abonnement actif trouvé.",
     "viewPlans": "Voir les offres",
@@ -225,10 +243,15 @@
     "requestsToday": "Demandes aujourd'hui",
     "resetDate": "Date de réinitialisation",
     "status": "Statut",
+    "openAssistant": "Ouvrir l'assistant IA",
     "history": "Historique IA",
     "upgrade": "Passer à niveau",
     "none": "Aucun",
     "trialing": "Période d’essai"
+  },
+  "dashboardAccounts": {
+    "title": "Vue des comptes",
+    "totalBalance": "Solde total"
   },
   "transfers": {
     "title": "Transferts",

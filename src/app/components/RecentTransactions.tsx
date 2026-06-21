@@ -46,9 +46,9 @@ export default function RecentTransactions() {
     <SectionCard
       title={t('recentTransactions.title', { ns: 'portal' })}
       description={t('recentTransactions.description', { ns: 'portal' })}
-      className="h-full"
+      className="h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm"
       action={
-        <Link href="/transactions" className="text-sm font-700 text-accent hover:text-teal-600 flex items-center gap-1 transition-colors">
+        <Link href="/transactions" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
@@ -59,7 +59,7 @@ export default function RecentTransactions() {
         <div className="divide-y divide-border">
           {[...Array(5)].map((_, i) => (
             <div key={`skel-txn-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
-              <div className="w-9 h-9 rounded-xl bg-muted flex-shrink-0" />
+              <div className="h-10 w-10 rounded-2xl bg-muted flex-shrink-0" />
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-32 mb-1.5" />
                 <div className="h-2.5 bg-muted rounded w-24" />
@@ -78,14 +78,14 @@ export default function RecentTransactions() {
         </div>
       ) : (
         <div className="divide-y divide-border">
-          {transactions.map((txn) => {
+          {transactions.slice(0, 6).map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
             const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
             return (
-              <div key={txn.id} className="group flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/40">
+              <div key={txn.id} className="group flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
                   style={{ backgroundColor: catColor + '20' }}
                 >
                   {isIncome
@@ -95,7 +95,7 @@ export default function RecentTransactions() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-600 text-foreground truncate">
+                    <p className="text-sm font-700 text-foreground truncate">
                       {txn.merchant || txn.description}
                     </p>
                     {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
@@ -113,7 +113,7 @@ export default function RecentTransactions() {
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}
                     size="sm"
-                    className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-foreground'}`}
+                    className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-negative'}`}
                     showCode
                   />
                   <span className="text-[11px] text-muted-foreground">

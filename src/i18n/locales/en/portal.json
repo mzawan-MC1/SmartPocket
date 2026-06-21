@@ -85,6 +85,11 @@
   "dashboardHeader": {
     "title": "Dashboard",
     "description": "Your financial overview for {{period}}",
+    "greeting": {
+      "morning": "Good morning, {{name}}! 👋",
+      "afternoon": "Good afternoon, {{name}}! 👋",
+      "evening": "Good evening, {{name}}! 👋"
+    },
     "badgeMonthFallback": "Month fallback",
     "badgeMonthView": "Month view",
     "badgePayPeriodView": "Pay period view",
@@ -111,6 +116,11 @@
       "recurring": "Recurring",
       "reimbursement": "Reimbursement",
       "budget": "Budget"
+    },
+    "quickActionSubtitles": {
+      "transaction": "Add new",
+      "account": "Manage",
+      "more": "Tools & actions"
     }
   },
   "shared": {
@@ -398,10 +408,18 @@
     "tabs": {
       "trend": "Income vs Expenses",
       "category": "By Category"
+    },
+    "legend": {
+      "income": "Income",
+      "expenses": "Expenses",
+      "cashFlow": "Cash Flow"
     }
   },
   "aiUsage": {
     "title": "AI Usage",
+    "assistantTitle": "AI Assistant",
+    "beta": "Beta",
+    "companion": "Your AI finance companion",
     "unavailable": "Usage is currently unavailable.",
     "noSubscription": "No active subscription found.",
     "viewPlans": "View Plans",
@@ -416,10 +434,15 @@
     "requestsToday": "Requests today",
     "resetDate": "Reset date",
     "status": "Status",
+    "openAssistant": "Open AI Assistant",
     "history": "AI History",
     "upgrade": "Upgrade",
     "none": "None",
     "trialing": "Trialing"
+  },
+  "dashboardAccounts": {
+    "title": "Accounts Overview",
+    "totalBalance": "Total Balance"
   },
   "transfers": {
     "title": "Transfers",
