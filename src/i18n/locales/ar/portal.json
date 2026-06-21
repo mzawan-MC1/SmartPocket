@@ -1249,6 +1249,26 @@
         "aiFailures": {
           "label": "فشل تنفيذ الذكاء الاصطناعي",
           "description": "نبّه عندما يتعذر على Smart Entry حفظ السجلات المؤكدة."
+        },
+        "itemPriceIncrease": {
+          "label": "زيادة كبيرة في سعر العنصر",
+          "description": "اعرض تنبيهًا محافظًا داخل التطبيق عندما يرتفع أحدث سعر لعنصر متكرر بشكل ملحوظ."
+        },
+        "itemDueSoon": {
+          "label": "شراء متكرر قد يحين موعده",
+          "description": "اعرض تذكيرًا داخل التطبيق عندما يبدو أن عنصرًا يُشترى بانتظام قد حان موعد شرائه مرة أخرى."
+        },
+        "duplicateReceipt": {
+          "label": "تحذير من إيصال مكرر",
+          "description": "اعرض تنبيهًا عندما يبدو أن إيصالًا تمت مراجعته حديثًا يطابق عملية شراء محفوظة."
+        },
+        "unusualReceipt": {
+          "label": "إجمالي إيصال غير معتاد",
+          "description": "اعرض تنبيهًا عندما يبدو إجمالي إيصال تمت مراجعته مرتفعًا بشكل غير معتاد بالنسبة للتاجر أو النمط الحديث."
+        },
+        "highItemSpend": {
+          "label": "إنفاق مرتفع على عنصر أو فئة",
+          "description": "اعرض تنبيهًا داخل التطبيق عندما يصبح الإنفاق على عنصر واحد أو فئة عناصر مرتفعًا بشكل غير معتاد."
         }
       }
     }
@@ -1511,6 +1531,115 @@
     "owedBy": {
       "person": "الشخص مدين لي",
       "user": "أنا مدين للشخص"
+    }
+  },
+  "itemInsights": {
+    "title": "رؤى العناصر",
+    "description": "تتبع الإنفاق على مستوى العناصر وسجل الأسعار وأنماط الشراء المتكرر ورؤى التجار من الإيصالات المحفوظة.",
+    "badge": "ذكاء الإيصالات",
+    "backToReports": "العودة إلى التقارير",
+    "loadError": "فشل تحميل رؤى العناصر.",
+    "currencyFilter": "العملة",
+    "allCurrencies": "كل العملات",
+    "allMerchants": "كل التجار",
+    "allCategories": "كل الفئات",
+    "itemFilter": "العنصر",
+    "allItems": "كل العناصر",
+    "loadFailedTitle": "رؤى العناصر غير متاحة.",
+    "emptyTitle": "لا توجد عناصر إيصالات تطابق هذا الفلتر.",
+    "emptyDescription": "ارفع إيصالات تمت مراجعتها لبدء تتبع الإنفاق والأسعار على مستوى العناصر.",
+    "totalItemSpending": "إجمالي الإنفاق على مستوى العناصر",
+    "mostPurchasedItem": "العنصر الأكثر شراءً",
+    "highestSpendItem": "أعلى عنصر إنفاقًا",
+    "recentPriceChange": "تغير السعر الأخير",
+    "purchases": "عمليات شراء",
+    "topSpendSection": "أعلى العناصر إنفاقًا",
+    "topSpendDescription": "اعرف أي عناصر الإيصالات التي تمت مراجعتها تقود أكبر إنفاق.",
+    "unknownMerchant": "تاجر غير معروف",
+    "avgPriceShort": "المتوسط",
+    "priceChangesSection": "تغيرات الأسعار الأخيرة",
+    "priceChangesDescription": "قارن أحدث سعر بالسعر السابق ومتوسط سعر الشراء ضمن العملة نفسها.",
+    "latestPrice": "أحدث سعر",
+    "previousPrice": "السعر السابق",
+    "averagePrice": "متوسط السعر",
+    "recurringSection": "التعرّف على الشراء المتكرر",
+    "recurringDescription": "تعتمد الاقتراحات على اسم العنصر الموحّد وأنماط التاجر والفواصل الزمنية والكمية والأسعار.",
+    "noRecurringSuggestions": "لا توجد اقتراحات شراء متكرر تطابق الفلاتر الحالية.",
+    "dueSoon": "مستحق قريبًا",
+    "avgInterval": "متوسط الفاصل",
+    "days": "أيام",
+    "lastPurchased": "آخر شراء",
+    "nextLikely": "الشراء المتوقع التالي",
+    "latestVsAverage": "أحدث سعر مقابل المتوسط",
+    "dismiss": "تجاهل",
+    "remindMe": "ذكّرني",
+    "createRecurringSuggestion": "إنشاء اقتراح متكرر",
+    "categorySection": "الإنفاق حسب فئة العنصر",
+    "categoryDescription": "تبقى فئات العناصر تحت إجمالي المعاملة الأصلية نفسها في السجل.",
+    "items": "عناصر",
+    "merchantSection": "رؤى التاجر",
+    "merchantDescription": "تستخدم قيم التجار التي تمت مراجعتها فقط، مع الإنفاق وعدد الزيارات والعناصر المتكررة ومزيج الفئات.",
+    "visits": "زيارات",
+    "avgReceiptValue": "متوسط قيمة الإيصال",
+    "mostPurchasedItems": "العناصر الأكثر شراءً",
+    "smartAlertsSection": "التنبيهات الذكية",
+    "smartAlertsDescription": "تستخدم تنبيهات الإيصالات داخل التطبيق إعداداتك الحالية بشكل محافظ ولا ترسل بريدًا إلكترونيًا أو إشعارات دفع.",
+    "alertPriceIncrease": "أحدث سعر أعلى بنسبة {{percent}}% من عملية الشراء السابقة.",
+    "alertDueSoon": "أنت تشتري هذا عادة كل {{days}} يومًا وقد يحين موعده مرة أخرى قريبًا.",
+    "manageAlerts": "إدارة إعدادات التنبيه",
+    "itemDetailsTitle": "تفاصيل العنصر",
+    "pricePoints": "نقاط سعر",
+    "lowestPrice": "أقل سعر",
+    "highestPrice": "أعلى سعر",
+    "unitPrice": "سعر الوحدة",
+    "priceChange": "تغير السعر",
+    "identitySection": "توحيد اسم العنصر والدمج",
+    "identityDescription": "يبقى نص الإيصال الأصلي دون تغيير. تستخدم التقارير هوية موحّدة منفصلة يمكنك إعادة تسميتها أو دمجها يدويًا.",
+    "canonicalName": "الاسم القياسي للعنصر",
+    "normalizedPreview": "المعاينة الموحّدة: {{value}}",
+    "mergeInto": "الدمج في عنصر موجود",
+    "selectMergeTarget": "اختر هدف الدمج",
+    "mergeAction": "دمج العنصر",
+    "saveIdentityAction": "حفظ الاسم",
+    "identitySaved": "تم حفظ هوية العنصر.",
+    "identitySaveError": "فشل حفظ هوية العنصر.",
+    "identityMerged": "تم دمج هوية العنصر.",
+    "identityMergeError": "فشل دمج هوية العنصر.",
+    "remindNotificationTitle": "عنصر إيصال قد يحين موعده قريبًا",
+    "remindNotificationBody": "قد يحين موعد شرائه مرة أخرى حوالي",
+    "reminderCreated": "تمت إضافة التذكير إلى التنبيهات داخل التطبيق.",
+    "reminderError": "فشل إنشاء التذكير.",
+    "recurringModalTitle": "إنشاء اقتراح متكرر",
+    "recurringCreated": "تم إنشاء الاقتراح المتكرر داخل نظام المعاملات المتكررة."
+  },
+  "receiptInsights": {
+    "title": "رؤى الإيصالات",
+    "description": "عرض مختصر للعناصر المتكررة وتغيرات الأسعار والمشتريات القادمة.",
+    "link": "رؤى العناصر",
+    "empty": "لا توجد رؤى إيصالات متاحة للفترة المحددة.",
+    "sourcesTitle": "سياق المصدر",
+    "noSources": "لم يتم العثور على مصادر إيصالات مطابقة.",
+    "askAnother": "اطرح سؤالًا آخر",
+    "ai": {
+      "unauthorized": "غير مصرح",
+      "questionRequired": "السؤال مطلوب.",
+      "failed": "فشل الرد على سؤال رؤى الإيصالات.",
+      "spendNotFound": "لم أتمكن من العثور على عناصر إيصالات محفوظة لـ \"{{itemName}}\".",
+      "spendSummary": "{{itemName}}: {{amount}} {{currency}} عبر {{count}} عمليات شراء",
+      "lastBoughtFound": "آخر مرة اشتريت فيها {{itemName}} كانت من {{merchant}} بتاريخ {{date}}.",
+      "lastBoughtNotFound": "لم أتمكن من العثور على عملية شراء محفوظة لـ \"{{itemName}}\".",
+      "averageFound": "متوسط السعر الذي دفعته مقابل {{itemName}} هو {{amount}} {{currency}} عبر {{count}} عمليات شراء.",
+      "averageNotFound": "لم أتمكن من حساب متوسط سعر لـ \"{{itemName}}\".",
+      "priceIncreaseFound": "شهد {{itemName}} أكبر تغير حديثًا، بزيادة {{percent}}% من {{previous}} {{currency}} إلى {{latest}} {{currency}}.",
+      "priceIncreaseNotFound": "لم أتمكن من العثور على زيادة سعر حديثة في عناصر الإيصالات المحفوظة.",
+      "recurringSummary": "{{itemName}} كل {{days}} يومًا",
+      "recurringNotFound": "لم أتمكن بعد من العثور على نمط شراء متكرر واضح.",
+      "help": "اسأل عن الإنفاق على عنصر معين، أو أين اشتريت عنصرًا آخر مرة، أو متوسط السعر المدفوع، أو أكبر زيادة سعر، أو العناصر التي تشتريها بانتظام.",
+      "detailAcrossPurchases": "{{amount}} {{currency}} عبر {{count}} عمليات شراء",
+      "detailAverageFromPurchases": "متوسط {{amount}} {{currency}} من {{count}} عمليات شراء",
+      "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
+      "detailAverageInterval": "متوسط الفاصل {{days}} يومًا؛ الموعد المتوقع التالي {{date}}",
+      "unknownMerchantWithArticle": "تاجر غير معروف"
     }
   }
 }

@@ -1218,6 +1218,26 @@
         "aiFailures": {
           "label": "Échecs d'exécution IA",
           "description": "Prévenez lorsque Smart Entry ne peut pas enregistrer les éléments confirmés."
+        },
+        "itemPriceIncrease": {
+          "label": "Hausse importante du prix d'un article",
+          "description": "Affiche une alerte prudente dans l'application lorsqu'un article répété voit son dernier prix augmenter de façon marquée."
+        },
+        "itemDueSoon": {
+          "label": "Achat récurrent probablement dû",
+          "description": "Affiche un rappel dans l'application lorsqu'un article acheté régulièrement pourrait bientôt être dû à nouveau."
+        },
+        "duplicateReceipt": {
+          "label": "Avertissement de reçu en double",
+          "description": "Affiche une alerte lorsqu'un reçu récemment vérifié semble être un doublon d'un achat enregistré."
+        },
+        "unusualReceipt": {
+          "label": "Total de reçu inhabituel",
+          "description": "Affiche une alerte lorsqu'un total de reçu vérifié semble inhabituellement élevé pour ce marchand ou par rapport au schéma récent."
+        },
+        "highItemSpend": {
+          "label": "Dépense élevée sur un article ou une catégorie",
+          "description": "Affiche une alerte dans l'application lorsque la dépense sur un article ou une catégorie d'articles devient anormalement élevée."
         }
       }
     }
@@ -1480,6 +1500,115 @@
     "owedBy": {
       "person": "La personne me doit",
       "user": "Je dois a la personne"
+    }
+  },
+  "itemInsights": {
+    "title": "Analyses des articles",
+    "description": "Suivez les dépenses par article, l'historique des prix, les habitudes d'achat récurrentes et les insights marchands à partir de vos reçus enregistrés.",
+    "badge": "Intelligence des reçus",
+    "backToReports": "Retour aux rapports",
+    "loadError": "Impossible de charger les analyses des articles.",
+    "currencyFilter": "Devise",
+    "allCurrencies": "Toutes les devises",
+    "allMerchants": "Tous les marchands",
+    "allCategories": "Toutes les catégories",
+    "itemFilter": "Article",
+    "allItems": "Tous les articles",
+    "loadFailedTitle": "Les analyses des articles sont indisponibles.",
+    "emptyTitle": "Aucun article de reçu ne correspond à ce filtre.",
+    "emptyDescription": "Téléversez des reçus vérifiés pour commencer à suivre les dépenses et les prix au niveau des articles.",
+    "totalItemSpending": "Dépenses totales par article",
+    "mostPurchasedItem": "Article le plus acheté",
+    "highestSpendItem": "Article avec la plus forte dépense",
+    "recentPriceChange": "Variation récente du prix",
+    "purchases": "achats",
+    "topSpendSection": "Articles les plus dépensés",
+    "topSpendDescription": "Voyez quels articles de reçus vérifiés génèrent le plus de dépenses.",
+    "unknownMerchant": "Marchand inconnu",
+    "avgPriceShort": "Moy.",
+    "priceChangesSection": "Variations récentes des prix",
+    "priceChangesDescription": "Comparez le dernier prix au précédent et au prix moyen d'achat dans la même devise.",
+    "latestPrice": "Dernier prix",
+    "previousPrice": "Prix précédent",
+    "averagePrice": "Prix moyen",
+    "recurringSection": "Détection des achats récurrents",
+    "recurringDescription": "Les suggestions s'appuient sur le nom normalisé de l'article, le marchand, les intervalles, la quantité et le schéma de prix.",
+    "noRecurringSuggestions": "Aucune suggestion d'achat récurrent ne correspond aux filtres actuels.",
+    "dueSoon": "Bientôt dû",
+    "avgInterval": "Intervalle moyen",
+    "days": "jours",
+    "lastPurchased": "Dernier achat",
+    "nextLikely": "Prochain achat probable",
+    "latestVsAverage": "Dernier prix vs moyenne",
+    "dismiss": "Ignorer",
+    "remindMe": "Me le rappeler",
+    "createRecurringSuggestion": "Créer une suggestion récurrente",
+    "categorySection": "Dépenses par catégorie d'article",
+    "categoryDescription": "Les catégories d'articles restent sous le même total de transaction parent dans le registre.",
+    "items": "articles",
+    "merchantSection": "Insights marchands",
+    "merchantDescription": "Utilise uniquement les valeurs de marchands vérifiées, avec dépenses, nombre de visites, articles répétés et répartition par catégorie.",
+    "visits": "visites",
+    "avgReceiptValue": "Valeur moyenne du reçu",
+    "mostPurchasedItems": "Articles les plus achetés",
+    "smartAlertsSection": "Alertes intelligentes",
+    "smartAlertsDescription": "Les alertes de reçus dans l'application restent prudentes, utilisent vos paramètres existants et n'envoient ni e-mail ni notification push.",
+    "alertPriceIncrease": "Le dernier prix est supérieur de {{percent}}% à l'achat précédent.",
+    "alertDueSoon": "Vous achetez généralement ceci tous les {{days}} jours et il pourrait bientôt être temps de l'acheter à nouveau.",
+    "manageAlerts": "Gérer les paramètres d'alerte",
+    "itemDetailsTitle": "Détails de l'article",
+    "pricePoints": "points de prix",
+    "lowestPrice": "Prix le plus bas",
+    "highestPrice": "Prix le plus élevé",
+    "unitPrice": "Prix unitaire",
+    "priceChange": "Variation du prix",
+    "identitySection": "Normalisation et fusion des articles",
+    "identityDescription": "Le texte original du reçu reste inchangé. Les rapports utilisent une identité normalisée distincte que vous pouvez renommer ou fusionner manuellement.",
+    "canonicalName": "Nom canonique de l'article",
+    "normalizedPreview": "Aperçu normalisé : {{value}}",
+    "mergeInto": "Fusionner dans un article existant",
+    "selectMergeTarget": "Sélectionnez une cible de fusion",
+    "mergeAction": "Fusionner l'article",
+    "saveIdentityAction": "Enregistrer le nom",
+    "identitySaved": "Identité de l'article enregistrée.",
+    "identitySaveError": "Impossible d'enregistrer l'identité de l'article.",
+    "identityMerged": "Identité de l'article fusionnée.",
+    "identityMergeError": "Impossible de fusionner l'identité de l'article.",
+    "remindNotificationTitle": "Article de reçu bientôt dû",
+    "remindNotificationBody": "pourrait de nouveau être dû vers le",
+    "reminderCreated": "Rappel ajouté aux alertes dans l'application.",
+    "reminderError": "Impossible de créer le rappel.",
+    "recurringModalTitle": "Créer une suggestion récurrente",
+    "recurringCreated": "Suggestion récurrente créée dans le système récurrent."
+  },
+  "receiptInsights": {
+    "title": "Insights des reçus",
+    "description": "Une vue compacte des articles répétés, des variations de prix et des prochains achats.",
+    "link": "Analyses des articles",
+    "empty": "Aucun insight de reçu n'est disponible pour la période sélectionnée.",
+    "sourcesTitle": "Contexte source",
+    "noSources": "Aucune source de reçu correspondante n'a été trouvée.",
+    "askAnother": "Poser une autre question",
+    "ai": {
+      "unauthorized": "Non autorisé",
+      "questionRequired": "Une question est requise.",
+      "failed": "Impossible de répondre à la question sur les insights de reçus.",
+      "spendNotFound": "Je n'ai trouvé aucun article de reçu enregistré pour \"{{itemName}}\".",
+      "spendSummary": "{{itemName}} : {{amount}} {{currency}} sur {{count}} achats",
+      "lastBoughtFound": "Vous avez acheté {{itemName}} pour la dernière fois chez {{merchant}} le {{date}}.",
+      "lastBoughtNotFound": "Je n'ai trouvé aucun achat enregistré pour \"{{itemName}}\".",
+      "averageFound": "Votre prix moyen pour {{itemName}} est de {{amount}} {{currency}} sur {{count}} achats.",
+      "averageNotFound": "Je n'ai pas pu calculer un prix moyen pour \"{{itemName}}\".",
+      "priceIncreaseFound": "{{itemName}} a le plus changé récemment, en hausse de {{percent}}% de {{previous}} {{currency}} à {{latest}} {{currency}}.",
+      "priceIncreaseNotFound": "Je n'ai trouvé aucune hausse de prix récente dans vos articles de reçus enregistrés.",
+      "recurringSummary": "{{itemName}} tous les {{days}} jours",
+      "recurringNotFound": "Je n'ai pas encore trouvé de schéma d'achat récurrent clair.",
+      "help": "Demandez vos dépenses sur un article, où vous l'avez acheté pour la dernière fois, le prix moyen payé, la plus forte hausse de prix ou les articles que vous achetez régulièrement.",
+      "detailAcrossPurchases": "{{amount}} {{currency}} sur {{count}} achats",
+      "detailAverageFromPurchases": "moyenne de {{amount}} {{currency}} sur {{count}} achats",
+      "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
+      "detailAverageInterval": "Intervalle moyen de {{days}} jours ; prochain achat probable {{date}}",
+      "unknownMerchantWithArticle": "un marchand inconnu"
     }
   }
 }

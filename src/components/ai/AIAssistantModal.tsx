@@ -1,5 +1,6 @@
  'use client';
  import React, { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
  import {
    X,
    Mic,
@@ -56,11 +57,24 @@ import {
  type AssistantStep =
    | 'entry'
    | 'processing'
+  | 'receipt_insight'
    | 'confirming'
    | 'executing'
    | 'limit'
    | 'success'
    | 'failed';
+
+type ReceiptInsightAnswer = {
+  title: string;
+  answer: string;
+  sources: Array<{
+    transactionDate: string;
+    merchant: string | null;
+    itemName: string;
+    detail: string;
+    currency?: string;
+  }>;
+};
 
  interface AIAssistantModalProps {
    onClose: () => void;
@@ -345,6 +359,17 @@ function getLocalizedDocumentValidationError(
   }
 }
 
+function isReceiptInsightQuestion(value: string) {
+  const question = value.trim().toLowerCase();
+  return (
+    /how much.*spend on /.test(question)
+    || /where did i last buy /.test(question)
+    || /average price/.test(question)
+    || /increased most in price|price increased most/.test(question)
+    || /what items do i buy regularly|what do i buy regularly|which items do i buy regularly/.test(question)
+  );
+}
+
  export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { t } = useTranslation(['portal', 'common']);
    const { isRTL, language: uiLanguage } = useLanguage();
@@ -364,6 +389,7 @@ function getLocalizedDocumentValidationError(
    const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
    const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
    const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
+  const [receiptInsightAnswer, setReceiptInsightAnswer] = useState<ReceiptInsightAnswer | null>(null);
    const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
    const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
    const [accountDraftTarget, setAccountDraftTarget] = useState<'account' | 'destinationAccount' | null>(null);
@@ -856,6 +882,7 @@ function getLocalizedDocumentValidationError(
     setApiError(null);
     setUsageSummary(null);
     setExecutionResult(null);
+    setReceiptInsightAnswer(null);
     setContextSnapshot(null);
     setAccountDraft(null);
     setPersonDraft(null);
@@ -1193,10 +1220,52 @@ function getLocalizedDocumentValidationError(
     }
   }, [language, handleApiFailure, resetRequestState]);
 
+  const callReceiptInsightAPI = useCallback(async (question: string) => {
+    resetRequestState({
+      preserveInput: true,
+      preserveMode: true,
+      preserveLanguage: true,
+    });
+    setStep('processing');
+    setTranscript(question);
+    setErrorMessage('');
+    setApiError(null);
+    setUsageSummary(null);
+
+    try {
+      const token = await getAuthToken();
+      const response = await fetch('/api/ai/receipt-insights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ question, language }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success !== true) {
+        throw new Error(data?.errorMessage || t('smartEntryModal.errors.saveFailed', { ns: 'portal' }));
+      }
+      setReceiptInsightAnswer({
+        title: typeof data.title === 'string' ? data.title : t('receiptInsights.title', { ns: 'portal', defaultValue: 'Receipt Insights' }),
+        answer: typeof data.answer === 'string' ? data.answer : '',
+        sources: Array.isArray(data.sources) ? data.sources : [],
+      });
+      setStep('receipt_insight');
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : t('errors.network', { ns: 'common' }));
+      setStep('failed');
+    }
+  }, [language, resetRequestState, t]);
+
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
+    if (isReceiptInsightQuestion(textInput)) {
+      void callReceiptInsightAPI(textInput.trim());
+      return;
+    }
     callParseAPI('text', textInput.trim());
-  }, [textInput, callParseAPI]);
+  }, [textInput, callParseAPI, callReceiptInsightAPI]);
 
   const handleVoiceReady = useCallback((audioBase64: string, mimeType: string, durationSeconds: number) => {
     callParseAPI('voice', undefined, { audioBase64, mimeType, durationSeconds });
@@ -1612,6 +1681,71 @@ function getLocalizedDocumentValidationError(
                   <p className="text-sm text-foreground italic">"{transcript}"</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {step === 'receipt_insight' && receiptInsightAnswer && (
+            <div className="space-y-4 p-5">
+              <div className="flex items-center gap-2">
+                <CheckCircle size={18} className="text-positive" />
+                <p className="text-sm font-700 text-foreground">
+                  {receiptInsightAnswer.title}
+                </p>
+              </div>
+
+              {transcript ? (
+                <div className="rounded-xl bg-muted/50 p-3">
+                  <p className="text-xs font-600 text-muted-foreground">
+                    {t('smartEntryModal.inputLabel', { ns: 'portal' })}:
+                  </p>
+                  <p className="mt-1 text-sm italic text-foreground">"{transcript}"</p>
+                </div>
+              ) : null}
+
+              <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <p className="text-sm text-foreground">{receiptInsightAnswer.answer}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                  {t('receiptInsights.sourcesTitle', { ns: 'portal', defaultValue: 'Source context' })}
+                </p>
+                {receiptInsightAnswer.sources.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3 text-sm text-muted-foreground">
+                    {t('receiptInsights.noSources', { ns: 'portal', defaultValue: 'No matching receipt sources were found.' })}
+                  </div>
+                ) : (
+                  receiptInsightAnswer.sources.map((source, index) => (
+                    <div key={`${source.itemName}-${source.transactionDate}-${index}`} className="rounded-xl border border-border bg-card p-3">
+                      <p className="text-sm font-700 text-foreground">{source.itemName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {[source.transactionDate, source.merchant || undefined].filter(Boolean).join(' · ')}
+                      </p>
+                      <p className="mt-1 text-sm text-foreground">{source.detail}</p>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="flex flex-wrap justify-between gap-2 border-t border-border pt-4">
+                <Link href="/reports/item-insights" className="btn-secondary">
+                  <ArrowUpRight size={14} />
+                  {t('receiptInsights.link', { ns: 'portal', defaultValue: 'Item Insights' })}
+                </Link>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => resetRequestState({ preserveInput: true, preserveMode: true, preserveLanguage: true })}
+                    className="btn-secondary"
+                  >
+                    <RotateCcw size={14} />
+                    {t('receiptInsights.askAnother', { ns: 'portal', defaultValue: 'Ask another question' })}
+                  </button>
+                  <button type="button" onClick={onClose} className="btn-primary">
+                    {t('actions.close', { ns: 'common' })}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

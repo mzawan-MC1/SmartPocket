@@ -32,22 +32,25 @@ export default function RecurringTransactionForm({
   onCancel,
   accounts: providedAccounts,
   categories: providedCategories,
+  initialValues,
 }: {
   onSuccess: () => void;
   onCancel: () => void;
   accounts?: FinancialAccount[];
   categories?: Category[];
+  initialValues?: Partial<RecurringFormData>;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const [accounts, setAccounts] = useState<FinancialAccount[]>(providedAccounts || []);
   const [categories, setCategories] = useState<Category[]>(providedCategories || []);
   const [loadingSupportingData, setLoadingSupportingData] = useState(!providedAccounts || !providedCategories);
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<RecurringFormData>({
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<RecurringFormData>({
     defaultValues: {
       transaction_type: 'expense',
       frequency: 'monthly',
       next_due_date: new Date().toISOString().split('T')[0],
+      ...initialValues,
     },
   });
 
@@ -55,6 +58,20 @@ export default function RecurringTransactionForm({
     if (providedAccounts) setAccounts(providedAccounts);
     if (providedCategories) setCategories(providedCategories);
   }, [providedAccounts, providedCategories]);
+
+  useEffect(() => {
+    if (!initialValues) return;
+    reset({
+      transaction_type: initialValues.transaction_type || 'expense',
+      frequency: initialValues.frequency || 'monthly',
+      next_due_date: initialValues.next_due_date || new Date().toISOString().split('T')[0],
+      description: initialValues.description || '',
+      amount: initialValues.amount || '',
+      merchant: initialValues.merchant || '',
+      account_id: initialValues.account_id || '',
+      category_id: initialValues.category_id || '',
+    });
+  }, [initialValues, reset]);
 
   useEffect(() => {
     if (providedAccounts && providedCategories) {

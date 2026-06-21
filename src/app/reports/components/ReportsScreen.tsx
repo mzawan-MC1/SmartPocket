@@ -1,5 +1,6 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, PieChart, TrendingUp, FileText, Target, FileDown, Printer,
@@ -867,6 +868,10 @@ export default function ReportsScreen() {
         actionsClassName="w-full sm:w-auto"
         actions={
           <div className="flex flex-wrap gap-2 print:hidden">
+            <Link href="/reports/item-insights" className="btn-secondary">
+              <BarChart3 size={14} />
+              {t('itemInsights.title', { defaultValue: 'Item Insights' })}
+            </Link>
             <button onClick={handlePrint} className="btn-secondary">
               <Printer size={14} />
               <span className="hidden sm:inline">{t('reports.print')}</span>

@@ -29,6 +29,11 @@ export interface NotificationPreferences {
   reimbursement_updates: boolean;
   account_security_notifications: boolean;
   ai_execution_failure_notifications: boolean;
+  significant_item_price_increase_alerts: boolean;
+  recurring_purchase_due_alerts: boolean;
+  duplicate_receipt_warning_alerts: boolean;
+  unusual_receipt_total_alerts: boolean;
+  high_item_or_category_spend_alerts: boolean;
   updated_at?: string;
 }
 
@@ -38,7 +43,12 @@ export type NotificationPreferenceKey =
   | 'budget_alerts'
   | 'reimbursement_updates'
   | 'account_security_notifications'
-  | 'ai_execution_failure_notifications';
+  | 'ai_execution_failure_notifications'
+  | 'significant_item_price_increase_alerts'
+  | 'recurring_purchase_due_alerts'
+  | 'duplicate_receipt_warning_alerts'
+  | 'unusual_receipt_total_alerts'
+  | 'high_item_or_category_spend_alerts';
 
 export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   in_app_enabled: true,
@@ -47,6 +57,11 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   reimbursement_updates: true,
   account_security_notifications: true,
   ai_execution_failure_notifications: true,
+  significant_item_price_increase_alerts: true,
+  recurring_purchase_due_alerts: true,
+  duplicate_receipt_warning_alerts: true,
+  unusual_receipt_total_alerts: false,
+  high_item_or_category_spend_alerts: false,
 };
 
 function addDays(dateString: string, amount: number) {
@@ -105,7 +120,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
 
   const { data, error } = await supabase
     .from('notification_preferences')
-    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, updated_at')
+    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, significant_item_price_increase_alerts, recurring_purchase_due_alerts, duplicate_receipt_warning_alerts, unusual_receipt_total_alerts, high_item_or_category_spend_alerts, updated_at')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -125,7 +140,7 @@ export async function getNotificationPreferences(): Promise<NotificationPreferen
   const { data: inserted, error: insertError } = await supabase
     .from('notification_preferences')
     .upsert(insertPayload, { onConflict: 'user_id' })
-    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, updated_at')
+    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, significant_item_price_increase_alerts, recurring_purchase_due_alerts, duplicate_receipt_warning_alerts, unusual_receipt_total_alerts, high_item_or_category_spend_alerts, updated_at')
     .single();
 
   if (insertError) {
@@ -148,13 +163,18 @@ export async function saveNotificationPreferences(
     reimbursement_updates: preferences.reimbursement_updates,
     account_security_notifications: preferences.account_security_notifications,
     ai_execution_failure_notifications: preferences.ai_execution_failure_notifications,
+    significant_item_price_increase_alerts: preferences.significant_item_price_increase_alerts,
+    recurring_purchase_due_alerts: preferences.recurring_purchase_due_alerts,
+    duplicate_receipt_warning_alerts: preferences.duplicate_receipt_warning_alerts,
+    unusual_receipt_total_alerts: preferences.unusual_receipt_total_alerts,
+    high_item_or_category_spend_alerts: preferences.high_item_or_category_spend_alerts,
     updated_at: new Date().toISOString(),
   };
 
   const { data, error } = await supabase
     .from('notification_preferences')
     .upsert(payload, { onConflict: 'user_id' })
-    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, updated_at')
+    .select('user_id, in_app_enabled, recurring_due_reminders, budget_alerts, reimbursement_updates, account_security_notifications, ai_execution_failure_notifications, significant_item_price_increase_alerts, recurring_purchase_due_alerts, duplicate_receipt_warning_alerts, unusual_receipt_total_alerts, high_item_or_category_spend_alerts, updated_at')
     .single();
 
   if (error) {

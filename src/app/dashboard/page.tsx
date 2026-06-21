@@ -11,6 +11,7 @@ import AccountBalances from '@/app/components/AccountBalances';
 import UpcomingRecurring from '@/app/components/UpcomingRecurring';
 import PeopleDashboardWidget from '@/app/components/PeopleDashboardWidget';
 import AIUsageCard from '@/app/components/AIUsageCard';
+import ReceiptInsightsCard from '@/app/components/ReceiptInsightsCard';
 import Modal from '@/components/ui/Modal';
 import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
 import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
@@ -214,8 +215,9 @@ export default function DashboardPage() {
                 <div className="lg:col-span-8">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
-                <div className="lg:col-span-4">
+                <div className="space-y-4 lg:col-span-4">
                   <AIUsageCard />
+                  <ReceiptInsightsCard activePeriod={activePeriod} />
                 </div>
               </div>
               <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">

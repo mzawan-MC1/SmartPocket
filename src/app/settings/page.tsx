@@ -367,6 +367,31 @@ export default function SettingsPage() {
       label: t('settings.notifications.items.aiFailures.label', { ns: 'portal' }),
       desc: t('settings.notifications.items.aiFailures.description', { ns: 'portal' }),
     },
+    {
+      key: 'significant_item_price_increase_alerts' as const,
+      label: t('settings.notifications.items.itemPriceIncrease.label', { ns: 'portal' }),
+      desc: t('settings.notifications.items.itemPriceIncrease.description', { ns: 'portal' }),
+    },
+    {
+      key: 'recurring_purchase_due_alerts' as const,
+      label: t('settings.notifications.items.itemDueSoon.label', { ns: 'portal' }),
+      desc: t('settings.notifications.items.itemDueSoon.description', { ns: 'portal' }),
+    },
+    {
+      key: 'duplicate_receipt_warning_alerts' as const,
+      label: t('settings.notifications.items.duplicateReceipt.label', { ns: 'portal' }),
+      desc: t('settings.notifications.items.duplicateReceipt.description', { ns: 'portal' }),
+    },
+    {
+      key: 'unusual_receipt_total_alerts' as const,
+      label: t('settings.notifications.items.unusualReceipt.label', { ns: 'portal' }),
+      desc: t('settings.notifications.items.unusualReceipt.description', { ns: 'portal' }),
+    },
+    {
+      key: 'high_item_or_category_spend_alerts' as const,
+      label: t('settings.notifications.items.highItemSpend.label', { ns: 'portal' }),
+      desc: t('settings.notifications.items.highItemSpend.description', { ns: 'portal' }),
+    },
   ];
 
   return (
