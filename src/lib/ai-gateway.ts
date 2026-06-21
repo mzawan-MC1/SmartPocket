@@ -12,6 +12,7 @@ import { createClientId } from './uuid';
 import {
   TRANSACTION_DOCUMENT_SYSTEM_PROMPT,
   validateTransactionDocumentExtraction,
+  type TransactionDocumentErrorCode,
   type TransactionDocumentExtraction,
 } from './transaction-documents';
 
@@ -31,11 +32,24 @@ export interface TransactionDocumentAIResponse {
   status: 'parsed' | 'failed' | 'not_configured';
   parsed?: TransactionDocumentExtraction;
   errorMessage?: string;
+  errorCode?: TransactionDocumentErrorCode;
   errorCategory?: string;
   providerUsed?: string;
   fallbackUsed?: boolean;
   durationMs?: number;
   rawOutput?: unknown;
+}
+
+class TransactionDocumentGatewayError extends Error {
+  code: TransactionDocumentErrorCode;
+  stage: string;
+
+  constructor(code: TransactionDocumentErrorCode, stage: string, message: string) {
+    super(message);
+    this.name = 'TransactionDocumentGatewayError';
+    this.code = code;
+    this.stage = stage;
+  }
 }
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
@@ -1221,6 +1235,13 @@ export async function processTransactionDocumentAIRequest(
   const requestId = request.requestId || createClientId();
 
   try {
+    logTransactionDocumentGateway('info', 'document-ai.start', {
+      requestId,
+      sourceSurface: request.sourceSurface || 'unknown',
+      fileName: request.fileName,
+      fileMimeType: normalizedMimeType,
+      pageCount: request.pageCount ?? null,
+    });
     const [primaryLang, fallbackLang] = getProviderOrder(config);
     const { result, fallbackUsed } = await withFallback(
       () => parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId }),
@@ -1228,7 +1249,21 @@ export async function processTransactionDocumentAIRequest(
       config.enableAutoFallback
     );
 
+    logTransactionDocumentGateway('info', 'document-ai.parse_response.start', {
+      requestId,
+      providerUsed: result.providerUsed,
+      modelUsed: result.modelUsed || null,
+      fallbackUsed,
+    });
     const validated = validateTransactionDocumentExtraction(result.parsed);
+    logTransactionDocumentGateway('info', 'document-ai.parse_response.success', {
+      requestId,
+      providerUsed: result.providerUsed,
+      modelUsed: result.modelUsed || null,
+      draftCount: validated.transactions.length,
+      fallbackUsed,
+      durationMs: Date.now() - startTime,
+    });
     return {
       requestId: validated.requestId,
       status: 'parsed',
@@ -1243,15 +1278,22 @@ export async function processTransactionDocumentAIRequest(
       rawOutput: result.rawOutput,
     };
   } catch (error) {
-    let message = error instanceof Error ? error.message : 'Unknown error';
-    if (normalizedMimeType === 'application/pdf' && /file|pdf|plugin/i.test(message)) {
-      message = 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.';
-    }
+    const code = getTransactionDocumentGatewayErrorCode(error, normalizedMimeType);
+    const message = getTransactionDocumentGatewaySafeMessage(code, normalizedMimeType);
+    logTransactionDocumentGateway('error', 'document-ai.failed', {
+      requestId,
+      code,
+      durationMs: Date.now() - startTime,
+      internalError: error instanceof Error ? sanitizeError(error.message) : 'Unknown error',
+    });
     return {
       requestId,
       status: 'failed',
-      errorMessage: sanitizeError(message),
-      errorCategory: categorizeError(message),
+      errorMessage: message,
+      errorCode: code,
+      errorCategory: categorizeError(
+        error instanceof Error ? error.message : String(error || '')
+      ),
       durationMs: Date.now() - startTime,
     };
   }
@@ -1316,10 +1358,22 @@ async function parseTransactionDocumentWithOpenRouter(
   input: TransactionDocumentAIRequest
 ): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
   const apiKey = process.env.OPENROUTER_API_KEY || '';
-  if (!apiKey) throw new Error('OpenRouter not configured');
+  if (!apiKey) {
+    throw new TransactionDocumentGatewayError(
+      'openrouter_not_configured',
+      'openrouter.request',
+      'OpenRouter not configured'
+    );
+  }
 
   const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
   const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  logTransactionDocumentGateway('info', 'openrouter.request.start', {
+    requestId: input.requestId || null,
+    model,
+    fileMimeType: input.fileMimeType,
+    pageCount: input.pageCount ?? null,
+  });
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -1356,16 +1410,48 @@ async function parseTransactionDocumentWithOpenRouter(
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
-    throw new Error(`OpenRouter error ${response.status}: ${sanitizeError(errText)}`);
+    const sanitizedError = sanitizeError(errText);
+    const code = isUnsupportedMultimodalMessage(sanitizedError)
+      ? 'unsupported_multimodal_model'
+      : 'provider_http_error';
+    logTransactionDocumentGateway('error', 'openrouter.request.failed', {
+      requestId: input.requestId || null,
+      model,
+      status: response.status,
+      code,
+      providerError: sanitizedError || null,
+    });
+    throw new TransactionDocumentGatewayError(
+      code,
+      'openrouter.request',
+      `OpenRouter error ${response.status}: ${sanitizedError}`
+    );
   }
 
   const rawOutput = await response.json();
+  logTransactionDocumentGateway('info', 'openrouter.request.success', {
+    requestId: input.requestId || null,
+    model,
+  });
   const content = rawOutput?.choices?.[0]?.message?.content;
   const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
   if (!parsed) {
-    throw new Error('Invalid JSON from OpenRouter');
+    logTransactionDocumentGateway('error', 'openrouter.parse.failed', {
+      requestId: input.requestId || null,
+      model,
+      code: 'invalid_ai_json_response',
+    });
+    throw new TransactionDocumentGatewayError(
+      'invalid_ai_json_response',
+      'openrouter.parse',
+      'Invalid JSON from OpenRouter'
+    );
   }
 
+  logTransactionDocumentGateway('info', 'openrouter.parse.success', {
+    requestId: input.requestId || null,
+    model,
+  });
   return {
     parsed,
     providerUsed: 'openrouter',
@@ -1389,6 +1475,12 @@ async function parseTransactionDocumentWithVps(
     headers.Authorization = `Bearer ${authToken}`;
   }
 
+  logTransactionDocumentGateway('info', 'vps_ai.request.start', {
+    requestId: input.requestId || null,
+    model,
+    fileMimeType: input.fileMimeType,
+    pageCount: input.pageCount ?? null,
+  });
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers,
@@ -1409,16 +1501,48 @@ async function parseTransactionDocumentWithVps(
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
-    throw new Error(`VPS AI error ${response.status}: ${sanitizeError(errText)}`);
+    const sanitizedError = sanitizeError(errText);
+    const code = isUnsupportedMultimodalMessage(sanitizedError)
+      ? 'unsupported_multimodal_model'
+      : 'provider_http_error';
+    logTransactionDocumentGateway('error', 'vps_ai.request.failed', {
+      requestId: input.requestId || null,
+      model,
+      status: response.status,
+      code,
+      providerError: sanitizedError || null,
+    });
+    throw new TransactionDocumentGatewayError(
+      code,
+      'vps_ai.request',
+      `VPS AI error ${response.status}: ${sanitizedError}`
+    );
   }
 
   const rawOutput = await response.json();
+  logTransactionDocumentGateway('info', 'vps_ai.request.success', {
+    requestId: input.requestId || null,
+    model,
+  });
   const content = rawOutput?.choices?.[0]?.message?.content;
   const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
   if (!parsed) {
-    throw new Error('Invalid JSON from VPS AI');
+    logTransactionDocumentGateway('error', 'vps_ai.parse.failed', {
+      requestId: input.requestId || null,
+      model,
+      code: 'invalid_ai_json_response',
+    });
+    throw new TransactionDocumentGatewayError(
+      'invalid_ai_json_response',
+      'vps_ai.parse',
+      'Invalid JSON from VPS AI'
+    );
   }
 
+  logTransactionDocumentGateway('info', 'vps_ai.parse.success', {
+    requestId: input.requestId || null,
+    model,
+  });
   return {
     parsed,
     providerUsed: 'vps_ai',
@@ -1542,6 +1666,91 @@ function sanitizeError(msg: string): string {
     .replace(/api[_-]?key[=:]\s*\S+/gi, 'api_key=[REDACTED]')
     .replace(/token[=:]\s*\S+/gi, 'token=[REDACTED]')
     .substring(0, 200);
+}
+
+function isUnsupportedMultimodalMessage(message: string): boolean {
+  return (
+    /multimodal/i.test(message)
+    || /vision/i.test(message)
+    || /image input/i.test(message)
+    || /file input/i.test(message)
+    || /file-parser/i.test(message)
+    || /does not support .*pdf/i.test(message)
+    || /does not support .*image/i.test(message)
+  );
+}
+
+function getTransactionDocumentGatewayErrorCode(
+  error: unknown,
+  normalizedMimeType: string
+): TransactionDocumentErrorCode {
+  if (error instanceof TransactionDocumentGatewayError) {
+    return error.code;
+  }
+
+  const message = error instanceof Error ? error.message : String(error || '');
+  if (normalizedMimeType === 'application/pdf' && /file|pdf|plugin/i.test(message)) {
+    return 'pdf_extraction_unavailable';
+  }
+  if (/OpenRouter not configured/i.test(message)) {
+    return 'openrouter_not_configured';
+  }
+  if (
+    /Invalid JSON from OpenRouter/i.test(message)
+    || /Invalid JSON from VPS AI/i.test(message)
+    || /Document extraction response is not an object/i.test(message)
+    || /Document extraction is missing/i.test(message)
+  ) {
+    return 'invalid_ai_json_response';
+  }
+  if (
+    /OpenRouter error \d+/i.test(message)
+    || /VPS AI error \d+/i.test(message)
+  ) {
+    return isUnsupportedMultimodalMessage(message)
+      ? 'unsupported_multimodal_model'
+      : 'provider_http_error';
+  }
+  return 'extract_failed';
+}
+
+function getTransactionDocumentGatewaySafeMessage(
+  code: TransactionDocumentErrorCode,
+  normalizedMimeType: string
+): string {
+  switch (code) {
+    case 'openrouter_not_configured':
+      return 'Document extraction is not configured yet.';
+    case 'unsupported_multimodal_model':
+      return normalizedMimeType === 'application/pdf'
+        ? 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.'
+        : 'Document extraction is temporarily unavailable for this image. Please try again.';
+    case 'provider_http_error':
+      return 'Document extraction is temporarily unavailable. Please try again.';
+    case 'invalid_ai_json_response':
+      return 'The document could not be read reliably. Please review the file and try again.';
+    case 'pdf_extraction_unavailable':
+      return 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.';
+    default:
+      return 'Failed to extract the uploaded document.';
+  }
+}
+
+function logTransactionDocumentGateway(
+  level: 'info' | 'error',
+  stage: string,
+  meta: Record<string, unknown>
+) {
+  const payload = {
+    scope: 'transaction-document-ai',
+    stage,
+    ...meta,
+  };
+  if (level === 'error') {
+    console.error(payload);
+    return;
+  }
+  console.info(payload);
 }
 
 function categorizeError(msg: string): string {

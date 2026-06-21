@@ -28,6 +28,13 @@ export type TransactionDocumentErrorCode =
   | 'file_too_large'
   | 'pdf_too_many_pages'
   | 'pdf_extraction_unavailable'
+  | 'migration_missing'
+  | 'storage_bucket_failure'
+  | 'openrouter_not_configured'
+  | 'unsupported_multimodal_model'
+  | 'provider_http_error'
+  | 'invalid_ai_json_response'
+  | 'signed_url_failure'
   | 'extract_failed'
   | 'job_required'
   | 'review_required'
@@ -235,6 +242,23 @@ export async function sha256HexFromArrayBuffer(buffer: ArrayBuffer) {
 }
 
 export function classifyTransactionDocumentError(input: unknown): TransactionDocumentErrorCode | null {
+  const inputCode = typeof input === 'object'
+    && input !== null
+    && 'code' in input
+    && typeof input.code === 'string'
+      ? input.code.trim()
+      : '';
+  if (inputCode === 'migration_missing'
+    || inputCode === 'storage_bucket_failure'
+    || inputCode === 'openrouter_not_configured'
+    || inputCode === 'unsupported_multimodal_model'
+    || inputCode === 'provider_http_error'
+    || inputCode === 'invalid_ai_json_response'
+    || inputCode === 'signed_url_failure'
+  ) {
+    return inputCode;
+  }
+
   const raw = typeof input === 'string'
     ? input
     : typeof input === 'object' && input !== null && 'message' in input && typeof input.message === 'string'
@@ -260,6 +284,60 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   }
   if (/temporarily unavailable for this PDF/i.test(message)) {
     return 'pdf_extraction_unavailable';
+  }
+  if (
+    /relation .*transaction_documents.* does not exist/i.test(message)
+    || /relation .*document_extraction_jobs.* does not exist/i.test(message)
+    || /relation .*transaction_items.* does not exist/i.test(message)
+    || /column .* does not exist/i.test(message)
+    || /42P01/.test(message)
+  ) {
+    return 'migration_missing';
+  }
+  if (
+    /bucket/i.test(message)
+    && (
+      /not found/i.test(message)
+      || /does not exist/i.test(message)
+      || /invalid/i.test(message)
+      || /storage/i.test(message)
+    )
+  ) {
+    return 'storage_bucket_failure';
+  }
+  if (message === 'OpenRouter not configured') {
+    return 'openrouter_not_configured';
+  }
+  if (
+    /multimodal/i.test(message)
+    || /vision/i.test(message)
+    || /image input/i.test(message)
+    || /file input/i.test(message)
+    || /file-parser/i.test(message)
+    || /does not support .*pdf/i.test(message)
+    || /does not support .*image/i.test(message)
+  ) {
+    return 'unsupported_multimodal_model';
+  }
+  if (
+    /OpenRouter error \d+/i.test(message)
+    || /VPS AI error \d+/i.test(message)
+    || /provider http error/i.test(message)
+  ) {
+    return 'provider_http_error';
+  }
+  if (
+    /Invalid JSON from OpenRouter/i.test(message)
+    || /Invalid JSON from VPS AI/i.test(message)
+    || /Document extraction response is not an object/i.test(message)
+    || /Document extraction is missing requestId/i.test(message)
+    || /Document extraction is missing transactions/i.test(message)
+    || /Document extraction contains an invalid transaction/i.test(message)
+  ) {
+    return 'invalid_ai_json_response';
+  }
+  if (message === 'Failed to create signed preview URL') {
+    return 'signed_url_failure';
   }
   if (
     message === 'Document extraction failed'

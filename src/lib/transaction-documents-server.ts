@@ -108,7 +108,9 @@ export async function createSignedTransactionDocumentPreview(args: {
     .from(TRANSACTION_DOCUMENT_BUCKET)
     .createSignedUrl(args.path, 60 * 30);
   if (error || !data?.signedUrl) {
-    throw error || new Error('Failed to create signed preview URL');
+    const previewError = error || new Error('Failed to create signed preview URL');
+    Object.assign(previewError, { code: 'signed_url_failure' as const });
+    throw previewError;
   }
   return data.signedUrl;
 }

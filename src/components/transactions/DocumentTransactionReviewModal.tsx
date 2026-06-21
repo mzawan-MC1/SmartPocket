@@ -96,6 +96,20 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
     case 'pdf_extraction_unavailable':
       return args.t('transactions.documentReview.errors.pdfExtractionUnavailable', { ns: 'portal' });
+    case 'migration_missing':
+      return args.t('transactions.documentReview.errors.migrationMissing', { ns: 'portal' });
+    case 'storage_bucket_failure':
+      return args.t('transactions.documentReview.errors.storageBucketFailure', { ns: 'portal' });
+    case 'openrouter_not_configured':
+      return args.t('transactions.documentReview.errors.openrouterNotConfigured', { ns: 'portal' });
+    case 'unsupported_multimodal_model':
+      return args.t('transactions.documentReview.errors.unsupportedMultimodalModel', { ns: 'portal' });
+    case 'provider_http_error':
+      return args.t('transactions.documentReview.errors.providerHttpError', { ns: 'portal' });
+    case 'invalid_ai_json_response':
+      return args.t('transactions.documentReview.errors.invalidAiJsonResponse', { ns: 'portal' });
+    case 'signed_url_failure':
+      return args.t('transactions.documentReview.errors.signedUrlFailure', { ns: 'portal' });
     case 'extract_failed':
       return args.t('transactions.documentReview.errors.extractFailed', { ns: 'portal' });
     case 'job_required':
@@ -150,6 +164,7 @@ export default function DocumentTransactionReviewModal({
   const [accounts, setAccounts] = useState<TransactionDocumentExtractResponse['options']['accounts']>([]);
   const [categories, setCategories] = useState<TransactionDocumentExtractResponse['options']['categories']>([]);
   const [reviewTransactions, setReviewTransactions] = useState<EditableDocumentTransaction[]>([]);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!isOpen || !file) {
@@ -164,6 +179,7 @@ export default function DocumentTransactionReviewModal({
       setAccounts([]);
       setCategories([]);
       setReviewTransactions([]);
+      setRetryKey(0);
       return;
     }
 
@@ -173,7 +189,14 @@ export default function DocumentTransactionReviewModal({
     const runExtraction = async () => {
       setIsExtracting(true);
       setExtractError('');
+      setJobId('');
+      setDocumentId('');
+      setPreviewUrl('');
+      setDuplicates([]);
       setDuplicateConfirmed(false);
+      setAccounts([]);
+      setCategories([]);
+      setReviewTransactions([]);
       try {
         const formData = new FormData();
         formData.set('file', file);
@@ -238,6 +261,13 @@ export default function DocumentTransactionReviewModal({
       } catch (error) {
         if (cancelled) return;
         setExtractError(error instanceof Error ? error.message : 'Failed to extract the uploaded document.');
+        setJobId('');
+        setDocumentId('');
+        setPreviewUrl('');
+        setDuplicates([]);
+        setAccounts([]);
+        setCategories([]);
+        setReviewTransactions([]);
       } finally {
         if (!cancelled) {
           setIsExtracting(false);
@@ -251,7 +281,7 @@ export default function DocumentTransactionReviewModal({
       cancelled = true;
       controller.abort();
     };
-  }, [file, isOpen, sourceSurface, t]);
+  }, [file, isOpen, retryKey, sourceSurface, t]);
 
   const hasDuplicates = duplicates.length > 0;
   const filteredCategoriesByType = useMemo(() => ({
@@ -293,6 +323,14 @@ export default function DocumentTransactionReviewModal({
     return '';
   }, [duplicateConfirmed, hasDuplicates, reviewTransactions, t]);
 
+  const canRetry = !!file && !isExtracting && !isSaving;
+  const canSave = !isExtracting
+    && !isSaving
+    && !extractError
+    && !validationError
+    && reviewTransactions.length > 0
+    && !!jobId;
+
   const updateTransaction = (id: string, updater: (current: EditableDocumentTransaction) => EditableDocumentTransaction) => {
     setReviewTransactions((current) => current.map((transaction) => (
       transaction.id === id ? updater(transaction) : transaction
@@ -300,7 +338,7 @@ export default function DocumentTransactionReviewModal({
   };
 
   const handleSave = async () => {
-    if (!jobId || validationError) {
+    if (!canSave) {
       if (validationError) {
         toast.error(validationError);
       }
@@ -409,6 +447,17 @@ export default function DocumentTransactionReviewModal({
                     })}
                   </p>
                   <p className="mt-1 text-sm text-negative">{extractError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setRetryKey((current) => current + 1)}
+                    disabled={!canRetry}
+                    className="btn-secondary mt-3"
+                  >
+                    {t('transactions.documentReview.tryAgain', {
+                      ns: 'portal',
+                      defaultValue: 'Try Again',
+                    })}
+                  </button>
                 </div>
               </div>
             </div>
@@ -798,27 +847,41 @@ export default function DocumentTransactionReviewModal({
             >
               {t('actions.cancel', { ns: 'common' })}
             </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving || isExtracting || !!extractError || !!validationError}
-              className="btn-primary w-full justify-center sm:w-auto"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" />
-                  {t('transactions.documentReview.savingAction', {
-                    ns: 'portal',
-                    defaultValue: 'Saving...',
-                  })}
-                </>
-              ) : (
-                t('transactions.documentReview.confirmAndSave', {
+            {extractError ? (
+              <button
+                type="button"
+                onClick={() => setRetryKey((current) => current + 1)}
+                disabled={!canRetry}
+                className="btn-primary w-full justify-center sm:w-auto"
+              >
+                {t('transactions.documentReview.tryAgain', {
                   ns: 'portal',
-                  defaultValue: 'Confirm and Save',
-                })
-              )}
-            </button>
+                  defaultValue: 'Try Again',
+                })}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave}
+                className="btn-primary w-full justify-center sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    {t('transactions.documentReview.savingAction', {
+                      ns: 'portal',
+                      defaultValue: 'Saving...',
+                    })}
+                  </>
+                ) : (
+                  t('transactions.documentReview.confirmAndSave', {
+                    ns: 'portal',
+                    defaultValue: 'Confirm and Save',
+                  })
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>
