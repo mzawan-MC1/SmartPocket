@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,14 +21,29 @@ interface SidebarProps {
   isMobileDrawer?: boolean;
 }
 
+type NavItem = {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  href: string;
+};
+
 export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateItem, isMobileDrawer = false }: SidebarProps) {
   const { isRTL } = useLanguage();
   const { t } = useTranslation(['common', 'portal']);
   const { user, signOut } = useAuth();
   const router = useRouter();
-  const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
+  const { pathname, isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const { branding } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
+  const isReportsRoute = pathname === '/reports' || pathname.startsWith('/reports/');
+  const [reportsExpanded, setReportsExpanded] = React.useState(isReportsRoute);
+
+  React.useEffect(() => {
+    if (isReportsRoute) {
+      setReportsExpanded(true);
+    }
+  }, [isReportsRoute]);
 
   const navSections = [
     {
@@ -55,8 +70,6 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     {
       heading: t('sidebar.sections.reports', { ns: 'portal' }),
       items: [
-        { id: 'nav-reports', label: t('nav.reports'), icon: BarChart3, href: '/reports' },
-        { id: 'nav-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' },
         { id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' },
       ],
     },
@@ -81,9 +94,25 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const displayEmail = user?.email || '';
   const initials = displayName.charAt(0).toUpperCase();
 
-  const renderNavItem = (item: { id: string; label: string; icon: React.ComponentType<{ size?: number; className?: string }>; href: string }, compact = false) => {
+  const reportsOverviewItem: NavItem = {
+    id: 'nav-reports-overview',
+    label: t('reports.pageTitle', { ns: 'portal', defaultValue: t('nav.reports') }),
+    icon: BarChart3,
+    href: '/reports',
+  };
+
+  const itemInsightsItem: NavItem = {
+    id: 'nav-item-insights',
+    label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }),
+    icon: ShoppingBag,
+    href: '/reports/item-insights',
+  };
+
+  const isExactRouteActive = (href: string) => pathname === href;
+
+  const renderNavItem = (item: NavItem, compact = false, forceActive = false) => {
     const Icon = item.icon;
-    const active = isRouteActive(item.href);
+    const active = forceActive || isRouteActive(item.href);
     const pending = isRoutePending(item.href);
 
     return (
@@ -126,6 +155,86 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           )}
         </Link>
       </li>
+    );
+  };
+
+  const renderReportsSection = () => {
+    const parentActive = isRouteActive('/reports');
+    const parentPending = isRoutePending('/reports');
+    const ReportsIcon = BarChart3;
+    const shouldShowSubmenu = !collapsed;
+
+    return (
+      <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
+        {!collapsed && (
+          <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
+            {t('sidebar.sections.reports', { ns: 'portal' })}
+          </p>
+        )}
+        <div className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
+          <button
+            type="button"
+            onClick={() => {
+              if (!shouldShowSubmenu) {
+                const shouldNavigate = handleNavigationIntent('/reports');
+                if (shouldNavigate) {
+                  onNavigateItem?.();
+                  router.push('/reports');
+                }
+                return;
+              }
+
+              setReportsExpanded((current) => !current);
+            }}
+            className={`group relative flex w-full items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
+              parentActive
+                ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
+                : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
+            } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'}`}
+            aria-current={parentActive ? 'page' : undefined}
+            aria-busy={parentPending ? 'true' : undefined}
+            aria-expanded={shouldShowSubmenu ? reportsExpanded : undefined}
+            title={collapsed ? t('nav.reports') : undefined}
+          >
+            <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
+              parentActive ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
+            } ${isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
+              <ReportsIcon size={isMobileDrawer ? 17 : 15} />
+            </span>
+            {!collapsed && (
+              <span className="flex min-w-0 flex-1 items-center gap-2">
+                <span className="truncate">{t('nav.reports')}</span>
+                {parentPending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
+              </span>
+            )}
+            {!collapsed ? (
+              <ChevronDown
+                size={16}
+                className={`flex-shrink-0 text-muted-foreground transition-transform ${reportsExpanded ? 'rotate-180' : ''}`}
+              />
+            ) : null}
+            {collapsed && parentPending ? (
+              <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
+            ) : null}
+            {collapsed && (
+              <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>
+                {t('nav.reports')}
+              </span>
+            )}
+          </button>
+
+          {shouldShowSubmenu && reportsExpanded ? (
+            <ul className={`space-y-1 ${isRTL ? 'me-4 border-e ps-0 pe-3' : 'ms-4 border-s ps-3 pe-0'} border-border/70`}>
+              {renderNavItem(reportsOverviewItem, true, isExactRouteActive('/reports'))}
+              {renderNavItem(itemInsightsItem, true, pathname === '/reports/item-insights' || pathname.startsWith('/reports/item-insights/'))}
+            </ul>
+          ) : null}
+
+          <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
+            {navSections[2].items.map((item) => renderNavItem(item))}
+          </ul>
+        </div>
+      </div>
     );
   };
 
@@ -177,7 +286,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       {/* Navigation */}
       <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2.5 py-4'}`}>
         <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3'}>
-          {navSections.map((section) => (
+          {navSections.slice(0, 2).map((section) => (
             <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
               {!collapsed && (
                 <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
@@ -189,6 +298,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               </ul>
             </div>
           ))}
+          {renderReportsSection()}
         </div>
       </nav>
 
