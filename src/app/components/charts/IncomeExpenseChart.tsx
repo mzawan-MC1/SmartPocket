@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChartNoAxesCombined } from 'lucide-react';
 import {
@@ -26,8 +26,10 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
-import { formatCurrencyValue } from '@/lib/currency-formatting';
+import { formatCurrencyValue, getRichCurrencyToken } from '@/lib/currency-formatting';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 
 interface ChartPoint {
   label: string;
@@ -38,11 +40,81 @@ interface ChartPoint {
 
 type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'currency' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
 
-function formatCompactCurrency(value: number, currencyCode: string) {
-  return formatCurrencyValue(value, {
+function CurrencyAxisTick({
+  x = 0,
+  y = 0,
+  payload,
+  currencyCode,
+}: {
+  x?: number;
+  y?: number;
+  payload?: { value?: number };
+  currencyCode: string;
+}) {
+  const { data } = useClientReferenceData();
+  const currencies = data?.snapshot.currencies ?? [];
+  const currency = useMemo(
+    () => getCurrencyByCode(currencies, currencyCode),
+    [currencies, currencyCode]
+  );
+  const formatted = formatCurrencyValue(Number(payload?.value || 0), {
+    currency,
+    currencies,
     currencyCode,
     compact: true,
-  }).text;
+  });
+  const isAssetCurrency =
+    currency?.symbolType === 'asset' &&
+    typeof currency.symbolAssetPath === 'string' &&
+    currency.symbolAssetPath.trim().length > 0;
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {isAssetCurrency ? (
+        <>
+          <image
+            href={currency.symbolAssetPath!}
+            x={-64}
+            y={-6}
+            width={12}
+            height={12}
+            preserveAspectRatio="xMidYMid meet"
+          />
+          <text
+            x={-8}
+            y={4}
+            textAnchor="end"
+            fill="var(--muted-foreground)"
+            fontSize={11}
+            fontWeight={500}
+            direction="ltr"
+            unicodeBidi="plaintext"
+          >
+            {`${formatted.sign}${formatted.numberText}`}
+          </text>
+        </>
+      ) : (
+        <text
+          x={0}
+          y={4}
+          textAnchor="end"
+          fill="var(--muted-foreground)"
+          fontSize={11}
+          fontWeight={500}
+          direction="ltr"
+          unicodeBidi="plaintext"
+        >
+          {formatted.usesCodeToken ? formatted.text : `${formatted.sign}${getRichCurrencyToken(currency || {
+            code: formatted.code,
+            symbol: formatted.token,
+            narrowSymbol: null,
+            fallbackSymbol: formatted.token,
+            symbolType: 'fallback',
+          } as const)} ${formatted.numberText}`}
+        </text>
+      )}
+    </g>
+  );
 }
 
 function CustomTooltip({ active, payload, label, currencyCode }: any) {
@@ -260,10 +332,10 @@ export default function IncomeExpenseChart({
           tickLine={false}
         />
         <YAxis
-          tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }}
+          width={72}
           axisLine={false}
           tickLine={false}
-          tickFormatter={(value) => formatCompactCurrency(Number(value || 0), reportingCurrency)}
+          tick={<CurrencyAxisTick currencyCode={reportingCurrency} />}
         />
         <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} />} />
         <Area
