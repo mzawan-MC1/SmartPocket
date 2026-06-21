@@ -590,9 +590,13 @@ export default function AddTransactionModal({
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
         <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-3.5 sm:py-3">
-          <div className="grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+          <div className="grid grid-cols-1 gap-2">
             {transactionMode === 'single' ? (
-              <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={t('transactions.form.transactionType', { ns: 'portal' })}>
+              <div
+                className="grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.35fr)_minmax(0,0.8fr)_minmax(0,0.9fr)]"
+                role="group"
+                aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
+              >
                 {([
                   { kind: 'standard' as const, type: 'expense' as const },
                   { kind: 'standard' as const, type: 'income' as const },
@@ -625,7 +629,9 @@ export default function AddTransactionModal({
                           showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
                         }));
                       }}
-                      className={`min-h-10 rounded-2xl border px-2.5 py-2 text-sm font-700 transition-colors sm:min-w-[116px] ${
+                      className={`min-h-10 rounded-2xl border px-2 py-2 text-[13px] font-700 transition-colors whitespace-nowrap ${
+                        isLoanRepaymentOption ? 'col-span-2 sm:col-span-1' : ''
+                      } ${
                         isActive
                           ? option.type === 'income'
                             ? 'border-positive bg-positive-soft text-positive'
@@ -634,16 +640,33 @@ export default function AddTransactionModal({
                       }`}
                     >
                       {isLoanRepaymentOption ? (
-                        <Users size={14} className="mr-1.5 inline" />
+                        <Users size={13} className="mr-1 inline" />
                       ) : option.type === 'income' ? (
-                        <TrendingUp size={14} className="mr-1.5 inline" />
+                        <TrendingUp size={13} className="mr-1 inline" />
                       ) : (
-                        <TrendingDown size={14} className="mr-1.5 inline" />
+                        <TrendingDown size={13} className="mr-1 inline" />
                       )}
                       {label}
                     </button>
                   );
                 })}
+                {(['single', 'multiple'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={transactionMode === mode}
+                    aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
+                    onClick={() => handleModeChange(mode)}
+                    disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
+                    className={`min-h-10 rounded-2xl border px-2 py-2 text-[13px] font-600 transition-colors whitespace-nowrap ${
+                      transactionMode === mode
+                        ? 'border-border bg-card text-foreground shadow-sm'
+                        : 'border-border bg-muted/20 text-muted-foreground hover:text-foreground'
+                    } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                  >
+                    {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
+                  </button>
+                ))}
               </div>
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
@@ -651,6 +674,7 @@ export default function AddTransactionModal({
                 <span className="font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
               </div>
             )}
+            {transactionMode === 'single' ? null : (
             <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/20 p-1">
               {(['single', 'multiple'] as const).map((mode) => (
                 <button
@@ -668,6 +692,7 @@ export default function AddTransactionModal({
                 </button>
               ))}
             </div>
+            )}
           </div>
 
           {supportingDataLoading ? (
@@ -1104,11 +1129,16 @@ export default function AddTransactionModal({
                     ? t('transactions.form.editingSelected', { ns: 'portal' })
                     : null}
             </div>
-            <div className="flex items-center justify-end gap-2 max-[480px]:grid max-[480px]:grid-cols-2">
-              <button type="button" onClick={handleRequestClose} disabled={isSaving} className="btn-secondary max-[480px]:w-full">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <button type="button" onClick={handleRequestClose} disabled={isSaving} className="btn-secondary w-full sm:w-auto">
                 {t('actions.cancel', { ns: 'common' })}
               </button>
-              <button type="button" onClick={handleSave} disabled={isSaving || activeDraftRows.length === 0 || supportingDataLoading} className="btn-primary max-[480px]:w-full">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={isSaving || activeDraftRows.length === 0 || supportingDataLoading}
+                className="btn-primary w-full justify-center whitespace-normal text-center sm:w-auto sm:whitespace-nowrap"
+              >
                 {isSaving ? (
                   <>
                     <Loader2 size={15} className="animate-spin" />
