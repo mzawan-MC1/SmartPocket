@@ -35,6 +35,15 @@ interface ExpenseTransactionRow extends Pick<Transaction, 'id' | 'account_id' | 
 }
 
 function formatCurrencyValue(value: number, currencyCode: string) {
+  if (currencyCode === 'AED') {
+    try {
+      return `د.إ ${new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 0,
+      }).format(value)}`;
+    } catch {
+      return `د.إ ${value.toFixed(0)}`;
+    }
+  }
   try {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -252,13 +261,22 @@ export default function SpendingCategoryChart({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
+        <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
           {summaryCards.map((card) => (
-            <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-3 shadow-card-sm">
-              <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
-              <p className="mt-1 text-sm font-800 text-foreground break-words">{card.value}</p>
-              {card.detail ? (
-                <p className="mt-1 text-[12px] text-muted-foreground">{card.detail}</p>
+            <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-2.5 shadow-card-sm">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
+                {card.id === 'total' ? (
+                  <p className="text-sm font-800 text-foreground text-right whitespace-nowrap">{card.value}</p>
+                ) : null}
+              </div>
+              {card.id === 'top' ? (
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <p className="truncate text-sm font-800 text-foreground">{card.value}</p>
+                  {card.detail ? (
+                    <p className="text-[12.5px] font-700 text-muted-foreground whitespace-nowrap">{card.detail}</p>
+                  ) : null}
+                </div>
               ) : null}
             </div>
           ))}
