@@ -19,6 +19,7 @@ import {
   type DashboardActivePeriod,
   type Transaction,
 } from '@/lib/finance';
+import { formatCurrencyValue as formatSharedCurrencyValue } from '@/lib/currency-formatting';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
@@ -34,25 +35,12 @@ interface ExpenseTransactionRow extends Pick<Transaction, 'id' | 'account_id' | 
   category: { id: string; name: string; color: string | null } | Array<{ id: string; name: string; color: string | null }> | null;
 }
 
-function formatCurrencyValue(value: number, currencyCode: string) {
-  if (currencyCode === 'AED') {
-    try {
-      return `د.إ ${new Intl.NumberFormat('en-US', {
-        maximumFractionDigits: 0,
-      }).format(value)}`;
-    } catch {
-      return `د.إ ${value.toFixed(0)}`;
-    }
-  }
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      maximumFractionDigits: 0,
-    }).format(value);
-  } catch {
-    return `${currencyCode} ${value.toFixed(0)}`;
-  }
+function formatCategoryCurrencyValue(value: number, currencyCode: string) {
+  return formatSharedCurrencyValue(value, {
+    currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).text;
 }
 
 function CustomTooltip({ active, payload, currencyCode, t }: any) {
@@ -63,7 +51,7 @@ function CustomTooltip({ active, payload, currencyCode, t }: any) {
     <div className="card-elevated-md p-3">
       <p className="text-xs font-600 text-foreground">{item.name}</p>
       <p className="text-sm font-700 font-tabular text-foreground mt-0.5">
-        {formatCurrencyValue(Number(item.value || 0), currencyCode)}
+        {formatCategoryCurrencyValue(Number(item.value || 0), currencyCode)}
       </p>
       <p className="text-xs text-muted-foreground">
         {t('reports.chartLabels.ofTotal', {
@@ -92,13 +80,13 @@ export default function SpendingCategoryChart({
     {
       id: 'total',
       label: t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' }),
-      value: formatCurrencyValue(total, reportingCurrency),
+      value: formatCategoryCurrencyValue(total, reportingCurrency),
     },
     {
       id: 'top',
       label: t('dashboardCharts.categorySummary.topCategory', { defaultValue: 'Top category' }),
       value: topCategory?.name || '—',
-      detail: topCategory ? formatCurrencyValue(topCategory.value, reportingCurrency) : undefined,
+      detail: topCategory ? formatCategoryCurrencyValue(topCategory.value, reportingCurrency) : undefined,
     },
   ]), [reportingCurrency, t, topCategory]);
 
@@ -257,7 +245,7 @@ export default function SpendingCategoryChart({
             <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
               {t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' })}
             </p>
-            <p className="mt-1 text-lg font-800 text-foreground">{formatCurrencyValue(total, reportingCurrency)}</p>
+            <p className="mt-1 text-lg font-800 text-foreground">{formatCategoryCurrencyValue(total, reportingCurrency)}</p>
           </div>
         </div>
 
@@ -304,7 +292,7 @@ export default function SpendingCategoryChart({
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-3">
                   <span className="text-sm font-700 font-tabular text-foreground">
-                    {formatCurrencyValue(item.value, reportingCurrency)}
+                    {formatCategoryCurrencyValue(item.value, reportingCurrency)}
                   </span>
                   <span className="text-[12px] text-muted-foreground">
                     {t('reports.chartLabels.ofTotal', {

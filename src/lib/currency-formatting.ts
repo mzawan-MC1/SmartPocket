@@ -12,6 +12,8 @@ export interface CurrencyFormattingOptions {
   compact?: boolean;
   textOnly?: boolean;
   fallbackCurrencyCode?: string;
+  minimumFractionDigits?: number;
+  maximumFractionDigits?: number;
 }
 
 export interface FormattedCurrencyResult {
@@ -23,6 +25,17 @@ export interface FormattedCurrencyResult {
   token: string;
   usesCodeToken: boolean;
 }
+
+const FALLBACK_CURRENCY_METADATA: Record<string, Partial<CurrencyReference>> = {
+  AED: {
+    name: 'UAE Dirham',
+    symbol: 'د.إ',
+    narrowSymbol: 'د.إ',
+    fallbackSymbol: 'د.إ',
+    symbolType: 'fallback',
+    minorUnits: 2,
+  },
+};
 
 export function getRichCurrencyToken(
   currency: Pick<CurrencyReference, 'code' | 'symbol' | 'narrowSymbol' | 'fallbackSymbol' | 'symbolType'>
@@ -58,20 +71,24 @@ function resolveCurrency(args: CurrencyFormattingOptions) {
   const requestedCode = normalizeCurrencyCode(args.currencyCode);
   const fallbackCode = normalizeCurrencyCode(args.fallbackCurrencyCode) || 'USD';
   const currencies = args.currencies ?? [];
+  const fallbackMetadata =
+    FALLBACK_CURRENCY_METADATA[requestedCode] ||
+    FALLBACK_CURRENCY_METADATA[fallbackCode] ||
+    {};
 
   return (
     getCurrencyByCode(currencies, requestedCode) ||
     getCurrencyByCode(currencies, fallbackCode) || {
       code: requestedCode || fallbackCode,
       numericCode: null,
-      name: requestedCode || fallbackCode,
+      name: fallbackMetadata.name || requestedCode || fallbackCode,
       nativeName: null,
-      symbol: requestedCode || fallbackCode,
-      narrowSymbol: null,
-      fallbackSymbol: requestedCode || fallbackCode,
-      symbolType: 'fallback' as const,
+      symbol: fallbackMetadata.symbol || requestedCode || fallbackCode,
+      narrowSymbol: fallbackMetadata.narrowSymbol || null,
+      fallbackSymbol: fallbackMetadata.fallbackSymbol || requestedCode || fallbackCode,
+      symbolType: fallbackMetadata.symbolType || 'fallback' as const,
       symbolAssetPath: null,
-      minorUnits: 2,
+      minorUnits: fallbackMetadata.minorUnits ?? 2,
       isActive: true,
       isFeatured: false,
       featuredSortOrder: 999,
@@ -84,18 +101,30 @@ function formatNumber(
   amount: number,
   locale: string | undefined,
   minorUnits: number,
-  compact: boolean | undefined
+  compact: boolean | undefined,
+  minimumFractionDigits: number | undefined,
+  maximumFractionDigits: number | undefined
 ) {
   const absoluteAmount = Math.abs(Number.isFinite(amount) ? amount : 0);
+  const resolvedMinimumFractionDigits = Number.isInteger(minimumFractionDigits)
+    ? Math.max(0, minimumFractionDigits ?? 0)
+    : compact ? 0 : minorUnits;
+  const resolvedMaximumFractionDigits = Number.isInteger(maximumFractionDigits)
+    ? Math.max(resolvedMinimumFractionDigits, maximumFractionDigits ?? resolvedMinimumFractionDigits)
+    : compact ? Math.min(Math.max(minorUnits, 0), 1) : minorUnits;
 
   return new Intl.NumberFormat(locale, {
-    minimumFractionDigits: compact ? 0 : minorUnits,
-    maximumFractionDigits: compact ? Math.min(Math.max(minorUnits, 0), 1) : minorUnits,
+    minimumFractionDigits: resolvedMinimumFractionDigits,
+    maximumFractionDigits: resolvedMaximumFractionDigits,
     notation: compact ? 'compact' : 'standard',
   }).format(absoluteAmount);
 }
 
 function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormattingOptions) {
+  if (currency.code === 'AED') {
+    return { token: getRichCurrencyToken(currency), usesCodeToken: false };
+  }
+
   if (options.textOnly || options.displayMode === 'code') {
     return { token: currency.code, usesCodeToken: true };
   }
@@ -116,6 +145,7 @@ function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormatti
 
 function shouldUseSpacing(token: string, usesCodeToken: boolean) {
   if (usesCodeToken) return true;
+  if (token === 'د.إ') return true;
   return /^[A-Z]{3,}$/.test(token);
 }
 
@@ -128,7 +158,14 @@ export function formatCurrencyValue(
     ? Math.max(0, resolvedCurrency.minorUnits)
     : 2;
   const sign = amount < 0 ? '-' : '';
-  const numberText = formatNumber(amount, options.locale, minorUnits, options.compact);
+  const numberText = formatNumber(
+    amount,
+    options.locale,
+    minorUnits,
+    options.compact,
+    options.minimumFractionDigits,
+    options.maximumFractionDigits
+  );
   const { token, usesCodeToken } = pickDisplayToken(resolvedCurrency, options);
   const text = usesCodeToken
     ? `${token} ${sign}${numberText}`.trim()

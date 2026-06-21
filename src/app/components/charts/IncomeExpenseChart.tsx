@@ -26,6 +26,7 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
+import { formatCurrencyValue } from '@/lib/currency-formatting';
 
 interface ChartPoint {
   label: string;
@@ -37,16 +38,10 @@ interface ChartPoint {
 type TransactionAmountRow = Pick<Transaction, 'id' | 'account_id' | 'transaction_type' | 'amount' | 'currency' | 'transaction_date' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>;
 
 function formatCompactCurrency(value: number, currencyCode: string) {
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currencyCode,
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(value);
-  } catch {
-    return `${currencyCode} ${value.toFixed(0)}`;
-  }
+  return formatCurrencyValue(value, {
+    currencyCode,
+    compact: true,
+  }).text;
 }
 
 function CustomTooltip({ active, payload, label, currencyCode }: any) {

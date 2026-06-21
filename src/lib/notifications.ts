@@ -3,6 +3,7 @@ import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { formatRecurringFrequencyLabel, getBudgets } from '@/lib/finance';
 import { getCurrentFinancialPeriod, getNextFinancialPeriod } from '@/lib/financial-periods';
 import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import { formatCurrencyValue } from '@/lib/currency-formatting';
 
 export interface AppNotification {
   id: string;
@@ -53,17 +54,11 @@ function addDays(dateString: string, amount: number) {
 }
 
 function formatCurrencyTotal(currency: string, amount: number) {
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      currencyDisplay: 'code',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toFixed(2)}`;
-  }
+  return formatCurrencyValue(amount, {
+    currencyCode: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).text;
 }
 
 function formatGroupedCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
