@@ -10,6 +10,12 @@ import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import TransactionDetailsModal from '@/components/transactions/TransactionDetailsModal';
+import {
+  getTransactionDocumentListSummaries,
+  type TransactionListDocumentSummary,
+} from '@/lib/transaction-document-details';
+import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
 
 function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -20,19 +26,44 @@ export default function RecentTransactions() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [documentSummaries, setDocumentSummaries] = useState<Record<string, TransactionListDocumentSummary>>({});
+  const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const nextTransactions = await getTransactions({ limit: 8 });
+      const summaries = await getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id));
       setTransactions(nextTransactions);
+      setDocumentSummaries(summaries);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const getTransactionDocumentMeta = useCallback((txn: Transaction) => {
+    const documentSummary = documentSummaries[txn.id];
+    const hasDocument = (txn.receipt_attachments?.length ?? 0) > 0 || !!documentSummary?.documentId;
+    const itemCount = documentSummary?.itemCount || 0;
+    const title = getTransactionDocumentDisplayTitle({
+      merchant: txn.merchant,
+      description: txn.description,
+      hasDocument,
+      fallbackLabel: t('transactions.documentDetails.fallbackTitle', {
+        ns: 'portal',
+        defaultValue: 'Receipt purchase',
+      }),
+    });
+
+    return {
+      hasDocument,
+      itemCount,
+      title,
+    };
+  }, [documentSummaries, t]);
 
   useEffect(() => {
     void load();
@@ -84,7 +115,7 @@ export default function RecentTransactions() {
           {transactions.slice(0, 5).map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
-            const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
+            const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
             return (
               <div key={txn.id} className="group flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
                 <div
@@ -99,9 +130,27 @@ export default function RecentTransactions() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-700 text-foreground truncate">
-                      {txn.merchant || txn.description}
+                      {title}
                     </p>
-                    {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
+                    {hasDocument ? (
+                      <button
+                        type="button"
+                        onClick={() => setDetailsTransactionId(txn.id)}
+                        className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-600 text-muted-foreground"
+                      >
+                        <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
+                        {itemCount > 0
+                          ? t('transactions.documentReview.itemCountLabel', {
+                              ns: 'portal',
+                              count: itemCount,
+                              defaultValue: '{{count}} items',
+                            })
+                          : t('transactions.documentDetails.documentSection', {
+                              ns: 'portal',
+                              defaultValue: 'Receipt / Document',
+                            })}
+                      </button>
+                    ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">
                     {txn.category?.name
@@ -132,6 +181,11 @@ export default function RecentTransactions() {
           </div>
         </div>
       )}
+      <TransactionDetailsModal
+        isOpen={!!detailsTransactionId}
+        transactionId={detailsTransactionId}
+        onClose={() => setDetailsTransactionId(null)}
+      />
     </SectionCard>
   );
 }

@@ -1,9 +1,14 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  getTransactionDocumentLineItemTotal,
+  getTransactionDocumentTotalSummary,
+  isTransactionDocumentItemKind,
   sanitizeTransactionDocumentFilename,
   TRANSACTION_DOCUMENT_BUCKET,
+  transactionDocumentLineItemsHaveValidTotals,
   type TransactionDocumentDuplicateMatch,
+  type TransactionDocumentItemKind,
   type TransactionDocumentOptionAccount,
   type TransactionDocumentOptionCategory,
   type TransactionDocumentReviewInput,
@@ -139,7 +144,7 @@ export async function findDuplicateTransactionDocuments(args: {
 
   const { data: hashMatches, error: hashError } = await args.admin
     .from('transaction_documents')
-    .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at')
+    .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at, primary_transaction:transactions(description)')
     .eq('user_id', args.userId)
     .eq('sha256_hash', args.fileHash)
     .limit(5);
@@ -154,6 +159,9 @@ export async function findDuplicateTransactionDocuments(args: {
       transactionId: row.primary_transaction_id,
       reason: 'file_hash',
       merchant: row.merchant_name,
+      description: typeof row.primary_transaction === 'object' && row.primary_transaction !== null && 'description' in row.primary_transaction
+        ? String(row.primary_transaction.description || '')
+        : null,
       date: row.document_date,
       total: typeof row.total_amount === 'number' ? row.total_amount : Number(row.total_amount || 0),
       currency: row.currency_code,
@@ -171,7 +179,7 @@ export async function findDuplicateTransactionDocuments(args: {
     if (receiptNumber) {
       const { data, error } = await args.admin
         .from('transaction_documents')
-        .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at')
+        .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at, primary_transaction:transactions(description)')
         .eq('user_id', args.userId)
         .eq('receipt_number', receiptNumber)
         .limit(5);
@@ -182,6 +190,9 @@ export async function findDuplicateTransactionDocuments(args: {
           transactionId: row.primary_transaction_id,
           reason: 'receipt_number',
           merchant: row.merchant_name,
+          description: typeof row.primary_transaction === 'object' && row.primary_transaction !== null && 'description' in row.primary_transaction
+            ? String(row.primary_transaction.description || '')
+            : null,
           date: row.document_date,
           total: typeof row.total_amount === 'number' ? row.total_amount : Number(row.total_amount || 0),
           currency: row.currency_code,
@@ -194,7 +205,7 @@ export async function findDuplicateTransactionDocuments(args: {
     if (merchant && date && typeof total === 'number') {
       const { data, error } = await args.admin
         .from('transaction_documents')
-        .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at')
+        .select('id, primary_transaction_id, merchant_name, document_date, total_amount, currency_code, receipt_number, created_at, primary_transaction:transactions(description)')
         .eq('user_id', args.userId)
         .eq('merchant_name', merchant)
         .eq('document_date', date)
@@ -207,6 +218,9 @@ export async function findDuplicateTransactionDocuments(args: {
           transactionId: row.primary_transaction_id,
           reason: 'merchant_date_total',
           merchant: row.merchant_name,
+          description: typeof row.primary_transaction === 'object' && row.primary_transaction !== null && 'description' in row.primary_transaction
+            ? String(row.primary_transaction.description || '')
+            : null,
           date: row.document_date,
           total: typeof row.total_amount === 'number' ? row.total_amount : Number(row.total_amount || 0),
           currency: row.currency_code,
@@ -277,23 +291,71 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
     const lineItems = Array.isArray(rawItem.lineItems)
       ? rawItem.lineItems
           .filter(isObject)
-          .map((lineItem) => ({
-            name: normalizeText(typeof lineItem.name === 'string' ? lineItem.name : '') || 'Item',
-            description: normalizeText(typeof lineItem.description === 'string' ? lineItem.description : ''),
-            quantity: (() => {
+          .map((lineItem) => {
+            const itemCategoryId = normalizeText(
+              typeof lineItem.categoryId === 'string' ? lineItem.categoryId : ''
+            );
+            const itemCategory = itemCategoryId
+              ? args.categories.find((item) => item.id === itemCategoryId)
+              : null;
+            if (itemCategory && itemCategory.category_type !== transactionType) {
+              throw new Error('Selected category does not match the reviewed transaction type.');
+            }
+
+            const sanitizedItemKind: TransactionDocumentItemKind = isTransactionDocumentItemKind(lineItem.itemKind)
+              ? lineItem.itemKind
+              : 'regular';
+
+            const quantity = (() => {
               const value = normalizeAmount(lineItem.quantity);
               return Number.isFinite(value) ? value : null;
-            })(),
-            unitPrice: (() => {
+            })();
+            const unitPrice = (() => {
               const value = normalizeAmount(lineItem.unitPrice);
               return Number.isFinite(value) ? value : null;
-            })(),
-            total: (() => {
+            })();
+            const providedTotal = (() => {
               const value = normalizeAmount(lineItem.total);
               return Number.isFinite(value) ? value : null;
-            })(),
-          }))
+            })();
+            const computedTotal = getTransactionDocumentLineItemTotal({
+              quantity,
+              unitPrice,
+              total: providedTotal,
+            });
+
+            if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
+              throw new Error('Each reviewed line item must have a valid total.');
+            }
+
+            return {
+              name: normalizeText(typeof lineItem.name === 'string' ? lineItem.name : '') || 'Item',
+              description: normalizeText(typeof lineItem.description === 'string' ? lineItem.description : ''),
+              quantity,
+              unitPrice,
+              total: computedTotal,
+              categoryId: itemCategory?.id || null,
+              itemKind: sanitizedItemKind,
+            };
+          })
       : [];
+
+    if (!transactionDocumentLineItemsHaveValidTotals(lineItems)) {
+      throw new Error('Reviewed line item total does not match quantity x unit price.');
+    }
+
+    const totalSummary = getTransactionDocumentTotalSummary({
+      amount,
+      tax: (() => {
+        const value = normalizeAmount(rawItem.tax);
+        return Number.isFinite(value) ? value : null;
+      })(),
+      lineItems,
+    });
+    const totalsConfirmed = rawItem.totalsConfirmed === true;
+    if (totalSummary.requiresConfirmation && !totalsConfirmed) {
+      throw new Error('Confirm the receipt total mismatch before saving.');
+    }
 
     const sanitized: TransactionDocumentReviewInput = {
       transactionType,
@@ -314,6 +376,7 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
       notes: normalizeText(typeof rawItem.notes === 'string' ? rawItem.notes : ''),
       receiptNumber: normalizeText(typeof rawItem.receiptNumber === 'string' ? rawItem.receiptNumber : ''),
       lineItems,
+      totalsConfirmed,
     };
 
     return sanitized;

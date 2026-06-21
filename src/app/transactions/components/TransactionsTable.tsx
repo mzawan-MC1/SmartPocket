@@ -15,9 +15,15 @@ import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import AddTransactionModal from './AddTransactionModal';
+import TransactionDetailsModal from '@/components/transactions/TransactionDetailsModal';
 import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { formatFinancialPeriodLabel, getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey } from '@/lib/financial-periods';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import {
+  getTransactionDocumentListSummaries,
+  type TransactionListDocumentSummary,
+} from '@/lib/transaction-document-details';
+import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -66,6 +72,7 @@ export default function TransactionsTable({
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionReportingCurrency, setTransactionReportingCurrency] = useState('');
   const [transactionReportingPreviews, setTransactionReportingPreviews] = useState<Record<string, Awaited<ReturnType<typeof getLatestTransactionReportingPreviews>>['previews'][string]>>({});
+  const [documentSummaries, setDocumentSummaries] = useState<Record<string, TransactionListDocumentSummary>>({});
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [people, setPeople] = useState<ManagedPerson[]>([]);
@@ -85,6 +92,7 @@ export default function TransactionsTable({
   const [perPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
+  const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const hasInitializedDateFilter = React.useRef(false);
 
@@ -160,37 +168,65 @@ export default function TransactionsTable({
     onRangeLabelChange(activeDateFilter.label);
   }, [activeDateFilter.label, onRangeLabelChange]);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      getTransactions({
-        type: filterType === 'all' ? undefined : filterType,
-        dateFrom: activeDateFilter.dateFrom,
-        dateTo: activeDateFilter.dateTo,
-      }),
-      getAccounts(),
-      getCategories(),
-      getManagedPeople(false),
-      getLatestReportingContext(),
-    ])
-      .then(async ([txns, accts, cats, ppl, reportingContext]) => {
-        const reporting = await getLatestTransactionReportingPreviews(txns, reportingContext);
-        setTransactions(txns);
-        setTransactionReportingCurrency(reporting.reportingCurrency);
-        setTransactionReportingPreviews(reporting.previews);
-        setAccounts(accts.filter((a) => a.is_active));
-        setCategories(cats);
-        setPeople(ppl);
-      })
-      .catch((e) => toast.error(e.message))
-      .finally(() => setLoading(false));
-  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filterType]);
+    try {
+      const [txns, accts, cats, ppl, reportingContext] = await Promise.all([
+        getTransactions({
+          type: filterType === 'all' ? undefined : filterType,
+          dateFrom: activeDateFilter.dateFrom,
+          dateTo: activeDateFilter.dateTo,
+        }),
+        getAccounts(),
+        getCategories(),
+        getManagedPeople(false),
+        getLatestReportingContext(),
+      ]);
+      const [reporting, summaries] = await Promise.all([
+        getLatestTransactionReportingPreviews(txns, reportingContext),
+        getTransactionDocumentListSummaries(txns.map((txn) => txn.id)),
+      ]);
+      setTransactions(txns);
+      setTransactionReportingCurrency(reporting.reportingCurrency);
+      setTransactionReportingPreviews(reporting.previews);
+      setDocumentSummaries(summaries);
+      setAccounts(accts.filter((a) => a.is_active));
+      setCategories(cats);
+      setPeople(ppl);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : t('common:errors.generic'));
+    } finally {
+      setLoading(false);
+    }
+  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filterType, t]);
 
   useEffect(() => { load(); }, [load]);
 
   useSmartPocketDataChanged(['transactions', 'financial_accounts'], 'TransactionsTable', async () => {
     await load();
   });
+
+  const getTransactionDocumentMeta = useCallback((txn: Transaction) => {
+    const documentSummary = documentSummaries[txn.id];
+    const hasDocument = (txn.receipt_attachments?.length ?? 0) > 0 || !!documentSummary?.documentId;
+    const itemCount = documentSummary?.itemCount || 0;
+    const title = getTransactionDocumentDisplayTitle({
+      merchant: txn.merchant,
+      description: txn.description,
+      hasDocument,
+      fallbackLabel: t('transactions.documentDetails.fallbackTitle', {
+        ns: 'portal',
+        defaultValue: 'Receipt purchase',
+      }),
+    });
+
+    return {
+      documentSummary,
+      hasDocument,
+      itemCount,
+      title,
+    };
+  }, [documentSummaries, t]);
 
   const handleOpenNewTransaction = useCallback(() => {
     setEditingTxn(null);
@@ -476,7 +512,7 @@ export default function TransactionsTable({
             <div className="space-y-3 p-3 sm:hidden">
               {paginated.map((txn) => {
                 const catColor = txn.category?.color || '#6b7280';
-                const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
+                const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
                 const hasPerson = !!(txn as any).person_id;
                 const reportingPreview = transactionReportingPreviews[txn.id];
                 const showReportingPreview =
@@ -496,7 +532,7 @@ export default function TransactionsTable({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-700 text-foreground">{txn.merchant || txn.description}</p>
+                            <p className="truncate text-sm font-700 text-foreground">{title}</p>
                             <p className="text-xs text-muted-foreground">{txn.transaction_date}</p>
                           </div>
                           <Badge variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}>
@@ -515,7 +551,25 @@ export default function TransactionsTable({
                             <span>{t('transactions.uncategorized', { ns: 'portal' })}</span>
                           )}
                           <span>{txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}</span>
-                          {hasReceipt ? <Paperclip size={11} className="flex-shrink-0" /> : null}
+                          {hasDocument ? (
+                            <button
+                              type="button"
+                              onClick={() => setDetailsTransactionId(txn.id)}
+                              className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-600 text-muted-foreground"
+                            >
+                              <Paperclip size={11} className="flex-shrink-0" />
+                              {itemCount > 0
+                                ? t('transactions.documentReview.itemCountLabel', {
+                                    ns: 'portal',
+                                    count: itemCount,
+                                    defaultValue: '{{count}} items',
+                                  })
+                                : t('transactions.documentDetails.documentSection', {
+                                    ns: 'portal',
+                                    defaultValue: 'Receipt / Document',
+                                  })}
+                            </button>
+                          ) : null}
                           {hasPerson ? <Users size={11} className="flex-shrink-0 text-accent" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} /> : null}
                         </div>
                         {txn.notes ? (
@@ -592,7 +646,7 @@ export default function TransactionsTable({
                 <tbody className="divide-y divide-border">
                   {paginated.map((txn) => {
                     const catColor = txn.category?.color || '#6b7280';
-                    const hasReceipt = (txn.receipt_attachments?.length ?? 0) > 0;
+                    const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
                     const hasPerson = !!(txn as any).person_id;
                     const reportingPreview = transactionReportingPreviews[txn.id];
                     const showReportingPreview =
@@ -609,8 +663,26 @@ export default function TransactionsTable({
                         <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">{txn.transaction_date}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-600 text-foreground truncate max-w-[160px]">{txn.merchant || txn.description}</span>
-                            {hasReceipt && <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />}
+                            <span className="text-sm font-600 text-foreground truncate max-w-[160px]">{title}</span>
+                            {hasDocument ? (
+                              <button
+                                type="button"
+                                onClick={() => setDetailsTransactionId(txn.id)}
+                                className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-600 text-muted-foreground"
+                              >
+                                <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
+                                {itemCount > 0
+                                  ? t('transactions.documentReview.itemCountLabel', {
+                                      ns: 'portal',
+                                      count: itemCount,
+                                      defaultValue: '{{count}} items',
+                                    })
+                                  : t('transactions.documentDetails.documentSection', {
+                                      ns: 'portal',
+                                      defaultValue: 'Receipt / Document',
+                                    })}
+                              </button>
+                            ) : null}
                             {hasPerson && <Users size={11} className="text-accent flex-shrink-0" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} />}
                           </div>
                           {txn.notes && <p className="text-xs text-muted-foreground truncate max-w-[160px]">{txn.notes}</p>}
@@ -731,6 +803,11 @@ export default function TransactionsTable({
         categories={categories}
         people={people}
         initialMode="single"
+      />
+      <TransactionDetailsModal
+        isOpen={!!detailsTransactionId}
+        transactionId={detailsTransactionId}
+        onClose={() => setDetailsTransactionId(null)}
       />
     </div>
   );

@@ -2,6 +2,8 @@ export const TRANSACTION_DOCUMENT_BUCKET = 'receipts';
 export const TRANSACTION_DOCUMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
 export const TRANSACTION_DOCUMENT_MAX_PDF_PAGES = 10;
 export const TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 30;
+export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.05;
+export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.5;
 
 export const TRANSACTION_DOCUMENT_ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -20,6 +22,7 @@ export type TransactionDocumentMimeType =
   (typeof TRANSACTION_DOCUMENT_ALLOWED_MIME_TYPES)[number];
 
 export type TransactionDocumentSourceSurface = 'add_transaction' | 'smart_entry';
+export type TransactionDocumentItemKind = 'regular' | 'discount' | 'tax' | 'fee';
 
 export type TransactionDocumentErrorCode =
   | 'unauthorized'
@@ -54,6 +57,8 @@ export interface TransactionDocumentLineItemDraft {
   quantity?: number | null;
   unitPrice?: number | null;
   total?: number | null;
+  categoryId?: string | null;
+  itemKind?: TransactionDocumentItemKind;
   confidence?: number;
 }
 
@@ -94,6 +99,7 @@ export interface TransactionDocumentDuplicateMatch {
     | 'merchant_total'
     | 'date_total';
   merchant?: string | null;
+  description?: string | null;
   date?: string | null;
   total?: number | null;
   currency?: string | null;
@@ -107,6 +113,8 @@ export interface TransactionDocumentReviewItemInput {
   quantity?: number | null;
   unitPrice?: number | null;
   total?: number | null;
+  categoryId?: string | null;
+  itemKind?: TransactionDocumentItemKind;
 }
 
 export interface TransactionDocumentReviewInput {
@@ -123,6 +131,20 @@ export interface TransactionDocumentReviewInput {
   notes?: string;
   receiptNumber?: string;
   lineItems: TransactionDocumentReviewItemInput[];
+  totalsConfirmed?: boolean;
+}
+
+export interface TransactionDocumentTotalSummary {
+  subtotal: number;
+  tax: number;
+  discount: number;
+  fee: number;
+  calculatedTotal: number;
+  receiptTotal: number;
+  mismatchAmount: number;
+  hasMismatch: boolean;
+  hasOnlyRoundingMismatch: boolean;
+  requiresConfirmation: boolean;
 }
 
 export interface TransactionDocumentFileSummary {
@@ -183,7 +205,7 @@ function normalizeCurrency(value: unknown): string | undefined {
 function normalizeAmount(value: unknown): number | null | undefined {
   if (value === null) return null;
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
-  return Math.round(value * 100) / 100;
+  return roundTransactionDocumentMoney(value);
 }
 
 function normalizeText(value: unknown): string | undefined {
@@ -358,8 +380,13 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   if (
     message === 'Each reviewed transaction must include a valid amount.'
     || message === 'Reviewed transaction amount must be greater than 0'
+    || message === 'Each reviewed line item must have a valid total.'
+    || message === 'Reviewed line item total does not match quantity x unit price.'
   ) {
     return 'invalid_amount';
+  }
+  if (message === 'Confirm the receipt total mismatch before saving.') {
+    return 'invalid_review_payload';
   }
   if (
     message === 'Each reviewed transaction must use a valid account.'
@@ -463,17 +490,31 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
     const lineItems = Array.isArray(item.lineItems)
       ? item.lineItems
           .filter(isObject)
-          .map((lineItem) => ({
-            name: normalizeText(lineItem.name) || 'Item',
-            description: normalizeText(lineItem.description),
-            quantity: normalizeAmount(lineItem.quantity),
-            unitPrice: normalizeAmount(lineItem.unitPrice),
-            total: normalizeAmount(lineItem.total),
-            confidence:
-              typeof lineItem.confidence === 'number' && Number.isFinite(lineItem.confidence)
-                ? Math.max(0, Math.min(1, lineItem.confidence))
-                : undefined,
-          }))
+          .map((lineItem) => {
+            const itemKind: TransactionDocumentItemKind =
+              lineItem.itemKind === 'discount'
+              || lineItem.itemKind === 'tax'
+              || lineItem.itemKind === 'fee'
+                ? lineItem.itemKind
+                : 'regular';
+
+            return {
+              name: normalizeText(lineItem.name) || 'Item',
+              description: normalizeText(lineItem.description),
+              quantity: normalizeAmount(lineItem.quantity),
+              unitPrice: normalizeAmount(lineItem.unitPrice),
+              total: normalizeAmount(lineItem.total),
+              categoryId:
+                typeof lineItem.categoryId === 'string' && lineItem.categoryId.trim()
+                  ? lineItem.categoryId.trim()
+                  : undefined,
+              itemKind,
+              confidence:
+                typeof lineItem.confidence === 'number' && Number.isFinite(lineItem.confidence)
+                  ? Math.max(0, Math.min(1, lineItem.confidence))
+                  : undefined,
+            } satisfies TransactionDocumentLineItemDraft;
+          })
       : [];
 
     return {
@@ -562,6 +603,7 @@ Output schema:
           "quantity": <number or null>,
           "unitPrice": <number or null>,
           "total": <number or null>,
+          "itemKind": "<regular|discount|tax|fee>",
           "confidence": <0.0-1.0>
         }
       ]
@@ -573,6 +615,7 @@ Rules:
 - One normal receipt usually maps to one transaction
 - A written note or list may map to multiple transactions
 - Extract line items only as linked items, not separate account transactions
+- itemKind should be regular unless the document clearly shows a discount, tax, or fee line
 - Use ISO currency codes
 - Validate arithmetic when possible: total should reflect the likely payable amount, tax should be separate when visible
 - If the document looks handwritten or incomplete, keep needsReview true
@@ -580,3 +623,146 @@ Rules:
 - Do not invent account ids or category ids
 - categorySuggestion must be a plain category label only
 - If there are no reliable transactions, return an empty transactions array with warnings`;
+
+export function roundTransactionDocumentMoney(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+export function isTransactionDocumentItemKind(value: unknown): value is TransactionDocumentItemKind {
+  return value === 'regular' || value === 'discount' || value === 'tax' || value === 'fee';
+}
+
+export function getTransactionDocumentLineItemTotal(item: {
+  quantity?: number | null;
+  unitPrice?: number | null;
+  total?: number | null;
+}) {
+  if (typeof item.total === 'number' && Number.isFinite(item.total)) {
+    return roundTransactionDocumentMoney(item.total);
+  }
+  if (
+    typeof item.quantity === 'number'
+    && Number.isFinite(item.quantity)
+    && typeof item.unitPrice === 'number'
+    && Number.isFinite(item.unitPrice)
+  ) {
+    return roundTransactionDocumentMoney(item.quantity * item.unitPrice);
+  }
+  return 0;
+}
+
+export function getTransactionDocumentTotalSummary(input: {
+  amount: number;
+  tax?: number | null;
+  lineItems: Array<{
+    quantity?: number | null;
+    unitPrice?: number | null;
+    total?: number | null;
+    itemKind?: TransactionDocumentItemKind;
+  }>;
+}): TransactionDocumentTotalSummary {
+  const startingTax = typeof input.tax === 'number' && Number.isFinite(input.tax) ? Math.abs(input.tax) : 0;
+  const reduced = input.lineItems.reduce((accumulator, item) => {
+    const itemTotal = Math.abs(getTransactionDocumentLineItemTotal(item));
+    const itemKind = isTransactionDocumentItemKind(item.itemKind) ? item.itemKind : 'regular';
+    if (itemKind === 'discount') {
+      accumulator.discount += itemTotal;
+      return accumulator;
+    }
+    if (itemKind === 'tax') {
+      accumulator.tax += itemTotal;
+      return accumulator;
+    }
+    if (itemKind === 'fee') {
+      accumulator.fee += itemTotal;
+      return accumulator;
+    }
+    accumulator.subtotal += itemTotal;
+    return accumulator;
+  }, {
+    subtotal: 0,
+    tax: startingTax,
+    discount: 0,
+    fee: 0,
+  });
+
+  const subtotal = roundTransactionDocumentMoney(reduced.subtotal);
+  const tax = roundTransactionDocumentMoney(reduced.tax);
+  const discount = roundTransactionDocumentMoney(reduced.discount);
+  const fee = roundTransactionDocumentMoney(reduced.fee);
+  const receiptTotal = roundTransactionDocumentMoney(
+    typeof input.amount === 'number' && Number.isFinite(input.amount) ? Math.abs(input.amount) : 0
+  );
+  const resolvedSubtotal = subtotal > 0 || input.lineItems.length > 0
+    ? subtotal
+    : roundTransactionDocumentMoney(Math.max(receiptTotal - tax - fee + discount, 0));
+  const calculatedTotal = roundTransactionDocumentMoney(resolvedSubtotal + tax + fee - discount);
+  const mismatchAmount = roundTransactionDocumentMoney(calculatedTotal - receiptTotal);
+  const absoluteMismatch = Math.abs(mismatchAmount);
+
+  return {
+    subtotal: resolvedSubtotal,
+    tax,
+    discount,
+    fee,
+    calculatedTotal,
+    receiptTotal,
+    mismatchAmount,
+    hasMismatch: absoluteMismatch > 0,
+    hasOnlyRoundingMismatch:
+      absoluteMismatch > 0 && absoluteMismatch <= TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD,
+    requiresConfirmation: absoluteMismatch > TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD,
+  };
+}
+
+export function transactionDocumentLineItemsHaveValidTotals(lineItems: Array<{
+  quantity?: number | null;
+  unitPrice?: number | null;
+  total?: number | null;
+}>) {
+  return lineItems.every((item) => {
+    if (
+      typeof item.quantity === 'number'
+      && Number.isFinite(item.quantity)
+      && typeof item.unitPrice === 'number'
+      && Number.isFinite(item.unitPrice)
+      && typeof item.total === 'number'
+      && Number.isFinite(item.total)
+    ) {
+      return (
+        Math.abs(
+          roundTransactionDocumentMoney(item.quantity * item.unitPrice)
+          - roundTransactionDocumentMoney(item.total)
+        ) <= TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD
+      );
+    }
+    return typeof item.total !== 'number' || Number.isFinite(item.total);
+  });
+}
+
+export function isTransactionDocumentStoragePath(path: string | null | undefined) {
+  const normalized = (path || '').trim().toLowerCase();
+  return normalized.includes('/transaction-documents/') || normalized.includes('\\transaction-documents\\');
+}
+
+export function getTransactionDocumentDisplayTitle(args: {
+  merchant?: string | null;
+  description?: string | null;
+  hasDocument?: boolean;
+  fallbackLabel?: string;
+}) {
+  const merchant = (args.merchant || '').trim();
+  const description = (args.description || '').trim();
+  const lowerMerchant = merchant.toLowerCase();
+
+  if (merchant && lowerMerchant !== 'mix' && lowerMerchant !== 'mixed') {
+    return merchant;
+  }
+  if (description) {
+    return description;
+  }
+  if (args.hasDocument) {
+    return args.fallbackLabel || 'Receipt purchase';
+  }
+  return args.fallbackLabel || 'Transaction';
+}
