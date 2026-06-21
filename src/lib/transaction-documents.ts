@@ -661,7 +661,11 @@ export function getTransactionDocumentTotalSummary(input: {
     itemKind?: TransactionDocumentItemKind;
   }>;
 }): TransactionDocumentTotalSummary {
-  const startingTax = typeof input.tax === 'number' && Number.isFinite(input.tax) ? Math.abs(input.tax) : 0;
+  const normalizedInputTax = typeof input.tax === 'number' && Number.isFinite(input.tax)
+    ? input.tax
+    : null;
+  const hasAuthoritativeTax = normalizedInputTax !== null;
+  const startingTax = hasAuthoritativeTax ? Math.abs(normalizedInputTax) : 0;
   const reduced = input.lineItems.reduce((accumulator, item) => {
     const itemTotal = Math.abs(getTransactionDocumentLineItemTotal(item));
     const itemKind = isTransactionDocumentItemKind(item.itemKind) ? item.itemKind : 'regular';
@@ -670,7 +674,11 @@ export function getTransactionDocumentTotalSummary(input: {
       return accumulator;
     }
     if (itemKind === 'tax') {
-      accumulator.tax += itemTotal;
+      // When the reviewed top-level tax is present, treat it as authoritative
+      // and avoid counting mirrored tax line items a second time.
+      if (!hasAuthoritativeTax) {
+        accumulator.tax += itemTotal;
+      }
       return accumulator;
     }
     if (itemKind === 'fee') {

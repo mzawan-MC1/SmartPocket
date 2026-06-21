@@ -630,33 +630,35 @@ export default function DocumentTransactionReviewModal({
                             defaultValue: 'This document appears to match an existing transaction. Review it before saving again.',
                           })}
                         </p>
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-3 space-y-3">
                           {duplicates.map((duplicate) => (
                             <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-xl bg-card/70 p-3 text-xs text-foreground">
-                              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                                <div className="min-w-0">
-                                  <p className="font-600">
-                                    {getTransactionDocumentDisplayTitle({
-                                      merchant: duplicate.merchant,
-                                      description: duplicate.description,
-                                      hasDocument: true,
-                                      fallbackLabel: t('transactions.documentReview.duplicateUnknownMerchant', {
-                                        ns: 'portal',
-                                        defaultValue: 'Existing document',
-                                      }),
-                                    })}
-                                  </p>
-                                  <p className="mt-1 text-muted-foreground">
-                                    {duplicate.date || '—'} · {typeof duplicate.total === 'number'
-                                      ? formatCurrencyText(duplicate.total, {
-                                          currencyCode: duplicate.currency || undefined,
-                                          fallbackCurrencyCode: duplicate.currency || 'USD',
-                                          textOnly: true,
-                                        })
-                                      : '—'}
-                                  </p>
-                                </div>
-                                {duplicate.transactionId ? (
+                              <p className="text-sm font-600 leading-5 text-foreground">
+                                {getTransactionDocumentDisplayTitle({
+                                  merchant: duplicate.merchant,
+                                  description: duplicate.description,
+                                  hasDocument: true,
+                                  fallbackLabel: t('transactions.documentReview.duplicateUnknownMerchant', {
+                                    ns: 'portal',
+                                    defaultValue: 'Existing document',
+                                  }),
+                                })}
+                              </p>
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                <span className="whitespace-nowrap">{duplicate.date || '—'}</span>
+                                <span aria-hidden="true">·</span>
+                                <span className="whitespace-nowrap">
+                                  {typeof duplicate.total === 'number'
+                                    ? formatCurrencyText(duplicate.total, {
+                                        currencyCode: duplicate.currency || undefined,
+                                        fallbackCurrencyCode: duplicate.currency || 'USD',
+                                        textOnly: true,
+                                      })
+                                    : '—'}
+                                </span>
+                              </div>
+                              {duplicate.transactionId ? (
+                                <div className="mt-3 flex justify-end">
                                   <button
                                     type="button"
                                     onClick={() => setDuplicateViewTransactionId(duplicate.transactionId || null)}
@@ -667,23 +669,12 @@ export default function DocumentTransactionReviewModal({
                                       defaultValue: 'View Existing Transaction',
                                     })}
                                   </button>
-                                ) : null}
-                              </div>
+                                </div>
+                              ) : null}
                             </div>
                           ))}
                         </div>
                         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setDuplicateViewTransactionId(duplicates.find((duplicate) => duplicate.transactionId)?.transactionId || null)}
-                            disabled={!duplicates.some((duplicate) => !!duplicate.transactionId)}
-                            className="btn-secondary w-full justify-center sm:w-auto"
-                          >
-                            {t('transactions.documentReview.viewExistingTransaction', {
-                              ns: 'portal',
-                              defaultValue: 'View Existing Transaction',
-                            })}
-                          </button>
                           <button
                             type="button"
                             onClick={onClose}
