@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   PieChart,
@@ -75,6 +75,31 @@ export default function SpendingCategoryChart({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reportingCurrency, setReportingCurrency] = useState('USD');
+  const topCategory = data[0] ?? null;
+  const averagePerCategory = data.length > 0 ? total / data.length : 0;
+  const summaryCards = useMemo(() => ([
+    {
+      id: 'total',
+      label: t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' }),
+      value: formatCurrencyValue(total, reportingCurrency),
+    },
+    {
+      id: 'top',
+      label: t('dashboardCharts.categorySummary.topCategory', { defaultValue: 'Top category' }),
+      value: topCategory?.name || '—',
+      detail: topCategory ? formatCurrencyValue(topCategory.value, reportingCurrency) : undefined,
+    },
+    {
+      id: 'count',
+      label: t('dashboardCharts.categorySummary.activeCategories', { defaultValue: 'Active categories' }),
+      value: String(data.length),
+    },
+    {
+      id: 'average',
+      label: t('dashboardCharts.categorySummary.averagePerCategory', { defaultValue: 'Average per category' }),
+      value: formatCurrencyValue(averagePerCategory, reportingCurrency),
+    },
+  ]), [averagePerCategory, data.length, reportingCurrency, t, topCategory]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,66 +195,101 @@ export default function SpendingCategoryChart({
   });
 
   if (loading) {
-    return <div className="flex items-center justify-center h-full"><div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" /></div>;
+    return <div className="flex h-[300px] items-center justify-center"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
   }
 
   if (!data.length) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2">
+      <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-4 text-center">
         <p className="text-sm text-muted-foreground">
           {errorMessage || t(activePeriod.mode === 'month' ? 'reports.chartLabels.noExpenseDataMonth' : 'reports.chartLabels.noExpenseDataPayPeriod')}
         </p>
-        <p className="text-xs text-muted-foreground">{t('reports.chartLabels.addExpensesToSeeCategories')}</p>
+        <p className="text-[12.5px] text-muted-foreground">{t('reports.chartLabels.addExpensesToSeeCategories')}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-4 h-full">
-      <div className="w-[160px] h-full flex-shrink-0">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={50}
-              outerRadius={72}
-              paddingAngle={2}
-              dataKey="value"
-              onMouseEnter={(_, index) => setActiveId(data[index]?.id ?? null)}
-              onMouseLeave={() => setActiveId(null)}
-            >
-              {data.map((entry) => (
-                <Cell
-                  key={entry.id}
-                  fill={entry.color}
-                  opacity={activeId && activeId !== entry.id ? 0.4 : 1}
-                  stroke="none"
-                />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} t={t} />} />
-          </PieChart>
-        </ResponsiveContainer>
+    <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.9fr)_minmax(0,1.1fr)] lg:items-start">
+      <div className="grid gap-3 sm:grid-cols-[minmax(14rem,16rem)_minmax(0,1fr)] lg:grid-cols-1">
+        <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4">
+          <div className="mx-auto h-[190px] w-full max-w-[220px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={54}
+                  outerRadius={82}
+                  paddingAngle={2}
+                  dataKey="value"
+                  onMouseEnter={(_, index) => setActiveId(data[index]?.id ?? null)}
+                  onMouseLeave={() => setActiveId(null)}
+                >
+                  {data.map((entry) => (
+                    <Cell
+                      key={entry.id}
+                      fill={entry.color}
+                      opacity={activeId && activeId !== entry.id ? 0.4 : 1}
+                      stroke="none"
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip currencyCode={reportingCurrency} t={t} />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-2 text-center">
+            <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
+              {t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' })}
+            </p>
+            <p className="mt-1 text-lg font-800 text-foreground">{formatCurrencyValue(total, reportingCurrency)}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-2">
+          {summaryCards.map((card) => (
+            <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-3 shadow-card-sm">
+              <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
+              <p className="mt-1 text-sm font-800 text-foreground break-words">{card.value}</p>
+              {card.detail ? (
+                <p className="mt-1 text-[12px] text-muted-foreground">{card.detail}</p>
+              ) : null}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 gap-1.5 overflow-y-auto max-h-[200px] scrollbar-thin pr-1">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
         {data.map((item) => (
           <div
             key={item.id}
-            className="flex items-center gap-2 cursor-default"
+            className={`rounded-2xl border px-3 py-2.5 transition-colors ${
+              activeId === item.id ? 'border-accent/25 bg-accent/5' : 'border-border/70 bg-card'
+            }`}
             onMouseEnter={() => setActiveId(item.id)}
             onMouseLeave={() => setActiveId(null)}
           >
-            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
-            <span className="text-xs text-muted-foreground flex-1 truncate">{item.name}</span>
-            <span className="text-xs font-600 font-tabular text-foreground">
-              {formatCurrencyValue(item.value, reportingCurrency)}
-            </span>
-            <span className="text-[10px] text-muted-foreground w-10 text-right">
-              {total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%
-            </span>
+            <div className="flex items-start gap-2.5">
+              <span className="mt-1 h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="truncate text-sm font-700 text-foreground">{item.name}</p>
+                  <span className="text-[11px] font-700 text-muted-foreground">
+                    {total > 0 ? ((item.value / total) * 100).toFixed(0) : 0}%
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span className="text-sm font-700 font-tabular text-foreground">
+                    {formatCurrencyValue(item.value, reportingCurrency)}
+                  </span>
+                  <span className="text-[12px] text-muted-foreground">
+                    {t('reports.chartLabels.ofTotal', { percent: ((item.value / total) * 100).toFixed(1) })}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         ))}
       </div>

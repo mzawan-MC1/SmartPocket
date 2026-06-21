@@ -24,12 +24,12 @@ export default function DashboardCharts({
   return (
     <section className="section-card h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm">
       <div className="flex flex-col gap-3 border-b border-border/70 px-5 py-4 max-[480px]:px-4 max-[480px]:py-3.5">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('dashboardCharts.title')}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{description}</p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(11rem,auto)] sm:items-center lg:w-[27rem]">
             <Tabs
               items={[
                 { id: 'trend', label: t('dashboardCharts.tabs.trend') },
@@ -37,9 +37,9 @@ export default function DashboardCharts({
               ]}
               activeId={activeTab}
               onChange={setActiveTab}
-              className="w-auto [&_.tab-button]:min-h-[2.15rem] [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-3 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[12px] [&_.tab-button]:font-700"
+              className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-[2.1rem] [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-2.5 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-nowrap"
             />
-            <div className="inline-flex items-center rounded-2xl border border-border/80 bg-card px-3 py-2 text-xs font-700 text-foreground shadow-card-sm">
+            <div className="inline-flex min-w-0 items-center justify-center rounded-2xl border border-border/80 bg-card px-3 py-2 text-[11px] font-700 text-foreground shadow-card-sm sm:min-w-[11rem]">
               {activePeriod.label}
             </div>
           </div>
