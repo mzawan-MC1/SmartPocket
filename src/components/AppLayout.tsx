@@ -24,11 +24,11 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
 
   return (
     <QuickActionsProvider>
-      <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
-        <div className="flex min-h-screen w-full items-stretch lg:flex-row">
+      <div className="min-h-screen overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden" dir={dir}>
+        <div className="flex min-h-screen w-full items-stretch lg:h-screen lg:flex-row lg:overflow-hidden">
           {/* Desktop Sidebar — left for LTR, right for RTL */}
           <div
-            className={`hidden self-stretch bg-card lg:flex lg:flex-shrink-0 ${
+            className={`hidden self-stretch bg-card lg:flex lg:h-screen lg:flex-shrink-0 lg:overflow-hidden ${
               isRTL ? 'border-l border-border' : 'border-r border-border'
             }`}
             style={{ width: sidebarCollapsed ? '60px' : '244px' }}
@@ -60,13 +60,13 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
           )}
 
           {/* Main Content Area */}
-          <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
+          <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:h-screen lg:min-h-0 lg:overflow-hidden">
             <Topbar
               onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
             />
 
             <main
-              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin"
+              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin lg:h-full"
               style={{ background: 'var(--background)' }}
             >
               <div className="flex min-h-full flex-col">
