@@ -17,9 +17,14 @@ export default function DashboardCharts({
 }) {
   const { t } = useTranslation('portal');
   const [activeTab, setActiveTab] = useState<'trend' | 'category'>('trend');
-  const description = activePeriod.mode === 'month'
-    ? t('dashboardCharts.descriptionThrough', { period: activePeriod.label })
-    : t('dashboardCharts.descriptionDuring', { period: activePeriod.label });
+  const descriptionKey = activeTab === 'category'
+    ? (activePeriod.mode === 'month'
+      ? 'dashboardCharts.categoryDescriptionThrough'
+      : 'dashboardCharts.categoryDescriptionDuring')
+    : (activePeriod.mode === 'month'
+      ? 'dashboardCharts.trendDescriptionThrough'
+      : 'dashboardCharts.trendDescriptionDuring');
+  const description = t(descriptionKey, { period: activePeriod.label });
 
   return (
     <section className="section-card h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm">

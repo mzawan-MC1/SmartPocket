@@ -211,8 +211,10 @@
   },
   "dashboardCharts": {
     "title": "Финансовый обзор",
-    "descriptionThrough": "Разбивка по категориям до {{period}}",
-    "descriptionDuring": "Разбивка по категориям в течение {{period}}",
+    "trendDescriptionThrough": "Доходы, расходы и разбивка по категориям до {{period}}",
+    "trendDescriptionDuring": "Доходы, расходы и разбивка по категориям в течение {{period}}",
+    "categoryDescriptionThrough": "Разбивка по категориям до {{period}}",
+    "categoryDescriptionDuring": "Разбивка по категориям в течение {{period}}",
     "warning": "Режим периода выплат не настроен, поэтому графики показывают текущий месяц.",
     "tabs": {
       "trend": "Доходы и расходы",
