@@ -25,11 +25,11 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
   return (
     <QuickActionsProvider>
       <div className="min-h-screen overflow-x-hidden bg-background" dir={dir}>
-        <div className={`flex min-h-screen w-full items-stretch ${isRTL ? 'lg:flex-row-reverse' : 'lg:flex-row'}`}>
+        <div className="flex min-h-screen w-full items-stretch lg:flex-row">
           {/* Desktop Sidebar — left for LTR, right for RTL */}
           <div
             className={`hidden self-stretch bg-card lg:flex lg:flex-shrink-0 ${
-              isRTL ? 'border-s border-border' : 'border-e border-border'
+              isRTL ? 'border-l border-border' : 'border-r border-border'
             }`}
             style={{ width: sidebarCollapsed ? '60px' : '244px' }}
           >
