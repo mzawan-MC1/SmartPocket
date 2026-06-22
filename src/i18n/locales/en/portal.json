@@ -30,6 +30,79 @@
     "openError": "Failed to open notification.",
     "markAllError": "Failed to mark notifications as read.",
     "refreshError": "Failed to refresh alerts.",
+    "values": {
+      "periodKinds": {
+        "payPeriod": "pay period",
+        "planningPeriod": "planning period"
+      },
+      "status": {
+        "pending": "pending",
+        "partiallyPaid": "partially paid",
+        "settled": "settled"
+      }
+    },
+    "types": {
+      "successfulSignIn": {
+        "title": "Successful sign-in",
+        "description": "Your account was accessed successfully."
+      },
+      "payPeriodStartsToday": {
+        "title": "Pay period starts today",
+        "description": "Your {{periodLabel}} starts today."
+      },
+      "payPeriodStartsTomorrow": {
+        "title": "Pay period starts tomorrow",
+        "description": "Your {{periodLabel}} starts tomorrow."
+      },
+      "billsBeforeNextPayday": {
+        "title": "Bills due before next payday",
+        "description": "{{totalDue}} in bills is due before your next payday on {{nextPayday}}."
+      },
+      "recurringDueSoon": {
+        "title": "Recurring payment due soon",
+        "description": "{{description}} ({{frequency}}) is due on {{dueDate}}."
+      },
+      "largePaymentDueThisPeriod": {
+        "title": "Large payment due this pay period",
+        "description": "{{description}} of {{amount}} is due this {{periodLabel}}."
+      },
+      "budgetExceeded": {
+        "title": "Budget exceeded",
+        "description": "{{budgetName}} is over budget at {{usedPct}}% for the active budget period."
+      },
+      "budgetThresholdReached": {
+        "title": "Budget near limit",
+        "description": "{{budgetName}} has reached {{usedPct}}% of its budget for the active budget period."
+      },
+      "reimbursementCreated": {
+        "title": "Reimbursement created",
+        "description": "{{description}} was added for {{amount}}."
+      },
+      "reimbursementUpdated": {
+        "title": "Reimbursement updated",
+        "description": "A payment of {{amount}} was recorded."
+      },
+      "reimbursementStatusUpdated": {
+        "title": "Reimbursement status updated",
+        "description": "A reimbursement is now marked as {{status}}."
+      },
+      "settlementCompleted": {
+        "title": "Settlement completed",
+        "description": "{{description}} was recorded for {{amount}}."
+      },
+      "loanRepaymentRecorded": {
+        "title": "Loan repayment recorded",
+        "description": "Loan repayment to {{personName}} was recorded for {{amount}}."
+      },
+      "receiptItemDueSoon": {
+        "title": "Receipt item due soon",
+        "description": "{{itemName}} may be due again around {{dueDate}}."
+      },
+      "aiExecutionFailed": {
+        "title": "Smart Entry could not save records",
+        "description": "Smart Entry could not save one or more records. Open AI History to review the request."
+      }
+    },
     "time": {
       "dateFormat": {
         "month": "short",

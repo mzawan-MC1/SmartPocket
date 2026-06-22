@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
               .from('notifications')
               .insert({
                 user_id: userId,
-                type: 'account_security',
+                type: 'successful_sign_in',
                 title: 'Successful sign-in',
                 message: 'Your account was accessed successfully.',
                 action_url: '/settings',

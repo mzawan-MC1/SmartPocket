@@ -26,7 +26,83 @@
     "loadErrorTitle": "Impossible de charger les notifications",
     "tryAgain": "Réessayer",
     "emptyTitle": "Aucune notification pour le moment",
-    "emptyDescription": "Les alertes de budget, rappels récurrents et échecs Smart Entry apparaîtront ici."
+    "emptyDescription": "Les alertes de budget, rappels récurrents et échecs Smart Entry apparaîtront ici.",
+    "openError": "Impossible d'ouvrir la notification.",
+    "markAllError": "Impossible de marquer les notifications comme lues.",
+    "refreshError": "Impossible d'actualiser les alertes.",
+    "values": {
+      "periodKinds": {
+        "payPeriod": "période de paie",
+        "planningPeriod": "période de planification"
+      },
+      "status": {
+        "pending": "en attente",
+        "partiallyPaid": "partiellement payée",
+        "settled": "réglée"
+      }
+    },
+    "types": {
+      "successfulSignIn": {
+        "title": "Connexion réussie",
+        "description": "Votre compte a été consulté avec succès."
+      },
+      "payPeriodStartsToday": {
+        "title": "La période de paie commence aujourd'hui",
+        "description": "Votre {{periodLabel}} commence aujourd'hui."
+      },
+      "payPeriodStartsTomorrow": {
+        "title": "La période de paie commence demain",
+        "description": "Votre {{periodLabel}} commence demain."
+      },
+      "billsBeforeNextPayday": {
+        "title": "Factures dues avant le prochain jour de paie",
+        "description": "{{totalDue}} de factures sont dus avant votre prochain jour de paie le {{nextPayday}}."
+      },
+      "recurringDueSoon": {
+        "title": "Paiement récurrent bientôt dû",
+        "description": "{{description}} ({{frequency}}) est dû le {{dueDate}}."
+      },
+      "largePaymentDueThisPeriod": {
+        "title": "Paiement important dû pendant cette période",
+        "description": "{{description}} de {{amount}} est dû pendant cette {{periodLabel}}."
+      },
+      "budgetExceeded": {
+        "title": "Budget dépassé",
+        "description": "{{budgetName}} dépasse le budget à {{usedPct}} % pour la période de budget active."
+      },
+      "budgetThresholdReached": {
+        "title": "Budget proche de la limite",
+        "description": "{{budgetName}} a atteint {{usedPct}} % de son budget pour la période de budget active."
+      },
+      "reimbursementCreated": {
+        "title": "Remboursement créé",
+        "description": "{{description}} a été ajouté pour {{amount}}."
+      },
+      "reimbursementUpdated": {
+        "title": "Remboursement mis à jour",
+        "description": "Un paiement de {{amount}} a été enregistré."
+      },
+      "reimbursementStatusUpdated": {
+        "title": "Statut du remboursement mis à jour",
+        "description": "Un remboursement est maintenant marqué comme {{status}}."
+      },
+      "settlementCompleted": {
+        "title": "Règlement terminé",
+        "description": "{{description}} a été enregistré pour {{amount}}."
+      },
+      "loanRepaymentRecorded": {
+        "title": "Remboursement de prêt enregistré",
+        "description": "Un remboursement de prêt à {{personName}} a été enregistré pour {{amount}}."
+      },
+      "receiptItemDueSoon": {
+        "title": "Article de reçu bientôt dû",
+        "description": "{{itemName}} pourrait être à nouveau dû vers le {{dueDate}}."
+      },
+      "aiExecutionFailed": {
+        "title": "Smart Entry n'a pas pu enregistrer les données",
+        "description": "Smart Entry n'a pas pu enregistrer un ou plusieurs éléments. Ouvrez l'historique IA pour revoir la demande."
+      }
+    }
   },
   "sidebar": {
     "sections": {

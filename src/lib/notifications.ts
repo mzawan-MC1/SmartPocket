@@ -6,6 +6,7 @@ import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile'
 import { formatCurrencyValue } from '@/lib/currency-formatting';
 import { getClientReferenceData } from '@/lib/reference-data/client';
 import { getCurrencyByCode } from '@/lib/reference-data/lookups';
+import type { CurrencyReference } from '@/lib/reference-data/types';
 
 export interface AppNotification {
   id: string;
@@ -19,6 +20,360 @@ export interface AppNotification {
   is_read: boolean;
   read_at: string | null;
   created_at: string;
+}
+
+type NotificationTranslationFn = (key: string, options?: Record<string, unknown>) => string;
+
+export interface LocalizedNotificationContent {
+  resolvedType: string;
+  title: string;
+  message: string;
+  usedFallback: boolean;
+}
+
+function getMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string
+) {
+  const value = metadata?.[key];
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
+}
+
+function getMetadataNumber(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string
+) {
+  const value = metadata?.[key];
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function getMetadataArray<T = unknown>(
+  metadata: Record<string, unknown> | null | undefined,
+  key: string
+) {
+  const value = metadata?.[key];
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function formatNotificationCurrencyAmount(args: {
+  amount: number | null;
+  currencyCode: string | null;
+  language: string;
+  currencies?: CurrencyReference[];
+}) {
+  if (args.amount === null) return null;
+  return formatCurrencyValue(args.amount, {
+    currencyCode: args.currencyCode,
+    currencies: args.currencies,
+    locale: args.language,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).text;
+}
+
+function formatNotificationDate(value: string | null, language: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleDateString(language, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function resolveLegacyNotificationType(notification: AppNotification) {
+  if (
+    notification.type === 'account_security'
+    && (
+      getMetadataString(notification.metadata, 'event') === 'login'
+      || notification.source_key?.startsWith('security_login:') === true
+    )
+  ) {
+    return 'successful_sign_in';
+  }
+
+  if (
+    notification.type === 'settlement_completed'
+    && (
+      notification.source_key?.startsWith('loan_repayment:') === true
+      || (
+        typeof notification.action_url === 'string'
+        && notification.action_url.startsWith('/people/')
+        && getMetadataNumber(notification.metadata, 'transaction_id') !== null
+      )
+    )
+  ) {
+    return 'loan_repayment_recorded';
+  }
+
+  return notification.type;
+}
+
+function getNotificationStatusLabel(status: string | null, t: NotificationTranslationFn) {
+  switch (status) {
+    case 'pending':
+      return t('notifications.values.status.pending');
+    case 'partially_paid':
+      return t('notifications.values.status.partiallyPaid');
+    case 'settled':
+      return t('notifications.values.status.settled');
+    default:
+      return status;
+  }
+}
+
+export function getLocalizedNotificationContent(args: {
+  notification: AppNotification;
+  t: NotificationTranslationFn;
+  language: string;
+  currencies?: CurrencyReference[];
+}): LocalizedNotificationContent {
+  const { notification, t, language, currencies = [] } = args;
+  const resolvedType = resolveLegacyNotificationType(notification);
+  const metadata = notification.metadata || {};
+  const fallback = (): LocalizedNotificationContent => ({
+    resolvedType,
+    title: notification.title,
+    message: notification.message,
+    usedFallback: true,
+  });
+
+  switch (resolvedType) {
+    case 'successful_sign_in':
+      return {
+        resolvedType,
+        title: t('notifications.types.successfulSignIn.title'),
+        message: t('notifications.types.successfulSignIn.description'),
+        usedFallback: false,
+      };
+    case 'pay_period_starts_today': {
+      const periodLabel = getMetadataString(metadata, 'period_label_kind') === 'planning_period'
+        ? t('notifications.values.periodKinds.planningPeriod')
+        : t('notifications.values.periodKinds.payPeriod');
+      return {
+        resolvedType,
+        title: t('notifications.types.payPeriodStartsToday.title'),
+        message: t('notifications.types.payPeriodStartsToday.description', { periodLabel }),
+        usedFallback: false,
+      };
+    }
+    case 'pay_period_starts_tomorrow': {
+      const periodLabel = getMetadataString(metadata, 'period_label_kind') === 'planning_period'
+        ? t('notifications.values.periodKinds.planningPeriod')
+        : t('notifications.values.periodKinds.payPeriod');
+      return {
+        resolvedType,
+        title: t('notifications.types.payPeriodStartsTomorrow.title'),
+        message: t('notifications.types.payPeriodStartsTomorrow.description', { periodLabel }),
+        usedFallback: false,
+      };
+    }
+    case 'bills_before_next_payday': {
+      const totals = getMetadataArray<{ currency?: string; amount?: number | string }>(metadata, 'total_due_by_currency')
+        .map((row) => formatNotificationCurrencyAmount({
+          amount: typeof row?.amount === 'number' ? row.amount : Number(row?.amount ?? NaN),
+          currencyCode: typeof row?.currency === 'string' ? row.currency : null,
+          language,
+          currencies,
+        }))
+        .filter((value): value is string => Boolean(value));
+      const nextPayday = formatNotificationDate(getMetadataString(metadata, 'next_payday'), language);
+      if (!nextPayday || totals.length === 0) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.billsBeforeNextPayday.title'),
+        message: t('notifications.types.billsBeforeNextPayday.description', {
+          totalDue: totals.join(', '),
+          nextPayday,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'recurring_due_soon': {
+      const description = getMetadataString(metadata, 'description');
+      const frequency = getMetadataString(metadata, 'frequency_label');
+      const dueDate = formatNotificationDate(getMetadataString(metadata, 'next_due_date'), language);
+      if (!description || !frequency || !dueDate) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.recurringDueSoon.title'),
+        message: t('notifications.types.recurringDueSoon.description', {
+          description,
+          frequency,
+          dueDate,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'large_payment_due_this_period': {
+      const description = getMetadataString(metadata, 'description');
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency'),
+        language,
+        currencies,
+      });
+      const periodLabel = getMetadataString(metadata, 'period_label_kind') === 'planning_period'
+        ? t('notifications.values.periodKinds.planningPeriod')
+        : t('notifications.values.periodKinds.payPeriod');
+      if (!description || !amountText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.largePaymentDueThisPeriod.title'),
+        message: t('notifications.types.largePaymentDueThisPeriod.description', {
+          description,
+          amount: amountText,
+          periodLabel,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'budget_exceeded': {
+      const budgetName = getMetadataString(metadata, 'budget_name');
+      const usedPct = getMetadataNumber(metadata, 'used_pct');
+      if (!budgetName || usedPct === null) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.budgetExceeded.title'),
+        message: t('notifications.types.budgetExceeded.description', {
+          budgetName,
+          usedPct: usedPct.toFixed(1),
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'budget_threshold_reached': {
+      const budgetName = getMetadataString(metadata, 'budget_name');
+      const usedPct = getMetadataNumber(metadata, 'used_pct');
+      if (!budgetName || usedPct === null) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.budgetThresholdReached.title'),
+        message: t('notifications.types.budgetThresholdReached.description', {
+          budgetName,
+          usedPct: usedPct.toFixed(1),
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'reimbursement_created': {
+      const description = getMetadataString(metadata, 'description');
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency'),
+        language,
+        currencies,
+      });
+      if (!description || !amountText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.reimbursementCreated.title'),
+        message: t('notifications.types.reimbursementCreated.description', {
+          description,
+          amount: amountText,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'reimbursement_updated': {
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency'),
+        language,
+        currencies,
+      });
+      if (!amountText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.reimbursementUpdated.title'),
+        message: t('notifications.types.reimbursementUpdated.description', {
+          amount: amountText,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'reimbursement_status_updated': {
+      const status = getNotificationStatusLabel(getMetadataString(metadata, 'status'), t);
+      if (!status) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.reimbursementStatusUpdated.title'),
+        message: t('notifications.types.reimbursementStatusUpdated.description', {
+          status,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'settlement_completed': {
+      const description = getMetadataString(metadata, 'description');
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency'),
+        language,
+        currencies,
+      });
+      if (!description || !amountText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.settlementCompleted.title'),
+        message: t('notifications.types.settlementCompleted.description', {
+          description,
+          amount: amountText,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'loan_repayment_recorded': {
+      const personName = getMetadataString(metadata, 'person_name');
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency'),
+        language,
+        currencies,
+      });
+      if (!personName || !amountText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.loanRepaymentRecorded.title'),
+        message: t('notifications.types.loanRepaymentRecorded.description', {
+          personName,
+          amount: amountText,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'receipt_item_due_soon': {
+      const itemName = getMetadataString(metadata, 'item_name');
+      const dueDate = formatNotificationDate(getMetadataString(metadata, 'next_due_date'), language);
+      if (!itemName || !dueDate) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.receiptItemDueSoon.title'),
+        message: t('notifications.types.receiptItemDueSoon.description', {
+          itemName,
+          dueDate,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'ai_execution_failed':
+      return {
+        resolvedType,
+        title: t('notifications.types.aiExecutionFailed.title'),
+        message: t('notifications.types.aiExecutionFailed.description'),
+        usedFallback: false,
+      };
+    default:
+      return fallback();
+  }
 }
 
 export interface NotificationPreferences {
@@ -348,6 +703,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         metadata: {
           period_start: nextFinancialPeriod.startDate,
           period_end: nextFinancialPeriod.endDate,
+          period_label_kind: periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning_period' : 'pay_period',
         },
         sourceKey: `pay_period_today:${nextFinancialPeriod.startDate}`,
       });
@@ -360,6 +716,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         metadata: {
           period_start: nextFinancialPeriod.startDate,
           period_end: nextFinancialPeriod.endDate,
+          period_label_kind: periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning_period' : 'pay_period',
         },
         sourceKey: `pay_period_tomorrow:${nextFinancialPeriod.startDate}`,
       });
@@ -421,8 +778,10 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         actionUrl: '/recurring',
         metadata: {
           recurring_id: recurring.id,
+            description: recurring.description || 'A recurring payment',
           amount: recurring.amount,
           currency: recurring.currency,
+            frequency_label: formatRecurringFrequencyLabel(recurring.frequency || ''),
           next_due_date: recurring.next_due_date,
         },
         sourceKey: `recurring_due:${recurring.id}:${recurring.next_due_date}`,
@@ -444,9 +803,11 @@ export async function syncInAppNotificationSignals(): Promise<void> {
           actionUrl: '/recurring',
           metadata: {
             recurring_id: recurring.id,
+            description: recurring.description || 'A recurring payment',
             amount: recurring.amount,
             currency: recurring.currency,
             next_due_date: recurring.next_due_date,
+            period_label_kind: periodContext.effectiveConfig.incomeFrequency === 'irregular' ? 'planning_period' : 'pay_period',
           },
           sourceKey: `large_due:${recurring.id}:${currentFinancialPeriod.startDate}:${currentFinancialPeriod.endDate}`,
         });
@@ -472,6 +833,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
           actionUrl: '/budgets',
           metadata: {
             budget_id: budget.id,
+            budget_name: budget.category?.name || budget.name,
             period_start: budget.period_start,
             used_pct: usedPct,
             currency: budget.currency,
@@ -489,6 +851,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         actionUrl: '/budgets',
         metadata: {
           budget_id: budget.id,
+          budget_name: budget.category?.name || budget.name,
           period_start: budget.period_start,
           threshold,
           used_pct: usedPct,

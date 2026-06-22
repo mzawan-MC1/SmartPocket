@@ -29,7 +29,80 @@
     "emptyDescription": "ستظهر هنا تنبيهات الميزانية والتذكيرات المتكررة وإخفاقات Smart Entry.",
     "openError": "فشل فتح الإشعار.",
     "markAllError": "فشل تحديد الإشعارات كمقروءة.",
-    "refreshError": "فشل تحديث التنبيهات."
+    "refreshError": "فشل تحديث التنبيهات.",
+    "values": {
+      "periodKinds": {
+        "payPeriod": "فترة الدفع",
+        "planningPeriod": "فترة التخطيط"
+      },
+      "status": {
+        "pending": "قيد الانتظار",
+        "partiallyPaid": "مدفوع جزئيًا",
+        "settled": "مسوّى"
+      }
+    },
+    "types": {
+      "successfulSignIn": {
+        "title": "تم تسجيل الدخول بنجاح",
+        "description": "تم الوصول إلى حسابك بنجاح."
+      },
+      "payPeriodStartsToday": {
+        "title": "تبدأ فترة الدفع اليوم",
+        "description": "تبدأ {{periodLabel}} الخاصة بك اليوم."
+      },
+      "payPeriodStartsTomorrow": {
+        "title": "تبدأ فترة الدفع غدًا",
+        "description": "تبدأ {{periodLabel}} الخاصة بك غدًا."
+      },
+      "billsBeforeNextPayday": {
+        "title": "فواتير مستحقة قبل موعد الدفع التالي",
+        "description": "هناك فواتير بقيمة {{totalDue}} مستحقة قبل موعد الدفع التالي في {{nextPayday}}."
+      },
+      "recurringDueSoon": {
+        "title": "دفعة متكررة مستحقة قريبًا",
+        "description": "{{description}} ({{frequency}}) مستحقة في {{dueDate}}."
+      },
+      "largePaymentDueThisPeriod": {
+        "title": "دفعة كبيرة مستحقة في فترة الدفع هذه",
+        "description": "{{description}} بقيمة {{amount}} مستحقة خلال {{periodLabel}} هذه."
+      },
+      "budgetExceeded": {
+        "title": "تم تجاوز الميزانية",
+        "description": "{{budgetName}} تجاوزت الميزانية بنسبة {{usedPct}}% خلال فترة الميزانية النشطة."
+      },
+      "budgetThresholdReached": {
+        "title": "الميزانية تقترب من الحد",
+        "description": "{{budgetName}} وصلت إلى {{usedPct}}% من ميزانيتها خلال فترة الميزانية النشطة."
+      },
+      "reimbursementCreated": {
+        "title": "تم إنشاء تعويض",
+        "description": "تمت إضافة {{description}} بمبلغ {{amount}}."
+      },
+      "reimbursementUpdated": {
+        "title": "تم تحديث التعويض",
+        "description": "تم تسجيل دفعة بقيمة {{amount}}."
+      },
+      "reimbursementStatusUpdated": {
+        "title": "تم تحديث حالة التعويض",
+        "description": "تم وضع علامة {{status}} على التعويض الآن."
+      },
+      "settlementCompleted": {
+        "title": "اكتملت التسوية",
+        "description": "تم تسجيل {{description}} بمبلغ {{amount}}."
+      },
+      "loanRepaymentRecorded": {
+        "title": "تم تسجيل سداد القرض",
+        "description": "تم تسجيل سداد قرض إلى {{personName}} بمبلغ {{amount}}."
+      },
+      "receiptItemDueSoon": {
+        "title": "عنصر الإيصال قد يحين موعده قريبًا",
+        "description": "قد يحين موعد شراء {{itemName}} مرة أخرى تقريبًا في {{dueDate}}."
+      },
+      "aiExecutionFailed": {
+        "title": "تعذر على Smart Entry حفظ السجلات",
+        "description": "تعذر على Smart Entry حفظ سجل واحد أو أكثر. افتح سجل الذكاء الاصطناعي لمراجعة الطلب."
+      }
+    }
   },
   "sidebar": {
     "sections": {

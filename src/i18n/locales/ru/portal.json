@@ -26,7 +26,83 @@
     "loadErrorTitle": "Не удалось загрузить уведомления",
     "tryAgain": "Повторить",
     "emptyTitle": "Уведомлений пока нет",
-    "emptyDescription": "Здесь будут появляться бюджетные оповещения, напоминания о повторяющихся платежах и ошибки Smart Entry."
+    "emptyDescription": "Здесь будут появляться бюджетные оповещения, напоминания о повторяющихся платежах и ошибки Smart Entry.",
+    "openError": "Не удалось открыть уведомление.",
+    "markAllError": "Не удалось отметить уведомления как прочитанные.",
+    "refreshError": "Не удалось обновить оповещения.",
+    "values": {
+      "periodKinds": {
+        "payPeriod": "период выплат",
+        "planningPeriod": "период планирования"
+      },
+      "status": {
+        "pending": "в ожидании",
+        "partiallyPaid": "частично оплачено",
+        "settled": "погашено"
+      }
+    },
+    "types": {
+      "successfulSignIn": {
+        "title": "Успешный вход",
+        "description": "Доступ к вашему аккаунту выполнен успешно."
+      },
+      "payPeriodStartsToday": {
+        "title": "Период выплат начинается сегодня",
+        "description": "Ваш {{periodLabel}} начинается сегодня."
+      },
+      "payPeriodStartsTomorrow": {
+        "title": "Период выплат начинается завтра",
+        "description": "Ваш {{periodLabel}} начинается завтра."
+      },
+      "billsBeforeNextPayday": {
+        "title": "Счета к оплате до следующего дня выплаты",
+        "description": "Счета на сумму {{totalDue}} нужно оплатить до следующего дня выплаты {{nextPayday}}."
+      },
+      "recurringDueSoon": {
+        "title": "Скоро срок повторяющегося платежа",
+        "description": "{{description}} ({{frequency}}) нужно оплатить {{dueDate}}."
+      },
+      "largePaymentDueThisPeriod": {
+        "title": "Крупный платеж в этом периоде выплат",
+        "description": "{{description}} на сумму {{amount}} нужно оплатить в этот {{periodLabel}}."
+      },
+      "budgetExceeded": {
+        "title": "Бюджет превышен",
+        "description": "{{budgetName}} превышает бюджет на {{usedPct}}% в текущем бюджетном периоде."
+      },
+      "budgetThresholdReached": {
+        "title": "Бюджет близок к лимиту",
+        "description": "{{budgetName}} достиг {{usedPct}}% своего бюджета в текущем бюджетном периоде."
+      },
+      "reimbursementCreated": {
+        "title": "Возмещение создано",
+        "description": "{{description}} добавлено на сумму {{amount}}."
+      },
+      "reimbursementUpdated": {
+        "title": "Возмещение обновлено",
+        "description": "Зарегистрирован платеж на сумму {{amount}}."
+      },
+      "reimbursementStatusUpdated": {
+        "title": "Статус возмещения обновлен",
+        "description": "Возмещение теперь отмечено как {{status}}."
+      },
+      "settlementCompleted": {
+        "title": "Расчет завершен",
+        "description": "{{description}} зарегистрировано на сумму {{amount}}."
+      },
+      "loanRepaymentRecorded": {
+        "title": "Погашение займа зарегистрировано",
+        "description": "Погашение займа для {{personName}} зарегистрировано на сумму {{amount}}."
+      },
+      "receiptItemDueSoon": {
+        "title": "Товар из чека скоро может понадобиться снова",
+        "description": "{{itemName}} может снова понадобиться примерно {{dueDate}}."
+      },
+      "aiExecutionFailed": {
+        "title": "Smart Entry не смог сохранить записи",
+        "description": "Smart Entry не смог сохранить одну или несколько записей. Откройте историю AI, чтобы проверить запрос."
+      }
+    }
   },
   "sidebar": {
     "sections": {

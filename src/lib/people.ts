@@ -660,6 +660,7 @@ export async function createReimbursement(payload: {
     metadata: {
       reimbursement_id: data.id,
       person_id: payload.person_id,
+      description: payload.description,
       amount: payload.amount,
       currency,
     },
@@ -848,6 +849,7 @@ export async function createSettlement(payload: {
     metadata: {
       settlement_id: data.id,
       person_id: payload.person_id,
+      description: payload.description,
       amount: payload.amount,
       currency,
     },
@@ -976,12 +978,14 @@ export async function createLoanRepayment(payload: {
   });
 
   await createNotificationIfEnabled('reimbursement_updates', {
-    type: 'settlement_completed',
+    type: 'loan_repayment_recorded',
     title: 'Loan repayment recorded',
     message: `${effectiveDescription} was recorded for ${effectiveCurrency} ${amount.toFixed(2)}.`,
     actionUrl: `/people/${payload.person_id}`,
     metadata: {
       person_id: payload.person_id,
+      person_name: personName,
+      description: effectiveDescription,
       transaction_id: transaction.id,
       settlement_id: settlement.id,
       amount,

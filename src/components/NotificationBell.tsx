@@ -5,6 +5,7 @@ import { Bell, CheckCheck, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import {
+  getLocalizedNotificationContent,
   getUnreadNotificationCount,
   listNotifications,
   markAllNotificationsAsRead,
@@ -14,6 +15,7 @@ import {
 } from '@/lib/notifications';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 const NOTIFICATION_STALE_MS = 60 * 1000;
 
@@ -42,8 +44,9 @@ function formatNotificationTime(value: string, language: string) {
 
 export default function NotificationBell() {
   const { t } = useTranslation('portal');
-  const { language } = useLanguage();
+  const { language, dir } = useLanguage();
   const router = useRouter();
+  const { data: referenceData } = useClientReferenceData();
   const containerRef = useRef<HTMLDivElement>(null);
   const hasLoadedRef = useRef(false);
   const lastLoadedAtRef = useRef<number | null>(null);
@@ -214,6 +217,18 @@ export default function NotificationBell() {
     return t('notifications.manyUnread', { count: unreadCount });
   }, [t, unreadCount]);
 
+  const localizedNotifications = useMemo(() => (
+    notifications.map((notification) => ({
+      notification,
+      localized: getLocalizedNotificationContent({
+        notification,
+        t,
+        language,
+        currencies: referenceData?.snapshot.currencies ?? [],
+      }),
+    }))
+  ), [language, notifications, referenceData?.snapshot.currencies, t]);
+
   return (
     <div className="relative shrink-0" ref={containerRef}>
       <button
@@ -242,11 +257,12 @@ export default function NotificationBell() {
         <div
           role="dialog"
           aria-label={t('notifications.title')}
+          dir={dir}
           className="absolute end-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg max-[480px]:fixed max-[480px]:left-3 max-[480px]:right-3 max-[480px]:top-[calc(env(safe-area-inset-top)+4rem)] max-[480px]:mt-0 max-[480px]:w-auto max-[480px]:max-w-[calc(100vw-24px)]"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
             <div>
-              <p className="text-sm font-700 text-foreground">{t('notifications.title')}</p>
+              <p className="text-sm font-700 text-foreground text-start">{t('notifications.title')}</p>
               <p className="text-xs text-muted-foreground">
                 {syncing ? t('notifications.refreshing') : headerLabel}
               </p>
@@ -296,25 +312,25 @@ export default function NotificationBell() {
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {notifications.map((notification) => (
+                {localizedNotifications.map(({ notification, localized }) => (
                   <button
                     key={notification.id}
                     type="button"
                     onClick={() => void handleNotificationClick(notification)}
-                    className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition-colors hover:bg-muted/40 max-[480px]:px-3.5 max-[480px]:py-3 ${
+                    className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-start transition-colors hover:bg-muted/40 max-[480px]:px-3.5 max-[480px]:py-3 ${
                       notification.is_read ? 'bg-card' : 'bg-accent/5'
                     }`}
                   >
                     <div className="flex w-full items-start justify-between gap-3">
                       <div className="flex items-center gap-2">
                         {!notification.is_read ? <span className="mt-0.5 h-2 w-2 rounded-full bg-accent" aria-hidden="true" /> : null}
-                        <p className="text-sm font-700 text-foreground">{notification.title}</p>
+                        <p className="text-sm font-700 text-foreground text-start">{localized.title}</p>
                       </div>
                       <span className="shrink-0 text-[11px] text-muted-foreground">
                         {formatNotificationTime(notification.created_at, language)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{notification.message}</p>
+                    <p className="text-sm text-muted-foreground text-start">{localized.message}</p>
                   </button>
                 ))}
               </div>
