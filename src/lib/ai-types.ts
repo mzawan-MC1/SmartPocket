@@ -280,6 +280,11 @@ export interface AIUsageSummary {
   currentPeriodEnd?: string;
   monthlyVoiceSeconds?: number;
   voiceSecondsUsed?: number;
+  monthlyReceiptExtractions?: number;
+  receiptExtractionsIncluded?: number;
+  receiptExtractionsUsed?: number;
+  receiptExtractionsReserved?: number;
+  receiptExtractionsRemaining?: number;
 }
 
 export interface AIErrorPayload {

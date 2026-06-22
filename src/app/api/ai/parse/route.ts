@@ -497,6 +497,11 @@ function summarizeUsage(summary: SubscriptionSummary | null | undefined): AIUsag
     currentPeriodEnd: summary.current_period_end,
     monthlyVoiceSeconds: Number(summary.monthly_voice_seconds || 0),
     voiceSecondsUsed: Number(summary.voice_seconds_used || 0),
+    monthlyReceiptExtractions: Number(summary.monthly_receipt_extractions || 0),
+    receiptExtractionsIncluded: Number(summary.receipt_extractions_included || 0),
+    receiptExtractionsUsed: Number(summary.receipt_extractions_used || 0),
+    receiptExtractionsReserved: Number(summary.receipt_extractions_reserved || 0),
+    receiptExtractionsRemaining: Number(summary.receipt_extractions_remaining || 0),
   };
 }
 

@@ -18,6 +18,7 @@ interface Plan {
   monthly_ai_credits: number;
   daily_ai_request_limit: number;
   monthly_voice_seconds: number;
+  monthly_receipt_extractions: number;
   text_ai_enabled: boolean;
   voice_ai_enabled: boolean;
   ai_history_enabled: boolean;
@@ -49,6 +50,7 @@ interface AdminStats {
   expired: number;
   total_credits_consumed: number;
   total_voice_seconds: number;
+  total_receipt_extractions: number;
   estimated_cost_usd: number;
 }
 
@@ -122,6 +124,10 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">Monthly Voice Seconds</label>
           <input type="number" min="0" className="input-base text-sm" value={form.monthly_voice_seconds} onChange={e => set('monthly_voice_seconds', parseInt(e.target.value) || 0)} />
+        </div>
+        <div>
+          <label className="block text-xs font-600 text-foreground mb-1">Receipt Documents / Month</label>
+          <input type="number" min="0" className="input-base text-sm" value={form.monthly_receipt_extractions} onChange={e => set('monthly_receipt_extractions', parseInt(e.target.value) || 0)} />
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">AI History Retention (days)</label>
@@ -238,6 +244,7 @@ export default function AdminSubscriptionsPage() {
         monthly_ai_credits: plan.monthly_ai_credits,
         daily_ai_request_limit: plan.daily_ai_request_limit,
         monthly_voice_seconds: plan.monthly_voice_seconds,
+        monthly_receipt_extractions: plan.monthly_receipt_extractions,
         text_ai_enabled: plan.text_ai_enabled,
         voice_ai_enabled: plan.voice_ai_enabled,
         ai_history_enabled: plan.ai_history_enabled,
@@ -386,6 +393,10 @@ export default function AdminSubscriptionsPage() {
                             <p className="text-sm font-700 text-foreground mt-0.5">{Math.round(plan.monthly_voice_seconds / 60)}</p>
                           </div>
                           <div className="bg-secondary/50 rounded-lg p-2.5">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Receipt docs/mo</p>
+                            <p className="text-sm font-700 text-foreground mt-0.5">{plan.monthly_receipt_extractions}</p>
+                          </div>
+                          <div className="bg-secondary/50 rounded-lg p-2.5">
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Trial days</p>
                             <p className="text-sm font-700 text-foreground mt-0.5">{plan.trial_duration_days}</p>
                           </div>
@@ -393,6 +404,7 @@ export default function AdminSubscriptionsPage() {
                         <div className="flex flex-wrap gap-2 mt-3">
                           {plan.text_ai_enabled && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Text AI</span>}
                           {plan.voice_ai_enabled && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Voice AI</span>}
+                          {plan.monthly_receipt_extractions > 0 && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Receipt Intelligence</span>}
                           {plan.ai_history_enabled && <span className="text-[10px] bg-info-soft text-info px-2 py-0.5 rounded-full font-600">AI History</span>}
                           {plan.managed_people_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Managed People</span>}
                           {plan.shared_spaces_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Shared Spaces</span>}
@@ -537,6 +549,7 @@ export default function AdminSubscriptionsPage() {
                     { label: 'Active', value: stats.active, color: 'text-positive' },
                     { label: 'Expired', value: stats.expired, color: 'text-negative' },
                     { label: 'Credits Consumed (mo)', value: stats.total_credits_consumed, color: 'text-foreground' },
+                    { label: 'Receipt Docs (mo)', value: stats.total_receipt_extractions, color: 'text-foreground' },
                     { label: 'Est. AI Cost (mo)', value: `$${(stats.estimated_cost_usd || 0).toFixed(4)}`, color: 'text-foreground' },
                   ].map(s => (
                     <div key={s.label} className="card-elevated p-4">

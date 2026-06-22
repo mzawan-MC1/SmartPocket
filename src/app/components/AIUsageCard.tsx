@@ -17,6 +17,7 @@ interface SubscriptionSummary {
   monthly_ai_credits?: number;
   daily_ai_request_limit?: number;
   monthly_voice_seconds?: number;
+  monthly_receipt_extractions?: number;
   text_ai_enabled?: boolean;
   voice_ai_enabled?: boolean;
   ai_history_enabled?: boolean;
@@ -26,6 +27,11 @@ interface SubscriptionSummary {
   credits_refunded?: number;
   voice_seconds_used?: number;
   requests_today?: number;
+  receipt_extractions_included?: number;
+  receipt_extractions_used?: number;
+  receipt_extractions_reserved?: number;
+  receipt_extractions_refunded?: number;
+  receipt_extractions_remaining?: number;
   cycle_start?: string;
   cycle_end?: string;
 }
@@ -167,7 +173,7 @@ export default function AIUsageCard() {
     void load();
   }, [load]);
 
-  useSmartPocketDataChanged(['ai_usage', 'dashboard', 'transactions', 'financial_accounts'], 'AIUsageCard', async () => {
+  useSmartPocketDataChanged(['ai_usage', 'dashboard', 'transactions', 'transaction_documents', 'financial_accounts'], 'AIUsageCard', async () => {
     await load(true);
   });
 
@@ -236,13 +242,23 @@ export default function AIUsageCard() {
     );
   }
 
-  const creditsUsed = (summary.credits_consumed ?? 0) + (summary.credits_reserved ?? 0);
-  const creditsTotal = summary.credits_allocated ?? 0;
-  const creditsPct = creditsTotal > 0 ? Math.round((creditsUsed / creditsTotal) * 100) : 0;
-  const creditsRemaining = Math.max(0, creditsTotal - creditsUsed);
-
+  const textUsed = summary.requests_today ?? 0;
+  const textTotal = summary.daily_ai_request_limit ?? 0;
+  const textPct = textTotal > 0 ? Math.round((textUsed / textTotal) * 100) : 0;
   const voiceUsedMin = Math.round((summary.voice_seconds_used ?? 0) / 60);
   const voiceTotalMin = Math.round((summary.monthly_voice_seconds ?? 0) / 60);
+  const voicePct = voiceTotalMin > 0 ? Math.round((voiceUsedMin / voiceTotalMin) * 100) : 0;
+  const voiceRemainingMin = Math.max(0, voiceTotalMin - voiceUsedMin);
+
+  const receiptIncluded = summary.receipt_extractions_included ?? summary.monthly_receipt_extractions ?? 0;
+  const receiptUsed = summary.receipt_extractions_used ?? 0;
+  const receiptReserved = summary.receipt_extractions_reserved ?? 0;
+  const receiptRemaining = typeof summary.receipt_extractions_remaining === 'number'
+    ? summary.receipt_extractions_remaining
+    : Math.max(0, receiptIncluded - receiptUsed - receiptReserved);
+  const receiptPct = receiptIncluded > 0 ? Math.round(((receiptUsed + receiptReserved) / receiptIncluded) * 100) : 0;
+
+  const peakPct = Math.max(textPct, voicePct, receiptPct);
 
   const isTrialing = summary.status === 'trialing';
   const trialDaysLeft = isTrialing && summary.trial_ends_at
@@ -291,7 +307,7 @@ export default function AIUsageCard() {
             <RefreshCw size={14} className="text-muted-foreground" />
           </button>
         </div>
-        <WarningBanner pct={creditsPct} t={t} />
+        <WarningBanner pct={peakPct} t={t} />
         {isTrialing && trialDaysLeft !== null ? (
           <div className="flex items-center gap-1.5 text-xs font-600 text-violet-700">
             <Clock size={12} />
@@ -299,19 +315,62 @@ export default function AIUsageCard() {
           </div>
         ) : null}
 
-        <div className="space-y-3">
-          <UsageBar used={creditsUsed} total={creditsTotal} label={t('aiUsage.credits')} />
-          {voiceTotalMin > 0 && (
+        <div className="grid gap-3">
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-700 text-foreground">{t('aiUsage.textAi')}</p>
+                <p className="text-xs text-muted-foreground">{t('aiUsage.requestsUsedToday')}</p>
+              </div>
+              <p className="text-lg font-800 text-foreground">
+                {textUsed}
+                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {textTotal || t('aiUsage.none')}</span>
+              </p>
+            </div>
+            <UsageBar used={textUsed} total={textTotal} label={t('aiUsage.textAiRequests')} />
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-700 text-foreground">{t('aiUsage.voiceAi')}</p>
+                <p className="text-xs text-muted-foreground">{t('aiUsage.voiceUsedIncluded')}</p>
+              </div>
+              <p className="text-lg font-800 text-foreground">
+                {voiceUsedMin}
+                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {voiceTotalMin || t('aiUsage.none')}</span>
+              </p>
+            </div>
             <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
-          )}
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <p className="text-sm font-700 text-foreground">{t('aiUsage.receiptIntelligence')}</p>
+                <p className="text-xs text-muted-foreground">{t('aiUsage.receiptUsedIncluded')}</p>
+              </div>
+              <p className={`text-lg font-800 ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+                {receiptUsed}
+                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
+              </p>
+            </div>
+            <UsageBar used={receiptUsed + receiptReserved} total={receiptIncluded} label={t('aiUsage.receiptDocuments')} />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t('aiUsage.receiptRemaining', { count: receiptRemaining })}
+            </p>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
           <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
-            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.creditsLeft')}</p>
-            <p className={`text-lg font-800 ${creditsRemaining === 0 ? 'text-negative' : 'text-foreground'}`}>
-              {creditsRemaining}
-              <span className="ms-1 text-xs font-600 text-muted-foreground">/ {creditsTotal}</span>
+            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.receiptRemainingCard')}</p>
+            <p className={`text-lg font-800 ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+              {receiptRemaining}
+              <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
             </p>
           </div>
           <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">

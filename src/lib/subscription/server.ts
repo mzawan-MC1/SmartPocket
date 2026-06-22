@@ -10,6 +10,7 @@ export interface SubscriptionSummary {
   monthly_ai_credits?: number;
   daily_ai_request_limit?: number;
   monthly_voice_seconds?: number;
+  monthly_receipt_extractions?: number;
   text_ai_enabled?: boolean;
   voice_ai_enabled?: boolean;
   ai_history_enabled?: boolean;
@@ -19,6 +20,11 @@ export interface SubscriptionSummary {
   credits_refunded?: number;
   voice_seconds_used?: number;
   requests_today?: number;
+  receipt_extractions_included?: number;
+  receipt_extractions_used?: number;
+  receipt_extractions_reserved?: number;
+  receipt_extractions_refunded?: number;
+  receipt_extractions_remaining?: number;
   cycle_start?: string;
   cycle_end?: string;
 }
@@ -37,6 +43,12 @@ const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
   credits_refunded: 0,
   voice_seconds_used: 0,
   requests_today: 0,
+  monthly_receipt_extractions: 0,
+  receipt_extractions_included: 0,
+  receipt_extractions_used: 0,
+  receipt_extractions_reserved: 0,
+  receipt_extractions_refunded: 0,
+  receipt_extractions_remaining: 0,
 };
 
 function createSubscriptionAdminClient(): SupabaseClient | null {

@@ -93,6 +93,12 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
     case 'invalid_ai_json_response':
     case 'pdf_extraction_unavailable':
       return 422;
+    case 'receipt_feature_unavailable':
+      return 403;
+    case 'receipt_allowance_exhausted':
+      return 429;
+    case 'duplicate_request_in_progress':
+      return 409;
     default:
       return 500;
   }
@@ -106,6 +112,145 @@ async function removeUploadedDocument(
   await admin.storage.from(TRANSACTION_DOCUMENT_BUCKET).remove([storagePath]);
 }
 
+type ReceiptCreditReservationResult = {
+  ok?: boolean;
+  error?: string;
+  cycle_id?: string;
+  ledger_id?: string;
+  credits_reserved?: number;
+  duplicate?: boolean;
+};
+
+function normalizeIdempotencyKey(value: FormDataEntryValue | null) {
+  if (typeof value !== 'string') return crypto.randomUUID();
+  const normalized = value.trim();
+  return normalized || crypto.randomUUID();
+}
+
+function getReceiptAccessErrorCode(accessError: string): TransactionDocumentErrorCode {
+  switch (accessError) {
+    case 'receipt_limit_reached':
+      return 'receipt_allowance_exhausted';
+    case 'receipt_ai_disabled':
+    case 'no_subscription':
+    case 'plan_inactive':
+    case 'subscription_expired':
+    case 'trial_expired':
+      return 'receipt_feature_unavailable';
+    default:
+      return 'extract_failed';
+  }
+}
+
+function getProviderType(providerUsed?: string | null) {
+  return providerUsed?.includes('vps') ? 'vps' : 'cloud';
+}
+
+async function updateReceiptLedgerMetadata(
+  admin: ReturnType<typeof requireAdminClient>,
+  ledgerId: string,
+  values: Record<string, unknown>
+) {
+  if (!ledgerId) return;
+  await admin
+    .from('ai_credit_ledger')
+    .update(values)
+    .eq('id', ledgerId);
+}
+
+async function markReceiptExtractionFailed(args: {
+  admin: ReturnType<typeof requireAdminClient>;
+  documentId?: string;
+  jobId?: string;
+  sourceSurface: TransactionDocumentSourceSurface;
+  providerUsed?: string | null;
+  modelUsed?: string | null;
+  parsedResult?: unknown;
+  duplicateMatches?: unknown[];
+  rawOutput?: unknown;
+  errorMessage: string;
+}) {
+  const {
+    admin,
+    documentId,
+    jobId,
+    sourceSurface,
+    providerUsed,
+    modelUsed,
+    parsedResult,
+    duplicateMatches,
+    rawOutput,
+    errorMessage,
+  } = args;
+
+  if (documentId) {
+    const primaryDraft = parsedResult
+      && typeof parsedResult === 'object'
+      && parsedResult !== null
+      && 'transactions' in parsedResult
+      && Array.isArray((parsedResult as { transactions?: unknown[] }).transactions)
+        ? (parsedResult as {
+            transactions?: Array<{
+              merchant?: string;
+              date?: string;
+              total?: number | null;
+              tax?: number | null;
+              currency?: string;
+              receiptNumber?: string;
+            }>;
+          }).transactions?.[0]
+        : undefined;
+
+    await admin
+      .from('transaction_documents')
+      .update({
+        status: 'failed',
+        merchant_name: primaryDraft?.merchant || null,
+        document_date: primaryDraft?.date || null,
+        total_amount: typeof primaryDraft?.total === 'number' ? primaryDraft.total : null,
+        tax_amount: typeof primaryDraft?.tax === 'number' ? primaryDraft.tax : null,
+        currency_code: primaryDraft?.currency || null,
+        receipt_number: primaryDraft?.receiptNumber || null,
+      })
+      .eq('id', documentId);
+  }
+
+  if (jobId) {
+    await admin
+      .from('document_extraction_jobs')
+      .update({
+        source_surface: sourceSurface,
+        status: 'failed',
+        provider_used: providerUsed || null,
+        model_used: modelUsed || null,
+        parsed_result: parsedResult || null,
+        duplicate_matches: duplicateMatches || [],
+        raw_ai_output: rawOutput || null,
+        error_message: errorMessage,
+      })
+      .eq('id', jobId);
+  }
+}
+
+async function incrementReceiptDailyUsage(args: {
+  supabase: Awaited<ReturnType<typeof createRouteHandlerSupabaseClient>>['supabase'];
+  userId: string;
+  providerUsed?: string | null;
+  fallbackUsed?: boolean;
+  success: boolean;
+  durationMs?: number;
+}) {
+  await args.supabase.rpc('increment_ai_daily_usage', {
+    p_user_id: args.userId,
+    p_request_type: 'receipt_extraction',
+    p_provider_type: getProviderType(args.providerUsed),
+    p_fallback_used: args.fallbackUsed || false,
+    p_success: args.success,
+    p_confirmed: false,
+    p_duration_ms: typeof args.durationMs === 'number' ? args.durationMs : 0,
+  });
+}
+
 export async function POST(request: NextRequest) {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
   const extractRequestId = crypto.randomUUID();
@@ -116,6 +261,25 @@ export async function POST(request: NextRequest) {
   let uploadedFile = false;
   let createdDocumentRow = false;
   let createdJobRow = false;
+  let idempotencyKey = '';
+  let creditCycleId = '';
+  let creditLedgerId = '';
+  let usageReserved = false;
+  let dailyUsageLogged = false;
+  let providerAttempted = false;
+  let providerUsed: string | null = null;
+  let modelUsed: string | null = null;
+  let rawAiOutput: unknown = null;
+  let inputTokens: number | null = null;
+  let outputTokens: number | null = null;
+  let totalTokens: number | null = null;
+  let estimatedCostUsd: number | null = null;
+  let parsedResult: unknown = null;
+  let duplicateMatches: unknown[] = [];
+  let extractDurationMs = 0;
+  let fallbackUsed = false;
+  let currentUserId = '';
+  let currentSourceSurface: TransactionDocumentSourceSurface = 'add_transaction';
 
   try {
     logExtractionStage('info', 'authentication.start', {
@@ -140,6 +304,7 @@ export async function POST(request: NextRequest) {
       extractRequestId,
       userId: user.id,
     });
+    currentUserId = user.id;
 
     const formData = await request.formData();
     const fileEntry = formData.get('file');
@@ -159,6 +324,8 @@ export async function POST(request: NextRequest) {
       ? String(formData.get('language') || 'en')
       : 'en';
     const sourceSurface = normalizeSurface(formData.get('sourceSurface'));
+    currentSourceSurface = sourceSurface;
+    idempotencyKey = normalizeIdempotencyKey(formData.get('idempotencyKey'));
 
     logExtractionStage('info', 'file.validation.start', {
       extractRequestId,
@@ -243,11 +410,127 @@ export async function POST(request: NextRequest) {
       storagePath,
     });
 
+    const { data: accessError, error: accessRpcError } = await admin.rpc('check_ai_access', {
+      p_user_id: user.id,
+      p_request_type: 'receipt_extraction',
+    });
+
+    if (accessRpcError) {
+      logExtractionStage('error', 'receipt_allowance.check.failed', {
+        extractRequestId,
+        userId: user.id,
+        documentId,
+        jobId,
+        internalError: accessRpcError.message,
+      });
+      throw accessRpcError;
+    }
+
+    if (typeof accessError === 'string' && accessError) {
+      const accessErrorCode = getReceiptAccessErrorCode(accessError);
+      if (uploadedFile) {
+        await removeUploadedDocument(admin, storagePath).catch(() => undefined);
+        uploadedFile = false;
+      }
+      return jsonWithCookies({
+        success: false,
+        errorCode: accessErrorCode,
+      }, accessErrorCode === 'receipt_allowance_exhausted' ? 429 : 403, cookieMutations);
+    }
+
+    const { data: reserveData, error: reserveError } = await admin.rpc('reserve_ai_credits', {
+      p_user_id: user.id,
+      p_request_type: 'receipt_extraction',
+      p_idempotency_key: idempotencyKey,
+    });
+
+    const reserveResult = (reserveData as ReceiptCreditReservationResult | null) ?? null;
+    if (reserveError || !reserveResult?.ok) {
+      if (uploadedFile) {
+        await removeUploadedDocument(admin, storagePath).catch(() => undefined);
+        uploadedFile = false;
+      }
+      if (reserveError) {
+        throw reserveError;
+      }
+      const reserveErrorCode = getReceiptAccessErrorCode(reserveResult?.error || 'extract_failed');
+      return jsonWithCookies({
+        success: false,
+        errorCode: reserveErrorCode,
+      }, reserveErrorCode === 'receipt_allowance_exhausted' ? 429 : 500, cookieMutations);
+    }
+
+    if (reserveResult.duplicate) {
+      if (uploadedFile) {
+        await removeUploadedDocument(admin, storagePath).catch(() => undefined);
+        uploadedFile = false;
+      }
+      return jsonWithCookies({
+        success: false,
+        errorCode: 'duplicate_request_in_progress',
+      }, 409, cookieMutations);
+    }
+
+    creditCycleId = String(reserveResult.cycle_id || '');
+    creditLedgerId = String(reserveResult.ledger_id || '');
+    usageReserved = Boolean(creditCycleId && creditLedgerId);
+
+    const { error: documentInsertError } = await admin.from('transaction_documents').insert({
+      id: documentId,
+      user_id: user.id,
+      storage_bucket: TRANSACTION_DOCUMENT_BUCKET,
+      storage_path: storagePath,
+      file_name: fileEntry.name,
+      file_size: fileEntry.size,
+      mime_type: fileEntry.type,
+      page_count: validation.pageCount || null,
+      sha256_hash: fileHash,
+      source_surface: sourceSurface,
+      status: 'uploaded',
+    });
+
+    if (documentInsertError) {
+      throw documentInsertError;
+    }
+    createdDocumentRow = true;
+
+    const { error: jobInsertError } = await admin.from('document_extraction_jobs').insert({
+      id: jobId,
+      user_id: user.id,
+      document_id: documentId,
+      source_surface: sourceSurface,
+      status: 'processing',
+      provider_used: null,
+      model_used: null,
+      parsed_result: null,
+      duplicate_matches: [],
+      raw_ai_output: null,
+      error_message: null,
+      idempotency_key: idempotencyKey,
+      credit_ledger_id: creditLedgerId || null,
+    });
+
+    if (jobInsertError) {
+      throw jobInsertError;
+    }
+    createdJobRow = true;
+
+    if (usageReserved) {
+      await updateReceiptLedgerMetadata(admin, creditLedgerId, {
+        source_request_id: jobId,
+        request_type: 'receipt_extraction',
+      });
+    }
+
     const context = await loadExecutionContextServer({
       userId: user.id,
       supabase: admin,
     });
     const options = mapDocumentOptionsFromContext(context);
+
+    if (request.signal.aborted) {
+      throw new Error('Client cancelled receipt extraction before provider call.');
+    }
 
     logExtractionStage('info', 'ai.request.start', {
       extractRequestId,
@@ -284,6 +567,31 @@ export async function POST(request: NextRequest) {
         defaultCurrency: context.defaultCurrency,
       },
     }, config);
+    providerAttempted = true;
+    providerUsed = extractionResponse.providerUsed || null;
+    modelUsed = extractionResponse.modelUsed || extractionResponse.parsed?.modelUsed || null;
+    rawAiOutput = extractionResponse.rawOutput ?? null;
+    inputTokens = extractionResponse.inputTokens ?? null;
+    outputTokens = extractionResponse.outputTokens ?? null;
+    totalTokens = extractionResponse.totalTokens ?? null;
+    estimatedCostUsd = extractionResponse.estimatedCostUsd ?? null;
+    extractDurationMs = extractionResponse.durationMs || 0;
+    fallbackUsed = extractionResponse.fallbackUsed || false;
+    parsedResult = extractionResponse.parsed || null;
+
+    if (usageReserved && creditLedgerId) {
+      await updateReceiptLedgerMetadata(admin, creditLedgerId, {
+        source_request_id: jobId,
+        request_type: 'receipt_extraction',
+        provider_name: providerUsed,
+        model_name: modelUsed,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: totalTokens,
+        estimated_cost_usd: estimatedCostUsd,
+      });
+    }
+
     if (extractionResponse.status === 'parsed' && extractionResponse.parsed) {
       logExtractionStage('info', 'ai.request.success', {
         extractRequestId,
@@ -307,85 +615,36 @@ export async function POST(request: NextRequest) {
     }
 
     if (extractionResponse.status !== 'parsed' || !extractionResponse.parsed) {
-      logExtractionStage('info', 'document_job.insert.start', {
-        extractRequestId,
-        userId: user.id,
+      await markReceiptExtractionFailed({
+        admin,
         documentId,
         jobId,
-        result: 'failed',
+        sourceSurface,
+        providerUsed,
+        modelUsed,
+        rawOutput: rawAiOutput,
+        errorMessage: extractionResponse.errorMessage || 'Document extraction failed',
       });
-      const { error: failedDocumentInsertError } = await admin.from('transaction_documents').insert({
-        id: documentId,
-        user_id: user.id,
-        storage_bucket: TRANSACTION_DOCUMENT_BUCKET,
-        storage_path: storagePath,
-        file_name: fileEntry.name,
-        file_size: fileEntry.size,
-        mime_type: fileEntry.type,
-        page_count: validation.pageCount || null,
-        sha256_hash: fileHash,
-        source_surface: sourceSurface,
-        status: 'failed',
-      });
-      if (!failedDocumentInsertError) {
-        createdDocumentRow = true;
-      } else {
-        logExtractionStage('error', 'document_job.insert.document_failed', {
-          extractRequestId,
-          userId: user.id,
-          documentId,
-          jobId,
-          internalError: failedDocumentInsertError.message,
-          databaseCode: isErrorWithCode(failedDocumentInsertError) ? failedDocumentInsertError.code : null,
+
+      if (usageReserved && creditCycleId && creditLedgerId) {
+        await admin.rpc('refund_ai_credits', {
+          p_user_id: user.id,
+          p_cycle_id: creditCycleId,
+          p_ledger_id: creditLedgerId,
+          p_reason: extractionResponse.errorCode || 'provider_failure',
         });
-        throw failedDocumentInsertError;
+        usageReserved = false;
       }
 
-      const { error: failedJobInsertError } = await admin.from('document_extraction_jobs').insert({
-        id: jobId,
-        user_id: user.id,
-        document_id: documentId,
-        source_surface: sourceSurface,
-        status: 'failed',
-        provider_used: extractionResponse.providerUsed || null,
-        parsed_result: null,
-        duplicate_matches: [],
-        raw_ai_output: extractionResponse.rawOutput || null,
-        error_message: extractionResponse.errorMessage || 'Document extraction failed',
-      });
-      if (!failedJobInsertError) {
-        createdJobRow = true;
-      } else {
-        logExtractionStage('error', 'document_job.insert.job_failed', {
-          extractRequestId,
-          userId: user.id,
-          documentId,
-          jobId,
-          internalError: failedJobInsertError.message,
-          databaseCode: isErrorWithCode(failedJobInsertError) ? failedJobInsertError.code : null,
-        });
-        throw failedJobInsertError;
-      }
-      logExtractionStage('info', 'document_job.insert.success', {
-        extractRequestId,
+      await incrementReceiptDailyUsage({
+        supabase,
         userId: user.id,
-        documentId,
-        jobId,
-        result: 'failed',
+        providerUsed,
+        fallbackUsed,
+        success: false,
+        durationMs: extractDurationMs,
       });
-
-      if (uploadedFile) {
-        await removeUploadedDocument(admin, storagePath).catch(() => undefined);
-        uploadedFile = false;
-        logExtractionStage('info', 'storage.cleanup.success', {
-          extractRequestId,
-          userId: user.id,
-          documentId,
-          jobId,
-          storagePath,
-          reason: 'extraction_failed',
-        });
-      }
+      dailyUsageLogged = true;
 
       const errorCode = extractionResponse.errorCode
         || getSafeExtractErrorCode(extractionResponse.errorMessage);
@@ -435,25 +694,9 @@ export async function POST(request: NextRequest) {
       jobId,
       duplicateCount: duplicates.length,
     });
+    duplicateMatches = duplicates;
 
-    logExtractionStage('info', 'document_job.insert.start', {
-      extractRequestId,
-      userId: user.id,
-      documentId,
-      jobId,
-      result: 'review_ready',
-    });
-    const { error: documentInsertError } = await admin.from('transaction_documents').insert({
-      id: documentId,
-      user_id: user.id,
-      storage_bucket: TRANSACTION_DOCUMENT_BUCKET,
-      storage_path: storagePath,
-      file_name: fileEntry.name,
-      file_size: fileEntry.size,
-      mime_type: fileEntry.type,
-      page_count: validation.pageCount || null,
-      sha256_hash: fileHash,
-      source_surface: sourceSurface,
+    const { error: documentUpdateError } = await admin.from('transaction_documents').update({
       status: 'review_ready',
       merchant_name: primaryDraft?.merchant || null,
       document_date: primaryDraft?.date || null,
@@ -461,47 +704,41 @@ export async function POST(request: NextRequest) {
       tax_amount: typeof primaryDraft?.tax === 'number' ? primaryDraft.tax : null,
       currency_code: primaryDraft?.currency || null,
       receipt_number: primaryDraft?.receiptNumber || null,
-    });
+    }).eq('id', documentId);
 
-    if (documentInsertError) {
+    if (documentUpdateError) {
       logExtractionStage('error', 'document_job.insert.document_failed', {
         extractRequestId,
         userId: user.id,
         documentId,
         jobId,
-        internalError: documentInsertError.message,
-        databaseCode: isErrorWithCode(documentInsertError) ? documentInsertError.code : null,
+        internalError: documentUpdateError.message,
+        databaseCode: isErrorWithCode(documentUpdateError) ? documentUpdateError.code : null,
       });
-      throw documentInsertError;
+      throw documentUpdateError;
     }
-    createdDocumentRow = true;
-
-    const { error: jobInsertError } = await admin.from('document_extraction_jobs').insert({
-      id: jobId,
-      user_id: user.id,
-      document_id: documentId,
+    const { error: jobUpdateError } = await admin.from('document_extraction_jobs').update({
       source_surface: sourceSurface,
       status: 'parsed',
-      provider_used: extractionResponse.providerUsed || null,
-      model_used: extractionResponse.parsed.modelUsed || null,
+      provider_used: providerUsed,
+      model_used: modelUsed,
       parsed_result: extractionResponse.parsed,
       duplicate_matches: duplicates,
-      raw_ai_output: extractionResponse.rawOutput || null,
+      raw_ai_output: rawAiOutput,
       error_message: null,
-    });
+    }).eq('id', jobId);
 
-    if (jobInsertError) {
+    if (jobUpdateError) {
       logExtractionStage('error', 'document_job.insert.job_failed', {
         extractRequestId,
         userId: user.id,
         documentId,
         jobId,
-        internalError: jobInsertError.message,
-        databaseCode: isErrorWithCode(jobInsertError) ? jobInsertError.code : null,
+        internalError: jobUpdateError.message,
+        databaseCode: isErrorWithCode(jobUpdateError) ? jobUpdateError.code : null,
       });
-      throw jobInsertError;
+      throw jobUpdateError;
     }
-    createdJobRow = true;
     logExtractionStage('info', 'document_job.insert.success', {
       extractRequestId,
       userId: user.id,
@@ -542,6 +779,37 @@ export async function POST(request: NextRequest) {
       storagePath,
     });
 
+    if (usageReserved && creditCycleId && creditLedgerId) {
+      const { error: finaliseError } = await admin.rpc('finalise_ai_credits', {
+        p_user_id: user.id,
+        p_cycle_id: creditCycleId,
+        p_ledger_id: creditLedgerId,
+        p_ai_request_id: null,
+        p_input_tokens: inputTokens,
+        p_output_tokens: outputTokens,
+        p_total_tokens: totalTokens,
+        p_speech_duration_ms: null,
+        p_provider_name: providerUsed,
+        p_model_name: modelUsed,
+        p_estimated_cost: estimatedCostUsd,
+        p_credit_cost: 1,
+      });
+      if (finaliseError) {
+        throw finaliseError;
+      }
+      usageReserved = false;
+    }
+
+    await incrementReceiptDailyUsage({
+      supabase,
+      userId: user.id,
+      providerUsed,
+      fallbackUsed,
+      success: true,
+      durationMs: extractDurationMs,
+    });
+    dailyUsageLogged = true;
+
     return jsonWithCookies({
       success: true,
       jobId,
@@ -570,15 +838,75 @@ export async function POST(request: NextRequest) {
       databaseCode: isErrorWithCode(error) ? error.code : null,
     });
     if (admin) {
-      if (createdJobRow) {
-        await admin.from('document_extraction_jobs').delete().eq('id', jobId);
+      if (usageReserved && creditCycleId && creditLedgerId) {
+        if (providerAttempted) {
+          await updateReceiptLedgerMetadata(admin, creditLedgerId, {
+            source_request_id: jobId || null,
+            request_type: 'receipt_extraction',
+            provider_name: providerUsed,
+            model_name: modelUsed,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            total_tokens: totalTokens,
+            estimated_cost_usd: estimatedCostUsd,
+          });
+        }
+
+        const { error: refundError } = await admin.rpc('refund_ai_credits', {
+          p_user_id: currentUserId,
+          p_cycle_id: creditCycleId,
+          p_ledger_id: creditLedgerId,
+          p_reason: errorCode,
+        });
+        if (refundError) {
+          logExtractionStage('error', 'receipt_allowance.refund.failed', {
+            extractRequestId,
+            userId: currentUserId,
+            documentId: documentId || null,
+            jobId: jobId || null,
+            ledgerId: creditLedgerId,
+            cycleId: creditCycleId,
+            internalError: refundError.message,
+          });
+        }
+        usageReserved = false;
       }
-      if (createdDocumentRow) {
-        await admin.from('transaction_documents').delete().eq('id', documentId);
+
+      if (providerAttempted) {
+        await markReceiptExtractionFailed({
+          admin,
+          documentId,
+          jobId,
+          sourceSurface: currentSourceSurface,
+          providerUsed,
+          modelUsed,
+          parsedResult,
+          duplicateMatches,
+          rawOutput: rawAiOutput,
+          errorMessage: error instanceof Error ? error.message : 'Document extraction failed',
+        }).catch(() => undefined);
+      } else {
+        if (createdJobRow) {
+          await admin.from('document_extraction_jobs').delete().eq('id', jobId);
+        }
+        if (createdDocumentRow) {
+          await admin.from('transaction_documents').delete().eq('id', documentId);
+        }
+        if (uploadedFile) {
+          await removeUploadedDocument(admin, storagePath).catch(() => undefined);
+        }
       }
-      if (uploadedFile) {
-        await removeUploadedDocument(admin, storagePath).catch(() => undefined);
-      }
+    }
+
+    if (providerAttempted && currentUserId && !dailyUsageLogged) {
+      await incrementReceiptDailyUsage({
+        supabase,
+        userId: currentUserId,
+        providerUsed,
+        fallbackUsed,
+        success: false,
+        durationMs: extractDurationMs,
+      }).catch(() => undefined);
     }
 
     return jsonWithCookies({

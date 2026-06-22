@@ -90,6 +90,13 @@ function matchCategoryId(
   return partial?.id || null;
 }
 
+type ReceiptAllowanceSummary = {
+  included: number;
+  used: number;
+  reserved: number;
+  remaining: number;
+};
+
 function getLocalizedTransactionDocumentError(args: {
   t: ReturnType<typeof useTranslation>['t'];
   errorCode?: unknown;
@@ -145,6 +152,12 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.invalidAiJsonResponse', { ns: 'portal' });
     case 'signed_url_failure':
       return args.t('transactions.documentReview.errors.signedUrlFailure', { ns: 'portal' });
+    case 'receipt_feature_unavailable':
+      return args.t('transactions.documentReview.errors.receiptFeatureUnavailable', { ns: 'portal' });
+    case 'receipt_allowance_exhausted':
+      return args.t('transactions.documentReview.errors.receiptAllowanceExhausted', { ns: 'portal' });
+    case 'duplicate_request_in_progress':
+      return args.t('transactions.documentReview.errors.duplicateRequestInProgress', { ns: 'portal' });
     case 'extract_failed':
       return args.t('transactions.documentReview.errors.extractFailed', { ns: 'portal' });
     case 'job_required':
@@ -201,6 +214,30 @@ export default function DocumentTransactionReviewModal({
   const [reviewTransactions, setReviewTransactions] = useState<EditableDocumentTransaction[]>([]);
   const [duplicateViewTransactionId, setDuplicateViewTransactionId] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [receiptAllowance, setReceiptAllowance] = useState<ReceiptAllowanceSummary | null>(null);
+  const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
+
+  const parseReceiptAllowanceSummary = (value: unknown): ReceiptAllowanceSummary | null => {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const included = typeof record.receipt_extractions_included === 'number'
+      ? record.receipt_extractions_included
+      : typeof record.monthly_receipt_extractions === 'number'
+        ? record.monthly_receipt_extractions
+        : 0;
+    const used = typeof record.receipt_extractions_used === 'number' ? record.receipt_extractions_used : 0;
+    const reserved = typeof record.receipt_extractions_reserved === 'number' ? record.receipt_extractions_reserved : 0;
+    const remaining = typeof record.receipt_extractions_remaining === 'number'
+      ? record.receipt_extractions_remaining
+      : Math.max(0, included - used - reserved);
+
+    return {
+      included,
+      used,
+      reserved,
+      remaining,
+    };
+  };
 
   useEffect(() => {
     if (!isOpen || !file) {
@@ -216,6 +253,8 @@ export default function DocumentTransactionReviewModal({
       setCategories([]);
       setReviewTransactions([]);
       setDuplicateViewTransactionId(null);
+      setReceiptAllowance(null);
+      setIsCheckingAllowance(false);
       setRetryKey(0);
       return;
     }
@@ -234,11 +273,51 @@ export default function DocumentTransactionReviewModal({
       setAccounts([]);
       setCategories([]);
       setReviewTransactions([]);
+      setReceiptAllowance(null);
+      setIsCheckingAllowance(true);
       try {
+        const allowanceResponse = await fetch('/api/subscription/summary', {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        if (allowanceResponse.status === 401) {
+          throw new Error(getLocalizedTransactionDocumentError({
+            t,
+            errorCode: 'unauthorized',
+            fallbackKey: 'extractFailed',
+          }));
+        }
+
+        if (allowanceResponse.ok) {
+          const allowancePayload = await allowanceResponse.json().catch(() => null);
+          const nextAllowance = parseReceiptAllowanceSummary(allowancePayload);
+          if (nextAllowance) {
+            setReceiptAllowance(nextAllowance);
+            if (nextAllowance.included <= 0) {
+              throw new Error(getLocalizedTransactionDocumentError({
+                t,
+                errorCode: 'receipt_feature_unavailable',
+                fallbackKey: 'extractFailed',
+              }));
+            }
+            if (nextAllowance.remaining <= 0) {
+              throw new Error(getLocalizedTransactionDocumentError({
+                t,
+                errorCode: 'receipt_allowance_exhausted',
+                fallbackKey: 'extractFailed',
+              }));
+            }
+          }
+        }
+
+        setIsCheckingAllowance(false);
+
         const formData = new FormData();
         formData.set('file', file);
         formData.set('sourceSurface', sourceSurface);
         formData.set('language', 'en');
+        formData.set('idempotencyKey', crypto.randomUUID());
 
         const response = await fetch('/api/transaction-documents/extract', {
           method: 'POST',
@@ -322,6 +401,7 @@ export default function DocumentTransactionReviewModal({
         setReviewTransactions([]);
       } finally {
         if (!cancelled) {
+          setIsCheckingAllowance(false);
           setIsExtracting(false);
         }
       }
@@ -336,6 +416,7 @@ export default function DocumentTransactionReviewModal({
   }, [file, isOpen, retryKey, sourceSurface, t]);
 
   const hasDuplicates = duplicates.length > 0;
+  const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
   const filteredCategoriesByType = useMemo(() => ({
     expense: categories.filter((category) => category.category_type === 'expense'),
     income: categories.filter((category) => category.category_type === 'income'),
@@ -528,6 +609,45 @@ export default function DocumentTransactionReviewModal({
     >
       <div className="flex h-full min-h-0 flex-col">
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+          {receiptAllowance ? (
+            <div className={`mb-4 rounded-2xl border p-3 ${
+              receiptAllowance.remaining > 0
+                ? 'border-accent/20 bg-accent/5'
+                : 'border-negative/20 bg-negative-soft'
+            }`}>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                    {t('transactions.documentReview.receiptAllowanceTitle', {
+                      ns: 'portal',
+                      defaultValue: 'Receipt Intelligence',
+                    })}
+                  </p>
+                  <p className="mt-1 text-sm font-700 text-foreground">
+                    {t('transactions.documentReview.receiptAllowanceUsedIncluded', {
+                      ns: 'portal',
+                      used: allowanceUsed,
+                      included: receiptAllowance.included,
+                      defaultValue: '{{used}} / {{included}} documents used',
+                    })}
+                  </p>
+                </div>
+                <div className="text-end">
+                  <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                    {t('transactions.documentReview.receiptAllowanceRemainingLabel', {
+                      ns: 'portal',
+                      defaultValue: 'Remaining',
+                    })}
+                  </p>
+                  <p className={`mt-1 text-lg font-800 ${
+                    receiptAllowance.remaining > 0 ? 'text-foreground' : 'text-negative'
+                  }`}>
+                    {receiptAllowance.remaining}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
           {isExtracting ? (
             <div className="flex min-h-[22rem] flex-col items-center justify-center gap-4 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
@@ -543,9 +663,17 @@ export default function DocumentTransactionReviewModal({
                 <p className="mt-1 text-sm text-muted-foreground">
                   {t('transactions.documentReview.extractingDescription', {
                     ns: 'portal',
-                    defaultValue: 'Validating the file, reading the document, and preparing a review draft.',
+                    defaultValue: 'Validating the file, checking your allowance, reading the document, and preparing a review draft.',
                   })}
                 </p>
+                {isCheckingAllowance ? (
+                  <p className="mt-2 text-xs font-600 text-muted-foreground">
+                    {t('transactions.documentReview.checkingAllowance', {
+                      ns: 'portal',
+                      defaultValue: 'Checking remaining Receipt Intelligence documents...',
+                    })}
+                  </p>
+                ) : null}
               </div>
             </div>
           ) : extractError ? (

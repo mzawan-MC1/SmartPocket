@@ -35,20 +35,52 @@ export interface TransactionDocumentAIResponse {
   errorCode?: TransactionDocumentErrorCode;
   errorCategory?: string;
   providerUsed?: string;
+  modelUsed?: string | null;
   fallbackUsed?: boolean;
   durationMs?: number;
   rawOutput?: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
 }
 
 class TransactionDocumentGatewayError extends Error {
   code: TransactionDocumentErrorCode;
   stage: string;
+  providerUsed?: string;
+  modelUsed?: string | null;
+  rawOutput?: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
 
-  constructor(code: TransactionDocumentErrorCode, stage: string, message: string) {
+  constructor(
+    code: TransactionDocumentErrorCode,
+    stage: string,
+    message: string,
+    details?: {
+      providerUsed?: string;
+      modelUsed?: string | null;
+      rawOutput?: unknown;
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+      totalTokens?: number | null;
+      estimatedCostUsd?: number | null;
+    }
+  ) {
     super(message);
     this.name = 'TransactionDocumentGatewayError';
     this.code = code;
     this.stage = stage;
+    this.providerUsed = details?.providerUsed;
+    this.modelUsed = details?.modelUsed;
+    this.rawOutput = details?.rawOutput;
+    this.inputTokens = details?.inputTokens ?? null;
+    this.outputTokens = details?.outputTokens ?? null;
+    this.totalTokens = details?.totalTokens ?? null;
+    this.estimatedCostUsd = details?.estimatedCostUsd ?? null;
   }
 }
 
@@ -1273,13 +1305,29 @@ export async function processTransactionDocumentAIRequest(
         modelUsed: result.modelUsed,
       },
       providerUsed: result.providerUsed,
+      modelUsed: result.modelUsed || null,
       fallbackUsed,
       durationMs: Date.now() - startTime,
       rawOutput: result.rawOutput,
+      inputTokens: result.inputTokens ?? null,
+      outputTokens: result.outputTokens ?? null,
+      totalTokens: result.totalTokens ?? null,
+      estimatedCostUsd: result.estimatedCostUsd ?? null,
     };
   } catch (error) {
     const code = getTransactionDocumentGatewayErrorCode(error, normalizedMimeType);
     const message = getTransactionDocumentGatewaySafeMessage(code, normalizedMimeType);
+    const providerErrorDetails = error instanceof TransactionDocumentGatewayError
+      ? {
+          providerUsed: error.providerUsed,
+          modelUsed: error.modelUsed,
+          rawOutput: error.rawOutput,
+          inputTokens: error.inputTokens ?? null,
+          outputTokens: error.outputTokens ?? null,
+          totalTokens: error.totalTokens ?? null,
+          estimatedCostUsd: error.estimatedCostUsd ?? null,
+        }
+      : null;
     logTransactionDocumentGateway('error', 'document-ai.failed', {
       requestId,
       code,
@@ -1295,6 +1343,13 @@ export async function processTransactionDocumentAIRequest(
         error instanceof Error ? error.message : String(error || '')
       ),
       durationMs: Date.now() - startTime,
+      providerUsed: providerErrorDetails?.providerUsed || undefined,
+      modelUsed: providerErrorDetails?.modelUsed || null,
+      rawOutput: providerErrorDetails?.rawOutput,
+      inputTokens: providerErrorDetails?.inputTokens ?? null,
+      outputTokens: providerErrorDetails?.outputTokens ?? null,
+      totalTokens: providerErrorDetails?.totalTokens ?? null,
+      estimatedCostUsd: providerErrorDetails?.estimatedCostUsd ?? null,
     };
   }
 }
@@ -1325,7 +1380,16 @@ function getProviderOrder(config: AIGatewayConfig): [string, string] {
 async function parseTransactionDocumentWithProvider(
   providerName: string,
   input: TransactionDocumentAIRequest
-): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+): Promise<{
+  parsed: unknown;
+  providerUsed: string;
+  modelUsed?: string;
+  rawOutput?: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
+}> {
   switch (providerName) {
     case 'openrouter':
       return parseTransactionDocumentWithOpenRouter(input);
@@ -1338,6 +1402,10 @@ async function parseTransactionDocumentWithProvider(
           providerUsed: 'mock',
           modelUsed: 'mock-v1',
           rawOutput: buildMockDocumentExtraction(input),
+          inputTokens: null,
+          outputTokens: null,
+          totalTokens: null,
+          estimatedCostUsd: null,
         };
       }
       throw new Error('Mock provider is not available in production mode');
@@ -1348,6 +1416,10 @@ async function parseTransactionDocumentWithProvider(
           providerUsed: 'mock',
           modelUsed: 'mock-v1',
           rawOutput: buildMockDocumentExtraction(input),
+          inputTokens: null,
+          outputTokens: null,
+          totalTokens: null,
+          estimatedCostUsd: null,
         };
       }
       throw new Error(`Unknown language provider: ${providerName}. AI is not configured.`);
@@ -1356,7 +1428,16 @@ async function parseTransactionDocumentWithProvider(
 
 async function parseTransactionDocumentWithOpenRouter(
   input: TransactionDocumentAIRequest
-): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+): Promise<{
+  parsed: unknown;
+  providerUsed: string;
+  modelUsed?: string;
+  rawOutput?: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
+}> {
   const apiKey = process.env.OPENROUTER_API_KEY || '';
   if (!apiKey) {
     throw new TransactionDocumentGatewayError(
@@ -1424,11 +1505,16 @@ async function parseTransactionDocumentWithOpenRouter(
     throw new TransactionDocumentGatewayError(
       code,
       'openrouter.request',
-      `OpenRouter error ${response.status}: ${sanitizedError}`
+      `OpenRouter error ${response.status}: ${sanitizedError}`,
+      {
+        providerUsed: 'openrouter',
+        modelUsed: model,
+      }
     );
   }
 
   const rawOutput = await response.json();
+  const usageDetails = extractProviderUsageDetails(rawOutput);
   logTransactionDocumentGateway('info', 'openrouter.request.success', {
     requestId: input.requestId || null,
     model,
@@ -1444,7 +1530,13 @@ async function parseTransactionDocumentWithOpenRouter(
     throw new TransactionDocumentGatewayError(
       'invalid_ai_json_response',
       'openrouter.parse',
-      'Invalid JSON from OpenRouter'
+      'Invalid JSON from OpenRouter',
+      {
+        providerUsed: 'openrouter',
+        modelUsed: model,
+        rawOutput,
+        ...usageDetails,
+      }
     );
   }
 
@@ -1457,12 +1549,22 @@ async function parseTransactionDocumentWithOpenRouter(
     providerUsed: 'openrouter',
     modelUsed: model,
     rawOutput,
+    ...usageDetails,
   };
 }
 
 async function parseTransactionDocumentWithVps(
   input: TransactionDocumentAIRequest
-): Promise<{ parsed: unknown; providerUsed: string; modelUsed?: string; rawOutput?: unknown }> {
+): Promise<{
+  parsed: unknown;
+  providerUsed: string;
+  modelUsed?: string;
+  rawOutput?: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
+}> {
   const baseUrl = process.env.LOCAL_AI_BASE_URL || '';
   if (!baseUrl) throw new Error('VPS AI not configured');
 
@@ -1515,11 +1617,16 @@ async function parseTransactionDocumentWithVps(
     throw new TransactionDocumentGatewayError(
       code,
       'vps_ai.request',
-      `VPS AI error ${response.status}: ${sanitizedError}`
+      `VPS AI error ${response.status}: ${sanitizedError}`,
+      {
+        providerUsed: 'vps_ai',
+        modelUsed: model,
+      }
     );
   }
 
   const rawOutput = await response.json();
+  const usageDetails = extractProviderUsageDetails(rawOutput);
   logTransactionDocumentGateway('info', 'vps_ai.request.success', {
     requestId: input.requestId || null,
     model,
@@ -1535,7 +1642,13 @@ async function parseTransactionDocumentWithVps(
     throw new TransactionDocumentGatewayError(
       'invalid_ai_json_response',
       'vps_ai.parse',
-      'Invalid JSON from VPS AI'
+      'Invalid JSON from VPS AI',
+      {
+        providerUsed: 'vps_ai',
+        modelUsed: model,
+        rawOutput,
+        ...usageDetails,
+      }
     );
   }
 
@@ -1548,6 +1661,7 @@ async function parseTransactionDocumentWithVps(
     providerUsed: 'vps_ai',
     modelUsed: model,
     rawOutput,
+    ...usageDetails,
   };
 }
 
@@ -1656,6 +1770,62 @@ function buildMockDocumentExtraction(input: TransactionDocumentAIRequest): Trans
         ],
       },
     ],
+  };
+}
+
+function asOptionalNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+function extractProviderUsageDetails(rawOutput: unknown) {
+  if (!rawOutput || typeof rawOutput !== 'object') {
+    return {
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+      estimatedCostUsd: null,
+    };
+  }
+
+  const root = rawOutput as Record<string, unknown>;
+  const usage = root.usage && typeof root.usage === 'object'
+    ? root.usage as Record<string, unknown>
+    : null;
+
+  const inputTokens = asOptionalNumber(
+    usage?.prompt_tokens
+    ?? usage?.input_tokens
+    ?? root.prompt_tokens
+    ?? root.input_tokens
+  );
+  const outputTokens = asOptionalNumber(
+    usage?.completion_tokens
+    ?? usage?.output_tokens
+    ?? root.completion_tokens
+    ?? root.output_tokens
+  );
+  const totalTokens = asOptionalNumber(
+    usage?.total_tokens
+    ?? root.total_tokens
+    ?? (
+      (typeof inputTokens === 'number' ? inputTokens : 0)
+      + (typeof outputTokens === 'number' ? outputTokens : 0)
+    )
+  );
+  const estimatedCostUsd = asOptionalNumber(
+    usage?.cost
+    ?? usage?.estimated_cost
+    ?? usage?.estimated_cost_usd
+    ?? root.cost
+    ?? root.estimated_cost
+    ?? root.estimated_cost_usd
+  );
+
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens: typeof totalTokens === 'number' && totalTokens > 0 ? totalTokens : null,
+    estimatedCostUsd,
   };
 }
 

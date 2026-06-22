@@ -49,6 +49,9 @@ export type TransactionDocumentErrorCode =
   | 'invalid_category'
   | 'already_saved'
   | 'job_not_found'
+  | 'receipt_feature_unavailable'
+  | 'receipt_allowance_exhausted'
+  | 'duplicate_request_in_progress'
   | 'save_failed';
 
 export interface TransactionDocumentLineItemDraft {
@@ -367,6 +370,21 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     || message === 'Failed to extract the uploaded document.'
   ) {
     return 'extract_failed';
+  }
+  if (
+    /receipt intelligence is not included/i.test(message)
+    || /receipt intelligence is unavailable/i.test(message)
+  ) {
+    return 'receipt_feature_unavailable';
+  }
+  if (
+    /no receipt intelligence documents remain/i.test(message)
+    || /receipt intelligence allowance/i.test(message)
+  ) {
+    return 'receipt_allowance_exhausted';
+  }
+  if (/already being processed/i.test(message)) {
+    return 'duplicate_request_in_progress';
   }
   if (message === 'A document extraction job id is required.') {
     return 'job_required';
