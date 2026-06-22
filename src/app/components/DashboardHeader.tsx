@@ -24,6 +24,8 @@ import {
 } from '@/lib/financial-periods';
 import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 type QuickActionId = 'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget';
 
@@ -48,17 +50,20 @@ export default function DashboardHeader({
 }) {
   const { t } = useTranslation('portal');
   const { user } = useAuth();
+  const { dir, language } = useLanguage();
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const monthContext = useMemo(
-    () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone),
-    [activePeriod.monthKey, financialPeriodContext.timezone]
+    () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone, undefined, getIntlLocale(language)),
+    [activePeriod.monthKey, financialPeriodContext.timezone, language]
   );
   const currentMonthContext = useMemo(
-    () => getMonthContext(undefined, financialPeriodContext.timezone),
-    [financialPeriodContext.timezone]
+    () => getMonthContext(undefined, financialPeriodContext.timezone, undefined, getIntlLocale(language)),
+    [financialPeriodContext.timezone, language]
   );
+  const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
   const canMoveNext = viewMode === 'month'
     ? monthContext.monthKey < currentMonthContext.monthKey
     : activePeriod.endDate < financialPeriodContext.currentFinancialPeriod.endDate;
@@ -234,7 +239,7 @@ export default function DashboardHeader({
                   className="flex h-7.5 w-7.5 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card"
                   aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
                 >
-                  <ChevronLeft size={15} />
+                  <PreviousIcon size={15} />
                 </button>
                 {viewMode === 'month' ? (
                   <>
@@ -277,7 +282,7 @@ export default function DashboardHeader({
                   aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
                   disabled={!canMoveNext}
                 >
-                  <ChevronRight size={15} />
+                  <NextIcon size={15} />
                 </button>
           </div>
         </div>

@@ -29,16 +29,11 @@ import {
   type DashboardPeriodPreference,
 } from '@/lib/financial-periods';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
-
-function getDashboardLocale() {
-  if (typeof navigator !== 'undefined' && navigator.language) {
-    return navigator.language;
-  }
-  return 'en-US';
-}
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 function buildMonthActivePeriod(monthKey: string, timezone: string, locale?: string): DashboardActivePeriod {
-  const monthContext = getMonthContext(monthKey, timezone);
+  const monthContext = getMonthContext(monthKey, timezone, undefined, locale);
   return {
     mode: 'month',
     startDate: monthContext.startDate,
@@ -66,7 +61,8 @@ function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPer
 
 export default function DashboardPage() {
   const { t } = useTranslation('portal');
-  const dashboardLocale = getDashboardLocale();
+  const { language } = useLanguage();
+  const dashboardLocale = getIntlLocale(language);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
   const [viewMode, setViewMode] = useState<DashboardPeriodPreference | null>(null);

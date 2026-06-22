@@ -275,7 +275,8 @@ export function shiftMonthKey(monthKey: string, offset: number) {
 export function getMonthContext(
   selectedMonth?: string,
   timezone = DEFAULT_FINANCIAL_PERIOD_CONFIG.timezone,
-  referenceDate?: Date | string
+  referenceDate?: Date | string,
+  locale?: string
 ): FinancialMonthContext {
   const currentMonthKey = getMonthKey(referenceDate, timezone);
   const monthKey = isValidMonthKey(selectedMonth) && selectedMonth <= currentMonthKey
@@ -289,7 +290,7 @@ export function getMonthContext(
 
   return {
     monthKey,
-    label: new Intl.DateTimeFormat('en-US', {
+    label: new Intl.DateTimeFormat(locale, {
       month: 'long',
       year: 'numeric',
       timeZone: 'UTC',

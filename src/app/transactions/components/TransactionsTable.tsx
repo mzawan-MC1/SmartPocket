@@ -24,6 +24,8 @@ import {
   type TransactionListDocumentSummary,
 } from '@/lib/transaction-document-details';
 import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -69,6 +71,10 @@ export default function TransactionsTable({
   onExportReady: (handler: (() => void) | null) => void;
 }) {
   const { t } = useTranslation(['portal', 'common']);
+  const { dir, language } = useLanguage();
+  const locale = getIntlLocale(language);
+  const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [transactionReportingCurrency, setTransactionReportingCurrency] = useState('');
   const [transactionReportingPreviews, setTransactionReportingPreviews] = useState<Record<string, Awaited<ReturnType<typeof getLatestTransactionReportingPreviews>>['previews'][string]>>({});
@@ -137,7 +143,7 @@ export default function TransactionsTable({
       return {
         dateFrom: period.startDate,
         dateTo: period.endDate,
-        label: formatFinancialPeriodLabel(period),
+        label: formatFinancialPeriodLabel(period, locale),
         description: periodOffset === 0
           ? t('transactions.filters.currentNamedPeriod', { ns: 'portal', period: payPeriodName })
           : periodOffset === -1
@@ -149,7 +155,12 @@ export default function TransactionsTable({
     }
 
     const currentMonth = getMonthContext(undefined, financialPeriodContext.timezone);
-    const monthContext = getMonthContext(shiftMonthKey(currentMonth.monthKey, periodOffset), financialPeriodContext.timezone);
+    const monthContext = getMonthContext(
+      shiftMonthKey(currentMonth.monthKey, periodOffset),
+      financialPeriodContext.timezone,
+      undefined,
+      locale
+    );
     return {
       dateFrom: monthContext.startDate,
       dateTo: monthContext.endDate,
@@ -162,7 +173,7 @@ export default function TransactionsTable({
       canMovePrevious: true,
       canMoveNext: periodOffset < 0,
     };
-  }, [customDateFrom, customDateTo, dateFilterMode, financialPeriodContext, periodOffset, t]);
+  }, [customDateFrom, customDateTo, dateFilterMode, financialPeriodContext, locale, periodOffset, t]);
 
   useEffect(() => {
     onRangeLabelChange(activeDateFilter.label);
@@ -385,7 +396,7 @@ export default function TransactionsTable({
                     className="btn-ghost min-h-0 rounded-lg p-2"
                     aria-label={dateFilterMode === 'month' ? t('transactions.filters.previousMonth', { ns: 'portal' }) : t('transactions.filters.previousPayPeriod', { ns: 'portal' })}
                   >
-                    <ChevronLeft size={14} />
+                    <PreviousIcon size={14} />
                   </button>
                   <button
                     type="button"
@@ -394,7 +405,7 @@ export default function TransactionsTable({
                     className="btn-ghost min-h-0 rounded-lg p-2 disabled:opacity-40"
                     aria-label={dateFilterMode === 'month' ? t('transactions.filters.nextMonth', { ns: 'portal' }) : t('transactions.filters.nextPayPeriod', { ns: 'portal' })}
                   >
-                    <ChevronRight size={14} />
+                    <NextIcon size={14} />
                   </button>
                 </div>
               ) : null}

@@ -59,7 +59,11 @@ export default function FormattedCurrencyAmount({
 
   if (textOnly) {
     return (
-      <span className={className}>
+      <span
+        dir="ltr"
+        className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
+        style={{ unicodeBidi: 'isolate' }}
+      >
         {formatCurrencyText(amount, {
           currency,
           currencies,
@@ -83,13 +87,22 @@ export default function FormattedCurrencyAmount({
   });
 
   if (!currency || formatted.usesCodeToken) {
-    return <span className={className}>{formatted.text}</span>;
+    return (
+      <span
+        dir="ltr"
+        className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
+        style={{ unicodeBidi: 'isolate' }}
+      >
+        {formatted.text}
+      </span>
+    );
   }
 
   return (
     <span
-      className={`inline-flex items-baseline leading-none ${className}`.trim()}
-      style={{ gap: `${layoutStyles.gapEm}em` }}
+      dir="ltr"
+      className={`inline-flex flex-row items-baseline leading-none unicode-bidi-isolate ${className}`.trim()}
+      style={{ gap: `${layoutStyles.gapEm}em`, unicodeBidi: 'isolate' }}
     >
       {formatted.sign ? (
         <span className={numberClassName} style={{ lineHeight: 1 }}>

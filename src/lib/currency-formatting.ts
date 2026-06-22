@@ -147,11 +147,12 @@ export function formatCurrencyValue(
     options.maximumFractionDigits
   );
   const { token, usesCodeToken } = pickDisplayToken(resolvedCurrency, options);
-  const text = usesCodeToken
-    ? `${token} ${sign}${numberText}`.trim()
+  const rawText = usesCodeToken
+    ? `${sign}${token} ${numberText}`.trim()
     : shouldUseSpacing(token, usesCodeToken)
       ? `${sign}${token} ${numberText}`
       : `${sign}${token}${numberText}`;
+  const text = `\u2066${rawText}\u2069`;
 
   return {
     code: resolvedCurrency.code,
