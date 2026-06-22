@@ -39,7 +39,8 @@
         "pending": "pending",
         "partiallyPaid": "partially paid",
         "settled": "settled"
-      }
+      },
+      "recurringPaymentFallback": "Recurring payment"
     },
     "types": {
       "successfulSignIn": {
@@ -290,7 +291,20 @@
       "semimonthlyTitle": "Twice a month schedule",
       "loadingIncomeSchedule": "Loading your saved income schedule...",
       "semimonthlyConfigIncomplete": "Budget period configuration is incomplete. Update your semimonthly schedule in",
-      "semimonthlySettingsSuffix": "before using a twice-a-month budget."
+      "semimonthlySettingsSuffix": "before using a twice-a-month budget.",
+      "errors": {
+        "semimonthlyScheduleRequired": "Twice-a-month budgets require a valid semimonthly income schedule in Settings.",
+        "biweeklyAnchorRequired": "Every-2-weeks budgets require an anchor date.",
+        "customAnchorRequired": "Custom budgets require an anchor date.",
+        "customCycleLengthInvalid": "Custom budgets require a cycle length between 2 and 90 days."
+      }
+    },
+    "configurationIncomplete": "Configuration incomplete",
+    "status": {
+      "noSpending": "No spending",
+      "overBudget": "Over budget",
+      "nearLimit": "Near limit",
+      "onTrack": "On track"
     }
   },
   "reports": {
@@ -377,7 +391,18 @@
       "savingsRateUnavailable": "Savings rate unavailable",
       "netChange": "Net Change",
       "applicableBudgets": "Applicable Budgets",
-      "totalTransactions": "Total Transactions"
+      "totalTransactions": "Total Transactions",
+      "totalSpent": "Total Spent",
+      "expenseTransactions": "Expense Transactions",
+      "periodIncome": "Period Income",
+      "periodExpenses": "Period Expenses",
+      "dailyBuckets": "Daily Buckets",
+      "weeklyBuckets": "Weekly Buckets",
+      "monthlyBuckets": "Monthly Buckets",
+      "savingsRate": "Savings Rate",
+      "totalCredits": "Total Credits",
+      "totalDebits": "Total Debits",
+      "net": "Net"
     },
     "downloadOptions": "Download Options",
     "downloads": {
@@ -412,13 +437,49 @@
       "spent": "Spent",
       "remaining": "Remaining",
       "progress": "Progress",
-      "status": "Status"
+      "status": "Status",
+      "periodLabel": "Period Label",
+      "periodType": "Period Type",
+      "budgetAmount": "Budget Amount",
+      "budgetCurrency": "Budget Currency",
+      "progressPercent": "Progress %",
+      "reportingAmount": "Reporting Budget Amount",
+      "reportingSpent": "Reporting Spent",
+      "reportingRemaining": "Reporting Remaining"
     },
     "loadingRange": "Loading range...",
     "loadingData": "Loading report data...",
     "noDataToExport": "No report data is ready to export.",
     "csvExportedTransactions": "Exported {{count}} transactions to CSV.",
-    "csvExportedBudgets": "Exported {{count}} budgets to CSV."
+    "csvExportedBudgets": "Exported {{count}} budgets to CSV.",
+    "applyFilters": "Apply filters",
+    "navigation": {
+      "payPeriod": "pay period",
+      "planningPeriod": "planning period",
+      "month": "month",
+      "quarter": "quarter",
+      "year": "year"
+    },
+    "historicalRateUnavailableGeneric": "Historical conversion is unavailable for one or more records before the first stored snapshot.",
+    "historicalRateUnavailableSingle": "Historical rate unavailable for {{date}}",
+    "historicalRateUnavailableMultiple": "Historical rates unavailable for {{count}} dates from {{start}} to {{end}}",
+    "invalidFinancialPeriodConfiguration": "Invalid financial-period configuration",
+    "noBudgetsApplyDescription": "No budgets apply to this report period",
+    "noBudgetsApply": "No budgets apply",
+    "loadingMetrics": "Loading metrics...",
+    "metricsUnavailable": "Metrics unavailable",
+    "noIncomeSelectedPeriod": "No income in the selected period",
+    "groupedBy": "Grouped by {{value}}",
+    "grouping": {
+      "day": "day",
+      "week": "week",
+      "month": "month"
+    },
+    "budget": "Budget",
+    "spent": "Spent",
+    "remaining": "Remaining",
+    "progress": "Progress",
+    "unavailable": "Unavailable"
   },
   "dashboardMetrics": {
     "monthly": "Monthly",
@@ -1016,6 +1077,49 @@
       "parsed": "Parsed",
       "clarifying": "Clarifying",
       "notConfigured": "Not Configured"
+    },
+    "todayAt": "Today {{time}}",
+    "durationMs": "{{value}} ms",
+    "requestTypes": {
+      "voice": "Voice",
+      "text": "Text"
+    },
+    "intents": {
+      "personalTransaction": "Personal transaction",
+      "managedPersonTransaction": "Managed person transaction",
+      "transfer": "Transfer",
+      "reimbursement": "Reimbursement",
+      "settlement": "Settlement",
+      "budget": "Budget",
+      "recurringTransaction": "Recurring transaction",
+      "multipleActions": "Multiple actions",
+      "unclear": "Unclear"
+    },
+    "wrongFieldLabels": {
+      "amount": "Amount",
+      "currency": "Currency",
+      "person": "Person",
+      "account": "Account",
+      "category": "Category",
+      "date": "Date",
+      "payer": "Payer",
+      "fundingSource": "Funding source",
+      "reimbursement": "Reimbursement"
+    },
+    "actionTypes": {
+      "income": "Income",
+      "expense": "Expense",
+      "moneyReceivedFromPerson": "Money received from person",
+      "moneyReturnedToPerson": "Money returned to person",
+      "expenseFromHeldBalance": "Expense from held balance",
+      "expensePaidForPerson": "Expense paid for person",
+      "reimbursementPayment": "Reimbursement payment",
+      "settlement": "Settlement",
+      "transfer": "Transfer",
+      "budget": "Budget",
+      "recurringTransaction": "Recurring transaction",
+      "loanReceived": "Loan received",
+      "loanRepayment": "Loan repayment"
     }
   },
   "recentTransactions": {
@@ -1939,7 +2043,7 @@
       "biweekly": "Every 2 weeks",
       "semimonthly": "Twice a month",
       "monthly": "Monthly",
-      "custom": "Custom cycle"
+      "custom": "Custom"
     },
     "weekdays": {
       "monday": "Monday",
@@ -2145,7 +2249,12 @@
     "reminderCreated": "Reminder added to in-app alerts.",
     "reminderError": "Failed to create the reminder.",
     "recurringModalTitle": "Create recurring suggestion",
-    "recurringCreated": "Recurring suggestion created in the recurring system."
+    "recurringCreated": "Recurring suggestion created in the recurring system.",
+    "uncategorizedItem": "Uncategorized item",
+    "recurringInsights": {
+      "priceAboveAverage": "You usually buy this every {{days}} days, and the latest price is {{percent}}% higher than your average.",
+      "dueAgainSoon": "You usually buy this every {{days}} days and it may be due again soon."
+    }
   },
   "receiptInsights": {
     "title": "Receipt Insights",
@@ -2175,6 +2284,24 @@
       "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
       "detailAverageInterval": "Average interval {{days}} days; next likely {{date}}",
       "unknownMerchantWithArticle": "an unknown merchant"
+    },
+    "types": {
+      "topRepeatedItem": {
+        "title": "Top repeated item",
+        "description": "{{itemName}} appears {{purchaseCount}} times in {{currency}}."
+      },
+      "priceIncrease": {
+        "title": "Meaningful price increase",
+        "description": "{{itemName}} is {{percent}}% above the previous price."
+      },
+      "recurringDue": {
+        "title": "Likely recurring purchase",
+        "description": "{{itemName}} may be due again around {{dueDate}}."
+      },
+      "highestSpendItem": {
+        "title": "Highest-spend item",
+        "description": "{{itemName}} leads item spending at {{amount}}."
+      }
     }
   }
 }

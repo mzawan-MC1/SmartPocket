@@ -204,7 +204,7 @@ export default function RecurringPage() {
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency)} · {t('recurring.next', { date: item.next_due_date })}
+                      {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.next', { date: item.next_due_date })}
                       {item.account && ` · ${item.account.name}`}
                     </p>
                     {!canMarkPaid ? (
@@ -258,7 +258,7 @@ export default function RecurringPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency)} · {t('recurring.paused')}</p>
+                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.paused')}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.resume')}>

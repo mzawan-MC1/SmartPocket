@@ -163,6 +163,16 @@
     "education": "Education",
     "subscriptions": "Abonnements",
     "savings": "Epargne",
-    "transfer": "Transfert"
+    "transfer": "Transfert",
+    "businessIncome": "Revenu d'entreprise",
+    "rentalIncome": "Revenu locatif",
+    "giftsReceived": "Cadeaux recus",
+    "dining": "Restauration",
+    "housingRent": "Logement et loyer",
+    "groceries": "Epicerie",
+    "personalCare": "Soins personnels",
+    "insurance": "Assurance",
+    "otherExpense": "Autre depense",
+    "other": "Autre"
   }
 }

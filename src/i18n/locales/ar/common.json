@@ -163,6 +163,16 @@
     "education": "التعليم",
     "subscriptions": "الاشتراكات",
     "savings": "المدخرات",
-    "transfer": "تحويل"
+    "transfer": "تحويل",
+    "businessIncome": "دخل الأعمال",
+    "rentalIncome": "دخل الإيجار",
+    "giftsReceived": "الهدايا المستلمة",
+    "dining": "المطاعم",
+    "housingRent": "السكن والإيجار",
+    "groceries": "البقالة",
+    "personalCare": "العناية الشخصية",
+    "insurance": "التأمين",
+    "otherExpense": "مصاريف أخرى",
+    "other": "أخرى"
   }
 }

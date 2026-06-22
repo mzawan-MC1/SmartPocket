@@ -33,6 +33,9 @@ import {
   type RecurringPurchaseSuggestion,
 } from '@/lib/transaction-item-insights';
 import { createNotificationIfEnabled } from '@/lib/notifications';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 type ItemInsightsApiResponse =
   | {
@@ -114,8 +117,22 @@ function CurrencyTotals({ rows }: { rows: Array<{ currency: string; total: numbe
   );
 }
 
+function formatUiDate(value: string | null | undefined, locale: string) {
+  if (!value) return null;
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export default function ItemInsightsScreen() {
   const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [filters, setFilters] = useState<FiltersState>({
     startDate: '',
     endDate: '',
@@ -216,6 +233,30 @@ export default function ItemInsightsScreen() {
     () => selectedItemDetails?.selectedItemHistory.flatMap((history) => history.entries.map((entry) => entry.unitPrice || 0)).filter((value) => value > 0) || [],
     [selectedItemDetails?.selectedItemHistory]
   );
+
+  const getLocalizedCategoryName = useCallback((name: string | null | undefined) => {
+    if (!name) {
+      return t('itemInsights.uncategorizedItem', { ns: 'portal' });
+    }
+    return translateSystemCategoryName(name, (key, options) =>
+      t(key, { ...(options || {}), ns: 'common' })
+    );
+  }, [t]);
+
+  const getRecurringSuggestionText = useCallback((suggestion: RecurringPurchaseSuggestion) => {
+    const intervalDays = Math.round(suggestion.averageIntervalDays);
+    if (suggestion.insightType === 'price_above_average') {
+      return t('itemInsights.recurringInsights.priceAboveAverage', {
+        ns: 'portal',
+        days: intervalDays,
+        percent: Math.round(suggestion.latestPriceVsAveragePct ?? 0),
+      });
+    }
+    return t('itemInsights.recurringInsights.dueAgainSoon', {
+      ns: 'portal',
+      days: intervalDays,
+    });
+  }, [t]);
 
   const handleFilterChange = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) => {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -381,7 +422,7 @@ export default function ItemInsightsScreen() {
             <select className="input-base" value={filters.categoryId} onChange={(event) => handleFilterChange('categoryId', event.target.value)}>
               <option value="">{t('itemInsights.allCategories', { ns: 'portal', defaultValue: 'All categories' })}</option>
               {(snapshot?.filterOptions.categories || []).map((category) => (
-                <option key={category.id} value={category.id}>{category.name}</option>
+                <option key={category.id} value={category.id}>{getLocalizedCategoryName(category.name)}</option>
               ))}
             </select>
           </div>
@@ -505,7 +546,7 @@ export default function ItemInsightsScreen() {
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-sm font-700 text-foreground">{change.itemName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{change.merchant || t('itemInsights.unknownMerchant', { ns: 'portal', defaultValue: 'Unknown merchant' })} · {change.latestDate}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{change.merchant || t('itemInsights.unknownMerchant', { ns: 'portal', defaultValue: 'Unknown merchant' })} · {formatUiDate(change.latestDate, locale) || change.latestDate}</p>
                         </div>
                         <p className={`text-sm font-800 ${change.percentageChange >= 0 ? 'text-warning' : 'text-positive'}`}>
                           {change.percentageChange.toFixed(1)}%
@@ -548,7 +589,7 @@ export default function ItemInsightsScreen() {
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
                           <p className="text-sm font-700 text-foreground">{suggestion.itemName}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{suggestion.insight}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{getRecurringSuggestionText(suggestion)}</p>
                         </div>
                         {suggestion.dueSoon ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2.5 py-1 text-xs font-700 text-warning">
@@ -564,11 +605,11 @@ export default function ItemInsightsScreen() {
                         </div>
                         <div className="rounded-xl bg-muted/20 px-3 py-2">
                           <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">{t('itemInsights.lastPurchased', { ns: 'portal', defaultValue: 'Last purchased' })}</p>
-                          <p className="mt-1 text-sm font-700 text-foreground">{suggestion.lastPurchasedAt}</p>
+                          <p className="mt-1 text-sm font-700 text-foreground">{formatUiDate(suggestion.lastPurchasedAt, locale) || suggestion.lastPurchasedAt}</p>
                         </div>
                         <div className="rounded-xl bg-muted/20 px-3 py-2">
                           <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">{t('itemInsights.nextLikely', { ns: 'portal', defaultValue: 'Next likely purchase' })}</p>
-                          <p className="mt-1 text-sm font-700 text-foreground">{suggestion.nextLikelyPurchaseDate}</p>
+                          <p className="mt-1 text-sm font-700 text-foreground">{formatUiDate(suggestion.nextLikelyPurchaseDate, locale) || suggestion.nextLikelyPurchaseDate}</p>
                         </div>
                         <div className="rounded-xl bg-muted/20 px-3 py-2">
                           <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">{t('itemInsights.latestVsAverage', { ns: 'portal', defaultValue: 'Latest vs average' })}</p>
@@ -609,7 +650,7 @@ export default function ItemInsightsScreen() {
                   {snapshot.spendingByCategory.slice(0, 6).map((category) => (
                     <div key={`${category.currency}:${category.categoryId || category.categoryName}`} className="flex items-center justify-between gap-3 rounded-2xl border border-border p-3">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-700 text-foreground">{category.categoryName}</p>
+                        <p className="truncate text-sm font-700 text-foreground">{getLocalizedCategoryName(category.categoryName)}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{category.itemCount} {t('itemInsights.items', { ns: 'portal', defaultValue: 'items' })}</p>
                       </div>
                       <FormattedCurrencyAmount amount={category.totalSpent} currencyCode={category.currency} className="text-sm font-800 text-foreground" showCode />
@@ -631,8 +672,8 @@ export default function ItemInsightsScreen() {
                     <div key={`${merchant.merchant}:${merchant.currency}`} className="rounded-2xl border border-border p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-700 text-foreground">{merchant.merchant}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{merchant.visitCount} {t('itemInsights.visits', { ns: 'portal', defaultValue: 'visits' })} · {merchant.lastVisit || '—'}</p>
+                          <p className="truncate text-sm font-700 text-foreground">{merchant.merchant || t('itemInsights.unknownMerchant', { ns: 'portal', defaultValue: 'Unknown merchant' })}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{merchant.visitCount} {t('itemInsights.visits', { ns: 'portal', defaultValue: 'visits' })} · {formatUiDate(merchant.lastVisit, locale) || '—'}</p>
                         </div>
                         <FormattedCurrencyAmount amount={merchant.totalSpent} currencyCode={merchant.currency} className="text-sm font-800 text-foreground" showCode />
                       </div>
@@ -716,7 +757,7 @@ export default function ItemInsightsScreen() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className="text-sm font-700 text-foreground">{history.itemName}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{history.currency} · {history.entries.length} {t('itemInsights.pricePoints', { ns: 'portal', defaultValue: 'price points' })}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">{history.currency} · {history.entries.length} {t('itemInsights.pricePoints', { ns: 'portal', defaultValue: 'price points' })}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
                     <div className="rounded-xl bg-muted/20 px-3 py-2">
@@ -741,7 +782,7 @@ export default function ItemInsightsScreen() {
                     <div key={entry.id} className="grid grid-cols-1 gap-2 rounded-2xl border border-border/70 p-3 sm:grid-cols-[110px_1fr_120px_120px]">
                       <div>
                         <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">{t('reports.accountStatement.columns.date', { ns: 'portal' })}</p>
-                        <p className="mt-1 text-sm font-700 text-foreground">{entry.transactionDate}</p>
+                        <p className="mt-1 text-sm font-700 text-foreground">{formatUiDate(entry.transactionDate, locale) || entry.transactionDate}</p>
                       </div>
                       <div>
                         <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</p>

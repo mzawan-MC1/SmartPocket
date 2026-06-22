@@ -39,7 +39,8 @@
         "pending": "в ожидании",
         "partiallyPaid": "частично оплачено",
         "settled": "погашено"
-      }
+      },
+      "recurringPaymentFallback": "Регулярный платеж"
     },
     "types": {
       "successfulSignIn": {
@@ -229,7 +230,20 @@
       "semimonthlyTitle": "График дважды в месяц",
       "loadingIncomeSchedule": "Загрузка сохраненного графика доходов...",
       "semimonthlyConfigIncomplete": "Конфигурация периода бюджета неполная. Обновите полумесячный график в",
-      "semimonthlySettingsSuffix": "перед использованием бюджета дважды в месяц."
+      "semimonthlySettingsSuffix": "перед использованием бюджета дважды в месяц.",
+      "errors": {
+        "semimonthlyScheduleRequired": "Для бюджетов дважды в месяц нужен корректный полумесячный график дохода в настройках.",
+        "biweeklyAnchorRequired": "Для бюджетов раз в 2 недели нужна опорная дата.",
+        "customAnchorRequired": "Для пользовательских бюджетов нужна опорная дата.",
+        "customCycleLengthInvalid": "Для пользовательских бюджетов нужен цикл от 2 до 90 дней."
+      }
+    },
+    "configurationIncomplete": "Конфигурация не завершена",
+    "status": {
+      "noSpending": "Нет расходов",
+      "overBudget": "Превышен бюджет",
+      "nearLimit": "Близко к лимиту",
+      "onTrack": "По плану"
     }
   },
   "dashboardMetrics": {
@@ -670,6 +684,49 @@
       "parsed": "Разобрано",
       "clarifying": "Уточнение",
       "notConfigured": "Не настроено"
+    },
+    "todayAt": "Сегодня {{time}}",
+    "durationMs": "{{value}} мс",
+    "requestTypes": {
+      "voice": "Голос",
+      "text": "Текст"
+    },
+    "intents": {
+      "personalTransaction": "Личная операция",
+      "managedPersonTransaction": "Операция управляемого человека",
+      "transfer": "Перевод",
+      "reimbursement": "Возмещение",
+      "settlement": "Расчет",
+      "budget": "Бюджет",
+      "recurringTransaction": "Повторяющаяся операция",
+      "multipleActions": "Несколько действий",
+      "unclear": "Неясно"
+    },
+    "wrongFieldLabels": {
+      "amount": "Сумма",
+      "currency": "Валюта",
+      "person": "Человек",
+      "account": "Счет",
+      "category": "Категория",
+      "date": "Дата",
+      "payer": "Плательщик",
+      "fundingSource": "Источник средств",
+      "reimbursement": "Возмещение"
+    },
+    "actionTypes": {
+      "income": "Доход",
+      "expense": "Расход",
+      "moneyReceivedFromPerson": "Деньги получены от человека",
+      "moneyReturnedToPerson": "Деньги возвращены человеку",
+      "expenseFromHeldBalance": "Расход из удерживаемого баланса",
+      "expensePaidForPerson": "Расход, оплаченный за человека",
+      "reimbursementPayment": "Выплата возмещения",
+      "settlement": "Расчет",
+      "transfer": "Перевод",
+      "budget": "Бюджет",
+      "recurringTransaction": "Повторяющаяся операция",
+      "loanReceived": "Получен заем",
+      "loanRepayment": "Погашение займа"
     }
   },
   "recentTransactions": {
@@ -1558,7 +1615,7 @@
       "biweekly": "Раз в 2 недели",
       "semimonthly": "Два раза в месяц",
       "monthly": "Ежемесячно",
-      "custom": "Пользовательский цикл"
+      "custom": "Пользовательский"
     },
     "weekdays": {
       "monday": "Понедельник",
@@ -1764,7 +1821,12 @@
     "reminderCreated": "Напоминание добавлено во внутренние оповещения.",
     "reminderError": "Не удалось создать напоминание.",
     "recurringModalTitle": "Создать регулярную подсказку",
-    "recurringCreated": "Регулярная подсказка создана в системе регулярных операций."
+    "recurringCreated": "Регулярная подсказка создана в системе регулярных операций.",
+    "uncategorizedItem": "Товар без категории",
+    "recurringInsights": {
+      "priceAboveAverage": "Обычно вы покупаете это каждые {{days}} дней, а последняя цена на {{percent}}% выше средней.",
+      "dueAgainSoon": "Обычно вы покупаете это каждые {{days}} дней, и скоро это может снова понадобиться."
+    }
   },
   "receiptInsights": {
     "title": "Аналитика чеков",
@@ -1794,6 +1856,77 @@
       "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
       "detailAverageInterval": "Средний интервал {{days}} дней; следующая вероятная покупка {{date}}",
       "unknownMerchantWithArticle": "неизвестного продавца"
+    },
+    "types": {
+      "topRepeatedItem": {
+        "title": "Самый повторяющийся товар",
+        "description": "{{itemName}} встречается {{purchaseCount}} раз в {{currency}}."
+      },
+      "priceIncrease": {
+        "title": "Заметный рост цены",
+        "description": "{{itemName}} на {{percent}}% выше предыдущей цены."
+      },
+      "recurringDue": {
+        "title": "Вероятная повторная покупка",
+        "description": "{{itemName}} может снова понадобиться примерно {{dueDate}}."
+      },
+      "highestSpendItem": {
+        "title": "Товар с наибольшими расходами",
+        "description": "{{itemName}} лидирует по расходам на товары: {{amount}}."
+      }
+    }
+  },
+  "reports": {
+    "applyFilters": "Применить фильтры",
+    "navigation": {
+      "payPeriod": "период выплат",
+      "planningPeriod": "период планирования",
+      "month": "месяц",
+      "quarter": "квартал",
+      "year": "год"
+    },
+    "historicalRateUnavailableGeneric": "Историческая конвертация недоступна для одной или нескольких записей до первого сохраненного снимка.",
+    "historicalRateUnavailableSingle": "Исторический курс недоступен для {{date}}",
+    "historicalRateUnavailableMultiple": "Исторические курсы недоступны для {{count}} дат с {{start}} по {{end}}",
+    "invalidFinancialPeriodConfiguration": "Неверная конфигурация финансового периода",
+    "noBudgetsApplyDescription": "К этому отчетному периоду не применяется ни один бюджет",
+    "noBudgetsApply": "Нет применимых бюджетов",
+    "loadingMetrics": "Загрузка метрик...",
+    "metricsUnavailable": "Метрики недоступны",
+    "noIncomeSelectedPeriod": "Нет дохода за выбранный период",
+    "groupedBy": "Группировка по {{value}}",
+    "grouping": {
+      "day": "дню",
+      "week": "неделе",
+      "month": "месяцу"
+    },
+    "budget": "Бюджет",
+    "spent": "Потрачено",
+    "remaining": "Осталось",
+    "progress": "Прогресс",
+    "unavailable": "Недоступно",
+    "summary": {
+      "totalSpent": "Всего потрачено",
+      "expenseTransactions": "Расходные операции",
+      "periodIncome": "Доход за период",
+      "periodExpenses": "Расходы за период",
+      "dailyBuckets": "Дневные интервалы",
+      "weeklyBuckets": "Недельные интервалы",
+      "monthlyBuckets": "Месячные интервалы",
+      "savingsRate": "Норма сбережений",
+      "totalCredits": "Всего поступлений",
+      "totalDebits": "Всего списаний",
+      "net": "Итог"
+    },
+    "budgetPerformanceCsv": {
+      "periodLabel": "Метка периода",
+      "periodType": "Тип периода",
+      "budgetAmount": "Сумма бюджета",
+      "budgetCurrency": "Валюта бюджета",
+      "progressPercent": "Прогресс %",
+      "reportingAmount": "Сумма бюджета в валюте отчетности",
+      "reportingSpent": "Потрачено в валюте отчетности",
+      "reportingRemaining": "Остаток в валюте отчетности"
     }
   }
 }

@@ -39,7 +39,8 @@
         "pending": "قيد الانتظار",
         "partiallyPaid": "مدفوع جزئيًا",
         "settled": "مسوّى"
-      }
+      },
+      "recurringPaymentFallback": "دفعة متكررة"
     },
     "types": {
       "successfulSignIn": {
@@ -257,7 +258,20 @@
       "semimonthlyTitle": "جدول مرتين في الشهر",
       "loadingIncomeSchedule": "جارٍ تحميل جدول الدخل المحفوظ...",
       "semimonthlyConfigIncomplete": "إعداد فترة الميزانية غير مكتمل. حدّث جدولك نصف الشهري في",
-      "semimonthlySettingsSuffix": "قبل استخدام ميزانية مرتين في الشهر."
+      "semimonthlySettingsSuffix": "قبل استخدام ميزانية مرتين في الشهر.",
+      "errors": {
+        "semimonthlyScheduleRequired": "تتطلب الميزانيات مرتين في الشهر جدول دخل نصف شهري صالحا في الإعدادات.",
+        "biweeklyAnchorRequired": "تتطلب ميزانيات كل أسبوعين تاريخ ربط.",
+        "customAnchorRequired": "تتطلب الميزانيات المخصصة تاريخ ربط.",
+        "customCycleLengthInvalid": "تتطلب الميزانيات المخصصة طول دورة بين 2 و90 يوما."
+      }
+    },
+    "configurationIncomplete": "الإعداد غير مكتمل",
+    "status": {
+      "noSpending": "لا يوجد إنفاق",
+      "overBudget": "تجاوز الميزانية",
+      "nearLimit": "قرب الحد",
+      "onTrack": "ضمن المسار"
     }
   },
   "dashboardMetrics": {
@@ -698,6 +712,49 @@
       "parsed": "تم التحليل",
       "clarifying": "قيد التوضيح",
       "notConfigured": "غير مهيأ"
+    },
+    "todayAt": "اليوم {{time}}",
+    "durationMs": "{{value}} مللي ثانية",
+    "requestTypes": {
+      "voice": "صوت",
+      "text": "نص"
+    },
+    "intents": {
+      "personalTransaction": "معاملة شخصية",
+      "managedPersonTransaction": "معاملة لشخص مدار",
+      "transfer": "تحويل",
+      "reimbursement": "تعويض",
+      "settlement": "تسوية",
+      "budget": "ميزانية",
+      "recurringTransaction": "معاملة متكررة",
+      "multipleActions": "إجراءات متعددة",
+      "unclear": "غير واضح"
+    },
+    "wrongFieldLabels": {
+      "amount": "المبلغ",
+      "currency": "العملة",
+      "person": "الشخص",
+      "account": "الحساب",
+      "category": "الفئة",
+      "date": "التاريخ",
+      "payer": "الدافع",
+      "fundingSource": "مصدر التمويل",
+      "reimbursement": "التعويض"
+    },
+    "actionTypes": {
+      "income": "دخل",
+      "expense": "مصروف",
+      "moneyReceivedFromPerson": "مال مستلم من شخص",
+      "moneyReturnedToPerson": "مال معاد إلى شخص",
+      "expenseFromHeldBalance": "مصروف من رصيد محتفظ به",
+      "expensePaidForPerson": "مصروف مدفوع لشخص",
+      "reimbursementPayment": "دفعة تعويض",
+      "settlement": "تسوية",
+      "transfer": "تحويل",
+      "budget": "ميزانية",
+      "recurringTransaction": "معاملة متكررة",
+      "loanReceived": "قرض مستلم",
+      "loanRepayment": "سداد قرض"
     }
   },
   "recentTransactions": {
@@ -1586,7 +1643,7 @@
       "biweekly": "كل أسبوعين",
       "semimonthly": "مرتان في الشهر",
       "monthly": "شهري",
-      "custom": "دورة مخصصة"
+      "custom": "مخصص"
     },
     "weekdays": {
       "monday": "الاثنين",
@@ -1792,7 +1849,12 @@
     "reminderCreated": "تمت إضافة التذكير إلى التنبيهات داخل التطبيق.",
     "reminderError": "فشل إنشاء التذكير.",
     "recurringModalTitle": "إنشاء اقتراح متكرر",
-    "recurringCreated": "تم إنشاء الاقتراح المتكرر داخل نظام المعاملات المتكررة."
+    "recurringCreated": "تم إنشاء الاقتراح المتكرر داخل نظام المعاملات المتكررة.",
+    "uncategorizedItem": "عنصر غير مصنف",
+    "recurringInsights": {
+      "priceAboveAverage": "عادة تشتري هذا كل {{days}} يوما، وكان أحدث سعر أعلى من متوسطك بنسبة {{percent}}%.",
+      "dueAgainSoon": "عادة تشتري هذا كل {{days}} يوما وقد يحين موعده مرة أخرى قريبا."
+    }
   },
   "receiptInsights": {
     "title": "رؤى الإيصالات",
@@ -1822,6 +1884,77 @@
       "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
       "detailAverageInterval": "متوسط الفاصل {{days}} يومًا؛ الموعد المتوقع التالي {{date}}",
       "unknownMerchantWithArticle": "تاجر غير معروف"
+    },
+    "types": {
+      "topRepeatedItem": {
+        "title": "العنصر الأكثر تكرارا",
+        "description": "ظهر {{itemName}} {{purchaseCount}} مرة في {{currency}}."
+      },
+      "priceIncrease": {
+        "title": "زيادة سعر ملحوظة",
+        "description": "سعر {{itemName}} أعلى بنسبة {{percent}}% من السعر السابق."
+      },
+      "recurringDue": {
+        "title": "شراء متكرر محتمل",
+        "description": "قد يحين موعد شراء {{itemName}} مرة أخرى تقريبا في {{dueDate}}."
+      },
+      "highestSpendItem": {
+        "title": "أعلى عنصر إنفاقا",
+        "description": "يتصدر {{itemName}} الإنفاق على العناصر بمبلغ {{amount}}."
+      }
+    }
+  },
+  "reports": {
+    "applyFilters": "تطبيق الفلاتر",
+    "navigation": {
+      "payPeriod": "فترة الدفع",
+      "planningPeriod": "فترة التخطيط",
+      "month": "الشهر",
+      "quarter": "الربع",
+      "year": "السنة"
+    },
+    "historicalRateUnavailableGeneric": "التحويل التاريخي غير متاح لسجل واحد أو أكثر قبل أول لقطة محفوظة.",
+    "historicalRateUnavailableSingle": "سعر الصرف التاريخي غير متاح بتاريخ {{date}}",
+    "historicalRateUnavailableMultiple": "أسعار الصرف التاريخية غير متاحة لـ {{count}} تواريخ من {{start}} إلى {{end}}",
+    "invalidFinancialPeriodConfiguration": "إعداد الفترة المالية غير صالح",
+    "noBudgetsApplyDescription": "لا تنطبق أي ميزانيات على فترة التقرير هذه",
+    "noBudgetsApply": "لا توجد ميزانيات مطبقة",
+    "loadingMetrics": "جار تحميل المقاييس...",
+    "metricsUnavailable": "المقاييس غير متاحة",
+    "noIncomeSelectedPeriod": "لا يوجد دخل في الفترة المحددة",
+    "groupedBy": "مجمعة حسب {{value}}",
+    "grouping": {
+      "day": "اليوم",
+      "week": "الأسبوع",
+      "month": "الشهر"
+    },
+    "budget": "الميزانية",
+    "spent": "المنفق",
+    "remaining": "المتبقي",
+    "progress": "التقدم",
+    "unavailable": "غير متاح",
+    "summary": {
+      "totalSpent": "إجمالي المنفق",
+      "expenseTransactions": "معاملات المصروفات",
+      "periodIncome": "دخل الفترة",
+      "periodExpenses": "مصروفات الفترة",
+      "dailyBuckets": "فترات يومية",
+      "weeklyBuckets": "فترات أسبوعية",
+      "monthlyBuckets": "فترات شهرية",
+      "savingsRate": "معدل الادخار",
+      "totalCredits": "إجمالي المبالغ الواردة",
+      "totalDebits": "إجمالي المبالغ الخارجة",
+      "net": "الصافي"
+    },
+    "budgetPerformanceCsv": {
+      "periodLabel": "تسمية الفترة",
+      "periodType": "نوع الفترة",
+      "budgetAmount": "مبلغ الميزانية",
+      "budgetCurrency": "عملة الميزانية",
+      "progressPercent": "نسبة التقدم",
+      "reportingAmount": "مبلغ الميزانية بعملة التقارير",
+      "reportingSpent": "المنفق بعملة التقارير",
+      "reportingRemaining": "المتبقي بعملة التقارير"
     }
   }
 }

@@ -38,13 +38,30 @@ export interface BudgetSelectedRange {
   endDate: string;
 }
 
-const BUDGET_PERIOD_LABELS: Record<BudgetPeriod, string> = {
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+const BUDGET_PERIOD_LABEL_KEYS: Record<BudgetPeriod, string> = {
+  weekly: 'financialPeriods.budgetPeriods.weekly',
+  biweekly: 'financialPeriods.budgetPeriods.biweekly',
+  semimonthly: 'financialPeriods.budgetPeriods.semimonthly',
+  monthly: 'financialPeriods.budgetPeriods.monthly',
+  custom: 'financialPeriods.budgetPeriods.custom',
+};
+
+const BUDGET_PERIOD_LABEL_FALLBACKS: Record<BudgetPeriod, string> = {
   weekly: 'Weekly',
   biweekly: 'Every 2 weeks',
   semimonthly: 'Twice a month',
   monthly: 'Monthly',
   custom: 'Custom',
 };
+
+const BUDGET_CONFIG_ERROR_KEYS = {
+  semimonthlyScheduleRequired: 'budgets.form.errors.semimonthlyScheduleRequired',
+  biweeklyAnchorRequired: 'budgets.form.errors.biweeklyAnchorRequired',
+  customAnchorRequired: 'budgets.form.errors.customAnchorRequired',
+  customCycleLengthInvalid: 'budgets.form.errors.customCycleLengthInvalid',
+} as const;
 
 function isBudgetPeriod(value: string | null | undefined): value is BudgetPeriod {
   return value === 'weekly'
@@ -110,7 +127,7 @@ function buildBudgetFinancialConfig(
       return {
         config: null,
         budgetPeriod,
-        error: 'Twice-a-month budgets require a valid semimonthly income schedule in Settings.',
+        error: BUDGET_CONFIG_ERROR_KEYS.semimonthlyScheduleRequired,
       };
     }
     return {
@@ -143,7 +160,7 @@ function buildBudgetFinancialConfig(
       return {
         config: null,
         budgetPeriod,
-        error: 'Every-2-weeks budgets require an anchor date.',
+        error: BUDGET_CONFIG_ERROR_KEYS.biweeklyAnchorRequired,
       };
     }
     return {
@@ -161,7 +178,7 @@ function buildBudgetFinancialConfig(
     return {
       config: null,
       budgetPeriod,
-      error: 'Custom budgets require an anchor date.',
+      error: BUDGET_CONFIG_ERROR_KEYS.customAnchorRequired,
     };
   }
 
@@ -169,7 +186,7 @@ function buildBudgetFinancialConfig(
     return {
       config: null,
       budgetPeriod,
-      error: 'Custom budgets require a cycle length between 2 and 90 days.',
+      error: BUDGET_CONFIG_ERROR_KEYS.customCycleLengthInvalid,
     };
   }
 
@@ -192,8 +209,15 @@ export function normalizeBudgetPeriodValue(budget: BudgetPeriodSource): BudgetPe
   return getLegacyCompatibleBudgetPeriod(budget.period || null);
 }
 
-export function getBudgetPeriodTypeLabel(value: BudgetPeriod) {
-  return BUDGET_PERIOD_LABELS[value];
+export function getBudgetPeriodTypeLabel(value: BudgetPeriod, t?: Translate) {
+  if (!t) {
+    return BUDGET_PERIOD_LABEL_FALLBACKS[value];
+  }
+
+  return t(BUDGET_PERIOD_LABEL_KEYS[value], {
+    ns: 'portal',
+    defaultValue: BUDGET_PERIOD_LABEL_FALLBACKS[value],
+  });
 }
 
 export function validateBudgetPeriodConfig(

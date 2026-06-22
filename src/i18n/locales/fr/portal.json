@@ -39,7 +39,8 @@
         "pending": "en attente",
         "partiallyPaid": "partiellement payée",
         "settled": "réglée"
-      }
+      },
+      "recurringPaymentFallback": "Paiement recurrent"
     },
     "types": {
       "successfulSignIn": {
@@ -229,7 +230,20 @@
       "semimonthlyTitle": "Calendrier deux fois par mois",
       "loadingIncomeSchedule": "Chargement de votre calendrier de revenus enregistre...",
       "semimonthlyConfigIncomplete": "La configuration de la periode de budget est incomplete. Mettez a jour votre calendrier bimensuel dans",
-      "semimonthlySettingsSuffix": "avant d'utiliser un budget deux fois par mois."
+      "semimonthlySettingsSuffix": "avant d'utiliser un budget deux fois par mois.",
+      "errors": {
+        "semimonthlyScheduleRequired": "Les budgets bimensuels exigent un calendrier de revenu semimensuel valide dans les Parametres.",
+        "biweeklyAnchorRequired": "Les budgets toutes les 2 semaines exigent une date d'ancrage.",
+        "customAnchorRequired": "Les budgets personnalises exigent une date d'ancrage.",
+        "customCycleLengthInvalid": "Les budgets personnalises exigent un cycle entre 2 et 90 jours."
+      }
+    },
+    "configurationIncomplete": "Configuration incomplete",
+    "status": {
+      "noSpending": "Aucune depense",
+      "overBudget": "Budget depasse",
+      "nearLimit": "Proche de la limite",
+      "onTrack": "Dans les temps"
     }
   },
   "dashboardMetrics": {
@@ -670,6 +684,49 @@
       "parsed": "Analysé",
       "clarifying": "En clarification",
       "notConfigured": "Non configuré"
+    },
+    "todayAt": "Aujourd'hui {{time}}",
+    "durationMs": "{{value}} ms",
+    "requestTypes": {
+      "voice": "Voix",
+      "text": "Texte"
+    },
+    "intents": {
+      "personalTransaction": "Transaction personnelle",
+      "managedPersonTransaction": "Transaction de personne geree",
+      "transfer": "Transfert",
+      "reimbursement": "Remboursement",
+      "settlement": "Reglement",
+      "budget": "Budget",
+      "recurringTransaction": "Transaction recurrente",
+      "multipleActions": "Actions multiples",
+      "unclear": "Peu clair"
+    },
+    "wrongFieldLabels": {
+      "amount": "Montant",
+      "currency": "Devise",
+      "person": "Personne",
+      "account": "Compte",
+      "category": "Categorie",
+      "date": "Date",
+      "payer": "Payeur",
+      "fundingSource": "Source de financement",
+      "reimbursement": "Remboursement"
+    },
+    "actionTypes": {
+      "income": "Revenu",
+      "expense": "Depense",
+      "moneyReceivedFromPerson": "Argent recu d'une personne",
+      "moneyReturnedToPerson": "Argent rendu a une personne",
+      "expenseFromHeldBalance": "Depense depuis le solde detenu",
+      "expensePaidForPerson": "Depense payee pour une personne",
+      "reimbursementPayment": "Paiement de remboursement",
+      "settlement": "Reglement",
+      "transfer": "Transfert",
+      "budget": "Budget",
+      "recurringTransaction": "Transaction recurrente",
+      "loanReceived": "Pret recu",
+      "loanRepayment": "Remboursement du pret"
     }
   },
   "recentTransactions": {
@@ -1558,7 +1615,7 @@
       "biweekly": "Toutes les 2 semaines",
       "semimonthly": "Deux fois par mois",
       "monthly": "Mensuel",
-      "custom": "Cycle personnalise"
+      "custom": "Personnalise"
     },
     "weekdays": {
       "monday": "Lundi",
@@ -1764,7 +1821,12 @@
     "reminderCreated": "Rappel ajouté aux alertes dans l'application.",
     "reminderError": "Impossible de créer le rappel.",
     "recurringModalTitle": "Créer une suggestion récurrente",
-    "recurringCreated": "Suggestion récurrente créée dans le système récurrent."
+    "recurringCreated": "Suggestion récurrente créée dans le système récurrent.",
+    "uncategorizedItem": "Article non categorise",
+    "recurringInsights": {
+      "priceAboveAverage": "Vous achetez habituellement cet article tous les {{days}} jours, et le dernier prix est superieur de {{percent}}% a votre moyenne.",
+      "dueAgainSoon": "Vous achetez habituellement cet article tous les {{days}} jours et il pourrait bientot etre de nouveau necessaire."
+    }
   },
   "receiptInsights": {
     "title": "Insights des reçus",
@@ -1794,6 +1856,77 @@
       "detailPriceChange": "{{previous}} {{currency}} -> {{latest}} {{currency}}",
       "detailAverageInterval": "Intervalle moyen de {{days}} jours ; prochain achat probable {{date}}",
       "unknownMerchantWithArticle": "un marchand inconnu"
+    },
+    "types": {
+      "topRepeatedItem": {
+        "title": "Article le plus repete",
+        "description": "{{itemName}} apparait {{purchaseCount}} fois en {{currency}}."
+      },
+      "priceIncrease": {
+        "title": "Hausse de prix notable",
+        "description": "{{itemName}} est superieur de {{percent}}% au prix precedent."
+      },
+      "recurringDue": {
+        "title": "Achat recurrent probable",
+        "description": "{{itemName}} pourrait etre de nouveau necessaire vers {{dueDate}}."
+      },
+      "highestSpendItem": {
+        "title": "Article le plus depense",
+        "description": "{{itemName}} mene les depenses d'articles avec {{amount}}."
+      }
+    }
+  },
+  "reports": {
+    "applyFilters": "Appliquer les filtres",
+    "navigation": {
+      "payPeriod": "periode de paie",
+      "planningPeriod": "periode de planification",
+      "month": "mois",
+      "quarter": "trimestre",
+      "year": "annee"
+    },
+    "historicalRateUnavailableGeneric": "La conversion historique est indisponible pour un ou plusieurs enregistrements avant le premier instantane stocke.",
+    "historicalRateUnavailableSingle": "Taux historique indisponible pour {{date}}",
+    "historicalRateUnavailableMultiple": "Taux historiques indisponibles pour {{count}} dates de {{start}} a {{end}}",
+    "invalidFinancialPeriodConfiguration": "Configuration de periode financiere invalide",
+    "noBudgetsApplyDescription": "Aucun budget ne s'applique a cette periode de rapport",
+    "noBudgetsApply": "Aucun budget applicable",
+    "loadingMetrics": "Chargement des mesures...",
+    "metricsUnavailable": "Mesures indisponibles",
+    "noIncomeSelectedPeriod": "Aucun revenu dans la periode selectionnee",
+    "groupedBy": "Groupe par {{value}}",
+    "grouping": {
+      "day": "jour",
+      "week": "semaine",
+      "month": "mois"
+    },
+    "budget": "Budget",
+    "spent": "Depense",
+    "remaining": "Restant",
+    "progress": "Progression",
+    "unavailable": "Indisponible",
+    "summary": {
+      "totalSpent": "Total depense",
+      "expenseTransactions": "Transactions de depense",
+      "periodIncome": "Revenus de la periode",
+      "periodExpenses": "Depenses de la periode",
+      "dailyBuckets": "Intervalles journaliers",
+      "weeklyBuckets": "Intervalles hebdomadaires",
+      "monthlyBuckets": "Intervalles mensuels",
+      "savingsRate": "Taux d'epargne",
+      "totalCredits": "Total des credits",
+      "totalDebits": "Total des debits",
+      "net": "Net"
+    },
+    "budgetPerformanceCsv": {
+      "periodLabel": "Libelle de periode",
+      "periodType": "Type de periode",
+      "budgetAmount": "Montant du budget",
+      "budgetCurrency": "Devise du budget",
+      "progressPercent": "Progression %",
+      "reportingAmount": "Montant budgetaire de reporting",
+      "reportingSpent": "Depense de reporting",
+      "reportingRemaining": "Restant de reporting"
     }
   }
 }

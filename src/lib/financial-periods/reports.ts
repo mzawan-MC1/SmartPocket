@@ -26,6 +26,7 @@ export interface ReportPeriodRange {
   startDate: string;
   endDate: string;
   label: string;
+  presetLabelKey: string;
   presetLabel: string;
   comparisonLabel: string | null;
   navigationLabel: string | null;
@@ -38,6 +39,7 @@ interface PlainReportPeriodRange {
   startDate: string;
   endDate: string;
   label: string;
+  presetLabelKey: string;
   presetLabel: string;
   navigationLabel: string | null;
   isCustom: boolean;
@@ -112,28 +114,60 @@ function shiftYear(referenceDate: string, amount: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildPlanningPresetLabel(preset: ReportPeriodPreset, config: FinancialPeriodConfig) {
+function getReportPresetLabelKey(preset: ReportPeriodPreset, config: FinancialPeriodConfig) {
   const isPlanningFallback = config.incomeFrequency === 'irregular';
   if (preset === 'current_pay_period') {
-    return isPlanningFallback ? 'Current planning period' : 'Current pay period';
+    return isPlanningFallback
+      ? 'reports.presets.currentPlanningPeriod'
+      : 'reports.presets.currentPayPeriod';
   }
   if (preset === 'previous_pay_period') {
-    return isPlanningFallback ? 'Previous planning period' : 'Previous pay period';
+    return isPlanningFallback
+      ? 'reports.presets.previousPlanningPeriod'
+      : 'reports.presets.previousPayPeriod';
   }
   switch (preset) {
     case 'current_month':
-      return 'Current month';
+      return 'reports.presets.currentMonth';
     case 'previous_month':
-      return 'Previous month';
+      return 'reports.presets.previousMonth';
     case 'current_quarter':
-      return 'Current quarter';
+      return 'reports.presets.currentQuarter';
     case 'current_year':
-      return 'Current year';
+      return 'reports.presets.currentYear';
     case 'last_30_days':
-      return 'Last 30 days';
+      return 'reports.presets.last30Days';
     case 'year_to_date':
-      return 'Year to date';
+      return 'reports.presets.yearToDate';
     case 'custom':
+    default:
+      return 'reports.presets.custom';
+  }
+}
+
+function buildPlanningPresetLabel(preset: ReportPeriodPreset, config: FinancialPeriodConfig) {
+  switch (getReportPresetLabelKey(preset, config)) {
+    case 'reports.presets.currentPlanningPeriod':
+      return 'Current planning period';
+    case 'reports.presets.currentPayPeriod':
+      return 'Current pay period';
+    case 'reports.presets.previousPlanningPeriod':
+      return 'Previous planning period';
+    case 'reports.presets.previousPayPeriod':
+      return 'Previous pay period';
+    case 'reports.presets.currentMonth':
+      return 'Current month';
+    case 'reports.presets.previousMonth':
+      return 'Previous month';
+    case 'reports.presets.currentQuarter':
+      return 'Current quarter';
+    case 'reports.presets.currentYear':
+      return 'Current year';
+    case 'reports.presets.last30Days':
+      return 'Last 30 days';
+    case 'reports.presets.yearToDate':
+      return 'Year to date';
+    case 'reports.presets.custom':
     default:
       return 'Custom range';
   }
@@ -164,6 +198,7 @@ function buildRangeLabel(
 function resolvePlainReportPeriod(args: ResolveReportPeriodPresetArgs): PlainReportPeriodRange {
   const locale = args.locale;
   const referenceDate = args.referenceDate || getCurrentBusinessDate(args.config.timezone);
+  const presetLabelKey = getReportPresetLabelKey(args.preset, args.config);
   const presetLabel = buildPlanningPresetLabel(args.preset, args.config);
 
   if (args.preset === 'custom') {
@@ -176,6 +211,7 @@ function resolvePlainReportPeriod(args: ResolveReportPeriodPresetArgs): PlainRep
       startDate,
       endDate,
       label: buildRangeLabel('custom', startDate, endDate, locale),
+      presetLabelKey,
       presetLabel,
       navigationLabel: null,
       isCustom: true,
@@ -191,42 +227,46 @@ function resolvePlainReportPeriod(args: ResolveReportPeriodPresetArgs): PlainRep
       const period = getCurrentFinancialPeriod(args.config, referenceDate);
       startDate = period.startDate;
       endDate = period.endDate;
-      navigationLabel = args.config.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      navigationLabel = args.config.incomeFrequency === 'irregular'
+        ? 'reports.navigation.planningPeriod'
+        : 'reports.navigation.payPeriod';
       break;
     }
     case 'previous_pay_period': {
       const period = getPreviousFinancialPeriod(args.config, referenceDate);
       startDate = period.startDate;
       endDate = period.endDate;
-      navigationLabel = args.config.incomeFrequency === 'irregular' ? 'planning period' : 'pay period';
+      navigationLabel = args.config.incomeFrequency === 'irregular'
+        ? 'reports.navigation.planningPeriod'
+        : 'reports.navigation.payPeriod';
       break;
     }
     case 'current_month': {
       const month = getMonthContext(referenceDate.slice(0, 7), args.config.timezone);
       startDate = month.startDate;
       endDate = month.endDate;
-      navigationLabel = 'month';
+      navigationLabel = 'reports.navigation.month';
       break;
     }
     case 'previous_month': {
       const month = getMonthContext(shiftMonthKey(referenceDate.slice(0, 7), -1), args.config.timezone);
       startDate = month.startDate;
       endDate = month.endDate;
-      navigationLabel = 'month';
+      navigationLabel = 'reports.navigation.month';
       break;
     }
     case 'current_quarter': {
       const quarter = getQuarterRange(referenceDate);
       startDate = quarter.startDate;
       endDate = quarter.endDate;
-      navigationLabel = 'quarter';
+      navigationLabel = 'reports.navigation.quarter';
       break;
     }
     case 'current_year': {
       const year = getYearRange(referenceDate);
       startDate = year.startDate;
       endDate = year.endDate;
-      navigationLabel = 'year';
+      navigationLabel = 'reports.navigation.year';
       break;
     }
     case 'last_30_days': {
@@ -246,6 +286,7 @@ function resolvePlainReportPeriod(args: ResolveReportPeriodPresetArgs): PlainRep
     startDate,
     endDate,
     label: buildRangeLabel(args.preset, startDate, endDate, locale),
+    presetLabelKey,
     presetLabel,
     navigationLabel,
     isCustom: false,

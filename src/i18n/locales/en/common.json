@@ -163,6 +163,16 @@
     "education": "Education",
     "subscriptions": "Subscriptions",
     "savings": "Savings",
-    "transfer": "Transfer"
+    "transfer": "Transfer",
+    "businessIncome": "Business Income",
+    "rentalIncome": "Rental Income",
+    "giftsReceived": "Gifts Received",
+    "dining": "Dining",
+    "housingRent": "Housing & Rent",
+    "groceries": "Groceries",
+    "personalCare": "Personal Care",
+    "insurance": "Insurance",
+    "otherExpense": "Other Expense",
+    "other": "Other"
   }
 }

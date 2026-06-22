@@ -24,6 +24,8 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import type { BudgetPeriod } from '@/lib/financial-periods';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
 
@@ -71,8 +73,51 @@ function groupBudgetSummaries(items: BudgetTrackingItem[]) {
 
 const PERIOD_FILTERS: Array<'all' | BudgetPeriod> = ['all', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'custom'];
 
+function localizeBudgetWarning(
+  warning: string | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (!warning) return null;
+  if (warning.startsWith('budgets.')) {
+    return t(warning, { ns: 'portal' });
+  }
+  if (
+    warning === 'Budget period configuration is incomplete.'
+    || warning === 'Invalid financial-period configuration'
+  ) {
+    return t('budgets.form.incompletePeriodConfig');
+  }
+  if (
+    warning === 'Exchange rates are unavailable'
+    || warning === 'Exchange-rate conversion failed'
+    || warning.startsWith('Historical conversion is unavailable')
+    || warning.startsWith('Historical rate unavailable')
+    || warning.startsWith('Historical rates unavailable')
+  ) {
+    return t('budgets.historicalRateUnavailable');
+  }
+  return warning;
+}
+
+function getBudgetStatusLabel(
+  item: BudgetTrackingItem,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (item.status === 'conversion_unavailable') {
+    return item.warning && item.warning.startsWith('budgets.')
+      ? t('budgets.configurationIncomplete')
+      : t('budgets.conversionUnavailableTitle');
+  }
+  if (item.status === 'no_spending') return t('budgets.status.noSpending');
+  if (item.status === 'over_budget') return t('budgets.status.overBudget');
+  if (item.status === 'near_limit') return t('budgets.status.nearLimit');
+  return t('budgets.status.onTrack');
+}
+
 export default function BudgetsPage() {
   const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [overview, setOverview] = useState<BudgetTrackingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -87,12 +132,12 @@ export default function BudgetsPage() {
     setLoading(true);
     getBudgetTrackingOverview({
       periodFilter,
-      locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+      locale,
     })
       .then(setOverview)
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
-  }, [periodFilter]);
+  }, [locale, periodFilter]);
 
   useEffect(() => { load(); }, [load]);
   useSmartPocketDataChanged(['budgets', 'transactions', 'profile'], 'BudgetsPage', async () => {
@@ -106,12 +151,12 @@ export default function BudgetsPage() {
     getBudgetDetailSnapshot({
       budgetId: detailBudget.id,
       referenceDate: detailReferenceDate || undefined,
-      locale: typeof navigator !== 'undefined' ? navigator.language : 'en-US',
+      locale,
     })
       .then(setDetailSnapshot)
       .catch((error) => toast.error(error.message))
       .finally(() => setDetailLoading(false));
-  }, [detailBudget, detailReferenceDate]);
+  }, [detailBudget, detailReferenceDate, locale]);
 
   const items = overview?.items || [];
   const budgetSummaries = useMemo(() => groupBudgetSummaries(items), [items]);
@@ -164,7 +209,7 @@ export default function BudgetsPage() {
                 onClick={() => setPeriodFilter(filterValue)}
                 className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
               >
-                {filterValue === 'all' ? t('budgets.allBudgets') : getBudgetPeriodTypeLabel(filterValue)}
+                {filterValue === 'all' ? t('budgets.allBudgets') : getBudgetPeriodTypeLabel(filterValue, t)}
               </button>
             );
           })}
@@ -265,7 +310,7 @@ export default function BudgetsPage() {
                           <div className="flex items-center justify-between mb-2">
                             <p className="text-sm font-700 text-foreground">{summary.currency}</p>
                             <span className="text-xs font-600 text-muted-foreground">
-                              {summary.utilizationPct.toFixed(1)}% used
+                              {t('budgets.usedPercent', { percent: summary.utilizationPct.toFixed(1) })}
                             </span>
                           </div>
                           <div className="w-full h-2 rounded-full bg-muted overflow-hidden mb-3">
@@ -399,12 +444,12 @@ export default function BudgetsPage() {
                               : bud.name}
                           </p>
                           <p className="text-[11px] text-muted-foreground">
-                            {t('budgets.periodBudget', { period: item.periodTypeLabel })}
+                            {t('budgets.periodBudget', { period: getBudgetPeriodTypeLabel(item.period.budgetPeriod, t) })}
                           </p>
                           <div className="flex items-center gap-1 mt-0.5">
                             {item.status === 'over_budget' && <AlertCircle size={11} className="text-negative" />}
                             {item.status === 'near_limit' && <AlertTriangle size={11} className="text-warning" />}
-                            <span className={`text-[10px] font-600 ${getStatusTone(item.status)}`}>{item.statusLabel}</span>
+                            <span className={`text-[10px] font-600 ${getStatusTone(item.status)}`}>{getBudgetStatusLabel(item, t)}</span>
                           </div>
                         </div>
                       </div>
@@ -476,7 +521,7 @@ export default function BudgetsPage() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                       <span>{t('budgets.transactionsInPeriod', { count: item.transactionCount })}</span>
-                      <span>{item.warning ? t('budgets.warningHint') : item.period.label}</span>
+                      <span>{item.warning ? localizeBudgetWarning(item.warning, t) : item.period.label}</span>
                     </div>
                   </div>
                 );
@@ -580,13 +625,13 @@ export default function BudgetsPage() {
               >
                 {t('budgets.next')} <ChevronRight size={14} />
               </button>
-              <StatusBadge status={detailSnapshot.status === 'over_budget' ? 'error' : detailSnapshot.status === 'near_limit' ? 'warning' : 'info'} label={detailSnapshot.statusLabel} />
+              <StatusBadge status={detailSnapshot.status === 'over_budget' ? 'error' : detailSnapshot.status === 'near_limit' ? 'warning' : 'info'} label={getBudgetStatusLabel(detailSnapshot, t)} />
             </div>
             <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <p className="text-sm font-700 text-foreground">{detailSnapshot.periodTypeLabel}</p>
+              <p className="text-sm font-700 text-foreground">{getBudgetPeriodTypeLabel(detailSnapshot.period.budgetPeriod, t)}</p>
               <p className="text-xs text-muted-foreground mt-1">{detailSnapshot.period.label}</p>
               {detailSnapshot.warning ? (
-                <p className="mt-2 text-sm text-warning">{detailSnapshot.warning}</p>
+                <p className="mt-2 text-sm text-warning">{localizeBudgetWarning(detailSnapshot.warning, t)}</p>
               ) : null}
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

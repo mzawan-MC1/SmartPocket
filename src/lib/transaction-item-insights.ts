@@ -170,7 +170,7 @@ export interface AverageUnitPriceResult {
 
 export interface SpendingByItemCategoryResult {
   categoryId: string | null;
-  categoryName: string;
+  categoryName: string | null;
   currency: string;
   totalSpent: number;
   purchaseCount: number;
@@ -178,7 +178,7 @@ export interface SpendingByItemCategoryResult {
 }
 
 export interface MerchantItemHistoryResult {
-  merchant: string;
+  merchant: string | null;
   currency: string;
   totalSpent: number;
   purchaseCount: number;
@@ -220,14 +220,14 @@ export interface RecentPriceChangeResult {
 }
 
 export interface MerchantInsightResult {
-  merchant: string;
+  merchant: string | null;
   currency: string;
   totalSpent: number;
   visitCount: number;
   averageReceiptValue: number;
   lastVisit: string | null;
   mostPurchasedItems: Array<{ itemName: string; purchaseCount: number }>;
-  categoryBreakdown: Array<{ categoryName: string; totalSpent: number }>;
+  categoryBreakdown: Array<{ categoryName: string | null; totalSpent: number }>;
   repeatedItemPriceHistory: RecentPriceChangeResult[];
 }
 
@@ -245,14 +245,18 @@ export interface RecurringPurchaseSuggestion {
   latestPrice: number | null;
   latestPriceVsAveragePct: number | null;
   dueSoon: boolean;
-  insight: string;
+  insightType: 'price_above_average' | 'due_again_soon';
 }
 
 export interface ReceiptDashboardInsight {
   id: string;
   type: 'top_repeated_item' | 'price_increase' | 'recurring_due' | 'highest_spend_item';
-  title: string;
-  body: string;
+  itemName?: string | null;
+  purchaseCount?: number | null;
+  percentageChange?: number | null;
+  dueDate?: string | null;
+  totalSpent?: number | null;
+  currency?: string | null;
   actionItemName?: string | null;
 }
 
@@ -403,7 +407,7 @@ async function getItemIdentityLookup(supabaseClient?: SupabaseClient) {
   for (const row of (identityRows || []) as ItemIdentityRow[]) {
     const option = {
       id: row.id,
-      canonicalName: normalizeText(row.canonical_name) || 'Item',
+      canonicalName: normalizeText(row.canonical_name) || normalizeText(row.normalized_name) || row.id,
       normalizedName: normalizeReceiptItemName(row.normalized_name || row.canonical_name),
     } satisfies ItemIdentityOption;
     identityMap.set(row.id, option);
@@ -855,8 +859,8 @@ export async function getSpendingByItemCategory(filters: TransactionItemInsightF
 
   for (const row of rows) {
     const categoryId = row.categoryId || row.parentCategoryId || null;
-    const categoryName = row.categoryName || 'Uncategorized item';
-    const groupKey = `${row.currency}::${categoryId || categoryName.toLowerCase()}`;
+    const categoryName = row.categoryName || null;
+    const groupKey = `${row.currency}::${categoryId || '__uncategorized__'}`;
     const existing = grouped.get(groupKey) || {
       categoryId,
       categoryName,
@@ -883,7 +887,7 @@ export async function getMerchantItemHistory(itemName: string, filters: Omit<Tra
   const grouped = new Map<string, MerchantItemHistoryResult>();
 
   for (const row of rows) {
-    const merchant = row.merchant || 'Unknown merchant';
+    const merchant = row.merchant || null;
     const groupKey = `${merchant}::${row.currency}`;
     const existing = grouped.get(groupKey) || {
       merchant,
@@ -995,20 +999,22 @@ export async function getMerchantInsights(filters: TransactionItemInsightFilters
     transactionType: filters.transactionType || 'expense',
   });
   const grouped = new Map<string, {
-    merchant: string;
+    merchant: string | null;
     currency: string;
     totalSpent: number;
     transactionIds: Set<string>;
     receiptTotals: number[];
     lastVisit: string | null;
     itemCounts: Map<string, number>;
+    categoryNames: Map<string, string | null>;
     categoryTotals: Map<string, number>;
     priceHistoryRows: TransactionItemInsightRow[];
   }>();
 
   for (const row of rows) {
-    const merchant = row.merchant || 'Unknown merchant';
+    const merchant = row.merchant || null;
     const groupKey = `${merchant}::${row.currency}`;
+    const categoryKey = row.categoryId || row.parentCategoryId || '__uncategorized__';
     const existing = grouped.get(groupKey) || {
       merchant,
       currency: row.currency,
@@ -1017,13 +1023,15 @@ export async function getMerchantInsights(filters: TransactionItemInsightFilters
       receiptTotals: [],
       lastVisit: null,
       itemCounts: new Map<string, number>(),
+      categoryNames: new Map<string, string | null>(),
       categoryTotals: new Map<string, number>(),
       priceHistoryRows: [],
     };
     existing.totalSpent = roundMoney(existing.totalSpent + row.lineTotal);
     existing.priceHistoryRows.push(row);
     existing.itemCounts.set(row.normalizedItemName, (existing.itemCounts.get(row.normalizedItemName) || 0) + 1);
-    existing.categoryTotals.set(row.categoryName || 'Uncategorized item', roundMoney((existing.categoryTotals.get(row.categoryName || 'Uncategorized item') || 0) + row.lineTotal));
+    existing.categoryNames.set(categoryKey, row.categoryName || null);
+    existing.categoryTotals.set(categoryKey, roundMoney((existing.categoryTotals.get(categoryKey) || 0) + row.lineTotal));
     if (!existing.transactionIds.has(row.transactionId)) {
       existing.transactionIds.add(row.transactionId);
       existing.receiptTotals.push(Math.abs(row.parentTransactionAmount || 0));
@@ -1038,7 +1046,7 @@ export async function getMerchantInsights(filters: TransactionItemInsightFilters
   for (const group of grouped.values()) {
     const repeatedItemPriceHistory = (await getRecentPriceChanges({
       ...filters,
-      merchant: group.merchant,
+      merchant: group.merchant || undefined,
       currency: group.currency,
       transactionType: 'expense',
     })).slice(0, 3);
@@ -1062,7 +1070,10 @@ export async function getMerchantInsights(filters: TransactionItemInsightFilters
         .sort((a, b) => b.purchaseCount - a.purchaseCount)
         .slice(0, 5),
       categoryBreakdown: Array.from(group.categoryTotals.entries())
-        .map(([categoryName, totalSpent]) => ({ categoryName, totalSpent }))
+        .map(([categoryKey, totalSpent]) => ({
+          categoryName: group.categoryNames.get(categoryKey) || null,
+          totalSpent,
+        }))
         .sort((a, b) => b.totalSpent - a.totalSpent),
       repeatedItemPriceHistory,
     });
@@ -1123,9 +1134,9 @@ export async function getRecurringPurchaseSuggestions(filters: TransactionItemIn
       latestPrice,
       latestPriceVsAveragePct,
       dueSoon,
-      insight: latestPriceVsAveragePct !== null && latestPriceVsAveragePct >= 10
-        ? `You usually buy this every ${Math.round(averageIntervalDays)} days, and the latest price is ${Math.round(latestPriceVsAveragePct)}% higher than your average.`
-        : `You usually buy this every ${Math.round(averageIntervalDays)} days and it may be due again soon.`,
+      insightType: latestPriceVsAveragePct !== null && latestPriceVsAveragePct >= 10
+        ? 'price_above_average'
+        : 'due_again_soon',
     });
   }
 
@@ -1150,8 +1161,9 @@ export async function getReceiptDashboardInsights(filters: TransactionItemInsigh
     insights.push({
       id: `top-repeat:${frequencyItems[0].normalizedItemName}:${frequencyItems[0].currency}`,
       type: 'top_repeated_item',
-      title: 'Top repeated item',
-      body: `${frequencyItems[0].itemName} appears ${frequencyItems[0].purchaseCount} times in ${frequencyItems[0].currency}.`,
+      itemName: frequencyItems[0].itemName,
+      purchaseCount: frequencyItems[0].purchaseCount,
+      currency: frequencyItems[0].currency,
       actionItemName: frequencyItems[0].itemName,
     });
   }
@@ -1161,8 +1173,9 @@ export async function getReceiptDashboardInsights(filters: TransactionItemInsigh
     insights.push({
       id: `price-increase:${meaningfulIncrease.normalizedItemName}:${meaningfulIncrease.currency}`,
       type: 'price_increase',
-      title: 'Meaningful price increase',
-      body: `${meaningfulIncrease.itemName} is ${Math.round(meaningfulIncrease.percentageChange)}% above the previous price.`,
+      itemName: meaningfulIncrease.itemName,
+      percentageChange: meaningfulIncrease.percentageChange,
+      currency: meaningfulIncrease.currency,
       actionItemName: meaningfulIncrease.itemName,
     });
   }
@@ -1172,8 +1185,9 @@ export async function getReceiptDashboardInsights(filters: TransactionItemInsigh
     insights.push({
       id: `recurring-due:${recurringDue.id}`,
       type: 'recurring_due',
-      title: 'Likely recurring purchase',
-      body: `${recurringDue.itemName} may be due again around ${recurringDue.nextLikelyPurchaseDate}.`,
+      itemName: recurringDue.itemName,
+      dueDate: recurringDue.nextLikelyPurchaseDate,
+      currency: recurringDue.currency,
       actionItemName: recurringDue.itemName,
     });
   }
@@ -1182,8 +1196,9 @@ export async function getReceiptDashboardInsights(filters: TransactionItemInsigh
     insights.push({
       id: `highest-spend:${topSpendItems[0].normalizedItemName}:${topSpendItems[0].currency}`,
       type: 'highest_spend_item',
-      title: 'Highest-spend item',
-      body: `${topSpendItems[0].itemName} leads item spending at ${topSpendItems[0].totalSpent.toFixed(2)} ${topSpendItems[0].currency}.`,
+      itemName: topSpendItems[0].itemName,
+      totalSpent: topSpendItems[0].totalSpent,
+      currency: topSpendItems[0].currency,
       actionItemName: topSpendItems[0].itemName,
     });
   }

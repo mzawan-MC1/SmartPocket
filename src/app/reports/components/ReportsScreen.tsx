@@ -35,6 +35,8 @@ import {
   type ReportPeriodRange,
 } from '@/lib/financial-periods/reports';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
+import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
@@ -114,13 +116,6 @@ const CATEGORY_FALLBACK_COLORS = [
   '#dc2626',
   '#94a3b8',
 ];
-
-function getReportsLocale() {
-  if (typeof navigator !== 'undefined' && navigator.language) {
-    return navigator.language;
-  }
-  return 'en-US';
-}
 
 function toUtcNoonDate(dateString: string) {
   return new Date(`${dateString}T12:00:00Z`);
@@ -213,6 +208,47 @@ function getTransactionTypeLabel(
   return transactionType;
 }
 
+function localizeReportMessage(
+  message: string | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (!message) return null;
+  if (message.startsWith('reports.')) {
+    return t(message, { ns: 'portal' });
+  }
+  if (message === 'No budgets apply to this report period') {
+    return t('reports.noBudgetsApplyDescription');
+  }
+  if (message === 'Invalid financial-period configuration') {
+    return t('reports.invalidFinancialPeriodConfiguration');
+  }
+  if (
+    message === 'Exchange rates are unavailable'
+    || message === 'Exchange-rate conversion failed'
+    || message.startsWith('Historical conversion is unavailable')
+    || message.startsWith('Historical rate unavailable')
+    || message.startsWith('Historical rates unavailable')
+  ) {
+    return t('reports.historicalRateUnavailable');
+  }
+  return message;
+}
+
+function getLocalizedBudgetStatusLabel(
+  item: Pick<ReportBudgetPerformanceItem, 'status' | 'warning'>,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (item.status === 'conversion_unavailable') {
+    return item.warning && item.warning.startsWith('budgets.')
+      ? t('budgets.configurationIncomplete')
+      : t('budgets.conversionUnavailableTitle');
+  }
+  if (item.status === 'no_spending') return t('budgets.status.noSpending');
+  if (item.status === 'over_budget') return t('budgets.status.overBudget');
+  if (item.status === 'near_limit') return t('budgets.status.nearLimit');
+  return t('budgets.status.onTrack');
+}
+
 function isFiniteAmount(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value);
 }
@@ -276,6 +312,7 @@ function buildIncomeExpenseChartState(args: {
   range: ReportPeriodRange;
   grouping: ReportGrouping;
   locale: string;
+  t: (key: string, options?: Record<string, unknown>) => string;
 }): ChartState<IncomeExpenseChartRow> {
   const rows = new Map<string, IncomeExpenseChartRow>();
   const missingRateDates = new Set<string>();
@@ -315,7 +352,10 @@ function buildIncomeExpenseChartState(args: {
       if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
       return {
         data: [],
-        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates, {
+          locale: args.locale,
+          t: args.t,
+        }),
         emptyReason: null,
       };
     }
@@ -336,7 +376,10 @@ function buildIncomeExpenseChartState(args: {
       if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
       return {
         data: [],
-        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates, {
+          locale: args.locale,
+          t: args.t,
+        }),
         emptyReason: null,
       };
     }
@@ -358,6 +401,7 @@ function buildSpendingCategoryChartState(args: {
   reportingCurrency: string;
   snapshots: ReportViewData['snapshots'];
   t: (key: string, options?: Record<string, unknown>) => string;
+  locale: string;
 }): ChartState<SpendingCategoryChartRow> {
   const totals = new Map<string, SpendingCategoryChartRow>();
   const missingRateDates = new Set<string>();
@@ -374,7 +418,10 @@ function buildSpendingCategoryChartState(args: {
       if (conversion.missingRateDate) missingRateDates.add(conversion.missingRateDate);
       return {
         data: [],
-        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates),
+        unavailableReason: buildHistoricalRateUnavailableMessage(missingRateDates, {
+          locale: args.locale,
+          t: args.t,
+        }),
         emptyReason: null,
       };
     }
@@ -424,7 +471,8 @@ function renderConvertedMetric(metric: HistoricalReportConvertedMetric, positive
 
 function renderConvertedMetricDetails(
   metric: HistoricalReportConvertedMetric,
-  t: (key: string, options?: Record<string, unknown>) => string
+  t: (key: string, options?: Record<string, unknown>) => string,
+  locale: string
 ) {
   const shouldShowDetails =
     metric.originalTotals.length > 1 ||
@@ -462,9 +510,11 @@ function renderConvertedMetricDetails(
         ) : null}
         {metric.provider ? <p>{t('reports.provider', { provider: metric.provider })}</p> : null}
         {metric.freshestAppliedAt ? <p>{t('reports.latestSnapshotFetchedAt', { value: metric.freshestAppliedAt })}</p> : null}
-        {metric.missingRateDates.length > 0 ? <p>{buildHistoricalRateUnavailableMessage(metric.missingRateDates)}</p> : null}
+        {metric.missingRateDates.length > 0 ? (
+          <p>{buildHistoricalRateUnavailableMessage(metric.missingRateDates, { locale, t })}</p>
+        ) : null}
         {metric.stale ? <p className="text-warning">{t('reports.stale')}</p> : null}
-        {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
+        {metric.unavailableReason ? <p className="text-warning">{localizeReportMessage(metric.unavailableReason, t)}</p> : null}
       </div>
     </details>
   );
@@ -582,12 +632,12 @@ function buildBudgetPerformanceCsv(
         )
       : '',
     item.period.label || '',
-    item.periodTypeLabel,
+    getBudgetPeriodTypeLabel(item.period.budgetPeriod, t),
     Number(item.budget.amount || 0).toFixed(2),
     item.budget.currency || '',
     item.spentAmount === null ? t('reports.unavailable') : item.spentAmount.toFixed(2),
     item.remainingAmount === null ? t('reports.unavailable') : item.remainingAmount.toFixed(2),
-    item.statusLabel,
+    getLocalizedBudgetStatusLabel(item, t),
     item.progressPct === null ? '' : item.progressPct.toFixed(1),
     item.allocatedReportingAmount === null ? t('reports.unavailable') : item.allocatedReportingAmount.toFixed(2),
     item.spentReportingAmount === null ? t('reports.unavailable') : item.spentReportingAmount.toFixed(2),
@@ -603,8 +653,8 @@ function buildCsvFilename(activeReport: ReportType, range: ReportPeriodRange) {
 
 export default function ReportsScreen() {
   const { t } = useTranslation('portal');
-  const { language } = useLanguage();
-  const [locale, setLocale] = useState('en-US');
+  const { dir, language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
@@ -618,13 +668,11 @@ export default function ReportsScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const nextLocale = language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US';
-    setLocale(nextLocale);
-    setGeneratedAtLabel(new Intl.DateTimeFormat(nextLocale, {
+    setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date()));
-  }, [language]);
+  }, [locale]);
 
   const loadPeriodContext = useCallback(async () => {
     setPeriodLoading(true);
@@ -705,6 +753,7 @@ export default function ReportsScreen() {
       range: activeRange,
       grouping,
       locale,
+      t,
     });
   }, [activeRange, grouping, locale, reportData]);
 
@@ -717,8 +766,15 @@ export default function ReportsScreen() {
       reportingCurrency: reportData.reportingCurrency,
       snapshots: reportData.snapshots,
       t,
+      locale,
     });
-  }, [reportData, t]);
+  }, [locale, reportData, t]);
+
+  const previousRangeLabel = activeRange?.navigationLabel
+    ? t(activeRange.navigationLabel, { ns: 'portal' })
+    : t('reports.period');
+  const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
+  const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
 
   const activeTitle = getReportTitle(activeReport, grouping, t);
   const incomeMetric = reportData?.incomeMetric || null;
@@ -738,7 +794,9 @@ export default function ReportsScreen() {
       ? t('reports.loadingMetrics')
       : t('reports.metricsUnavailable')
     : incomeMetric.reportingAmount === null || expensesMetric.reportingAmount === null
-      ? incomeMetric.unavailableReason || expensesMetric.unavailableReason || t('reports.historicalRateUnavailable')
+      ? localizeReportMessage(incomeMetric.unavailableReason, t)
+        || localizeReportMessage(expensesMetric.unavailableReason, t)
+        || t('reports.historicalRateUnavailable')
       : Number(incomeMetric.reportingAmount) <= 0
         ? t('reports.noIncomeSelectedPeriod')
         : `${savingsRate.toFixed(1)}%`;
@@ -870,7 +928,7 @@ export default function ReportsScreen() {
           <div className="flex flex-wrap gap-2 print:hidden">
             <Link href="/reports/item-insights" className="btn-secondary">
               <BarChart3 size={14} />
-              {t('itemInsights.title', { defaultValue: 'Item Insights' })}
+              {t('itemInsights.title')}
             </Link>
             <button onClick={handlePrint} className="btn-secondary">
               <Printer size={14} />
@@ -1010,9 +1068,9 @@ export default function ReportsScreen() {
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
                     className="btn-secondary h-8 px-2 text-sm"
-                    aria-label={`${t('reports.previous')} ${activeRange?.navigationLabel || t('reports.period')}`}
+                    aria-label={`${t('reports.previous')} ${previousRangeLabel}`}
                   >
-                    <ChevronLeft size={14} />
+                    <PreviousIcon size={14} />
                     {t('reports.previous')}
                   </button>
                   <button
@@ -1028,10 +1086,10 @@ export default function ReportsScreen() {
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
                     className="btn-secondary h-8 px-2 text-sm"
-                    aria-label={`${t('reports.next')} ${activeRange?.navigationLabel || t('reports.period')}`}
+                    aria-label={`${t('reports.next')} ${previousRangeLabel}`}
                   >
                     {t('reports.next')}
-                    <ChevronRight size={14} />
+                    <NextIcon size={14} />
                   </button>
                 </div>
                 <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground xl:text-right">
@@ -1061,7 +1119,7 @@ export default function ReportsScreen() {
                   )}
                 </div>
                 {item.sub ? <p className="mt-0.5 text-[11px] text-muted-foreground">{item.sub}</p> : null}
-                {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric, t) : null}
+                {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric, t, locale) : null}
               </div>
             ))}
           </div>
@@ -1107,11 +1165,11 @@ export default function ReportsScreen() {
             ) : activeReport === 'budget-performance' ? (
               reportData?.budgetPerformance.unavailableReason ? (
                 <div className="flex min-h-[300px] items-center justify-center">
-                  <EmptyState icon={Target} title={t('reports.historicalRateUnavailable')} description={reportData.budgetPerformance.unavailableReason} />
+                  <EmptyState icon={Target} title={t('reports.historicalRateUnavailable')} description={localizeReportMessage(reportData.budgetPerformance.unavailableReason, t) || reportData.budgetPerformance.unavailableReason} />
                 </div>
               ) : reportData?.budgetPerformance.emptyReason ? (
                 <div className="flex min-h-[300px] items-center justify-center">
-                  <EmptyState icon={Target} title={t('reports.noBudgetsApply')} description={reportData.budgetPerformance.emptyReason} />
+                  <EmptyState icon={Target} title={t('reports.noBudgetsApply')} description={localizeReportMessage(reportData.budgetPerformance.emptyReason, t) || reportData.budgetPerformance.emptyReason} />
                 </div>
               ) : (
                 <div className="space-y-5">
@@ -1133,11 +1191,11 @@ export default function ReportsScreen() {
                                   )
                                 : item.budget.name || t('reports.budget')}
                             </p>
-                            <p className="text-xs text-muted-foreground">{item.periodTypeLabel} · {item.period.label}</p>
+                            <p className="text-xs text-muted-foreground">{getBudgetPeriodTypeLabel(item.period.budgetPeriod, t)} · {item.period.label}</p>
                           </div>
                           <StatusBadge
                             status={item.status === 'over_budget' ? 'error' : item.status === 'near_limit' ? 'warning' : item.status === 'conversion_unavailable' ? 'pending' : 'info'}
-                            label={item.statusLabel}
+                            label={getLocalizedBudgetStatusLabel(item, t)}
                           />
                         </div>
                         <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -1167,7 +1225,7 @@ export default function ReportsScreen() {
                           </div>
                         </div>
                         {item.reportingUnavailableReason ? (
-                          <p className="mt-3 text-xs text-warning">{item.reportingUnavailableReason}</p>
+                          <p className="mt-3 text-xs text-warning">{localizeReportMessage(item.reportingUnavailableReason, t) || item.reportingUnavailableReason}</p>
                         ) : null}
                       </div>
                     ))}

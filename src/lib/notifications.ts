@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
-import { formatRecurringFrequencyLabel, getBudgets } from '@/lib/finance';
+import { formatRecurringFrequencyLabel, getBudgets, getRecurringFrequencyLabelKey } from '@/lib/finance';
 import { getCurrentFinancialPeriod, getNextFinancialPeriod } from '@/lib/financial-periods';
 import { loadUserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
@@ -301,8 +301,12 @@ export function getLocalizedNotificationContent(args: {
       };
     }
     case 'recurring_due_soon': {
-      const description = getMetadataString(metadata, 'description');
-      const frequency = getMetadataString(metadata, 'frequency_label');
+      const description = getMetadataString(metadata, 'description')
+        || t('notifications.values.recurringPaymentFallback');
+      const frequencyKey = getMetadataString(metadata, 'frequency_key');
+      const frequency = frequencyKey
+        ? t(frequencyKey, { ns: 'portal' })
+        : getMetadataString(metadata, 'frequency_label');
       const dueDate = formatNotificationDate(getMetadataString(metadata, 'next_due_date'), language);
       if (!description || !frequency || !dueDate) return fallback();
       return {
@@ -888,10 +892,11 @@ export async function syncInAppNotificationSignals(): Promise<void> {
         actionUrl: '/recurring',
         metadata: {
           recurring_id: recurring.id,
-            description: recurring.description || 'A recurring payment',
+          description: recurring.description || null,
           amount: recurring.amount,
           currency: recurring.currency,
-            frequency_label: formatRecurringFrequencyLabel(recurring.frequency || ''),
+          frequency_key: getRecurringFrequencyLabelKey(recurring.frequency || ''),
+          frequency_label: formatRecurringFrequencyLabel(recurring.frequency || ''),
           next_due_date: recurring.next_due_date,
         },
         sourceKey: `recurring_due:${recurring.id}:${recurring.next_due_date}`,
@@ -913,7 +918,7 @@ export async function syncInAppNotificationSignals(): Promise<void> {
           actionUrl: '/recurring',
           metadata: {
             recurring_id: recurring.id,
-            description: recurring.description || 'A recurring payment',
+            description: recurring.description || null,
             amount: recurring.amount,
             currency: recurring.currency,
             next_due_date: recurring.next_due_date,

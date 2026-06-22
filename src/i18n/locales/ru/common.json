@@ -163,6 +163,16 @@
     "education": "Образование",
     "subscriptions": "Подписки",
     "savings": "Сбережения",
-    "transfer": "Перевод"
+    "transfer": "Перевод",
+    "businessIncome": "Доход от бизнеса",
+    "rentalIncome": "Доход от аренды",
+    "giftsReceived": "Полученные подарки",
+    "dining": "Рестораны",
+    "housingRent": "Жилье и аренда",
+    "groceries": "Продукты",
+    "personalCare": "Личный уход",
+    "insurance": "Страхование",
+    "otherExpense": "Прочие расходы",
+    "other": "Другое"
   }
 }

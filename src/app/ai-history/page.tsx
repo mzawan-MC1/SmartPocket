@@ -8,6 +8,8 @@ import { Mic, Type, CheckCircle, RotateCcw, Trash2, ChevronDown, ChevronUp, Load
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 
 interface AIRequest {
@@ -63,6 +65,8 @@ function AIHistoryStatusBadge({
 
 export default function AIHistoryPage() {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const pathname = usePathname();
   const [requests, setRequests] = useState<AIRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,14 +165,115 @@ export default function AIHistoryPage() {
     const d = new Date(iso);
     const today = new Date();
     const isToday = d.toDateString() === today.toDateString();
-    if (isToday) return `Today ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
-      d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeText = new Intl.DateTimeFormat(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d);
+    if (isToday) {
+      return t('aiHistory.todayAt', { time: timeText });
+    }
+    return new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(d);
   };
 
   const getIntentLabel = (intent: string | null): string => {
     if (!intent) return t('aiHistory.unknown');
-    return intent.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    switch (intent) {
+      case 'personal_transaction':
+        return t('aiHistory.intents.personalTransaction');
+      case 'managed_person_transaction':
+        return t('aiHistory.intents.managedPersonTransaction');
+      case 'transfer':
+        return t('aiHistory.intents.transfer');
+      case 'reimbursement':
+        return t('aiHistory.intents.reimbursement');
+      case 'settlement':
+        return t('aiHistory.intents.settlement');
+      case 'budget':
+        return t('aiHistory.intents.budget');
+      case 'recurring_transaction':
+        return t('aiHistory.intents.recurringTransaction');
+      case 'multiple_actions':
+        return t('aiHistory.intents.multipleActions');
+      case 'unclear':
+        return t('aiHistory.intents.unclear');
+      default:
+        return t('aiHistory.unknown');
+    }
+  };
+
+  const getRequestTypeLabel = (requestType: AIRequest['request_type']) => {
+    return requestType === 'voice'
+      ? t('aiHistory.requestTypes.voice')
+      : t('aiHistory.requestTypes.text');
+  };
+
+  const getFeedbackTypeLabel = (feedbackType: AIFeedback['feedback_type']) => {
+    if (feedbackType === 'correct') return t('aiHistory.feedbackOptions.correct');
+    if (feedbackType === 'incorrect') return t('aiHistory.feedbackOptions.incorrect');
+    return t('aiHistory.feedbackOptions.partial');
+  };
+
+  const getWrongFieldLabel = (field: string) => {
+    switch (field) {
+      case 'amount':
+        return t('aiHistory.wrongFieldLabels.amount');
+      case 'currency':
+        return t('aiHistory.wrongFieldLabels.currency');
+      case 'person':
+        return t('aiHistory.wrongFieldLabels.person');
+      case 'account':
+        return t('aiHistory.wrongFieldLabels.account');
+      case 'category':
+        return t('aiHistory.wrongFieldLabels.category');
+      case 'date':
+        return t('aiHistory.wrongFieldLabels.date');
+      case 'payer':
+        return t('aiHistory.wrongFieldLabels.payer');
+      case 'funding_source':
+        return t('aiHistory.wrongFieldLabels.fundingSource');
+      case 'reimbursement':
+        return t('aiHistory.wrongFieldLabels.reimbursement');
+      default:
+        return field;
+    }
+  };
+
+  const getActionTypeLabel = (actionType: string) => {
+    switch (actionType) {
+      case 'income':
+        return t('aiHistory.actionTypes.income');
+      case 'expense':
+        return t('aiHistory.actionTypes.expense');
+      case 'money_received_from_person':
+        return t('aiHistory.actionTypes.moneyReceivedFromPerson');
+      case 'money_returned_to_person':
+        return t('aiHistory.actionTypes.moneyReturnedToPerson');
+      case 'expense_from_held_balance':
+        return t('aiHistory.actionTypes.expenseFromHeldBalance');
+      case 'expense_paid_for_person':
+        return t('aiHistory.actionTypes.expensePaidForPerson');
+      case 'reimbursement_payment':
+        return t('aiHistory.actionTypes.reimbursementPayment');
+      case 'settlement':
+        return t('aiHistory.actionTypes.settlement');
+      case 'transfer':
+        return t('aiHistory.actionTypes.transfer');
+      case 'budget':
+        return t('aiHistory.actionTypes.budget');
+      case 'recurring_transaction':
+        return t('aiHistory.actionTypes.recurringTransaction');
+      case 'loan_received':
+        return t('aiHistory.actionTypes.loanReceived');
+      case 'loan_repayment':
+        return t('aiHistory.actionTypes.loanRepayment');
+      default:
+        return actionType;
+    }
   };
 
   const getSummary = (req: AIRequest): string => {
@@ -246,11 +351,12 @@ export default function AIHistoryPage() {
                       <p className="text-sm font-600 text-foreground truncate">{getSummary(req)}</p>
                       <div className="mt-0.5 flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">{formatDate(req.created_at)}</span>
+                        <span className="text-xs text-muted-foreground">· {getRequestTypeLabel(req.request_type)}</span>
                         {req.overall_intent && (
                           <span className="text-xs text-muted-foreground">· {getIntentLabel(req.overall_intent)}</span>
                         )}
                         {req.total_duration_ms && (
-                          <span className="text-xs text-muted-foreground">· {req.total_duration_ms}ms</span>
+                          <span className="text-xs text-muted-foreground">· {t('aiHistory.durationMs', { value: req.total_duration_ms })}</span>
                         )}
                       </div>
                     </div>
@@ -313,7 +419,7 @@ export default function AIHistoryPage() {
                             {(req.executed_record_ids as Array<{ actionType: string; recordTable: string; recordId: string }>).map((r, i) => (
                               <div key={i} className="flex items-center gap-2 text-xs text-foreground">
                                 <CheckCircle size={12} className="text-positive" />
-                                <span className="capitalize">{r.actionType?.replace(/_/g, ' ')}</span>
+                                <span>{getActionTypeLabel(r.actionType)}</span>
                                 <span className="text-muted-foreground">{t('aiHistory.inTable', { table: r.recordTable })}</span>
                               </div>
                             ))}
@@ -330,9 +436,9 @@ export default function AIHistoryPage() {
                               {existingFeedback.feedback_type === 'correct' && <ThumbsUp size={12} className="text-positive" />}
                               {existingFeedback.feedback_type === 'incorrect' && <ThumbsDown size={12} className="text-negative" />}
                               {existingFeedback.feedback_type === 'partially_correct' && <Minus size={12} className="text-warning" />}
-                              <span className="capitalize">{existingFeedback.feedback_type.replace('_', ' ')}</span>
+                              <span>{getFeedbackTypeLabel(existingFeedback.feedback_type)}</span>
                               {existingFeedback.wrong_fields?.length && (
-                                <span>· {t('aiHistory.wrongFields', { fields: existingFeedback.wrong_fields.join(', ') })}</span>
+                                <span>· {t('aiHistory.wrongFields', { fields: existingFeedback.wrong_fields.map(getWrongFieldLabel).join(', ') })}</span>
                               )}
                             </div>
                           ) : feedbackForm?.requestId === req.id ? (
@@ -371,7 +477,7 @@ export default function AIHistoryPage() {
                                             ? 'bg-negative-soft text-negative border border-negative/30' :'bg-muted text-muted-foreground'
                                         }`}
                                       >
-                                        {f}
+                                        {getWrongFieldLabel(f)}
                                       </button>
                                     ))}
                                   </div>

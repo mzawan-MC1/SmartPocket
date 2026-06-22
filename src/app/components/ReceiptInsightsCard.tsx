@@ -7,17 +7,38 @@ import { useTranslation } from 'react-i18next';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getNotificationPreferences, type NotificationPreferences } from '@/lib/notifications';
 import type { DashboardActivePeriod } from '@/lib/finance';
+import { formatCurrencyValue } from '@/lib/currency-formatting';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 type ReceiptDashboardInsight = {
   id: string;
   type: 'top_repeated_item' | 'price_increase' | 'recurring_due' | 'highest_spend_item';
-  title: string;
-  body: string;
+  itemName?: string | null;
+  purchaseCount?: number | null;
+  percentageChange?: number | null;
+  dueDate?: string | null;
+  totalSpent?: number | null;
+  currency?: string | null;
   actionItemName?: string | null;
 };
 
+function formatInsightDate(value: string | null | undefined, locale: string) {
+  if (!value) return null;
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: DashboardActivePeriod }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<ReceiptDashboardInsight[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
@@ -66,6 +87,58 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
     return ShoppingBag;
   };
 
+  const getInsightTitle = (insight: ReceiptDashboardInsight) => {
+    switch (insight.type) {
+      case 'top_repeated_item':
+        return t('receiptInsights.types.topRepeatedItem.title');
+      case 'price_increase':
+        return t('receiptInsights.types.priceIncrease.title');
+      case 'recurring_due':
+        return t('receiptInsights.types.recurringDue.title');
+      case 'highest_spend_item':
+        return t('receiptInsights.types.highestSpendItem.title');
+      default:
+        return t('receiptInsights.title');
+    }
+  };
+
+  const getInsightBody = (insight: ReceiptDashboardInsight) => {
+    switch (insight.type) {
+      case 'top_repeated_item':
+        return t('receiptInsights.types.topRepeatedItem.description', {
+          itemName: insight.itemName,
+          purchaseCount: insight.purchaseCount ?? 0,
+          currency: insight.currency,
+        });
+      case 'price_increase':
+        return t('receiptInsights.types.priceIncrease.description', {
+          itemName: insight.itemName,
+          percent: Math.round(insight.percentageChange ?? 0),
+        });
+      case 'recurring_due':
+        return t('receiptInsights.types.recurringDue.description', {
+          itemName: insight.itemName,
+          dueDate: formatInsightDate(insight.dueDate, locale) || insight.dueDate,
+        });
+      case 'highest_spend_item': {
+        const amountText = insight.totalSpent !== null && insight.totalSpent !== undefined
+          ? formatCurrencyValue(insight.totalSpent, {
+              currencyCode: insight.currency || undefined,
+              locale,
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            }).text
+          : null;
+        return t('receiptInsights.types.highestSpendItem.description', {
+          itemName: insight.itemName,
+          amount: amountText || insight.currency || '',
+        });
+      }
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className="card-elevated h-full rounded-[28px] border border-border/80 p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
@@ -104,8 +177,8 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
                     <Icon size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-700 text-foreground">{insight.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{insight.body}</p>
+                    <p className="text-sm font-700 text-foreground">{getInsightTitle(insight)}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{getInsightBody(insight)}</p>
                   </div>
                 </div>
               </div>

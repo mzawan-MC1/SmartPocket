@@ -95,6 +95,14 @@ function translateBudgetValidationError(
   if (!message) return null;
 
   switch (message) {
+    case 'budgets.form.errors.semimonthlyScheduleRequired':
+      return t('budgets.form.errors.semimonthlyScheduleRequired', { ns: 'portal' });
+    case 'budgets.form.errors.biweeklyAnchorRequired':
+      return t('budgets.form.errors.biweeklyAnchorRequired', { ns: 'portal' });
+    case 'budgets.form.errors.customAnchorRequired':
+      return t('budgets.form.errors.customAnchorRequired', { ns: 'portal' });
+    case 'budgets.form.errors.customCycleLengthInvalid':
+      return t('budgets.form.errors.customCycleLengthInvalid', { ns: 'portal' });
     case 'Enter a valid IANA timezone such as Europe/London or Asia/Dubai.':
       return t('financialPeriods.validation.timezone', { ns: 'portal' });
     case 'Custom week start must be a day index from 0 to 6.':

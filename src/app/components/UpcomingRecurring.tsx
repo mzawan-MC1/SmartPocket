@@ -17,6 +17,8 @@ import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { getCurrentBusinessDate } from '@/lib/financial-periods';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 function daysUntil(dateStr: string, timezone: string): number {
   const today = new Date(`${getCurrentBusinessDate(timezone)}T12:00:00Z`);
@@ -35,6 +37,8 @@ export default function UpcomingRecurring({
   activePeriod: DashboardActivePeriod;
 }) {
   const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
@@ -132,7 +136,11 @@ export default function UpcomingRecurring({
               const days = daysUntil(item.next_due_date, activePeriod.timezone);
               const urgent = activePeriod.isCurrent && days <= 3;
               const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
-              const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const dueDate = new Date(item.next_due_date + 'T00:00:00').toLocaleDateString(locale, {
+                month: 'short',
+                day: 'numeric',
+                timeZone: 'UTC',
+              });
               return (
                 <div key={item.id} className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${urgent ? 'bg-warning-soft/30' : ''}`}>
                   <div className="flex-1 min-w-0">
@@ -141,7 +149,7 @@ export default function UpcomingRecurring({
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatRecurringFrequencyLabel(item.frequency)} · {dueDate} · {activePeriod.isCurrent
+                      {formatRecurringFrequencyLabel(item.frequency, t)} · {dueDate} · {activePeriod.isCurrent
                         ? (days === 0
                           ? t('time.today', { ns: 'common' })
                           : days === 1

@@ -35,6 +35,27 @@ import type { BudgetPeriod } from '@/lib/financial-periods';
 type CurrencyAmountRow = { amount: number | string; currency: string | null };
 type AmountRow = { amount: number | string };
 type BalanceRow = { current_balance: number | string; include_in_total: boolean; currency: string };
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+const RECURRING_FREQUENCY_LABEL_KEYS = {
+  daily: 'recurring.form.frequencies.daily',
+  weekly: 'recurring.form.frequencies.weekly',
+  biweekly: 'recurring.form.frequencies.biweekly',
+  semimonthly: 'financialPeriods.budgetPeriods.semimonthly',
+  monthly: 'recurring.form.frequencies.monthly',
+  quarterly: 'recurring.form.frequencies.quarterly',
+  yearly: 'recurring.form.frequencies.yearly',
+  custom: 'financialPeriods.budgetPeriods.custom',
+} as const;
+const RECURRING_FREQUENCY_LABEL_FALLBACKS = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  biweekly: 'Every 2 weeks',
+  semimonthly: 'Twice a month',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  yearly: 'Yearly',
+  custom: 'Custom',
+} as const;
 type TransactionMetricRow = {
   id: string;
   account_id: string;
@@ -259,6 +280,7 @@ export interface DashboardBudgetSummary {
   remainingByCurrency: Array<{ currency: string; amount: number }>;
   activeBudgetCount: number;
   activeBudgetCycleLabels: string[];
+  activeBudgetCyclePeriods: BudgetPeriod[];
   hasMixedCycles: boolean;
   conversionUnavailableCount: number;
 }
@@ -312,27 +334,25 @@ export interface Transfer {
   to_account?: { name: string };
 }
 
-export function formatRecurringFrequencyLabel(frequency: RecurringTransaction['frequency'] | string) {
-  switch (frequency) {
-    case 'weekly':
-      return 'Weekly';
-    case 'biweekly':
-      return 'Every 2 weeks';
-    case 'semimonthly':
-      return 'Twice a month';
-    case 'monthly':
-      return 'Monthly';
-    case 'quarterly':
-      return 'Quarterly';
-    case 'yearly':
-      return 'Yearly';
-    case 'custom':
-      return 'Custom';
-    case 'daily':
-      return 'Daily';
-    default:
-      return 'Recurring schedule is incomplete';
+export function getRecurringFrequencyLabelKey(frequency: RecurringTransaction['frequency'] | string) {
+  return RECURRING_FREQUENCY_LABEL_KEYS[frequency as keyof typeof RECURRING_FREQUENCY_LABEL_KEYS] || null;
+}
+
+export function formatRecurringFrequencyLabel(
+  frequency: RecurringTransaction['frequency'] | string,
+  t?: Translate
+) {
+  const key = getRecurringFrequencyLabelKey(frequency);
+  if (key) {
+    const fallback = RECURRING_FREQUENCY_LABEL_FALLBACKS[frequency as keyof typeof RECURRING_FREQUENCY_LABEL_FALLBACKS];
+    return t ? t(key, { ns: 'portal', defaultValue: fallback }) : fallback;
   }
+  return t
+    ? t('recurring.scheduleIncomplete', {
+        ns: 'portal',
+        defaultValue: 'Recurring schedule is incomplete',
+      })
+    : 'Recurring schedule is incomplete';
 }
 
 export function canAutoAdvanceRecurringTransaction(frequency: RecurringTransaction['frequency'] | string) {
@@ -378,6 +398,7 @@ export interface DashboardMetrics {
   loanRepaidThisMonth: DashboardConvertedMetric;
   budgetTrackingAvailable: boolean;
   activeBudgetCycleLabels: string[];
+  activeBudgetCyclePeriods: BudgetPeriod[];
   budgetConversionUnavailableCount: number;
   hasMixedBudgetCycles: boolean;
 }
@@ -450,6 +471,7 @@ export interface ReportBudgetPerformanceData {
   chartRows: ReportBudgetPerformanceChartRow[];
   reportingCurrency: string;
   activeBudgetCycleLabels: string[];
+  activeBudgetCyclePeriods: BudgetPeriod[];
   hasMixedCycles: boolean;
   unavailableReason: string | null;
   emptyReason: string | null;
@@ -704,12 +726,12 @@ function sumCurrencyTotals(rows: Array<{ currency: string; amount: number }>) {
   return rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
 }
 
-function formatHistoricalRateDateLabel(value: string) {
+function formatHistoricalRateDateLabel(value: string, locale = 'en-GB') {
   const parsed = new Date(`${value}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -721,15 +743,43 @@ function dedupeSortedDates(values: Iterable<string>) {
   return Array.from(new Set(Array.from(values).filter(Boolean))).sort();
 }
 
-export function buildHistoricalRateUnavailableMessage(missingRateDates: Iterable<string>) {
+export function buildHistoricalRateUnavailableMessage(
+  missingRateDates: Iterable<string>,
+  options?: {
+    locale?: string;
+    t?: Translate;
+  }
+) {
   const dates = dedupeSortedDates(missingRateDates);
+  const locale = options?.locale || 'en-GB';
+  const t = options?.t;
   if (dates.length === 0) {
+    if (t) {
+      return t('reports.historicalRateUnavailableGeneric', { ns: 'portal' });
+    }
     return 'Historical conversion is unavailable for one or more records before the first stored snapshot.';
   }
   if (dates.length === 1) {
-    return `Historical rate unavailable for ${formatHistoricalRateDateLabel(dates[0])}`;
+    const date = formatHistoricalRateDateLabel(dates[0], locale);
+    if (t) {
+      return t('reports.historicalRateUnavailableSingle', {
+        ns: 'portal',
+        date,
+      });
+    }
+    return `Historical rate unavailable for ${date}`;
   }
-  return `Historical rates unavailable for ${dates.length} dates from ${formatHistoricalRateDateLabel(dates[0])} to ${formatHistoricalRateDateLabel(dates[dates.length - 1])}`;
+  const start = formatHistoricalRateDateLabel(dates[0], locale);
+  const end = formatHistoricalRateDateLabel(dates[dates.length - 1], locale);
+  if (t) {
+    return t('reports.historicalRateUnavailableMultiple', {
+      ns: 'portal',
+      count: dates.length,
+      start,
+      end,
+    });
+  }
+  return `Historical rates unavailable for ${dates.length} dates from ${start} to ${end}`;
 }
 
 function findHistoricalSnapshotForDate(
@@ -1791,7 +1841,7 @@ function getBudgetTrackingStatus(
     const isConfigurationIssue = warning ? /settings|require|incomplete/i.test(warning) : false;
     return {
       status: 'conversion_unavailable',
-      statusLabel: isConfigurationIssue ? 'Configuration incomplete' : 'Conversion unavailable',
+      statusLabel: isConfigurationIssue ? 'budgets.configurationIncomplete' : 'budgets.conversionUnavailableTitle',
       progressPct: null,
       remainingAmount: null,
     };
@@ -1800,15 +1850,15 @@ function getBudgetTrackingStatus(
   const remainingAmount = budgetAmount - spentAmount;
   const progressPct = budgetAmount > 0 ? (spentAmount / budgetAmount) * 100 : 0;
   if (spentAmount === 0) {
-    return { status: 'no_spending', statusLabel: 'No spending', progressPct, remainingAmount };
+    return { status: 'no_spending', statusLabel: 'budgets.status.noSpending', progressPct, remainingAmount };
   }
   if (progressPct > 100) {
-    return { status: 'over_budget', statusLabel: 'Over budget', progressPct, remainingAmount };
+    return { status: 'over_budget', statusLabel: 'budgets.status.overBudget', progressPct, remainingAmount };
   }
   if (progressPct >= 80) {
-    return { status: 'near_limit', statusLabel: 'Near limit', progressPct, remainingAmount };
+    return { status: 'near_limit', statusLabel: 'budgets.status.nearLimit', progressPct, remainingAmount };
   }
-  return { status: 'on_track', statusLabel: 'On track', progressPct, remainingAmount };
+  return { status: 'on_track', statusLabel: 'budgets.status.onTrack', progressPct, remainingAmount };
 }
 
 function getBudgetTransactionsForPeriod(
@@ -1852,9 +1902,10 @@ function buildEmptyReportBudgetPerformanceData(reportingCurrency: string): Repor
     chartRows: [],
     reportingCurrency,
     activeBudgetCycleLabels: [],
+    activeBudgetCyclePeriods: [],
     hasMixedCycles: false,
     unavailableReason: null,
-    emptyReason: 'No budgets apply to this report period',
+    emptyReason: 'reports.noBudgetsApplyDescription',
   };
 }
 
@@ -1916,7 +1967,7 @@ async function buildReportBudgetPerformanceData(args: {
         budget,
         period: null,
         spendingWindow: null,
-        warning: error instanceof Error ? error.message : 'Invalid financial-period configuration',
+        warning: error instanceof Error ? error.message : 'reports.invalidFinancialPeriodConfiguration',
       };
     }
   });
@@ -1997,6 +2048,7 @@ async function buildReportBudgetPerformanceData(args: {
     }
   }
 
+  const activeBudgetCyclePeriods = Array.from(new Set(items.map((item) => item.period.budgetPeriod)));
   const activeBudgetCycleLabels = Array.from(new Set(items.map((item) => item.periodTypeLabel)));
 
   return {
@@ -2004,9 +2056,10 @@ async function buildReportBudgetPerformanceData(args: {
     chartRows,
     reportingCurrency: args.reportingCurrency,
     activeBudgetCycleLabels,
-    hasMixedCycles: activeBudgetCycleLabels.length > 1,
+    activeBudgetCyclePeriods,
+    hasMixedCycles: activeBudgetCyclePeriods.length > 1,
     unavailableReason: unavailableReasons.size > 0 ? Array.from(unavailableReasons)[0] : null,
-    emptyReason: items.length === 0 ? 'No budgets apply to this report period' : null,
+    emptyReason: items.length === 0 ? 'reports.noBudgetsApplyDescription' : null,
   };
 }
 
@@ -2155,7 +2208,7 @@ export async function getBudgetTrackingOverview(args?: {
         remainingAmount: null,
         progressPct: null,
         status: 'conversion_unavailable' as const,
-        statusLabel: 'Configuration incomplete',
+        statusLabel: 'budgets.configurationIncomplete',
         transactionCount: 0,
         warning: entry.warning,
       } satisfies BudgetTrackingItem;
@@ -2282,7 +2335,7 @@ export async function getDashboardBudgetSummary(args: {
         budget,
         period: null,
         spendingWindow: null,
-        warning: error instanceof Error ? error.message : 'Budget period configuration is incomplete.',
+        warning: error instanceof Error ? error.message : 'budgets.form.incompletePeriodConfig',
       };
     }
   });
@@ -2302,6 +2355,7 @@ export async function getDashboardBudgetSummary(args: {
       remainingByCurrency: [],
       activeBudgetCount: 0,
       activeBudgetCycleLabels: [],
+      activeBudgetCyclePeriods: [],
       hasMixedCycles: false,
       conversionUnavailableCount: 0,
     };
@@ -2342,7 +2396,7 @@ export async function getDashboardBudgetSummary(args: {
         periodTypeLabel: getBudgetPeriodTypeLabel(entry.budget.budget_period),
         spentAmount: null,
         remainingAmount: null,
-        warning: entry.warning || 'Budget period configuration is incomplete.',
+        warning: entry.warning || 'budgets.form.incompletePeriodConfig',
       };
     }
 
@@ -2365,6 +2419,7 @@ export async function getDashboardBudgetSummary(args: {
     }
   }
 
+  const cyclePeriods = Array.from(new Set(visibleBudgets.map((item) => item.budget.budget_period)));
   const cycleLabels = Array.from(new Set(summaryItems.map((item) => item.periodTypeLabel)));
 
   return {
@@ -2373,7 +2428,8 @@ export async function getDashboardBudgetSummary(args: {
     remainingByCurrency: mapCurrencyTotals(remainingByCurrency),
     activeBudgetCount: summaryItems.length,
     activeBudgetCycleLabels: cycleLabels,
-    hasMixedCycles: cycleLabels.length > 1,
+    activeBudgetCyclePeriods: cyclePeriods,
+    hasMixedCycles: cyclePeriods.length > 1,
     conversionUnavailableCount: summaryItems.filter((item) => item.remainingAmount === null).length,
   };
 }
@@ -2738,6 +2794,7 @@ export async function getDashboardMetrics(args?: {
     }),
     budgetTrackingAvailable: true,
     activeBudgetCycleLabels: dashboardBudgetSummary.activeBudgetCycleLabels,
+    activeBudgetCyclePeriods: dashboardBudgetSummary.activeBudgetCyclePeriods,
     budgetConversionUnavailableCount: dashboardBudgetSummary.conversionUnavailableCount,
     hasMixedBudgetCycles: dashboardBudgetSummary.hasMixedCycles,
   };

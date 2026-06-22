@@ -7,6 +7,7 @@ import {
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 
 interface DashboardMetricCard {
   id: string;
@@ -299,11 +300,23 @@ export default function DashboardMetrics({
           ? t('dashboardMetrics.budgetsNeedHistoricalFx', { count: metrics.budgetConversionUnavailableCount })
           : !hasBudgetSpending
             ? metrics.hasMixedBudgetCycles
-              ? t('dashboardMetrics.acrossActiveCycleBudgets', { cycles: metrics.activeBudgetCycleLabels.join(` ${t('dashboardMetrics.and')} `).toLowerCase() })
-              : t('dashboardMetrics.acrossActiveSingleCycleBudgets', { cycle: (metrics.activeBudgetCycleLabels[0] || t('dashboardMetrics.budget')).toLowerCase() })
+              ? t('dashboardMetrics.acrossActiveCycleBudgets', {
+                  cycles: metrics.activeBudgetCyclePeriods
+                    .map((period) => getBudgetPeriodTypeLabel(period, t).toLowerCase())
+                    .join(` ${t('dashboardMetrics.and')} `),
+                })
+              : t('dashboardMetrics.acrossActiveSingleCycleBudgets', {
+                  cycle: getBudgetPeriodTypeLabel(metrics.activeBudgetCyclePeriods[0] || 'monthly', t).toLowerCase(),
+                })
           : metrics.hasMixedBudgetCycles
-            ? t('dashboardMetrics.acrossActiveCycleBudgets', { cycles: metrics.activeBudgetCycleLabels.join(` ${t('dashboardMetrics.and')} `).toLowerCase() })
-            : t('dashboardMetrics.acrossActiveSingleCycleBudgets', { cycle: (metrics.activeBudgetCycleLabels[0] || t('dashboardMetrics.budget')).toLowerCase() }),
+            ? t('dashboardMetrics.acrossActiveCycleBudgets', {
+                cycles: metrics.activeBudgetCyclePeriods
+                  .map((period) => getBudgetPeriodTypeLabel(period, t).toLowerCase())
+                  .join(` ${t('dashboardMetrics.and')} `),
+              })
+            : t('dashboardMetrics.acrossActiveSingleCycleBudgets', {
+                cycle: getBudgetPeriodTypeLabel(metrics.activeBudgetCyclePeriods[0] || 'monthly', t).toLowerCase(),
+              }),
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
