@@ -402,8 +402,8 @@
   },
   "dashboardCharts": {
     "title": "Financial Overview",
-    "trendDescriptionThrough": "Income, expenses, and category breakdown through {{period}}",
-    "trendDescriptionDuring": "Income, expenses, and category breakdown during {{period}}",
+    "trendDescriptionThrough": "Income and expenses through {{period}}",
+    "trendDescriptionDuring": "Income and expenses during {{period}}",
     "categoryDescriptionThrough": "Category breakdown through {{period}}",
     "categoryDescriptionDuring": "Category breakdown during {{period}}",
     "warning": "Pay-period mode is not configured, so charts are showing the current month instead.",

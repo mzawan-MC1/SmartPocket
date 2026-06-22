@@ -211,8 +211,8 @@
   },
   "dashboardCharts": {
     "title": "Vue financière",
-    "trendDescriptionThrough": "Revenus, dépenses et répartition par catégorie jusqu'à {{period}}",
-    "trendDescriptionDuring": "Revenus, dépenses et répartition par catégorie pendant {{period}}",
+    "trendDescriptionThrough": "Revenus et dépenses jusqu'à {{period}}",
+    "trendDescriptionDuring": "Revenus et dépenses pendant {{period}}",
     "categoryDescriptionThrough": "Répartition par catégorie jusqu'à {{period}}",
     "categoryDescriptionDuring": "Répartition par catégorie pendant {{period}}",
     "warning": "Le mode période de paie n'est pas configuré, les graphiques affichent donc le mois en cours.",
