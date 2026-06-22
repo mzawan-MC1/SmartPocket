@@ -106,6 +106,49 @@ function UsageBar({ used, total, label }: { used: number; total: number; label: 
   );
 }
 
+function UsageRow({
+  title,
+  helper,
+  value,
+  totalLabel,
+  progressLabel,
+  used,
+  total,
+  remainingText,
+  danger = false,
+}: {
+  title: string;
+  helper: string;
+  value: number;
+  totalLabel: string;
+  progressLabel: string;
+  used: number;
+  total: number;
+  remainingText?: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="py-2.5 first:pt-0 last:pb-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-700 text-foreground">{title}</p>
+          <p className="text-[11px] leading-4 text-muted-foreground">{helper}</p>
+        </div>
+        <p className={`whitespace-nowrap text-sm font-800 sm:text-base ${danger ? 'text-negative' : 'text-foreground'}`}>
+          {value}
+          <span className="ms-1 text-[11px] font-600 text-muted-foreground">/ {totalLabel}</span>
+        </p>
+      </div>
+      <div className="mt-1.5">
+        <UsageBar used={used} total={total} label={progressLabel} />
+      </div>
+      {remainingText ? (
+        <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{remainingText}</p>
+      ) : null}
+    </div>
+  );
+}
+
 function WarningBanner({
   pct,
   t,
@@ -190,8 +233,11 @@ export default function AIUsageCard() {
         <div className="space-y-3">
           <div className="h-2 rounded bg-secondary" />
           <div className="h-2 rounded bg-secondary" />
+          <div className="space-y-2 rounded-2xl border border-white/70 bg-white/72 p-3">
+            {[1, 2, 3].map((item) => <div key={item} className="h-12 rounded-xl bg-secondary" />)}
+          </div>
           <div className="grid grid-cols-2 gap-2">
-            {[1, 2, 3, 4].map((item) => <div key={item} className="h-14 rounded-2xl bg-secondary" />)}
+            {[1, 2, 3, 4].map((item) => <div key={item} className="h-12 rounded-xl bg-secondary" />)}
           </div>
         </div>
       </div>
@@ -315,80 +361,65 @@ export default function AIUsageCard() {
           </div>
         ) : null}
 
-        <div className="grid gap-2.5">
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-700 text-foreground">{t('aiUsage.textAi')}</p>
-                <p className="text-xs text-muted-foreground">{t('aiUsage.requestsUsedToday')}</p>
-              </div>
-              <p className="text-base font-800 text-foreground sm:text-lg">
-                {textUsed}
-                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {textTotal || t('aiUsage.none')}</span>
-              </p>
-            </div>
-            <UsageBar used={textUsed} total={textTotal} label={t('aiUsage.textAiRequests')} />
-          </div>
-
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-700 text-foreground">{t('aiUsage.voiceAi')}</p>
-                <p className="text-xs text-muted-foreground">{t('aiUsage.voiceUsedIncluded')}</p>
-              </div>
-              <p className="text-base font-800 text-foreground sm:text-lg">
-                {voiceUsedMin}
-                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {voiceTotalMin || t('aiUsage.none')}</span>
-              </p>
-            </div>
-            <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-700 text-foreground">{t('aiUsage.receiptIntelligence')}</p>
-                <p className="text-xs text-muted-foreground">{t('aiUsage.receiptUsedIncluded')}</p>
-              </div>
-              <p className={`text-base font-800 sm:text-lg ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
-                {receiptUsed}
-                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
-              </p>
-            </div>
-            <UsageBar used={receiptUsed + receiptReserved} total={receiptIncluded} label={t('aiUsage.receiptDocuments')} />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              {t('aiUsage.receiptRemaining', { count: receiptRemaining })}
-            </p>
+        <div className="rounded-2xl border border-white/70 bg-white/72 px-3 py-2.5 backdrop-blur-sm">
+          <div className="divide-y divide-border/50">
+            <UsageRow
+              title={t('aiUsage.textAi')}
+              helper={t('aiUsage.requestsUsedToday')}
+              value={textUsed}
+              totalLabel={String(textTotal || t('aiUsage.none'))}
+              progressLabel={t('aiUsage.textAiRequests')}
+              used={textUsed}
+              total={textTotal}
+            />
+            <UsageRow
+              title={t('aiUsage.voiceAi')}
+              helper={t('aiUsage.voiceUsedIncluded')}
+              value={voiceUsedMin}
+              totalLabel={String(voiceTotalMin || t('aiUsage.none'))}
+              progressLabel={t('aiUsage.voiceMinutes')}
+              used={voiceUsedMin}
+              total={voiceTotalMin}
+              remainingText={t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
+            />
+            <UsageRow
+              title={t('aiUsage.receiptIntelligence')}
+              helper={t('aiUsage.receiptUsedIncluded')}
+              value={receiptUsed}
+              totalLabel={String(receiptIncluded || t('aiUsage.none'))}
+              progressLabel={t('aiUsage.receiptDocuments')}
+              used={receiptUsed + receiptReserved}
+              total={receiptIncluded}
+              remainingText={t('aiUsage.receiptRemaining', { count: receiptRemaining })}
+              danger={receiptRemaining === 0 && receiptIncluded > 0}
+            />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
-            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.receiptRemainingCard')}</p>
-            <p className={`text-base font-800 sm:text-lg ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-2xl border border-white/70 bg-white/64 px-3 py-2.5 backdrop-blur-sm">
+          <div className="min-w-0">
+            <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.receiptRemainingCard')}</p>
+            <p className={`text-sm font-800 sm:text-base ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
               {receiptRemaining}
               <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
-            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.requestsToday')}</p>
-            <p className="text-base font-800 text-foreground sm:text-lg">
+          <div className="min-w-0">
+            <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.requestsToday')}</p>
+            <p className="text-sm font-800 text-foreground sm:text-base">
               {summary.requests_today ?? 0}
               <span className="ms-1 text-xs font-600 text-muted-foreground">/ {summary.daily_ai_request_limit ?? t('aiUsage.none')}</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
-            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.resetDate')}</p>
+          <div className="min-w-0">
+            <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.resetDate')}</p>
             <p className="flex items-center gap-1 text-sm font-700 text-foreground">
               <Calendar size={12} className="text-muted-foreground" />
               {resetDate}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
-            <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.status')}</p>
+          <div className="min-w-0">
+            <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.status')}</p>
             <p className="flex items-center gap-1 text-sm font-700 text-foreground">
               {summary.status === 'active' || summary.status === 'trialing'
                 ? <CheckCircle size={12} className="text-positive" />

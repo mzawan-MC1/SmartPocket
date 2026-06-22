@@ -66,7 +66,7 @@ export default function DashboardMetrics({
     const skeletonCards = Array.from({ length: 8 });
 
     return (
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {skeletonCards.map((_, i) => (
           <div key={`skel-${i}`} className="metric-card h-full min-h-[110px] animate-pulse rounded-[24px] px-4 py-3 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5">
             <div className="mb-3 flex items-start justify-between">
@@ -448,7 +448,7 @@ export default function DashboardMetrics({
       {hasConfigurationWarning ? (
         <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
       ) : null}
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {metricCards.map((metric) => renderMetricCard(metric))}
       </div>
     </div>

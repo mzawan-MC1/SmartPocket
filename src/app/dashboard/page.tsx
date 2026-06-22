@@ -209,14 +209,16 @@ export default function DashboardPage() {
               activeQuickAction={activeQuickAction}
               financialPeriodContext={periodContext}
             />
-            <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
             <div className="space-y-4 md:space-y-4 lg:space-y-5 max-[480px]:space-y-3">
-              <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-12 lg:gap-4">
-                <div className="lg:col-span-8">
-                  <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
+              <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-12 xl:grid-cols-12">
+                <div className="md:col-span-12 xl:col-span-9">
+                  <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
-                <div className="space-y-4 lg:col-span-4 lg:self-start">
+                <div className="hidden md:block md:col-span-12 xl:col-span-3 xl:col-start-10 xl:row-span-2 xl:row-start-1 xl:self-start">
                   <AIUsageCard />
+                </div>
+                <div className="md:col-span-12 xl:col-span-9">
+                  <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
               </div>
               <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
