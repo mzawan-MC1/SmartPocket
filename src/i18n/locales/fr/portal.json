@@ -88,11 +88,13 @@
       },
       "settlementCompleted": {
         "title": "Règlement terminé",
-        "description": "{{description}} a été enregistré pour {{amount}}."
+        "description": "{{description}} a été enregistré pour {{amount}}.",
+        "descriptionGeneric": "Un règlement a été enregistré pour {{amount}}."
       },
       "loanRepaymentRecorded": {
         "title": "Remboursement de prêt enregistré",
-        "description": "Un remboursement de prêt à {{personName}} a été enregistré pour {{amount}}."
+        "description": "Un remboursement de prêt à {{personName}} a été enregistré pour {{amount}}.",
+        "descriptionGeneric": "Un remboursement de prêt a été enregistré pour {{amount}}."
       },
       "receiptItemDueSoon": {
         "title": "Article de reçu bientôt dû",
@@ -1060,6 +1062,7 @@
     "modeVoice": "Voix",
     "languageLabel": "Langue d'entree",
     "describeLabel": "Decrivez votre transaction",
+    "placeholderExample": "Par exemple : j'ai dépensé 85 AED en courses aujourd'hui depuis mes espèces, ou Ahmed m'a remis 2 300 AED aujourd'hui.",
     "submitHint": "Appuyez sur Ctrl+Entree pour envoyer",
     "analyzeAction": "Analyser avec l'IA",
     "examplesTitle": "Exemples",
@@ -1166,6 +1169,10 @@
       "confirmFailed": "Echec de confirmation de la demande Smart Entry."
     },
     "examples": {
+      "expense": "J'ai dépensé 85 AED en courses depuis mon compte espèces.",
+      "moneyReceived": "Ahmed m'a remis 2 300 AED aujourd'hui.",
+      "transfer": "Transfère 1 000 AED de mon compte bancaire vers mes espèces.",
+      "subscriptionPayment": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit.",
       "placeholder": {
         "en": "ex. : I spent AED 85 on groceries today from cash",
         "ar": "ex. arabe : أنفقت 85 درهما على البقالة من النقد",

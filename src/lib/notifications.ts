@@ -52,6 +52,28 @@ function getMetadataNumber(
   return null;
 }
 
+function getFirstMetadataString(
+  metadata: Record<string, unknown> | null | undefined,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = getMetadataString(metadata, key);
+    if (value) return value;
+  }
+  return null;
+}
+
+function getFirstMetadataNumber(
+  metadata: Record<string, unknown> | null | undefined,
+  keys: string[]
+) {
+  for (const key of keys) {
+    const value = getMetadataNumber(metadata, key);
+    if (value !== null) return value;
+  }
+  return null;
+}
+
 function getMetadataArray<T = unknown>(
   metadata: Record<string, unknown> | null | undefined,
   key: string
@@ -87,6 +109,87 @@ function formatNotificationDate(value: string | null, language: string) {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function extractRecordedDescription(message: string) {
+  const match = message.match(/^(.*?)\s+was recorded for\b/i);
+  return match?.[1]?.trim() || null;
+}
+
+function extractCurrencyAndAmountFromMessage(message: string) {
+  const match = message.match(/\bfor\s+([A-Z]{3})\s+(-?[0-9][0-9,]*(?:\.[0-9]+)?)/i);
+  if (!match) return null;
+  const amount = Number(match[2].replace(/,/g, ''));
+  if (!Number.isFinite(amount)) return null;
+  return {
+    currencyCode: match[1].toUpperCase(),
+    amount,
+  };
+}
+
+function getRecordedDescription(notification: AppNotification) {
+  return (
+    getFirstMetadataString(notification.metadata, [
+      'description',
+      'settlement_description',
+      'loan_description',
+      'reference_description',
+    ])
+    || extractRecordedDescription(notification.message)
+  );
+}
+
+function getNotificationAmountText(args: {
+  notification: AppNotification;
+  language: string;
+  currencies: CurrencyReference[];
+}) {
+  const amount = getFirstMetadataNumber(args.notification.metadata, [
+    'amount',
+    'loan_amount',
+    'settlement_amount',
+  ]);
+  const currencyCode = getFirstMetadataString(args.notification.metadata, [
+    'currency',
+    'currency_code',
+    'loan_currency',
+    'settlement_currency',
+  ]);
+
+  if (amount !== null) {
+    return formatNotificationCurrencyAmount({
+      amount,
+      currencyCode,
+      language: args.language,
+      currencies: args.currencies,
+    });
+  }
+
+  const extracted = extractCurrencyAndAmountFromMessage(args.notification.message);
+  if (!extracted) return null;
+
+  return formatNotificationCurrencyAmount({
+    amount: extracted.amount,
+    currencyCode: extracted.currencyCode,
+    language: args.language,
+    currencies: args.currencies,
+  });
+}
+
+function extractLoanRepaymentPersonName(notification: AppNotification, description: string | null) {
+  const directName = getFirstMetadataString(notification.metadata, [
+    'person_name',
+    'counterparty_name',
+    'person',
+    'managed_person_name',
+  ]);
+  if (directName) return directName;
+
+  const candidate = description || getRecordedDescription(notification);
+  if (!candidate) return null;
+
+  const match = candidate.match(/^loan repayment to\s+(.+)$/i);
+  return match?.[1]?.trim() || null;
 }
 
 function resolveLegacyNotificationType(notification: AppNotification) {
@@ -313,40 +416,47 @@ export function getLocalizedNotificationContent(args: {
       };
     }
     case 'settlement_completed': {
-      const description = getMetadataString(metadata, 'description');
-      const amountText = formatNotificationCurrencyAmount({
-        amount: getMetadataNumber(metadata, 'amount'),
-        currencyCode: getMetadataString(metadata, 'currency'),
+      const description = getRecordedDescription(notification);
+      const amountText = getNotificationAmountText({
+        notification,
         language,
         currencies,
       });
-      if (!description || !amountText) return fallback();
+      if (!amountText) return fallback();
       return {
         resolvedType,
         title: t('notifications.types.settlementCompleted.title'),
-        message: t('notifications.types.settlementCompleted.description', {
-          description,
-          amount: amountText,
-        }),
+        message: description
+          ? t('notifications.types.settlementCompleted.description', {
+              description,
+              amount: amountText,
+            })
+          : t('notifications.types.settlementCompleted.descriptionGeneric', {
+              amount: amountText,
+            }),
         usedFallback: false,
       };
     }
     case 'loan_repayment_recorded': {
-      const personName = getMetadataString(metadata, 'person_name');
-      const amountText = formatNotificationCurrencyAmount({
-        amount: getMetadataNumber(metadata, 'amount'),
-        currencyCode: getMetadataString(metadata, 'currency'),
+      const description = getRecordedDescription(notification);
+      const personName = extractLoanRepaymentPersonName(notification, description);
+      const amountText = getNotificationAmountText({
+        notification,
         language,
         currencies,
       });
-      if (!personName || !amountText) return fallback();
+      if (!amountText) return fallback();
       return {
         resolvedType,
         title: t('notifications.types.loanRepaymentRecorded.title'),
-        message: t('notifications.types.loanRepaymentRecorded.description', {
-          personName,
-          amount: amountText,
-        }),
+        message: personName
+          ? t('notifications.types.loanRepaymentRecorded.description', {
+              personName,
+              amount: amountText,
+            })
+          : t('notifications.types.loanRepaymentRecorded.descriptionGeneric', {
+              amount: amountText,
+            }),
         usedFallback: false,
       };
     }

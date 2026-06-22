@@ -88,11 +88,13 @@
       },
       "settlementCompleted": {
         "title": "Settlement completed",
-        "description": "{{description}} was recorded for {{amount}}."
+        "description": "{{description}} was recorded for {{amount}}.",
+        "descriptionGeneric": "A settlement was recorded for {{amount}}."
       },
       "loanRepaymentRecorded": {
         "title": "Loan repayment recorded",
-        "description": "Loan repayment to {{personName}} was recorded for {{amount}}."
+        "description": "Loan repayment to {{personName}} was recorded for {{amount}}.",
+        "descriptionGeneric": "A loan repayment was recorded for {{amount}}."
       },
       "receiptItemDueSoon": {
         "title": "Receipt item due soon",
@@ -1450,6 +1452,7 @@
     "modeVoice": "Voice",
     "languageLabel": "Input language",
     "describeLabel": "Describe your transaction",
+    "placeholderExample": "For example: I spent AED 85 on groceries today from cash, or Ahmed gave me AED 2,300 today.",
     "submitHint": "Press Ctrl+Enter to submit",
     "analyzeAction": "Analyze with AI",
     "examplesTitle": "Examples",
@@ -1556,6 +1559,10 @@
       "confirmFailed": "Failed to confirm the Smart Entry request."
     },
     "examples": {
+      "expense": "I spent AED 85 on groceries from cash.",
+      "moneyReceived": "Ahmed gave me AED 2,300 today.",
+      "transfer": "Transfer AED 1,000 from my bank account to cash.",
+      "subscriptionPayment": "I paid AED 600 for Ahmed's subscription from my credit card.",
       "placeholder": {
         "en": "e.g. \"I spent AED 85 on groceries today from cash\" or \"Ahmed gave me AED 2,300\"",
         "ar": "مثال: أنفقت 85 درهما على البقالة اليوم من حساب النقد",

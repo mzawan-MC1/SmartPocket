@@ -841,6 +841,12 @@ export async function createSettlement(payload: {
     amount: payload.amount,
   });
 
+  const { data: settlementPerson } = await supabase
+    .from('managed_people')
+    .select('full_name')
+    .eq('id', payload.person_id)
+    .maybeSingle();
+
   await createNotificationIfEnabled('reimbursement_updates', {
     type: 'settlement_completed',
     title: 'Settlement completed',
@@ -849,9 +855,12 @@ export async function createSettlement(payload: {
     metadata: {
       settlement_id: data.id,
       person_id: payload.person_id,
+      person_name: settlementPerson?.full_name || null,
       description: payload.description,
       amount: payload.amount,
       currency,
+      payment_method: payload.payment_method || 'cash',
+      receiving_account_id: payload.receiving_account_id || null,
     },
     sourceKey: `settlement_created:${data.id}`,
   });

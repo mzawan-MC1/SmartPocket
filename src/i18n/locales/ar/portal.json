@@ -88,11 +88,13 @@
       },
       "settlementCompleted": {
         "title": "اكتملت التسوية",
-        "description": "تم تسجيل {{description}} بمبلغ {{amount}}."
+        "description": "تم تسجيل {{description}} بمبلغ {{amount}}.",
+        "descriptionGeneric": "تم تسجيل تسوية بمبلغ {{amount}}."
       },
       "loanRepaymentRecorded": {
         "title": "تم تسجيل سداد القرض",
-        "description": "تم تسجيل سداد قرض إلى {{personName}} بمبلغ {{amount}}."
+        "description": "تم تسجيل سداد قرض إلى {{personName}} بمبلغ {{amount}}.",
+        "descriptionGeneric": "تم تسجيل سداد قرض بمبلغ {{amount}}."
       },
       "receiptItemDueSoon": {
         "title": "عنصر الإيصال قد يحين موعده قريبًا",
@@ -1088,6 +1090,7 @@
     "modeVoice": "صوت",
     "languageLabel": "لغة الإدخال",
     "describeLabel": "صف معاملتك",
+    "placeholderExample": "مثال: دفعت 85 درهما للبقالة اليوم من حساب النقد، أو استلمت من أحمد 2300 درهم اليوم.",
     "submitHint": "اضغط Ctrl+Enter للإرسال",
     "analyzeAction": "حلل باستخدام الذكاء الاصطناعي",
     "examplesTitle": "أمثلة",
@@ -1194,6 +1197,10 @@
       "confirmFailed": "فشل تأكيد طلب الإدخال الذكي."
     },
     "examples": {
+      "expense": "دفعت 85 درهما للبقالة من حساب النقد.",
+      "moneyReceived": "استلمت اليوم 2300 درهم من أحمد.",
+      "transfer": "حوّل 1000 درهم من الحساب البنكي إلى حساب النقد.",
+      "subscriptionPayment": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية.",
       "placeholder": {
         "en": "مثال باللغة الإنجليزية: I spent AED 85 on groceries today from cash",
         "ar": "مثال: أنفقت 85 درهما على البقالة اليوم من حساب النقد",

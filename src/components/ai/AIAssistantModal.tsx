@@ -381,7 +381,7 @@ function isReceiptInsightQuestion(value: string) {
    const [step, setStep] = useState<AssistantStep>('entry');
    const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
    const [textInput, setTextInput] = useState('');
-   const [language, setLanguage] = useState('en');
+   const [language, setLanguage] = useState<'en' | 'ar' | 'fr' | 'ru'>('en');
    const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
    const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
    const [transcript, setTranscript] = useState('');
@@ -429,6 +429,14 @@ function isReceiptInsightQuestion(value: string) {
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  useEffect(() => {
+    if (uiLanguage === 'ar' || uiLanguage === 'fr' || uiLanguage === 'ru' || uiLanguage === 'en') {
+      setLanguage(uiLanguage);
+    } else {
+      setLanguage('en');
+    }
+  }, [uiLanguage]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1426,23 +1434,20 @@ function isReceiptInsightQuestion(value: string) {
     return t('smartEntryModal.errors.confirmFailed', { ns: 'portal' });
   };
 
-  const LANGUAGES = [
+  const LANGUAGES: Array<{ code: 'en' | 'ar' | 'fr' | 'ru'; label: string }> = [
     { code: 'en', label: t('language.en', { ns: 'common' }) },
     { code: 'ar', label: t('language.ar', { ns: 'common' }) },
     { code: 'fr', label: t('language.fr', { ns: 'common' }) },
     { code: 'ru', label: t('language.ru', { ns: 'common' }) },
   ];
 
-  const examplePlaceholder = t(`smartEntryModal.examples.placeholder.${language}`, {
-    ns: 'portal',
-    defaultValue: t('smartEntryModal.examples.placeholder.en', { ns: 'portal' }),
-  });
-  const exampleItems = [1, 2, 3, 4].map((index) =>
-    t(`smartEntryModal.examples.items.${language}.${index}`, {
-      ns: 'portal',
-      defaultValue: t(`smartEntryModal.examples.items.en.${index}`, { ns: 'portal' }),
-    })
-  );
+  const examplePlaceholder = t('smartEntryModal.placeholderExample', { ns: 'portal' });
+  const exampleItems = [
+    t('smartEntryModal.examples.expense', { ns: 'portal' }),
+    t('smartEntryModal.examples.moneyReceived', { ns: 'portal' }),
+    t('smartEntryModal.examples.transfer', { ns: 'portal' }),
+    t('smartEntryModal.examples.subscriptionPayment', { ns: 'portal' }),
+  ];
 
   if (!mounted) return null;
 
@@ -1547,6 +1552,8 @@ function isReceiptInsightQuestion(value: string) {
                     <button
                       key={l.code}
                       onClick={() => setLanguage(l.code)}
+                      dir={l.code === 'ar' ? 'rtl' : 'ltr'}
+                      lang={l.code}
                       className={`px-3 py-1.5 rounded-lg text-xs font-600 transition-colors ${
                         language === l.code
                           ? 'bg-accent/10 text-accent border border-accent/30' :'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -1648,7 +1655,8 @@ function isReceiptInsightQuestion(value: string) {
                       <button
                         key={i}
                         onClick={() => setTextInput(ex)}
-                        className="block w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                        className="block w-full text-start text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                        dir={isRTL ? 'rtl' : 'ltr'}
                       >
                         {ex}
                       </button>

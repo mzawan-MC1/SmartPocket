@@ -88,11 +88,13 @@
       },
       "settlementCompleted": {
         "title": "Расчет завершен",
-        "description": "{{description}} зарегистрировано на сумму {{amount}}."
+        "description": "{{description}} зарегистрировано на сумму {{amount}}.",
+        "descriptionGeneric": "Расчет зарегистрирован на сумму {{amount}}."
       },
       "loanRepaymentRecorded": {
         "title": "Погашение займа зарегистрировано",
-        "description": "Погашение займа для {{personName}} зарегистрировано на сумму {{amount}}."
+        "description": "Погашение займа для {{personName}} зарегистрировано на сумму {{amount}}.",
+        "descriptionGeneric": "Погашение займа зарегистрировано на сумму {{amount}}."
       },
       "receiptItemDueSoon": {
         "title": "Товар из чека скоро может понадобиться снова",
@@ -1060,6 +1062,7 @@
     "modeVoice": "Голос",
     "languageLabel": "Язык ввода",
     "describeLabel": "Опишите вашу операцию",
+    "placeholderExample": "Например: я потратил 85 AED на продукты сегодня из наличных, или Ахмед дал мне сегодня 2 300 AED.",
     "submitHint": "Нажмите Ctrl+Enter для отправки",
     "analyzeAction": "Проанализировать с помощью ИИ",
     "examplesTitle": "Примеры",
@@ -1166,6 +1169,10 @@
       "confirmFailed": "Не удалось подтвердить запрос умного ввода."
     },
     "examples": {
+      "expense": "Я потратил 85 AED на продукты из наличных.",
+      "moneyReceived": "Ахмед дал мне сегодня 2 300 AED.",
+      "transfer": "Переведи 1 000 AED с моего банковского счета в наличные.",
+      "subscriptionPayment": "Я оплатил 600 AED за подписку Ахмеда своей кредитной картой.",
       "placeholder": {
         "en": "например: I spent AED 85 on groceries today from cash",
         "ar": "пример на арабском: أنفقت 85 درهما على البقالة من النقد",
