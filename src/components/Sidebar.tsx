@@ -29,7 +29,8 @@ type NavItem = {
 };
 
 export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateItem, isMobileDrawer = false }: SidebarProps) {
-  const { isRTL } = useLanguage();
+  const { dir } = useLanguage();
+  const isRTL = dir === 'rtl';
   const { t } = useTranslation(['common', 'portal']);
   const { user, signOut } = useAuth();
   const router = useRouter();
