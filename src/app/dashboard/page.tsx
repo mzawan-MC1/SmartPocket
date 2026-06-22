@@ -215,7 +215,7 @@ export default function DashboardPage() {
                 <div className="lg:col-span-8">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
-                <div className="space-y-4 lg:col-span-4">
+                <div className="space-y-4 lg:col-span-4 lg:self-start">
                   <AIUsageCard />
                 </div>
               </div>

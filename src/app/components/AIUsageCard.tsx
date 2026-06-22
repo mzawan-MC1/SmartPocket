@@ -94,12 +94,12 @@ function UsageBar({ used, total, label }: { used: number; total: number; label: 
     pct >= 80 ? 'bg-warning' :
     'bg-accent';
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">{label}</span>
         <span className="text-xs font-600 text-foreground">{used} / {total}</span>
       </div>
-      <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+      <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -115,19 +115,19 @@ function WarningBanner({
 }) {
   if (pct < 80) return null;
   if (pct >= 100) return (
-    <div className="flex items-center gap-2 p-3 rounded-xl bg-negative-soft border border-negative/20 text-negative text-xs font-600">
+    <div className="flex items-center gap-2 rounded-xl border border-negative/20 bg-negative-soft px-3 py-2 text-xs font-600 text-negative">
       <XCircle size={14} className="flex-shrink-0" />
       {t('aiUsage.exhausted')}
     </div>
   );
   if (pct >= 95) return (
-    <div className="flex items-center gap-2 p-3 rounded-xl bg-warning-soft border border-warning/20 text-warning text-xs font-600">
+    <div className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning-soft px-3 py-2 text-xs font-600 text-warning">
       <AlertTriangle size={14} className="flex-shrink-0" />
       {t('aiUsage.remainingPercent', { percent: 100 - pct })}
     </div>
   );
   return (
-    <div className="flex items-center gap-2 p-3 rounded-xl bg-warning-soft border border-warning/20 text-warning text-xs font-600">
+    <div className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning-soft px-3 py-2 text-xs font-600 text-warning">
       <AlertTriangle size={14} className="flex-shrink-0" />
       {t('aiUsage.eightyUsed')}
     </div>
@@ -179,19 +179,19 @@ export default function AIUsageCard() {
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-5">
-        <div className="mb-4 flex items-center justify-between">
+      <div className="card-elevated animate-pulse rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4">
+        <div className="mb-3 flex items-center justify-between">
           <div className="space-y-2">
             <div className="h-4 w-28 rounded bg-secondary" />
             <div className="h-3 w-36 rounded bg-secondary" />
           </div>
-          <div className="h-12 w-12 rounded-full bg-secondary" />
+          <div className="h-10 w-10 rounded-full bg-secondary" />
         </div>
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="h-2 rounded bg-secondary" />
           <div className="h-2 rounded bg-secondary" />
           <div className="grid grid-cols-2 gap-2">
-            {[1, 2, 3, 4].map((item) => <div key={item} className="h-16 rounded-2xl bg-secondary" />)}
+            {[1, 2, 3, 4].map((item) => <div key={item} className="h-14 rounded-2xl bg-secondary" />)}
           </div>
         </div>
       </div>
@@ -200,12 +200,12 @@ export default function AIUsageCard() {
 
   if (!summary?.has_subscription) {
     return (
-      <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-5">
-        <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
               <span className="absolute inset-1 rounded-xl bg-violet-500/10 blur-md" />
-              <Sparkles size={18} className="relative z-[1]" />
+              <Sparkles size={17} className="relative z-[1]" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -226,9 +226,9 @@ export default function AIUsageCard() {
           </button>
         </div>
         {isUnavailable || summary?.status === 'unavailable' ? (
-          <p className="mb-4 text-sm text-muted-foreground">{t('aiUsage.unavailable')}</p>
+          <p className="mb-3 text-sm text-muted-foreground">{t('aiUsage.unavailable')}</p>
         ) : (
-          <p className="mb-4 text-sm text-muted-foreground">{t('aiUsage.noSubscription')}</p>
+          <p className="mb-3 text-sm text-muted-foreground">{t('aiUsage.noSubscription')}</p>
         )}
         <button
           type="button"
@@ -280,14 +280,14 @@ export default function AIUsageCard() {
         : summary.status;
 
   return (
-    <div className="card-elevated h-full rounded-[28px] border border-violet-100 bg-[linear-gradient(180deg,rgba(139,92,246,0.12),rgba(255,255,255,0.98))] p-5 shadow-[0_24px_70px_-48px_rgba(124,58,237,0.75)]">
-      <div className="flex h-full flex-col gap-4">
+    <div className="card-elevated rounded-[28px] border border-violet-100 bg-[linear-gradient(180deg,rgba(139,92,246,0.12),rgba(255,255,255,0.98))] p-4 shadow-[0_24px_70px_-48px_rgba(124,58,237,0.75)]">
+      <div className="flex flex-col gap-3.5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_14px_28px_-22px_rgba(139,92,246,0.95)]">
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_14px_28px_-22px_rgba(139,92,246,0.95)]">
               <span className="absolute -inset-1 rounded-[20px] bg-violet-400/18 blur-lg" />
               <span className="absolute inset-1 rounded-xl bg-white/70" />
-              <Sparkles size={18} className="relative z-[1]" />
+              <Sparkles size={17} className="relative z-[1]" />
             </div>
             <div>
               <div className="flex flex-wrap items-center gap-1.5">
@@ -315,14 +315,14 @@ export default function AIUsageCard() {
           </div>
         ) : null}
 
-        <div className="grid gap-3">
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
-            <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="grid gap-2.5">
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
+            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <p className="text-sm font-700 text-foreground">{t('aiUsage.textAi')}</p>
                 <p className="text-xs text-muted-foreground">{t('aiUsage.requestsUsedToday')}</p>
               </div>
-              <p className="text-lg font-800 text-foreground">
+              <p className="text-base font-800 text-foreground sm:text-lg">
                 {textUsed}
                 <span className="ms-1 text-xs font-600 text-muted-foreground">/ {textTotal || t('aiUsage.none')}</span>
               </p>
@@ -330,64 +330,64 @@ export default function AIUsageCard() {
             <UsageBar used={textUsed} total={textTotal} label={t('aiUsage.textAiRequests')} />
           </div>
 
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
-            <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
+            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <p className="text-sm font-700 text-foreground">{t('aiUsage.voiceAi')}</p>
                 <p className="text-xs text-muted-foreground">{t('aiUsage.voiceUsedIncluded')}</p>
               </div>
-              <p className="text-lg font-800 text-foreground">
+              <p className="text-base font-800 text-foreground sm:text-lg">
                 {voiceUsedMin}
                 <span className="ms-1 text-xs font-600 text-muted-foreground">/ {voiceTotalMin || t('aiUsage.none')}</span>
               </p>
             </div>
             <UsageBar used={voiceUsedMin} total={voiceTotalMin} label={t('aiUsage.voiceMinutes')} />
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               {t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-3.5 backdrop-blur-sm">
-            <div className="mb-3 flex items-center justify-between gap-2">
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-3 backdrop-blur-sm">
+            <div className="mb-2 flex items-start justify-between gap-2">
               <div>
                 <p className="text-sm font-700 text-foreground">{t('aiUsage.receiptIntelligence')}</p>
                 <p className="text-xs text-muted-foreground">{t('aiUsage.receiptUsedIncluded')}</p>
               </div>
-              <p className={`text-lg font-800 ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+              <p className={`text-base font-800 sm:text-lg ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
                 {receiptUsed}
                 <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
               </p>
             </div>
             <UsageBar used={receiptUsed + receiptReserved} total={receiptIncluded} label={t('aiUsage.receiptDocuments')} />
-            <p className="mt-2 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               {t('aiUsage.receiptRemaining', { count: receiptRemaining })}
             </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
             <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.receiptRemainingCard')}</p>
-            <p className={`text-lg font-800 ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+            <p className={`text-base font-800 sm:text-lg ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
               {receiptRemaining}
               <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
             <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.requestsToday')}</p>
-            <p className="text-lg font-800 text-foreground">
+            <p className="text-base font-800 text-foreground sm:text-lg">
               {summary.requests_today ?? 0}
               <span className="ms-1 text-xs font-600 text-muted-foreground">/ {summary.daily_ai_request_limit ?? t('aiUsage.none')}</span>
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
             <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.resetDate')}</p>
             <p className="flex items-center gap-1 text-sm font-700 text-foreground">
               <Calendar size={12} className="text-muted-foreground" />
               {resetDate}
             </p>
           </div>
-          <div className="rounded-2xl border border-white/70 bg-white/70 p-3.5 backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/70 bg-white/70 px-3 py-2.5 backdrop-blur-sm">
             <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">{t('aiUsage.status')}</p>
             <p className="flex items-center gap-1 text-sm font-700 text-foreground">
               {summary.status === 'active' || summary.status === 'trialing'
@@ -398,16 +398,16 @@ export default function AIUsageCard() {
           </div>
         </div>
 
-        <div className="mt-auto space-y-2">
+        <div className="space-y-2">
           <button
             type="button"
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-3 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
           >
             <Zap size={14} />
             {t('aiUsage.openAssistant')}
           </button>
-          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12.5px] text-violet-700">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-violet-700">
             {(summary.plan_code === 'free_trial' || summary.status !== 'active') ? (
               <Link href="/pricing" className="font-600 transition-colors hover:text-violet-800">
                 {t('aiUsage.upgrade')}
