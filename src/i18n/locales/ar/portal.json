@@ -242,8 +242,8 @@
   },
   "dashboardCharts": {
     "title": "النظرة المالية العامة",
-    "descriptionThrough": "الدخل والمصروفات والتصنيف حتى {{period}}",
-    "descriptionDuring": "الدخل والمصروفات والتصنيف خلال {{period}}",
+    "descriptionThrough": "تصنيف الفئات حتى {{period}}",
+    "descriptionDuring": "تصنيف الفئات خلال {{period}}",
     "warning": "لم يتم إعداد وضع فترة الدفع، لذا تعرض الرسوم البيانية الشهر الحالي بدلًا من ذلك.",
     "tabs": {
       "trend": "الدخل مقابل المصروفات",

@@ -71,20 +71,7 @@ export default function SpendingCategoryChart({
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [reportingCurrency, setReportingCurrency] = useState('USD');
-  const topCategory = data[0] ?? null;
-  const summaryCards = useMemo(() => ([
-    {
-      id: 'total',
-      label: t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' }),
-      amount: total,
-    },
-    {
-      id: 'top',
-      label: t('dashboardCharts.categorySummary.topCategory', { defaultValue: 'Top category' }),
-      value: topCategory?.name || '—',
-      detailAmount: topCategory?.value,
-    },
-  ]), [reportingCurrency, t, topCategory]);
+  const displayedCategories = useMemo(() => data.slice(0, 8), [data]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -155,7 +142,7 @@ export default function SpendingCategoryChart({
           color: value.color ?? COLORS[index % COLORS.length],
         }))
         .sort((left, right) => right.value - left.value)
-        .slice(0, 8);
+      ;
 
       const grandTotal = sorted.reduce((sum, item) => sum + item.value, 0);
       setTotal(grandTotal);
@@ -208,7 +195,7 @@ export default function SpendingCategoryChart({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
-      <div className="grid gap-3 sm:grid-cols-[minmax(14rem,15.5rem)_minmax(0,1fr)] lg:grid-cols-1">
+      <div>
         <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4">
           <div className="mx-auto h-[190px] w-full max-w-[220px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -248,41 +235,10 @@ export default function SpendingCategoryChart({
             />
           </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
-          {summaryCards.map((card) => (
-            <div key={card.id} className="rounded-2xl border border-border/80 bg-card px-3 py-2.5 shadow-card-sm">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{card.label}</p>
-                {card.id === 'total' ? (
-                  <FormattedCurrencyAmount
-                    amount={card.amount ?? 0}
-                    currencyCode={reportingCurrency}
-                    size="sm"
-                    className="text-sm font-800 text-foreground text-right whitespace-nowrap"
-                  />
-                ) : null}
-              </div>
-              {card.id === 'top' ? (
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <p className="truncate text-sm font-800 text-foreground">{card.value}</p>
-                  {typeof card.detailAmount === 'number' ? (
-                    <FormattedCurrencyAmount
-                      amount={card.detailAmount}
-                      currencyCode={reportingCurrency}
-                      size="sm"
-                      className="text-[12.5px] font-700 text-muted-foreground whitespace-nowrap"
-                    />
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
-        {data.map((item) => (
+        {displayedCategories.map((item) => (
           <div
             key={item.id}
             className={`rounded-2xl border px-3 py-2.5 transition-colors ${
