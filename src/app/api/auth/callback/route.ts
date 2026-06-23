@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPostAuthDestination, getSafeNextPath } from '@/lib/auth/redirects';
+import { buildAppUrl } from '@/lib/auth/urls';
 import {
   applySupabaseCookies,
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const { searchParams } = request.nextUrl;
   const code = searchParams.get('code');
   const next = getSafeNextPath(searchParams.get('next'));
 
   if (!code) {
-    return NextResponse.redirect(new URL('/sign-up-login', request.url));
+    return NextResponse.redirect(buildAppUrl('/sign-up-login', request));
   }
 
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !data.user) {
     console.error('[api/auth/callback] exchangeCodeForSession failed:', error?.message);
-    return NextResponse.redirect(new URL('/sign-up-login', request.url));
+    return NextResponse.redirect(buildAppUrl('/sign-up-login', request));
   }
 
   const { destination, profileError } = await getPostAuthDestination(supabase, data.user.id, next);
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   }
 
   return applySupabaseCookies(
-    NextResponse.redirect(new URL(destination, request.url)),
+    NextResponse.redirect(buildAppUrl(destination, request)),
     cookieMutations
   );
 }

@@ -4,6 +4,7 @@ import {
   isAuthPagePath,
   isOnboardingPath,
 } from '@/lib/auth/redirects';
+import { buildAppUrl } from '@/lib/auth/urls';
 import {
   copySupabaseCookies,
   createMiddlewareSupabaseClient,
@@ -32,9 +33,10 @@ export async function middleware(request: NextRequest) {
   }
 
   function redirectWithCookies(destination: string): NextResponse {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = destination;
-    return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+    return copySupabaseCookies(
+      supabaseResponse,
+      NextResponse.redirect(buildAppUrl(destination, request))
+    );
   }
 
   const publicPrefixes = [
@@ -67,8 +69,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user && !isPublicRoute) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/sign-up-login';
+    const redirectUrl = buildAppUrl('/sign-up-login', request);
     redirectUrl.searchParams.set('next', pathname);
     return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
   }
@@ -100,8 +101,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/admin')) {
     if (!user) {
-      const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = '/sign-up-login';
+      const redirectUrl = buildAppUrl('/sign-up-login', request);
       redirectUrl.searchParams.set('next', pathname);
       return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
     }
