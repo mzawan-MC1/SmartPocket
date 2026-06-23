@@ -14,8 +14,17 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-sp-pathname', pathname);
+  const publicTechnicalRoutes = new Set([
+    '/robots.txt',
+    '/sitemap.xml',
+    '/manifest.webmanifest',
+  ]);
 
   if (pathname.startsWith('/api/')) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  if (publicTechnicalRoutes.has(pathname)) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -52,9 +61,9 @@ export async function middleware(request: NextRequest) {
     '/offline',
   ];
 
-  const isPublicRoute = publicPrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(prefix)
-  );
+  const isPublicRoute =
+    publicTechnicalRoutes.has(pathname) ||
+    publicPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
 
   if (pathname === '/') {
     if (!user) {
