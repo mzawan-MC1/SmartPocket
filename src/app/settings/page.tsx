@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import AppLayout from '@/components/AppLayout';
-import { Settings, User, Globe, Bell, Shield, Check, Loader2 } from 'lucide-react';
+import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,9 @@ import {
   saveNotificationPreferences,
   type NotificationPreferences,
 } from '@/lib/notifications';
+import { getIntlLocale } from '@/lib/locale';
+import { fetchSubscriptionSummary } from '@/lib/subscription/client';
+import type { SubscriptionSummary } from '@/lib/subscription/types';
 
 
 interface ProfileFormData {
@@ -116,10 +120,13 @@ export default function SettingsPage() {
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsSaving, setNotificationsSaving] = useState(false);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const { user } = useAuth();
-  const { setLanguage } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const { data: referenceData } = useClientReferenceData();
   const snapshot = referenceData?.snapshot;
+  const locale = getIntlLocale(language);
   const defaultFinancialValues = buildFinancialPeriodFormValues({
     timezone: getBrowserTimeZone(),
   });
@@ -224,6 +231,23 @@ export default function SettingsPage() {
   useEffect(() => {
     if (!user) return;
     void loadNotificationPreferences();
+  }, [user]);
+
+  const loadSubscriptionSummary = async () => {
+    setSubscriptionLoading(true);
+    try {
+      const payload = await fetchSubscriptionSummary();
+      setSubscriptionSummary(payload?.summary || null);
+    } catch {
+      setSubscriptionSummary(null);
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    void loadSubscriptionSummary();
   }, [user]);
 
   const setFinancialField = <K extends keyof FinancialPeriodFormValues>(field: K, value: FinancialPeriodFormValues[K]) => {
@@ -333,6 +357,7 @@ export default function SettingsPage() {
     { id: 'profile', label: t('settings.tabs.profile', { ns: 'portal' }), icon: User },
     { id: 'preferences', label: t('settings.tabs.preferences', { ns: 'portal' }), icon: Globe },
     { id: 'planning', label: t('settings.tabs.planning', { ns: 'portal' }), icon: Settings },
+    { id: 'subscription', label: t('settings.tabs.subscription', { ns: 'portal' }), icon: CreditCard },
     { id: 'security', label: t('settings.tabs.security', { ns: 'portal' }), icon: Shield },
     { id: 'notifications', label: t('settings.tabs.notifications', { ns: 'portal' }), icon: Bell },
   ];
@@ -536,6 +561,74 @@ export default function SettingsPage() {
                   onChange={setFinancialField}
                   showCompatibilityNote
                 />
+              </div>
+            </SectionCard>
+          )}
+
+          {activeTab === 'subscription' && (
+            <SectionCard
+              title={t('settings.subscription.title', { ns: 'portal' })}
+              description={t('settings.subscription.description', { ns: 'portal' })}
+              action={
+                <Link href="/settings/subscription" className="btn-secondary text-sm">
+                  {t('settings.subscription.manageAction', { ns: 'portal' })}
+                </Link>
+              }
+            >
+              <div className="space-y-4">
+                {subscriptionLoading ? (
+                  <div className="rounded-xl border border-border p-4 text-sm text-muted-foreground">
+                    {t('status.loading', { ns: 'common' })}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                        {t('settings.subscription.currentPlan', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-2 text-base font-700 text-foreground">
+                        {subscriptionSummary?.planName || t('settings.subscription.noPlan', { ns: 'portal' })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                        {t('settings.subscription.status', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-2 text-base font-700 text-foreground">
+                        {subscriptionSummary?.status
+                          ? t(`subscriptionBilling.status.${subscriptionSummary.status === 'past_due' ? 'pastDue' : subscriptionSummary.status}`, { ns: 'portal' })
+                          : t('status.inactive', { ns: 'common' })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                        {t('settings.subscription.renewalDate', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-2 text-sm font-700 text-foreground">
+                        {subscriptionSummary?.currentPeriodEnd
+                          ? new Intl.DateTimeFormat(locale, {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            }).format(new Date(subscriptionSummary.currentPeriodEnd))
+                          : t('settings.subscription.notAvailable', { ns: 'portal' })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                        {t('settings.subscription.manage', { ns: 'portal' })}
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Link href="/settings/subscription" className="btn-primary text-sm">
+                          {t('settings.subscription.manageSubscription', { ns: 'portal' })}
+                        </Link>
+                        <Link href="/settings/subscription" className="btn-secondary text-sm">
+                          {t('settings.subscription.upgradeAction', { ns: 'portal' })}
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </SectionCard>
           )}

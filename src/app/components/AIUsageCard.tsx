@@ -36,6 +36,39 @@ interface SubscriptionSummary {
   cycle_end?: string;
 }
 
+type SummaryApiPayload = {
+  summary?: {
+    hasSubscription?: boolean;
+    planName?: string;
+    planCode?: string;
+    status?: string;
+    trialEndsAt?: string | null;
+    currentPeriodEnd?: string | null;
+    monthlyAiCredits?: number;
+    dailyAiRequestLimit?: number;
+    monthlyVoiceSeconds?: number;
+    monthlyReceiptExtractions?: number;
+    textAiEnabled?: boolean;
+    voiceAiEnabled?: boolean;
+    aiHistoryEnabled?: boolean;
+    creditsAllocated?: number;
+    creditsConsumed?: number;
+    creditsReserved?: number;
+    creditsRefunded?: number;
+    voiceSecondsUsed?: number;
+    requestsToday?: number;
+    receiptExtractionsIncluded?: number;
+    receiptExtractionsUsed?: number;
+    receiptExtractionsReserved?: number;
+    receiptExtractionsRefunded?: number;
+    receiptExtractionsRemaining?: number;
+    cycleStart?: string | null;
+    cycleEnd?: string | null;
+  };
+};
+
+type WrappedSummary = NonNullable<SummaryApiPayload['summary']>;
+
 type SummaryFetchResult = {
   status: number;
   data: SubscriptionSummary | null;
@@ -43,6 +76,47 @@ type SummaryFetchResult = {
 
 let cachedSummaryResult: SummaryFetchResult | null = null;
 let inFlightSummaryRequest: Promise<SummaryFetchResult> | null = null;
+
+function normalizeSummaryPayload(payload: unknown): SubscriptionSummary | null {
+  if (!payload || typeof payload !== 'object') {
+    return null;
+  }
+
+  const rawSummary = payload as Partial<SubscriptionSummary>;
+  const wrappedSummary = (payload as SummaryApiPayload).summary;
+  const summary: WrappedSummary | undefined = wrappedSummary && typeof wrappedSummary === 'object'
+    ? wrappedSummary
+    : undefined;
+
+  return {
+    has_subscription: Boolean(summary?.hasSubscription ?? rawSummary.has_subscription),
+    plan_name: summary?.planName ?? rawSummary.plan_name,
+    plan_code: summary?.planCode ?? rawSummary.plan_code,
+    status: summary?.status ?? rawSummary.status,
+    trial_ends_at: summary?.trialEndsAt ?? rawSummary.trial_ends_at,
+    current_period_end: summary?.currentPeriodEnd ?? rawSummary.current_period_end,
+    monthly_ai_credits: summary?.monthlyAiCredits ?? rawSummary.monthly_ai_credits,
+    daily_ai_request_limit: summary?.dailyAiRequestLimit ?? rawSummary.daily_ai_request_limit,
+    monthly_voice_seconds: summary?.monthlyVoiceSeconds ?? rawSummary.monthly_voice_seconds,
+    monthly_receipt_extractions: summary?.monthlyReceiptExtractions ?? rawSummary.monthly_receipt_extractions,
+    text_ai_enabled: summary?.textAiEnabled ?? rawSummary.text_ai_enabled,
+    voice_ai_enabled: summary?.voiceAiEnabled ?? rawSummary.voice_ai_enabled,
+    ai_history_enabled: summary?.aiHistoryEnabled ?? rawSummary.ai_history_enabled,
+    credits_allocated: summary?.creditsAllocated ?? rawSummary.credits_allocated,
+    credits_consumed: summary?.creditsConsumed ?? rawSummary.credits_consumed,
+    credits_reserved: summary?.creditsReserved ?? rawSummary.credits_reserved,
+    credits_refunded: summary?.creditsRefunded ?? rawSummary.credits_refunded,
+    voice_seconds_used: summary?.voiceSecondsUsed ?? rawSummary.voice_seconds_used,
+    requests_today: summary?.requestsToday ?? rawSummary.requests_today,
+    receipt_extractions_included: summary?.receiptExtractionsIncluded ?? rawSummary.receipt_extractions_included,
+    receipt_extractions_used: summary?.receiptExtractionsUsed ?? rawSummary.receipt_extractions_used,
+    receipt_extractions_reserved: summary?.receiptExtractionsReserved ?? rawSummary.receipt_extractions_reserved,
+    receipt_extractions_refunded: summary?.receiptExtractionsRefunded ?? rawSummary.receipt_extractions_refunded,
+    receipt_extractions_remaining: summary?.receiptExtractionsRemaining ?? rawSummary.receipt_extractions_remaining,
+    cycle_start: summary?.cycleStart ?? rawSummary.cycle_start,
+    cycle_end: summary?.cycleEnd ?? rawSummary.cycle_end,
+  };
+}
 
 async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResult> {
   if (force) {
@@ -64,7 +138,7 @@ async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResu
     .then(async (res) => {
       const contentType = res.headers.get('content-type') || '';
       const data = contentType.includes('application/json')
-        ? (await res.json()) as SubscriptionSummary
+        ? normalizeSummaryPayload(await res.json())
         : null;
 
       const result = {
@@ -440,7 +514,7 @@ export default function AIUsageCard() {
           </button>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-violet-700">
             {(summary.plan_code === 'free_trial' || summary.status !== 'active') ? (
-              <Link href="/pricing" className="font-600 transition-colors hover:text-violet-800">
+              <Link href="/settings/subscription" className="font-600 transition-colors hover:text-violet-800">
                 {t('aiUsage.upgrade')}
               </Link>
             ) : null}

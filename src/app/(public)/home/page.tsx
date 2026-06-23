@@ -6,7 +6,11 @@ import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import { getIntlLocale } from '@/lib/locale';
+import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { fetchSubscriptionPlans } from '@/lib/subscription/client';
+import type { BillingAvailability, PublicSubscriptionPlan } from '@/lib/subscription/types';
 
 interface HeroSettings {
   hero_title?: string;
@@ -49,11 +53,49 @@ const LANGUAGES = [
   { code: 'RU', nameKey: 'common:language.ru', dirKey: 'home.languages.ltr' },
 ] as const;
 
-const PLANS = [
-  { id: 'free', accent: false, featureCount: 4 },
-  { id: 'pro', accent: true, featureCount: 6 },
-  { id: 'family', accent: false, featureCount: 4 },
-] as const;
+function formatPublicPlanPrice(plan: PublicSubscriptionPlan, locale: string) {
+  if (plan.priceAmount <= 0 || plan.billingInterval === 'none') {
+    return null;
+  }
+
+  return formatCurrencyText(plan.priceAmount, {
+    currencyCode: 'AED',
+    locale,
+  });
+}
+
+function getPublicPlanCtaHref(planId: string, isAuthenticated: boolean) {
+  const destination = `/settings/subscription?plan=${encodeURIComponent(planId)}`;
+  if (isAuthenticated) {
+    return destination;
+  }
+
+  return `/sign-up-login?next=${encodeURIComponent(destination)}`;
+}
+
+function getPublicPlanFeatureRows(
+  plan: PublicSubscriptionPlan,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  return [
+    t('home.pricing.features.textAi', {
+      credits: plan.monthlyAiCredits,
+      requests: plan.dailyAiRequestLimit,
+    }),
+    t('home.pricing.features.voiceAi', {
+      minutes: Math.round(plan.monthlyVoiceSeconds / 60),
+    }),
+    t('home.pricing.features.receiptIntelligence', {
+      count: plan.monthlyReceiptExtractions,
+    }),
+    plan.aiHistoryEnabled
+      ? t('home.pricing.features.aiHistoryEnabled', {
+          days: plan.aiHistoryRetentionDays,
+        })
+      : t('home.pricing.features.aiHistoryDisabled'),
+    ...plan.featureLimits.map((limit) => `${limit.featureKey}: ${limit.featureValue}`),
+  ];
+}
 
 /** Inline SVG dashboard preview — no external assets required */
 function DashboardPreview() {
@@ -216,7 +258,12 @@ function DashboardPreview() {
 export default function HomePage() {
   const { t } = useTranslation(['public', 'common']);
   const { language } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
   const [hero, setHero] = useState<HeroSettings>({});
+  const [publicPlans, setPublicPlans] = useState<PublicSubscriptionPlan[]>([]);
+  const [billing, setBilling] = useState<BillingAvailability | null>(null);
+  const [plansLoading, setPlansLoading] = useState(true);
+  const locale = getIntlLocale(language);
 
   useEffect(() => {
     getPlatformSettings()
@@ -226,21 +273,39 @@ export default function HomePage() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSubscriptionPlans()
+      .then((payload) => {
+        if (cancelled) return;
+        setPublicPlans(payload.plans);
+        setBilling(payload.billing);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setPublicPlans([]);
+        setBilling(null);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPlansLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const canUseSingleLanguageHeroOverride = language === 'en';
   const heroTitle = canUseSingleLanguageHeroOverride && hero.hero_title ? hero.hero_title : t('home.hero.title');
   const heroSubtitle = canUseSingleLanguageHeroOverride && hero.hero_subtitle ? hero.hero_subtitle : t('home.hero.subtitle');
   const heroCTAPrimary = canUseSingleLanguageHeroOverride && hero.hero_cta_primary ? hero.hero_cta_primary : t('home.hero.primaryCta');
   const heroCTASecondary = canUseSingleLanguageHeroOverride && hero.hero_cta_secondary ? hero.hero_cta_secondary : t('home.hero.secondaryCta');
-  const plans = PLANS.map((plan) => ({
-    ...plan,
-    name: t(`home.pricing.${plan.id}Name`),
-    price: t(`home.pricing.${plan.id}Price`),
-    period: t(`home.pricing.${plan.id}Period`),
-    cta: t(`home.pricing.${plan.id}Cta`),
-    features: Array.from({ length: plan.featureCount }, (_, index) =>
-      t(`home.pricing.${plan.id}Features.${index + 1}`)
-    ),
-  }));
+  const activePlans = publicPlans.filter((plan) => plan.isActive);
+  const freeTrialPlan = activePlans.find((plan) => plan.planCode === 'free_trial') || null;
+  const isAuthenticated = Boolean(user && !authLoading);
 
   return (
     <div className="overflow-x-hidden">
@@ -568,38 +633,79 @@ export default function HomePage() {
             <p className="text-muted-foreground">{t('home.pricing.subtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((plan) => (
-              <div key={plan.id} className={`card-elevated p-6 relative flex flex-col ${plan.accent ? 'border-accent border-2' : ''}`}>
-                {plan.accent && (
+            {plansLoading ? Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className="card-elevated p-6 flex flex-col animate-pulse">
+                <div className="h-6 w-24 rounded bg-secondary" />
+                <div className="mt-4 h-10 w-28 rounded bg-secondary" />
+                <div className="mt-6 space-y-2">
+                  <div className="h-4 rounded bg-secondary" />
+                  <div className="h-4 rounded bg-secondary" />
+                  <div className="h-4 rounded bg-secondary" />
+                  <div className="h-4 rounded bg-secondary" />
+                </div>
+                <div className="mt-6 h-11 rounded bg-secondary" />
+              </div>
+            )) : activePlans.map((plan) => {
+              const featureRows = getPublicPlanFeatureRows(plan, t);
+              const priceText = formatPublicPlanPrice(plan, locale);
+              const ctaHref = getPublicPlanCtaHref(plan.id, isAuthenticated);
+              const accent = plan.planCode === 'personal';
+
+              return (
+              <div key={plan.id} className={`card-elevated p-6 relative flex flex-col ${accent ? 'border-accent border-2' : ''}`}>
+                {accent ? (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-700 bg-accent text-accent-foreground px-3 py-1 rounded-full">{t('home.pricing.mostPopular')}</span>
-                )}
+                ) : null}
                 <div className="mb-5">
-                  <h3 className="text-lg font-700 text-foreground">{plan.name}</h3>
+                  <h3 className="text-lg font-700 text-foreground">{plan.planName}</h3>
                   <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-3xl font-800 text-foreground">{plan.price}</span>
-                    <span className="text-sm text-muted-foreground">{plan.period}</span>
+                    <span className="text-3xl font-800 text-foreground">
+                      {priceText || t('home.pricing.freePrice')}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {t(`home.pricing.intervals.${plan.billingInterval}`)}
+                    </span>
                   </div>
+                  {plan.description ? (
+                    <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
+                  ) : null}
                 </div>
                 <ul className="space-y-2.5 mb-6 flex-1">
-                  {plan.features.map((f) => (
-                    <li key={f} className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {featureRows.map((feature) => (
+                    <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
                       <CheckCircle2 size={14} className="text-positive flex-shrink-0" />
-                      {f}
+                      {feature}
                     </li>
                   ))}
                 </ul>
                 <Link
-                  href="/sign-up-login"
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-600 transition-all ${plan.accent ? 'btn-primary' : 'btn-secondary'}`}
+                  href={ctaHref}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-600 transition-all ${accent ? 'btn-primary' : 'btn-secondary'}`}
                 >
-                  {plan.cta} <ArrowRight size={14} />
+                  {isAuthenticated
+                    ? t('home.pricing.managePlanCta')
+                    : t('home.pricing.guestPlanCta')}
+                  <ArrowRight size={14} />
                 </Link>
               </div>
-            ))}
+              );
+            })}
           </div>
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            {t('home.pricing.trialHint')}
-          </p>
+          {freeTrialPlan?.trialDurationDays ? (
+            <p className="text-center text-sm text-muted-foreground mt-8">
+              {t('home.pricing.trialHint', {
+                days: freeTrialPlan.trialDurationDays,
+                planName: freeTrialPlan.planName,
+              })}
+            </p>
+          ) : null}
+          {isAuthenticated && billing && !billing.providerConfigured ? (
+            <p className="text-center text-sm text-muted-foreground mt-3">
+              {billing.contactEmail
+                ? t('home.pricing.providerUnavailable', { email: billing.contactEmail })
+                : t('home.pricing.providerUnavailableNoEmail')}
+            </p>
+          ) : null}
           <div className="text-center mt-4">
             <Link href="/#pricing" className="inline-flex items-center gap-1.5 text-sm font-600 text-accent hover:underline">
               {t('home.pricing.viewDetails')} <ArrowRight size={14} />

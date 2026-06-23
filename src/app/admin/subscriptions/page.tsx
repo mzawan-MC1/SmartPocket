@@ -2,9 +2,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
 import { CreditCard, Users, Save, Edit2, Loader2, RefreshCw, Gift, UserCog, BarChart3 } from 'lucide-react';
-import Icon from '@/components/ui/AppIcon';
+import { formatCurrencyText } from '@/lib/currency-formatting';
+import { getIntlLocale } from '@/lib/locale';
 
 
 interface Plan {
@@ -39,8 +41,19 @@ interface UserSubRow {
   plan_code: string;
   status: string;
   trial_ends_at: string | null;
+  notes: string | null;
   credits_consumed: number;
   credits_allocated: number;
+  provider_managed: boolean;
+  provider_name: string | null;
+  provider_subscription_id: string | null;
+  billing_interval: string | null;
+  billing_status: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+  last_override_action: string | null;
+  last_override_at: string | null;
 }
 
 interface AdminStats {
@@ -59,6 +72,51 @@ const PLAN_COLORS: Record<string, string> = {
   personal: 'bg-accent/10 text-accent',
   family: 'bg-positive-soft text-positive',
 };
+
+function formatAdminDateRange(start: string | null, end: string | null) {
+  if (!start && !end) return '—';
+
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const startText = start ? formatter.format(new Date(start)) : '—';
+  const endText = end ? formatter.format(new Date(end)) : '—';
+  return `${startText} - ${endText}`;
+}
+
+function formatAdminDate(value: string | null, locale: string) {
+  if (!value) return '—';
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(value));
+}
+
+function getSubscriptionSource(user: UserSubRow) {
+  if (user.provider_managed) {
+    return {
+      label: 'Provider-managed',
+      tone: 'bg-accent/10 text-accent',
+    };
+  }
+
+  if (user.plan_code === 'free_trial') {
+    return {
+      label: 'Free trial',
+      tone: 'bg-info-soft text-info',
+    };
+  }
+
+  return {
+    label: 'Manual assignment',
+    tone: 'bg-warning-soft text-warning',
+  };
+}
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -98,7 +156,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
           <input className="input-base text-sm" value={form.plan_name} onChange={e => set('plan_name', e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs font-600 text-foreground mb-1">Price (USD)</label>
+          <label className="block text-xs font-600 text-foreground mb-1">Price (AED)</label>
           <input type="number" min="0" step="0.01" className="input-base text-sm" value={form.price_amount} onChange={e => set('price_amount', parseFloat(e.target.value) || 0)} />
         </div>
         <div>
@@ -170,6 +228,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
 
 export default function AdminSubscriptionsPage() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [users, setUsers] = useState<UserSubRow[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -185,6 +244,7 @@ export default function AdminSubscriptionsPage() {
   const [changingPlan, setChangingPlan] = useState(false);
 
   const supabase = createClient();
+  const locale = getIntlLocale(language);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -197,7 +257,7 @@ export default function AdminSubscriptionsPage() {
       if (plansRes.data) setPlans(plansRes.data);
       if (statsRes.data) setStats(statsRes.data as AdminStats);
 
-      // Load user subscriptions with profile info
+      // Keep manual admin assignment intact, then overlay provider-managed billing metadata.
       const { data: subData } = await supabase
         .from('user_subscriptions')
         .select(`
@@ -210,17 +270,85 @@ export default function AdminSubscriptionsPage() {
         .limit(50);
 
       if (subData) {
-        const rows: UserSubRow[] = subData.map((row: any) => ({
-          user_id: row.user_id,
-          email: row.user_profiles?.email || '—',
-          full_name: row.user_profiles?.full_name || '—',
-          plan_name: row.subscription_plans?.plan_name || '—',
-          plan_code: row.subscription_plans?.plan_code || '—',
-          status: row.status,
-          trial_ends_at: row.trial_ends_at,
-          credits_consumed: row.ai_usage_cycles?.[0]?.credits_consumed ?? 0,
-          credits_allocated: row.ai_usage_cycles?.[0]?.credits_allocated ?? 0,
-        }));
+        const userIds = subData.map((row: any) => row.user_id).filter(Boolean);
+        const [billingRes, overrideRes] = userIds.length > 0
+          ? await Promise.all([
+              supabase
+                .from('billing_subscriptions')
+                .select(`
+                  user_id,
+                  provider,
+                  provider_subscription_id,
+                  billing_interval,
+                  status,
+                  current_period_start,
+                  current_period_end,
+                  cancel_at_period_end,
+                  updated_at
+                `)
+                .in('user_id', userIds)
+                .order('updated_at', { ascending: false }),
+              supabase
+                .from('billing_admin_override_logs')
+                .select(`
+                  target_user_id,
+                  action_type,
+                  created_at
+                `)
+                .in('target_user_id', userIds)
+                .order('created_at', { ascending: false }),
+            ])
+          : [{ data: [], error: null }, { data: [], error: null }];
+
+        if (billingRes.error) {
+          throw billingRes.error;
+        }
+
+        if (overrideRes.error) {
+          throw overrideRes.error;
+        }
+
+        const latestBillingByUser = new Map<string, any>();
+        for (const billingRow of billingRes.data || []) {
+          if (!latestBillingByUser.has(billingRow.user_id)) {
+            latestBillingByUser.set(billingRow.user_id, billingRow);
+          }
+        }
+
+        const latestOverrideByUser = new Map<string, any>();
+        for (const overrideRow of overrideRes.data || []) {
+          if (!latestOverrideByUser.has(overrideRow.target_user_id)) {
+            latestOverrideByUser.set(overrideRow.target_user_id, overrideRow);
+          }
+        }
+
+        const rows: UserSubRow[] = subData.map((row: any) => {
+          const billingRow = latestBillingByUser.get(row.user_id);
+          const overrideRow = latestOverrideByUser.get(row.user_id);
+
+          return {
+            user_id: row.user_id,
+            email: row.user_profiles?.email || '—',
+            full_name: row.user_profiles?.full_name || '—',
+            plan_name: row.subscription_plans?.plan_name || '—',
+            plan_code: row.subscription_plans?.plan_code || '—',
+            status: row.status,
+            trial_ends_at: row.trial_ends_at,
+            notes: null,
+            credits_consumed: row.ai_usage_cycles?.[0]?.credits_consumed ?? 0,
+            credits_allocated: row.ai_usage_cycles?.[0]?.credits_allocated ?? 0,
+            provider_managed: Boolean(billingRow?.provider_subscription_id),
+            provider_name: billingRow?.provider ?? null,
+            provider_subscription_id: billingRow?.provider_subscription_id ?? null,
+            billing_interval: billingRow?.billing_interval ?? null,
+            billing_status: billingRow?.status ?? null,
+            current_period_start: billingRow?.current_period_start ?? null,
+            current_period_end: billingRow?.current_period_end ?? null,
+            cancel_at_period_end: Boolean(billingRow?.cancel_at_period_end),
+            last_override_action: overrideRow?.action_type ?? null,
+            last_override_at: overrideRow?.created_at ?? null,
+          };
+        });
         setUsers(rows);
       }
     } catch (err) {
@@ -228,7 +356,7 @@ export default function AdminSubscriptionsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -368,7 +496,12 @@ export default function AdminSubscriptionsPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-700 text-foreground">
-                              {plan.price_amount === 0 ? 'Free' : `$${plan.price_amount}/${plan.billing_interval}`}
+                              {plan.price_amount === 0
+                                ? 'Free'
+                                : `${formatCurrencyText(plan.price_amount, {
+                                    currencyCode: 'AED',
+                                    locale,
+                                  })}/${plan.billing_interval}`}
                             </span>
                             <button
                               onClick={() => setEditingPlan(plan.id)}
@@ -499,37 +632,112 @@ export default function AdminSubscriptionsPage() {
                         <tr className="border-b border-border bg-secondary/30">
                           <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">User</th>
                           <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">Plan</th>
+                          <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">Subscription Source</th>
                           <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">Status</th>
+                          <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">Billing Period</th>
                           <th className="text-left px-4 py-2.5 text-xs font-600 text-muted-foreground">Credits</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {users.map(u => (
-                          <tr key={u.user_id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
-                            <td className="px-4 py-3">
-                              <p className="font-600 text-foreground text-xs">{u.full_name}</p>
-                              <p className="text-[11px] text-muted-foreground">{u.email}</p>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-600 ${PLAN_COLORS[u.plan_code] || 'bg-secondary text-muted-foreground'}`}>
-                                {u.plan_name}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className={`text-xs font-600 capitalize ${
-                                u.status === 'active' ? 'text-positive' :
-                                u.status === 'trialing' ? 'text-info' :
-                                'text-negative'
-                              }`}>{u.status}</span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="text-xs text-foreground">{u.credits_consumed}/{u.credits_allocated}</span>
-                            </td>
-                          </tr>
-                        ))}
+                        {users.map(u => {
+                          const source = getSubscriptionSource(u);
+
+                          return (
+                            <tr key={u.user_id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                              <td className="px-4 py-3">
+                                <p className="font-600 text-foreground text-xs">{u.full_name}</p>
+                                <p className="text-[11px] text-muted-foreground">{u.email}</p>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-600 ${PLAN_COLORS[u.plan_code] || 'bg-secondary text-muted-foreground'}`}>
+                                  {u.plan_name}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="space-y-1.5">
+                                  <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-600 ${source.tone}`}>
+                                    {source.label}
+                                  </span>
+                                  {u.provider_name ? (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Provider: <span className="text-foreground">{u.provider_name}</span>
+                                    </p>
+                                  ) : null}
+                                  {u.provider_subscription_id ? (
+                                    <p className="text-[11px] break-all text-muted-foreground">
+                                      External ID: <span className="text-foreground">{u.provider_subscription_id}</span>
+                                    </p>
+                                  ) : null}
+                                  {u.last_override_action ? (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Last admin override: {u.last_override_action} on {formatAdminDate(u.last_override_at, locale)}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="space-y-1">
+                                  <span className={`block text-xs font-600 capitalize ${
+                                    u.status === 'active' ? 'text-positive' :
+                                    u.status === 'trialing' ? 'text-info' :
+                                    u.status === 'past_due' ? 'text-warning' :
+                                    'text-negative'
+                                  }`}>{u.status}</span>
+                                  {u.billing_status && u.billing_status !== u.status ? (
+                                    <span className={`block text-[11px] capitalize ${
+                                      u.billing_status === 'active' ? 'text-positive' :
+                                      u.billing_status === 'trialing' ? 'text-info' :
+                                      u.billing_status === 'past_due' ? 'text-warning' :
+                                      'text-muted-foreground'
+                                    }`}>
+                                      Billing: {u.billing_status}
+                                    </span>
+                                  ) : null}
+                                  {u.trial_ends_at ? (
+                                    <span className="block text-[11px] text-muted-foreground">
+                                      Trial ends: {formatAdminDate(u.trial_ends_at, locale)}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="space-y-1">
+                                  <p className="text-xs text-foreground">
+                                    {[
+                                      formatAdminDate(u.current_period_start, locale),
+                                      formatAdminDate(u.current_period_end, locale),
+                                    ].join(' - ')}
+                                  </p>
+                                  {u.billing_interval ? (
+                                    <p className="text-[11px] capitalize text-muted-foreground">
+                                      Interval: {u.billing_interval}
+                                    </p>
+                                  ) : null}
+                                  {u.cancel_at_period_end ? (
+                                    <p className="text-[11px] text-warning">
+                                      Cancels at period end
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 align-top">
+                                <div className="space-y-1">
+                                  <span className="block text-xs text-foreground">{u.credits_consumed}/{u.credits_allocated}</span>
+                                  <span className={`block text-[11px] ${
+                                    u.credits_allocated > 0 && u.credits_consumed >= u.credits_allocated
+                                      ? 'text-warning'
+                                      : 'text-muted-foreground'
+                                  }`}>
+                                    Remaining: {Math.max(0, u.credits_allocated - u.credits_consumed)}
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                         {users.length === 0 && (
                           <tr>
-                            <td colSpan={4} className="px-4 py-8 text-center text-sm text-muted-foreground">No subscribers yet</td>
+                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">No subscribers yet</td>
                           </tr>
                         )}
                       </tbody>
@@ -550,7 +758,14 @@ export default function AdminSubscriptionsPage() {
                     { label: 'Expired', value: stats.expired, color: 'text-negative' },
                     { label: 'Credits Consumed (mo)', value: stats.total_credits_consumed, color: 'text-foreground' },
                     { label: 'Receipt Docs (mo)', value: stats.total_receipt_extractions, color: 'text-foreground' },
-                    { label: 'Est. AI Cost (mo)', value: `$${(stats.estimated_cost_usd || 0).toFixed(4)}`, color: 'text-foreground' },
+                    {
+                      label: 'Est. AI Cost (mo)',
+                      value: formatCurrencyText(stats.estimated_cost_usd || 0, {
+                        currencyCode: 'USD',
+                        locale,
+                      }),
+                      color: 'text-foreground',
+                    },
                   ].map(s => (
                     <div key={s.label} className="card-elevated p-4">
                       <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1">{s.label}</p>

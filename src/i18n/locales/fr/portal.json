@@ -1381,7 +1381,8 @@
       "preferences": "Préférences",
       "planning": "Revenus et planification",
       "security": "Sécurité",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "subscription": "Abonnement et facturation"
     },
     "profile": {
       "title": "Informations du profil",
@@ -1482,6 +1483,19 @@
           "description": "Affiche une alerte dans l'application lorsque la dépense sur un article ou une catégorie d'articles devient anormalement élevée."
         }
       }
+    },
+    "subscription": {
+      "title": "Abonnement et facturation",
+      "description": "Consultez votre offre actuelle, le renouvellement et les actions de facturation.",
+      "manageAction": "Ouvrir la facturation",
+      "currentPlan": "Offre actuelle",
+      "noPlan": "Aucune offre active",
+      "status": "Statut",
+      "renewalDate": "Renouvellement / expiration",
+      "notAvailable": "Non disponible",
+      "manage": "Gerer",
+      "manageSubscription": "Gerer l'abonnement",
+      "upgradeAction": "Mettre a niveau"
     }
   },
   "help": {
@@ -1927,6 +1941,91 @@
       "reportingAmount": "Montant budgetaire de reporting",
       "reportingSpent": "Depense de reporting",
       "reportingRemaining": "Restant de reporting"
+    }
+  },
+  "subscriptionBilling": {
+    "title": "Abonnement et facturation",
+    "description": "Consultez votre offre actuelle, vos quotas, la periode de renouvellement et les actions de facturation.",
+    "badge": "Portail de facturation",
+    "loadFailed": "Impossible de charger les details d'abonnement.",
+    "currentPlanTitle": "Abonnement actuel",
+    "currentPlanDescription": "Votre offre active, l'etat d'essai et le calendrier de facturation.",
+    "currentPlan": "Offre actuelle",
+    "noPlan": "Aucune offre active",
+    "choosePlan": "Choisir une offre",
+    "choosePlanDescription": "Les offres disponibles sont chargees depuis le catalogue d'abonnement actif.",
+    "billingPeriod": "Periode de facturation",
+    "trialEnds": "Fin de l'essai",
+    "trialDaysRemaining": "{{count}} jours d'essai restants",
+    "trialExpired": "Essai expire",
+    "renewalDate": "Date de renouvellement",
+    "manageSubscription": "Gerer l'abonnement",
+    "cancelAtPeriodEnd": "Annuler a la fin de la periode",
+    "cancelAtPeriodEndAction": "Annuler a la fin de la periode",
+    "resumeSubscription": "Reprendre l'abonnement",
+    "usageTitle": "Utilisation actuelle",
+    "checkoutUnavailable": "Paiement indisponible",
+    "contactSupportToUpgrade": "Contactez le support via {{email}} pour changer d'offre tant que la facturation en ligne est indisponible.",
+    "contactSupportGeneric": "Contactez le support pour changer d'offre tant que la facturation en ligne est indisponible.",
+    "contactSupportAction": "Contacter le support",
+    "samePlanSelected": "Offre actuelle",
+    "upgrade": "Mettre a niveau",
+    "downgrade": "Retrograder",
+    "freePrice": "Gratuit",
+    "noDescription": "Aucune description disponible pour cette offre.",
+    "notApplicable": "Non applicable",
+    "enabled": "Active",
+    "disabled": "Desactive",
+    "enabledWithDays": "Active, {{count}} jours d'historique",
+    "cancelRequested": "L'annulation est planifiee pour la fin de la periode de facturation en cours.",
+    "cancelFailed": "Impossible de planifier l'annulation.",
+    "resumeRequested": "La reprise de l'abonnement a ete demandee.",
+    "resumeFailed": "Impossible de reprendre l'abonnement.",
+    "paymentSuccessful": "Paiement reussi",
+    "paymentSuccessfulDescription": "Smart Pocket attend le webhook de facturation verifie avant de modifier votre offre.",
+    "waitingForPaymentConfirmation": "En attente de confirmation du paiement",
+    "paymentConfirmedMessage": "Le paiement est confirme et le resume d'abonnement affiche maintenant l'offre active.",
+    "checkoutCancelled": "Paiement annule",
+    "checkoutCancelledDescription": "La session de paiement a ete annulee avant confirmation.",
+    "checkoutCancelledExplanation": "Aucun changement n'a ete apporte a l'abonnement. Vous pouvez revenir a tout moment vers Abonnement et facturation.",
+    "returnToSubscription": "Retour a l'abonnement",
+    "returnToDashboard": "Retour au tableau de bord",
+    "backToSettings": "Retour aux parametres",
+    "intervals": {
+      "none": "Inclus",
+      "monthly": "Mensuel",
+      "yearly": "Annuel"
+    },
+    "status": {
+      "trialing": "En essai",
+      "active": "Actif",
+      "expired": "Expire",
+      "pastDue": "En retard",
+      "cancelled": "Annule",
+      "paused": "En pause"
+    },
+    "features": {
+      "textAi": "IA texte",
+      "textAiValue": "{{credits}} credits et {{requests}} requetes par jour",
+      "voiceAi": "IA vocale",
+      "voiceAiValue": "{{minutes}} minutes par cycle",
+      "receiptIntelligence": "Intelligence des recus",
+      "receiptAiValue": "{{count}} documents par cycle",
+      "aiHistory": "Historique IA",
+      "managedPeople": "Personnes gerees",
+      "sharedSpaces": "Espaces partages"
+    },
+    "errors": {
+      "billing_provider_unavailable": "Le fournisseur de facturation est indisponible.",
+      "invalid_plan": "L'offre selectionnee est invalide.",
+      "inactive_plan": "L'offre selectionnee est inactive.",
+      "unsupported_billing_interval": "Cette periodicite n'est pas prise en charge pour l'offre selectionnee.",
+      "same_plan_selected": "Cette offre est deja active sur votre compte.",
+      "checkout_creation_failed": "Impossible de creer la session de paiement.",
+      "invalid_webhook_signature": "La confirmation de facturation n'a pas pu etre verifiee.",
+      "duplicate_billing_event": "Cet evenement de facturation a deja ete traite.",
+      "subscription_activation_failed": "Impossible d'activer l'abonnement apres confirmation du paiement.",
+      "subscription_not_found": "Aucun abonnement correspondant n'a ete trouve."
     }
   }
 }

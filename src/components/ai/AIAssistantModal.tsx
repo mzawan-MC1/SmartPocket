@@ -2347,7 +2347,7 @@ function isReceiptInsightQuestion(value: string) {
                   {t('actions.close', { ns: 'common' })}
                 </button>
                 <button
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => router.push('/settings/subscription')}
                   className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
                 >
                   {limitView.primaryLabel}

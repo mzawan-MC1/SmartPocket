@@ -1409,7 +1409,8 @@
       "preferences": "التفضيلات",
       "planning": "الدخل والتخطيط",
       "security": "الأمان",
-      "notifications": "الإشعارات"
+      "notifications": "الإشعارات",
+      "subscription": "الاشتراك والفوترة"
     },
     "profile": {
       "title": "معلومات الملف الشخصي",
@@ -1510,6 +1511,19 @@
           "description": "اعرض تنبيهًا داخل التطبيق عندما يصبح الإنفاق على عنصر واحد أو فئة عناصر مرتفعًا بشكل غير معتاد."
         }
       }
+    },
+    "subscription": {
+      "title": "الاشتراك والفوترة",
+      "description": "راجع خطتك الحالية وتفاصيل التجديد وإجراءات الفوترة.",
+      "manageAction": "فتح الفوترة",
+      "currentPlan": "الخطة الحالية",
+      "noPlan": "لا توجد خطة نشطة",
+      "status": "الحالة",
+      "renewalDate": "التجديد / الانتهاء",
+      "notAvailable": "غير متاح",
+      "manage": "الإدارة",
+      "manageSubscription": "إدارة الاشتراك",
+      "upgradeAction": "الترقية"
     }
   },
   "help": {
@@ -1955,6 +1969,91 @@
       "reportingAmount": "مبلغ الميزانية بعملة التقارير",
       "reportingSpent": "المنفق بعملة التقارير",
       "reportingRemaining": "المتبقي بعملة التقارير"
+    }
+  },
+  "subscriptionBilling": {
+    "title": "الاشتراك والفوترة",
+    "description": "راجع خطتك الحالية وحدود الاستخدام وفترة التجديد وإجراءات الفوترة.",
+    "badge": "بوابة الفوترة",
+    "loadFailed": "تعذر تحميل تفاصيل الاشتراك.",
+    "currentPlanTitle": "الاشتراك الحالي",
+    "currentPlanDescription": "خطتك النشطة وحالة التجربة وتوقيت الفوترة.",
+    "currentPlan": "الخطة الحالية",
+    "noPlan": "لا توجد خطة نشطة",
+    "choosePlan": "اختر الخطة",
+    "choosePlanDescription": "يتم تحميل الخطط المتاحة من كتالوج الاشتراكات النشط.",
+    "billingPeriod": "فترة الفوترة",
+    "trialEnds": "تاريخ انتهاء التجربة",
+    "trialDaysRemaining": "يتبقى {{count}} من أيام التجربة",
+    "trialExpired": "انتهت التجربة",
+    "renewalDate": "تاريخ التجديد",
+    "manageSubscription": "إدارة الاشتراك",
+    "cancelAtPeriodEnd": "إلغاء عند نهاية الفترة",
+    "cancelAtPeriodEndAction": "الإلغاء عند نهاية الفترة",
+    "resumeSubscription": "استئناف الاشتراك",
+    "usageTitle": "الاستخدام الحالي",
+    "checkoutUnavailable": "الدفع غير متاح",
+    "contactSupportToUpgrade": "تواصل مع الدعم عبر {{email}} للترقية بينما الفوترة الإلكترونية غير متاحة.",
+    "contactSupportGeneric": "تواصل مع الدعم للترقية بينما الفوترة الإلكترونية غير متاحة.",
+    "contactSupportAction": "تواصل مع الدعم",
+    "samePlanSelected": "الخطة الحالية",
+    "upgrade": "ترقية",
+    "downgrade": "تخفيض",
+    "freePrice": "مجانا",
+    "noDescription": "لا يتوفر وصف للخطة.",
+    "notApplicable": "غير منطبق",
+    "enabled": "مفعّل",
+    "disabled": "غير مفعّل",
+    "enabledWithDays": "مفعّل، سجل {{count}} يوما",
+    "cancelRequested": "تمت جدولة الإلغاء لنهاية فترة الفوترة الحالية.",
+    "cancelFailed": "تعذر جدولة الإلغاء.",
+    "resumeRequested": "تم تسجيل طلب استئناف الاشتراك.",
+    "resumeFailed": "تعذر استئناف الاشتراك.",
+    "paymentSuccessful": "تم الدفع بنجاح",
+    "paymentSuccessfulDescription": "ينتظر Smart Pocket التحقق من إشعار الدفع قبل تغيير الخطة.",
+    "waitingForPaymentConfirmation": "بانتظار تأكيد الدفع",
+    "paymentConfirmedMessage": "تم تأكيد الدفع ويعرض ملخص الاشتراك الآن الخطة النشطة.",
+    "checkoutCancelled": "تم إلغاء الدفع",
+    "checkoutCancelledDescription": "تم إلغاء جلسة الدفع قبل التأكيد.",
+    "checkoutCancelledExplanation": "لم يتم إجراء أي تغييرات على الاشتراك. يمكنك العودة إلى الاشتراك والفوترة متى شئت.",
+    "returnToSubscription": "العودة إلى الاشتراك",
+    "returnToDashboard": "العودة إلى لوحة التحكم",
+    "backToSettings": "العودة إلى الإعدادات",
+    "intervals": {
+      "none": "مضمن",
+      "monthly": "شهري",
+      "yearly": "سنوي"
+    },
+    "status": {
+      "trialing": "تجريبي",
+      "active": "نشط",
+      "expired": "منتهي",
+      "pastDue": "متأخر السداد",
+      "cancelled": "ملغي",
+      "paused": "موقوف"
+    },
+    "features": {
+      "textAi": "الذكاء النصي",
+      "textAiValue": "{{credits}} رصيدا و{{requests}} طلبات يوميا",
+      "voiceAi": "الذكاء الصوتي",
+      "voiceAiValue": "{{minutes}} دقيقة لكل دورة",
+      "receiptIntelligence": "ذكاء الإيصالات",
+      "receiptAiValue": "{{count}} مستندا لكل دورة",
+      "aiHistory": "سجل الذكاء الاصطناعي",
+      "managedPeople": "الأشخاص المدارون",
+      "sharedSpaces": "المساحات المشتركة"
+    },
+    "errors": {
+      "billing_provider_unavailable": "موفر الفوترة غير متاح حاليا.",
+      "invalid_plan": "الخطة المحددة غير صالحة.",
+      "inactive_plan": "الخطة المحددة غير نشطة.",
+      "unsupported_billing_interval": "فترة الفوترة هذه غير مدعومة للخطة المحددة.",
+      "same_plan_selected": "هذه الخطة مفعلة بالفعل في حسابك.",
+      "checkout_creation_failed": "تعذر إنشاء جلسة الدفع.",
+      "invalid_webhook_signature": "تعذر التحقق من تأكيد الفوترة.",
+      "duplicate_billing_event": "تمت معالجة حدث الفوترة هذا مسبقا.",
+      "subscription_activation_failed": "تعذر تفعيل الاشتراك بعد تأكيد الدفع.",
+      "subscription_not_found": "لم يتم العثور على اشتراك مطابق."
     }
   }
 }

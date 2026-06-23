@@ -39,8 +39,8 @@ export async function POST() {
         {
           ok: true,
           status: initResult,
-          has_subscription: summary.has_subscription,
-          plan_code: summary.plan_code ?? null,
+          has_subscription: summary.hasSubscription,
+          plan_code: summary.planCode ?? null,
         },
         { status: 200 }
       ),

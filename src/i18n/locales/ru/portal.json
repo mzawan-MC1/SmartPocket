@@ -1381,7 +1381,8 @@
       "preferences": "Параметры",
       "planning": "Доходы и планирование",
       "security": "Безопасность",
-      "notifications": "Уведомления"
+      "notifications": "Уведомления",
+      "subscription": "Подписка и биллинг"
     },
     "profile": {
       "title": "Информация профиля",
@@ -1482,6 +1483,19 @@
           "description": "Показывать внутреннее оповещение, когда расходы на один товар или категорию товаров становятся необычно высокими."
         }
       }
+    },
+    "subscription": {
+      "title": "Подписка и биллинг",
+      "description": "Проверьте текущий план, продление и действия по биллингу.",
+      "manageAction": "Открыть биллинг",
+      "currentPlan": "Текущий план",
+      "noPlan": "Нет активного плана",
+      "status": "Статус",
+      "renewalDate": "Продление / окончание",
+      "notAvailable": "Недоступно",
+      "manage": "Управление",
+      "manageSubscription": "Управлять подпиской",
+      "upgradeAction": "Обновить план"
     }
   },
   "help": {
@@ -1927,6 +1941,91 @@
       "reportingAmount": "Сумма бюджета в валюте отчетности",
       "reportingSpent": "Потрачено в валюте отчетности",
       "reportingRemaining": "Остаток в валюте отчетности"
+    }
+  },
+  "subscriptionBilling": {
+    "title": "Подписка и биллинг",
+    "description": "Проверьте текущий план, лимиты, период продления и действия по биллингу.",
+    "badge": "Портал биллинга",
+    "loadFailed": "Не удалось загрузить сведения о подписке.",
+    "currentPlanTitle": "Текущая подписка",
+    "currentPlanDescription": "Ваш активный план, статус пробного периода и график биллинга.",
+    "currentPlan": "Текущий план",
+    "noPlan": "Нет активного плана",
+    "choosePlan": "Выбрать план",
+    "choosePlanDescription": "Доступные планы загружаются из активного каталога подписок.",
+    "billingPeriod": "Период биллинга",
+    "trialEnds": "Окончание пробного периода",
+    "trialDaysRemaining": "Осталось {{count}} дн. пробного периода",
+    "trialExpired": "Пробный период истек",
+    "renewalDate": "Дата продления",
+    "manageSubscription": "Управлять подпиской",
+    "cancelAtPeriodEnd": "Отменить в конце периода",
+    "cancelAtPeriodEndAction": "Отменить в конце периода",
+    "resumeSubscription": "Возобновить подписку",
+    "usageTitle": "Текущее использование",
+    "checkoutUnavailable": "Оплата недоступна",
+    "contactSupportToUpgrade": "Свяжитесь с поддержкой по адресу {{email}}, чтобы сменить план, пока онлайн-биллинг недоступен.",
+    "contactSupportGeneric": "Свяжитесь с поддержкой, чтобы сменить план, пока онлайн-биллинг недоступен.",
+    "contactSupportAction": "Связаться с поддержкой",
+    "samePlanSelected": "Текущий план",
+    "upgrade": "Повысить",
+    "downgrade": "Понизить",
+    "freePrice": "Бесплатно",
+    "noDescription": "Описание плана недоступно.",
+    "notApplicable": "Неприменимо",
+    "enabled": "Включено",
+    "disabled": "Отключено",
+    "enabledWithDays": "Включено, история {{count}} дн.",
+    "cancelRequested": "Отмена запланирована на конец текущего расчетного периода.",
+    "cancelFailed": "Не удалось запланировать отмену.",
+    "resumeRequested": "Запрос на возобновление подписки сохранен.",
+    "resumeFailed": "Не удалось возобновить подписку.",
+    "paymentSuccessful": "Платеж успешен",
+    "paymentSuccessfulDescription": "Smart Pocket ждет подтвержденный webhook биллинга перед изменением плана.",
+    "waitingForPaymentConfirmation": "Ожидание подтверждения платежа",
+    "paymentConfirmedMessage": "Платеж подтвержден, и сводка подписки теперь показывает активный план.",
+    "checkoutCancelled": "Оплата отменена",
+    "checkoutCancelledDescription": "Сеанс оплаты был отменен до подтверждения.",
+    "checkoutCancelledExplanation": "Изменений в подписке не было. Вы можете вернуться в раздел Подписка и биллинг в любое время.",
+    "returnToSubscription": "Вернуться к подписке",
+    "returnToDashboard": "Вернуться на панель",
+    "backToSettings": "Назад в настройки",
+    "intervals": {
+      "none": "Включено",
+      "monthly": "Ежемесячно",
+      "yearly": "Ежегодно"
+    },
+    "status": {
+      "trialing": "Пробный период",
+      "active": "Активна",
+      "expired": "Истекла",
+      "pastDue": "Просрочена",
+      "cancelled": "Отменена",
+      "paused": "Приостановлена"
+    },
+    "features": {
+      "textAi": "Текстовый AI",
+      "textAiValue": "{{credits}} кредитов и {{requests}} запросов в день",
+      "voiceAi": "Голосовой AI",
+      "voiceAiValue": "{{minutes}} минут за цикл",
+      "receiptIntelligence": "Анализ чеков",
+      "receiptAiValue": "{{count}} документов за цикл",
+      "aiHistory": "История AI",
+      "managedPeople": "Управляемые люди",
+      "sharedSpaces": "Общие пространства"
+    },
+    "errors": {
+      "billing_provider_unavailable": "Провайдер биллинга сейчас недоступен.",
+      "invalid_plan": "Выбран неверный план.",
+      "inactive_plan": "Выбранный план неактивен.",
+      "unsupported_billing_interval": "Этот интервал биллинга не поддерживается для выбранного плана.",
+      "same_plan_selected": "Этот план уже активен для вашей учетной записи.",
+      "checkout_creation_failed": "Не удалось создать сеанс оплаты.",
+      "invalid_webhook_signature": "Не удалось проверить подтверждение биллинга.",
+      "duplicate_billing_event": "Это событие биллинга уже обработано.",
+      "subscription_activation_failed": "Не удалось активировать подписку после подтверждения платежа.",
+      "subscription_not_found": "Подходящая подписка не найдена."
     }
   }
 }

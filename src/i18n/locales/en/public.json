@@ -121,7 +121,7 @@
     },
     "pricing": {
       "freeName": "Free",
-      "freePrice": "$0",
+      "freePrice": "Free",
       "freePeriod": "forever",
       "freeCta": "Start Free",
       "proName": "Pro",
@@ -132,10 +132,10 @@
       "familyPrice": "$19.99",
       "familyPeriod": "/month",
       "familyCta": "Start Family Trial",
-      "subtitle": "Start free. Upgrade when you need more power.",
-      "mostPopular": "Most Popular",
-      "trialHint": "All paid plans include a 14-day free trial. No credit card required to start.",
-      "viewDetails": "View full pricing details",
+      "subtitle": "Compare the live plans and allowances from the current subscription catalog.",
+      "mostPopular": "Most popular",
+      "trialHint": "{{planName}} currently includes a {{days}}-day trial based on the active plan configuration.",
+      "viewDetails": "Compare plans",
       "freeFeatures": {
         "1": "3 accounts",
         "2": "100 transactions per month",
@@ -155,6 +155,22 @@
         "2": "Up to 5 users",
         "3": "Shared budgets",
         "4": "Family reports"
+      },
+      "managePlanCta": "Manage subscription",
+      "guestPlanCta": "Sign in to choose",
+      "providerUnavailable": "Online checkout is not configured yet. Contact {{email}} to request an upgrade.",
+      "providerUnavailableNoEmail": "Online checkout is not configured yet. Contact support to request an upgrade.",
+      "intervals": {
+        "none": "Included",
+        "monthly": "Monthly",
+        "yearly": "Yearly"
+      },
+      "features": {
+        "textAi": "Text AI: {{credits}} credits and {{requests}} requests per day",
+        "voiceAi": "Voice AI: {{minutes}} minutes per cycle",
+        "receiptIntelligence": "Receipt Intelligence: {{count}} documents per cycle",
+        "aiHistoryEnabled": "AI History: {{days}} days retention",
+        "aiHistoryDisabled": "AI History not included"
       }
     },
     "languages": {

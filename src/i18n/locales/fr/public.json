@@ -117,7 +117,7 @@
     "pricing": {
       "aboutTitle": "Une seule application pour toute votre vie financière",
       "freeName": "Gratuit",
-      "freePrice": "$0",
+      "freePrice": "Gratuit",
       "freePeriod": "à vie",
       "freeCta": "Commencer gratuitement",
       "proName": "Pro",
@@ -128,10 +128,10 @@
       "familyPrice": "$19.99",
       "familyPeriod": "/mois",
       "familyCta": "Démarrer l'essai Famille",
-      "subtitle": "Commencez gratuitement. Passez à l'offre supérieure quand vous avez besoin de plus de puissance.",
+      "subtitle": "Comparez les offres et quotas en direct depuis le catalogue d'abonnement actuel.",
       "mostPopular": "Le plus populaire",
-      "trialHint": "Toutes les offres payantes incluent un essai gratuit de 14 jours. Aucune carte bancaire requise pour commencer.",
-      "viewDetails": "Voir tous les détails tarifaires",
+      "trialHint": "{{planName}} inclut actuellement un essai de {{days}} jours selon la configuration active.",
+      "viewDetails": "Comparer les offres",
       "freeFeatures": {
         "1": "3 comptes",
         "2": "100 transactions par mois",
@@ -151,6 +151,22 @@
         "2": "Jusqu'à 5 utilisateurs",
         "3": "Budgets partagés",
         "4": "Rapports familiaux"
+      },
+      "managePlanCta": "Gerer l'abonnement",
+      "guestPlanCta": "Se connecter pour choisir",
+      "providerUnavailable": "Le paiement en ligne n'est pas encore configure. Contactez {{email}} pour demander une mise a niveau.",
+      "providerUnavailableNoEmail": "Le paiement en ligne n'est pas encore configure. Contactez le support pour demander une mise a niveau.",
+      "intervals": {
+        "none": "Inclus",
+        "monthly": "Mensuel",
+        "yearly": "Annuel"
+      },
+      "features": {
+        "textAi": "IA texte : {{credits}} credits et {{requests}} requetes par jour",
+        "voiceAi": "IA vocale : {{minutes}} minutes par cycle",
+        "receiptIntelligence": "Intelligence des recus : {{count}} documents par cycle",
+        "aiHistoryEnabled": "Historique IA : conservation pendant {{days}} jours",
+        "aiHistoryDisabled": "Historique IA non inclus"
       }
     },
     "languages": {

@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import { loadAIConfig, processAIRequest } from '@/lib/ai-gateway';
 import type { AIAssistantRequest, AIErrorPayload, AIErrorResponse, AIUsageSummary } from '@/lib/ai-types';
 import { applySmartEntryReviewToInstruction, buildInitialSmartEntryReview, getSmartEntryMissingFields } from '@/lib/smart-entry';
-import { ensureUserSubscriptionSummary, type SubscriptionSummary } from '@/lib/subscription/server';
+import { ensureUserSubscriptionSummary } from '@/lib/subscription/server';
+import type { SubscriptionSummary } from '@/lib/subscription/types';
 import { createClientId } from '@/lib/uuid';
 
 type RequestType = 'voice' | 'text';
@@ -477,31 +478,31 @@ function getAccessErrorMessage(accessError: unknown): string {
 function summarizeUsage(summary: SubscriptionSummary | null | undefined): AIUsageSummary | undefined {
   if (!summary) return undefined;
 
-  const creditsAllocated = Number(summary.credits_allocated || 0);
-  const creditsConsumed = Number(summary.credits_consumed || 0);
-  const creditsReserved = Number(summary.credits_reserved || 0);
+  const creditsAllocated = Number(summary.creditsAllocated || 0);
+  const creditsConsumed = Number(summary.creditsConsumed || 0);
+  const creditsReserved = Number(summary.creditsReserved || 0);
 
   return {
-    planName: summary.plan_name,
-    planCode: summary.plan_code,
+    planName: summary.planName,
+    planCode: summary.planCode,
     subscriptionStatus: summary.status,
-    requestsToday: Number(summary.requests_today || 0),
-    dailyRequestLimit: Number(summary.daily_ai_request_limit || 0),
+    requestsToday: Number(summary.requestsToday || 0),
+    dailyRequestLimit: Number(summary.dailyAiRequestLimit || 0),
     creditsAllocated,
     creditsConsumed,
     creditsReserved,
     creditsRemaining: Math.max(0, creditsAllocated - creditsConsumed - creditsReserved),
-    cycleStart: summary.cycle_start,
-    cycleEnd: summary.cycle_end,
-    trialEndsAt: summary.trial_ends_at,
-    currentPeriodEnd: summary.current_period_end,
-    monthlyVoiceSeconds: Number(summary.monthly_voice_seconds || 0),
-    voiceSecondsUsed: Number(summary.voice_seconds_used || 0),
-    monthlyReceiptExtractions: Number(summary.monthly_receipt_extractions || 0),
-    receiptExtractionsIncluded: Number(summary.receipt_extractions_included || 0),
-    receiptExtractionsUsed: Number(summary.receipt_extractions_used || 0),
-    receiptExtractionsReserved: Number(summary.receipt_extractions_reserved || 0),
-    receiptExtractionsRemaining: Number(summary.receipt_extractions_remaining || 0),
+    cycleStart: summary.cycleStart ?? undefined,
+    cycleEnd: summary.cycleEnd ?? undefined,
+    trialEndsAt: summary.trialEndsAt ?? undefined,
+    currentPeriodEnd: summary.currentPeriodEnd ?? undefined,
+    monthlyVoiceSeconds: Number(summary.monthlyVoiceSeconds || 0),
+    voiceSecondsUsed: Number(summary.voiceSecondsUsed || 0),
+    monthlyReceiptExtractions: Number(summary.monthlyReceiptExtractions || 0),
+    receiptExtractionsIncluded: Number(summary.receiptExtractionsIncluded || 0),
+    receiptExtractionsUsed: Number(summary.receiptExtractionsUsed || 0),
+    receiptExtractionsReserved: Number(summary.receiptExtractionsReserved || 0),
+    receiptExtractionsRemaining: Number(summary.receiptExtractionsRemaining || 0),
   };
 }
 

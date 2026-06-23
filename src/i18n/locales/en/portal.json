@@ -1809,7 +1809,8 @@
       "preferences": "Preferences",
       "planning": "Income & Planning",
       "security": "Security",
-      "notifications": "Notifications"
+      "notifications": "Notifications",
+      "subscription": "Subscription & Billing"
     },
     "profile": {
       "title": "Profile Information",
@@ -1910,6 +1911,19 @@
           "description": "Show an in-app alert when spending on one item or item category becomes unusually high."
         }
       }
+    },
+    "subscription": {
+      "title": "Subscription & Billing",
+      "description": "Review your current plan, renewal details, and billing actions.",
+      "manageAction": "Open billing",
+      "currentPlan": "Current plan",
+      "noPlan": "No active plan",
+      "status": "Status",
+      "renewalDate": "Renewal / expiry",
+      "notAvailable": "Not available",
+      "manage": "Manage",
+      "manageSubscription": "Manage subscription",
+      "upgradeAction": "Upgrade"
     }
   },
   "help": {
@@ -2302,6 +2316,91 @@
         "title": "Highest-spend item",
         "description": "{{itemName}} leads item spending at {{amount}}."
       }
+    }
+  },
+  "subscriptionBilling": {
+    "title": "Subscription & Billing",
+    "description": "Review your current plan, allowances, renewal window, and billing actions.",
+    "badge": "Billing portal",
+    "loadFailed": "Failed to load subscription details.",
+    "currentPlanTitle": "Current subscription",
+    "currentPlanDescription": "Your active plan, trial state, and billing timing.",
+    "currentPlan": "Current plan",
+    "noPlan": "No active plan",
+    "choosePlan": "Choose plan",
+    "choosePlanDescription": "Available plans are loaded from the active subscription catalog.",
+    "billingPeriod": "Billing period",
+    "trialEnds": "Trial end date",
+    "trialDaysRemaining": "{{count}} trial days remaining",
+    "trialExpired": "Trial expired",
+    "renewalDate": "Renewal date",
+    "manageSubscription": "Manage subscription",
+    "cancelAtPeriodEnd": "Cancel at period end",
+    "cancelAtPeriodEndAction": "Cancel at period end",
+    "resumeSubscription": "Resume subscription",
+    "usageTitle": "Current usage",
+    "checkoutUnavailable": "Checkout unavailable",
+    "contactSupportToUpgrade": "Contact support at {{email}} to upgrade while online billing is unavailable.",
+    "contactSupportGeneric": "Contact support to upgrade while online billing is unavailable.",
+    "contactSupportAction": "Contact support",
+    "samePlanSelected": "Current plan",
+    "upgrade": "Upgrade",
+    "downgrade": "Downgrade",
+    "freePrice": "Free",
+    "noDescription": "No plan description available.",
+    "notApplicable": "Not applicable",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enabledWithDays": "Enabled, {{count}} days history",
+    "cancelRequested": "Cancellation is scheduled for the end of the current billing period.",
+    "cancelFailed": "Failed to schedule cancellation.",
+    "resumeRequested": "Subscription resume request recorded.",
+    "resumeFailed": "Failed to resume the subscription.",
+    "paymentSuccessful": "Payment successful",
+    "paymentSuccessfulDescription": "Smart Pocket is waiting for the verified billing webhook before changing your plan.",
+    "waitingForPaymentConfirmation": "Waiting for payment confirmation",
+    "paymentConfirmedMessage": "Payment is confirmed and your subscription summary now reflects the active plan.",
+    "checkoutCancelled": "Checkout cancelled",
+    "checkoutCancelledDescription": "The payment session was cancelled before confirmation.",
+    "checkoutCancelledExplanation": "No subscription changes were made. You can return to Subscription & Billing whenever you are ready.",
+    "returnToSubscription": "Return to Subscription",
+    "returnToDashboard": "Return to Dashboard",
+    "backToSettings": "Back to Settings",
+    "intervals": {
+      "none": "Included",
+      "monthly": "Monthly",
+      "yearly": "Yearly"
+    },
+    "status": {
+      "trialing": "Trialing",
+      "active": "Active",
+      "expired": "Expired",
+      "pastDue": "Past due",
+      "cancelled": "Cancelled",
+      "paused": "Paused"
+    },
+    "features": {
+      "textAi": "Text AI",
+      "textAiValue": "{{credits}} credits / {{requests}} requests per day",
+      "voiceAi": "Voice AI",
+      "voiceAiValue": "{{minutes}} minutes per cycle",
+      "receiptIntelligence": "Receipt Intelligence",
+      "receiptAiValue": "{{count}} documents per cycle",
+      "aiHistory": "AI History",
+      "managedPeople": "Managed People",
+      "sharedSpaces": "Shared Spaces"
+    },
+    "errors": {
+      "billing_provider_unavailable": "Billing provider is unavailable right now.",
+      "invalid_plan": "The selected plan is invalid.",
+      "inactive_plan": "The selected plan is inactive.",
+      "unsupported_billing_interval": "That billing interval is not supported for the selected plan.",
+      "same_plan_selected": "This plan is already active on your account.",
+      "checkout_creation_failed": "Unable to create the checkout session.",
+      "invalid_webhook_signature": "Billing confirmation could not be verified.",
+      "duplicate_billing_event": "This billing event was already processed.",
+      "subscription_activation_failed": "Unable to activate the subscription after payment confirmation.",
+      "subscription_not_found": "No matching subscription was found."
     }
   }
 }
