@@ -190,6 +190,7 @@ export default function SubscriptionSettingsPage() {
   const [cancelBusy, setCancelBusy] = React.useState(false);
   const [resumeBusy, setResumeBusy] = React.useState(false);
   const [selectedInterval, setSelectedInterval] = React.useState<SupportedBillingInterval>('monthly');
+  const intervalInitializedRef = React.useRef(false);
 
   const currencies = referenceData?.snapshot?.currencies ?? [];
   const highlightedPlanCode = searchParams.get('plan');
@@ -217,26 +218,57 @@ export default function SubscriptionSettingsPage() {
     void load();
   }, [load]);
 
-  const availableIntervals = Array.from(new Set(
-    plans
-      .filter((plan) => plan.isActive && plan.planCode !== 'free_trial' && isSelectablePaidInterval(plan.billingInterval))
-      .map((plan) => plan.billingInterval)
-  )) as SupportedBillingInterval[];
+  const availableIntervals = React.useMemo(() => {
+    return Array.from(new Set(
+      plans
+        .filter((plan) => plan.isActive && plan.planCode !== 'free_trial' && isSelectablePaidInterval(plan.billingInterval))
+        .map((plan) => plan.billingInterval)
+    )) as SupportedBillingInterval[];
+  }, [plans]);
 
   React.useEffect(() => {
+    if (intervalInitializedRef.current) {
+      return;
+    }
+
+    if (availableIntervals.length === 0) {
+      return;
+    }
+
     const requested = requestedInterval === 'yearly' || requestedInterval === 'monthly'
       ? requestedInterval
       : null;
+
     const nextInterval = requested && availableIntervals.includes(requested)
       ? requested
-      : summary?.billingInterval && availableIntervals.includes(summary.billingInterval)
+      : summary?.billingInterval && (summary.billingInterval === 'monthly' || summary.billingInterval === 'yearly')
+        && availableIntervals.includes(summary.billingInterval)
         ? summary.billingInterval
         : availableIntervals.includes('monthly')
           ? 'monthly'
           : availableIntervals[0] || 'monthly';
 
+    intervalInitializedRef.current = true;
     setSelectedInterval(nextInterval);
   }, [availableIntervals, requestedInterval, summary?.billingInterval]);
+
+  React.useEffect(() => {
+    if (availableIntervals.length === 0) {
+      return;
+    }
+
+    if (availableIntervals.includes(selectedInterval)) {
+      return;
+    }
+
+    const fallback = availableIntervals.includes('monthly')
+      ? 'monthly'
+      : availableIntervals[0] || 'monthly';
+
+    if (fallback !== selectedInterval) {
+      setSelectedInterval(fallback);
+    }
+  }, [availableIntervals, selectedInterval]);
 
   const currentPlan = plans.find((plan) => plan.id === summary?.planId) || null;
   const currentPlanPrice = currentPlan?.priceAmount ?? 0;
