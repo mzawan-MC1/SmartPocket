@@ -1,6 +1,6 @@
 'use client';
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, HelpCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, HelpCircle, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +10,8 @@ import Link from 'next/link';
 import SearchField from '@/components/ui/SearchField';
 import NotificationBell from '@/components/NotificationBell';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
+import { fetchSubscriptionPlans, fetchSubscriptionSummary } from '@/lib/subscription/client';
+import type { PlanCode, PublicSubscriptionPlan, SubscriptionSummary } from '@/lib/subscription/types';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -19,6 +21,8 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const { t } = useTranslation(['portal', 'common']);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
+  const [activePlans, setActivePlans] = useState<PublicSubscriptionPlan[]>([]);
   const { user, signOut } = useAuth();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -37,6 +41,62 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!user) {
+      setSubscriptionSummary(null);
+      setActivePlans([]);
+      return;
+    }
+
+    Promise.all([
+      fetchSubscriptionSummary(),
+      fetchSubscriptionPlans(),
+    ])
+      .then(([summaryPayload, plansPayload]) => {
+        if (cancelled) return;
+        setSubscriptionSummary(summaryPayload?.summary || null);
+        setActivePlans(plansPayload.plans.filter((plan) => plan.isActive));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSubscriptionSummary(null);
+        setActivePlans([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
+  const showUpgradePackage = useMemo(() => {
+    if (!subscriptionSummary?.planCode) {
+      return false;
+    }
+
+    const paidPlans = activePlans.filter((plan) => plan.planCode !== 'free_trial');
+    if (paidPlans.length === 0) {
+      return false;
+    }
+
+    const planRankByCode = new Map<PlanCode, number>();
+    for (const plan of paidPlans) {
+      const existingRank = planRankByCode.get(plan.planCode);
+      if (typeof existingRank !== 'number' || plan.displayOrder > existingRank) {
+        planRankByCode.set(plan.planCode, plan.displayOrder);
+      }
+    }
+
+    const currentRank = subscriptionSummary.planCode
+      ? subscriptionSummary.planCode === 'free_trial'
+        ? Number.NEGATIVE_INFINITY
+        : (planRankByCode.get(subscriptionSummary.planCode) ?? Number.NEGATIVE_INFINITY)
+      : Number.NEGATIVE_INFINITY;
+
+    return paidPlans.some((plan) => (planRankByCode.get(plan.planCode) ?? Number.NEGATIVE_INFINITY) > currentRank);
+  }, [activePlans, subscriptionSummary]);
 
   const handleSignOut = async () => {
     try {
@@ -127,6 +187,16 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   <p className="truncate text-sm font-600 text-foreground">{displayName}</p>
                   <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
                 </div>
+                {showUpgradePackage ? (
+                  <Link
+                    href="/settings/subscription"
+                    className="mx-2 my-1 flex items-center gap-2.5 rounded-lg bg-accent/10 px-3 py-2 text-sm font-600 text-accent transition-colors hover:bg-accent/15"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <ArrowUpRight size={14} className="shrink-0" />
+                    {t('topbar.upgradePackage', { ns: 'portal' })}
+                  </Link>
+                ) : null}
                 <Link
                   href="/settings"
                   className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
