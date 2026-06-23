@@ -111,9 +111,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   const isExactRouteActive = (href: string) => pathname === href;
 
-  const renderNavItem = (item: NavItem, compact = false, forceActive = false) => {
+  const renderNavItem = (item: NavItem, compact = false, activeOverride?: boolean) => {
     const Icon = item.icon;
-    const active = forceActive || isRouteActive(item.href);
+    const active = typeof activeOverride === 'boolean' ? activeOverride : isRouteActive(item.href);
     const pending = isRoutePending(item.href);
 
     return (
