@@ -132,11 +132,13 @@ export const SMART_POCKET_DEFAULT_FAVICON = '/favicon.ico';
 export const SMART_POCKET_SAFE_FALLBACK_IMAGE = '/assets/images/no_image.png';
 export const SMART_POCKET_LEGACY_WALLET_IMAGE = SMART_POCKET_DEFAULT_LOGO;
 
-const LEGACY_MARKETING_ANCHORS = {
-  '/#about': '/about',
-  '/#features': '/features',
-  '/#pricing': '/pricing',
-  '/#contact': '/contact',
+const LANDING_SECTION_DESTINATIONS = {
+  '/#about': '/home#about',
+  '/#features': '/home#features',
+  '/#pricing': '/home#pricing',
+  '/about': '/home#about',
+  '/features': '/home#features',
+  '/pricing': '/home#pricing',
 } as const;
 
 function normalizePublicDestination(href: string) {
@@ -161,7 +163,9 @@ export function mapMarketingHrefToHomeAnchor(href: string) {
     return normalized;
   }
 
-  return LEGACY_MARKETING_ANCHORS[normalized as keyof typeof LEGACY_MARKETING_ANCHORS] || normalized;
+  return LANDING_SECTION_DESTINATIONS[
+    normalized as keyof typeof LANDING_SECTION_DESTINATIONS
+  ] || normalized;
 }
 
 export function normalizePublicNavHref(href: string) {
@@ -169,9 +173,9 @@ export function normalizePublicNavHref(href: string) {
 }
 
 export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
-  { id: 'hm-about', label: 'About', href: '/about' },
-  { id: 'hm-features', label: 'Features', href: '/features' },
-  { id: 'hm-pricing', label: 'Pricing', href: '/pricing' },
+  { id: 'hm-about', label: 'About', href: '/home#about' },
+  { id: 'hm-features', label: 'Features', href: '/home#features' },
+  { id: 'hm-pricing', label: 'Pricing', href: '/home#pricing' },
   { id: 'hm-contact', label: 'Contact', href: '/contact' },
 ];
 
@@ -180,9 +184,9 @@ export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
     id: 'fs-product',
     title: 'Product',
     links: [
-      { id: 'fl-features', label: 'Features', href: '/features' },
-      { id: 'fl-pricing', label: 'Pricing', href: '/pricing' },
-      { id: 'fl-about', label: 'About', href: '/about' },
+      { id: 'fl-features', label: 'Features', href: '/home#features' },
+      { id: 'fl-pricing', label: 'Pricing', href: '/home#pricing' },
+      { id: 'fl-about', label: 'About', href: '/home#about' },
     ],
   },
   {

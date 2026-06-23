@@ -256,7 +256,7 @@ export default function HomePage() {
               {heroCTAPrimary}
               <ArrowRight size={18} />
             </Link>
-            <Link href="/features" className="btn-secondary text-base py-3.5 px-10">
+            <Link href="/home#features" className="btn-secondary text-base py-3.5 px-10">
               {heroCTASecondary}
             </Link>
           </div>
@@ -579,7 +579,7 @@ export default function HomePage() {
             <Link href="/sign-up-login" className="btn-primary text-base py-3.5 px-10 gap-2">
               {t('home.cta.primary')} <ArrowRight size={18} />
             </Link>
-            <Link href="/about" className="btn-secondary text-base py-3.5 px-10">
+            <Link href="/home#about" className="btn-secondary text-base py-3.5 px-10">
               {t('home.learnMore')}
             </Link>
           </div>

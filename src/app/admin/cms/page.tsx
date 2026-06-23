@@ -42,9 +42,9 @@ export default function AdminCmsPage() {
       : 'header';
 
   const [headerMenu, setHeaderMenu] = useState<MenuItem[]>([
-    { id: 'hm-1', label: 'About', href: '/about' },
-    { id: 'hm-2', label: 'Features', href: '/features' },
-    { id: 'hm-3', label: 'Pricing', href: '/pricing' },
+    { id: 'hm-1', label: 'About', href: '/home#about' },
+    { id: 'hm-2', label: 'Features', href: '/home#features' },
+    { id: 'hm-3', label: 'Pricing', href: '/home#pricing' },
     { id: 'hm-4', label: 'Contact', href: '/contact' },
   ]);
 
@@ -53,9 +53,9 @@ export default function AdminCmsPage() {
       id: 'fs-1',
       title: 'Product',
       links: [
-        { id: 'fl-1', label: 'Features', href: '/features' },
-        { id: 'fl-2', label: 'Pricing', href: '/pricing' },
-        { id: 'fl-3', label: 'About', href: '/about' },
+        { id: 'fl-1', label: 'Features', href: '/home#features' },
+        { id: 'fl-2', label: 'Pricing', href: '/home#pricing' },
+        { id: 'fl-3', label: 'About', href: '/home#about' },
       ],
     },
     {

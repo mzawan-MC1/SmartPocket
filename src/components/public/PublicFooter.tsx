@@ -48,11 +48,11 @@ function getFooterSectionTitle(sectionId: string, fallback: string, t: (key: str
 
 function getFooterLinkLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
   switch (href) {
-    case '/about':
+    case '/home#about':
       return t('footer.linkAbout', { defaultValue: fallback });
-    case '/features':
+    case '/home#features':
       return t('footer.linkFeatures', { defaultValue: fallback });
-    case '/pricing':
+    case '/home#pricing':
       return t('footer.linkPricing', { defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { defaultValue: fallback });

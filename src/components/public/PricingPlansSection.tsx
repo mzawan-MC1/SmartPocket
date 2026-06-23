@@ -297,7 +297,7 @@ export default function PricingPlansSection({
         ) : null}
         {showViewDetailsLink ? (
           <div className="text-center mt-4">
-            <Link href="/pricing" className="inline-flex items-center gap-1.5 text-sm font-600 text-accent hover:underline">
+            <Link href="/home#pricing" className="inline-flex items-center gap-1.5 text-sm font-600 text-accent hover:underline">
               {t('home.pricing.viewDetails')} <ArrowRight size={14} />
             </Link>
           </div>

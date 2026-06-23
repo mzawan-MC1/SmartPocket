@@ -55,6 +55,10 @@ type PageMetadataOptions = {
   language: SupportedLanguage;
   title?: string;
   description?: string;
+  openGraphTitle?: string;
+  openGraphDescription?: string;
+  twitterTitle?: string;
+  twitterDescription?: string;
   pathname?: string;
   canonicalPath?: string;
   socialImageUrl?: string;
@@ -275,6 +279,10 @@ export function buildPageMetadata({
   language,
   title,
   description,
+  openGraphTitle,
+  openGraphDescription,
+  twitterTitle,
+  twitterDescription,
   pathname = '/',
   canonicalPath,
   socialImageUrl,
@@ -286,6 +294,10 @@ export function buildPageMetadata({
   const canonicalUrl = buildAbsoluteSiteUrl(normalizedPath, settings);
   const resolvedTitle = title || settings.seo.siteTitle;
   const resolvedDescription = description || settings.seo.siteDescription;
+  const resolvedOpenGraphTitle = openGraphTitle || resolvedTitle;
+  const resolvedOpenGraphDescription = openGraphDescription || resolvedDescription;
+  const resolvedTwitterTitle = twitterTitle || resolvedOpenGraphTitle;
+  const resolvedTwitterDescription = twitterDescription || resolvedOpenGraphDescription;
   const socialImage = buildSocialImage(settings, socialImageUrl, socialImageAlt || `${resolvedTitle} preview`);
   const blockedSources = [
     settings.branding.logoUrl,
@@ -320,16 +332,16 @@ export function buildPageMetadata({
       alternateLocale: settings.localization.enabledLanguages
         .filter((entry) => entry !== language)
         .map((entry) => OG_LOCALE_BY_LANGUAGE[entry]),
-      title: resolvedTitle,
-      description: resolvedDescription,
+      title: resolvedOpenGraphTitle,
+      description: resolvedOpenGraphDescription,
       images: socialImage ? [socialImage] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
       site: settings.seo.twitterHandle || undefined,
       creator: settings.seo.twitterHandle || undefined,
-      title: resolvedTitle,
-      description: resolvedDescription,
+      title: resolvedTwitterTitle,
+      description: resolvedTwitterDescription,
       images: twitterImage ? [twitterImage] : socialImage ? [socialImage.url] : undefined,
     },
     robots: {
@@ -399,7 +411,7 @@ export async function buildSoftwareApplicationStructuredData(
       price: plan.priceAmount,
       priceCurrency: 'AED',
       availability: 'https://schema.org/InStock',
-      url: buildAbsoluteSiteUrl('/pricing', settings),
+      url: buildAbsoluteSiteUrl('/home#pricing', settings),
       category: plan.billingInterval,
     }));
 

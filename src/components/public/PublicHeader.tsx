@@ -12,11 +12,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
   switch (href) {
-    case '/about':
+    case '/home#about':
       return t('footer.linkAbout', { ns: 'public', defaultValue: fallback });
-    case '/features':
+    case '/home#features':
       return t('footer.linkFeatures', { ns: 'public', defaultValue: fallback });
-    case '/pricing':
+    case '/home#pricing':
       return t('footer.linkPricing', { ns: 'public', defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { ns: 'public', defaultValue: fallback });
@@ -39,6 +39,7 @@ export default function PublicHeader() {
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const showSingleLanguageTagline = language === 'en';
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState('');
   const mobileRef = useRef<HTMLDivElement>(null);
 
   // Close mobile menu on outside click
@@ -57,8 +58,24 @@ export default function PublicHeader() {
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const syncHash = () => {
+      setCurrentHash(window.location.hash.toLowerCase());
+    };
+
+    syncHash();
+    window.addEventListener('hashchange', syncHash);
+    return () => window.removeEventListener('hashchange', syncHash);
+  }, [pathname]);
+
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === '/home';
+
+    if (href.startsWith('/home#')) {
+      const [, hash = ''] = href.split('#');
+      return pathname === '/home' && currentHash === `#${hash.toLowerCase()}`;
+    }
+
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
