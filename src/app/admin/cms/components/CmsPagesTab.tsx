@@ -20,6 +20,7 @@ const EMPTY_FORM: CmsPageInput = {
   is_enabled: true,
   seo_title: '',
   seo_description: '',
+  seo_image_url: '',
   show_in_header: false,
   show_in_footer: false,
   navigation_label: '',
@@ -106,6 +107,7 @@ export default function CmsPagesTab() {
       is_enabled: page.is_enabled,
       seo_title: page.seo_title || '',
       seo_description: page.seo_description || '',
+      seo_image_url: page.seo_image_url || '',
       show_in_header: page.show_in_header,
       show_in_footer: page.show_in_footer,
       navigation_label: page.navigation_label || '',
@@ -184,6 +186,7 @@ export default function CmsPagesTab() {
           is_enabled: page.is_enabled,
           seo_title: page.seo_title || '',
           seo_description: page.seo_description || '',
+          seo_image_url: page.seo_image_url || '',
           show_in_header: page.show_in_header,
           show_in_footer: page.show_in_footer,
           navigation_label: page.navigation_label || '',
@@ -505,6 +508,15 @@ export default function CmsPagesTab() {
                 rows={3}
                 className="input-base resize-none"
                 placeholder="Short summary for search results and metadata."
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <label className="block text-sm font-600 text-foreground mb-1.5">SEO social image URL</label>
+              <input
+                value={form.seo_image_url}
+                onChange={(event) => handleFieldChange('seo_image_url', event.target.value)}
+                className="input-base"
+                placeholder="https://1smartpocket.com/storage/v1/object/public/media/branding/page-social-image.png"
               />
             </div>
           </div>

@@ -1,7 +1,6 @@
 import 'server-only';
 
-import { cache } from 'react';
-import { unstable_noStore as noStore } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { normalizePlatformSettings, normalizePublicNavHref, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import { listPublicCmsPages } from '@/lib/cms-pages-server';
@@ -65,8 +64,7 @@ async function readPlatformSettingsWithAdminClient() {
   return data;
 }
 
-export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSettingsSnapshot> => {
-  noStore();
+async function loadPlatformSettingsSnapshot(): Promise<PlatformSettingsSnapshot> {
   const referenceData = await getReferenceDataSnapshot();
 
   try {
@@ -90,7 +88,17 @@ export const getPlatformSettingsSnapshot = cache(async (): Promise<PlatformSetti
   const normalized = normalizePlatformSettings(null);
   const pages = await listPublicCmsPages();
   return enrichPlatformContactPhone(mergePublicCmsNavigation(normalized, pages), referenceData);
-});
+}
+
+const getCachedPlatformSettingsSnapshot = unstable_cache(
+  loadPlatformSettingsSnapshot,
+  ['platform-settings-snapshot'],
+  { revalidate: 60 }
+);
+
+export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSnapshot> {
+  return getCachedPlatformSettingsSnapshot();
+}
 
 function mergePublicCmsNavigation(
   settings: PlatformSettingsSnapshot,

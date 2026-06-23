@@ -25,6 +25,7 @@ export type CmsPageRecord = {
   is_enabled: boolean;
   seo_title: string | null;
   seo_description: string | null;
+  seo_image_url: string | null;
   show_in_header: boolean;
   show_in_footer: boolean;
   navigation_label: string | null;
@@ -48,6 +49,7 @@ export type CmsPageInput = {
   is_enabled: boolean;
   seo_title: string;
   seo_description: string;
+  seo_image_url: string;
   show_in_header: boolean;
   show_in_footer: boolean;
   navigation_label: string;
@@ -216,6 +218,7 @@ export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
   const navigationLabel = (input.navigation_label || '').trim();
   const seoTitle = (input.seo_title || '').trim();
   const seoDescription = (input.seo_description || '').trim();
+  const seoImageUrl = (input.seo_image_url || '').trim();
   const contentHtml = sanitizeRichTextHtml(input.content_html || '');
 
   return {
@@ -226,6 +229,7 @@ export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
     is_enabled: input.is_enabled !== false,
     seo_title: seoTitle,
     seo_description: seoDescription,
+    seo_image_url: seoImageUrl,
     show_in_header: Boolean(input.show_in_header),
     show_in_footer: Boolean(input.show_in_footer),
     navigation_label: navigationLabel,

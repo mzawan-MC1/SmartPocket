@@ -5,12 +5,14 @@ import { useForm } from 'react-hook-form';
 import { Loader2, Mail, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { trackMarketingEvent } from '@/lib/analytics';
 
 interface ContactFormData {
   name: string;
   email: string;
   subject: string;
   message: string;
+  website: string;
 }
 
 export default function ContactFormCard() {
@@ -21,16 +23,44 @@ export default function ContactFormCard() {
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<ContactFormData>();
 
   const onSubmit = async (data: ContactFormData) => {
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setSent(true);
-    toast.success(t('contactForm.successToast'));
-    void data;
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          payload?.error ||
+            t('contactForm.errorToast', {
+              defaultValue: 'Failed to send your message. Please try again.',
+            })
+        );
+      }
+
+      trackMarketingEvent('contact_submitted');
+      reset();
+      setSent(true);
+      toast.success(t('contactForm.successToast'));
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('contactForm.errorToast', {
+              defaultValue: 'Failed to send your message. Please try again.',
+            })
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (sent) {
@@ -48,6 +78,14 @@ export default function ContactFormCard() {
   return (
     <div className="card-elevated p-8">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <input
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          className="hidden"
+          aria-hidden="true"
+          {...register('website')}
+        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="contact-name" className="block text-sm font-600 text-foreground mb-1.5">{t('contactForm.name')}</label>

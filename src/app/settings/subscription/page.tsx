@@ -36,6 +36,7 @@ import {
   openBillingPortal,
   resumeBillingSubscription,
 } from '@/lib/subscription/client';
+import { trackMarketingEvent } from '@/lib/analytics';
 import type {
   BillingAvailability,
   PublicSubscriptionPlan,
@@ -310,6 +311,10 @@ export default function SubscriptionSettingsPage() {
         return;
       }
 
+      trackMarketingEvent('checkout_started', {
+        plan_code: plan.planCode,
+        billing_interval: plan.billingInterval,
+      });
       window.location.href = response.checkoutUrl;
     } catch {
       toast.error(t('subscriptionBilling.checkoutUnavailable', { ns: 'portal' }));

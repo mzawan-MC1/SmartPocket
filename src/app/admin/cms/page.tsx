@@ -42,9 +42,9 @@ export default function AdminCmsPage() {
       : 'header';
 
   const [headerMenu, setHeaderMenu] = useState<MenuItem[]>([
-    { id: 'hm-1', label: 'About', href: '/#about' },
-    { id: 'hm-2', label: 'Features', href: '/#features' },
-    { id: 'hm-3', label: 'Pricing', href: '/#pricing' },
+    { id: 'hm-1', label: 'About', href: '/about' },
+    { id: 'hm-2', label: 'Features', href: '/features' },
+    { id: 'hm-3', label: 'Pricing', href: '/pricing' },
     { id: 'hm-4', label: 'Contact', href: '/contact' },
   ]);
 
@@ -53,17 +53,17 @@ export default function AdminCmsPage() {
       id: 'fs-1',
       title: 'Product',
       links: [
-        { id: 'fl-1', label: 'Features', href: '/#features' },
-        { id: 'fl-2', label: 'Pricing', href: '/#pricing' },
-        { id: 'fl-3', label: 'Security', href: '/security' },
+        { id: 'fl-1', label: 'Features', href: '/features' },
+        { id: 'fl-2', label: 'Pricing', href: '/pricing' },
+        { id: 'fl-3', label: 'About', href: '/about' },
       ],
     },
     {
       id: 'fs-2',
       title: 'Company',
       links: [
-        { id: 'fl-4', label: 'About', href: '/#about' },
-        { id: 'fl-5', label: 'Contact', href: '/contact' },
+        { id: 'fl-4', label: 'Contact', href: '/contact' },
+        { id: 'fl-5', label: 'Help Center', href: '/help' },
       ],
     },
     {
@@ -417,7 +417,7 @@ export default function AdminCmsPage() {
             <input
               type="email"
               className="input-base"
-              placeholder="support@smartpocket.app"
+              placeholder="info@1smartpocket.com"
               value={contact.contact_email}
               onChange={(e) => setContact((c) => ({ ...c, contact_email: e.target.value }))}
             />

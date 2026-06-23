@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { trackMarketingEvent } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -59,6 +60,7 @@ export default function SignUpForm({
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
+      trackMarketingEvent('sign_up_started', { method: 'password' });
       const next = getSafeNextPath(searchParams.get('next'));
       const result = await signUp(data.email, data.password, { fullName: data.fullName }, next);
 
@@ -66,6 +68,8 @@ export default function SignUpForm({
         setSuccessState('verify-email');
         toast.success(t('verification.subtitle', { ns: 'auth' }));
       } else {
+        trackMarketingEvent('sign_up_completed', { method: 'password' });
+        trackMarketingEvent('trial_started', { source: 'signup' });
         setSuccessState('ready');
         toast.success(t('signUp.success', { ns: 'auth' }));
       }
@@ -80,6 +84,7 @@ export default function SignUpForm({
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
+      trackMarketingEvent('sign_up_started', { method: 'google' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
@@ -99,6 +104,7 @@ export default function SignUpForm({
   const handleAppleSignUp = async () => {
     setIsAppleLoading(true);
     try {
+      trackMarketingEvent('sign_up_started', { method: 'apple' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
@@ -124,6 +130,7 @@ export default function SignUpForm({
 
     setIsMagicLinkLoading(true);
     try {
+      trackMarketingEvent('sign_up_started', { method: 'magic_link' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
       const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));

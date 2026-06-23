@@ -10,12 +10,14 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { fetchSubscriptionSummary } from '@/lib/subscription/client';
+import { trackMarketingEvent } from '@/lib/analytics';
 
 export default function BillingSuccessPage() {
   const { t } = useTranslation(['portal', 'common']);
   const searchParams = useSearchParams();
   const [loading, setLoading] = React.useState(true);
   const [confirmed, setConfirmed] = React.useState(false);
+  const hasTrackedCompletionRef = React.useRef(false);
 
   const expectedPlanCode = searchParams.get('plan');
   const expectedInterval = searchParams.get('interval');
@@ -45,6 +47,18 @@ export default function BillingSuccessPage() {
 
     return () => window.clearInterval(timer);
   }, [refresh]);
+
+  React.useEffect(() => {
+    if (!confirmed || hasTrackedCompletionRef.current) {
+      return;
+    }
+
+    hasTrackedCompletionRef.current = true;
+    trackMarketingEvent('subscription_completed', {
+      plan_code: expectedPlanCode || undefined,
+      billing_interval: expectedInterval || undefined,
+    });
+  }, [confirmed, expectedInterval, expectedPlanCode]);
 
   return (
     <AppLayout activeRoute="/settings">

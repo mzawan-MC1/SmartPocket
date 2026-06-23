@@ -747,7 +747,7 @@ class OpenRouterLanguageProvider implements LanguageProvider {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://smartpocket.app',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
           'X-Title': 'Smart Pocket AI',
         },
         body: JSON.stringify({
@@ -1460,7 +1460,7 @@ async function parseTransactionDocumentWithOpenRouter(
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://smartpocket.app',
+      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
       'X-Title': 'Smart Pocket AI',
     },
     body: JSON.stringify({

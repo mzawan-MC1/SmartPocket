@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
+import { trackMarketingEvent } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -94,6 +95,7 @@ export default function LoginForm({
       }
 
       toast.success(t('signIn.success', { ns: 'auth' }));
+      trackMarketingEvent('login', { method: 'password' });
 
       // Hard navigation so the browser sends the new Supabase auth cookies
       // that were set by the server-side route handler.

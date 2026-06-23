@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import { Inter, Plus_Jakarta_Sans, Poppins, Roboto } from 'next/font/google';
 import '../styles/tailwind.css';
 import { Toaster } from 'sonner';
@@ -8,8 +9,12 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { PlatformSettingsProvider } from '@/contexts/PlatformSettingsContext';
 import I18nProvider from '@/components/I18nProvider';
 import { resolveInitialI18nState } from '@/i18n/server';
-import { buildBrandingCssVariables, getSettingsAssetUrl } from '@/lib/platform-settings';
+import { buildBrandingCssVariables } from '@/lib/platform-settings';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
+import { buildDefaultStructuredData, buildRootMetadata } from '@/lib/site-metadata';
+import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
+import AnalyticsScripts from '@/components/analytics/AnalyticsScripts';
+import MarketingEventBridge from '@/components/analytics/MarketingEventBridge';
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -39,31 +44,6 @@ const roboto = Roboto({
   display: 'swap',
 });
 
-function getMetadataBase(rawCanonicalUrl: string) {
-  const fallbackOrigin = process.env.NEXT_PUBLIC_SITE_URL;
-
-  try {
-    if (rawCanonicalUrl) {
-      return new URL(rawCanonicalUrl);
-    }
-    if (fallbackOrigin) {
-      return new URL(fallbackOrigin);
-    }
-  } catch {}
-
-  return undefined;
-}
-
-function toAbsoluteUrl(url: string, metadataBase?: URL) {
-  if (!url) return '';
-
-  try {
-    return new URL(url, metadataBase ?? process.env.NEXT_PUBLIC_SITE_URL).toString();
-  } catch {
-    return url;
-  }
-}
-
 export async function generateViewport(): Promise<Viewport> {
   const settings = await getPlatformSettingsSnapshot();
 
@@ -76,73 +56,16 @@ export async function generateViewport(): Promise<Viewport> {
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();
-  const { branding, seo, updatedAt } = settings;
-  const metadataBase = getMetadataBase(seo.canonicalUrl);
-  const faviconUrl = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
-  const ogImage = toAbsoluteUrl(getSettingsAssetUrl(seo.ogImage, updatedAt), metadataBase);
-  const twitterImage = toAbsoluteUrl(getSettingsAssetUrl(seo.twitterImage, updatedAt), metadataBase);
-  const canonical = seo.canonicalUrl || undefined;
-
-  return {
-    metadataBase,
-    applicationName: branding.appName,
-    title: {
-      default: seo.siteTitle,
-      template: seo.titleTemplate,
-    },
-    description: seo.siteDescription,
-    keywords: seo.keywords,
-    alternates: canonical
-      ? {
-          canonical,
-        }
-      : undefined,
-    icons: faviconUrl
-      ? {
-          icon: [{ url: faviconUrl }],
-          shortcut: [{ url: faviconUrl }],
-          apple: [{ url: faviconUrl }],
-        }
-      : undefined,
-    openGraph: {
-      type: 'website',
-      siteName: branding.appName,
-      title: seo.ogTitle,
-      description: seo.ogDescription,
-      url: canonical,
-      images: ogImage ? [{ url: ogImage, alt: `${branding.appName} preview` }] : undefined,
-    },
-    twitter: {
-      card: seo.twitterCard,
-      creator: seo.twitterHandle || undefined,
-      site: seo.twitterHandle || undefined,
-      title: seo.twitterTitle,
-      description: seo.twitterDescription,
-      images: twitterImage ? [twitterImage] : undefined,
-    },
-    robots: {
-      index: seo.robotsIndex,
-      follow: seo.robotsFollow,
-      googleBot: {
-        index: seo.robotsIndex,
-        follow: seo.robotsFollow,
-      },
-    },
-    manifest: '/manifest.json',
-    appleWebApp: {
-      capable: true,
-      statusBarStyle: 'default',
-      title: branding.appName,
-    },
-    formatDetection: {
-      telephone: false,
-    },
-  };
+  return buildRootMetadata(settings);
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const settings = await getPlatformSettingsSnapshot();
+  const requestHeaders = await headers();
+  const pathname = requestHeaders.get('x-sp-pathname') || '/';
   const initialI18nState = await resolveInitialI18nState(settings);
+  const structuredData = await buildDefaultStructuredData(settings);
+  const shouldLoadAnalytics = !pathname.startsWith('/admin');
   const fontVariables = [
     plusJakarta.variable,
     inter.variable,
@@ -159,6 +82,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       style={brandingCssVariables}
     >
       <body suppressHydrationWarning>
+        <StructuredDataScripts entries={structuredData} />
+        {shouldLoadAnalytics ? (
+          <>
+            <AnalyticsScripts
+              googleAnalyticsId={settings.analytics.googleAnalyticsId}
+              googleTagManagerId={settings.analytics.googleTagManagerId}
+            />
+            <MarketingEventBridge />
+          </>
+        ) : null}
         <PlatformSettingsProvider value={settings}>
           <AuthProvider>
             <LanguageProvider initialLanguage={initialI18nState.language}>

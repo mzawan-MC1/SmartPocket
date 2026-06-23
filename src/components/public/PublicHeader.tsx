@@ -12,11 +12,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 
 function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
   switch (href) {
-    case '/#about':
+    case '/about':
       return t('footer.linkAbout', { ns: 'public', defaultValue: fallback });
-    case '/#features':
+    case '/features':
       return t('footer.linkFeatures', { ns: 'public', defaultValue: fallback });
-    case '/#pricing':
+    case '/pricing':
       return t('footer.linkPricing', { ns: 'public', defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { ns: 'public', defaultValue: fallback });
@@ -58,9 +58,8 @@ export default function PublicHeader() {
   }, [pathname]);
 
   const isActive = (href: string) => {
-    if (href === '/') return pathname === '/';
-    if (href.startsWith('/#')) return false;
-    return pathname.startsWith(href);
+    if (href === '/') return pathname === '/' || pathname === '/home';
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   const headerClass = `border-b border-border bg-card/95 backdrop-blur-sm z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;

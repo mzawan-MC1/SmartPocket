@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 import SearchField from '@/components/ui/SearchField';
 
 const MOCK_ACTIVITY = [
-  { id: 'a1', event: 'user.login', user: 'admin@smartpocket.app', ip: '192.168.1.1', timestamp: '2026-06-15 14:30:00', status: 'success' },
+  { id: 'a1', event: 'user.login', user: 'admin@1smartpocket.com', ip: '192.168.1.1', timestamp: '2026-06-15 14:30:00', status: 'success' },
   { id: 'a2', event: 'user.signup', user: 'new@example.com', ip: '10.0.0.5', timestamp: '2026-06-15 13:15:00', status: 'success' },
   { id: 'a3', event: 'auth.password_reset', user: 'user@example.com', ip: '172.16.0.2', timestamp: '2026-06-15 11:00:00', status: 'success' },
-  { id: 'a4', event: 'admin.settings_updated', user: 'admin@smartpocket.app', ip: '192.168.1.1', timestamp: '2026-06-15 10:45:00', status: 'success' },
+  { id: 'a4', event: 'admin.settings_updated', user: 'admin@1smartpocket.com', ip: '192.168.1.1', timestamp: '2026-06-15 10:45:00', status: 'success' },
   { id: 'a5', event: 'user.login_failed', user: 'unknown@example.com', ip: '203.0.113.1', timestamp: '2026-06-15 09:30:00', status: 'failed' },
 ];
 

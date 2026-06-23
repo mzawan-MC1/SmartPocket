@@ -3,31 +3,40 @@ import { notFound } from 'next/navigation';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import CmsHtml from '@/components/cms/CmsHtml';
 import ContactFormCard from '@/components/public/ContactFormCard';
+import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import { resolveInitialI18nState } from '@/i18n/server';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
+import { buildBreadcrumbStructuredData, buildPageMetadata, resolveMetadataLanguage } from '@/lib/site-metadata';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();
-  const initialI18nState = await resolveInitialI18nState(settings);
-  const publicText = BASE_I18N_RESOURCES[initialI18nState.language].public as Record<string, any>;
+  const language = await resolveMetadataLanguage(settings);
+  const publicText = BASE_I18N_RESOURCES[language].public as Record<string, any>;
   const englishPublicText = BASE_I18N_RESOURCES.en.public as Record<string, any>;
   const englishContactText = englishPublicText.contact || {};
   const page = await getPublicCmsPageBySlug('contact');
   if (!page) {
-    return {
+    return buildPageMetadata({
+      settings,
+      language,
+      pathname: '/contact',
       title: publicText.contact?.metadataTitle || englishContactText.metadataTitle,
       description:
         publicText.contact?.metadataDescription ||
         englishContactText.metadataDescription,
-    };
+    });
   }
 
-  return {
+  return buildPageMetadata({
+    settings,
+    language,
+    pathname: '/contact',
     title: page.seo_title_resolved,
     description: page.seo_description_resolved,
-  };
+    socialImageUrl: page.seo_image_url || settings.branding.socialImageUrl,
+  });
 }
 
 function ContactDetails({
@@ -110,12 +119,21 @@ export default async function ContactPage() {
   }
 
   const contactDetails = settings.publicUi;
+  const supportEmail = settings.email.supportEmail || contactDetails.contactEmail || 'info@1smartpocket.com';
   const contactText = publicText.contact || {};
   const englishContactText = englishPublicText.contact || {};
+  const structuredData = [
+    buildBreadcrumbStructuredData(settings, [
+      { name: settings.branding.appName, path: '/home' },
+      { name: contactText.titleFallback || englishContactText.titleFallback, path: '/contact' },
+    ]),
+  ];
 
   return (
-    <div className="py-16 px-4">
-      <div className="max-w-5xl mx-auto space-y-10">
+    <>
+      <StructuredDataScripts entries={structuredData} />
+      <div className="py-16 px-4">
+        <div className="max-w-5xl mx-auto space-y-10">
         <div className="text-center max-w-3xl mx-auto">
           <h1 className="text-4xl font-700 text-foreground mb-4">
             {contactText.titleFallback || englishContactText.titleFallback}
@@ -134,7 +152,7 @@ export default async function ContactPage() {
         </div>
 
         <ContactDetails
-          email={contactDetails.contactEmail}
+          email={supportEmail}
           phone={contactDetails.contactPhoneFormatted || contactDetails.contactPhone}
           address={contactDetails.contactAddress}
           labels={{
@@ -164,7 +182,7 @@ export default async function ContactPage() {
             <div className="space-y-5">
               <div>
                 <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">{contactText.detailsEmail || englishContactText.detailsEmail}</p>
-                <p className="text-sm text-foreground break-words">{contactDetails.contactEmail || contactText.notConfigured || englishContactText.notConfigured}</p>
+                <p className="text-sm text-foreground break-words">{supportEmail || contactText.notConfigured || englishContactText.notConfigured}</p>
               </div>
               <div>
                 <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-1">{contactText.detailsPhone || englishContactText.detailsPhone}</p>
@@ -179,7 +197,8 @@ export default async function ContactPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

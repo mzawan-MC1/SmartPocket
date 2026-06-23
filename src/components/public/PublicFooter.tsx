@@ -48,11 +48,11 @@ function getFooterSectionTitle(sectionId: string, fallback: string, t: (key: str
 
 function getFooterLinkLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
   switch (href) {
-    case '/#about':
+    case '/about':
       return t('footer.linkAbout', { defaultValue: fallback });
-    case '/#features':
+    case '/features':
       return t('footer.linkFeatures', { defaultValue: fallback });
-    case '/#pricing':
+    case '/pricing':
       return t('footer.linkPricing', { defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { defaultValue: fallback });
@@ -70,10 +70,10 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
 export default function PublicFooter() {
   const { t } = useTranslation('public');
   const { language } = useLanguage();
-  const { branding, publicUi } = usePlatformSettings();
+  const { branding, publicUi, email } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const showSingleLanguageFooterTagline = language === 'en';
-  const year = new Date().getFullYear();
+  const contactEmail = email.supportEmail || publicUi.contactEmail || 'info@1smartpocket.com';
   const legalSection = publicUi.footerSections.find(
     (section) => section.title.trim().toLowerCase() === 'legal'
   );
@@ -94,7 +94,7 @@ export default function PublicFooter() {
               {showBrandText && (
                 <div className="min-w-0">
                   <span className="block font-800 text-sm tracking-tight text-primary">
-                    {branding.appName}
+                    {publicUi.footerCompanyName || branding.appName}
                   </span>
                   {showSingleLanguageFooterTagline && publicUi.footerTagline ? (
                     <span className="block text-xs text-muted-foreground mt-1">
@@ -110,13 +110,13 @@ export default function PublicFooter() {
               </p>
             )}
             <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-              {publicUi.contactEmail && (
+              {contactEmail && (
                 <a
-                  href={`mailto:${publicUi.contactEmail}`}
+                  href={`mailto:${contactEmail}`}
                   className="inline-flex items-center gap-2 text-accent hover:underline"
                 >
                   <Mail size={13} />
-                  {publicUi.contactEmail}
+                  {contactEmail}
                 </a>
               )}
               {publicUi.contactPhone && (
@@ -176,16 +176,8 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-1.5 gap-y-1">
-            <span>© {year} {branding.appName}. {t('footer.rights')} {t('footer.poweredBy')}</span>
-            <Link
-              href="https://www.mc1services.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-700 text-[#22c55e] hover:underline"
-            >
-              MCS Consultancy
-            </Link>
+          <p className="text-sm text-muted-foreground">
+            {publicUi.footerCopyright || `© ${publicUi.footerCompanyName || branding.appName}. ${t('footer.rights')}`}
           </p>
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (

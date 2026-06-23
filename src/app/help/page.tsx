@@ -6,9 +6,12 @@ import { MessageCircle, Book, Mail, ChevronRight } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 export default function HelpPage() {
   const { t } = useTranslation('portal');
+  const { email, publicUi } = usePlatformSettings();
+  const supportEmail = email.supportEmail || publicUi.contactEmail || 'info@1smartpocket.com';
   const faq = [1, 2, 3, 4, 5, 6].map((index) => ({
     q: t(`help.faq.${index}.question`),
     a: t(`help.faq.${index}.answer`),
@@ -16,7 +19,7 @@ export default function HelpPage() {
   const quickLinks = [
     { icon: Book, title: t('help.quickLinks.documentation.title'), desc: t('help.quickLinks.documentation.description'), href: '/help' },
     { icon: MessageCircle, title: t('help.quickLinks.community.title'), desc: t('help.quickLinks.community.description'), href: '/help' },
-    { icon: Mail, title: t('help.quickLinks.email.title'), desc: 'support@smartpocket.app', href: 'mailto:support@smartpocket.app' },
+    { icon: Mail, title: t('help.quickLinks.email.title'), desc: supportEmail, href: `mailto:${supportEmail}` },
   ];
 
   return (
