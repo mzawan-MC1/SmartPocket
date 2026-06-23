@@ -73,6 +73,8 @@ const reportPresets: ReportPeriodPreset[] = [
   'custom',
 ];
 
+const visibleReportPresets = reportPresets.filter((preset) => preset !== 'year_to_date');
+
 function getPresetButtonLabel(
   preset: ReportPeriodPreset,
   context: UserFinancialPeriodContext | null,
@@ -1001,14 +1003,14 @@ export default function ReportsScreen() {
         <div className="space-y-4 xl:col-span-3">
           <div className="card-elevated p-3 print:hidden max-[480px]:p-2.5">
             <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {reportPresets.map((preset) => (
+              <div className="flex flex-wrap items-center gap-1.5 lg:flex-nowrap lg:gap-1 lg:overflow-hidden">
+                {visibleReportPresets.map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => handlePresetChange(preset)}
                     aria-pressed={activePreset === preset}
-                    className={`inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-600 transition-all ${
+                    className={`inline-flex h-7 flex-none items-center justify-center whitespace-nowrap rounded-full border px-2 text-[11px] font-600 leading-none transition-all lg:px-1.5 xl:px-2 ${
                       activePreset === preset
                         ? 'border-accent bg-accent/10 text-accent'
                         : 'border-border text-muted-foreground hover:border-accent/40 hover:bg-muted/40 hover:text-foreground'
@@ -1019,58 +1021,67 @@ export default function ReportsScreen() {
                 ))}
               </div>
 
-              <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_auto] lg:items-end">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Calendar size={14} className="text-muted-foreground" />
-                  <span className="text-xs font-600 text-muted-foreground">{t('reports.from')}</span>
-                  <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
-                  <input
-                    id="report-date-from"
-                    type="date"
-                    value={activePreset === 'custom' ? customDateFrom : activeRange?.startDate || ''}
-                    onChange={(event) => {
-                      setActivePreset('custom');
-                      setCustomDateFrom(event.target.value);
-                    }}
-                    className="input-base h-9 w-[140px] max-w-full px-2 text-sm"
-                  />
-                  <span className="text-xs font-600 text-muted-foreground">{t('reports.to')}</span>
-                  <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
-                  <input
-                    id="report-date-to"
-                    type="date"
-                    value={activePreset === 'custom' ? customDateTo : activeRange?.endDate || ''}
-                    onChange={(event) => {
-                      setActivePreset('custom');
-                      setCustomDateTo(event.target.value);
-                    }}
-                    className="input-base h-9 w-[140px] max-w-full px-2 text-sm"
-                  />
+              <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap lg:gap-2">
+                <div className="flex min-w-0 items-center gap-1.5 lg:w-[198px] lg:flex-none">
+                  <Calendar size={14} className="hidden text-muted-foreground sm:block" />
+                  <div className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.from')}</span>
+                    <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
+                    <input
+                      id="report-date-from"
+                      type="date"
+                      value={activePreset === 'custom' ? customDateFrom : activeRange?.startDate || ''}
+                      onChange={(event) => {
+                        setActivePreset('custom');
+                        setCustomDateFrom(event.target.value);
+                      }}
+                      className="input-base h-9 min-w-0 w-full px-3 text-sm"
+                    />
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 max-lg:w-full">
-                  <Filter size={13} className="text-muted-foreground" />
-                  <span className="text-xs font-600 text-muted-foreground">{t('reports.account')}</span>
-                  <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
-                  <select
-                    id="report-account-filter"
-                    value={selectedAccount}
-                    onChange={(event) => setSelectedAccount(event.target.value)}
-                    className="input-base h-9 min-w-[160px] max-w-full px-2 text-sm max-lg:flex-1"
-                  >
-                    <option value="all">{t('reports.allAccounts')}</option>
-                    {(reportData?.accounts || []).map((account) => (
-                      <option key={account.id} value={account.id}>{account.name}</option>
-                    ))}
-                  </select>
+                <div className="flex min-w-0 items-center gap-1.5 lg:w-[198px] lg:flex-none">
+                  <div className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.to')}</span>
+                    <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
+                    <input
+                      id="report-date-to"
+                      type="date"
+                      value={activePreset === 'custom' ? customDateTo : activeRange?.endDate || ''}
+                      onChange={(event) => {
+                        setActivePreset('custom');
+                        setCustomDateTo(event.target.value);
+                      }}
+                      className="input-base h-9 min-w-0 w-full px-3 text-sm"
+                    />
+                  </div>
                 </div>
 
-                <div className={`inline-flex overflow-hidden rounded-xl border border-border bg-card ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
+                <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
+                  <Filter size={13} className="hidden text-muted-foreground sm:block" />
+                  <div className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.account')}</span>
+                    <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
+                    <select
+                      id="report-account-filter"
+                      value={selectedAccount}
+                      onChange={(event) => setSelectedAccount(event.target.value)}
+                      className="input-base h-9 min-w-[180px] max-w-full w-full px-3 text-sm lg:max-w-[210px]"
+                    >
+                      <option value="all">{t('reports.allAccounts')}</option>
+                      {(reportData?.accounts || []).map((account) => (
+                        <option key={account.id} value={account.id}>{account.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className={`inline-flex overflow-hidden rounded-xl border border-border bg-card lg:ms-auto ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
                   <button
                     type="button"
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
-                    className="flex h-9 items-center gap-1.5 px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`${t('reports.previous')} ${previousRangeLabel}`}
                   >
                     <PreviousIcon size={14} />
@@ -1080,7 +1091,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
                     disabled={periodLoading}
-                    className="flex h-9 items-center gap-1.5 border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 items-center gap-1.5 whitespace-nowrap border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('reports.current')}
                   </button>
@@ -1088,7 +1099,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
-                    className="flex h-9 items-center gap-1.5 border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-9 items-center gap-1.5 whitespace-nowrap border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`${t('reports.next')} ${previousRangeLabel}`}
                   >
                     {t('reports.next')}
