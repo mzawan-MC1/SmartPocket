@@ -7,6 +7,13 @@ import { toast } from 'sonner';
 import { CreditCard, Users, Save, Edit2, Loader2, RefreshCw, Gift, UserCog, BarChart3 } from 'lucide-react';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
+import {
+  calculateEquivalentMonthlyCost,
+  calculateYearlyBilledPrice,
+  calculateYearlySavingAmount,
+  normalizeDiscountPercent,
+  normalizeWholeMoneyAmount,
+} from '@/lib/subscription/pricing';
 
 
 interface Plan {
@@ -16,6 +23,7 @@ interface Plan {
   description: string;
   price_amount: number;
   billing_interval: string;
+  yearly_discount_percent: number;
   trial_duration_days: number;
   monthly_ai_credits: number;
   daily_ai_request_limit: number;
@@ -48,6 +56,8 @@ interface UserSubRow {
   provider_name: string | null;
   provider_subscription_id: string | null;
   billing_interval: string | null;
+  price_amount: number;
+  yearly_discount_percent: number;
   billing_status: string | null;
   current_period_start: string | null;
   current_period_end: string | null;
@@ -135,6 +145,17 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
   const [saving, setSaving] = useState(false);
 
   const set = (key: keyof Plan, val: any) => setForm(f => ({ ...f, [key]: val }));
+  const normalizedMonthlyPrice = normalizeWholeMoneyAmount(form.price_amount);
+  const normalizedDiscount = normalizeDiscountPercent(form.yearly_discount_percent);
+  const calculatedYearlyPrice = form.plan_code === 'free_trial'
+    ? 0
+    : calculateYearlyBilledPrice(normalizedMonthlyPrice, normalizedDiscount);
+  const yearlySavingAmount = form.plan_code === 'free_trial'
+    ? 0
+    : calculateYearlySavingAmount(normalizedMonthlyPrice, normalizedDiscount);
+  const equivalentMonthlyPrice = form.plan_code === 'free_trial'
+    ? 0
+    : calculateEquivalentMonthlyCost(calculatedYearlyPrice);
 
   const handleSave = async () => {
     setSaving(true);
@@ -157,15 +178,20 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">Price (AED)</label>
-          <input type="number" min="0" step="0.01" className="input-base text-sm" value={form.price_amount} onChange={e => set('price_amount', parseFloat(e.target.value) || 0)} />
+          <input type="number" min="0" step="1" className="input-base text-sm" value={form.price_amount} onChange={e => set('price_amount', parseInt(e.target.value, 10) || 0)} />
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">Billing Interval</label>
-          <select className="input-base text-sm" value={form.billing_interval} onChange={e => set('billing_interval', e.target.value)}>
-            <option value="none">None (free)</option>
-            <option value="monthly">Monthly</option>
-            <option value="yearly">Yearly</option>
-          </select>
+          <input
+            className="input-base text-sm opacity-80"
+            value={form.billing_interval}
+            disabled
+            readOnly
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-600 text-foreground mb-1">Yearly Discount (%)</label>
+          <input type="number" min="0" max="100" step="1" className="input-base text-sm" value={form.yearly_discount_percent} onChange={e => set('yearly_discount_percent', parseInt(e.target.value, 10) || 0)} />
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">Trial Duration (days)</label>
@@ -196,6 +222,28 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
           <textarea className="input-base text-sm resize-none" rows={2} value={form.description || ''} onChange={e => set('description', e.target.value)} />
         </div>
       </div>
+
+      {form.plan_code !== 'free_trial' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-xl border border-border bg-secondary/35 p-3">
+            <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Monthly Price</p>
+            <p className="mt-1 text-sm font-700 text-foreground">AED {normalizedMonthlyPrice}</p>
+          </div>
+          <div className="rounded-xl border border-border bg-secondary/35 p-3">
+            <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Yearly Discount</p>
+            <p className="mt-1 text-sm font-700 text-foreground">{normalizedDiscount}%</p>
+          </div>
+          <div className="rounded-xl border border-border bg-secondary/35 p-3">
+            <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Calculated Yearly Price</p>
+            <p className="mt-1 text-sm font-700 text-foreground">AED {calculatedYearlyPrice}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">AED {equivalentMonthlyPrice} equivalent / month</p>
+          </div>
+          <div className="rounded-xl border border-border bg-secondary/35 p-3">
+            <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Customer Saves</p>
+            <p className="mt-1 text-sm font-700 text-positive">AED {yearlySavingAmount} / year</p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {([
@@ -241,10 +289,17 @@ export default function AdminSubscriptionsPage() {
   const [grantingPromo, setGrantingPromo] = useState(false);
   const [changePlanUserId, setChangePlanUserId] = useState('');
   const [changePlanCode, setChangePlanCode] = useState('personal');
+  const [changePlanInterval, setChangePlanInterval] = useState<'monthly' | 'yearly'>('monthly');
   const [changingPlan, setChangingPlan] = useState(false);
 
   const supabase = createClient();
   const locale = getIntlLocale(language);
+  const editablePlans = plans.filter((plan) => plan.plan_code === 'free_trial' || plan.billing_interval !== 'yearly');
+  const assignablePlans = plans.filter((plan) => plan.is_active);
+  const assignableIntervals = assignablePlans
+    .filter((plan) => plan.plan_code === changePlanCode)
+    .map((plan) => plan.billing_interval)
+    .filter((interval): interval is 'monthly' | 'yearly' => interval === 'monthly' || interval === 'yearly');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -262,7 +317,7 @@ export default function AdminSubscriptionsPage() {
         .from('user_subscriptions')
         .select(`
           user_id, status, trial_ends_at,
-          subscription_plans!inner(plan_name, plan_code),
+          subscription_plans!inner(plan_name, plan_code, price_amount, yearly_discount_percent, billing_interval),
           user_profiles!inner(email, full_name),
           ai_usage_cycles(credits_consumed, credits_allocated)
         `)
@@ -337,10 +392,12 @@ export default function AdminSubscriptionsPage() {
             notes: null,
             credits_consumed: row.ai_usage_cycles?.[0]?.credits_consumed ?? 0,
             credits_allocated: row.ai_usage_cycles?.[0]?.credits_allocated ?? 0,
+            price_amount: Number(row.subscription_plans?.price_amount ?? 0),
+            yearly_discount_percent: Number(row.subscription_plans?.yearly_discount_percent ?? 0),
             provider_managed: Boolean(billingRow?.provider_subscription_id),
             provider_name: billingRow?.provider ?? null,
             provider_subscription_id: billingRow?.provider_subscription_id ?? null,
-            billing_interval: billingRow?.billing_interval ?? null,
+            billing_interval: billingRow?.billing_interval ?? row.subscription_plans?.billing_interval ?? null,
             billing_status: billingRow?.status ?? null,
             current_period_start: billingRow?.current_period_start ?? null,
             current_period_end: billingRow?.current_period_end ?? null,
@@ -368,6 +425,7 @@ export default function AdminSubscriptionsPage() {
         description: plan.description,
         price_amount: plan.price_amount,
         billing_interval: plan.billing_interval,
+        yearly_discount_percent: plan.yearly_discount_percent,
         trial_duration_days: plan.trial_duration_days,
         monthly_ai_credits: plan.monthly_ai_credits,
         daily_ai_request_limit: plan.daily_ai_request_limit,
@@ -420,6 +478,7 @@ export default function AdminSubscriptionsPage() {
         p_admin_id: user?.id,
         p_user_id: changePlanUserId.trim(),
         p_plan_code: changePlanCode,
+        p_billing_interval: changePlanInterval,
       });
       if (error) throw error;
       toast.success('Plan changed successfully');
@@ -431,6 +490,12 @@ export default function AdminSubscriptionsPage() {
       setChangingPlan(false);
     }
   };
+
+  useEffect(() => {
+    if (!assignableIntervals.includes(changePlanInterval)) {
+      setChangePlanInterval(assignableIntervals.includes('monthly') ? 'monthly' : (assignableIntervals[0] || 'monthly'));
+    }
+  }, [assignableIntervals, changePlanInterval]);
 
   const tabs = [
     { id: 'plans', label: 'Plans', icon: CreditCard },
@@ -474,12 +539,12 @@ export default function AdminSubscriptionsPage() {
             {activeTab === 'plans' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground">{plans.length}/3 plans configured</p>
+                  <p className="text-sm text-muted-foreground">{editablePlans.length} editable plan families</p>
                   <button onClick={loadData} className="btn-secondary text-xs flex items-center gap-1.5">
                     <RefreshCw size={12} /> Refresh
                   </button>
                 </div>
-                {plans.map(plan => (
+                {editablePlans.map(plan => (
                   <div key={plan.id}>
                     {editingPlan === plan.id ? (
                       <PlanEditor plan={plan} onSave={handleSavePlan} onCancel={() => setEditingPlan(null)} />
@@ -501,6 +566,8 @@ export default function AdminSubscriptionsPage() {
                                 : `${formatCurrencyText(plan.price_amount, {
                                     currencyCode: 'AED',
                                     locale,
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 0,
                                   })}/${plan.billing_interval}`}
                             </span>
                             <button
@@ -512,6 +579,26 @@ export default function AdminSubscriptionsPage() {
                           </div>
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">{plan.description}</p>
+                        {plan.plan_code !== 'free_trial' ? (
+                          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div className="bg-secondary/50 rounded-lg p-2.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Price</p>
+                              <p className="text-sm font-700 text-foreground mt-0.5">AED {normalizeWholeMoneyAmount(plan.price_amount)}</p>
+                            </div>
+                            <div className="bg-secondary/50 rounded-lg p-2.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Yearly Discount</p>
+                              <p className="text-sm font-700 text-foreground mt-0.5">{normalizeDiscountPercent(plan.yearly_discount_percent)}%</p>
+                            </div>
+                            <div className="bg-secondary/50 rounded-lg p-2.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Calculated Yearly Price</p>
+                              <p className="text-sm font-700 text-foreground mt-0.5">AED {calculateYearlyBilledPrice(plan.price_amount, plan.yearly_discount_percent)}</p>
+                            </div>
+                            <div className="bg-secondary/50 rounded-lg p-2.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Customer Saves</p>
+                              <p className="text-sm font-700 text-positive mt-0.5">AED {calculateYearlySavingAmount(plan.price_amount, plan.yearly_discount_percent)}</p>
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
                           <div className="bg-secondary/50 rounded-lg p-2.5">
                             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">AI Credits/mo</p>
@@ -594,7 +681,7 @@ export default function AdminSubscriptionsPage() {
                   <h3 className="text-sm font-700 text-foreground mb-3 flex items-center gap-2">
                     <UserCog size={15} className="text-accent" /> Change User Plan
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <input
                       className="input-base text-sm"
                       placeholder="User ID (UUID)"
@@ -606,8 +693,17 @@ export default function AdminSubscriptionsPage() {
                       value={changePlanCode}
                       onChange={e => setChangePlanCode(e.target.value)}
                     >
-                      {plans.filter(p => p.is_active).map(p => (
+                      {editablePlans.filter(p => p.is_active).map(p => (
                         <option key={p.plan_code} value={p.plan_code}>{p.plan_name}</option>
+                      ))}
+                    </select>
+                    <select
+                      className="input-base text-sm"
+                      value={changePlanInterval}
+                      onChange={e => setChangePlanInterval(e.target.value as 'monthly' | 'yearly')}
+                    >
+                      {assignableIntervals.map((interval) => (
+                        <option key={interval} value={interval}>{interval}</option>
                       ))}
                     </select>
                   </div>
@@ -649,9 +745,29 @@ export default function AdminSubscriptionsPage() {
                                 <p className="text-[11px] text-muted-foreground">{u.email}</p>
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-600 ${PLAN_COLORS[u.plan_code] || 'bg-secondary text-muted-foreground'}`}>
-                                  {u.plan_name}
-                                </span>
+                                <div className="space-y-1">
+                                  <span className={`inline-flex text-xs px-2 py-0.5 rounded-full font-600 ${PLAN_COLORS[u.plan_code] || 'bg-secondary text-muted-foreground'}`}>
+                                    {u.plan_name}
+                                  </span>
+                                  <p className="text-[11px] text-muted-foreground capitalize">
+                                    {u.billing_interval || 'none'}
+                                  </p>
+                                  {u.price_amount > 0 ? (
+                                    <p className="text-[11px] font-700 text-foreground">
+                                      {formatCurrencyText(u.price_amount, {
+                                        currencyCode: 'AED',
+                                        locale,
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0,
+                                      })}
+                                    </p>
+                                  ) : null}
+                                  {u.billing_interval === 'yearly' && u.yearly_discount_percent > 0 ? (
+                                    <p className="text-[11px] text-positive">
+                                      Save {u.yearly_discount_percent}%
+                                    </p>
+                                  ) : null}
+                                </div>
                               </td>
                               <td className="px-4 py-3 align-top">
                                 <div className="space-y-1.5">
@@ -703,14 +819,16 @@ export default function AdminSubscriptionsPage() {
                               <td className="px-4 py-3 align-top">
                                 <div className="space-y-1">
                                   <p className="text-xs text-foreground">
-                                    {[
-                                      formatAdminDate(u.current_period_start, locale),
-                                      formatAdminDate(u.current_period_end, locale),
-                                    ].join(' - ')}
+                                    {formatAdminDateRange(u.current_period_start, u.current_period_end)}
                                   </p>
                                   {u.billing_interval ? (
                                     <p className="text-[11px] capitalize text-muted-foreground">
                                       Interval: {u.billing_interval}
+                                    </p>
+                                  ) : null}
+                                  {u.current_period_end ? (
+                                    <p className="text-[11px] text-muted-foreground">
+                                      Renewal: {formatAdminDate(u.current_period_end, locale)}
                                     </p>
                                   ) : null}
                                   {u.cancel_at_period_end ? (

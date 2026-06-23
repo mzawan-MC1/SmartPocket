@@ -7,7 +7,7 @@ import {
 import type { SupportedBillingInterval } from '@/lib/subscription/types';
 
 type CheckoutRequestBody = {
-  planId?: string;
+  planCode?: 'free_trial' | 'personal' | 'family';
   billingInterval?: SupportedBillingInterval;
 };
 
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json().catch(() => ({}))) as CheckoutRequestBody;
-    if (!body.planId || !body.billingInterval) {
+    if (!body.planCode || !body.billingInterval) {
       return applySupabaseCookies(
         NextResponse.json({
           ok: false,
@@ -42,17 +42,17 @@ export async function POST(request: Request) {
 
     const origin = new URL(request.url).origin;
     const successUrl = new URL('/billing/success', origin);
-    successUrl.searchParams.set('plan', body.planId);
+    successUrl.searchParams.set('plan', body.planCode);
     successUrl.searchParams.set('interval', body.billingInterval);
 
     const cancelUrl = new URL('/billing/cancel', origin);
-    cancelUrl.searchParams.set('plan', body.planId);
+    cancelUrl.searchParams.set('plan', body.planCode);
     cancelUrl.searchParams.set('interval', body.billingInterval);
 
     const payload = await initiateCheckoutForUser({
       userId: user.id,
       email: user.email ?? null,
-      planId: body.planId,
+      planCode: body.planCode,
       billingInterval: body.billingInterval,
       successUrl: successUrl.toString(),
       cancelUrl: cancelUrl.toString(),

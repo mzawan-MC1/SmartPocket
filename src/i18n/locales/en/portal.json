@@ -2401,6 +2401,24 @@
       "duplicate_billing_event": "This billing event was already processed.",
       "subscription_activation_failed": "Unable to activate the subscription after payment confirmation.",
       "subscription_not_found": "No matching subscription was found."
-    }
+    },
+    "billedMonthly": "Billed monthly",
+    "billedYearly": "Billed yearly",
+    "perMonth": "per month",
+    "perYear": "per year",
+    "equivalentPerMonth": "Equivalent to {{amount}} per month",
+    "yearlyDiscount": "Yearly discount",
+    "savePercent": "Save {{percent}}%",
+    "saveAmountPerYear": "Save {{amount}} per year",
+    "annualPrice": "Annual price",
+    "monthlyPrice": "Monthly price",
+    "calculatedYearlyPrice": "Calculated yearly price",
+    "billingInterval": "Billing interval",
+    "chooseMonthly": "Choose monthly",
+    "chooseYearly": "Choose yearly",
+    "bestValue": "Best value",
+    "contactSupportYearlyPlan": "Contact support for this yearly plan",
+    "invalidDiscount": "Enter a valid yearly discount between 0% and 100%.",
+    "wholeNumberPriceRequirement": "Prices must be saved as whole AED amounts."
   }
 }

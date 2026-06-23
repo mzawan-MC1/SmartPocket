@@ -44,13 +44,13 @@ export async function fetchSubscriptionSummary() {
   return parseJsonResponse<SubscriptionSummaryResponse>(response);
 }
 
-export async function createBillingCheckoutSession(planId: string, billingInterval: SupportedBillingInterval) {
+export async function createBillingCheckoutSession(planCode: string, billingInterval: SupportedBillingInterval) {
   const response = await fetch('/api/billing/checkout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ planId, billingInterval }),
+    body: JSON.stringify({ planCode, billingInterval }),
   });
 
   return parseJsonResponse<BillingCheckoutResponse>(response);

@@ -16,6 +16,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
 import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
@@ -419,6 +420,15 @@ export default function SettingsPage() {
     },
   ];
 
+  const subscriptionPriceText = typeof subscriptionSummary?.priceAmount === 'number' && subscriptionSummary.priceAmount > 0
+    ? formatCurrencyText(subscriptionSummary.priceAmount, {
+        currencyCode: 'AED',
+        locale,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })
+    : null;
+
   return (
     <AppLayout activeRoute="/settings">
       <div className="page-section page-shell-readable">
@@ -589,6 +599,11 @@ export default function SettingsPage() {
                       <p className="mt-2 text-base font-700 text-foreground">
                         {subscriptionSummary?.planName || t('settings.subscription.noPlan', { ns: 'portal' })}
                       </p>
+                      {subscriptionSummary?.billingInterval ? (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {t(`subscriptionBilling.intervals.${subscriptionSummary.billingInterval}`, { ns: 'portal' })}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
@@ -613,6 +628,9 @@ export default function SettingsPage() {
                             }).format(new Date(subscriptionSummary.currentPeriodEnd))
                           : t('settings.subscription.notAvailable', { ns: 'portal' })}
                       </p>
+                      {subscriptionPriceText ? (
+                        <p className="mt-1 text-sm text-muted-foreground">{subscriptionPriceText}</p>
+                      ) : null}
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">

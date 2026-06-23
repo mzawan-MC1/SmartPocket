@@ -2026,6 +2026,24 @@
       "duplicate_billing_event": "Cet evenement de facturation a deja ete traite.",
       "subscription_activation_failed": "Impossible d'activer l'abonnement apres confirmation du paiement.",
       "subscription_not_found": "Aucun abonnement correspondant n'a ete trouve."
-    }
+    },
+    "billedMonthly": "Facture mensuelle",
+    "billedYearly": "Facture annuelle",
+    "perMonth": "par mois",
+    "perYear": "par an",
+    "equivalentPerMonth": "Equivalent a {{amount}} par mois",
+    "yearlyDiscount": "Remise annuelle",
+    "savePercent": "Economisez {{percent}}%",
+    "saveAmountPerYear": "Economisez {{amount}} par an",
+    "annualPrice": "Prix annuel",
+    "monthlyPrice": "Prix mensuel",
+    "calculatedYearlyPrice": "Prix annuel calcule",
+    "billingInterval": "Intervalle de facturation",
+    "chooseMonthly": "Choisir mensuel",
+    "chooseYearly": "Choisir annuel",
+    "bestValue": "Meilleur rapport qualite-prix",
+    "contactSupportYearlyPlan": "Contactez le support pour cette offre annuelle",
+    "invalidDiscount": "Saisissez une remise annuelle valide entre 0% et 100%.",
+    "wholeNumberPriceRequirement": "Les prix doivent etre en AED entiers."
   }
 }

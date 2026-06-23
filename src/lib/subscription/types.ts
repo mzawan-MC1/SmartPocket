@@ -23,6 +23,10 @@ export interface PublicSubscriptionPlan {
   description: string | null;
   priceAmount: number;
   billingInterval: SupportedBillingInterval;
+  monthlyBasePriceAmount: number;
+  yearlyDiscountPercent: number;
+  yearlySavingAmount: number;
+  equivalentMonthlyPriceAmount: number;
   trialDurationDays: number;
   monthlyAiCredits: number;
   dailyAiRequestLimit: number;
@@ -52,6 +56,10 @@ export interface SubscriptionSummary {
   billingStatus?: string | null;
   billingInterval?: SupportedBillingInterval;
   priceAmount?: number;
+  monthlyBasePriceAmount?: number;
+  yearlyDiscountPercent?: number;
+  yearlySavingAmount?: number;
+  equivalentMonthlyPriceAmount?: number;
   trialEndsAt?: string | null;
   trialDaysRemaining?: number | null;
   currentPeriodStart?: string | null;

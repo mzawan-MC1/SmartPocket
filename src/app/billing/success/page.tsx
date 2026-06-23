@@ -17,7 +17,7 @@ export default function BillingSuccessPage() {
   const [loading, setLoading] = React.useState(true);
   const [confirmed, setConfirmed] = React.useState(false);
 
-  const expectedPlanId = searchParams.get('plan');
+  const expectedPlanCode = searchParams.get('plan');
   const expectedInterval = searchParams.get('interval');
 
   const refresh = React.useCallback(async () => {
@@ -27,7 +27,7 @@ export default function BillingSuccessPage() {
       const summary = payload?.summary;
       const matched = Boolean(
         summary?.hasSubscription
-        && summary.planId === expectedPlanId
+        && summary.planCode === expectedPlanCode
         && summary.billingInterval === expectedInterval
         && (summary.status === 'active' || summary.status === 'trialing')
       );
@@ -35,7 +35,7 @@ export default function BillingSuccessPage() {
     } finally {
       setLoading(false);
     }
-  }, [expectedInterval, expectedPlanId]);
+  }, [expectedInterval, expectedPlanCode]);
 
   React.useEffect(() => {
     void refresh();

@@ -171,7 +171,25 @@
         "receiptIntelligence": "Receipt Intelligence: {{count}} documents per cycle",
         "aiHistoryEnabled": "AI History: {{days}} days retention",
         "aiHistoryDisabled": "AI History not included"
-      }
+      },
+      "billedMonthly": "Billed monthly",
+      "billedYearly": "Billed yearly",
+      "perMonth": "/ month",
+      "perYear": "/ year",
+      "equivalentPerMonth": "Equivalent to {{amount}} per month",
+      "yearlyDiscount": "Yearly discount",
+      "savePercent": "Save {{percent}}%",
+      "saveAmountPerYear": "Save {{amount}} per year",
+      "annualPrice": "Annual price",
+      "monthlyPrice": "Monthly price",
+      "calculatedYearlyPrice": "Calculated yearly price",
+      "billingInterval": "Billing interval",
+      "chooseMonthly": "Choose monthly",
+      "chooseYearly": "Choose yearly",
+      "bestValue": "Best value",
+      "contactSupportYearlyPlan": "Contact support for this yearly plan",
+      "invalidDiscount": "Enter a valid yearly discount between 0% and 100%.",
+      "wholeNumberPriceRequirement": "Prices must be saved as whole AED amounts."
     },
     "languages": {
       "ltr": "LTR",

@@ -9,6 +9,11 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  getPlanForInterval,
+  groupPlansByFamily,
+  isSelectablePaidInterval,
+} from '@/lib/subscription/pricing';
 import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { BillingAvailability, PublicSubscriptionPlan } from '@/lib/subscription/types';
 
@@ -53,19 +58,21 @@ const LANGUAGES = [
   { code: 'RU', nameKey: 'common:language.ru', dirKey: 'home.languages.ltr' },
 ] as const;
 
-function formatPublicPlanPrice(plan: PublicSubscriptionPlan, locale: string) {
-  if (plan.priceAmount <= 0 || plan.billingInterval === 'none') {
+function formatPublicPlanPrice(amount: number, locale: string) {
+  if (amount <= 0) {
     return null;
   }
 
-  return formatCurrencyText(plan.priceAmount, {
+  return formatCurrencyText(amount, {
     currencyCode: 'AED',
     locale,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 
-function getPublicPlanCtaHref(planId: string, isAuthenticated: boolean) {
-  const destination = `/settings/subscription?plan=${encodeURIComponent(planId)}`;
+function getPublicPlanCtaHref(planCode: string, interval: string, isAuthenticated: boolean) {
+  const destination = `/settings/subscription?plan=${encodeURIComponent(planCode)}&interval=${encodeURIComponent(interval)}`;
   if (isAuthenticated) {
     return destination;
   }
@@ -263,6 +270,7 @@ export default function HomePage() {
   const [publicPlans, setPublicPlans] = useState<PublicSubscriptionPlan[]>([]);
   const [billing, setBilling] = useState<BillingAvailability | null>(null);
   const [plansLoading, setPlansLoading] = useState(true);
+  const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
   const locale = getIntlLocale(language);
 
   useEffect(() => {
@@ -306,6 +314,23 @@ export default function HomePage() {
   const activePlans = publicPlans.filter((plan) => plan.isActive);
   const freeTrialPlan = activePlans.find((plan) => plan.planCode === 'free_trial') || null;
   const isAuthenticated = Boolean(user && !authLoading);
+  const availableIntervals = Array.from(new Set(
+    activePlans
+      .filter((plan) => plan.planCode !== 'free_trial' && isSelectablePaidInterval(plan.billingInterval))
+      .map((plan) => plan.billingInterval)
+  )) as Array<'monthly' | 'yearly'>;
+  const visiblePlans = Object.values(groupPlansByFamily(activePlans))
+    .map((familyPlans) => {
+      const freeTrial = familyPlans.find((plan) => plan.planCode === 'free_trial') || null;
+      return freeTrial || getPlanForInterval(familyPlans, selectedInterval);
+    })
+    .filter((plan): plan is PublicSubscriptionPlan => Boolean(plan));
+
+  useEffect(() => {
+    if (!availableIntervals.includes(selectedInterval)) {
+      setSelectedInterval(availableIntervals.includes('monthly') ? 'monthly' : (availableIntervals[0] || 'monthly'));
+    }
+  }, [availableIntervals, selectedInterval]);
 
   return (
     <div className="overflow-x-hidden">
@@ -632,6 +657,30 @@ export default function HomePage() {
             <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.pricingTitle')}</h2>
             <p className="text-muted-foreground">{t('home.pricing.subtitle')}</p>
           </div>
+          {availableIntervals.length > 1 ? (
+            <div className="mb-8 flex justify-center">
+              <div className="inline-flex rounded-2xl border border-border bg-secondary/40 p-1">
+                {(['monthly', 'yearly'] as const).map((interval) => {
+                  const supported = availableIntervals.includes(interval);
+                  return (
+                    <button
+                      key={interval}
+                      type="button"
+                      onClick={() => supported && setSelectedInterval(interval)}
+                      disabled={!supported}
+                      className={`min-w-[8.5rem] rounded-xl px-4 py-2 text-sm font-700 transition-all ${
+                        selectedInterval === interval
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground'
+                      } ${!supported ? 'cursor-not-allowed opacity-50' : ''}`}
+                    >
+                      {t(`home.pricing.intervals.${interval}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {plansLoading ? Array.from({ length: 3 }, (_, index) => (
               <div key={index} className="card-elevated p-6 flex flex-col animate-pulse">
@@ -645,10 +694,12 @@ export default function HomePage() {
                 </div>
                 <div className="mt-6 h-11 rounded bg-secondary" />
               </div>
-            )) : activePlans.map((plan) => {
+            )) : visiblePlans.map((plan) => {
               const featureRows = getPublicPlanFeatureRows(plan, t);
-              const priceText = formatPublicPlanPrice(plan, locale);
-              const ctaHref = getPublicPlanCtaHref(plan.id, isAuthenticated);
+              const priceText = formatPublicPlanPrice(plan.priceAmount, locale);
+              const equivalentMonthlyText = formatPublicPlanPrice(plan.equivalentMonthlyPriceAmount, locale);
+              const yearlySavingText = formatPublicPlanPrice(plan.yearlySavingAmount, locale);
+              const ctaHref = getPublicPlanCtaHref(plan.planCode, plan.billingInterval, isAuthenticated);
               const accent = plan.planCode === 'personal';
 
               return (
@@ -663,9 +714,30 @@ export default function HomePage() {
                       {priceText || t('home.pricing.freePrice')}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      {t(`home.pricing.intervals.${plan.billingInterval}`)}
+                      {plan.billingInterval === 'yearly'
+                        ? t('home.pricing.perYear')
+                        : plan.billingInterval === 'monthly'
+                          ? t('home.pricing.perMonth')
+                          : t(`home.pricing.intervals.${plan.billingInterval}`)}
                     </span>
                   </div>
+                  {plan.billingInterval === 'yearly' ? (
+                    <div className="mt-3 space-y-1.5">
+                      {plan.yearlyDiscountPercent > 0 ? (
+                        <span className="inline-flex rounded-full bg-positive-soft px-2.5 py-1 text-xs font-700 text-positive">
+                          {t('home.pricing.savePercent', { percent: plan.yearlyDiscountPercent })}
+                        </span>
+                      ) : null}
+                      <p className="text-sm text-muted-foreground">
+                        {t('home.pricing.equivalentPerMonth', { amount: equivalentMonthlyText })}
+                      </p>
+                      {plan.yearlySavingAmount > 0 ? (
+                        <p className="text-sm font-600 text-positive">
+                          {t('home.pricing.saveAmountPerYear', { amount: yearlySavingText })}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   {plan.description ? (
                     <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
                   ) : null}

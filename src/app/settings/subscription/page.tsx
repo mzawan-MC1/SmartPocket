@@ -23,6 +23,11 @@ import { useClientReferenceData } from '@/lib/reference-data/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import {
+  getPlanForInterval,
+  groupPlansByFamily,
+  isSelectablePaidInterval,
+} from '@/lib/subscription/pricing';
+import {
   cancelBillingSubscription,
   createBillingCheckoutSession,
   fetchSubscriptionPlans,
@@ -38,18 +43,20 @@ import type {
 } from '@/lib/subscription/types';
 
 function formatPlanPrice(
-  plan: PublicSubscriptionPlan,
+  amount: number,
   locale: string,
   currencies: any[]
 ) {
-  if (plan.priceAmount <= 0 || plan.billingInterval === 'none') {
+  if (amount <= 0) {
     return null;
   }
 
-  return formatCurrencyText(plan.priceAmount, {
+  return formatCurrencyText(amount, {
     currencyCode: 'AED',
     currencies,
     locale,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 
@@ -182,9 +189,11 @@ export default function SubscriptionSettingsPage() {
   const [portalBusy, setPortalBusy] = React.useState(false);
   const [cancelBusy, setCancelBusy] = React.useState(false);
   const [resumeBusy, setResumeBusy] = React.useState(false);
+  const [selectedInterval, setSelectedInterval] = React.useState<SupportedBillingInterval>('monthly');
 
   const currencies = referenceData?.snapshot?.currencies ?? [];
-  const highlightedPlanId = searchParams.get('plan');
+  const highlightedPlanCode = searchParams.get('plan');
+  const requestedInterval = searchParams.get('interval');
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -208,26 +217,58 @@ export default function SubscriptionSettingsPage() {
     void load();
   }, [load]);
 
+  const availableIntervals = Array.from(new Set(
+    plans
+      .filter((plan) => plan.isActive && plan.planCode !== 'free_trial' && isSelectablePaidInterval(plan.billingInterval))
+      .map((plan) => plan.billingInterval)
+  )) as SupportedBillingInterval[];
+
+  React.useEffect(() => {
+    const requested = requestedInterval === 'yearly' || requestedInterval === 'monthly'
+      ? requestedInterval
+      : null;
+    const nextInterval = requested && availableIntervals.includes(requested)
+      ? requested
+      : summary?.billingInterval && availableIntervals.includes(summary.billingInterval)
+        ? summary.billingInterval
+        : availableIntervals.includes('monthly')
+          ? 'monthly'
+          : availableIntervals[0] || 'monthly';
+
+    setSelectedInterval(nextInterval);
+  }, [availableIntervals, requestedInterval, summary?.billingInterval]);
+
   const currentPlan = plans.find((plan) => plan.id === summary?.planId) || null;
   const currentPlanPrice = currentPlan?.priceAmount ?? 0;
   const currentPeriodText = formatDateRange(summary?.currentPeriodStart, summary?.currentPeriodEnd, locale);
   const trialEndText = formatDate(summary?.trialEndsAt, locale);
+  const planFamilies = groupPlansByFamily(plans.filter((plan) => plan.isActive));
+  const visiblePlans = Object.values(planFamilies)
+    .map((familyPlans) => {
+      const freeTrialPlan = familyPlans.find((plan) => plan.planCode === 'free_trial') || null;
+      return freeTrialPlan || getPlanForInterval(familyPlans, selectedInterval);
+    })
+    .filter((plan): plan is PublicSubscriptionPlan => Boolean(plan));
 
   const handleCheckout = async (plan: PublicSubscriptionPlan) => {
     if (!billing) return;
 
     if (!billing.providerConfigured) {
       if (billing.contactEmail) {
-        window.location.href = `mailto:${billing.contactEmail}`;
+        const intervalLabel = t(`subscriptionBilling.intervals.${plan.billingInterval}`, { ns: 'portal' });
+        const mailtoUrl = new URL(`mailto:${billing.contactEmail}`);
+        mailtoUrl.searchParams.set('subject', `Smart Pocket ${plan.planName} ${intervalLabel}`);
+        mailtoUrl.searchParams.set('body', `Plan: ${plan.planName}\nPlan code: ${plan.planCode}\nBilling interval: ${intervalLabel}`);
+        window.location.href = mailtoUrl.toString();
       } else {
-        router.push('/contact');
+        router.push(`/contact?plan=${encodeURIComponent(plan.planCode)}&interval=${encodeURIComponent(plan.billingInterval)}`);
       }
       return;
     }
 
     setBusyPlanId(plan.id);
     try {
-      const response = await createBillingCheckoutSession(plan.id, plan.billingInterval as SupportedBillingInterval);
+      const response = await createBillingCheckoutSession(plan.planCode, plan.billingInterval as SupportedBillingInterval);
       if (!response.ok || !response.checkoutUrl) {
         toast.error(t(`subscriptionBilling.errors.${response.error?.code || 'checkout_creation_failed'}`, {
           ns: 'portal',
@@ -359,6 +400,11 @@ export default function SubscriptionSettingsPage() {
                         ? t(`subscriptionBilling.intervals.${summary.billingInterval}`, { ns: 'portal' })
                         : t('subscriptionBilling.notApplicable', { ns: 'portal' })}
                     </p>
+                    {typeof summary?.priceAmount === 'number' && summary.priceAmount > 0 ? (
+                      <p className="mt-2 text-sm font-700 text-foreground">
+                        {formatPlanPrice(summary.priceAmount, locale, currencies)}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="rounded-2xl border border-border bg-card p-4">
                     <p className="text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground">
@@ -489,18 +535,45 @@ export default function SubscriptionSettingsPage() {
               title={t('subscriptionBilling.choosePlan', { ns: 'portal' })}
               description={t('subscriptionBilling.choosePlanDescription', { ns: 'portal' })}
             >
+              {availableIntervals.length > 1 ? (
+                <div className="mb-5 flex justify-center">
+                  <div className="inline-flex rounded-2xl border border-border bg-secondary/40 p-1">
+                    {(['monthly', 'yearly'] as const).map((interval) => {
+                      const supported = availableIntervals.includes(interval);
+                      return (
+                        <button
+                          key={interval}
+                          type="button"
+                          onClick={() => supported && setSelectedInterval(interval)}
+                          disabled={!supported}
+                          className={`min-w-[8.5rem] rounded-xl px-4 py-2 text-sm font-700 transition-all ${
+                            selectedInterval === interval
+                              ? 'bg-card text-foreground shadow-sm'
+                              : 'text-muted-foreground'
+                          } ${!supported ? 'cursor-not-allowed opacity-50' : ''}`}
+                        >
+                          {t(`subscriptionBilling.intervals.${interval}`, { ns: 'portal' })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               <div className="grid gap-4 xl:grid-cols-3 md:grid-cols-2">
-                {plans.map((plan) => {
-                  const isCurrentPlan = summary?.planId === plan.id && summary?.billingInterval === plan.billingInterval;
-                  const isUpgrade = plan.priceAmount >= currentPlanPrice;
-                  const priceText = formatPlanPrice(plan, locale, currencies);
+                {visiblePlans.map((plan) => {
+                  const isCurrentPlan = summary?.planCode === plan.planCode && summary?.billingInterval === plan.billingInterval;
+                  const comparisonPrice = summary?.monthlyBasePriceAmount ?? currentPlan?.monthlyBasePriceAmount ?? currentPlanPrice;
+                  const isUpgrade = plan.monthlyBasePriceAmount >= comparisonPrice;
+                  const priceText = formatPlanPrice(plan.priceAmount, locale, currencies);
                   const featureList = featureRows(plan, t);
+                  const equivalentMonthlyText = formatPlanPrice(plan.equivalentMonthlyPriceAmount, locale, currencies);
+                  const yearlySavingText = formatPlanPrice(plan.yearlySavingAmount, locale, currencies);
 
                   return (
                     <div
                       key={plan.id}
                       className={`flex h-full flex-col rounded-3xl border bg-card p-5 shadow-card-sm ${
-                        highlightedPlanId === plan.id
+                        highlightedPlanCode === plan.planCode
                           ? 'border-accent ring-2 ring-accent/15'
                           : 'border-border'
                       }`}
@@ -517,15 +590,58 @@ export default function SubscriptionSettingsPage() {
                             {plan.description || t('subscriptionBilling.noDescription', { ns: 'portal' })}
                           </p>
                         </div>
-                        <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-700 text-muted-foreground">
-                          {t(`subscriptionBilling.intervals.${plan.billingInterval}`, { ns: 'portal' })}
-                        </span>
+                        <div className="flex flex-col items-end gap-2">
+                          <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-700 text-muted-foreground">
+                            {t(`subscriptionBilling.intervals.${plan.billingInterval}`, { ns: 'portal' })}
+                          </span>
+                          {plan.billingInterval === 'yearly' && plan.yearlyDiscountPercent > 0 ? (
+                            <span className="rounded-full bg-positive-soft px-2.5 py-1 text-xs font-700 text-positive">
+                              {t('subscriptionBilling.savePercent', {
+                                ns: 'portal',
+                                percent: plan.yearlyDiscountPercent,
+                              })}
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="mt-4">
                         <p className="text-2xl font-800 text-foreground">
                           {priceText || t('subscriptionBilling.freePrice', { ns: 'portal' })}
                         </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {plan.billingInterval === 'yearly'
+                            ? t('subscriptionBilling.billedYearly', { ns: 'portal' })
+                            : plan.billingInterval === 'monthly'
+                              ? t('subscriptionBilling.perMonth', { ns: 'portal' })
+                              : t('subscriptionBilling.notApplicable', { ns: 'portal' })}
+                        </p>
+                        {plan.billingInterval === 'yearly' ? (
+                          <div className="mt-3 space-y-1.5">
+                            <p className="text-sm font-600 text-foreground">
+                              {t('subscriptionBilling.equivalentPerMonth', {
+                                ns: 'portal',
+                                amount: equivalentMonthlyText,
+                              })}
+                            </p>
+                            {plan.yearlyDiscountPercent > 0 ? (
+                              <p className="text-sm font-600 text-positive">
+                                {t('subscriptionBilling.savePercent', {
+                                  ns: 'portal',
+                                  percent: plan.yearlyDiscountPercent,
+                                })}
+                              </p>
+                            ) : null}
+                            {plan.yearlySavingAmount > 0 ? (
+                              <p className="text-sm font-600 text-positive">
+                                {t('subscriptionBilling.saveAmountPerYear', {
+                                  ns: 'portal',
+                                  amount: yearlySavingText,
+                                })}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="mt-4 grid gap-2">

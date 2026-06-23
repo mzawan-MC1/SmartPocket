@@ -166,7 +166,25 @@
         "receiptIntelligence": "Анализ чеков: {{count}} документов за цикл",
         "aiHistoryEnabled": "История AI: хранение {{days}} дн.",
         "aiHistoryDisabled": "История AI не включена"
-      }
+      },
+      "billedMonthly": "Ежемесячное списание",
+      "billedYearly": "Ежегодное списание",
+      "perMonth": "/ месяц",
+      "perYear": "/ год",
+      "equivalentPerMonth": "Эквивалентно {{amount}} в месяц",
+      "yearlyDiscount": "Годовая скидка",
+      "savePercent": "Экономия {{percent}}%",
+      "saveAmountPerYear": "Экономия {{amount}} в год",
+      "annualPrice": "Годовая цена",
+      "monthlyPrice": "Месячная цена",
+      "calculatedYearlyPrice": "Рассчитанная годовая цена",
+      "billingInterval": "Интервал биллинга",
+      "chooseMonthly": "Выбрать ежемесячно",
+      "chooseYearly": "Выбрать ежегодно",
+      "bestValue": "Лучшая ценность",
+      "contactSupportYearlyPlan": "Свяжитесь с поддержкой по этому годовому плану",
+      "invalidDiscount": "Введите корректную годовую скидку от 0% до 100%.",
+      "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы AED."
     },
     "languages": {
       "ltr": "LTR",

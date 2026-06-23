@@ -4,6 +4,9 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { getBillingAvailability, getBillingProvider } from '@/lib/billing/provider';
+import {
+  buildPlanPricingDetails,
+} from '@/lib/subscription/pricing';
 import type {
   BillingProvider,
   VerifiedBillingEvent,
@@ -33,6 +36,7 @@ type RawPlanRow = {
   description: string | null;
   price_amount: number | string | null;
   billing_interval: SupportedBillingInterval;
+  yearly_discount_percent: number | string | null;
   trial_duration_days: number | null;
   monthly_ai_credits: number | null;
   daily_ai_request_limit: number | null;
@@ -107,7 +111,7 @@ type RawUsageCycleRow = {
 type AuthenticatedCheckoutInput = {
   userId: string;
   email: string | null;
-  planId: string;
+  planCode: PublicSubscriptionPlan['planCode'];
   billingInterval: SupportedBillingInterval;
   successUrl: string;
   cancelUrl: string;
@@ -155,14 +159,32 @@ function toPlanRow(value: RawPlanRow | RawPlanRow[] | null | undefined): RawPlan
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function normalizePlan(row: RawPlanRow, featureLimits: RawFeatureLimitRow[]): PublicSubscriptionPlan {
+function normalizePlan(
+  row: RawPlanRow,
+  featureLimits: RawFeatureLimitRow[],
+  monthlyBasePlansByCode: Map<PublicSubscriptionPlan['planCode'], RawPlanRow>
+): PublicSubscriptionPlan {
+  const monthlyBasePlan = row.billing_interval === 'yearly'
+    ? monthlyBasePlansByCode.get(row.plan_code) ?? row
+    : row;
+  const pricing = buildPlanPricingDetails({
+    billingInterval: row.billing_interval,
+    priceAmount: row.price_amount,
+    monthlyBasePriceAmount: monthlyBasePlan?.price_amount ?? row.price_amount,
+    yearlyDiscountPercent: row.yearly_discount_percent ?? monthlyBasePlan?.yearly_discount_percent ?? 0,
+  });
+
   return {
     id: row.id,
     planCode: row.plan_code,
     planName: row.plan_name,
     description: row.description ?? null,
-    priceAmount: Number(row.price_amount ?? 0),
+    priceAmount: pricing.billedPriceAmount,
     billingInterval: row.billing_interval,
+    monthlyBasePriceAmount: pricing.monthlyBasePriceAmount,
+    yearlyDiscountPercent: pricing.yearlyDiscountPercent,
+    yearlySavingAmount: pricing.yearlySavingAmount,
+    equivalentMonthlyPriceAmount: pricing.equivalentMonthlyPriceAmount,
     trialDurationDays: row.trial_duration_days ?? 0,
     monthlyAiCredits: row.monthly_ai_credits ?? 0,
     dailyAiRequestLimit: row.daily_ai_request_limit ?? 0,
@@ -357,6 +379,7 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
         description,
         price_amount,
         billing_interval,
+        yearly_discount_percent,
         trial_duration_days,
         monthly_ai_credits,
         daily_ai_request_limit,
@@ -392,6 +415,23 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     return EMPTY_SUBSCRIPTION_SUMMARY;
   }
 
+  let monthlyBasePlan: Pick<RawPlanRow, 'price_amount' | 'yearly_discount_percent'> | null = null;
+  if (planRow.plan_code !== 'free_trial') {
+    const { data: monthlyBasePlanRow, error: monthlyBasePlanError } = await admin
+      .from('subscription_plans')
+      .select('price_amount, yearly_discount_percent')
+      .eq('plan_code', planRow.plan_code)
+      .eq('billing_interval', 'monthly')
+      .limit(1)
+      .maybeSingle();
+
+    if (monthlyBasePlanError) {
+      throw monthlyBasePlanError;
+    }
+
+    monthlyBasePlan = (monthlyBasePlanRow as Pick<RawPlanRow, 'price_amount' | 'yearly_discount_percent'> | null) ?? null;
+  }
+
   const { data: billingSubscriptionRows, error: billingSubscriptionError } = await admin
     .from('billing_subscriptions')
     .select('*')
@@ -421,6 +461,12 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
   const receiptIncluded = usageCycle?.receipt_extractions_allocated ?? planRow.monthly_receipt_extractions ?? 0;
   const receiptUsed = usageCycle?.receipt_extractions_consumed ?? 0;
   const receiptReserved = usageCycle?.receipt_extractions_reserved ?? 0;
+  const pricing = buildPlanPricingDetails({
+    billingInterval: billingSubscription?.billing_interval || planRow.billing_interval,
+    priceAmount: planRow.price_amount,
+    monthlyBasePriceAmount: monthlyBasePlan?.price_amount ?? planRow.price_amount,
+    yearlyDiscountPercent: monthlyBasePlan?.yearly_discount_percent ?? planRow.yearly_discount_percent ?? 0,
+  });
 
   return {
     hasSubscription: true,
@@ -432,7 +478,11 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     rawStatus: subscription.status,
     billingStatus: billingSubscription?.status ?? null,
     billingInterval: billingSubscription?.billing_interval || planRow.billing_interval,
-    priceAmount: Number(planRow.price_amount ?? 0),
+    priceAmount: pricing.billedPriceAmount,
+    monthlyBasePriceAmount: pricing.monthlyBasePriceAmount,
+    yearlyDiscountPercent: pricing.yearlyDiscountPercent,
+    yearlySavingAmount: pricing.yearlySavingAmount,
+    equivalentMonthlyPriceAmount: pricing.equivalentMonthlyPriceAmount,
     trialEndsAt: subscription.trial_ends_at,
     trialDaysRemaining,
     currentPeriodStart: billingSubscription?.current_period_start || subscription.current_period_start,
@@ -493,7 +543,26 @@ export async function loadActivePublicPlans(): Promise<PublicSubscriptionPlan[]>
   }
 
   const normalizedFeatureRows = (featureRows as RawFeatureLimitRow[] | null) ?? [];
-  return ((planRows as RawPlanRow[] | null) ?? []).map((row) => normalizePlan(row, normalizedFeatureRows));
+  const normalizedPlanRows = (planRows as RawPlanRow[] | null) ?? [];
+  const monthlyBasePlansByCode = new Map(
+    normalizedPlanRows
+      .filter((row) => row.billing_interval === 'monthly')
+      .map((row) => [row.plan_code, row] as const)
+  );
+
+  return normalizedPlanRows
+    .map((row) => normalizePlan(row, normalizedFeatureRows, monthlyBasePlansByCode))
+    .sort((left, right) => {
+      const intervalRank = (value: SupportedBillingInterval) => {
+        if (value === 'none') return 0;
+        if (value === 'monthly') return 1;
+        return 2;
+      };
+
+      return left.displayOrder - right.displayOrder
+        || intervalRank(left.billingInterval) - intervalRank(right.billingInterval)
+        || left.planName.localeCompare(right.planName);
+    });
 }
 
 export async function getPublicPlansResponse(): Promise<SubscriptionPlansResponse> {
@@ -564,9 +633,13 @@ function buildBillingError(code: BillingActionError['code'], message: string): B
   return { code, message };
 }
 
-export async function validateRequestedPlanSelection(userId: string, planId: string, billingInterval: SupportedBillingInterval) {
+export async function validateRequestedPlanSelection(
+  userId: string,
+  planCode: PublicSubscriptionPlan['planCode'],
+  billingInterval: SupportedBillingInterval
+) {
   const plans = await loadActivePublicPlans();
-  const selectedPlan = plans.find((plan) => plan.id === planId);
+  const selectedPlan = plans.find((plan) => plan.planCode === planCode && plan.billingInterval === billingInterval);
 
   if (!selectedPlan) {
     return {
@@ -582,17 +655,10 @@ export async function validateRequestedPlanSelection(userId: string, planId: str
     };
   }
 
-  if (selectedPlan.billingInterval !== billingInterval) {
-    return {
-      ok: false as const,
-      error: buildBillingError('unsupported_billing_interval', 'Selected billing interval is not supported for this plan.'),
-    };
-  }
-
   const summary = (await ensureUserSubscriptionSummary(userId)).summary;
   if (
     summary.hasSubscription
-    && summary.planId === selectedPlan.id
+    && summary.planCode === selectedPlan.planCode
     && summary.billingInterval === billingInterval
     && (summary.status === 'active' || summary.status === 'trialing' || summary.status === 'past_due')
   ) {
@@ -611,14 +677,15 @@ export async function validateRequestedPlanSelection(userId: string, planId: str
 
 async function createCheckoutSessionRecord(
   admin: SupabaseClient,
-  input: AuthenticatedCheckoutInput,
+  input: Pick<AuthenticatedCheckoutInput, 'userId' | 'billingInterval' | 'successUrl' | 'cancelUrl'>,
+  planId: string,
   providerName: string
 ) {
   const { data, error } = await admin
     .from('billing_checkout_sessions')
     .insert({
       user_id: input.userId,
-      plan_id: input.planId,
+      plan_id: planId,
       billing_interval: input.billingInterval,
       provider: providerName,
       status: 'pending',
@@ -678,13 +745,13 @@ export async function initiateCheckoutForUser(input: AuthenticatedCheckoutInput)
     };
   }
 
-  const validation = await validateRequestedPlanSelection(input.userId, input.planId, input.billingInterval);
+  const validation = await validateRequestedPlanSelection(input.userId, input.planCode, input.billingInterval);
   if (!validation.ok) {
     return { ok: false, error: validation.error };
   }
 
   const provider = getBillingProvider();
-  const checkoutSessionId = await createCheckoutSessionRecord(admin, input, provider.name);
+  const checkoutSessionId = await createCheckoutSessionRecord(admin, input, validation.plan.id, provider.name);
 
   if (!provider.configured) {
     await updateCheckoutSessionRecord(admin, checkoutSessionId, {

@@ -2054,6 +2054,24 @@
       "duplicate_billing_event": "تمت معالجة حدث الفوترة هذا مسبقا.",
       "subscription_activation_failed": "تعذر تفعيل الاشتراك بعد تأكيد الدفع.",
       "subscription_not_found": "لم يتم العثور على اشتراك مطابق."
-    }
+    },
+    "billedMonthly": "تتم الفوترة شهريا",
+    "billedYearly": "تتم الفوترة سنويا",
+    "perMonth": "شهريا",
+    "perYear": "سنويا",
+    "equivalentPerMonth": "ما يعادل {{amount}} شهريا",
+    "yearlyDiscount": "خصم سنوي",
+    "savePercent": "وفّر {{percent}}%",
+    "saveAmountPerYear": "وفّر {{amount}} سنويا",
+    "annualPrice": "السعر السنوي",
+    "monthlyPrice": "السعر الشهري",
+    "calculatedYearlyPrice": "السعر السنوي المحتسب",
+    "billingInterval": "فترة الفوترة",
+    "chooseMonthly": "اختر الشهري",
+    "chooseYearly": "اختر السنوي",
+    "bestValue": "أفضل قيمة",
+    "contactSupportYearlyPlan": "تواصل مع الدعم بشأن هذه الخطة السنوية",
+    "invalidDiscount": "أدخل خصما سنويا صالحا بين 0% و100%.",
+    "wholeNumberPriceRequirement": "يجب حفظ الأسعار كمبالغ صحيحة بالدرهم الإماراتي."
   }
 }
