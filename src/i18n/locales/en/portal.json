@@ -1723,7 +1723,7 @@
         "processing": "Processing your voice..."
       },
       "maxDuration": "Max {{duration}}",
-      "transcribing": "Transcribing and analyzing...",
+      "transcribing": "Preparing your transcript...",
       "actions": {
         "start": "Start recording",
         "pause": "Pause recording",
@@ -1736,7 +1736,18 @@
         "permissionDenied": "Microphone access denied. Please allow microphone access and try again.",
         "noMicrophone": "No microphone found. Please connect a microphone and try again.",
         "notSupported": "Voice recording is not supported in this browser. Please use text input instead.",
-        "startFailed": "Could not start recording. Please try again."
+        "startFailed": "Could not start recording. Please try again.",
+        "emptyAudio": "The recording was empty. Please try again.",
+        "fileTooLarge": "This recording is too large. Keep it under {{maxSize}}."
+      },
+      "unavailable": {
+        "configurationTitle": "Voice entry is temporarily unavailable",
+        "configurationMessage": "Voice transcription has not been configured by the administrator. Use text entry for now.",
+        "microphoneTitle": "Microphone access is blocked",
+        "microphoneMessage": "Allow microphone access in your browser settings, then try again.",
+        "providerUnavailableTitle": "Voice transcription is temporarily unavailable",
+        "providerUnavailableMessage": "We could not transcribe your recording right now. Try again in a moment or use text entry.",
+        "limitTitle": "Voice limit reached"
       }
     },
     "missingFields": {

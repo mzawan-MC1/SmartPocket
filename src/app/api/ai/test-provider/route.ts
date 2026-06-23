@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createLanguageProvider, createSpeechProvider } from '@/lib/ai-gateway';
+import { createLanguageProvider } from '@/lib/ai-gateway';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
+import {
+  persistVoiceTranscriptionHealth,
+  runVoiceTranscriptionHealthCheck,
+  type VoiceProviderHealthCheckResult,
+} from '@/lib/voice-ai-server';
+import type { VoiceTranscriptionProvider } from '@/lib/voice-ai';
+import type { ProviderHealthResult } from '@/lib/ai-types';
 
 // Allowlisted provider names — never trust caller-supplied provider names
 const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'cloud_stt', 'vps_stt']);
@@ -57,13 +64,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 4. Run health check ──────────────────────────────────────────────────
-    let result;
+    let result: ProviderHealthResult | VoiceProviderHealthCheckResult;
+    let voiceResult: VoiceProviderHealthCheckResult | null = null;
     if (provider === 'openrouter' || provider === 'vps_ai') {
       const langProvider = createLanguageProvider(provider, 10000);
       result = await langProvider.healthCheck();
     } else {
-      const sttProvider = createSpeechProvider(provider, 10000);
-      result = await sttProvider.healthCheck();
+      const voiceProvider: VoiceTranscriptionProvider = provider === 'cloud_stt' ? 'cloud_stt' : 'vps_stt';
+      voiceResult = await runVoiceTranscriptionHealthCheck(voiceProvider);
+      result = voiceResult;
     }
 
     // ── 5. Persist health record — status is server-derived, not from body ──
@@ -97,6 +106,10 @@ export async function POST(req: NextRequest) {
       } else {
         console.error('[api/ai/test-provider] health upsert failed:', upsertRes.error.message);
       }
+    }
+
+    if (voiceResult) {
+      await persistVoiceTranscriptionHealth(voiceResult);
     }
 
     return applySupabaseCookies(NextResponse.json(result, { status: 200 }), cookieMutations);

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
+import { loadVoiceTranscriptionStatus } from '@/lib/voice-ai-server';
 
 type AIConfigStatusResponse = {
   openrouterConfigured: boolean;
@@ -9,6 +10,29 @@ type AIConfigStatusResponse = {
   aiEnabled: boolean;
   mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
   model: string;
+  voiceTranscription: {
+    ready: boolean;
+    code: string;
+    provider: string | null;
+    fallbackProvider: string | null;
+    model: string | null;
+    maxAudioSeconds: number;
+    maxAudioBytes: number;
+    supportedAudioFormats: string;
+    apiKeyConfigured: boolean;
+    authTokenConfigured: boolean;
+    baseUrlConfigured: boolean;
+    lastHealthCheck: {
+      provider: string;
+      status: string;
+      checkedAt: string | null;
+      lastSuccessAt: string | null;
+      lastFailureAt: string | null;
+      errorCategory: string | null;
+      responseTimeMs: number | null;
+      modelUsed: string | null;
+    } | null;
+  };
 };
 
 export async function GET() {
@@ -40,15 +64,40 @@ export async function GET() {
       : 'cloud_only';
 
   const model = openrouterModel || 'openai/gpt-4.1-mini';
+  const voiceTranscription = await loadVoiceTranscriptionStatus();
+  const cloudSpeechConfigured = Boolean(
+    process.env.CLOUD_STT_API_KEY
+    && process.env.CLOUD_STT_BASE_URL
+    && (process.env.CLOUD_STT_MODEL || voiceTranscription.model)
+  );
+  const vpsConfigured = Boolean(
+    process.env.LOCAL_AI_BASE_URL
+    || process.env.LOCAL_STT_BASE_URL
+    || (voiceTranscription.provider === 'vps_stt' && voiceTranscription.baseUrlConfigured)
+  );
 
   const body: AIConfigStatusResponse = {
     openrouterConfigured: Boolean(openrouterApiKey),
     supabaseServiceConfigured: Boolean(supabaseServiceRoleKey),
-    cloudSpeechConfigured: Boolean(process.env.CLOUD_STT_API_KEY),
-    vpsConfigured: Boolean(process.env.LOCAL_AI_BASE_URL || process.env.LOCAL_STT_BASE_URL),
-    aiEnabled: aiEnabledRaw === 'true',
+    cloudSpeechConfigured,
+    vpsConfigured,
+    aiEnabled: aiEnabledRaw === 'true' && voiceTranscription.adminAiEnabled,
     mode,
     model,
+    voiceTranscription: {
+      ready: voiceTranscription.ready,
+      code: voiceTranscription.code,
+      provider: voiceTranscription.provider,
+      fallbackProvider: voiceTranscription.fallbackProvider,
+      model: voiceTranscription.model,
+      maxAudioSeconds: voiceTranscription.maxAudioSeconds,
+      maxAudioBytes: voiceTranscription.maxAudioBytes,
+      supportedAudioFormats: voiceTranscription.supportedAudioFormats,
+      apiKeyConfigured: voiceTranscription.apiKeyConfigured,
+      authTokenConfigured: voiceTranscription.authTokenConfigured,
+      baseUrlConfigured: voiceTranscription.baseUrlConfigured,
+      lastHealthCheck: voiceTranscription.lastHealthCheck,
+    },
   };
 
   if (process.env.NODE_ENV !== 'production') {

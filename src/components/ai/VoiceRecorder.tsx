@@ -2,14 +2,22 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Mic, Square, Pause, Play, X, RotateCcw, Type, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  formatVoiceAudioSize,
+  getPreferredVoiceRecordingMimeType,
+  getVoiceAudioExtension,
+  VOICE_AI_MAX_AUDIO_BYTES,
+  type VoiceRecorderSubmission,
+} from '@/lib/voice-ai';
 
 export type RecordingState =
   | 'idle' |'requesting_permission' |'recording' |'paused' |'processing' |'done' |'error';
 
 export interface VoiceRecorderProps {
-  onTranscriptReady: (audioBase64: string, mimeType: string, durationSeconds: number) => void;
+  onTranscriptReady: (submission: VoiceRecorderSubmission) => void;
   onCancel: () => void;
   onSwitchToText: () => void;
+  onError?: (code: 'microphone_permission_denied', message: string) => void;
   maxSeconds?: number;
   language?: string;
 }
@@ -18,6 +26,7 @@ export default function VoiceRecorder({
   onTranscriptReady,
   onCancel,
   onSwitchToText,
+  onError,
   maxSeconds = 120,
   language = 'en',
 }: VoiceRecorderProps) {
@@ -32,8 +41,18 @@ export default function VoiceRecorder({
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const animFrameRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const accumulatedMsRef = useRef(0);
+  const mimeTypeRef = useRef<string>('audio/webm');
+
+  const updateElapsed = useCallback(() => {
+    const activeMs = recordingStartedAtRef.current ? (Date.now() - recordingStartedAtRef.current) : 0;
+    const elapsedSeconds = Math.min(maxSeconds, Math.round((accumulatedMsRef.current + activeMs) / 1000));
+    setElapsed(elapsedSeconds);
+    return elapsedSeconds;
+  }, [maxSeconds]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -47,6 +66,10 @@ export default function VoiceRecorder({
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
     }
+    if (audioContextRef.current) {
+      void audioContextRef.current.close().catch(() => undefined);
+      audioContextRef.current = null;
+    }
   }, []);
 
   const cleanup = useCallback(() => {
@@ -59,6 +82,8 @@ export default function VoiceRecorder({
     mediaRecorderRef.current = null;
     analyserRef.current = null;
     chunksRef.current = [];
+    recordingStartedAtRef.current = null;
+    accumulatedMsRef.current = 0;
   }, [stopTimer, stopAudioLevel]);
 
   useEffect(() => {
@@ -68,6 +93,7 @@ export default function VoiceRecorder({
   const startAudioLevelMonitor = useCallback((stream: MediaStream) => {
     try {
       const ctx = new AudioContext();
+      audioContextRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -87,18 +113,33 @@ export default function VoiceRecorder({
     }
   }, []);
 
+  const handleRecorderError = useCallback((message: string) => {
+    setErrorMessage(message);
+    setState('error');
+  }, []);
+
   const startRecording = useCallback(async () => {
     setState('requesting_permission');
     setErrorMessage('');
     chunksRef.current = [];
+    accumulatedMsRef.current = 0;
+    recordingStartedAtRef.current = null;
 
     try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+        handleRecorderError(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
+        return;
+      }
+
+      const mimeType = getPreferredVoiceRecordingMimeType();
+      if (!mimeType || typeof MediaRecorder === 'undefined') {
+        handleRecorderError(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       streamRef.current = stream;
-
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus' : MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm' :'audio/ogg';
+      mimeTypeRef.current = mimeType;
 
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
@@ -107,48 +148,70 @@ export default function VoiceRecorder({
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
-      recorder.onstop = async () => {
+      recorder.onstop = () => {
         stopAudioLevel();
+        stopTimer();
         setAudioLevel(0);
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        const duration = (Date.now() - startTimeRef.current) / 1000;
+        if (recordingStartedAtRef.current) {
+          accumulatedMsRef.current += Date.now() - recordingStartedAtRef.current;
+          recordingStartedAtRef.current = null;
+        }
 
-        // Convert to base64
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          onTranscriptReady(base64, mimeType, duration);
-        };
-        reader.readAsDataURL(blob);
+        const durationSeconds = Math.max(0, accumulatedMsRef.current / 1000);
+        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || mimeType });
+        const outputMimeType = blob.type || mimeTypeRef.current || mimeType;
+
+        if (blob.size <= 0 || durationSeconds <= 0) {
+          handleRecorderError(t('smartEntryModal.voice.errors.emptyAudio', { ns: 'portal' }));
+          return;
+        }
+
+        if (blob.size > VOICE_AI_MAX_AUDIO_BYTES) {
+          handleRecorderError(t('smartEntryModal.voice.errors.fileTooLarge', {
+            ns: 'portal',
+            maxSize: formatVoiceAudioSize(VOICE_AI_MAX_AUDIO_BYTES),
+          }));
+          return;
+        }
+
+        const file = new File(
+          [blob],
+          `voice-entry.${getVoiceAudioExtension(outputMimeType)}`,
+          { type: outputMimeType }
+        );
         setState('processing');
+        onTranscriptReady({
+          file,
+          mimeType: outputMimeType,
+          durationSeconds,
+        });
       };
 
       recorder.start(250); // collect chunks every 250ms
-      startTimeRef.current = Date.now();
+      recordingStartedAtRef.current = Date.now();
       setState('recording');
       startAudioLevelMonitor(stream);
 
       // Start timer
       setElapsed(0);
       timerRef.current = setInterval(() => {
-        setElapsed(prev => {
-          const next = prev + 1;
-          if (next >= maxSeconds) {
-            stopRecording();
-          }
-          return next;
-        });
+        const next = updateElapsed();
+        if (next >= maxSeconds) {
+          stopRecording();
+        }
       }, 1000);
 
       // Haptic feedback
       if ('vibrate' in navigator) navigator.vibrate(50);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Microphone access denied';
-      if (msg.includes('denied') || msg.includes('NotAllowed')) {
-        setErrorMessage(t('smartEntryModal.voice.errors.permissionDenied', { ns: 'portal' }));
-      } else if (msg.includes('NotFound') || msg.includes('DevicesNotFound')) {
+      const message = err instanceof Error ? err.message : 'Microphone access denied';
+      if (message.includes('denied') || message.includes('NotAllowed')) {
+        const deniedMessage = t('smartEntryModal.voice.errors.permissionDenied', { ns: 'portal' });
+        setErrorMessage(deniedMessage);
+        onError?.('microphone_permission_denied', deniedMessage);
+      } else if (message.includes('NotFound') || message.includes('DevicesNotFound')) {
         setErrorMessage(t('smartEntryModal.voice.errors.noMicrophone', { ns: 'portal' }));
-      } else if (msg.includes('NotSupported') || msg.includes('MediaRecorder')) {
+      } else if (message.includes('NotSupported') || message.includes('MediaRecorder')) {
         setErrorMessage(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
       } else {
         setErrorMessage(t('smartEntryModal.voice.errors.startFailed', { ns: 'portal' }));
@@ -156,7 +219,7 @@ export default function VoiceRecorder({
       setState('error');
       cleanup();
     }
-  }, [cleanup, maxSeconds, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t]);
+  }, [cleanup, handleRecorderError, maxSeconds, onError, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t, updateElapsed]);
 
   const stopRecording = useCallback(() => {
     stopTimer();
@@ -171,27 +234,30 @@ export default function VoiceRecorder({
 
   const pauseRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'recording') {
+      if (recordingStartedAtRef.current) {
+        accumulatedMsRef.current += Date.now() - recordingStartedAtRef.current;
+        recordingStartedAtRef.current = null;
+        updateElapsed();
+      }
       mediaRecorderRef.current.pause();
       stopTimer();
       stopAudioLevel();
       setState('paused');
     }
-  }, [stopTimer, stopAudioLevel]);
+  }, [stopTimer, stopAudioLevel, updateElapsed]);
 
   const resumeRecording = useCallback(() => {
     if (mediaRecorderRef.current?.state === 'paused') {
       mediaRecorderRef.current.resume();
+      recordingStartedAtRef.current = Date.now();
       setState('recording');
       startAudioLevelMonitor(streamRef.current!);
       timerRef.current = setInterval(() => {
-        setElapsed(prev => {
-          const next = prev + 1;
-          if (next >= maxSeconds) stopRecording();
-          return next;
-        });
+        const next = updateElapsed();
+        if (next >= maxSeconds) stopRecording();
       }, 1000);
     }
-  }, [maxSeconds, startAudioLevelMonitor, stopRecording]);
+  }, [maxSeconds, startAudioLevelMonitor, stopRecording, updateElapsed]);
 
   const handleCancel = useCallback(() => {
     cleanup();

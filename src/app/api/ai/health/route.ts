@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { runHealthChecks, loadAIConfig } from '@/lib/ai-gateway';
+import { createLanguageProvider, loadAIConfig } from '@/lib/ai-gateway';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
+import {
+  persistVoiceTranscriptionHealth,
+  runVoiceTranscriptionHealthCheck,
+} from '@/lib/voice-ai-server';
 
 export async function GET() {
   try {
@@ -40,7 +44,13 @@ export async function GET() {
     }
 
     const config = loadAIConfig();
-    const healthResults = await runHealthChecks(config);
+    const [openrouterHealth, vpsAiHealth, cloudSttHealth, vpsSttHealth] = await Promise.all([
+      createLanguageProvider('openrouter', 5000).healthCheck(),
+      createLanguageProvider('vps_ai', 5000).healthCheck(),
+      runVoiceTranscriptionHealthCheck('cloud_stt'),
+      runVoiceTranscriptionHealthCheck('vps_stt'),
+    ]);
+    const healthResults = [openrouterHealth, vpsAiHealth, cloudSttHealth, vpsSttHealth];
 
     // Update health records in DB (admin-only table)
     for (const result of healthResults) {
@@ -69,6 +79,11 @@ export async function GET() {
         }
       }
     }
+
+    await Promise.all([
+      persistVoiceTranscriptionHealth(cloudSttHealth),
+      persistVoiceTranscriptionHealth(vpsSttHealth),
+    ]);
 
     return applySupabaseCookies(NextResponse.json({
       providers: healthResults,

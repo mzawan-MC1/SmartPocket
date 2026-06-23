@@ -69,6 +69,29 @@ interface ServerAIConfigStatus {
   aiEnabled: boolean;
   mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
   model: string;
+  voiceTranscription: {
+    ready: boolean;
+    code: string;
+    provider: string | null;
+    fallbackProvider: string | null;
+    model: string | null;
+    maxAudioSeconds: number;
+    maxAudioBytes: number;
+    supportedAudioFormats: string;
+    apiKeyConfigured: boolean;
+    authTokenConfigured: boolean;
+    baseUrlConfigured: boolean;
+    lastHealthCheck: {
+      provider: string;
+      status: string;
+      checkedAt: string | null;
+      lastSuccessAt: string | null;
+      lastFailureAt: string | null;
+      errorCategory: string | null;
+      responseTimeMs: number | null;
+      modelUsed: string | null;
+    } | null;
+  };
 }
 
 const DEFAULT_SETTINGS: AISettings = {
@@ -117,9 +140,9 @@ function ConfigStatusPanel({
   serverConfig: ServerAIConfigStatus | null;
 }) {
   const openrouterHealth = health.find(h => h.provider === 'openrouter');
-  const cloudSttHealth = health.find(h => h.provider === 'cloud_stt');
   const vpsAiHealth = health.find(h => h.provider === 'vps_ai');
   const vpsSttHealth = health.find(h => h.provider === 'vps_stt');
+  const voiceHealth = serverConfig?.voiceTranscription?.lastHealthCheck;
 
   const isCloudOnly = serverConfig?.mode === 'cloud_only';
 
@@ -138,10 +161,17 @@ function ConfigStatusPanel({
 
   let cloudSpeechStatus: ConfigStatus['cloudSpeech'] = 'checking';
   if (serverConfig) {
-    if (!serverConfig.cloudSpeechConfigured) cloudSpeechStatus = 'missing';
-    else if (cloudSttHealth?.status === 'healthy') cloudSpeechStatus = 'healthy';
-    else if (cloudSttHealth?.status === 'offline' || cloudSttHealth?.status === 'degraded') cloudSpeechStatus = 'test_failed';
-    else cloudSpeechStatus = 'configured';
+    if (!serverConfig.voiceTranscription?.ready) {
+      cloudSpeechStatus = (
+        serverConfig.voiceTranscription?.code === 'transcription_provider_unavailable'
+        || serverConfig.voiceTranscription?.code === 'transcription_auth_failed'
+        || serverConfig.voiceTranscription?.code === 'unsupported_model'
+      ) ? 'test_failed' : 'missing';
+    } else if (voiceHealth?.status === 'healthy') {
+      cloudSpeechStatus = 'healthy';
+    } else {
+      cloudSpeechStatus = 'configured';
+    }
   }
 
   let vpsStatus: ConfigStatus['vps'] = 'checking';
@@ -189,6 +219,50 @@ function ConfigStatusPanel({
           <span className="text-foreground font-600">{serverConfig.model}</span>
         </div>
       )}
+      {serverConfig?.voiceTranscription && (
+        <div className="mb-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
+          <div className="grid gap-1 sm:grid-cols-2">
+            <div>
+              Voice provider: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.provider || 'Not selected'}</span>
+            </div>
+            <div>
+              Fallback provider: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.fallbackProvider || 'Not selected'}</span>
+            </div>
+            <div>
+              Voice model: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.model || 'Missing'}</span>
+            </div>
+            <div>
+              Voice ready: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+            </div>
+            <div>
+              Status code: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.code}</span>
+            </div>
+            <div>
+              Max audio: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.maxAudioSeconds}s / {(serverConfig.voiceTranscription.maxAudioBytes / (1024 * 1024)).toFixed(0)} MB</span>
+            </div>
+            <div>
+              API key: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.apiKeyConfigured ? 'Configured' : 'Missing'}</span>
+            </div>
+            <div>
+              Auth token: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.authTokenConfigured ? 'Configured' : 'Not used'}</span>
+            </div>
+            <div>
+              Base URL: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.baseUrlConfigured ? 'Configured' : 'Missing'}</span>
+            </div>
+            <div>
+              Last health: <span className="font-600 text-foreground">{voiceHealth?.status || 'Not checked'}</span>
+            </div>
+          </div>
+          <div className="mt-1">
+            Supported audio: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.supportedAudioFormats}</span>
+          </div>
+          {voiceHealth?.errorCategory && (
+            <div className="mt-1">
+              Health detail: <span className="font-600 text-foreground">{voiceHealth.errorCategory}</span>
+            </div>
+          )}
+        </div>
+      )}
       <div className="space-y-2">
         <div className="flex items-center justify-between py-2 border-b border-border/50">
           <span className="text-sm text-foreground">OpenRouter API Key</span>
@@ -205,7 +279,7 @@ function ConfigStatusPanel({
           </span>
         </div>
         <div className="flex items-center justify-between py-2 border-b border-border/50">
-          <span className="text-sm text-foreground">Cloud Speech-to-Text</span>
+          <span className="text-sm text-foreground">Voice transcription</span>
           <span className={`flex items-center gap-1.5 text-xs font-600 ${sttStatus.color}`}>
             {sttStatus.icon}
             {sttStatus.label}
@@ -219,6 +293,12 @@ function ConfigStatusPanel({
           </span>
         </div>
       </div>
+      {voiceHealth && (
+        <p className="text-xs text-muted-foreground mt-3">
+          Last voice health check: {voiceHealth.status} {voiceHealth.checkedAt ? `at ${new Date(voiceHealth.checkedAt).toLocaleString()}` : ''}
+          {voiceHealth.errorCategory ? ` (${voiceHealth.errorCategory})` : ''}
+        </p>
+      )}
       <p className="text-xs text-muted-foreground mt-3">
         Secrets are set as server-only environment variables. Use the Health tab to run live connection tests.
       </p>

@@ -56,6 +56,7 @@ import {
   getTransactionDocumentMaxSizeLabel,
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
+import type { VoiceRecorderSubmission } from '@/lib/voice-ai';
 
  type AssistantStep =
    | 'entry'
@@ -77,6 +78,15 @@ type ReceiptInsightAnswer = {
     detail: string;
     currency?: string;
   }>;
+};
+
+type VoiceStatusResponse = {
+  ready?: boolean;
+  transcription?: {
+    maxAudioSeconds?: number;
+  };
+  error?: AIErrorPayload;
+  usage?: AIUsageSummary;
 };
 
  interface AIAssistantModalProps {
@@ -396,6 +406,7 @@ function isReceiptInsightQuestion(value: string) {
    const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
   const [receiptInsightAnswer, setReceiptInsightAnswer] = useState<ReceiptInsightAnswer | null>(null);
    const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
+  const [voiceMaxSeconds, setVoiceMaxSeconds] = useState(120);
    const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
    const [accountDraftTarget, setAccountDraftTarget] = useState<'account' | 'destinationAccount' | null>(null);
    const [accountDraft, setAccountDraft] = useState<{
@@ -560,6 +571,21 @@ function isReceiptInsightQuestion(value: string) {
       remainingCredits: typeof value.remainingCredits === 'number' ? value.remainingCredits : undefined,
     };
   };
+
+  const handleVoiceFailure = useCallback((payload: unknown, fallbackMessage: string) => {
+    const responseBody = isObject(payload) ? payload : {};
+    const structuredError = parseErrorPayload(responseBody.error);
+    const usage = parseUsageSummary(responseBody.usage);
+
+    setApiError(structuredError);
+    setUsageSummary(usage);
+    setErrorMessage(
+      structuredError?.message ||
+      (typeof responseBody.errorMessage === 'string' ? responseBody.errorMessage : '') ||
+      fallbackMessage
+    );
+    setStep('failed');
+  }, []);
 
   const handleApiFailure = useCallback((payload: unknown, fallbackMessage: string) => {
     const responseBody = isObject(payload) ? payload : {};
@@ -1153,11 +1179,46 @@ function isReceiptInsightQuestion(value: string) {
      setAccountDraftTarget(null);
   }, [eligibleDestinationAccounts, eligiblePrimaryAccounts, handleStartCreateAccount, normalizeReviewCurrency, updateReview]);
 
-  const callParseAPI = useCallback(async (
-    type: 'text' | 'voice',
-    text?: string,
-    audio?: { audioBase64: string; mimeType: string; durationSeconds: number }
-  ) => {
+  const checkVoiceAvailability = useCallback(async () => {
+    const response = await fetch('/api/ai/voice-status', {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    const data = await response.json().catch(() => ({} as VoiceStatusResponse));
+
+    if (data?.transcription?.maxAudioSeconds) {
+      setVoiceMaxSeconds(data.transcription.maxAudioSeconds);
+    }
+
+    if (!response.ok || data.ready !== true) {
+      handleVoiceFailure(data, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
+      return false;
+    }
+
+    setApiError(null);
+    setErrorMessage('');
+    setUsageSummary(null);
+    return true;
+  }, [handleVoiceFailure, t]);
+
+  useEffect(() => {
+    if (mode !== 'voice' || step !== 'entry' || isAIConfigured === false) {
+      return;
+    }
+
+    let cancelled = false;
+    void checkVoiceAvailability().then((ready) => {
+      if (cancelled || ready) {
+        return;
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [checkVoiceAvailability, isAIConfigured, mode, step]);
+
+  const callParseAPI = useCallback(async (text: string) => {
     const nextFlowId = createClientId();
     resetRequestState({
       preserveInput: false,
@@ -1165,9 +1226,7 @@ function isReceiptInsightQuestion(value: string) {
       preserveLanguage: true,
     });
     setStep('processing');
-    if (type === 'text' && text) {
-      setTranscript(text);
-    }
+    setTranscript(text);
     setErrorMessage('');
     setApiError(null);
     setUsageSummary(null);
@@ -1178,14 +1237,12 @@ function isReceiptInsightQuestion(value: string) {
       setContextSnapshot(context);
 
       const body: Record<string, unknown> = {
-        inputType: type,
+        inputType: 'text',
         language,
         context,
         idempotencyKey: nextFlowId,
+        text,
       };
-
-      if (type === 'text') body.text = text;
-      if (type === 'voice') body.audio = audio;
 
       const response = await fetch('/api/ai/parse', {
         method: 'POST',
@@ -1216,7 +1273,7 @@ function isReceiptInsightQuestion(value: string) {
         instruction.review ||
         buildInitialSmartEntryReview({
           instruction,
-          sourceText: (text || transcript || '').trim(),
+          sourceText: (text || data.transcript || '').trim(),
           context,
         });
       setReviewState(hydrateSmartEntryReviewWithContext({ review: baseReview, context }));
@@ -1231,7 +1288,7 @@ function isReceiptInsightQuestion(value: string) {
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [language, handleApiFailure, resetRequestState]);
+  }, [language, handleApiFailure, resetRequestState, t]);
 
   const callReceiptInsightAPI = useCallback(async (question: string) => {
     resetRequestState({
@@ -1277,12 +1334,71 @@ function isReceiptInsightQuestion(value: string) {
       void callReceiptInsightAPI(textInput.trim());
       return;
     }
-    callParseAPI('text', textInput.trim());
+    void callParseAPI(textInput.trim());
   }, [textInput, callParseAPI, callReceiptInsightAPI]);
 
-  const handleVoiceReady = useCallback((audioBase64: string, mimeType: string, durationSeconds: number) => {
-    callParseAPI('voice', undefined, { audioBase64, mimeType, durationSeconds });
-  }, [callParseAPI]);
+  const handleVoiceReady = useCallback(async (submission: VoiceRecorderSubmission) => {
+    resetRequestState({
+      preserveInput: true,
+      preserveMode: true,
+      preserveLanguage: true,
+    });
+    setStep('processing');
+    setErrorMessage('');
+    setApiError(null);
+    setUsageSummary(null);
+
+    try {
+      const token = await getAuthToken();
+      const formData = new FormData();
+      formData.append('audio', submission.file);
+      formData.append('durationSeconds', String(submission.durationSeconds));
+      formData.append('language', language);
+      formData.append('idempotencyKey', createClientId());
+
+      const response = await fetch('/api/ai/transcribe', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.success !== true || typeof data?.transcript !== 'string') {
+        handleVoiceFailure(data, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
+        return;
+      }
+
+      const nextTranscript = data.transcript.trim();
+      if (!nextTranscript) {
+        handleVoiceFailure({
+          error: {
+            code: 'transcription_failed',
+            category: 'technical',
+            message: t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }),
+          },
+        }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
+        return;
+      }
+
+      setTranscript(nextTranscript);
+      setTextInput(nextTranscript);
+      setMode('text');
+      setStep('entry');
+      setApiError(null);
+      setErrorMessage('');
+      setUsageSummary(null);
+    } catch (err) {
+      handleVoiceFailure({
+        error: {
+          code: 'transcription_provider_unavailable',
+          category: 'technical',
+          message: err instanceof Error ? err.message : t('errors.network', { ns: 'common' }),
+        },
+      }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
+    }
+  }, [getAuthToken, handleVoiceFailure, language, resetRequestState, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!parsed || !reviewState || unresolvedReviewFields.length > 0) return;
@@ -1394,6 +1510,17 @@ function isReceiptInsightQuestion(value: string) {
 
   const failedStateTitle = (() => {
     switch (apiError?.code) {
+      case 'transcription_not_configured':
+      case 'voice_not_in_plan':
+        return t('smartEntryModal.voice.unavailable.configurationTitle', { ns: 'portal' });
+      case 'microphone_permission_denied':
+        return t('smartEntryModal.voice.unavailable.microphoneTitle', { ns: 'portal' });
+      case 'transcription_provider_unavailable':
+      case 'transcription_auth_failed':
+      case 'transcription_failed':
+        return t('smartEntryModal.voice.unavailable.providerUnavailableTitle', { ns: 'portal' });
+      case 'voice_limit_reached':
+        return t('smartEntryModal.voice.unavailable.limitTitle', { ns: 'portal' });
       case 'ACCOUNT_CREATE_FAILED':
         return t('smartEntryModal.failedTitles.accountCreate', { ns: 'portal' });
       case 'ACCOUNT_ID_MISSING':
@@ -1406,6 +1533,11 @@ function isReceiptInsightQuestion(value: string) {
         return t('smartEntryModal.failedTitles.generic', { ns: 'portal' });
     }
   })();
+
+  const failedShowsRefresh = apiError?.code !== 'transcription_not_configured'
+    && apiError?.code !== 'voice_not_in_plan'
+    && apiError?.code !== 'microphone_permission_denied'
+    && apiError?.code !== 'voice_limit_reached';
 
   const getFriendlyConfirmErrorMessage = (rawError: unknown): string => {
     const message = typeof rawError === 'string' ? rawError : '';
@@ -1651,8 +1783,18 @@ function isReceiptInsightQuestion(value: string) {
               ) : (
                 <VoiceRecorder
                   onTranscriptReady={handleVoiceReady}
+                  onError={(code, message) => {
+                    handleVoiceFailure({
+                      error: {
+                        code,
+                        category: 'state',
+                        message,
+                      },
+                    }, message);
+                  }}
                   onCancel={() => setMode('text')}
                   onSwitchToText={() => setMode('text')}
+                  maxSeconds={voiceMaxSeconds}
                   language={language}
                 />
               )}
@@ -2386,18 +2528,33 @@ function isReceiptInsightQuestion(value: string) {
                 )}
               </div>
               <div className="flex gap-2 w-full">
-                <button
-                  onClick={handleReset}
-                  className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-                >
-                  <RotateCcw size={16} />
-                  {t('actions.refresh', { ns: 'common' })}
-                </button>
+                {failedShowsRefresh ? (
+                  <button
+                    onClick={handleReset}
+                    className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw size={16} />
+                    {t('actions.refresh', { ns: 'common' })}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMode('text');
+                      setStep('entry');
+                      setApiError(null);
+                      setErrorMessage('');
+                    }}
+                    className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Type size={16} />
+                    {t('smartEntryModal.voice.actions.useText', { ns: 'portal' })}
+                  </button>
+                )}
                 <button
                   onClick={onClose}
                   className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
                 >
-                  {t('actions.cancel', { ns: 'common' })}
+                  {t('actions.close', { ns: 'common' })}
                 </button>
               </div>
             </div>
