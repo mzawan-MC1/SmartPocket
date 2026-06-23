@@ -1,8 +1,18 @@
 import type { MetadataRoute } from 'next';
 import { listPublicCmsPages } from '@/lib/cms-pages-server';
-import { isReservedCmsSlug } from '@/lib/cms-pages';
+import { isSitemapExcludedCmsSlug } from '@/lib/cms-pages';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildAbsoluteSiteUrl } from '@/lib/site-metadata';
+
+function normalizeSitemapUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    const pathname = parsed.pathname.replace(/\/+$/g, '') || '/';
+    return `${parsed.origin.toLowerCase()}${pathname}`;
+  } catch {
+    return url.toLowerCase();
+  }
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getPlatformSettingsSnapshot();
@@ -22,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const cmsRoutes: MetadataRoute.Sitemap = pages
-    .filter((page) => !isReservedCmsSlug(page.slug))
+    .filter((page) => !isSitemapExcludedCmsSlug(page.slug))
     .map((page) => ({
       url: buildAbsoluteSiteUrl(`/${page.slug}`, settings),
       lastModified: new Date(page.updated_at || page.published_at || lastModified),
@@ -30,5 +40,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-  return [...staticRoutes, ...cmsRoutes];
+  const deduped = new Map<string, MetadataRoute.Sitemap[number]>();
+  for (const entry of [...staticRoutes, ...cmsRoutes]) {
+    const key = normalizeSitemapUrl(entry.url);
+    if (!deduped.has(key)) {
+      deduped.set(key, entry);
+    }
+  }
+
+  return Array.from(deduped.values());
 }

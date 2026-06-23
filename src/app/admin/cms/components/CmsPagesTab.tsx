@@ -18,9 +18,6 @@ const EMPTY_FORM: CmsPageInput = {
   content_html: '',
   status: 'draft',
   is_enabled: true,
-  seo_title: '',
-  seo_description: '',
-  seo_image_url: '',
   show_in_header: false,
   show_in_footer: false,
   navigation_label: '',
@@ -105,9 +102,6 @@ export default function CmsPagesTab() {
       content_html: page.content_html || '',
       status: page.status,
       is_enabled: page.is_enabled,
-      seo_title: page.seo_title || '',
-      seo_description: page.seo_description || '',
-      seo_image_url: page.seo_image_url || '',
       show_in_header: page.show_in_header,
       show_in_footer: page.show_in_footer,
       navigation_label: page.navigation_label || '',
@@ -184,9 +178,6 @@ export default function CmsPagesTab() {
           content_html: page.content_html,
           status: page.status,
           is_enabled: page.is_enabled,
-          seo_title: page.seo_title || '',
-          seo_description: page.seo_description || '',
-          seo_image_url: page.seo_image_url || '',
           show_in_header: page.show_in_header,
           show_in_footer: page.show_in_footer,
           navigation_label: page.navigation_label || '',
@@ -398,7 +389,7 @@ export default function CmsPagesTab() {
           </div>
 
           <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            Marketing sections such as About, Features, and Pricing are managed on the Home page. Contact remains a standalone CMS-backed page.
+            Marketing sections such as About, Features, and Pricing are managed on the Home page. SEO metadata now lives only in `/admin/seo`.
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -490,37 +481,6 @@ export default function CmsPagesTab() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">SEO title</label>
-              <input
-                value={form.seo_title}
-                onChange={(event) => handleFieldChange('seo_title', event.target.value)}
-                className="input-base"
-                placeholder="Privacy Policy | Smart Pocket"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">SEO description</label>
-              <textarea
-                value={form.seo_description}
-                onChange={(event) => handleFieldChange('seo_description', event.target.value)}
-                rows={3}
-                className="input-base resize-none"
-                placeholder="Short summary for search results and metadata."
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-600 text-foreground mb-1.5">SEO social image URL</label>
-              <input
-                value={form.seo_image_url}
-                onChange={(event) => handleFieldChange('seo_image_url', event.target.value)}
-                className="input-base"
-                placeholder="https://1smartpocket.com/storage/v1/object/public/media/branding/page-social-image.png"
-              />
-            </div>
-          </div>
-
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">Rich-text content</label>
             <RichTextEditor
@@ -531,7 +491,7 @@ export default function CmsPagesTab() {
 
           {selectedPage?.is_protected_system_page ? (
             <div className="rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
-              This is a protected system page. You can edit content, status, SEO, and visibility, but deletion remains blocked unless explicitly allowed.
+              This is a protected system page. You can edit content, status, and visibility here, while SEO remains managed in `/admin/seo`.
             </div>
           ) : null}
 

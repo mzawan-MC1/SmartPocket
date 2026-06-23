@@ -55,16 +55,44 @@ type PageMetadataOptions = {
   language: SupportedLanguage;
   title?: string;
   description?: string;
+  keywords?: string[] | null;
   openGraphTitle?: string;
   openGraphDescription?: string;
   twitterTitle?: string;
   twitterDescription?: string;
+  twitterImageUrl?: string;
   pathname?: string;
   canonicalPath?: string;
+  canonicalUrl?: string;
   socialImageUrl?: string;
   socialImageAlt?: string;
   openGraphType?: 'website' | 'article';
+  index?: boolean;
+  follow?: boolean;
   noIndex?: boolean;
+};
+
+const EMERGENCY_PAGE_METADATA_FALLBACKS: Record<
+  string,
+  { title: string; description: string; keywords?: string[] }
+> = {
+  '/home': {
+    title: DEFAULT_PLATFORM_SETTINGS.seo.siteTitle,
+    description: DEFAULT_PLATFORM_SETTINGS.seo.siteDescription,
+    keywords: DEFAULT_PLATFORM_SETTINGS.seo.keywords,
+  },
+  '/contact': {
+    title: 'Contact Smart Pocket',
+    description: 'Contact Smart Pocket for support, privacy, or general inquiries.',
+  },
+  '/privacy': {
+    title: 'Privacy Policy',
+    description: 'Read how Smart Pocket handles your personal and financial information.',
+  },
+  '/terms': {
+    title: 'Terms of Service',
+    description: 'Read the terms that govern the use of Smart Pocket.',
+  },
 };
 
 function normalizeOrigin(url: string) {
@@ -100,6 +128,23 @@ export function getMetadataBaseUrl(settings: PlatformSettingsSnapshot) {
 
 export function buildAbsoluteSiteUrl(pathname: string, settings: PlatformSettingsSnapshot) {
   return new URL(normalizePathname(pathname), getMetadataBaseUrl(settings)).toString();
+}
+
+function buildAbsoluteOrRelativeSiteUrl(value: string, settings: PlatformSettingsSnapshot) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const absolute = new URL(trimmed, getMetadataBaseUrl(settings));
+    if (absolute.protocol === 'http:') {
+      absolute.protocol = 'https:';
+    }
+    return absolute.toString();
+  } catch {
+    return '';
+  }
 }
 
 export function buildAbsoluteAssetUrl(
@@ -147,6 +192,11 @@ export async function resolveMetadataLanguage(settings: PlatformSettingsSnapshot
   return state.language;
 }
 
+export function getEmergencyPageMetadataFallback(pathname: string) {
+  const normalized = normalizePathname(pathname);
+  return EMERGENCY_PAGE_METADATA_FALLBACKS[normalized] || EMERGENCY_PAGE_METADATA_FALLBACKS['/home'];
+}
+
 function buildVerification(settings: PlatformSettingsSnapshot): Metadata['verification'] {
   const google = settings.seo.googleSiteVerification || undefined;
   const bing = settings.seo.bingSiteVerification || undefined;
@@ -177,7 +227,7 @@ function buildSocialImage(
   const candidate =
     getApprovedSocialPreviewAsset(socialImageUrl || '', blockedSources) ||
     getApprovedSocialPreviewAsset(settings.seo.ogImage || '', blockedSources) ||
-    getApprovedSocialPreviewAsset(settings.branding.socialImageUrl || '', blockedSources);
+    getApprovedSocialPreviewAsset(DEFAULT_PLATFORM_SETTINGS.seo.ogImage || '', blockedSources);
   const url = buildAbsoluteAssetUrl(candidate, settings, { includeVersion: false });
 
   if (!url) {
@@ -209,7 +259,7 @@ export async function buildRootMetadata(settings: PlatformSettingsSnapshot): Pro
   const twitterImage = buildAbsoluteAssetUrl(
     getApprovedSocialPreviewAsset(settings.seo.twitterImage || '', blockedSources) ||
       getApprovedSocialPreviewAsset(settings.seo.ogImage || '', blockedSources) ||
-      getApprovedSocialPreviewAsset(settings.branding.socialImageUrl || '', blockedSources),
+      getApprovedSocialPreviewAsset(DEFAULT_PLATFORM_SETTINGS.seo.ogImage || '', blockedSources),
     settings,
     { includeVersion: false }
   );
@@ -224,7 +274,7 @@ export async function buildRootMetadata(settings: PlatformSettingsSnapshot): Pro
       template: settings.seo.titleTemplate,
     },
     description: settings.seo.siteDescription,
-    keywords: settings.seo.keywords,
+    keywords: settings.seo.keywords.length > 0 ? settings.seo.keywords : undefined,
     alternates: {
       canonical: siteUrl,
     },
@@ -247,7 +297,7 @@ export async function buildRootMetadata(settings: PlatformSettingsSnapshot): Pro
       images: socialImage ? [socialImage] : undefined,
     },
     twitter: {
-      card: 'summary_large_image',
+      card: settings.seo.twitterCard,
       site: settings.seo.twitterHandle || undefined,
       creator: settings.seo.twitterHandle || undefined,
       title: settings.seo.twitterTitle,
@@ -279,21 +329,29 @@ export function buildPageMetadata({
   language,
   title,
   description,
+  keywords,
   openGraphTitle,
   openGraphDescription,
   twitterTitle,
   twitterDescription,
+  twitterImageUrl,
   pathname = '/',
   canonicalPath,
+  canonicalUrl,
   socialImageUrl,
   socialImageAlt,
   openGraphType = 'website',
+  index,
+  follow,
   noIndex = false,
 }: PageMetadataOptions): Metadata {
   const normalizedPath = normalizePathname(canonicalPath || pathname);
-  const canonicalUrl = buildAbsoluteSiteUrl(normalizedPath, settings);
+  const resolvedCanonicalUrl =
+    buildAbsoluteOrRelativeSiteUrl(canonicalUrl || '', settings) ||
+    buildAbsoluteSiteUrl(normalizedPath, settings);
   const resolvedTitle = title || settings.seo.siteTitle;
   const resolvedDescription = description || settings.seo.siteDescription;
+  const resolvedKeywords = keywords === undefined ? settings.seo.keywords : keywords;
   const resolvedOpenGraphTitle = openGraphTitle || resolvedTitle;
   const resolvedOpenGraphDescription = openGraphDescription || resolvedDescription;
   const resolvedTwitterTitle = twitterTitle || resolvedOpenGraphTitle;
@@ -308,25 +366,27 @@ export function buildPageMetadata({
     settings.branding.pwaIcon512Url,
   ];
   const twitterImage = buildAbsoluteAssetUrl(
-    getApprovedSocialPreviewAsset(settings.seo.twitterImage || '', blockedSources) ||
+    getApprovedSocialPreviewAsset(twitterImageUrl || '', blockedSources) ||
       getApprovedSocialPreviewAsset(socialImageUrl || '', blockedSources) ||
+      getApprovedSocialPreviewAsset(settings.seo.twitterImage || '', blockedSources) ||
       getApprovedSocialPreviewAsset(settings.seo.ogImage || '', blockedSources) ||
-      getApprovedSocialPreviewAsset(settings.branding.socialImageUrl || '', blockedSources),
+      getApprovedSocialPreviewAsset(DEFAULT_PLATFORM_SETTINGS.seo.ogImage || '', blockedSources),
     settings,
     { includeVersion: false }
   );
-  const shouldIndex = !noIndex && settings.seo.robotsIndex;
-  const shouldFollow = !noIndex && settings.seo.robotsFollow;
+  const shouldIndex = !noIndex && (index ?? settings.seo.robotsIndex);
+  const shouldFollow = !noIndex && (follow ?? settings.seo.robotsFollow);
 
   return {
     title: resolvedTitle,
     description: resolvedDescription,
+    keywords: resolvedKeywords && resolvedKeywords.length > 0 ? resolvedKeywords : undefined,
     alternates: {
-      canonical: canonicalUrl,
+      canonical: resolvedCanonicalUrl,
     },
     openGraph: {
       type: openGraphType,
-      url: canonicalUrl,
+      url: resolvedCanonicalUrl,
       siteName: settings.branding.appName,
       locale: OG_LOCALE_BY_LANGUAGE[language],
       alternateLocale: settings.localization.enabledLanguages
@@ -337,7 +397,7 @@ export function buildPageMetadata({
       images: socialImage ? [socialImage] : undefined,
     },
     twitter: {
-      card: 'summary_large_image',
+      card: settings.seo.twitterCard,
       site: settings.seo.twitterHandle || undefined,
       creator: settings.seo.twitterHandle || undefined,
       title: resolvedTwitterTitle,
@@ -425,7 +485,7 @@ export async function buildSoftwareApplicationStructuredData(
     operatingSystem: 'Web, PWA',
     url: getCanonicalOrigin(settings),
     image: buildAbsoluteAssetUrl(
-      isDisallowedSocialPreviewAsset(settings.branding.socialImageUrl, [
+      isDisallowedSocialPreviewAsset(settings.seo.ogImage, [
         settings.branding.logoUrl,
         settings.branding.compactLogoUrl,
         settings.branding.faviconUrl,
@@ -434,7 +494,7 @@ export async function buildSoftwareApplicationStructuredData(
         settings.branding.pwaIcon512Url,
       ])
         ? ''
-        : settings.branding.socialImageUrl,
+        : settings.seo.ogImage,
       settings,
       { includeVersion: false }
     ),
@@ -504,7 +564,8 @@ export function buildArticleStructuredData({
     url: buildAbsoluteSiteUrl(pathname, settings),
     image: buildAbsoluteAssetUrl(
       getApprovedSocialPreviewAsset(imageUrl || '', blockedSources) ||
-        getApprovedSocialPreviewAsset(settings.branding.socialImageUrl || '', blockedSources),
+        getApprovedSocialPreviewAsset(settings.seo.ogImage || '', blockedSources) ||
+        getApprovedSocialPreviewAsset(DEFAULT_PLATFORM_SETTINGS.seo.ogImage || '', blockedSources),
       settings,
       { includeVersion: false }
     ),

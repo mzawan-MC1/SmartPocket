@@ -1,3 +1,5 @@
+import { normalizeSeoKeywordList } from '@/lib/platform-settings';
+
 export type CmsPageStatus = 'draft' | 'published';
 
 export const RESERVED_CMS_SLUGS = [
@@ -16,6 +18,22 @@ export const MARKETING_HOME_SLUGS = [
   'pricing',
 ] as const;
 
+export const FIXED_PUBLIC_PAGE_SLUGS = [
+  'contact',
+  'privacy',
+  'terms',
+] as const;
+
+export const SITEMAP_EXCLUDED_CMS_SLUGS = [
+  'home',
+  'contact',
+  'privacy',
+  'terms',
+  'about',
+  'features',
+  'pricing',
+] as const;
+
 export type CmsPageRecord = {
   id: string;
   title: string;
@@ -25,7 +43,16 @@ export type CmsPageRecord = {
   is_enabled: boolean;
   seo_title: string | null;
   seo_description: string | null;
+  seo_keywords: string | null;
   seo_image_url: string | null;
+  og_title: string | null;
+  og_description: string | null;
+  twitter_title: string | null;
+  twitter_description: string | null;
+  twitter_image_url: string | null;
+  canonical_url_override: string | null;
+  robots_index: boolean | null;
+  robots_follow: boolean | null;
   show_in_header: boolean;
   show_in_footer: boolean;
   navigation_label: string | null;
@@ -47,14 +74,26 @@ export type CmsPageInput = {
   content_html: string;
   status: CmsPageStatus;
   is_enabled: boolean;
-  seo_title: string;
-  seo_description: string;
-  seo_image_url: string;
   show_in_header: boolean;
   show_in_footer: boolean;
   navigation_label: string;
   sort_order: number;
   allow_delete: boolean;
+};
+
+export type CmsPageSeoInput = {
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
+  seo_image_url: string;
+  og_title: string;
+  og_description: string;
+  twitter_title: string;
+  twitter_description: string;
+  twitter_image_url: string;
+  canonical_url_override: string;
+  robots_index: boolean | null;
+  robots_follow: boolean | null;
 };
 
 const ALLOWED_TAGS = new Set([
@@ -193,6 +232,16 @@ export function isMarketingHomeSlug(value: string) {
   return MARKETING_HOME_SLUGS.includes(slug as (typeof MARKETING_HOME_SLUGS)[number]);
 }
 
+export function isFixedPublicPageSlug(value: string) {
+  const slug = slugifyCmsPageSlug(value);
+  return FIXED_PUBLIC_PAGE_SLUGS.includes(slug as (typeof FIXED_PUBLIC_PAGE_SLUGS)[number]);
+}
+
+export function isSitemapExcludedCmsSlug(value: string) {
+  const slug = slugifyCmsPageSlug(value);
+  return SITEMAP_EXCLUDED_CMS_SLUGS.includes(slug as (typeof SITEMAP_EXCLUDED_CMS_SLUGS)[number]);
+}
+
 export function getCmsPageNavigationLabel(page: Pick<CmsPageRecord, 'navigation_label' | 'title'>) {
   const explicitLabel = page.navigation_label?.trim();
   return explicitLabel || page.title;
@@ -212,13 +261,42 @@ export function deriveCmsSeoDescription(page: Pick<CmsPageRecord, 'seo_descripti
   return stripHtmlToText(page.content_html).slice(0, 160);
 }
 
+export function deriveCmsSeoKeywords(page: Pick<CmsPageRecord, 'seo_keywords'>) {
+  return normalizeSeoKeywordList(page.seo_keywords, []);
+}
+
+export function deriveCmsOgTitle(
+  page: Pick<CmsPageRecord, 'og_title' | 'seo_title' | 'title'>
+) {
+  const explicitTitle = page.og_title?.trim();
+  return explicitTitle || deriveCmsSeoTitle(page);
+}
+
+export function deriveCmsOgDescription(
+  page: Pick<CmsPageRecord, 'og_description' | 'seo_description' | 'content_html'>
+) {
+  const explicitDescription = page.og_description?.trim();
+  return explicitDescription || deriveCmsSeoDescription(page);
+}
+
+export function deriveCmsTwitterTitle(
+  page: Pick<CmsPageRecord, 'twitter_title' | 'og_title' | 'seo_title' | 'title'>
+) {
+  const explicitTitle = page.twitter_title?.trim();
+  return explicitTitle || deriveCmsOgTitle(page);
+}
+
+export function deriveCmsTwitterDescription(
+  page: Pick<CmsPageRecord, 'twitter_description' | 'og_description' | 'seo_description' | 'content_html'>
+) {
+  const explicitDescription = page.twitter_description?.trim();
+  return explicitDescription || deriveCmsOgDescription(page);
+}
+
 export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
   const title = (input.title || '').trim();
   const slug = slugifyCmsPageSlug(input.slug || input.title || '');
   const navigationLabel = (input.navigation_label || '').trim();
-  const seoTitle = (input.seo_title || '').trim();
-  const seoDescription = (input.seo_description || '').trim();
-  const seoImageUrl = (input.seo_image_url || '').trim();
   const contentHtml = sanitizeRichTextHtml(input.content_html || '');
 
   return {
@@ -227,13 +305,35 @@ export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
     content_html: contentHtml,
     status: input.status === 'published' ? 'published' : 'draft',
     is_enabled: input.is_enabled !== false,
-    seo_title: seoTitle,
-    seo_description: seoDescription,
-    seo_image_url: seoImageUrl,
     show_in_header: Boolean(input.show_in_header),
     show_in_footer: Boolean(input.show_in_footer),
     navigation_label: navigationLabel,
     sort_order: Number.isFinite(input.sort_order) ? Number(input.sort_order) : 0,
     allow_delete: input.allow_delete !== false,
   } satisfies CmsPageInput;
+}
+
+export function normalizeCmsPageSeoPayload(input: Partial<CmsPageSeoInput>) {
+  const seoKeywords = normalizeSeoKeywordList(input.seo_keywords, []);
+
+  return {
+    seo_title: (input.seo_title || '').trim(),
+    seo_description: (input.seo_description || '').trim(),
+    seo_keywords: seoKeywords.join(', '),
+    seo_image_url: (input.seo_image_url || '').trim(),
+    og_title: (input.og_title || '').trim(),
+    og_description: (input.og_description || '').trim(),
+    twitter_title: (input.twitter_title || '').trim(),
+    twitter_description: (input.twitter_description || '').trim(),
+    twitter_image_url: (input.twitter_image_url || '').trim(),
+    canonical_url_override: (input.canonical_url_override || '').trim(),
+    robots_index:
+      typeof input.robots_index === 'boolean'
+        ? input.robots_index
+        : null,
+    robots_follow:
+      typeof input.robots_follow === 'boolean'
+        ? input.robots_follow
+        : null,
+  } satisfies CmsPageSeoInput;
 }

@@ -5,8 +5,13 @@ import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  deriveCmsOgDescription,
+  deriveCmsOgTitle,
   deriveCmsSeoDescription,
+  deriveCmsSeoKeywords,
   deriveCmsSeoTitle,
+  deriveCmsTwitterDescription,
+  deriveCmsTwitterTitle,
   getCmsPageNavigationLabel,
   sanitizeRichTextHtml,
   type CmsPageRecord,
@@ -16,6 +21,11 @@ export type PublicCmsPage = CmsPageRecord & {
   navigation_label_resolved: string;
   seo_title_resolved: string;
   seo_description_resolved: string;
+  seo_keywords_resolved: string[];
+  og_title_resolved: string;
+  og_description_resolved: string;
+  twitter_title_resolved: string;
+  twitter_description_resolved: string;
   content_html_sanitized: string;
 };
 
@@ -45,6 +55,11 @@ function normalizePage(page: CmsPageRecord | null) {
     navigation_label_resolved: getCmsPageNavigationLabel(page),
     seo_title_resolved: deriveCmsSeoTitle(page),
     seo_description_resolved: deriveCmsSeoDescription(page),
+    seo_keywords_resolved: deriveCmsSeoKeywords(page),
+    og_title_resolved: deriveCmsOgTitle(page),
+    og_description_resolved: deriveCmsOgDescription(page),
+    twitter_title_resolved: deriveCmsTwitterTitle(page),
+    twitter_description_resolved: deriveCmsTwitterDescription(page),
     content_html_sanitized: sanitizeRichTextHtml(page.content_html || ''),
   } satisfies PublicCmsPage;
 }

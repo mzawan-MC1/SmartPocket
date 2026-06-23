@@ -55,6 +55,19 @@ export interface PlatformSeoSettings {
   organizationName: string;
   organizationLegalName: string;
   organizationDescription: string;
+  home: {
+    title: string;
+    description: string;
+    keywords: string[];
+    ogTitle: string;
+    ogDescription: string;
+    socialImage: string;
+    twitterTitle: string;
+    twitterDescription: string;
+    twitterImage: string;
+    robotsIndex: boolean;
+    robotsFollow: boolean;
+  };
 }
 
 export interface PlatformPublicSettings {
@@ -131,6 +144,15 @@ export const SMART_POCKET_DEFAULT_ICON = '/assets/images/smart-pocket-icon.svg';
 export const SMART_POCKET_DEFAULT_FAVICON = '/favicon.ico';
 export const SMART_POCKET_SAFE_FALLBACK_IMAGE = '/assets/images/no_image.png';
 export const SMART_POCKET_LEGACY_WALLET_IMAGE = SMART_POCKET_DEFAULT_LOGO;
+export const SMART_POCKET_DEFAULT_SITE_TITLE = 'Smart Pocket — Personal Finance, Simplified';
+export const SMART_POCKET_DEFAULT_SITE_DESCRIPTION =
+  'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.';
+export const SMART_POCKET_DEFAULT_KEYWORDS = [
+  'personal finance',
+  'budgeting',
+  'expense tracking',
+  'money management',
+];
 
 const LANDING_SECTION_DESTINATIONS = {
   '/#about': '/home#about',
@@ -226,16 +248,16 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     fontFamily: 'Plus Jakarta Sans',
   },
   seo: {
-    siteTitle: 'Smart Pocket — Personal Finance, Simplified',
+    siteTitle: SMART_POCKET_DEFAULT_SITE_TITLE,
     titleTemplate: '%s | Smart Pocket',
-    siteDescription: 'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.',
-    keywords: ['personal finance', 'budgeting', 'expense tracking', 'money management'],
+    siteDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
+    keywords: SMART_POCKET_DEFAULT_KEYWORDS,
     canonicalUrl: PRODUCTION_CANONICAL_ORIGIN,
-    ogTitle: 'Smart Pocket — Personal Finance, Simplified',
-    ogDescription: 'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.',
+    ogTitle: SMART_POCKET_DEFAULT_SITE_TITLE,
+    ogDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
     ogImage: SMART_POCKET_DEFAULT_SOCIAL_IMAGE,
-    twitterTitle: 'Smart Pocket — Personal Finance, Simplified',
-    twitterDescription: 'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.',
+    twitterTitle: SMART_POCKET_DEFAULT_SITE_TITLE,
+    twitterDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
     twitterImage: SMART_POCKET_DEFAULT_SOCIAL_IMAGE,
     twitterHandle: '@smartpocket',
     twitterCard: 'summary_large_image',
@@ -246,7 +268,20 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     bingSiteVerification: '',
     organizationName: 'Smart Pocket',
     organizationLegalName: '',
-    organizationDescription: 'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.',
+    organizationDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
+    home: {
+      title: SMART_POCKET_DEFAULT_SITE_TITLE,
+      description: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
+      keywords: [],
+      ogTitle: SMART_POCKET_DEFAULT_SITE_TITLE,
+      ogDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
+      socialImage: SMART_POCKET_DEFAULT_SOCIAL_IMAGE,
+      twitterTitle: SMART_POCKET_DEFAULT_SITE_TITLE,
+      twitterDescription: SMART_POCKET_DEFAULT_SITE_DESCRIPTION,
+      twitterImage: SMART_POCKET_DEFAULT_SOCIAL_IMAGE,
+      robotsIndex: true,
+      robotsFollow: true,
+    },
   },
   publicUi: {
     headerMenu: DEFAULT_HEADER_MENU,
@@ -398,19 +433,39 @@ function normalizeEnabledLanguages(value: unknown) {
   return normalized.length > 0 ? normalized : fallback;
 }
 
-function normalizeKeywords(value: unknown, fallback: string[]) {
+export function normalizeSeoKeywordList(value: unknown, fallback: string[] = []) {
+  const dedupe = (entries: string[]) => {
+    const seen = new Set<string>();
+    const normalized: string[] = [];
+
+    for (const entry of entries) {
+      if (seen.has(entry)) {
+        continue;
+      }
+
+      seen.add(entry);
+      normalized.push(entry);
+    }
+
+    return normalized;
+  };
+
   if (Array.isArray(value)) {
-    const normalized = value
+    const normalized = dedupe(
+      value
       .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
-      .filter(Boolean);
+      .filter(Boolean)
+    );
     return normalized.length > 0 ? normalized : fallback;
   }
 
   if (typeof value === 'string') {
-    const normalized = value
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
+    const normalized = dedupe(
+      value
+        .split(',')
+        .map((entry) => entry.trim())
+        .filter(Boolean)
+    );
     return normalized.length > 0 ? normalized : fallback;
   }
 
@@ -533,31 +588,67 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
   const ogImage =
     getApprovedSocialPreviewAsset(sanitizeOptionalString(raw.og_image), blockedSocialFallbackSources) ||
     branding.socialImageUrl;
+  const twitterTitle = sanitizeNonEmptyString(raw.twitter_title, ogTitle);
+  const twitterDescription = sanitizeNonEmptyString(raw.twitter_description, ogDescription);
+  const twitterImage =
+    getApprovedSocialPreviewAsset(sanitizeOptionalString(raw.twitter_image), blockedSocialFallbackSources) ||
+    ogImage;
+  const robotsIndex = sanitizeBoolean(raw.robots_index, DEFAULT_PLATFORM_SETTINGS.seo.robotsIndex);
+  const robotsFollow = sanitizeBoolean(raw.robots_follow, DEFAULT_PLATFORM_SETTINGS.seo.robotsFollow);
+  const homeOgTitle = sanitizeOptionalString(raw.home_og_title) || ogTitle;
+  const homeOgDescription = sanitizeOptionalString(raw.home_og_description) || ogDescription;
+  const homeSocialImage =
+    getApprovedSocialPreviewAsset(
+      sanitizeOptionalString(raw.home_social_image_url),
+      blockedSocialFallbackSources
+    ) || ogImage;
 
   const seo: PlatformSeoSettings = {
     siteTitle,
     titleTemplate: sanitizeNonEmptyString(raw.title_template, `%s | ${branding.appName}`),
     siteDescription,
-    keywords: normalizeKeywords(raw.keywords, DEFAULT_PLATFORM_SETTINGS.seo.keywords),
+    keywords: normalizeSeoKeywordList(raw.keywords, DEFAULT_PLATFORM_SETTINGS.seo.keywords),
     canonicalUrl,
     ogTitle,
     ogDescription,
     ogImage,
-    twitterTitle: sanitizeNonEmptyString(raw.twitter_title, ogTitle),
-    twitterDescription: sanitizeNonEmptyString(raw.twitter_description, ogDescription),
-    twitterImage:
-      getApprovedSocialPreviewAsset(sanitizeOptionalString(raw.twitter_image), blockedSocialFallbackSources) ||
-      ogImage,
+    twitterTitle,
+    twitterDescription,
+    twitterImage,
     twitterHandle: sanitizeOptionalString(raw.twitter_handle) || DEFAULT_PLATFORM_SETTINGS.seo.twitterHandle,
     twitterCard: sanitizeTwitterCard(raw.twitter_card ?? raw.twitter_card_type),
-    robotsIndex: sanitizeBoolean(raw.robots_index, DEFAULT_PLATFORM_SETTINGS.seo.robotsIndex),
-    robotsFollow: sanitizeBoolean(raw.robots_follow, DEFAULT_PLATFORM_SETTINGS.seo.robotsFollow),
+    robotsIndex,
+    robotsFollow,
     sitemapEnabled: sanitizeBoolean(raw.sitemap_enabled, DEFAULT_PLATFORM_SETTINGS.seo.sitemapEnabled),
     googleSiteVerification: sanitizeOptionalString(raw.google_site_verification),
     bingSiteVerification: sanitizeOptionalString(raw.bing_site_verification),
     organizationName: sanitizeOptionalString(raw.organization_name) || branding.appName,
     organizationLegalName: sanitizeOptionalString(raw.organization_legal_name),
     organizationDescription: sanitizeOptionalString(raw.organization_description) || siteDescription,
+    home: {
+      title: sanitizeOptionalString(raw.home_seo_title) || siteTitle,
+      description: sanitizeOptionalString(raw.home_seo_description) || siteDescription,
+      keywords: normalizeSeoKeywordList(raw.home_seo_keywords, []),
+      ogTitle: homeOgTitle,
+      ogDescription: homeOgDescription,
+      socialImage: homeSocialImage,
+      twitterTitle: sanitizeOptionalString(raw.home_twitter_title) || homeOgTitle || twitterTitle,
+      twitterDescription:
+        sanitizeOptionalString(raw.home_twitter_description) ||
+        homeOgDescription ||
+        twitterDescription,
+      twitterImage:
+        getApprovedSocialPreviewAsset(
+          sanitizeOptionalString(raw.home_twitter_image),
+          blockedSocialFallbackSources
+        ) ||
+        homeSocialImage ||
+        twitterImage,
+      robotsIndex:
+        typeof raw.home_robots_index === 'boolean' ? raw.home_robots_index : robotsIndex,
+      robotsFollow:
+        typeof raw.home_robots_follow === 'boolean' ? raw.home_robots_follow : robotsFollow,
+    },
   };
 
   const publicUi: PlatformPublicSettings = {

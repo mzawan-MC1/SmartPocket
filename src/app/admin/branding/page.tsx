@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Check, Loader2, Palette } from 'lucide-react';
 import { toast } from 'sonner';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
-import { getApprovedSocialPreviewAsset } from '@/lib/platform-settings';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
@@ -15,7 +14,6 @@ type BrandingUploadField =
   | 'compact_logo_url'
   | 'favicon_url'
   | 'apple_touch_icon_url'
-  | 'social_image_url'
   | 'email_logo_url'
   | 'organization_logo_url';
 
@@ -75,13 +73,6 @@ const BRANDING_UPLOADS: Record<
     filePrefix: 'apple-touch-icon',
     config: IMAGE_UPLOAD,
   },
-  social_image_url: {
-    label: 'Social Sharing Image',
-    helperText: 'Use a 1200 x 630 marketing image for WhatsApp, Facebook, X, and LinkedIn previews.',
-    previewVariant: 'wide',
-    filePrefix: 'social-image',
-    config: IMAGE_UPLOAD,
-  },
   email_logo_url: {
     label: 'Email Logo',
     helperText: 'Used in branded email layouts and Supabase email template guidance.',
@@ -117,7 +108,6 @@ export default function AdminBrandingPage() {
     compact_logo_url: '/assets/images/smart-pocket-mark.svg',
     favicon_url: '/favicon.ico',
     apple_touch_icon_url: '/assets/images/smart-pocket-icon.svg',
-    social_image_url: '/assets/images/smart-pocket-social-card.png',
     email_logo_url: '/assets/images/app_logo.png',
     organization_logo_url: '/assets/images/app_logo.png',
     font_family: 'Plus Jakarta Sans',
@@ -139,18 +129,6 @@ export default function AdminBrandingPage() {
             favicon_url: data.favicon_url || current.favicon_url,
             apple_touch_icon_url:
               data.apple_touch_icon_url || data.favicon_url || current.apple_touch_icon_url,
-            social_image_url:
-              getApprovedSocialPreviewAsset(
-                data.social_image_url || '',
-                [
-                  data.logo_url || '',
-                  data.compact_logo_url || '',
-                  data.favicon_url || '',
-                  data.apple_touch_icon_url || '',
-                  data.pwa_icon_192_url || '',
-                  data.pwa_icon_512_url || '',
-                ]
-              ) || current.social_image_url,
             email_logo_url: data.email_logo_url || data.logo_url || current.email_logo_url,
             organization_logo_url:
               data.organization_logo_url || data.logo_url || current.organization_logo_url,

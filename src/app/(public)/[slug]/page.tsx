@@ -34,7 +34,16 @@ export async function generateMetadata(
     pathname: `/${slug}`,
     title: page.seo_title_resolved,
     description: page.seo_description_resolved,
-    socialImageUrl: page.seo_image_url || settings.branding.socialImageUrl,
+    keywords: page.seo_keywords_resolved,
+    openGraphTitle: page.og_title_resolved,
+    openGraphDescription: page.og_description_resolved,
+    twitterTitle: page.twitter_title_resolved,
+    twitterDescription: page.twitter_description_resolved,
+    socialImageUrl: page.seo_image_url || undefined,
+    twitterImageUrl: page.twitter_image_url || undefined,
+    canonicalUrl: page.canonical_url_override || undefined,
+    index: page.robots_index ?? undefined,
+    follow: page.robots_follow ?? undefined,
   });
 }
 
@@ -60,7 +69,7 @@ export default async function PublicCmsSlugPage(
         title: page.seo_title_resolved,
         description: page.seo_description_resolved,
         pathname: `/${page.slug}`,
-        imageUrl: page.seo_image_url || settings.branding.socialImageUrl,
+        imageUrl: page.seo_image_url || undefined,
         publishedAt: page.published_at,
         updatedAt: page.updated_at,
         language,
