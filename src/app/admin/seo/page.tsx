@@ -467,7 +467,6 @@ export default function AdminSeoPage() {
         og_title: nextSettings.og_title.trim(),
         og_description: nextSettings.og_description.trim(),
         og_image: nextSettings.og_image.trim(),
-        social_image_url: nextSettings.og_image.trim(),
         twitter_title: nextSettings.twitter_title.trim(),
         twitter_description: nextSettings.twitter_description.trim(),
         twitter_image: nextSettings.twitter_image.trim(),
