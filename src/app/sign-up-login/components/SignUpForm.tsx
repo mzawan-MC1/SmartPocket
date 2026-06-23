@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
+import { getSafeNextPath } from '@/lib/auth/redirects';
+import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
 interface SignUpFormData {
   fullName: string;
@@ -57,7 +59,8 @@ export default function SignUpForm({
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
     try {
-      const result = await signUp(data.email, data.password, { fullName: data.fullName });
+      const next = getSafeNextPath(searchParams.get('next'));
+      const result = await signUp(data.email, data.password, { fullName: data.fullName }, next);
 
       if (result.requiresEmailVerification) {
         setSuccessState('verify-email');
@@ -79,13 +82,11 @@ export default function SignUpForm({
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      const next = searchParams.get('next');
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;
@@ -100,13 +101,11 @@ export default function SignUpForm({
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      const next = searchParams.get('next');
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;
@@ -127,14 +126,12 @@ export default function SignUpForm({
     try {
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      const next = searchParams.get('next');
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: callbackUrl.toString(),
+          emailRedirectTo: callbackUrl,
         },
       });
 

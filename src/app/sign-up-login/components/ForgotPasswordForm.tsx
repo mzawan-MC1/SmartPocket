@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
+import { buildPasswordResetUrl } from '@/lib/auth/urls';
 
 interface ForgotFormData {
   email: string;
@@ -31,7 +32,7 @@ export default function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) 
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+        redirectTo: buildPasswordResetUrl(),
       });
       if (error) throw error;
       setSent(true);

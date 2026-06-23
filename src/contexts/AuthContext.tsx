@@ -4,6 +4,7 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
+import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
 type SignUpMetadata = {
   fullName?: string;
@@ -53,7 +54,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Email/Password Sign Up
-  const signUp = async (email: string, password: string, metadata: SignUpMetadata = {}): Promise<SignUpResult> => {
+  const signUp = async (
+    email: string,
+    password: string,
+    metadata: SignUpMetadata = {},
+    nextPath?: string | null
+  ): Promise<SignUpResult> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -62,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           full_name: metadata.fullName || '',
           avatar_url: metadata.avatarUrl || ''
         },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`
+        emailRedirectTo: buildAuthCallbackUrl(nextPath)
       }
     });
     if (error) throw error;

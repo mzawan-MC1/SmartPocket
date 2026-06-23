@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
+import { getSafeNextPath } from '@/lib/auth/redirects';
+import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
 interface LoginFormData {
   email: string;
@@ -20,16 +22,6 @@ interface LoginFormProps {
   showApple: boolean;
   showMagicLink: boolean;
   showEmailPassword: boolean;
-}
-
-/** Returns a safe internal redirect path, or null if the value is external/unsafe. */
-function getSafeRedirect(next: string | null): string | null {
-  if (!next) return null;
-  if (next.startsWith('/') && !next.startsWith('//')) {
-    if (next.startsWith('/sign-up-login') || next.startsWith('/auth/')) return null;
-    return next;
-  }
-  return null;
 }
 
 export default function LoginForm({
@@ -60,7 +52,7 @@ export default function LoginForm({
   const onSubmit = async (formData: LoginFormData) => {
     setIsLoading(true);
     try {
-      const next = getSafeRedirect(searchParams.get('next'));
+      const next = getSafeNextPath(searchParams.get('next'));
 
       // POST to server-side login route — sets Supabase cookies server-side
       const res = await fetch('/api/auth/login', {
@@ -124,13 +116,11 @@ export default function LoginForm({
     setIsGoogleLoading(true);
     try {
       const supabase = createClient();
-      const next = getSafeRedirect(searchParams.get('next'));
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;
@@ -144,13 +134,11 @@ export default function LoginForm({
     setIsAppleLoading(true);
     try {
       const supabase = createClient();
-      const next = getSafeRedirect(searchParams.get('next'));
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;
@@ -170,14 +158,12 @@ export default function LoginForm({
     setIsMagicLinkLoading(true);
     try {
       const supabase = createClient();
-      const next = getSafeRedirect(searchParams.get('next'));
-      const callbackUrl = new URL('/api/auth/callback', window.location.origin);
-      if (next) callbackUrl.searchParams.set('next', next);
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
 
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: callbackUrl.toString(),
+          emailRedirectTo: callbackUrl,
           shouldCreateUser: false,
         },
       });

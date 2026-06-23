@@ -41,6 +41,7 @@ import {
   type NotificationPreferences,
 } from '@/lib/notifications';
 import { getIntlLocale } from '@/lib/locale';
+import { buildPasswordResetUrl } from '@/lib/auth/urls';
 import { fetchSubscriptionSummary } from '@/lib/subscription/client';
 import type { SubscriptionSummary } from '@/lib/subscription/types';
 
@@ -663,7 +664,7 @@ export default function SettingsPage() {
                   onClick={async () => {
                     const supabase = createClient();
                     await supabase.auth.resetPasswordForEmail(user?.email || '', {
-                      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+                      redirectTo: buildPasswordResetUrl(),
                     });
                     toast.success(t('settings.security.resetEmailSent', { ns: 'portal' }));
                   }}
