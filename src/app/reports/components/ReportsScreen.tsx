@@ -923,19 +923,19 @@ export default function ReportsScreen() {
         badge={<StatusBadge status="info" label={t('reports.pageBadge')} />}
         compact
         className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
-        actionsClassName="w-full sm:w-auto"
+        actionsClassName="w-full sm:w-auto !min-w-0"
         actions={
-          <div className="flex flex-wrap gap-2 print:hidden">
-            <Link href="/reports/item-insights" className="btn-secondary">
-              <BarChart3 size={14} />
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap print:hidden">
+            <Link href="/reports/item-insights" className="btn-secondary h-9 px-3 text-sm gap-1.5">
+              <BarChart3 size={15} />
               {t('itemInsights.title')}
             </Link>
-            <button onClick={handlePrint} className="btn-secondary">
-              <Printer size={14} />
+            <button onClick={handlePrint} className="btn-secondary h-9 px-3 text-sm gap-1.5">
+              <Printer size={15} />
               <span className="hidden sm:inline">{t('reports.print')}</span>
             </button>
-            <button onClick={handleDownloadCSV} className="btn-secondary">
-              <FileDown size={14} />
+            <button onClick={handleDownloadCSV} className="btn-secondary h-9 px-3 text-sm gap-1.5">
+              <FileDown size={15} />
               {t('reports.csv')}
             </button>
           </div>
@@ -999,17 +999,19 @@ export default function ReportsScreen() {
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-2.5 print:hidden max-[480px]:p-2">
-            <div className="flex flex-col gap-1.5">
-              <div className="flex flex-wrap items-center gap-1 xl:flex-nowrap xl:gap-1.5">
+          <div className="card-elevated p-3 print:hidden max-[480px]:p-2.5">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 {reportPresets.map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => handlePresetChange(preset)}
                     aria-pressed={activePreset === preset}
-                    className={`whitespace-nowrap rounded-lg border px-1.5 py-1 text-[10px] font-600 leading-none transition-all xl:px-2 xl:text-[11px] ${
-                      activePreset === preset ? 'border-accent bg-accent/8 text-accent' : 'border-border text-muted-foreground hover:border-accent hover:text-accent'
+                    className={`inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-600 transition-all ${
+                      activePreset === preset
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border text-muted-foreground hover:border-accent/40 hover:bg-muted/40 hover:text-foreground'
                     }`}
                   >
                     {getPresetButtonLabel(preset, periodContext, t)}
@@ -1017,10 +1019,10 @@ export default function ReportsScreen() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
-                <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-2">
+              <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)_auto] lg:items-end">
+                <div className="flex flex-wrap items-center gap-2">
                   <Calendar size={14} className="text-muted-foreground" />
-                  <span className="text-[11px] font-600 text-muted-foreground">{t('reports.from')}</span>
+                  <span className="text-xs font-600 text-muted-foreground">{t('reports.from')}</span>
                   <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
                   <input
                     id="report-date-from"
@@ -1030,9 +1032,9 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateFrom(event.target.value);
                     }}
-                    className="input-base h-8 w-[136px] max-w-full px-2 text-sm"
+                    className="input-base h-9 w-[140px] max-w-full px-2 text-sm"
                   />
-                  <span className="text-[11px] font-600 text-muted-foreground">{t('reports.to')}</span>
+                  <span className="text-xs font-600 text-muted-foreground">{t('reports.to')}</span>
                   <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
                   <input
                     id="report-date-to"
@@ -1042,32 +1044,33 @@ export default function ReportsScreen() {
                       setActivePreset('custom');
                       setCustomDateTo(event.target.value);
                     }}
-                    className="input-base h-8 w-[136px] max-w-full px-2 text-sm"
+                    className="input-base h-9 w-[140px] max-w-full px-2 text-sm"
                   />
-                  <div className="flex items-center gap-1.5 max-sm:w-full">
-                    <Filter size={13} className="text-muted-foreground" />
-                    <span className="text-[11px] font-600 text-muted-foreground">{t('reports.account')}</span>
-                    <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
-                    <select
-                      id="report-account-filter"
-                      value={selectedAccount}
-                      onChange={(event) => setSelectedAccount(event.target.value)}
-                      className="input-base h-8 min-w-[140px] max-w-full px-2 text-sm"
-                    >
-                      <option value="all">{t('reports.allAccounts')}</option>
-                      {(reportData?.accounts || []).map((account) => (
-                        <option key={account.id} value={account.id}>{account.name}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-1.5 xl:ml-auto xl:flex-nowrap">
+                <div className="flex flex-wrap items-center gap-2 max-lg:w-full">
+                  <Filter size={13} className="text-muted-foreground" />
+                  <span className="text-xs font-600 text-muted-foreground">{t('reports.account')}</span>
+                  <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
+                  <select
+                    id="report-account-filter"
+                    value={selectedAccount}
+                    onChange={(event) => setSelectedAccount(event.target.value)}
+                    className="input-base h-9 min-w-[160px] max-w-full px-2 text-sm max-lg:flex-1"
+                  >
+                    <option value="all">{t('reports.allAccounts')}</option>
+                    {(reportData?.accounts || []).map((account) => (
+                      <option key={account.id} value={account.id}>{account.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className={`inline-flex overflow-hidden rounded-xl border border-border bg-card ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
                   <button
                     type="button"
                     onClick={goToPreviousRange}
                     disabled={activePreset === 'custom' || periodLoading}
-                    className="btn-secondary h-8 px-2 text-sm"
+                    className="flex h-9 items-center gap-1.5 px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`${t('reports.previous')} ${previousRangeLabel}`}
                   >
                     <PreviousIcon size={14} />
@@ -1077,7 +1080,7 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
                     disabled={periodLoading}
-                    className="btn-secondary h-8 px-2 text-sm"
+                    className="flex h-9 items-center gap-1.5 border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {t('reports.current')}
                   </button>
@@ -1085,23 +1088,24 @@ export default function ReportsScreen() {
                     type="button"
                     onClick={goToNextRange}
                     disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
-                    className="btn-secondary h-8 px-2 text-sm"
+                    className="flex h-9 items-center gap-1.5 border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={`${t('reports.next')} ${previousRangeLabel}`}
                   >
                     {t('reports.next')}
                     <NextIcon size={14} />
                   </button>
                 </div>
-                <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground xl:text-right">
-                  <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
-                  {' · '}
-                  {activeRange?.comparisonLabel
-                    ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
-                    : activePreset === 'custom'
-                      ? t('reports.customRange')
-                      : t('reports.sharedBoundaries')}
-                </p>
               </div>
+
+              <p className="min-w-0 truncate text-xs text-muted-foreground">
+                <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
+                {' · '}
+                {activeRange?.comparisonLabel
+                  ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
+                  : activePreset === 'custom'
+                    ? t('reports.customRange')
+                    : t('reports.sharedBoundaries')}
+              </p>
             </div>
           </div>
 
