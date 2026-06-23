@@ -51,6 +51,9 @@ import DocumentTransactionReviewModal from '@/components/transactions/DocumentTr
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
   classifyTransactionDocumentError,
+  TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE,
+  TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+  getTransactionDocumentMaxSizeLabel,
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
 
@@ -348,9 +351,11 @@ function getLocalizedDocumentValidationError(
   error: unknown
 ) {
   switch (classifyTransactionDocumentError(error)) {
+    case 'empty_file':
+      return t('transactions.documentReview.errors.emptyFile', { ns: 'portal' });
     case 'invalid_type':
       return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
-    case 'file_too_large':
+    case 'document_too_large':
       return t('transactions.documentReview.errors.fileTooLarge', { ns: 'portal' });
     case 'pdf_too_many_pages':
       return t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
@@ -1354,16 +1359,10 @@ function isReceiptInsightQuestion(value: string) {
     resetRequestState();
   }, [resetRequestState]);
 
-  const handleOpenDocumentReview = useCallback(async (file: File | null | undefined) => {
+  const handleOpenDocumentReview = useCallback((file: File | null | undefined) => {
     if (!file) return;
-    try {
-      await validateTransactionDocumentFile(file);
-      setDocumentReviewFile(file);
-    } catch (error) {
-      setErrorMessage(getLocalizedDocumentValidationError(t, error));
-      setStep('failed');
-    }
-  }, [t]);
+    setDocumentReviewFile(file);
+  }, []);
 
   const getFriendlyExecutionErrorMessage = (rawError: unknown): string => {
     if (isObject(rawError) && typeof rawError.code === 'string') {
@@ -1580,12 +1579,26 @@ function isReceiptInsightQuestion(value: string) {
                         defaultValue: 'Upload a receipt, invoice, note, or PDF to extract draft transactions for review.',
                       })}
                     </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('transactions.documentReview.maxFileSizeLabel', {
+                        ns: 'portal',
+                        maxSize: getTransactionDocumentMaxSizeLabel(),
+                        defaultValue: 'Maximum file size: {{maxSize}}',
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('transactions.documentReview.supportedFileTypesLabel', {
+                        ns: 'portal',
+                        supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+                        defaultValue: 'Supported file types: {{supportedTypes}}',
+                      })}
+                    </p>
                   </div>
                   <div>
                     <input
                       type="file"
                       id="smart-entry-document-upload"
-                      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                      accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
                       className="hidden"
                       onChange={(event) => {
                         const nextFile = event.target.files?.[0];

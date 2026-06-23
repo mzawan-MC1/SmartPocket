@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, CheckCircle, FileText, Image as ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,11 @@ import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import TransactionDetailsModal from '@/components/transactions/TransactionDetailsModal';
 import {
+  TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE,
+  TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
   classifyTransactionDocumentError,
+  formatTransactionDocumentFileSize,
+  getTransactionDocumentMaxSizeLabel,
   getTransactionDocumentDisplayTitle,
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
@@ -24,6 +28,7 @@ import {
   type TransactionDocumentSaveResponse,
   type TransactionDocumentSourceSurface,
 } from '@/lib/transaction-documents';
+import { prepareTransactionDocumentUpload } from '@/lib/transaction-documents-client';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
   id: string;
@@ -143,10 +148,19 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.unauthorized', { ns: 'portal' });
     case 'file_required':
       return args.t('transactions.documentReview.errors.fileRequired', { ns: 'portal' });
+    case 'empty_file':
+      return args.t('transactions.documentReview.errors.emptyFile', {
+        ns: 'portal',
+        defaultValue: 'This file appears to be empty or unreadable. Choose another file.',
+      });
     case 'invalid_type':
       return args.t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
-    case 'file_too_large':
-      return args.t('transactions.documentReview.errors.fileTooLarge', { ns: 'portal' });
+    case 'document_too_large':
+      return args.t('transactions.documentReview.errors.uploadTooLarge', {
+        ns: 'portal',
+        maxSize: getTransactionDocumentMaxSizeLabel(),
+        defaultValue: 'The selected file exceeds the upload limit. Choose a file smaller than {{maxSize}}.',
+      });
     case 'pdf_too_many_pages':
       return args.t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
     case 'pdf_extraction_unavailable':
@@ -241,6 +255,8 @@ export default function DocumentTransactionReviewModal({
   const [retryKey, setRetryKey] = useState(0);
   const [receiptAllowance, setReceiptAllowance] = useState<ReceiptAllowanceSummary | null>(null);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
+  const [activeFile, setActiveFile] = useState<File | null>(file);
+  const replaceFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const parseReceiptAllowanceSummary = (value: unknown): ReceiptAllowanceSummary | null => {
     if (!value || typeof value !== 'object') return null;
@@ -289,7 +305,16 @@ export default function DocumentTransactionReviewModal({
   };
 
   useEffect(() => {
-    if (!isOpen || !file) {
+    if (!isOpen) {
+      setActiveFile(null);
+      return;
+    }
+
+    setActiveFile(file);
+  }, [file, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !activeFile) {
       setIsExtracting(false);
       setIsSaving(false);
       setExtractError('');
@@ -327,6 +352,42 @@ export default function DocumentTransactionReviewModal({
       setReceiptAllowance(null);
       setIsCheckingAllowance(true);
       try {
+        const preparedUpload = await prepareTransactionDocumentUpload(activeFile);
+        if (!preparedUpload.ok) {
+          const message = (() => {
+            if (preparedUpload.errorCode === 'document_too_large') {
+              return t('transactions.documentReview.errors.fileTooLargeDetailed', {
+                ns: 'portal',
+                actualSize: formatTransactionDocumentFileSize(activeFile.size),
+                maxSize: getTransactionDocumentMaxSizeLabel(),
+                defaultValue: 'This file is {{actualSize}}. The maximum allowed size is {{maxSize}}. Choose a smaller file.',
+              });
+            }
+            if (preparedUpload.errorCode === 'invalid_type') {
+              return t('transactions.documentReview.errors.invalidTypeDetailed', {
+                ns: 'portal',
+                supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+                defaultValue: 'Supported file types: {{supportedTypes}}. Choose another file.',
+              });
+            }
+            if (preparedUpload.errorCode === 'empty_file') {
+              return t('transactions.documentReview.errors.emptyFile', {
+                ns: 'portal',
+                defaultValue: 'This file appears to be empty or unreadable. Choose another file.',
+              });
+            }
+
+            return getLocalizedTransactionDocumentError({
+              t,
+              errorCode: preparedUpload.errorCode,
+              errorMessage: preparedUpload.errorMessage,
+              fallbackKey: 'invalidFile',
+            });
+          })();
+
+          throw createTransactionDocumentUiError(preparedUpload.errorCode, message);
+        }
+
         const allowanceResponse = await fetch('/api/subscription/summary', {
           cache: 'no-store',
           signal: controller.signal,
@@ -351,7 +412,7 @@ export default function DocumentTransactionReviewModal({
         setIsCheckingAllowance(false);
 
         const formData = new FormData();
-        formData.set('file', file);
+        formData.set('file', preparedUpload.file);
         formData.set('sourceSurface', sourceSurface);
         formData.set('language', 'en');
         formData.set('idempotencyKey', crypto.randomUUID());
@@ -361,6 +422,14 @@ export default function DocumentTransactionReviewModal({
           body: formData,
           signal: controller.signal,
         });
+        if (response.status === 413) {
+          throw createTransactionDocumentUiError('document_too_large', t('transactions.documentReview.errors.uploadTooLarge', {
+            ns: 'portal',
+            maxSize: getTransactionDocumentMaxSizeLabel(),
+            defaultValue: 'The selected file exceeds the upload limit. Choose a file smaller than {{maxSize}}.',
+          }));
+        }
+
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result?.success) {
           const errorCode = typeof result?.errorCode === 'string'
@@ -457,18 +526,40 @@ export default function DocumentTransactionReviewModal({
       cancelled = true;
       controller.abort();
     };
-  }, [file, isOpen, retryKey, sourceSurface, t]);
+  }, [activeFile, isOpen, retryKey, sourceSurface, t]);
 
   const hasDuplicates = duplicates.length > 0;
   const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
   const isPlanRestrictedError = extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included';
   const isReceiptLimitError = extractErrorCode === 'receipt_allowance_exhausted';
-  const canRetry = !!file
+  const isSelectionError = extractErrorCode === 'document_too_large'
+    || extractErrorCode === 'invalid_type'
+    || extractErrorCode === 'empty_file';
+  const canRetry = !!activeFile
     && !isExtracting
     && !isSaving
+    && !isSelectionError
     && !isPlanRestrictedError
     && !isReceiptLimitError;
   const extractErrorTitle = (() => {
+    if (extractErrorCode === 'document_too_large') {
+      return t('transactions.documentReview.fileTooLargeTitle', {
+        ns: 'portal',
+        defaultValue: 'File too large',
+      });
+    }
+    if (extractErrorCode === 'invalid_type') {
+      return t('transactions.documentReview.unsupportedFileTypeTitle', {
+        ns: 'portal',
+        defaultValue: 'Unsupported file type',
+      });
+    }
+    if (extractErrorCode === 'empty_file') {
+      return t('transactions.documentReview.invalidFileTitle', {
+        ns: 'portal',
+        defaultValue: 'Invalid file',
+      });
+    }
     if (extractErrorCode === 'receipt_allowance_exhausted') {
       return t('transactions.documentReview.limitReachedTitle', {
         ns: 'portal',
@@ -489,7 +580,7 @@ export default function DocumentTransactionReviewModal({
     }
     return t('transactions.documentReview.extractErrorTitle', {
       ns: 'portal',
-      defaultValue: 'Document extraction failed',
+      defaultValue: 'Extraction failed',
     });
   })();
   const receiptLimitHint = extractErrorCode === 'receipt_allowance_exhausted'
@@ -583,6 +674,10 @@ export default function DocumentTransactionReviewModal({
     && !validationError
     && reviewTransactions.length > 0
     && !!jobId;
+
+  const handleChooseAnotherFile = () => {
+    replaceFileInputRef.current?.click();
+  };
 
   const updateTransaction = (id: string, updater: (current: EditableDocumentTransaction) => EditableDocumentTransaction) => {
     setReviewTransactions((current) => current.map((transaction) => (
@@ -699,6 +794,20 @@ export default function DocumentTransactionReviewModal({
       bodyClassName="overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col">
+        <input
+          ref={replaceFileInputRef}
+          type="file"
+          accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
+          className="hidden"
+          onChange={(event) => {
+            const nextFile = event.target.files?.[0] ?? null;
+            if (nextFile) {
+              setActiveFile(nextFile);
+              setRetryKey(0);
+            }
+            event.currentTarget.value = '';
+          }}
+        />
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
@@ -791,6 +900,18 @@ export default function DocumentTransactionReviewModal({
                     <p className="mt-2 text-xs font-600 text-negative/80">{receiptLimitHint}</p>
                   ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {isSelectionError ? (
+                      <button
+                        type="button"
+                        onClick={handleChooseAnotherFile}
+                        className="btn-secondary"
+                      >
+                        {t('transactions.documentReview.chooseAnotherFile', {
+                          ns: 'portal',
+                          defaultValue: 'Choose another file',
+                        })}
+                      </button>
+                    ) : null}
                     {(extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included') ? (
                       <Link href="/settings/subscription" className="btn-secondary">
                         {t('subscriptionBilling.upgrade', {
@@ -821,7 +942,7 @@ export default function DocumentTransactionReviewModal({
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-card p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    {file?.type === 'application/pdf' ? (
+                    {activeFile?.type === 'application/pdf' ? (
                       <FileText size={16} className="text-accent" />
                     ) : (
                       <ImageIcon size={16} className="text-accent" />
@@ -834,23 +955,23 @@ export default function DocumentTransactionReviewModal({
                     </p>
                   </div>
                   <div className="overflow-hidden rounded-xl border border-border bg-muted/10">
-                    {file?.type === 'application/pdf' ? (
+                    {activeFile?.type === 'application/pdf' ? (
                       <iframe
                         src={previewUrl}
-                        title={file?.name || 'document-preview'}
+                        title={activeFile?.name || 'document-preview'}
                         className="h-[24rem] w-full bg-white"
                       />
                     ) : (
                       <img
                         src={previewUrl}
-                        alt={file?.name || 'document-preview'}
+                        alt={activeFile?.name || 'document-preview'}
                         className="h-[24rem] w-full object-contain bg-white"
                       />
                     )}
                   </div>
-                  {file ? (
+                  {activeFile ? (
                     <p className="mt-3 text-xs text-muted-foreground">
-                      {file.name}
+                      {activeFile.name}
                     </p>
                   ) : null}
                 </div>

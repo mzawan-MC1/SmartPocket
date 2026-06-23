@@ -19,7 +19,7 @@ import {
 export interface TransactionDocumentAIRequest {
   fileName: string;
   fileMimeType: string;
-  fileDataUrl: string;
+  fileUrl: string;
   language?: string;
   pageCount?: number;
   sourceSurface?: string;
@@ -1702,14 +1702,14 @@ function buildTransactionDocumentUserContent(input: TransactionDocumentAIRequest
       type: 'file',
       file: {
         filename: input.fileName,
-        file_data: input.fileDataUrl,
+        file_data: input.fileUrl,
       },
     });
   } else {
     parts.push({
       type: 'image_url',
       image_url: {
-        url: input.fileDataUrl,
+        url: input.fileUrl,
       },
     });
   }

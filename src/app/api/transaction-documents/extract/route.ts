@@ -11,6 +11,7 @@ import {
 } from '@/lib/transaction-documents-server';
 import {
   classifyTransactionDocumentError,
+  getTransactionDocumentMaxSizeLabel,
   sha256HexFromArrayBuffer,
   TRANSACTION_DOCUMENT_BUCKET,
   TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS,
@@ -24,11 +25,14 @@ function jsonWithCookies(
   status: number,
   cookieMutations: Parameters<typeof applySupabaseCookies>[1]
 ) {
-  return applySupabaseCookies(NextResponse.json(body, { status }), cookieMutations);
-}
-
-function toBase64(buffer: ArrayBuffer) {
-  return Buffer.from(buffer).toString('base64');
+  const errorCode = typeof body.errorCode === 'string' ? body.errorCode : undefined;
+  const errorMessage = typeof body.errorMessage === 'string' ? body.errorMessage : undefined;
+  const nextBody = {
+    ...body,
+    ...(errorCode ? { code: errorCode } : {}),
+    ...(errorMessage ? { message: errorMessage } : {}),
+  };
+  return applySupabaseCookies(NextResponse.json(nextBody, { status }), cookieMutations);
 }
 
 function normalizeSurface(value: FormDataEntryValue | null): TransactionDocumentSourceSurface {
@@ -77,10 +81,11 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
     case 'unauthorized':
       return 401;
     case 'file_required':
+    case 'empty_file':
     case 'invalid_type':
     case 'pdf_too_many_pages':
       return 400;
-    case 'file_too_large':
+    case 'document_too_large':
       return 413;
     case 'migration_missing':
     case 'storage_bucket_failure':
@@ -102,6 +107,17 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
       return 409;
     default:
       return 500;
+  }
+}
+
+function getErrorMessage(errorCode: TransactionDocumentErrorCode): string | undefined {
+  switch (errorCode) {
+    case 'document_too_large':
+      return `This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`;
+    case 'empty_file':
+      return 'This file appears to be empty or unreadable.';
+    default:
+      return undefined;
   }
 }
 
@@ -283,6 +299,7 @@ export async function POST(request: NextRequest) {
   let fallbackUsed = false;
   let currentUserId = '';
   let currentSourceSurface: TransactionDocumentSourceSurface = 'add_transaction';
+  let previewUrl = '';
 
   try {
     logExtractionStage('info', 'authentication.start', {
@@ -438,6 +455,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: accessErrorCode,
+        errorMessage: getErrorMessage(accessErrorCode),
       }, accessErrorCode === 'receipt_allowance_exhausted' ? 429 : 403, cookieMutations);
     }
 
@@ -460,6 +478,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: reserveErrorCode,
+        errorMessage: getErrorMessage(reserveErrorCode),
       }, getSafeExtractStatusCode(reserveErrorCode), cookieMutations);
     }
 
@@ -531,6 +550,11 @@ export async function POST(request: NextRequest) {
     });
     const options = mapDocumentOptionsFromContext(context);
 
+    previewUrl = await createSignedTransactionDocumentPreview({
+      admin,
+      path: storagePath,
+    });
+
     if (request.signal.aborted) {
       throw new Error('Client cancelled receipt extraction before provider call.');
     }
@@ -548,7 +572,7 @@ export async function POST(request: NextRequest) {
       requestId: jobId,
       fileName: fileEntry.name,
       fileMimeType: fileEntry.type,
-      fileDataUrl: `data:${fileEntry.type};base64,${toBase64(fileBuffer)}`,
+      fileUrl: previewUrl,
       language,
       pageCount: validation.pageCount,
       sourceSurface,
@@ -654,6 +678,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode,
+        errorMessage: getErrorMessage(errorCode),
       }, getSafeExtractStatusCode(errorCode), cookieMutations);
     }
 
@@ -748,38 +773,6 @@ export async function POST(request: NextRequest) {
       documentId,
       jobId,
       result: 'review_ready',
-    });
-
-    logExtractionStage('info', 'signed_preview.start', {
-      extractRequestId,
-      userId: user.id,
-      documentId,
-      jobId,
-      storagePath,
-    });
-    let previewUrl = '';
-    try {
-      previewUrl = await createSignedTransactionDocumentPreview({
-        admin,
-        path: storagePath,
-      });
-    } catch (error) {
-      logExtractionStage('error', 'signed_preview.failed', {
-        extractRequestId,
-        userId: user.id,
-        documentId,
-        jobId,
-        storagePath,
-        internalError: error instanceof Error ? error.message : 'Unknown error',
-      });
-      throw error;
-    }
-    logExtractionStage('info', 'signed_preview.success', {
-      extractRequestId,
-      userId: user.id,
-      documentId,
-      jobId,
-      storagePath,
     });
 
     if (usageReserved && creditCycleId && creditLedgerId) {
@@ -915,6 +908,7 @@ export async function POST(request: NextRequest) {
     return jsonWithCookies({
       success: false,
       errorCode,
+      errorMessage: getErrorMessage(errorCode),
     }, getSafeExtractStatusCode(errorCode), cookieMutations);
   }
 }

@@ -37,6 +37,9 @@ import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
   classifyTransactionDocumentError,
+  TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE,
+  TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+  getTransactionDocumentMaxSizeLabel,
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
 
@@ -114,9 +117,11 @@ function getLocalizedDocumentValidationError(
   error: unknown
 ) {
   switch (classifyTransactionDocumentError(error)) {
+    case 'empty_file':
+      return t('transactions.documentReview.errors.emptyFile', { ns: 'portal' });
     case 'invalid_type':
       return t('transactions.documentReview.errors.invalidType', { ns: 'portal' });
-    case 'file_too_large':
+    case 'document_too_large':
       return t('transactions.documentReview.errors.fileTooLarge', { ns: 'portal' });
     case 'pdf_too_many_pages':
       return t('transactions.documentReview.errors.pdfTooManyPages', { ns: 'portal' });
@@ -577,15 +582,10 @@ export default function AddTransactionModal({
     }
   }, [activeDraftRows, closeModalAndReset, editingTransaction, onSaved, t, transactionMode, user?.id, validateDraftRow]);
 
-  const handleOpenDocumentReview = useCallback(async (file: File | null | undefined) => {
+  const handleOpenDocumentReview = useCallback((file: File | null | undefined) => {
     if (!file) return;
-    try {
-      await validateTransactionDocumentFile(file);
-      setDocumentReviewFile(file);
-    } catch (error) {
-      toast.error(getLocalizedDocumentValidationError(t, error));
-    }
-  }, [t]);
+    setDocumentReviewFile(file);
+  }, []);
 
   const visibleRowCount = activeDraftRows.length;
   const isLoanRepaymentMode = activeDraftRows[0]?.entry_kind === 'loan_repayment';
@@ -640,12 +640,26 @@ export default function AddTransactionModal({
                         defaultValue: 'Upload a JPG, PNG, or PDF to extract draft transaction data for review before saving.',
                       })}
                     </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('transactions.documentReview.maxFileSizeLabel', {
+                        ns: 'portal',
+                        maxSize: getTransactionDocumentMaxSizeLabel(),
+                        defaultValue: 'Maximum file size: {{maxSize}}',
+                      })}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('transactions.documentReview.supportedFileTypesLabel', {
+                        ns: 'portal',
+                        supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+                        defaultValue: 'Supported file types: {{supportedTypes}}',
+                      })}
+                    </p>
                   </div>
                   <div>
                     <input
                       type="file"
                       id="transaction-document-review-upload"
-                      accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                      accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
                       className="hidden"
                       onChange={(event) => {
                         const nextFile = event.target.files?.[0];
@@ -1141,7 +1155,7 @@ export default function AddTransactionModal({
                                 <input
                                   type="file"
                                   id={`receipt-upload-${row.id}`}
-                                  accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                                  accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
                                   className="hidden"
                                   onChange={async (event) => {
                                     const file = event.target.files?.[0];

@@ -1,9 +1,14 @@
 export const TRANSACTION_DOCUMENT_BUCKET = 'receipts';
 export const TRANSACTION_DOCUMENT_MAX_SIZE_BYTES = 10 * 1024 * 1024;
+export const TRANSACTION_DOCUMENT_MAX_SIZE_MB = Math.round(
+  TRANSACTION_DOCUMENT_MAX_SIZE_BYTES / (1024 * 1024)
+);
 export const TRANSACTION_DOCUMENT_MAX_PDF_PAGES = 10;
 export const TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 30;
 export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.05;
 export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.5;
+export const TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf';
+export const TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL = 'JPG, PNG, PDF';
 
 export const TRANSACTION_DOCUMENT_ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -27,8 +32,9 @@ export type TransactionDocumentItemKind = 'regular' | 'discount' | 'tax' | 'fee'
 export type TransactionDocumentErrorCode =
   | 'unauthorized'
   | 'file_required'
+  | 'empty_file'
   | 'invalid_type'
-  | 'file_too_large'
+  | 'document_too_large'
   | 'pdf_too_many_pages'
   | 'pdf_extraction_unavailable'
   | 'migration_missing'
@@ -235,6 +241,22 @@ export function sanitizeTransactionDocumentFilename(fileName: string) {
   return trimmed.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/-+/g, '-');
 }
 
+export function formatTransactionDocumentFileSize(sizeBytes: number) {
+  if (!Number.isFinite(sizeBytes) || sizeBytes <= 0) {
+    return '0 KB';
+  }
+
+  if (sizeBytes >= 1024 * 1024) {
+    return `${(sizeBytes / (1024 * 1024)).toFixed(sizeBytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(sizeBytes / 1024))} KB`;
+}
+
+export function getTransactionDocumentMaxSizeLabel() {
+  return `${TRANSACTION_DOCUMENT_MAX_SIZE_MB} MB`;
+}
+
 export function isAllowedTransactionDocumentFile(args: {
   mimeType: string;
   fileName: string;
@@ -299,11 +321,21 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   if (message === 'A receipt or document file is required.') {
     return 'file_required';
   }
+  if (message === 'This file appears to be empty or unreadable.') {
+    return 'empty_file';
+  }
   if (message === 'Only JPG, JPEG, PNG, and PDF files are supported.') {
     return 'invalid_type';
   }
-  if (message === 'File size must be 10 MB or less.') {
-    return 'file_too_large';
+  if (
+    message === `This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`
+    || message === `File size must be ${getTransactionDocumentMaxSizeLabel()} or less.`
+    || /request entity too large/i.test(message)
+    || /payload too large/i.test(message)
+    || /body size limit/i.test(message)
+    || /exceeds.*upload limit/i.test(message)
+  ) {
+    return 'document_too_large';
   }
   if (/PDF files can include at most/i.test(message)) {
     return 'pdf_too_many_pages';
@@ -461,12 +493,16 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
 }
 
 export async function validateTransactionDocumentFile(file: File) {
+  if (!Number.isFinite(file.size) || file.size <= 0) {
+    throw new Error('This file appears to be empty or unreadable.');
+  }
+
   if (!isAllowedTransactionDocumentFile({ mimeType: file.type, fileName: file.name })) {
     throw new Error('Only JPG, JPEG, PNG, and PDF files are supported.');
   }
 
   if (file.size > TRANSACTION_DOCUMENT_MAX_SIZE_BYTES) {
-    throw new Error('File size must be 10 MB or less.');
+    throw new Error(`This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`);
   }
 
   if (file.type === 'application/pdf') {
