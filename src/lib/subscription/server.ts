@@ -42,6 +42,7 @@ type RawPlanRow = {
   daily_ai_request_limit: number | null;
   monthly_voice_seconds: number | null;
   monthly_receipt_extractions: number | null;
+  receipt_intelligence_enabled: boolean | null;
   text_ai_enabled: boolean | null;
   voice_ai_enabled: boolean | null;
   ai_history_enabled: boolean | null;
@@ -127,6 +128,7 @@ const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
   voiceSecondsUsed: 0,
   requestsToday: 0,
   monthlyReceiptExtractions: 0,
+  receiptIntelligenceEnabled: false,
   receiptExtractionsIncluded: 0,
   receiptExtractionsUsed: 0,
   receiptExtractionsReserved: 0,
@@ -190,6 +192,7 @@ function normalizePlan(
     dailyAiRequestLimit: row.daily_ai_request_limit ?? 0,
     monthlyVoiceSeconds: row.monthly_voice_seconds ?? 0,
     monthlyReceiptExtractions: row.monthly_receipt_extractions ?? 0,
+    receiptIntelligenceEnabled: Boolean(row.receipt_intelligence_enabled),
     textAiEnabled: Boolean(row.text_ai_enabled),
     voiceAiEnabled: Boolean(row.voice_ai_enabled),
     aiHistoryEnabled: Boolean(row.ai_history_enabled),
@@ -385,6 +388,7 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
         daily_ai_request_limit,
         monthly_voice_seconds,
         monthly_receipt_extractions,
+        receipt_intelligence_enabled,
         text_ai_enabled,
         voice_ai_enabled,
         ai_history_enabled,
@@ -458,9 +462,16 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
   );
   const cycleStart = usageCycle?.cycle_start ?? preferredCycleStart ?? null;
   const cycleEnd = usageCycle?.cycle_end ?? billingSubscription?.current_period_end ?? null;
-  const receiptIncluded = usageCycle?.receipt_extractions_allocated ?? planRow.monthly_receipt_extractions ?? 0;
+  const receiptIntelligenceEnabled = Boolean(planRow.receipt_intelligence_enabled);
   const receiptUsed = usageCycle?.receipt_extractions_consumed ?? 0;
   const receiptReserved = usageCycle?.receipt_extractions_reserved ?? 0;
+  const receiptIncluded = receiptIntelligenceEnabled
+    ? Math.max(
+        usageCycle?.receipt_extractions_allocated ?? 0,
+        planRow.monthly_receipt_extractions ?? 0,
+        receiptUsed + receiptReserved
+      )
+    : 0;
   const pricing = buildPlanPricingDetails({
     billingInterval: billingSubscription?.billing_interval || planRow.billing_interval,
     priceAmount: planRow.price_amount,
@@ -500,6 +511,7 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     dailyAiRequestLimit: planRow.daily_ai_request_limit ?? 0,
     monthlyVoiceSeconds: planRow.monthly_voice_seconds ?? 0,
     monthlyReceiptExtractions: planRow.monthly_receipt_extractions ?? 0,
+    receiptIntelligenceEnabled,
     textAiEnabled: Boolean(planRow.text_ai_enabled),
     voiceAiEnabled: Boolean(planRow.voice_ai_enabled),
     aiHistoryEnabled: Boolean(planRow.ai_history_enabled),

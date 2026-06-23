@@ -51,9 +51,13 @@ function getPublicPlanFeatureRows(
     t('home.pricing.features.voiceAi', {
       minutes: Math.round(plan.monthlyVoiceSeconds / 60),
     }),
-    t('home.pricing.features.receiptIntelligence', {
-      count: plan.monthlyReceiptExtractions,
-    }),
+    plan.receiptIntelligenceEnabled
+      ? t('home.pricing.features.receiptIntelligence', {
+          count: plan.monthlyReceiptExtractions,
+        })
+      : t('home.pricing.features.receiptIntelligenceDisabled', {
+          defaultValue: 'Receipt Intelligence not included',
+        }),
     plan.aiHistoryEnabled
       ? t('home.pricing.features.aiHistoryEnabled', {
           days: plan.aiHistoryRetentionDays,

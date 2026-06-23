@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { AlertTriangle, CheckCircle, FileText, Image as ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ import {
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
   transactionDocumentLineItemsHaveValidTotals,
+  type TransactionDocumentErrorCode,
   type TransactionDocumentDuplicateMatch,
   type TransactionDocumentExtractResponse,
   type TransactionDocumentItemKind,
@@ -91,11 +93,22 @@ function matchCategoryId(
 }
 
 type ReceiptAllowanceSummary = {
+  enabled: boolean;
   included: number;
   used: number;
   reserved: number;
   remaining: number;
+  cycleEnd?: string | null;
 };
+
+function createTransactionDocumentUiError(
+  code: TransactionDocumentErrorCode | null,
+  message: string
+) {
+  const error = new Error(message) as Error & { code: TransactionDocumentErrorCode | null };
+  error.code = code;
+  return error;
+}
 
 function getLocalizedTransactionDocumentError(args: {
   t: ReturnType<typeof useTranslation>['t'];
@@ -153,9 +166,20 @@ function getLocalizedTransactionDocumentError(args: {
     case 'signed_url_failure':
       return args.t('transactions.documentReview.errors.signedUrlFailure', { ns: 'portal' });
     case 'receipt_feature_unavailable':
-      return args.t('transactions.documentReview.errors.receiptFeatureUnavailable', { ns: 'portal' });
+      return args.t('transactions.documentReview.errors.receiptFeatureUnavailable', {
+        ns: 'portal',
+        defaultValue: 'Receipt Intelligence is not included in your current plan.',
+      });
+    case 'receipt_no_documents_included':
+      return args.t('transactions.documentReview.errors.receiptNoDocumentsIncluded', {
+        ns: 'portal',
+        defaultValue: 'Your plan does not include any Receipt Intelligence documents.',
+      });
     case 'receipt_allowance_exhausted':
-      return args.t('transactions.documentReview.errors.receiptAllowanceExhausted', { ns: 'portal' });
+      return args.t('transactions.documentReview.errors.receiptAllowanceExhausted', {
+        ns: 'portal',
+        defaultValue: 'You have reached your monthly Receipt Intelligence limit.',
+      });
     case 'duplicate_request_in_progress':
       return args.t('transactions.documentReview.errors.duplicateRequestInProgress', { ns: 'portal' });
     case 'extract_failed':
@@ -204,6 +228,7 @@ export default function DocumentTransactionReviewModal({
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [extractError, setExtractError] = useState('');
+  const [extractErrorCode, setExtractErrorCode] = useState<TransactionDocumentErrorCode | null>(null);
   const [jobId, setJobId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -220,22 +245,46 @@ export default function DocumentTransactionReviewModal({
   const parseReceiptAllowanceSummary = (value: unknown): ReceiptAllowanceSummary | null => {
     if (!value || typeof value !== 'object') return null;
     const record = value as Record<string, unknown>;
-    const included = typeof record.receipt_extractions_included === 'number'
-      ? record.receipt_extractions_included
-      : typeof record.monthly_receipt_extractions === 'number'
-        ? record.monthly_receipt_extractions
+    const summary = 'summary' in record && typeof record.summary === 'object' && record.summary !== null
+      ? record.summary as Record<string, unknown>
+      : record;
+    const enabled = summary.receiptIntelligenceEnabled === true || summary.receipt_intelligence_enabled === true;
+    const included = typeof summary.receiptExtractionsIncluded === 'number'
+      ? summary.receiptExtractionsIncluded
+      : typeof summary.receipt_extractions_included === 'number'
+        ? summary.receipt_extractions_included
+        : typeof summary.monthlyReceiptExtractions === 'number'
+          ? summary.monthlyReceiptExtractions
+          : typeof summary.monthly_receipt_extractions === 'number'
+            ? summary.monthly_receipt_extractions
+            : 0;
+    const used = typeof summary.receiptExtractionsUsed === 'number'
+      ? summary.receiptExtractionsUsed
+      : typeof summary.receipt_extractions_used === 'number'
+        ? summary.receipt_extractions_used
         : 0;
-    const used = typeof record.receipt_extractions_used === 'number' ? record.receipt_extractions_used : 0;
-    const reserved = typeof record.receipt_extractions_reserved === 'number' ? record.receipt_extractions_reserved : 0;
-    const remaining = typeof record.receipt_extractions_remaining === 'number'
-      ? record.receipt_extractions_remaining
+    const reserved = typeof summary.receiptExtractionsReserved === 'number'
+      ? summary.receiptExtractionsReserved
+      : typeof summary.receipt_extractions_reserved === 'number'
+        ? summary.receipt_extractions_reserved
+        : 0;
+    const remaining = typeof summary.receiptExtractionsRemaining === 'number'
+      ? summary.receiptExtractionsRemaining
+      : typeof summary.receipt_extractions_remaining === 'number'
+        ? summary.receipt_extractions_remaining
       : Math.max(0, included - used - reserved);
 
     return {
-      included,
+      enabled,
+      included: enabled ? included : 0,
       used,
       reserved,
-      remaining,
+      remaining: enabled ? remaining : 0,
+      cycleEnd: typeof summary.cycleEnd === 'string'
+        ? summary.cycleEnd
+        : typeof summary.cycle_end === 'string'
+          ? summary.cycle_end
+          : null,
     };
   };
 
@@ -244,6 +293,7 @@ export default function DocumentTransactionReviewModal({
       setIsExtracting(false);
       setIsSaving(false);
       setExtractError('');
+      setExtractErrorCode(null);
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -265,6 +315,7 @@ export default function DocumentTransactionReviewModal({
     const runExtraction = async () => {
       setIsExtracting(true);
       setExtractError('');
+      setExtractErrorCode(null);
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -282,7 +333,7 @@ export default function DocumentTransactionReviewModal({
         });
 
         if (allowanceResponse.status === 401) {
-          throw new Error(getLocalizedTransactionDocumentError({
+          throw createTransactionDocumentUiError('unauthorized', getLocalizedTransactionDocumentError({
             t,
             errorCode: 'unauthorized',
             fallbackKey: 'extractFailed',
@@ -294,20 +345,6 @@ export default function DocumentTransactionReviewModal({
           const nextAllowance = parseReceiptAllowanceSummary(allowancePayload);
           if (nextAllowance) {
             setReceiptAllowance(nextAllowance);
-            if (nextAllowance.included <= 0) {
-              throw new Error(getLocalizedTransactionDocumentError({
-                t,
-                errorCode: 'receipt_feature_unavailable',
-                fallbackKey: 'extractFailed',
-              }));
-            }
-            if (nextAllowance.remaining <= 0) {
-              throw new Error(getLocalizedTransactionDocumentError({
-                t,
-                errorCode: 'receipt_allowance_exhausted',
-                fallbackKey: 'extractFailed',
-              }));
-            }
           }
         }
 
@@ -326,9 +363,12 @@ export default function DocumentTransactionReviewModal({
         });
         const result = await response.json().catch(() => ({}));
         if (!response.ok || !result?.success) {
-          throw new Error(getLocalizedTransactionDocumentError({
+          const errorCode = typeof result?.errorCode === 'string'
+            ? result.errorCode as TransactionDocumentErrorCode
+            : classifyTransactionDocumentError(result?.errorMessage);
+          throw createTransactionDocumentUiError(errorCode, getLocalizedTransactionDocumentError({
             t,
-            errorCode: result?.errorCode,
+            errorCode,
             errorMessage: result?.errorMessage,
             fallbackKey: 'extractFailed',
           }));
@@ -391,7 +431,11 @@ export default function DocumentTransactionReviewModal({
         setReviewTransactions(mappedTransactions);
       } catch (error) {
         if (cancelled) return;
+        const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string'
+          ? (error as { code: TransactionDocumentErrorCode }).code
+          : classifyTransactionDocumentError(error);
         setExtractError(error instanceof Error ? error.message : 'Failed to extract the uploaded document.');
+        setExtractErrorCode(errorCode);
         setJobId('');
         setDocumentId('');
         setPreviewUrl('');
@@ -417,6 +461,54 @@ export default function DocumentTransactionReviewModal({
 
   const hasDuplicates = duplicates.length > 0;
   const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
+  const isPlanRestrictedError = extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included';
+  const isReceiptLimitError = extractErrorCode === 'receipt_allowance_exhausted';
+  const canRetry = !!file
+    && !isExtracting
+    && !isSaving
+    && !isPlanRestrictedError
+    && !isReceiptLimitError;
+  const extractErrorTitle = (() => {
+    if (extractErrorCode === 'receipt_allowance_exhausted') {
+      return t('transactions.documentReview.limitReachedTitle', {
+        ns: 'portal',
+        defaultValue: 'Monthly limit reached',
+      });
+    }
+    if (extractErrorCode === 'receipt_feature_unavailable') {
+      return t('transactions.documentReview.upgradeRequiredTitle', {
+        ns: 'portal',
+        defaultValue: 'Upgrade required',
+      });
+    }
+    if (extractErrorCode === 'receipt_no_documents_included') {
+      return t('transactions.documentReview.receiptUnavailableTitle', {
+        ns: 'portal',
+        defaultValue: 'Receipt Intelligence unavailable',
+      });
+    }
+    return t('transactions.documentReview.extractErrorTitle', {
+      ns: 'portal',
+      defaultValue: 'Document extraction failed',
+    });
+  })();
+  const receiptLimitHint = extractErrorCode === 'receipt_allowance_exhausted'
+    ? t('transactions.documentReview.receiptLimitHint', {
+        ns: 'portal',
+        limit: receiptAllowance?.included ?? 0,
+        resetDate: receiptAllowance?.cycleEnd
+          ? new Intl.DateTimeFormat(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            }).format(new Date(receiptAllowance.cycleEnd))
+          : t('transactions.documentReview.nextBillingCycle', {
+              ns: 'portal',
+              defaultValue: 'the next billing cycle',
+            }),
+        defaultValue: 'Limit: {{limit}} documents. Resets on {{resetDate}}.',
+      })
+    : '';
   const filteredCategoriesByType = useMemo(() => ({
     expense: categories.filter((category) => category.category_type === 'expense'),
     income: categories.filter((category) => category.category_type === 'income'),
@@ -485,7 +577,6 @@ export default function DocumentTransactionReviewModal({
     return '';
   }, [duplicateConfirmed, hasDuplicates, reviewTransactions, t]);
 
-  const canRetry = !!file && !isExtracting && !isSaving;
   const canSave = !isExtracting
     && !isSaving
     && !extractError
@@ -611,7 +702,9 @@ export default function DocumentTransactionReviewModal({
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
-              receiptAllowance.remaining > 0
+              !receiptAllowance.enabled
+                ? 'border-border bg-secondary/20'
+                : receiptAllowance.remaining > 0
                 ? 'border-accent/20 bg-accent/5'
                 : 'border-negative/20 bg-negative-soft'
             }`}>
@@ -624,27 +717,36 @@ export default function DocumentTransactionReviewModal({
                     })}
                   </p>
                   <p className="mt-1 text-sm font-700 text-foreground">
-                    {t('transactions.documentReview.receiptAllowanceUsedIncluded', {
-                      ns: 'portal',
-                      used: allowanceUsed,
-                      included: receiptAllowance.included,
-                      defaultValue: '{{used}} / {{included}} documents used',
-                    })}
+                    {receiptAllowance.enabled ? (
+                      t('transactions.documentReview.receiptAllowanceUsedIncluded', {
+                        ns: 'portal',
+                        used: allowanceUsed,
+                        included: receiptAllowance.included,
+                        defaultValue: '{{used}} / {{included}} documents used',
+                      })
+                    ) : (
+                      t('subscriptionBilling.disabled', {
+                        ns: 'portal',
+                        defaultValue: 'Not included',
+                      })
+                    )}
                   </p>
                 </div>
-                <div className="text-end">
-                  <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                    {t('transactions.documentReview.receiptAllowanceRemainingLabel', {
-                      ns: 'portal',
-                      defaultValue: 'Remaining',
-                    })}
-                  </p>
-                  <p className={`mt-1 text-lg font-800 ${
-                    receiptAllowance.remaining > 0 ? 'text-foreground' : 'text-negative'
-                  }`}>
-                    {receiptAllowance.remaining}
-                  </p>
-                </div>
+                {receiptAllowance.enabled ? (
+                  <div className="text-end">
+                    <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                      {t('transactions.documentReview.receiptAllowanceRemainingLabel', {
+                        ns: 'portal',
+                        defaultValue: 'Remaining',
+                      })}
+                    </p>
+                    <p className={`mt-1 text-lg font-800 ${
+                      receiptAllowance.remaining > 0 ? 'text-foreground' : 'text-negative'
+                    }`}>
+                      {receiptAllowance.remaining}
+                    </p>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -682,23 +784,35 @@ export default function DocumentTransactionReviewModal({
                 <AlertTriangle size={18} className="mt-0.5 text-negative" />
                 <div>
                   <p className="text-sm font-700 text-negative">
-                    {t('transactions.documentReview.extractErrorTitle', {
-                      ns: 'portal',
-                      defaultValue: 'Document extraction failed',
-                    })}
+                    {extractErrorTitle}
                   </p>
                   <p className="mt-1 text-sm text-negative">{extractError}</p>
-                  <button
-                    type="button"
-                    onClick={() => setRetryKey((current) => current + 1)}
-                    disabled={!canRetry}
-                    className="btn-secondary mt-3"
-                  >
-                    {t('transactions.documentReview.tryAgain', {
-                      ns: 'portal',
-                      defaultValue: 'Try Again',
-                    })}
-                  </button>
+                  {receiptLimitHint ? (
+                    <p className="mt-2 text-xs font-600 text-negative/80">{receiptLimitHint}</p>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included') ? (
+                      <Link href="/settings/subscription" className="btn-secondary">
+                        {t('subscriptionBilling.upgrade', {
+                          ns: 'portal',
+                          defaultValue: 'Upgrade',
+                        })}
+                      </Link>
+                    ) : null}
+                    {canRetry ? (
+                      <button
+                        type="button"
+                        onClick={() => setRetryKey((current) => current + 1)}
+                        disabled={!canRetry}
+                        className="btn-secondary"
+                      >
+                        {t('transactions.documentReview.tryAgain', {
+                          ns: 'portal',
+                          defaultValue: 'Try Again',
+                        })}
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1428,17 +1542,19 @@ export default function DocumentTransactionReviewModal({
               {t('actions.cancel', { ns: 'common' })}
             </button>
             {extractError ? (
-              <button
-                type="button"
-                onClick={() => setRetryKey((current) => current + 1)}
-                disabled={!canRetry}
-                className="btn-primary w-full justify-center sm:w-auto"
-              >
-                {t('transactions.documentReview.tryAgain', {
-                  ns: 'portal',
-                  defaultValue: 'Try Again',
-                })}
-              </button>
+              canRetry ? (
+                <button
+                  type="button"
+                  onClick={() => setRetryKey((current) => current + 1)}
+                  disabled={!canRetry}
+                  className="btn-primary w-full justify-center sm:w-auto"
+                >
+                  {t('transactions.documentReview.tryAgain', {
+                    ns: 'portal',
+                    defaultValue: 'Try Again',
+                  })}
+                </button>
+              ) : null
             ) : (
               <button
                 type="button"

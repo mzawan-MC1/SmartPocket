@@ -29,6 +29,7 @@ interface Plan {
   daily_ai_request_limit: number;
   monthly_voice_seconds: number;
   monthly_receipt_extractions: number;
+  receipt_intelligence_enabled: boolean;
   text_ai_enabled: boolean;
   voice_ai_enabled: boolean;
   ai_history_enabled: boolean;
@@ -158,6 +159,10 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
     : calculateEquivalentMonthlyCost(calculatedYearlyPrice);
 
   const handleSave = async () => {
+    if (!Number.isInteger(form.monthly_receipt_extractions) || form.monthly_receipt_extractions < 0) {
+      toast.error('Receipt Documents / Month must be a non-negative whole number.');
+      return;
+    }
     setSaving(true);
     try { await onSave(form); } finally { setSaving(false); }
   };
@@ -211,7 +216,10 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">Receipt Documents / Month</label>
-          <input type="number" min="0" className="input-base text-sm" value={form.monthly_receipt_extractions} onChange={e => set('monthly_receipt_extractions', parseInt(e.target.value) || 0)} />
+          <input type="number" min="0" step="1" className="input-base text-sm" value={form.monthly_receipt_extractions} onChange={e => set('monthly_receipt_extractions', Number.parseInt(e.target.value, 10) || 0)} />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Stored quota does not grant access unless Receipt Intelligence is enabled.
+          </p>
         </div>
         <div>
           <label className="block text-xs font-600 text-foreground mb-1">AI History Retention (days)</label>
@@ -249,6 +257,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
         {([
           ['text_ai_enabled', 'Text AI'],
           ['voice_ai_enabled', 'Voice AI'],
+          ['receipt_intelligence_enabled', 'Receipt Intelligence'],
           ['ai_history_enabled', 'AI History'],
           ['managed_people_enabled', 'Managed People'],
           ['shared_spaces_enabled', 'Shared Spaces'],
@@ -431,6 +440,7 @@ export default function AdminSubscriptionsPage() {
         daily_ai_request_limit: plan.daily_ai_request_limit,
         monthly_voice_seconds: plan.monthly_voice_seconds,
         monthly_receipt_extractions: plan.monthly_receipt_extractions,
+        receipt_intelligence_enabled: plan.receipt_intelligence_enabled,
         text_ai_enabled: plan.text_ai_enabled,
         voice_ai_enabled: plan.voice_ai_enabled,
         ai_history_enabled: plan.ai_history_enabled,
@@ -624,7 +634,7 @@ export default function AdminSubscriptionsPage() {
                         <div className="flex flex-wrap gap-2 mt-3">
                           {plan.text_ai_enabled && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Text AI</span>}
                           {plan.voice_ai_enabled && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Voice AI</span>}
-                          {plan.monthly_receipt_extractions > 0 && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Receipt Intelligence</span>}
+                          {plan.receipt_intelligence_enabled && <span className="text-[10px] bg-positive-soft text-positive px-2 py-0.5 rounded-full font-600">Receipt Intelligence</span>}
                           {plan.ai_history_enabled && <span className="text-[10px] bg-info-soft text-info px-2 py-0.5 rounded-full font-600">AI History</span>}
                           {plan.managed_people_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Managed People</span>}
                           {plan.shared_spaces_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Shared Spaces</span>}

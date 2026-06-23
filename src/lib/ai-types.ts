@@ -281,6 +281,7 @@ export interface AIUsageSummary {
   monthlyVoiceSeconds?: number;
   voiceSecondsUsed?: number;
   monthlyReceiptExtractions?: number;
+  receiptIntelligenceEnabled?: boolean;
   receiptExtractionsIncluded?: number;
   receiptExtractionsUsed?: number;
   receiptExtractionsReserved?: number;

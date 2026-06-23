@@ -32,6 +32,7 @@ export interface PublicSubscriptionPlan {
   dailyAiRequestLimit: number;
   monthlyVoiceSeconds: number;
   monthlyReceiptExtractions: number;
+  receiptIntelligenceEnabled: boolean;
   textAiEnabled: boolean;
   voiceAiEnabled: boolean;
   aiHistoryEnabled: boolean;
@@ -77,6 +78,7 @@ export interface SubscriptionSummary {
   dailyAiRequestLimit?: number;
   monthlyVoiceSeconds?: number;
   monthlyReceiptExtractions?: number;
+  receiptIntelligenceEnabled?: boolean;
   textAiEnabled?: boolean;
   voiceAiEnabled?: boolean;
   aiHistoryEnabled?: boolean;

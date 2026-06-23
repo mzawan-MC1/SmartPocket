@@ -18,6 +18,7 @@ interface SubscriptionSummary {
   daily_ai_request_limit?: number;
   monthly_voice_seconds?: number;
   monthly_receipt_extractions?: number;
+  receipt_intelligence_enabled?: boolean;
   text_ai_enabled?: boolean;
   voice_ai_enabled?: boolean;
   ai_history_enabled?: boolean;
@@ -48,6 +49,7 @@ type SummaryApiPayload = {
     dailyAiRequestLimit?: number;
     monthlyVoiceSeconds?: number;
     monthlyReceiptExtractions?: number;
+    receiptIntelligenceEnabled?: boolean;
     textAiEnabled?: boolean;
     voiceAiEnabled?: boolean;
     aiHistoryEnabled?: boolean;
@@ -99,6 +101,7 @@ function normalizeSummaryPayload(payload: unknown): SubscriptionSummary | null {
     daily_ai_request_limit: summary?.dailyAiRequestLimit ?? rawSummary.daily_ai_request_limit,
     monthly_voice_seconds: summary?.monthlyVoiceSeconds ?? rawSummary.monthly_voice_seconds,
     monthly_receipt_extractions: summary?.monthlyReceiptExtractions ?? rawSummary.monthly_receipt_extractions,
+    receipt_intelligence_enabled: summary?.receiptIntelligenceEnabled ?? rawSummary.receipt_intelligence_enabled,
     text_ai_enabled: summary?.textAiEnabled ?? rawSummary.text_ai_enabled,
     voice_ai_enabled: summary?.voiceAiEnabled ?? rawSummary.voice_ai_enabled,
     ai_history_enabled: summary?.aiHistoryEnabled ?? rawSummary.ai_history_enabled,
@@ -219,6 +222,30 @@ function UsageRow({
       {remainingText ? (
         <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{remainingText}</p>
       ) : null}
+    </div>
+  );
+}
+
+function UsageUnavailableRow({
+  title,
+  helper,
+  valueLabel,
+}: {
+  title: string;
+  helper: string;
+  valueLabel: string;
+}) {
+  return (
+    <div className="py-2.5 first:pt-0 last:pb-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-700 text-foreground">{title}</p>
+          <p className="text-[11px] leading-4 text-muted-foreground">{helper}</p>
+        </div>
+        <p className="whitespace-nowrap text-sm font-800 text-muted-foreground sm:text-base">
+          {valueLabel}
+        </p>
+      </div>
     </div>
   );
 }
@@ -370,13 +397,15 @@ export default function AIUsageCard() {
   const voicePct = voiceTotalMin > 0 ? Math.round((voiceUsedMin / voiceTotalMin) * 100) : 0;
   const voiceRemainingMin = Math.max(0, voiceTotalMin - voiceUsedMin);
 
-  const receiptIncluded = summary.receipt_extractions_included ?? summary.monthly_receipt_extractions ?? 0;
+  const receiptEnabled = Boolean(summary.receipt_intelligence_enabled);
+  const receiptIncluded = receiptEnabled ? (summary.receipt_extractions_included ?? summary.monthly_receipt_extractions ?? 0) : 0;
   const receiptUsed = summary.receipt_extractions_used ?? 0;
   const receiptReserved = summary.receipt_extractions_reserved ?? 0;
+  const receiptUsageTotal = receiptUsed + receiptReserved;
   const receiptRemaining = typeof summary.receipt_extractions_remaining === 'number'
-    ? summary.receipt_extractions_remaining
+    ? (receiptEnabled ? summary.receipt_extractions_remaining : 0)
     : Math.max(0, receiptIncluded - receiptUsed - receiptReserved);
-  const receiptPct = receiptIncluded > 0 ? Math.round(((receiptUsed + receiptReserved) / receiptIncluded) * 100) : 0;
+  const receiptPct = receiptEnabled && receiptIncluded > 0 ? Math.round((receiptUsageTotal / receiptIncluded) * 100) : 0;
 
   const peakPct = Math.max(textPct, voicePct, receiptPct);
 
@@ -456,27 +485,41 @@ export default function AIUsageCard() {
               total={voiceTotalMin}
               remainingText={t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
             />
-            <UsageRow
-              title={t('aiUsage.receiptIntelligence')}
-              helper={t('aiUsage.receiptUsedIncluded')}
-              value={receiptUsed}
-              totalLabel={String(receiptIncluded || t('aiUsage.none'))}
-              progressLabel={t('aiUsage.receiptDocuments')}
-              used={receiptUsed + receiptReserved}
-              total={receiptIncluded}
-              remainingText={t('aiUsage.receiptRemaining', { count: receiptRemaining })}
-              danger={receiptRemaining === 0 && receiptIncluded > 0}
-            />
+            {receiptEnabled ? (
+              <UsageRow
+                title={t('aiUsage.receiptIntelligence')}
+                helper={t('aiUsage.receiptUsedIncluded')}
+                value={receiptUsageTotal}
+                totalLabel={String(receiptIncluded)}
+                progressLabel={t('aiUsage.receiptDocuments')}
+                used={receiptUsageTotal}
+                total={receiptIncluded}
+                remainingText={t('aiUsage.receiptRemaining', { count: receiptRemaining })}
+                danger={receiptRemaining === 0 && receiptIncluded > 0}
+              />
+            ) : (
+              <UsageUnavailableRow
+                title={t('aiUsage.receiptIntelligence')}
+                helper={t('aiUsage.receiptUsedIncluded')}
+                valueLabel={t('subscriptionBilling.disabled', { ns: 'portal', defaultValue: 'Not included' })}
+              />
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-2xl border border-white/70 bg-white/64 px-3 py-2.5 backdrop-blur-sm">
           <div className="min-w-0">
             <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.receiptRemainingCard')}</p>
-            <p className={`text-sm font-800 sm:text-base ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
-              {receiptRemaining}
-              <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded || t('aiUsage.none')}</span>
-            </p>
+            {receiptEnabled ? (
+              <p className={`text-sm font-800 sm:text-base ${receiptRemaining === 0 && receiptIncluded > 0 ? 'text-negative' : 'text-foreground'}`}>
+                {receiptRemaining}
+                <span className="ms-1 text-xs font-600 text-muted-foreground">/ {receiptIncluded}</span>
+              </p>
+            ) : (
+              <p className="text-sm font-800 text-muted-foreground sm:text-base">
+                {t('subscriptionBilling.disabled', { ns: 'portal', defaultValue: 'Not included' })}
+              </p>
+            )}
           </div>
           <div className="min-w-0">
             <p className="mb-0.5 text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">{t('aiUsage.requestsToday')}</p>

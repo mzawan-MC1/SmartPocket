@@ -499,6 +499,7 @@ function summarizeUsage(summary: SubscriptionSummary | null | undefined): AIUsag
     monthlyVoiceSeconds: Number(summary.monthlyVoiceSeconds || 0),
     voiceSecondsUsed: Number(summary.voiceSecondsUsed || 0),
     monthlyReceiptExtractions: Number(summary.monthlyReceiptExtractions || 0),
+    receiptIntelligenceEnabled: Boolean(summary.receiptIntelligenceEnabled),
     receiptExtractionsIncluded: Number(summary.receiptExtractionsIncluded || 0),
     receiptExtractionsUsed: Number(summary.receiptExtractionsUsed || 0),
     receiptExtractionsReserved: Number(summary.receiptExtractionsReserved || 0),

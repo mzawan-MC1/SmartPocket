@@ -50,6 +50,7 @@ export type TransactionDocumentErrorCode =
   | 'already_saved'
   | 'job_not_found'
   | 'receipt_feature_unavailable'
+  | 'receipt_no_documents_included'
   | 'receipt_allowance_exhausted'
   | 'duplicate_request_in_progress'
   | 'save_failed';
@@ -378,7 +379,14 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     return 'receipt_feature_unavailable';
   }
   if (
-    /no receipt intelligence documents remain/i.test(message)
+    /does not include any receipt intelligence documents/i.test(message)
+    || /no receipt intelligence documents are included/i.test(message)
+  ) {
+    return 'receipt_no_documents_included';
+  }
+  if (
+    /monthly receipt intelligence limit/i.test(message)
+    || /no receipt intelligence documents remain/i.test(message)
     || /receipt intelligence allowance/i.test(message)
   ) {
     return 'receipt_allowance_exhausted';

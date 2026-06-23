@@ -142,7 +142,7 @@ function featureRows(plan: PublicSubscriptionPlan, t: (key: string, options?: Re
     {
       id: 'receipt-ai',
       label: t('subscriptionBilling.features.receiptIntelligence', { ns: 'portal' }),
-      value: plan.monthlyReceiptExtractions > 0
+      value: plan.receiptIntelligenceEnabled
         ? t('subscriptionBilling.features.receiptAiValue', {
             ns: 'portal',
             count: plan.monthlyReceiptExtractions,
@@ -518,16 +518,19 @@ export default function SubscriptionSettingsPage() {
                         label: t('subscriptionBilling.features.textAi', { ns: 'portal' }),
                         used: summary?.requestsToday ?? 0,
                         total: summary?.dailyAiRequestLimit ?? 0,
+                        disabled: false,
                       },
                       {
                         label: t('subscriptionBilling.features.voiceAi', { ns: 'portal' }),
                         used: Math.round((summary?.voiceSecondsUsed ?? 0) / 60),
                         total: Math.round((summary?.monthlyVoiceSeconds ?? 0) / 60),
+                        disabled: false,
                       },
                       {
                         label: t('subscriptionBilling.features.receiptIntelligence', { ns: 'portal' }),
-                        used: summary?.receiptExtractionsUsed ?? 0,
-                        total: summary?.receiptExtractionsIncluded ?? 0,
+                        used: (summary?.receiptExtractionsUsed ?? 0) + (summary?.receiptExtractionsReserved ?? 0),
+                        total: summary?.receiptIntelligenceEnabled ? (summary?.receiptExtractionsIncluded ?? 0) : 0,
+                        disabled: !summary?.receiptIntelligenceEnabled,
                       },
                     ].map((metric) => {
                       const ratio = metric.total > 0 ? Math.min(1, Math.max(0, metric.used / metric.total)) : 0;
@@ -535,16 +538,24 @@ export default function SubscriptionSettingsPage() {
                         <div key={metric.label} className="space-y-1.5">
                           <div className="flex items-center justify-between gap-2 text-sm">
                             <span className="font-600 text-foreground">{metric.label}</span>
-                            <span className="font-800 text-foreground">
-                              {metric.used} / {metric.total}
-                            </span>
+                            {metric.disabled ? (
+                              <span className="font-800 text-muted-foreground">
+                                {t('subscriptionBilling.disabled', { ns: 'portal' })}
+                              </span>
+                            ) : (
+                              <span className="font-800 text-foreground">
+                                {metric.used} / {metric.total}
+                              </span>
+                            )}
                           </div>
-                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/60">
-                            <div
-                              className="h-full rounded-full bg-accent transition-[width]"
-                              style={{ width: `${Math.round(ratio * 100)}%` }}
-                            />
-                          </div>
+                          {!metric.disabled ? (
+                            <div className="h-2 w-full overflow-hidden rounded-full bg-secondary/60">
+                              <div
+                                className="h-full rounded-full bg-accent transition-[width]"
+                                style={{ width: `${Math.round(ratio * 100)}%` }}
+                              />
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}

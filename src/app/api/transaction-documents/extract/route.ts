@@ -94,6 +94,7 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
     case 'pdf_extraction_unavailable':
       return 422;
     case 'receipt_feature_unavailable':
+    case 'receipt_no_documents_included':
       return 403;
     case 'receipt_allowance_exhausted':
       return 429;
@@ -131,6 +132,8 @@ function getReceiptAccessErrorCode(accessError: string): TransactionDocumentErro
   switch (accessError) {
     case 'receipt_limit_reached':
       return 'receipt_allowance_exhausted';
+    case 'receipt_zero_quota':
+      return 'receipt_no_documents_included';
     case 'receipt_ai_disabled':
     case 'no_subscription':
     case 'plan_inactive':
@@ -457,7 +460,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: reserveErrorCode,
-      }, reserveErrorCode === 'receipt_allowance_exhausted' ? 429 : 500, cookieMutations);
+      }, getSafeExtractStatusCode(reserveErrorCode), cookieMutations);
     }
 
     if (reserveResult.duplicate) {
