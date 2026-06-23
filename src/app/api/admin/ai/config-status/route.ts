@@ -4,8 +4,8 @@ import { loadVoiceTranscriptionStatus } from '@/lib/voice-ai-server';
 
 type AIConfigStatusResponse = {
   openrouterConfigured: boolean;
+  openrouterBaseUrlConfigured: boolean;
   supabaseServiceConfigured: boolean;
-  cloudSpeechConfigured: boolean;
   vpsConfigured: boolean;
   aiEnabled: boolean;
   mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
@@ -13,14 +13,15 @@ type AIConfigStatusResponse = {
   voiceTranscription: {
     ready: boolean;
     code: string;
-    provider: string | null;
-    fallbackProvider: string | null;
+    gateway: string;
     model: string | null;
+    modelSource: string;
+    modelAudioCapable: boolean | null;
     maxAudioSeconds: number;
     maxAudioBytes: number;
     supportedAudioFormats: string;
+    openrouterConfigured: boolean;
     apiKeyConfigured: boolean;
-    authTokenConfigured: boolean;
     baseUrlConfigured: boolean;
     lastHealthCheck: {
       provider: string;
@@ -31,6 +32,7 @@ type AIConfigStatusResponse = {
       errorCategory: string | null;
       responseTimeMs: number | null;
       modelUsed: string | null;
+      modelAudioCapable: boolean | null;
     } | null;
   };
 };
@@ -65,21 +67,14 @@ export async function GET() {
 
   const model = openrouterModel || 'openai/gpt-4.1-mini';
   const voiceTranscription = await loadVoiceTranscriptionStatus();
-  const cloudSpeechConfigured = Boolean(
-    process.env.CLOUD_STT_API_KEY
-    && process.env.CLOUD_STT_BASE_URL
-    && (process.env.CLOUD_STT_MODEL || voiceTranscription.model)
-  );
   const vpsConfigured = Boolean(
     process.env.LOCAL_AI_BASE_URL
-    || process.env.LOCAL_STT_BASE_URL
-    || (voiceTranscription.provider === 'vps_stt' && voiceTranscription.baseUrlConfigured)
   );
 
   const body: AIConfigStatusResponse = {
     openrouterConfigured: Boolean(openrouterApiKey),
+    openrouterBaseUrlConfigured: Boolean(openrouterBaseUrl || 'https://openrouter.ai/api/v1'),
     supabaseServiceConfigured: Boolean(supabaseServiceRoleKey),
-    cloudSpeechConfigured,
     vpsConfigured,
     aiEnabled: aiEnabledRaw === 'true' && voiceTranscription.adminAiEnabled,
     mode,
@@ -87,14 +82,15 @@ export async function GET() {
     voiceTranscription: {
       ready: voiceTranscription.ready,
       code: voiceTranscription.code,
-      provider: voiceTranscription.provider,
-      fallbackProvider: voiceTranscription.fallbackProvider,
+      gateway: voiceTranscription.gateway,
       model: voiceTranscription.model,
+      modelSource: voiceTranscription.modelSource,
+      modelAudioCapable: voiceTranscription.modelAudioCapable,
       maxAudioSeconds: voiceTranscription.maxAudioSeconds,
       maxAudioBytes: voiceTranscription.maxAudioBytes,
       supportedAudioFormats: voiceTranscription.supportedAudioFormats,
+      openrouterConfigured: voiceTranscription.openrouterConfigured,
       apiKeyConfigured: voiceTranscription.apiKeyConfigured,
-      authTokenConfigured: voiceTranscription.authTokenConfigured,
       baseUrlConfigured: voiceTranscription.baseUrlConfigured,
       lastHealthCheck: voiceTranscription.lastHealthCheck,
     },

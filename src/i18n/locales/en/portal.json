@@ -1742,7 +1742,9 @@
       },
       "unavailable": {
         "configurationTitle": "Voice entry is temporarily unavailable",
-        "configurationMessage": "Voice transcription has not been configured by the administrator. Use text entry for now.",
+        "configurationMessage": "The AI service has not been configured by the administrator. Use text entry for now.",
+        "modelTitle": "Voice model is unavailable",
+        "modelMessage": "The selected AI model does not support voice transcription. Use text entry for now.",
         "microphoneTitle": "Microphone access is blocked",
         "microphoneMessage": "Allow microphone access in your browser settings, then try again.",
         "providerUnavailableTitle": "Voice transcription is temporarily unavailable",

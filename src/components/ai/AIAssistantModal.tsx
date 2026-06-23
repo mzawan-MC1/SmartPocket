@@ -1392,7 +1392,7 @@ function isReceiptInsightQuestion(value: string) {
     } catch (err) {
       handleVoiceFailure({
         error: {
-          code: 'transcription_provider_unavailable',
+          code: 'openrouter_provider_unavailable',
           category: 'technical',
           message: err instanceof Error ? err.message : t('errors.network', { ns: 'common' }),
         },
@@ -1510,13 +1510,16 @@ function isReceiptInsightQuestion(value: string) {
 
   const failedStateTitle = (() => {
     switch (apiError?.code) {
-      case 'transcription_not_configured':
+      case 'openrouter_not_configured':
       case 'voice_not_in_plan':
         return t('smartEntryModal.voice.unavailable.configurationTitle', { ns: 'portal' });
+      case 'voice_model_missing':
+      case 'voice_model_audio_unsupported':
+        return t('smartEntryModal.voice.unavailable.modelTitle', { ns: 'portal' });
       case 'microphone_permission_denied':
         return t('smartEntryModal.voice.unavailable.microphoneTitle', { ns: 'portal' });
-      case 'transcription_provider_unavailable':
-      case 'transcription_auth_failed':
+      case 'openrouter_provider_unavailable':
+      case 'openrouter_auth_failed':
       case 'transcription_failed':
         return t('smartEntryModal.voice.unavailable.providerUnavailableTitle', { ns: 'portal' });
       case 'voice_limit_reached':
@@ -1534,7 +1537,10 @@ function isReceiptInsightQuestion(value: string) {
     }
   })();
 
-  const failedShowsRefresh = apiError?.code !== 'transcription_not_configured'
+  const failedShowsRefresh = apiError?.code !== 'openrouter_not_configured'
+    && apiError?.code !== 'voice_model_missing'
+    && apiError?.code !== 'voice_model_audio_unsupported'
+    && apiError?.code !== 'openrouter_auth_failed'
     && apiError?.code !== 'voice_not_in_plan'
     && apiError?.code !== 'microphone_permission_denied'
     && apiError?.code !== 'voice_limit_reached';

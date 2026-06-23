@@ -815,6 +815,144 @@ class OpenRouterLanguageProvider implements LanguageProvider {
   }
 }
 
+export interface OpenRouterAudioTranscriptionRequest {
+  audioBuffer: Buffer;
+  mimeType: string;
+  format: string;
+  model: string;
+  prompt: string;
+  language?: string;
+  timeoutMs?: number;
+}
+
+export interface OpenRouterAudioTranscriptionResponse {
+  transcript: string;
+  modelUsed: string;
+  rawOutput: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
+}
+
+export function getOpenRouterBaseUrl() {
+  return process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
+}
+
+export function getOpenRouterHeaders() {
+  const apiKey = process.env.OPENROUTER_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('OpenRouter not configured');
+  }
+
+  return {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
+    'X-Title': 'Smart Pocket AI',
+  };
+}
+
+function extractOpenRouterTextContent(content: unknown): string {
+  if (typeof content === 'string') {
+    return content.trim();
+  }
+
+  if (!Array.isArray(content)) {
+    return '';
+  }
+
+  return content
+    .map((part) => {
+      if (typeof part === 'string') {
+        return part;
+      }
+
+      if (!part || typeof part !== 'object') {
+        return '';
+      }
+
+      const record = part as Record<string, unknown>;
+      if (typeof record.text === 'string') {
+        return record.text;
+      }
+
+      return '';
+    })
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
+
+function stripTranscriptFormatting(value: string) {
+  return value
+    .replace(/^```[\w-]*\s*/i, '')
+    .replace(/\s*```$/, '')
+    .trim();
+}
+
+export async function transcribeAudioWithOpenRouter(
+  input: OpenRouterAudioTranscriptionRequest
+): Promise<OpenRouterAudioTranscriptionResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), input.timeoutMs || 20000);
+
+  try {
+    const response = await fetch(`${getOpenRouterBaseUrl()}/chat/completions`, {
+      method: 'POST',
+      headers: getOpenRouterHeaders(),
+      body: JSON.stringify({
+        model: input.model,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: input.prompt + (input.language && input.language !== 'auto' ? `\nLanguage hint: ${input.language}` : ''),
+              },
+              {
+                type: 'input_audio',
+                input_audio: {
+                  data: input.audioBuffer.toString('base64'),
+                  format: input.format,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 0,
+        max_tokens: 1200,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`OpenRouter error ${response.status}: ${sanitizeError(errText)}`);
+    }
+
+    const rawOutput = await response.json();
+    const usageDetails = extractProviderUsageDetails(rawOutput);
+    const content = rawOutput?.choices?.[0]?.message?.content;
+    const transcript = stripTranscriptFormatting(extractOpenRouterTextContent(content));
+
+    if (!transcript) {
+      throw new Error('Empty transcription response from OpenRouter');
+    }
+
+    return {
+      transcript,
+      modelUsed: input.model,
+      rawOutput,
+      ...usageDetails,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── VPS Language Provider (OpenAI-compatible) ───────────────────────────────
 
 class VPSLanguageProvider implements LanguageProvider {

@@ -44,13 +44,12 @@ export async function GET() {
     }
 
     const config = loadAIConfig();
-    const [openrouterHealth, vpsAiHealth, cloudSttHealth, vpsSttHealth] = await Promise.all([
+    const [openrouterHealth, vpsAiHealth, voiceOpenRouterHealth] = await Promise.all([
       createLanguageProvider('openrouter', 5000).healthCheck(),
       createLanguageProvider('vps_ai', 5000).healthCheck(),
-      runVoiceTranscriptionHealthCheck('cloud_stt'),
-      runVoiceTranscriptionHealthCheck('vps_stt'),
+      runVoiceTranscriptionHealthCheck(),
     ]);
-    const healthResults = [openrouterHealth, vpsAiHealth, cloudSttHealth, vpsSttHealth];
+    const healthResults = [openrouterHealth, vpsAiHealth, voiceOpenRouterHealth];
 
     // Update health records in DB (admin-only table)
     for (const result of healthResults) {
@@ -81,8 +80,7 @@ export async function GET() {
     }
 
     await Promise.all([
-      persistVoiceTranscriptionHealth(cloudSttHealth),
-      persistVoiceTranscriptionHealth(vpsSttHealth),
+      persistVoiceTranscriptionHealth(voiceOpenRouterHealth),
     ]);
 
     return applySupabaseCookies(NextResponse.json({

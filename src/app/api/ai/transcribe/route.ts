@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { AIErrorPayload, AIErrorResponse } from '@/lib/ai-types';
+import { transcribeAudioWithOpenRouter } from '@/lib/ai-gateway';
 import { ensureUserSubscriptionSummary } from '@/lib/subscription/server';
 import {
-  getVoiceAudioExtension,
+  getOpenRouterAudioFormat,
   isSupportedVoiceAudioMimeType,
   normalizeVoiceAudioMimeType,
 } from '@/lib/voice-ai';
@@ -120,9 +121,11 @@ function getStoredVoiceErrorCode(value: string | null | undefined): AIErrorPaylo
     case 'empty_audio':
     case 'unsupported_audio_type':
     case 'audio_too_large':
-    case 'transcription_not_configured':
-    case 'transcription_auth_failed':
-    case 'transcription_provider_unavailable':
+    case 'openrouter_not_configured':
+    case 'voice_model_missing':
+    case 'voice_model_audio_unsupported':
+    case 'openrouter_auth_failed':
+    case 'openrouter_provider_unavailable':
     case 'transcription_failed':
       return value;
     default:
@@ -140,10 +143,12 @@ function getStoredVoiceErrorStatus(code: AIErrorPayload['code']) {
       return 415;
     case 'audio_too_large':
       return 413;
-    case 'transcription_provider_unavailable':
+    case 'openrouter_provider_unavailable':
       return 503;
-    case 'transcription_not_configured':
-    case 'transcription_auth_failed':
+    case 'openrouter_not_configured':
+    case 'voice_model_missing':
+    case 'voice_model_audio_unsupported':
+    case 'openrouter_auth_failed':
       return 409;
     default:
       return 409;
@@ -196,82 +201,6 @@ async function persistVoiceRequest(args: {
   } | null;
 }
 
-async function transcribeWithProvider(args: {
-  file: File;
-  mimeType: string;
-  language: string;
-  provider: string;
-  baseUrl: string;
-  model: string;
-  apiKey?: string;
-  authToken?: string;
-}) {
-  const formData = new FormData();
-  formData.append(
-    'file',
-    args.file,
-    `voice-entry.${getVoiceAudioExtension(args.mimeType)}`
-  );
-  formData.append('model', args.model);
-  if (args.language && args.language !== 'auto') {
-    formData.append('language', args.language);
-  }
-
-  const headers: Record<string, string> = {};
-  if (args.provider === 'cloud_stt' && args.apiKey) {
-    headers.Authorization = `Bearer ${args.apiKey}`;
-  } else if (args.provider === 'vps_stt' && args.authToken) {
-    headers.Authorization = `Bearer ${args.authToken}`;
-  }
-
-  const response = await fetch(
-    `${args.baseUrl.replace(/\/+$/, '')}/audio/transcriptions`,
-    {
-      method: 'POST',
-      headers,
-      body: formData,
-      signal: AbortSignal.timeout(20000),
-    }
-  );
-
-  if (response.status === 401 || response.status === 403) {
-    return { ok: false as const, code: 'transcription_auth_failed' as const };
-  }
-
-  if (response.status === 400) {
-    const errorText = (await response.text().catch(() => '')).toLowerCase();
-    if (errorText.includes('model')) {
-      return { ok: false as const, code: 'transcription_not_configured' as const };
-    }
-  }
-
-  if (!response.ok) {
-    return {
-      ok: false as const,
-      code: response.status >= 500 || response.status === 429
-        ? 'transcription_provider_unavailable' as const
-        : 'transcription_failed' as const,
-    };
-  }
-
-  const payload = await response.json().catch(() => null) as Record<string, unknown> | null;
-  const transcript = typeof payload?.text === 'string'
-    ? payload.text.trim()
-    : typeof payload?.transcript === 'string'
-      ? payload.transcript.trim()
-      : '';
-
-  if (!transcript) {
-    return { ok: false as const, code: 'transcription_failed' as const };
-  }
-
-  return {
-    ok: true as const,
-    transcript,
-    detectedLanguage: typeof payload?.language === 'string' ? payload.language : undefined,
-  };
-}
-
 export async function POST(req: NextRequest) {
   const requestId = createClientId();
 
@@ -313,6 +242,11 @@ export async function POST(req: NextRequest) {
 
     const mimeType = normalizeVoiceAudioMimeType(fileEntry.type);
     if (!isSupportedVoiceAudioMimeType(mimeType)) {
+      return NextResponse.json(buildError('unsupported_audio_type', 'validation', 'This audio format is not supported for voice entry.', requestId), { status: 415 });
+    }
+
+    const openRouterAudioFormat = getOpenRouterAudioFormat(mimeType);
+    if (!openRouterAudioFormat) {
       return NextResponse.json(buildError('unsupported_audio_type', 'validation', 'This audio format is not supported for voice entry.', requestId), { status: 415 });
     }
 
@@ -359,7 +293,10 @@ export async function POST(req: NextRequest) {
               ? 'usage_limit'
               : storedCode === 'empty_audio' || storedCode === 'unsupported_audio_type' || storedCode === 'audio_too_large'
                 ? 'validation'
-                : storedCode === 'transcription_not_configured' || storedCode === 'transcription_auth_failed'
+                : storedCode === 'openrouter_not_configured'
+                  || storedCode === 'voice_model_missing'
+                  || storedCode === 'voice_model_audio_unsupported'
+                  || storedCode === 'openrouter_auth_failed'
                   ? 'configuration'
                   : 'technical',
           existingRequest.data.error_message || 'Voice transcription is temporarily unavailable.',
@@ -372,7 +309,7 @@ export async function POST(req: NextRequest) {
     if (errorMessage) {
       return NextResponse.json(
         buildError(
-          'transcription_provider_unavailable',
+          'openrouter_provider_unavailable',
           'technical',
           'Voice transcription is temporarily unavailable.',
           requestId
@@ -429,34 +366,52 @@ export async function POST(req: NextRequest) {
     }
 
     if (!transcriptionStatus.ready) {
+      const voiceErrorCode =
+        transcriptionStatus.code === 'openrouter_auth_failed'
+          ? 'openrouter_auth_failed'
+          : transcriptionStatus.code === 'openrouter_provider_unavailable'
+            ? 'openrouter_provider_unavailable'
+            : transcriptionStatus.code === 'voice_model_missing'
+              ? 'voice_model_missing'
+              : transcriptionStatus.code === 'voice_model_audio_unsupported'
+                ? 'voice_model_audio_unsupported'
+                : 'openrouter_not_configured';
       return NextResponse.json(
         buildError(
-          transcriptionStatus.code === 'transcription_auth_failed'
-            ? 'transcription_auth_failed'
-            : transcriptionStatus.code === 'transcription_provider_unavailable'
-              ? 'transcription_provider_unavailable'
-              : 'transcription_not_configured',
-          transcriptionStatus.code === 'transcription_provider_unavailable' ? 'technical' : 'configuration',
-          transcriptionStatus.code === 'transcription_provider_unavailable'
+          voiceErrorCode,
+          transcriptionStatus.code === 'openrouter_provider_unavailable' || transcriptionStatus.code === 'openrouter_auth_failed'
+            ? 'technical'
+            : 'configuration',
+          transcriptionStatus.code === 'openrouter_provider_unavailable'
             ? 'Voice transcription is temporarily unavailable.'
-            : transcriptionStatus.code === 'transcription_auth_failed'
+            : transcriptionStatus.code === 'openrouter_auth_failed'
               ? 'Voice transcription is temporarily unavailable.'
-              : 'Voice transcription has not been configured by the administrator.',
+              : transcriptionStatus.code === 'voice_model_missing' || transcriptionStatus.code === 'voice_model_audio_unsupported'
+                ? 'The selected AI model does not support voice transcription. Use text entry for now.'
+                : 'The AI service has not been configured by the administrator. Use text entry for now.',
           requestId
         ),
-        { status: transcriptionStatus.code === 'transcription_provider_unavailable' ? 503 : 409 }
+        { status: transcriptionStatus.code === 'openrouter_provider_unavailable' ? 503 : 409 }
       );
     }
 
     const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
-    if (!runtimeConfig.ready || !runtimeConfig.provider || !runtimeConfig.model) {
+    if (!runtimeConfig.ready || !runtimeConfig.model) {
       return NextResponse.json(
         buildError(
-          runtimeConfig.code === 'transcription_auth_failed'
-            ? 'transcription_auth_failed'
-            : 'transcription_not_configured',
-          'configuration',
-          'Voice transcription has not been configured by the administrator.',
+          runtimeConfig.code === 'openrouter_auth_failed'
+            ? 'openrouter_auth_failed'
+            : runtimeConfig.code === 'voice_model_missing'
+              ? 'voice_model_missing'
+              : runtimeConfig.code === 'voice_model_audio_unsupported'
+                ? 'voice_model_audio_unsupported'
+                : 'openrouter_not_configured',
+          runtimeConfig.code === 'openrouter_auth_failed' ? 'technical' : 'configuration',
+          runtimeConfig.code === 'voice_model_missing' || runtimeConfig.code === 'voice_model_audio_unsupported'
+            ? 'The selected AI model does not support voice transcription. Use text entry for now.'
+            : runtimeConfig.code === 'openrouter_auth_failed'
+              ? 'Voice transcription is temporarily unavailable.'
+              : 'The AI service has not been configured by the administrator. Use text entry for now.',
           requestId
         ),
         { status: 409 }
@@ -483,67 +438,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let transcriptResult: Awaited<ReturnType<typeof transcribeWithProvider>> | null = null;
     try {
-      transcriptResult = await transcribeWithProvider({
-        file: fileEntry,
+      const audioBuffer = Buffer.from(await fileEntry.arrayBuffer());
+      const openRouterResult = await transcribeAudioWithOpenRouter({
+        audioBuffer,
         mimeType,
-        language,
-        provider: runtimeConfig.provider,
-        baseUrl: runtimeConfig.baseUrl,
+        format: openRouterAudioFormat,
         model: runtimeConfig.model,
-        apiKey: runtimeConfig.apiKey,
-        authToken: runtimeConfig.authToken,
+        language,
+        prompt: 'Transcribe the spoken audio accurately. Return only the transcript. Preserve names, amounts, currencies, dates, and account names. Do not interpret the transaction and do not add commentary.',
+        timeoutMs: 20000,
       });
-
-      if (!transcriptResult.ok) {
-        const errorResponse = buildError(
-          transcriptResult.code,
-          transcriptResult.code === 'transcription_failed' ? 'technical' : transcriptResult.code === 'transcription_provider_unavailable' ? 'technical' : 'configuration',
-          transcriptResult.code === 'transcription_provider_unavailable'
-            ? 'Voice transcription is temporarily unavailable.'
-            : transcriptResult.code === 'transcription_auth_failed'
-              ? 'Voice transcription is temporarily unavailable.'
-              : transcriptResult.code === 'transcription_not_configured'
-                ? 'Voice transcription has not been configured by the administrator.'
-                : 'We could not transcribe this recording.',
-          requestId
-        );
-
-        await supabase.rpc('refund_ai_credits', {
-          p_user_id: user.id,
-          p_cycle_id: reserveData.cycle_id,
-          p_ledger_id: reserveData.ledger_id,
-          p_reason: transcriptResult.code,
-        });
-
-        await persistVoiceRequest({
-          supabase,
-          userId: user.id,
-          idempotencyKey,
-          transcriptRetained: false,
-          language,
-          providerUsed: runtimeConfig.provider,
-          modelUsed: runtimeConfig.model,
-          durationMs: Math.round(durationSeconds * 1000),
-          errorCode: transcriptResult.code,
-          errorMessage: errorResponse.error.message,
-        });
-
-        return NextResponse.json(errorResponse, {
-          status: transcriptResult.code === 'transcription_provider_unavailable' ? 503 : 502,
-        });
-      }
-
       const persistedRequest = await persistVoiceRequest({
         supabase,
         userId: user.id,
         idempotencyKey,
-        transcript: transcriptResult.transcript,
+        transcript: openRouterResult.transcript,
         transcriptRetained: runtimeConfig.enableTranscriptRetention,
         language,
-        detectedLanguage: transcriptResult.detectedLanguage,
-        providerUsed: runtimeConfig.provider,
+        providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationMs: Math.round(durationSeconds * 1000),
       });
@@ -557,7 +470,7 @@ export async function POST(req: NextRequest) {
         p_output_tokens: null,
         p_total_tokens: null,
         p_speech_duration_ms: Math.round(durationSeconds * 1000),
-        p_provider_name: runtimeConfig.provider,
+        p_provider_name: runtimeConfig.gateway,
         p_model_name: runtimeConfig.model,
         p_estimated_cost: null,
         p_credit_cost: 2,
@@ -566,18 +479,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         requestId: persistedRequest?.id || requestId,
-        transcript: transcriptResult.transcript,
-        detectedLanguage: transcriptResult.detectedLanguage,
-        providerUsed: runtimeConfig.provider,
+        transcript: openRouterResult.transcript,
+        providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationSeconds,
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Voice transcription failed.';
+      const isOpenRouterAuthError = /OpenRouter error 401|OpenRouter error 403/i.test(message);
+      const isModelMismatch = /audio|input_audio|model_not_found|unsupported.*audio|does not support/i.test(message);
+      const mappedCode = isOpenRouterAuthError
+        ? 'openrouter_auth_failed'
+        : isModelMismatch
+          ? 'voice_model_audio_unsupported'
+          : 'openrouter_provider_unavailable';
+
       await supabase.rpc('refund_ai_credits', {
         p_user_id: user.id,
         p_cycle_id: reserveData.cycle_id,
         p_ledger_id: reserveData.ledger_id,
-        p_reason: 'transcription_failed',
+        p_reason: mappedCode,
       });
 
       await persistVoiceRequest({
@@ -586,21 +507,27 @@ export async function POST(req: NextRequest) {
         idempotencyKey,
         transcriptRetained: false,
         language,
-        providerUsed: runtimeConfig.provider,
+        providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationMs: Math.round(durationSeconds * 1000),
-        errorCode: 'transcription_failed',
-        errorMessage: error instanceof Error ? error.message : 'Voice transcription failed.',
+        errorCode: mappedCode,
+        errorMessage: message,
       });
 
       return NextResponse.json(
         buildError(
-          'transcription_failed',
-          'technical',
-          'We could not transcribe this recording.',
+          mappedCode,
+          mappedCode === 'openrouter_provider_unavailable' || mappedCode === 'openrouter_auth_failed'
+            ? 'technical'
+            : 'configuration',
+          mappedCode === 'voice_model_audio_unsupported'
+            ? 'The selected AI model does not support voice transcription. Use text entry for now.'
+            : mappedCode === 'openrouter_auth_failed'
+              ? 'Voice transcription is temporarily unavailable.'
+              : 'We could not transcribe your recording right now. Try again in a moment or use text entry.',
           requestId
         ),
-        { status: 502 }
+        { status: mappedCode === 'openrouter_provider_unavailable' ? 503 : 409 }
       );
     }
   } catch (error) {

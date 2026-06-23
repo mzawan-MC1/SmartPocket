@@ -3,19 +3,17 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   VOICE_AI_MAX_AUDIO_BYTES,
+  VOICE_AI_GATEWAY,
   VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL,
   type VoiceTranscriptionHealthCode,
-  type VoiceTranscriptionProvider,
 } from '@/lib/voice-ai';
+import { getOpenRouterBaseUrl } from '@/lib/ai-gateway';
 
 type AISettingsRow = {
   ai_enabled: boolean | null;
   enable_transcript_retention: boolean | null;
-  primary_stt_provider: string | null;
-  fallback_stt_provider: string | null;
-  cloud_stt_model: string | null;
-  vps_stt_model: string | null;
-  vps_stt_base_url: string | null;
+  openrouter_model: string | null;
+  voice_model: string | null;
   max_audio_seconds: number | null;
 };
 
@@ -31,7 +29,7 @@ type ProviderHealthRow = {
 };
 
 export interface VoiceProviderHealthSnapshot {
-  provider: VoiceTranscriptionProvider;
+  provider: string;
   status: 'healthy' | 'degraded' | 'offline' | 'not_configured';
   checkedAt: string | null;
   lastSuccessAt: string | null;
@@ -39,6 +37,7 @@ export interface VoiceProviderHealthSnapshot {
   errorCategory: string | null;
   responseTimeMs: number | null;
   modelUsed: string | null;
+  modelAudioCapable: boolean | null;
 }
 
 export interface VoiceTranscriptionStatusSnapshot {
@@ -48,14 +47,15 @@ export interface VoiceTranscriptionStatusSnapshot {
   enableTranscriptRetention: boolean;
   ready: boolean;
   code: VoiceTranscriptionHealthCode;
-  provider: VoiceTranscriptionProvider | null;
-  fallbackProvider: VoiceTranscriptionProvider | null;
+  gateway: typeof VOICE_AI_GATEWAY;
   model: string | null;
+  modelSource: 'voice_model' | 'openrouter_model' | 'env' | 'none';
+  modelAudioCapable: boolean | null;
   maxAudioSeconds: number;
   maxAudioBytes: number;
   supportedAudioFormats: string;
+  openrouterConfigured: boolean;
   apiKeyConfigured: boolean;
-  authTokenConfigured: boolean;
   baseUrlConfigured: boolean;
   lastHealthCheck: VoiceProviderHealthSnapshot | null;
 }
@@ -63,17 +63,17 @@ export interface VoiceTranscriptionStatusSnapshot {
 export interface RuntimeVoiceTranscriptionConfig extends VoiceTranscriptionStatusSnapshot {
   baseUrl: string;
   apiKey: string;
-  authToken: string;
 }
 
 export interface VoiceProviderHealthCheckResult {
-  provider: VoiceTranscriptionProvider;
+  provider: string;
   code: VoiceTranscriptionHealthCode;
   status: 'healthy' | 'degraded' | 'offline' | 'not_configured';
   checkedAt: string;
   responseTimeMs: number;
   errorCategory?: string;
   modelUsed?: string | null;
+  modelAudioCapable?: boolean | null;
 }
 
 const DEFAULT_MAX_AUDIO_SECONDS = Math.max(
@@ -81,9 +81,7 @@ const DEFAULT_MAX_AUDIO_SECONDS = Math.max(
   parseInt(process.env.AI_MAX_AUDIO_SECONDS || '120', 10) || 120
 );
 
-function toVoiceProvider(value: string | null | undefined): VoiceTranscriptionProvider | null {
-  return value === 'cloud_stt' || value === 'vps_stt' ? value : null;
-}
+const VOICE_OPENROUTER_PROVIDER_KEY = 'openrouter_voice';
 
 function firstNonEmpty(...values: Array<string | null | undefined>) {
   for (const value of values) {
@@ -100,76 +98,104 @@ function appendPath(baseUrl: string, path: string) {
   return new URL(path.replace(/^\/+/, ''), normalizedBase).toString();
 }
 
-function extractModelIds(payload: unknown) {
-  if (!payload || typeof payload !== 'object') {
-    return [];
-  }
-
-  const root = payload as Record<string, unknown>;
-  const items = Array.isArray(root.data)
-    ? root.data
-    : Array.isArray(root.models)
-      ? root.models
-      : [];
-
-  return items
-    .map((item) => {
-      if (!item || typeof item !== 'object') return '';
-      const model = item as Record<string, unknown>;
-      return typeof model.id === 'string'
-        ? model.id
-        : typeof model.name === 'string'
-          ? model.name
-          : '';
-    })
-    .filter(Boolean);
-}
-
 function mapHealthCodeToStatus(code: VoiceTranscriptionHealthCode): VoiceProviderHealthCheckResult['status'] {
   switch (code) {
     case 'ready':
       return 'healthy';
-    case 'unsupported_model':
-    case 'transcription_auth_failed':
+    case 'voice_model_audio_unsupported':
+    case 'openrouter_auth_failed':
       return 'degraded';
-    case 'transcription_provider_unavailable':
+    case 'openrouter_provider_unavailable':
       return 'offline';
     default:
       return 'not_configured';
   }
 }
 
-function resolveVoiceConfig(settings: AISettingsRow | null, providerOverride?: VoiceTranscriptionProvider | null) {
-  const provider = providerOverride
-    || toVoiceProvider(settings?.primary_stt_provider)
-    || toVoiceProvider(process.env.PRIMARY_STT_PROVIDER)
-    || 'cloud_stt';
-  const fallbackProvider = toVoiceProvider(settings?.fallback_stt_provider)
-    || toVoiceProvider(process.env.FALLBACK_STT_PROVIDER)
-    || (provider === 'cloud_stt' ? 'vps_stt' : 'cloud_stt');
+function getModelCollection(payload: unknown) {
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+
+  const root = payload as Record<string, unknown>;
+  if (Array.isArray(root.data)) return root.data;
+  if (Array.isArray(root.models)) return root.models;
+  return [];
+}
+
+function findModelMetadata(payload: unknown, modelId: string) {
+  const normalizedModelId = modelId.trim().toLowerCase();
+  return getModelCollection(payload).find((item) => {
+    if (!item || typeof item !== 'object') return false;
+    const model = item as Record<string, unknown>;
+    const candidates = [
+      typeof model.id === 'string' ? model.id : '',
+      typeof model.canonical_slug === 'string' ? model.canonical_slug : '',
+      typeof model.name === 'string' ? model.name : '',
+    ];
+    return candidates.some((candidate) => candidate.trim().toLowerCase() === normalizedModelId);
+  }) as Record<string, unknown> | undefined;
+}
+
+function extractInputModalities(model: Record<string, unknown> | undefined) {
+  if (!model) return [];
+
+  const architecture = model.architecture && typeof model.architecture === 'object'
+    ? model.architecture as Record<string, unknown>
+    : null;
+  const values = Array.isArray(architecture?.input_modalities)
+    ? architecture?.input_modalities
+    : Array.isArray(model.input_modalities)
+      ? model.input_modalities
+      : [];
+
+  return values
+    .map((value) => (typeof value === 'string' ? value.trim().toLowerCase() : ''))
+    .filter(Boolean);
+}
+
+function inferPersistedAudioCapability(row: ProviderHealthRow | null) {
+  if (!row) return null;
+  if (row.last_error_category === 'voice_model_audio_unsupported') return false;
+  if (row.status === 'healthy') return true;
+  return null;
+}
+
+function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
+  const voiceModel = firstNonEmpty(settings?.voice_model);
+  if (voiceModel) {
+    return { model: voiceModel, source: 'voice_model' as const };
+  }
+
+  const openrouterModel = firstNonEmpty(settings?.openrouter_model);
+  if (openrouterModel) {
+    return { model: openrouterModel, source: 'openrouter_model' as const };
+  }
+
+  const envModel = firstNonEmpty(process.env.OPENROUTER_MODEL);
+  if (envModel) {
+    return { model: envModel, source: 'env' as const };
+  }
+
+  return { model: '', source: 'none' as const };
+}
+
+function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderHealthRow | null) {
   const serverAiEnabled = process.env.AI_ENABLED === 'true';
   const adminAiEnabled = settings?.ai_enabled === true;
   const enableTranscriptRetention = settings?.enable_transcript_retention === true;
   const aiEnabled = serverAiEnabled && adminAiEnabled;
   const maxAudioSeconds = Math.max(10, settings?.max_audio_seconds || DEFAULT_MAX_AUDIO_SECONDS);
-  const model = provider === 'cloud_stt'
-    ? firstNonEmpty(settings?.cloud_stt_model, process.env.CLOUD_STT_MODEL, 'whisper-1')
-    : firstNonEmpty(settings?.vps_stt_model, process.env.LOCAL_STT_MODEL, 'whisper');
-  const baseUrl = provider === 'cloud_stt'
-    ? firstNonEmpty(process.env.CLOUD_STT_BASE_URL)
-    : firstNonEmpty(settings?.vps_stt_base_url, process.env.LOCAL_STT_BASE_URL);
-  const apiKey = provider === 'cloud_stt' ? firstNonEmpty(process.env.CLOUD_STT_API_KEY) : '';
-  const authToken = provider === 'vps_stt' ? firstNonEmpty(process.env.LOCAL_STT_AUTH_TOKEN) : '';
+  const resolvedModel = resolveSelectedVoiceModel(settings);
+  const baseUrl = firstNonEmpty(process.env.OPENROUTER_BASE_URL, getOpenRouterBaseUrl());
+  const apiKey = firstNonEmpty(process.env.OPENROUTER_API_KEY);
+  const openrouterConfigured = Boolean(apiKey && baseUrl);
 
   let code: VoiceTranscriptionHealthCode = 'ready';
-  if (!aiEnabled || !provider) {
-    code = 'provider_not_configured';
-  } else if (!baseUrl) {
-    code = 'provider_not_configured';
-  } else if (provider === 'cloud_stt' && !apiKey) {
-    code = 'api_key_missing';
-  } else if (!model) {
-    code = 'transcription_model_missing';
+  if (!aiEnabled || !openrouterConfigured) {
+    code = 'openrouter_not_configured';
+  } else if (!resolvedModel.model) {
+    code = 'voice_model_missing';
   }
 
   return {
@@ -177,52 +203,46 @@ function resolveVoiceConfig(settings: AISettingsRow | null, providerOverride?: V
     adminAiEnabled,
     serverAiEnabled,
     enableTranscriptRetention,
-    provider,
-    fallbackProvider,
-    model: model || null,
+    gateway: VOICE_AI_GATEWAY,
+    model: resolvedModel.model || null,
+    modelSource: resolvedModel.source,
+    modelAudioCapable: inferPersistedAudioCapability(healthRow),
     baseUrl,
     apiKey,
-    authToken,
     maxAudioSeconds,
     code,
+    openrouterConfigured,
   };
 }
 
-async function loadSettingsAndHealth(providerOverride?: VoiceTranscriptionProvider | null) {
+async function loadSettingsAndHealth() {
   const admin = createAdminClient();
   if (!admin) {
     return {
       settings: null,
       healthRow: null,
-      provider: providerOverride || 'cloud_stt',
     };
   }
 
   const { data: settings } = await admin
     .from('ai_settings')
-    .select('ai_enabled, enable_transcript_retention, primary_stt_provider, fallback_stt_provider, cloud_stt_model, vps_stt_model, vps_stt_base_url, max_audio_seconds')
+    .select('ai_enabled, enable_transcript_retention, openrouter_model, voice_model, max_audio_seconds')
     .eq('singleton_key', 'global')
     .maybeSingle();
-
-  const resolvedProvider = providerOverride
-    || toVoiceProvider((settings as AISettingsRow | null)?.primary_stt_provider)
-    || 'cloud_stt';
 
   const { data: healthRow } = await admin
     .from('ai_provider_health')
     .select('provider, status, last_checked_at, last_success_at, last_failure_at, last_error_category, response_time_ms, model_used')
-    .eq('provider', resolvedProvider)
+    .eq('provider', VOICE_OPENROUTER_PROVIDER_KEY)
     .maybeSingle();
 
   return {
     settings: (settings as AISettingsRow | null) ?? null,
     healthRow: (healthRow as ProviderHealthRow | null) ?? null,
-    provider: resolvedProvider,
   };
 }
 
 function toHealthSnapshot(
-  provider: VoiceTranscriptionProvider,
   row: ProviderHealthRow | null
 ): VoiceProviderHealthSnapshot | null {
   if (!row) {
@@ -230,7 +250,7 @@ function toHealthSnapshot(
   }
 
   return {
-    provider,
+    provider: row.provider,
     status: row.status,
     checkedAt: row.last_checked_at,
     lastSuccessAt: row.last_success_at,
@@ -238,14 +258,56 @@ function toHealthSnapshot(
     errorCategory: row.last_error_category,
     responseTimeMs: row.response_time_ms,
     modelUsed: row.model_used,
+    modelAudioCapable: inferPersistedAudioCapability(row),
   };
 }
 
-export async function loadVoiceTranscriptionStatus(
-  providerOverride?: VoiceTranscriptionProvider | null
-): Promise<VoiceTranscriptionStatusSnapshot> {
-  const { settings, healthRow, provider } = await loadSettingsAndHealth(providerOverride);
-  const resolved = resolveVoiceConfig(settings, provider);
+function statusFromRuntimeConfig(
+  runtimeConfig: RuntimeVoiceTranscriptionConfig,
+  overrides?: Partial<VoiceTranscriptionStatusSnapshot>
+): VoiceTranscriptionStatusSnapshot {
+  return {
+    aiEnabled: runtimeConfig.aiEnabled,
+    adminAiEnabled: runtimeConfig.adminAiEnabled,
+    serverAiEnabled: runtimeConfig.serverAiEnabled,
+    enableTranscriptRetention: runtimeConfig.enableTranscriptRetention,
+    ready: overrides?.ready ?? runtimeConfig.ready,
+    code: overrides?.code ?? runtimeConfig.code,
+    gateway: VOICE_AI_GATEWAY,
+    model: overrides?.model ?? runtimeConfig.model,
+    modelSource: overrides?.modelSource ?? runtimeConfig.modelSource,
+    modelAudioCapable: overrides?.modelAudioCapable ?? runtimeConfig.modelAudioCapable,
+    maxAudioSeconds: runtimeConfig.maxAudioSeconds,
+    maxAudioBytes: runtimeConfig.maxAudioBytes,
+    supportedAudioFormats: runtimeConfig.supportedAudioFormats,
+    openrouterConfigured: runtimeConfig.openrouterConfigured,
+    apiKeyConfigured: runtimeConfig.apiKeyConfigured,
+    baseUrlConfigured: runtimeConfig.baseUrlConfigured,
+    lastHealthCheck: overrides?.lastHealthCheck ?? runtimeConfig.lastHealthCheck,
+  };
+}
+
+export async function loadVoiceTranscriptionStatus(): Promise<VoiceTranscriptionStatusSnapshot> {
+  const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
+  if (runtimeConfig.code !== 'ready') {
+    return statusFromRuntimeConfig(runtimeConfig, { ready: false });
+  }
+
+  const health = await runVoiceTranscriptionHealthCheck();
+  return {
+    ...statusFromRuntimeConfig(runtimeConfig, {
+      ready: health.code === 'ready',
+      code: health.code,
+      modelAudioCapable: typeof health.modelAudioCapable === 'boolean'
+        ? health.modelAudioCapable
+        : runtimeConfig.modelAudioCapable,
+    }),
+  };
+}
+
+export async function loadRuntimeVoiceTranscriptionConfig(): Promise<RuntimeVoiceTranscriptionConfig> {
+  const { settings, healthRow } = await loadSettingsAndHealth();
+  const resolved = resolveVoiceConfig(settings, healthRow);
 
   return {
     aiEnabled: resolved.aiEnabled,
@@ -254,159 +316,125 @@ export async function loadVoiceTranscriptionStatus(
     enableTranscriptRetention: resolved.enableTranscriptRetention,
     ready: resolved.code === 'ready',
     code: resolved.code,
-    provider: resolved.provider,
-    fallbackProvider: resolved.fallbackProvider,
+    gateway: VOICE_AI_GATEWAY,
     model: resolved.model,
+    modelSource: resolved.modelSource,
+    modelAudioCapable: resolved.modelAudioCapable,
     maxAudioSeconds: resolved.maxAudioSeconds,
     maxAudioBytes: VOICE_AI_MAX_AUDIO_BYTES,
     supportedAudioFormats: VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL,
+    openrouterConfigured: resolved.openrouterConfigured,
     apiKeyConfigured: Boolean(resolved.apiKey),
-    authTokenConfigured: Boolean(resolved.authToken),
     baseUrlConfigured: Boolean(resolved.baseUrl),
-    lastHealthCheck: resolved.provider ? toHealthSnapshot(resolved.provider, healthRow) : null,
-  };
-}
-
-export async function loadRuntimeVoiceTranscriptionConfig(
-  providerOverride?: VoiceTranscriptionProvider | null
-): Promise<RuntimeVoiceTranscriptionConfig> {
-  const { settings, healthRow, provider } = await loadSettingsAndHealth(providerOverride);
-  const resolved = resolveVoiceConfig(settings, providerOverride || provider);
-
-  return {
-    aiEnabled: resolved.aiEnabled,
-    adminAiEnabled: resolved.adminAiEnabled,
-    serverAiEnabled: resolved.serverAiEnabled,
-    enableTranscriptRetention: resolved.enableTranscriptRetention,
-    ready: resolved.code === 'ready',
-    code: resolved.code,
-    provider: resolved.provider,
-    fallbackProvider: resolved.fallbackProvider,
-    model: resolved.model,
-    maxAudioSeconds: resolved.maxAudioSeconds,
-    maxAudioBytes: VOICE_AI_MAX_AUDIO_BYTES,
-    supportedAudioFormats: VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL,
-    apiKeyConfigured: Boolean(resolved.apiKey),
-    authTokenConfigured: Boolean(resolved.authToken),
-    baseUrlConfigured: Boolean(resolved.baseUrl),
-    lastHealthCheck: resolved.provider ? toHealthSnapshot(resolved.provider, healthRow) : null,
+    lastHealthCheck: toHealthSnapshot(healthRow),
     baseUrl: resolved.baseUrl,
     apiKey: resolved.apiKey,
-    authToken: resolved.authToken,
   };
 }
 
-export async function runVoiceTranscriptionHealthCheck(
-  providerOverride?: VoiceTranscriptionProvider | null
-): Promise<VoiceProviderHealthCheckResult> {
-  const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig(providerOverride);
-  const provider = providerOverride || runtimeConfig.provider || 'cloud_stt';
+export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderHealthCheckResult> {
+  const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
   const checkedAt = new Date().toISOString();
 
-  if (!runtimeConfig.ready || runtimeConfig.provider !== provider) {
+  if (runtimeConfig.code !== 'ready' || !runtimeConfig.model) {
     return {
-      provider,
-      code: runtimeConfig.provider !== provider ? 'provider_not_configured' : runtimeConfig.code,
-      status: mapHealthCodeToStatus(runtimeConfig.provider !== provider ? 'provider_not_configured' : runtimeConfig.code),
+      provider: VOICE_OPENROUTER_PROVIDER_KEY,
+      code: runtimeConfig.code,
+      status: mapHealthCodeToStatus(runtimeConfig.code),
       checkedAt,
       responseTimeMs: 0,
-      errorCategory: runtimeConfig.provider !== provider ? 'provider_not_configured' : runtimeConfig.code,
+      errorCategory: runtimeConfig.code,
       modelUsed: runtimeConfig.model,
+      modelAudioCapable: runtimeConfig.modelAudioCapable,
     };
   }
 
   const start = Date.now();
-  const headers: Record<string, string> = {};
-  if (provider === 'cloud_stt') {
-    headers.Authorization = `Bearer ${runtimeConfig.apiKey}`;
-  } else if (runtimeConfig.authToken) {
-    headers.Authorization = `Bearer ${runtimeConfig.authToken}`;
-  }
+  try {
+    const response = await fetch(appendPath(runtimeConfig.baseUrl, 'models'), {
+      headers: {
+        Authorization: `Bearer ${runtimeConfig.apiKey}`,
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
+        'X-Title': 'Smart Pocket AI',
+      },
+      signal: AbortSignal.timeout(5000),
+    });
 
-  const endpoints = provider === 'cloud_stt'
-    ? [{ url: appendPath(runtimeConfig.baseUrl, 'models'), supportsModelCheck: true }]
-    : [
-        { url: appendPath(runtimeConfig.baseUrl, 'models'), supportsModelCheck: true },
-        { url: appendPath(runtimeConfig.baseUrl, 'health'), supportsModelCheck: false },
-      ];
-
-  for (const endpoint of endpoints) {
-    try {
-      const response = await fetch(endpoint.url, {
-        headers,
-        signal: AbortSignal.timeout(5000),
-      });
-
-      const responseTimeMs = Date.now() - start;
-
-      if (response.status === 401 || response.status === 403) {
-        return {
-          provider,
-          code: 'transcription_auth_failed',
-          status: 'degraded',
-          checkedAt,
-          responseTimeMs,
-          errorCategory: 'transcription_auth_failed',
-          modelUsed: runtimeConfig.model,
-        };
-      }
-
-      if (response.status === 404 && provider === 'vps_stt' && endpoint.supportsModelCheck) {
-        continue;
-      }
-
-      if (!response.ok) {
-        return {
-          provider,
-          code: 'transcription_provider_unavailable',
-          status: 'offline',
-          checkedAt,
-          responseTimeMs,
-          errorCategory: `http_${response.status}`,
-          modelUsed: runtimeConfig.model,
-        };
-      }
-
-      if (endpoint.supportsModelCheck) {
-        const payload = await response.json().catch(() => null);
-        const modelIds = extractModelIds(payload);
-        if (modelIds.length > 0 && runtimeConfig.model && !modelIds.includes(runtimeConfig.model)) {
-          return {
-            provider,
-            code: 'unsupported_model',
-            status: 'degraded',
-            checkedAt,
-            responseTimeMs,
-            errorCategory: 'unsupported_model',
-            modelUsed: runtimeConfig.model,
-          };
-        }
-      }
-
+    const responseTimeMs = Date.now() - start;
+    if (response.status === 401 || response.status === 403) {
       return {
-        provider,
-        code: 'ready',
-        status: 'healthy',
+        provider: VOICE_OPENROUTER_PROVIDER_KEY,
+        code: 'openrouter_auth_failed',
+        status: 'degraded',
         checkedAt,
         responseTimeMs,
+        errorCategory: 'openrouter_auth_failed',
         modelUsed: runtimeConfig.model,
       };
-    } catch {
-      if (endpoint !== endpoints[endpoints.length - 1]) {
-        continue;
-      }
     }
-  }
 
-  return {
-    provider,
-    code: 'transcription_provider_unavailable',
-    status: 'offline',
-    checkedAt,
-    responseTimeMs: Date.now() - start,
-    errorCategory: 'transcription_provider_unavailable',
-    modelUsed: runtimeConfig.model,
-  };
+    if (!response.ok) {
+      return {
+        provider: VOICE_OPENROUTER_PROVIDER_KEY,
+        code: 'openrouter_provider_unavailable',
+        status: 'offline',
+        checkedAt,
+        responseTimeMs,
+        errorCategory: `http_${response.status}`,
+        modelUsed: runtimeConfig.model,
+      };
+    }
+
+    const payload = await response.json().catch(() => null);
+    const metadata = runtimeConfig.model ? findModelMetadata(payload, runtimeConfig.model) : undefined;
+    if (!metadata) {
+      return {
+        provider: VOICE_OPENROUTER_PROVIDER_KEY,
+        code: 'voice_model_missing',
+        status: 'not_configured',
+        checkedAt,
+        responseTimeMs,
+        errorCategory: 'model_not_found',
+        modelUsed: runtimeConfig.model,
+        modelAudioCapable: null,
+      };
+    }
+
+    const inputModalities = extractInputModalities(metadata);
+    const modelAudioCapable = inputModalities.includes('audio');
+    if (!modelAudioCapable) {
+      return {
+        provider: VOICE_OPENROUTER_PROVIDER_KEY,
+        code: 'voice_model_audio_unsupported',
+        status: 'degraded',
+        checkedAt,
+        responseTimeMs,
+        errorCategory: 'voice_model_audio_unsupported',
+        modelUsed: runtimeConfig.model,
+        modelAudioCapable: false,
+      };
+    }
+
+    return {
+      provider: VOICE_OPENROUTER_PROVIDER_KEY,
+      code: 'ready',
+      status: 'healthy',
+      checkedAt,
+      responseTimeMs,
+      modelUsed: runtimeConfig.model,
+      modelAudioCapable: true,
+    };
+  } catch {
+    return {
+      provider: VOICE_OPENROUTER_PROVIDER_KEY,
+      code: 'openrouter_provider_unavailable',
+      status: 'offline',
+      checkedAt,
+      responseTimeMs: Date.now() - start,
+      errorCategory: 'openrouter_provider_unavailable',
+      modelUsed: runtimeConfig.model,
+    };
+  }
 }
 
 export async function persistVoiceTranscriptionHealth(result: VoiceProviderHealthCheckResult) {

@@ -114,23 +114,29 @@ export async function GET() {
   }
 
   if (!transcription.ready) {
-    const error = transcription.code === 'transcription_auth_failed'
+    const error = transcription.code === 'openrouter_auth_failed'
       ? buildVoiceError(
-          'transcription_auth_failed',
-          'configuration',
+          'openrouter_auth_failed',
+          'technical',
           'Voice transcription is temporarily unavailable.'
         )
-      : transcription.code === 'transcription_provider_unavailable'
+      : transcription.code === 'openrouter_provider_unavailable'
         ? buildVoiceError(
-            'transcription_provider_unavailable',
+            'openrouter_provider_unavailable',
             'technical',
             'Voice transcription is temporarily unavailable.'
           )
-        : buildVoiceError(
-            'transcription_not_configured',
-            'configuration',
-            'Voice transcription has not been configured by the administrator.'
-          );
+        : transcription.code === 'voice_model_missing' || transcription.code === 'voice_model_audio_unsupported'
+          ? buildVoiceError(
+              transcription.code,
+              'configuration',
+              'The selected AI model does not support voice transcription. Use text entry for now.'
+            )
+          : buildVoiceError(
+              'openrouter_not_configured',
+              'configuration',
+              'The AI service has not been configured by the administrator. Use text entry for now.'
+            );
 
     return applySupabaseCookies(
       NextResponse.json({
@@ -138,7 +144,7 @@ export async function GET() {
         usage,
         transcription,
         error,
-      }, { status: error.code === 'transcription_provider_unavailable' ? 503 : 409 }),
+      }, { status: error.code === 'openrouter_provider_unavailable' ? 503 : 409 }),
       cookieMutations
     );
   }

@@ -15,14 +15,10 @@ interface AISettings {
   ai_mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
   primary_language_provider: string;
   fallback_language_provider: string;
-  primary_stt_provider: string;
-  fallback_stt_provider: string;
   openrouter_model: string;
+  voice_model: string;
   vps_language_model: string;
-  cloud_stt_model: string;
-  vps_stt_model: string;
   vps_ai_base_url: string;
-  vps_stt_base_url: string;
   request_timeout_ms: number;
   max_retries: number;
   confidence_threshold: number;
@@ -34,9 +30,7 @@ interface AISettings {
   enable_transcript_retention: boolean;
   transcript_retention_days: number;
   openrouter_configured: boolean;
-  cloud_stt_configured: boolean;
   vps_ai_configured: boolean;
-  vps_stt_configured: boolean;
 }
 
 interface ProviderHealth {
@@ -63,8 +57,8 @@ interface AdminStats {
 
 interface ServerAIConfigStatus {
   openrouterConfigured: boolean;
+  openrouterBaseUrlConfigured: boolean;
   supabaseServiceConfigured: boolean;
-  cloudSpeechConfigured: boolean;
   vpsConfigured: boolean;
   aiEnabled: boolean;
   mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
@@ -72,14 +66,15 @@ interface ServerAIConfigStatus {
   voiceTranscription: {
     ready: boolean;
     code: string;
-    provider: string | null;
-    fallbackProvider: string | null;
+    gateway: string;
     model: string | null;
+    modelSource: string;
+    modelAudioCapable: boolean | null;
     maxAudioSeconds: number;
     maxAudioBytes: number;
     supportedAudioFormats: string;
+    openrouterConfigured: boolean;
     apiKeyConfigured: boolean;
-    authTokenConfigured: boolean;
     baseUrlConfigured: boolean;
     lastHealthCheck: {
       provider: string;
@@ -90,6 +85,7 @@ interface ServerAIConfigStatus {
       errorCategory: string | null;
       responseTimeMs: number | null;
       modelUsed: string | null;
+      modelAudioCapable: boolean | null;
     } | null;
   };
 }
@@ -99,14 +95,10 @@ const DEFAULT_SETTINGS: AISettings = {
   ai_mode: 'cloud_only',
   primary_language_provider: 'openrouter',
   fallback_language_provider: 'vps_ai',
-  primary_stt_provider: 'cloud_stt',
-  fallback_stt_provider: 'vps_stt',
   openrouter_model: 'openai/gpt-4.1-mini',
+  voice_model: '',
   vps_language_model: 'llama3',
-  cloud_stt_model: 'whisper-1',
-  vps_stt_model: 'whisper',
   vps_ai_base_url: '',
-  vps_stt_base_url: '',
   request_timeout_ms: 20000,
   max_retries: 1,
   confidence_threshold: 0.80,
@@ -118,9 +110,7 @@ const DEFAULT_SETTINGS: AISettings = {
   enable_transcript_retention: false,
   transcript_retention_days: 30,
   openrouter_configured: false,
-  cloud_stt_configured: false,
   vps_ai_configured: false,
-  vps_stt_configured: false,
 };
 
 // ─── Config Status Check ──────────────────────────────────────────────────────
@@ -128,8 +118,23 @@ const DEFAULT_SETTINGS: AISettings = {
 interface ConfigStatus {
   openrouter: 'configured' | 'missing' | 'test_failed' | 'healthy' | 'checking';
   supabaseServiceKey: 'configured' | 'missing' | 'checking';
-  cloudSpeech: 'configured' | 'missing' | 'test_failed' | 'healthy' | 'checking';
+  voice: 'configured' | 'missing' | 'test_failed' | 'healthy' | 'checking';
   vps: 'configured' | 'missing' | 'test_failed' | 'healthy' | 'checking';
+}
+
+const ACTIVE_PROVIDER_NAMES = new Set(['openrouter', 'vps_ai', 'openrouter_voice']);
+
+function getProviderDisplayName(provider: string) {
+  switch (provider) {
+    case 'openrouter':
+      return 'OpenRouter';
+    case 'vps_ai':
+      return 'VPS AI';
+    case 'openrouter_voice':
+      return 'OpenRouter Voice';
+    default:
+      return provider.replace(/_/g, ' ');
+  }
 }
 
 function ConfigStatusPanel({
@@ -141,7 +146,6 @@ function ConfigStatusPanel({
 }) {
   const openrouterHealth = health.find(h => h.provider === 'openrouter');
   const vpsAiHealth = health.find(h => h.provider === 'vps_ai');
-  const vpsSttHealth = health.find(h => h.provider === 'vps_stt');
   const voiceHealth = serverConfig?.voiceTranscription?.lastHealthCheck;
 
   const isCloudOnly = serverConfig?.mode === 'cloud_only';
@@ -159,18 +163,18 @@ function ConfigStatusPanel({
     supabaseStatus = serverConfig.supabaseServiceConfigured ? 'configured' : 'missing';
   }
 
-  let cloudSpeechStatus: ConfigStatus['cloudSpeech'] = 'checking';
+  let voiceStatus: ConfigStatus['voice'] = 'checking';
   if (serverConfig) {
     if (!serverConfig.voiceTranscription?.ready) {
-      cloudSpeechStatus = (
-        serverConfig.voiceTranscription?.code === 'transcription_provider_unavailable'
-        || serverConfig.voiceTranscription?.code === 'transcription_auth_failed'
-        || serverConfig.voiceTranscription?.code === 'unsupported_model'
+      voiceStatus = (
+        serverConfig.voiceTranscription?.code === 'openrouter_provider_unavailable'
+        || serverConfig.voiceTranscription?.code === 'openrouter_auth_failed'
+        || serverConfig.voiceTranscription?.code === 'voice_model_audio_unsupported'
       ) ? 'test_failed' : 'missing';
     } else if (voiceHealth?.status === 'healthy') {
-      cloudSpeechStatus = 'healthy';
+      voiceStatus = 'healthy';
     } else {
-      cloudSpeechStatus = 'configured';
+      voiceStatus = 'configured';
     }
   }
 
@@ -180,13 +184,11 @@ function ConfigStatusPanel({
       vpsStatus = 'configured';
     } else if (!serverConfig.vpsConfigured) {
       vpsStatus = 'missing';
-    } else if (vpsAiHealth?.status === 'healthy' || vpsSttHealth?.status === 'healthy') {
+    } else if (vpsAiHealth?.status === 'healthy') {
       vpsStatus = 'healthy';
     } else if (
       vpsAiHealth?.status === 'offline' ||
-      vpsAiHealth?.status === 'degraded' ||
-      vpsSttHealth?.status === 'offline' ||
-      vpsSttHealth?.status === 'degraded'
+      vpsAiHealth?.status === 'degraded'
     ) {
       vpsStatus = 'test_failed';
     } else {
@@ -204,7 +206,7 @@ function ConfigStatusPanel({
 
   const orStatus = statusMap[openrouterStatus];
   const sbStatus = statusMap[supabaseStatus];
-  const sttStatus = statusMap[cloudSpeechStatus];
+  const voiceRowStatus = statusMap[voiceStatus];
   const vpsRowStatus = statusMap[vpsStatus];
 
   return (
@@ -223,13 +225,19 @@ function ConfigStatusPanel({
         <div className="mb-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
           <div className="grid gap-1 sm:grid-cols-2">
             <div>
-              Voice provider: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.provider || 'Not selected'}</span>
+              Gateway: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.gateway}</span>
             </div>
             <div>
-              Fallback provider: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.fallbackProvider || 'Not selected'}</span>
+              OpenRouter configured: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
             </div>
             <div>
               Voice model: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.model || 'Missing'}</span>
+            </div>
+            <div>
+              Model source: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.modelSource}</span>
+            </div>
+            <div>
+              Audio capable: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
             </div>
             <div>
               Voice ready: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.ready ? 'Yes' : 'No'}</span>
@@ -241,10 +249,7 @@ function ConfigStatusPanel({
               Max audio: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.maxAudioSeconds}s / {(serverConfig.voiceTranscription.maxAudioBytes / (1024 * 1024)).toFixed(0)} MB</span>
             </div>
             <div>
-              API key: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.apiKeyConfigured ? 'Configured' : 'Missing'}</span>
-            </div>
-            <div>
-              Auth token: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.authTokenConfigured ? 'Configured' : 'Not used'}</span>
+              OpenRouter key: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.apiKeyConfigured ? 'Configured' : 'Missing'}</span>
             </div>
             <div>
               Base URL: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.baseUrlConfigured ? 'Configured' : 'Missing'}</span>
@@ -280,9 +285,9 @@ function ConfigStatusPanel({
         </div>
         <div className="flex items-center justify-between py-2 border-b border-border/50">
           <span className="text-sm text-foreground">Voice transcription</span>
-          <span className={`flex items-center gap-1.5 text-xs font-600 ${sttStatus.color}`}>
-            {sttStatus.icon}
-            {sttStatus.label}
+          <span className={`flex items-center gap-1.5 text-xs font-600 ${voiceRowStatus.color}`}>
+            {voiceRowStatus.icon}
+            {voiceRowStatus.label}
           </span>
         </div>
         <div className="flex items-center justify-between py-2">
@@ -380,14 +385,10 @@ export default function AdminAISettingsPage() {
           ai_mode: settings.ai_mode,
           primary_language_provider: settings.primary_language_provider,
           fallback_language_provider: settings.fallback_language_provider,
-          primary_stt_provider: settings.primary_stt_provider,
-          fallback_stt_provider: settings.fallback_stt_provider,
           openrouter_model: settings.openrouter_model,
+          voice_model: settings.voice_model || null,
           vps_language_model: settings.vps_language_model,
-          cloud_stt_model: settings.cloud_stt_model,
-          vps_stt_model: settings.vps_stt_model,
           vps_ai_base_url: settings.vps_ai_base_url,
-          vps_stt_base_url: settings.vps_stt_base_url,
           request_timeout_ms: settings.request_timeout_ms,
           max_retries: settings.max_retries,
           confidence_threshold: settings.confidence_threshold,
@@ -458,16 +459,17 @@ export default function AdminAISettingsPage() {
   ] as const;
 
   const isCloudOnlyMode = serverConfig?.mode === 'cloud_only';
-  const openrouterHealth = health.find((item) => item.provider === 'openrouter');
-  const vpsAiHealth = health.find((item) => item.provider === 'vps_ai');
-  const cloudSttHealth = health.find((item) => item.provider === 'cloud_stt');
-  const vpsSttHealth = health.find((item) => item.provider === 'vps_stt');
-  const hasHealthyProvider = health.some((item) => item.status === 'healthy');
+  const visibleHealth = health.filter((item) => ACTIVE_PROVIDER_NAMES.has(item.provider));
+  const openrouterHealth = visibleHealth.find((item) => item.provider === 'openrouter');
+  const vpsAiHealth = visibleHealth.find((item) => item.provider === 'vps_ai');
+  const voiceOpenRouterHealth = visibleHealth.find((item) => item.provider === 'openrouter_voice');
+  const hasHealthyProvider = visibleHealth.some((item) => item.status === 'healthy');
 
   const checklistItems = [
     { id: 'supabase', label: 'Supabase server key', done: Boolean(serverConfig?.supabaseServiceConfigured) },
     { id: 'openrouter-key', label: 'OpenRouter key', done: Boolean(serverConfig?.openrouterConfigured) },
     { id: 'openrouter-connection', label: 'OpenRouter connection', done: openrouterHealth?.status === 'healthy' },
+    { id: 'voice-ready', label: 'Voice transcription ready', done: Boolean(serverConfig?.voiceTranscription.ready) },
     { id: 'ai-enabled', label: 'AI enabled', done: Boolean(serverConfig?.aiEnabled && settings.ai_enabled) },
     { id: 'confirmation', label: 'Confirmation enabled', done: settings.require_confirmation },
     { id: 'provider-health', label: 'Provider health', done: hasHealthyProvider },
@@ -736,6 +738,92 @@ export default function AdminAISettingsPage() {
               </div>
             </div>
 
+            {/* OpenRouter Voice */}
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Mic size={18} className="text-info" />
+                  <div>
+                    <h3 className="text-sm font-700 text-foreground">OpenRouter Voice</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Voice transcription through the existing OpenRouter gateway</p>
+                  </div>
+                </div>
+                <StatusBadge
+                  status={
+                    serverConfig?.voiceTranscription.ready
+                      ? 'healthy'
+                      : serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
+                        || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
+                        || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
+                        ? 'test_failed'
+                        : 'missing'
+                  }
+                />
+              </div>
+              <div className="p-3 bg-muted/50 rounded-xl mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Voice transcription reuses the existing <code className="bg-muted px-1 rounded text-xs">OPENROUTER_API_KEY</code> and{' '}
+                  <code className="bg-muted px-1 rounded text-xs">OPENROUTER_BASE_URL</code>. No separate speech-provider secret is required.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-700 text-foreground mb-1.5 block">Voice model</label>
+                  <input
+                    type="text"
+                    value={settings.voice_model || ''}
+                    onChange={e => update('voice_model', e.target.value)}
+                    placeholder={settings.openrouter_model || 'google/gemini-2.5-flash'}
+                    className="input-base text-sm w-full"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Leave blank to reuse the general OpenRouter model.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
+                  <div>
+                    Gateway: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.gateway || 'openrouter'}</span>
+                  </div>
+                  <div>
+                    OpenRouter configured: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div>
+                    Voice model: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.model || 'Missing'}</span>
+                  </div>
+                  <div>
+                    Model source: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelSource || 'none'}</span>
+                  </div>
+                  <div>
+                    Audio capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div>
+                    Voice ready: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+                  </div>
+                  <div>
+                    Last health check: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || 'Not checked'}</span>
+                  </div>
+                  <div>
+                    Supported formats: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.supportedAudioFormats || 'Not available'}</span>
+                  </div>
+                  <div>
+                    Maximum recording: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.maxAudioSeconds || settings.max_audio_seconds}s</span>
+                  </div>
+                  <div>
+                    Status code: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.code || 'unknown'}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Latest health: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || voiceOpenRouterHealth?.status || 'Not checked'}</span>
+                </p>
+                <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice'} className="btn-secondary text-sm">
+                  {testingProvider === 'openrouter_voice' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  Test Voice
+                </button>
+              </div>
+            </div>
+
             {/* VPS AI */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
@@ -787,98 +875,6 @@ export default function AdminAISettingsPage() {
                 </button>
               </div>
             </div>
-
-            {/* Cloud STT */}
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Mic size={18} className="text-info" />
-                  <div>
-                    <h3 className="text-sm font-700 text-foreground">Cloud Speech-to-Text</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Cloud transcription provider</p>
-                  </div>
-                </div>
-                <StatusBadge status={serverConfig?.cloudSpeechConfigured ? 'configured' : 'missing'} />
-              </div>
-              <div className="p-3 bg-muted/50 rounded-xl mb-3">
-                <p className="text-xs text-muted-foreground">
-                  Set <code className="bg-muted px-1 rounded text-xs">CLOUD_STT_API_KEY</code>,{' '}
-                  <code className="bg-muted px-1 rounded text-xs">CLOUD_STT_BASE_URL</code>, and{' '}
-                  <code className="bg-muted px-1 rounded text-xs">CLOUD_STT_MODEL</code> as server environment variables.
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-700 text-foreground mb-1.5 block">Active model</label>
-                <input
-                  type="text"
-                  value={settings.cloud_stt_model || ''}
-                  onChange={e => update('cloud_stt_model', e.target.value)}
-                  placeholder="whisper-1"
-                  className="input-base text-sm w-full"
-                />
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground">
-                  Latest health: <span className="font-700 text-foreground">{cloudSttHealth?.status || 'Not checked'}</span>
-                </p>
-                <button onClick={() => handleTestProvider('cloud_stt')} disabled={testingProvider === 'cloud_stt'} className="btn-secondary text-sm">
-                  {testingProvider === 'cloud_stt' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                  Test Connection
-                </button>
-              </div>
-            </div>
-
-            {/* VPS STT */}
-            <div className="card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Mic size={18} className="text-positive" />
-                  <div>
-                    <h3 className="text-sm font-700 text-foreground">VPS Speech-to-Text</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Self-hosted transcription provider</p>
-                  </div>
-                </div>
-                <StatusBadge status={isCloudOnlyMode ? 'not_required' : serverConfig?.vpsConfigured ? 'configured' : 'missing'} />
-              </div>
-              <div className="p-3 bg-muted/50 rounded-xl mb-3">
-                <p className="text-xs text-muted-foreground">
-                  Set <code className="bg-muted px-1 rounded text-xs">LOCAL_STT_BASE_URL</code>,{' '}
-                  <code className="bg-muted px-1 rounded text-xs">LOCAL_STT_MODEL</code>, and optionally{' '}
-                  <code className="bg-muted px-1 rounded text-xs">LOCAL_STT_AUTH_TOKEN</code> as server environment variables.
-                </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-700 text-foreground mb-1.5 block">Endpoint URL</label>
-                  <input
-                    type="text"
-                    value={settings.vps_stt_base_url || ''}
-                    onChange={e => update('vps_stt_base_url', e.target.value)}
-                    placeholder="http://your-vps:9000"
-                    className="input-base text-sm w-full"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-700 text-foreground mb-1.5 block">Active model</label>
-                  <input
-                    type="text"
-                    value={settings.vps_stt_model || ''}
-                    onChange={e => update('vps_stt_model', e.target.value)}
-                    placeholder="whisper"
-                    className="input-base text-sm w-full"
-                  />
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground">
-                  Latest health: <span className="font-700 text-foreground">{isCloudOnlyMode ? 'Not required' : (vpsSttHealth?.status || 'Not checked')}</span>
-                </p>
-                <button onClick={() => handleTestProvider('vps_stt')} disabled={testingProvider === 'vps_stt' || isCloudOnlyMode} className="btn-secondary text-sm">
-                  {testingProvider === 'vps_stt' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
-                  Test Connection
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -895,11 +891,11 @@ export default function AdminAISettingsPage() {
               </button>
             </div>
 
-            {health.map(h => (
+            {visibleHealth.map(h => (
               <div key={h.provider} className="card p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <p className="text-sm font-700 text-foreground capitalize">{h.provider.replace('_', ' ')}</p>
+                    <p className="text-sm font-700 text-foreground">{getProviderDisplayName(h.provider)}</p>
                     {h.response_time_ms && (
                       <p className="text-xs text-muted-foreground">{h.response_time_ms}ms response time</p>
                     )}
@@ -937,7 +933,7 @@ export default function AdminAISettingsPage() {
               </div>
             ))}
 
-            {health.length === 0 && (
+            {visibleHealth.length === 0 && (
               <div className="card p-8 text-center">
                 <Activity size={32} className="text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No health data yet. Run health checks to see provider status.</p>

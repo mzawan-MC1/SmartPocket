@@ -18,17 +18,17 @@ export const VOICE_AI_BROWSER_RECORDING_MIME_CANDIDATES = [
 ] as const;
 
 export const VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL = 'WebM (Opus), MP4 (AAC/M4A), MP3, WAV';
+export const VOICE_AI_GATEWAY = 'openrouter' as const;
 
-export type VoiceTranscriptionProvider = 'cloud_stt' | 'vps_stt';
+export type VoiceTranscriptionProvider = typeof VOICE_AI_GATEWAY;
 
 export type VoiceTranscriptionHealthCode =
   | 'ready'
-  | 'provider_not_configured'
-  | 'api_key_missing'
-  | 'transcription_model_missing'
-  | 'unsupported_model'
-  | 'transcription_auth_failed'
-  | 'transcription_provider_unavailable';
+  | 'openrouter_not_configured'
+  | 'voice_model_missing'
+  | 'voice_model_audio_unsupported'
+  | 'openrouter_auth_failed'
+  | 'openrouter_provider_unavailable';
 
 export type VoiceTranscriptionErrorCode =
   | 'voice_not_in_plan'
@@ -37,9 +37,11 @@ export type VoiceTranscriptionErrorCode =
   | 'empty_audio'
   | 'unsupported_audio_type'
   | 'audio_too_large'
-  | 'transcription_not_configured'
-  | 'transcription_auth_failed'
-  | 'transcription_provider_unavailable'
+  | 'openrouter_not_configured'
+  | 'voice_model_missing'
+  | 'voice_model_audio_unsupported'
+  | 'openrouter_auth_failed'
+  | 'openrouter_provider_unavailable'
   | 'transcription_failed';
 
 export interface VoiceRecorderSubmission {
@@ -74,6 +76,26 @@ export function getVoiceAudioExtension(value: string | null | undefined) {
       return 'wav';
     default:
       return 'audio';
+  }
+}
+
+export function getOpenRouterAudioFormat(value: string | null | undefined) {
+  const normalized = normalizeVoiceAudioMimeType(value);
+
+  switch (normalized) {
+    case 'audio/webm':
+    case 'audio/webm;codecs=opus':
+      return 'webm';
+    case 'audio/mp4':
+    case 'audio/mp4;codecs=mp4a.40.2':
+      return 'm4a';
+    case 'audio/mpeg':
+      return 'mp3';
+    case 'audio/wav':
+    case 'audio/x-wav':
+      return 'wav';
+    default:
+      return null;
   }
 }
 

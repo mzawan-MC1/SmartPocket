@@ -7,11 +7,10 @@ import {
   runVoiceTranscriptionHealthCheck,
   type VoiceProviderHealthCheckResult,
 } from '@/lib/voice-ai-server';
-import type { VoiceTranscriptionProvider } from '@/lib/voice-ai';
 import type { ProviderHealthResult } from '@/lib/ai-types';
 
 // Allowlisted provider names — never trust caller-supplied provider names
-const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'cloud_stt', 'vps_stt']);
+const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice']);
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,8 +69,7 @@ export async function POST(req: NextRequest) {
       const langProvider = createLanguageProvider(provider, 10000);
       result = await langProvider.healthCheck();
     } else {
-      const voiceProvider: VoiceTranscriptionProvider = provider === 'cloud_stt' ? 'cloud_stt' : 'vps_stt';
-      voiceResult = await runVoiceTranscriptionHealthCheck(voiceProvider);
+      voiceResult = await runVoiceTranscriptionHealthCheck();
       result = voiceResult;
     }
 
