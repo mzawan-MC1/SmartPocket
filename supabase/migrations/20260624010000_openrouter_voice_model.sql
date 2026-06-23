@@ -32,7 +32,3 @@ BEGIN
       ADD VALUE 'openrouter_voice';
   END IF;
 END $$;
-
-INSERT INTO public.ai_provider_health (provider, status)
-VALUES ('openrouter_voice', 'not_configured')
-ON CONFLICT (provider) DO NOTHING;
