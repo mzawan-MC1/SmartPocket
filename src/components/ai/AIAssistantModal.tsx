@@ -897,6 +897,14 @@ function isReceiptInsightQuestion(value: string) {
   const understandingLines = previewInstruction
     ? getUnderstandingLinesLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
     : [];
+  const isCompactSubscriptionReview = step === 'confirming' && isSubscriptionFlow;
+  const reviewSectionClass = isSubscriptionFlow
+    ? 'rounded-xl border border-border bg-muted/20 p-3 sm:p-3.5 space-y-2.5'
+    : 'rounded-2xl border border-border bg-muted/20 p-4 space-y-3';
+  const reviewInnerCardClass = isSubscriptionFlow
+    ? 'rounded-lg bg-card p-2.5'
+    : 'rounded-xl bg-card p-3';
+  const reviewFieldGroupClass = isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2';
   const amountPromptLabel = previewInstruction && reviewState
     ? getLocalizedAmountPrompt(reviewState, previewInstruction, t)
     : t('smartEntryModal.amountFallback', { ns: 'portal' });
@@ -1839,11 +1847,17 @@ function isReceiptInsightQuestion(value: string) {
         aria-modal="true"
         aria-labelledby="smart-entry-title"
         aria-describedby="smart-entry-description"
-        className="relative z-[1] flex w-[calc(100vw-32px)] max-w-[640px] max-h-[calc(100vh-48px)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg"
+        className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
+          isCompactSubscriptionReview
+            ? 'w-[calc(100vw-24px)] max-w-3xl max-h-[85vh] rounded-[20px]'
+            : 'w-[calc(100vw-32px)] max-w-[640px] max-h-[calc(100vh-48px)] rounded-[24px]'
+        }`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-border flex-shrink-0 bg-card">
+        <div className={`flex flex-shrink-0 items-center justify-between border-b border-border bg-card ${
+          isCompactSubscriptionReview ? 'px-4 sm:px-5 py-3.5' : 'px-5 sm:px-6 py-4'
+        }`}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
               <Sparkles size={16} className="text-white" />
@@ -1852,7 +1866,9 @@ function isReceiptInsightQuestion(value: string) {
               <h2 id="smart-entry-title" className="text-lg font-800 text-foreground">
                 {t('smartEntryModal.title', { ns: 'portal' })}
               </h2>
-              <p id="smart-entry-description" className="text-sm text-muted-foreground">
+              <p id="smart-entry-description" className={`text-muted-foreground ${
+                isCompactSubscriptionReview ? 'text-xs sm:text-sm' : 'text-sm'
+              }`}>
                 {t('smartEntryModal.description', { ns: 'portal' })}
               </p>
             </div>
@@ -2157,8 +2173,8 @@ function isReceiptInsightQuestion(value: string) {
 
           {/* Confirming */}
           {step === 'confirming' && parsed && reviewState && previewInstruction && (
-            <div className="space-y-4 p-5">
-              <div className="flex items-center gap-2 mb-4">
+            <div className={`flex min-h-full flex-col ${isSubscriptionFlow ? 'p-4 sm:p-5' : 'space-y-4 p-5'}`}>
+              <div className={`flex items-center gap-2 ${isSubscriptionFlow ? 'mb-3' : 'mb-4'}`}>
                 <CheckCircle size={18} className="text-positive" />
                 <p className="text-sm font-600 text-foreground">
                   {t('smartEntryModal.reviewTitle', { ns: 'portal' })}
@@ -2166,7 +2182,7 @@ function isReceiptInsightQuestion(value: string) {
               </div>
 
               {transcript && (
-                <div className="p-3 bg-muted/50 rounded-xl mb-4">
+                <div className={`bg-muted/50 ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
                   <p className="text-xs text-muted-foreground">
                     {t('smartEntryModal.inputLabel', { ns: 'portal' })}:
                   </p>
@@ -2175,7 +2191,7 @@ function isReceiptInsightQuestion(value: string) {
               )}
 
               {errorMessage && (
-                <div className="p-3 bg-warning-soft border border-warning/20 rounded-xl mb-4">
+                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
                   <div className="flex items-start gap-2">
                     <AlertTriangle size={14} className="text-warning mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-warning">{errorMessage}</p>
@@ -2184,7 +2200,7 @@ function isReceiptInsightQuestion(value: string) {
               )}
 
               {previewInstruction.warnings?.length > 0 && (
-                <div className="p-3 bg-warning-soft border border-warning/20 rounded-xl mb-4">
+                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
                   {previewInstruction.warnings.map((w, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <AlertTriangle size={14} className="text-warning mt-0.5 flex-shrink-0" />
@@ -2194,8 +2210,8 @@ function isReceiptInsightQuestion(value: string) {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+              <div className={isSubscriptionFlow ? 'flex-1 space-y-3' : 'space-y-4'}>
+                <div className={reviewSectionClass}>
                   <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                     {t('smartEntryModal.understandingTitle', { ns: 'portal' })}
                   </p>
@@ -2203,7 +2219,7 @@ function isReceiptInsightQuestion(value: string) {
                     <p key={index} className="text-sm text-foreground">{line}</p>
                   ))}
                   {reviewState.purposeOptions && reviewState.purposeOptions.length > 0 && (
-                    <div className="space-y-2 pt-1">
+                    <div className="space-y-2 pt-0.5">
                       <p className="text-sm font-600 text-foreground">
                         {typeof reviewState.receivedAmount === 'number' && reviewState.person?.name
                           ? t('smartEntryModal.purposeQuestionWithPerson', {
@@ -2221,7 +2237,9 @@ function isReceiptInsightQuestion(value: string) {
                           key={option.id}
                           type="button"
                           onClick={() => handlePurposeChange(option.id)}
-                          className={`w-full rounded-xl border p-3 text-left transition-colors ${
+                          className={`w-full rounded-xl border text-left transition-colors ${
+                            isSubscriptionFlow ? 'p-2.5' : 'p-3'
+                          } ${
                             reviewState.purpose === option.id ? 'border-accent bg-accent/10' : 'border-border bg-card hover:border-accent/40'
                           }`}
                         >
@@ -2240,7 +2258,7 @@ function isReceiptInsightQuestion(value: string) {
                 </div>
 
                 {isSubscriptionFlow && reviewState.subscription && (
-                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-4">
+                  <div className={reviewSectionClass}>
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.subscription.title', {
                         ns: 'portal',
@@ -2249,7 +2267,7 @@ function isReceiptInsightQuestion(value: string) {
                     </p>
 
                     {reviewState.subscription.requiresSubscriptionSelection && (
-                      <div className="space-y-2">
+                      <div className={reviewFieldGroupClass}>
                         <label className="text-xs font-600 text-muted-foreground">
                           {t('smartEntryModal.subscription.matchingSubscription', {
                             ns: 'portal',
@@ -2278,8 +2296,8 @@ function isReceiptInsightQuestion(value: string) {
                       </div>
                     )}
 
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-2">
+                    <div className="grid gap-2.5 sm:grid-cols-2">
+                      <div className={reviewFieldGroupClass}>
                         <label className="text-xs font-600 text-muted-foreground">
                           {t('personalSubscriptions.form.fields.name', {
                             ns: 'portal',
@@ -2301,7 +2319,7 @@ function isReceiptInsightQuestion(value: string) {
                           })}
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className={reviewFieldGroupClass}>
                         <label className="text-xs font-600 text-muted-foreground">
                           {t('personalSubscriptions.form.fields.provider', {
                             ns: 'portal',
@@ -2328,8 +2346,8 @@ function isReceiptInsightQuestion(value: string) {
                     {(reviewState.subscription.intent === 'personal_subscription_create'
                       || reviewState.subscription.intent === 'personal_subscription_payment'
                       || reviewState.subscription.intent === 'personal_subscription_update') && (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-2">
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <div className={reviewFieldGroupClass}>
                           <label className="text-xs font-600 text-muted-foreground">
                             {t('personalSubscriptions.form.fields.amount', {
                               ns: 'portal',
@@ -2353,7 +2371,7 @@ function isReceiptInsightQuestion(value: string) {
                             })}
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className={reviewFieldGroupClass}>
                           <label className="text-xs font-600 text-muted-foreground">
                             {t('personalSubscriptions.form.fields.billingFrequency', {
                               ns: 'portal',
@@ -2389,8 +2407,8 @@ function isReceiptInsightQuestion(value: string) {
                     {(reviewState.subscription.intent === 'personal_subscription_create'
                       || reviewState.subscription.intent === 'personal_subscription_payment'
                       || reviewState.subscription.intent === 'personal_subscription_update') && (
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="space-y-2">
+                      <div className="grid gap-2.5 sm:grid-cols-2">
+                        <div className={reviewFieldGroupClass}>
                           <label className="text-xs font-600 text-muted-foreground">
                             {t('personalSubscriptions.form.fields.startDate', {
                               ns: 'portal',
@@ -2409,7 +2427,7 @@ function isReceiptInsightQuestion(value: string) {
                             className="input-base w-full text-sm"
                           />
                         </div>
-                        <div className="space-y-2">
+                        <div className={reviewFieldGroupClass}>
                           <label className="text-xs font-600 text-muted-foreground">
                             {t('personalSubscriptions.form.fields.nextBillingDate', {
                               ns: 'portal',
@@ -2432,7 +2450,7 @@ function isReceiptInsightQuestion(value: string) {
                     )}
 
                     {reviewState.subscription.intent === 'personal_subscription_cancel' && (
-                      <div className="space-y-2">
+                      <div className={reviewFieldGroupClass}>
                         <label className="text-xs font-600 text-muted-foreground">
                           {t('personalSubscriptions.cancellation.effectiveDate', {
                             ns: 'portal',
@@ -2457,7 +2475,7 @@ function isReceiptInsightQuestion(value: string) {
                       || reviewState.subscription.intent === 'personal_subscription_payment'
                       || reviewState.subscription.intent === 'personal_subscription_update') && (
                       <>
-                        <div className="space-y-2">
+                        <div className={reviewFieldGroupClass}>
                           <label className="text-xs font-600 text-muted-foreground">
                             {t('personalSubscriptions.form.fields.paymentMethod', {
                               ns: 'portal',
@@ -2488,99 +2506,101 @@ function isReceiptInsightQuestion(value: string) {
                           </select>
                         </div>
 
-                        <div className="space-y-3 rounded-xl bg-card p-3">
-                          <label className="flex items-center gap-3 text-sm text-foreground">
-                            <input
-                              type="checkbox"
-                              checked={reviewState.subscription.autoRenew !== false}
-                              onChange={(e) =>
-                                updateSubscriptionReview((current) => ({
-                                  ...current,
-                                  autoRenew: e.target.checked,
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-border"
-                            />
-                            <span>
-                              {t('personalSubscriptions.form.fields.autoRenew', {
-                                ns: 'portal',
-                                defaultValue: 'Auto-renew this subscription',
-                              })}
-                            </span>
-                          </label>
-
-                          <label className="flex items-center gap-3 text-sm text-foreground">
-                            <input
-                              type="checkbox"
-                              checked={reviewState.subscription.createLinkedRecurringExpense !== false}
-                              onChange={(e) =>
-                                updateSubscriptionReview((current) => ({
-                                  ...current,
-                                  createLinkedRecurringExpense: e.target.checked,
-                                }))
-                              }
-                              className="h-4 w-4 rounded border-border"
-                            />
-                            <span>
-                              {t('personalSubscriptions.form.fields.createLinkedRecurringExpense', {
-                                ns: 'portal',
-                                defaultValue: 'Create linked recurring expense',
-                              })}
-                            </span>
-                          </label>
-
-                          {reviewState.subscription.mayHavePaymentNow && reviewState.subscription.intent === 'personal_subscription_create' && (
-                            <label className="flex items-center gap-3 text-sm text-foreground">
+                        <div className="grid gap-2.5 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+                          <div className={`${reviewInnerCardClass} space-y-2`}>
+                            <label className="flex items-center gap-2.5 text-sm text-foreground">
                               <input
                                 type="checkbox"
-                                checked={reviewState.subscription.paymentHappenedNow === true}
+                                checked={reviewState.subscription.autoRenew !== false}
                                 onChange={(e) =>
                                   updateSubscriptionReview((current) => ({
                                     ...current,
-                                    paymentHappenedNow: e.target.checked,
+                                    autoRenew: e.target.checked,
                                   }))
                                 }
                                 className="h-4 w-4 rounded border-border"
                               />
                               <span>
-                                {t('smartEntryModal.subscription.createPaymentToday', {
+                                {t('personalSubscriptions.form.fields.autoRenew', {
                                   ns: 'portal',
-                                  defaultValue: 'Create payment today',
+                                  defaultValue: 'Auto-renew this subscription',
                                 })}
                               </span>
                             </label>
-                          )}
-                        </div>
 
-                        <div className="space-y-2">
-                          <label className="text-xs font-600 text-muted-foreground">
-                            {t('personalSubscriptions.form.fields.reminderDaysBefore', {
-                              ns: 'portal',
-                              defaultValue: 'Reminder days before charge',
-                            })}
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((days) => {
-                              const selected = (reviewState.subscription?.reminderDaysBefore || []).includes(days);
-                              return (
-                                <button
-                                  key={days}
-                                  type="button"
-                                  onClick={() => handleSubscriptionReminderToggle(days)}
-                                  className={`rounded-full border px-3 py-1.5 text-xs font-600 transition-colors ${
-                                    selected
-                                      ? 'border-accent bg-accent/10 text-accent'
-                                      : 'border-border bg-card text-muted-foreground hover:border-accent/40'
-                                  }`}
-                                >
-                                  {t('personalSubscriptions.form.reminderOption', {
+                            <label className="flex items-center gap-2.5 text-sm text-foreground">
+                              <input
+                                type="checkbox"
+                                checked={reviewState.subscription.createLinkedRecurringExpense !== false}
+                                onChange={(e) =>
+                                  updateSubscriptionReview((current) => ({
+                                    ...current,
+                                    createLinkedRecurringExpense: e.target.checked,
+                                  }))
+                                }
+                                className="h-4 w-4 rounded border-border"
+                              />
+                              <span>
+                                {t('personalSubscriptions.form.fields.createLinkedRecurringExpense', {
+                                  ns: 'portal',
+                                  defaultValue: 'Create linked recurring expense',
+                                })}
+                              </span>
+                            </label>
+
+                            {reviewState.subscription.mayHavePaymentNow && reviewState.subscription.intent === 'personal_subscription_create' && (
+                              <label className="flex items-center gap-2.5 text-sm text-foreground">
+                                <input
+                                  type="checkbox"
+                                  checked={reviewState.subscription.paymentHappenedNow === true}
+                                  onChange={(e) =>
+                                    updateSubscriptionReview((current) => ({
+                                      ...current,
+                                      paymentHappenedNow: e.target.checked,
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-border"
+                                />
+                                <span>
+                                  {t('smartEntryModal.subscription.createPaymentToday', {
                                     ns: 'portal',
-                                    count: days,
-                                    defaultValue: days === 1 ? '{{count}} day' : '{{count}} days',
+                                    defaultValue: 'Create payment today',
                                   })}
-                                </button>
-                              );
-                            })}
+                                </span>
+                              </label>
+                            )}
+                          </div>
+
+                          <div className={reviewFieldGroupClass}>
+                            <label className="text-xs font-600 text-muted-foreground">
+                              {t('personalSubscriptions.form.fields.reminderDaysBefore', {
+                                ns: 'portal',
+                                defaultValue: 'Reminder days before charge',
+                              })}
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((days) => {
+                                const selected = (reviewState.subscription?.reminderDaysBefore || []).includes(days);
+                                return (
+                                  <button
+                                    key={days}
+                                    type="button"
+                                    onClick={() => handleSubscriptionReminderToggle(days)}
+                                    className={`rounded-full border px-2.5 py-1 text-xs font-600 transition-colors ${
+                                      selected
+                                        ? 'border-accent bg-accent/10 text-accent'
+                                        : 'border-border bg-card text-muted-foreground hover:border-accent/40'
+                                    }`}
+                                  >
+                                    {t('personalSubscriptions.form.reminderOption', {
+                                      ns: 'portal',
+                                      count: days,
+                                      defaultValue: days === 1 ? '{{count}} day' : '{{count}} days',
+                                    })}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
                       </>
@@ -2667,7 +2687,7 @@ function isReceiptInsightQuestion(value: string) {
                 )}
 
                 {(isSubscriptionFlow || (reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear'))) && (
-                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                  <div className={reviewSectionClass}>
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {isSubscriptionFlow
                         ? t('smartEntryModal.subscription.paymentAccountSection', {
@@ -2676,7 +2696,7 @@ function isReceiptInsightQuestion(value: string) {
                           })
                         : t('smartEntryModal.accountTitle', { ns: 'portal' })}
                     </p>
-                    <div className="rounded-xl bg-card p-3">
+                    <div className={reviewInnerCardClass}>
                       <p className="text-xs text-muted-foreground">
                         {isSubscriptionFlow
                           ? getSubscriptionPrimaryAccountLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
@@ -2895,11 +2915,11 @@ function isReceiptInsightQuestion(value: string) {
                   </div>
                 )}
 
-                <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
+                <div className={reviewSectionClass}>
                   <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                     {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
                   </p>
-                  <div className="space-y-2">
+                  <div className={isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2'}>
                     {compactSummaryRows.map((row, index) => (
                       <p key={index} className="text-sm text-foreground">{row}</p>
                     ))}
@@ -2952,11 +2972,17 @@ function isReceiptInsightQuestion(value: string) {
                 )}
               </div>
 
-              <div className="flex gap-2">
+              <div className={`flex gap-2 ${
+                isSubscriptionFlow
+                  ? 'sticky bottom-0 mt-3 border-t border-border bg-card/95 pt-3 pb-1 backdrop-blur'
+                  : ''
+              }`}>
                 <button
                   onClick={handleConfirm}
                   disabled={unresolvedReviewFields.length > 0}
-                  className="flex-1 py-3 rounded-xl bg-positive text-white text-sm font-700 hover:bg-positive/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive text-white text-sm font-700 transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50 ${
+                    isSubscriptionFlow ? 'px-4 py-2.5' : 'py-3'
+                  }`}
                 >
                   <CheckCircle size={16} />
                   {isSubscriptionFlow
@@ -2965,7 +2991,9 @@ function isReceiptInsightQuestion(value: string) {
                 </button>
                 <button
                   onClick={handleReset}
-                  className="px-4 py-3 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
+                  className={`rounded-xl bg-muted text-foreground text-sm font-600 transition-colors hover:bg-muted/80 ${
+                    isSubscriptionFlow ? 'px-3.5 py-2.5' : 'px-4 py-3'
+                  }`}
                   aria-label={t('actions.reset', { ns: 'common' })}
                 >
                   <RotateCcw size={16} />
