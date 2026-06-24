@@ -42,6 +42,34 @@ function shortRequestId(value: string | undefined | null) {
   return value.length > 8 ? `${value.slice(0, 8)}...` : value;
 }
 
+async function refundAICreditsSafely(args: {
+  supabase: ReturnType<typeof createClient>;
+  userId: string;
+  cycleId: string;
+  ledgerId: string;
+  reason: string;
+}) {
+  try {
+    const { error } = await args.supabase.rpc('refund_ai_credits', {
+      p_user_id: args.userId,
+      p_cycle_id: args.cycleId,
+      p_ledger_id: args.ledgerId,
+      p_reason: args.reason,
+    });
+
+    if (error) {
+      console.error('[AI Parse] Credit refund failed', {
+        code: error.code || null,
+        message: error.message,
+      });
+    }
+  } catch (error) {
+    console.error('[AI Parse] Credit refund failed', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── 1. Authenticate — derive user from token, never from body ──────────
@@ -264,12 +292,13 @@ export async function POST(req: NextRequest) {
 
     if (responseBody.parsed && (!persistedRequest?.id || !UUID_PATTERN.test(persistedRequest.id))) {
       if (!existingRequest && creditCycleId && creditLedgerId) {
-        await supabase.rpc('refund_ai_credits', {
-          p_user_id: user.id,
-          p_cycle_id: creditCycleId,
-          p_ledger_id: creditLedgerId,
-          p_reason: 'persistence_failure',
-        }).catch(() => undefined);
+        await refundAICreditsSafely({
+          supabase,
+          userId: user.id,
+          cycleId: creditCycleId,
+          ledgerId: creditLedgerId,
+          reason: 'persistence_failure',
+        });
       }
 
       console.error('[AI Parse] Parsed request persistence failed', {
