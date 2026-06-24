@@ -640,58 +640,26 @@ export default function HomePage() {
               visual={<BudgetVisual />}
               className="lg:col-span-4"
             />
-            <FeatureCard
-              icon={FileText}
-              title={t('home.features.exportsTitle')}
-              description={t('home.features.exportsDescription')}
-              visual={<ReportsVisual />}
-              className="lg:col-span-3"
-            />
-            <FeatureCard
-              icon={RefreshCw}
-              title={t('home.features.recurringTitle')}
-              description={t('home.features.recurringDescription')}
-              visual={<RecurringVisual />}
-              className="lg:col-span-3"
-            />
-            <FeatureCard
-              icon={Shield}
-              title={t('home.features.securityTitle')}
-              description={t('home.features.securityDescription')}
-              visual={<SecurityVisual />}
-              className="lg:col-span-3"
-            />
-            <article className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] lg:col-span-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 to-sky-50">
-                  <TrendingUp size={20} className="text-cyan-700" />
-                </div>
-                <div>
-                  <p className="text-lg font-800 tracking-tight text-slate-950">{t('home.summary.title')}</p>
-                  <p className="text-sm text-slate-500">{t('home.summary.subtitle')}</p>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3">
-                {[
-                  t('home.summary.items.cashFlow'),
-                  t('home.summary.items.budgets'),
-                  t('home.summary.items.reports'),
-                ].map((item, index) => (
-                  <div key={item} className="rounded-2xl bg-slate-50 px-3.5 py-3">
-                    <div className="flex items-center justify-between text-sm font-700 text-slate-800">
-                      <span>{item}</span>
-                      <span className="text-cyan-700">{index + 1}/3</span>
-                    </div>
-                    <div className="mt-2 h-1.5 rounded-full bg-slate-200">
-                      <div
-                        className="h-1.5 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400"
-                        style={{ width: `${72 - index * 18}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:col-span-8 lg:grid-cols-3">
+              <FeatureCard
+                icon={FileText}
+                title={t('home.features.exportsTitle')}
+                description={t('home.features.exportsDescription')}
+                visual={<ReportsVisual />}
+              />
+              <FeatureCard
+                icon={RefreshCw}
+                title={t('home.features.recurringTitle')}
+                description={t('home.features.recurringDescription')}
+                visual={<RecurringVisual />}
+              />
+              <FeatureCard
+                icon={Shield}
+                title={t('home.features.securityTitle')}
+                description={t('home.features.securityDescription')}
+                visual={<SecurityVisual />}
+              />
+            </div>
           </div>
         </div>
       </section>
