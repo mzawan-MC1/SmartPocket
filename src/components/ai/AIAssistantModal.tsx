@@ -90,6 +90,8 @@ type VoiceStatusResponse = {
   usage?: AIUsageSummary;
 };
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
  interface AIAssistantModalProps {
    onClose: () => void;
    defaultMode?: 'voice' | 'text';
@@ -1508,11 +1510,39 @@ function isReceiptInsightQuestion(value: string) {
       if (data.transcript) setTranscript(data.transcript);
 
       const instruction = data.parsed as ParsedFinancialInstruction;
-      setParsed(instruction);
+      const responseRequestId = typeof data.requestId === 'string' ? data.requestId.trim() : '';
+      const instructionRequestId = typeof instruction?.requestId === 'string' ? instruction.requestId.trim() : '';
+      const effectiveRequestId = responseRequestId || instructionRequestId;
+
+      if (
+        !effectiveRequestId ||
+        !UUID_PATTERN.test(effectiveRequestId) ||
+        (responseRequestId && instructionRequestId && responseRequestId !== instructionRequestId)
+      ) {
+        handleApiFailure(
+          {
+            error: {
+              code: 'AI_REQUEST_ID_INVALID',
+              category: 'state',
+              message: t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' }),
+              requestId: responseRequestId || instructionRequestId || undefined,
+            },
+          },
+          t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' })
+        );
+        return;
+      }
+
+      const persistedInstruction: ParsedFinancialInstruction = {
+        ...instruction,
+        requestId: effectiveRequestId,
+      };
+
+      setParsed(persistedInstruction);
       const baseReview =
-        instruction.review ||
+        persistedInstruction.review ||
         buildInitialSmartEntryReview({
-          instruction,
+          instruction: persistedInstruction,
           sourceText: (text || data.transcript || '').trim(),
           context,
         });
@@ -1653,10 +1683,26 @@ function isReceiptInsightQuestion(value: string) {
     setUsageSummary(null);
 
     try {
+      if (!parsed.requestId || !UUID_PATTERN.test(parsed.requestId)) {
+        handleApiFailure(
+          {
+            error: {
+              code: 'AI_REQUEST_ID_INVALID',
+              category: 'state',
+              message: t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' }),
+            },
+          },
+          t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' })
+        );
+        return;
+      }
+
+      const token = await getAuthToken();
       const confirmResponse = await fetch('/api/ai/confirm', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           requestId: parsed.requestId,
@@ -1673,7 +1719,6 @@ function isReceiptInsightQuestion(value: string) {
         return;
       }
 
-      const token = await getAuthToken();
       const response = await fetch('/api/ai/execute', {
         method: 'POST',
         headers: {

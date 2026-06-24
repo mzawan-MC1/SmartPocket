@@ -57,6 +57,11 @@ const REVIEW_MISSING_FIELDS = new Set([
   'cancelEffectiveDate',
 ]);
 
+function shortRequestId(value: string | undefined | null) {
+  if (!value) return null;
+  return value.length > 8 ? `${value.slice(0, 8)}...` : value;
+}
+
 function jsonWithCookies(
   body: Record<string, unknown>,
   status: number,
@@ -419,8 +424,35 @@ export async function POST(req: NextRequest) {
     }
 
     const requestId = typeof body.requestId === 'string' ? body.requestId.trim() : '';
+    if (!requestId) {
+      console.warn('[AI Confirm] Missing request identifier', {
+        code: 'REQUEST_ID_MISSING',
+        table: 'ai_requests',
+        hasRequestId: false,
+        hasUserId: !!user.id,
+      });
+      return jsonConfirmError({
+        code: 'REQUEST_ID_MISSING',
+        message: 'This Smart Entry request is no longer available. Please parse it again.',
+        status: 400,
+        category: 'validation',
+      }, cookieMutations);
+    }
     if (!UUID_PATTERN.test(requestId)) {
-      return jsonWithCookies({ error: 'Invalid request id' }, 400, cookieMutations);
+      console.warn('[AI Confirm] Invalid request identifier', {
+        code: 'REQUEST_ID_INVALID',
+        table: 'ai_requests',
+        hasRequestId: true,
+        requestId: shortRequestId(requestId),
+        hasUserId: !!user.id,
+      });
+      return jsonConfirmError({
+        code: 'REQUEST_ID_INVALID',
+        message: 'This Smart Entry request is no longer available. Please parse it again.',
+        requestId,
+        status: 400,
+        category: 'validation',
+      }, cookieMutations);
     }
     const review = sanitizeReview(body.review);
     if (!review) {
@@ -437,14 +469,60 @@ export async function POST(req: NextRequest) {
       .from('ai_requests')
       .select('id, user_id, status, confirmation_status, parsed_result')
       .eq('id', requestId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !aiRequest) {
-      return jsonWithCookies({ error: 'Request not found' }, 404, cookieMutations);
+    if (fetchError) {
+      console.error('[AI Confirm] Failed to query request', {
+        code: 'REQUEST_LOOKUP_FAILED',
+        table: 'ai_requests',
+        hasRequestId: true,
+        requestId: shortRequestId(requestId),
+        hasUserId: !!user.id,
+        lookupStatus: 'query_failed',
+        message: fetchError.message,
+      });
+      return jsonConfirmError({
+        code: 'REQUEST_LOOKUP_FAILED',
+        message: 'Confirmation is temporarily unavailable.',
+        requestId,
+        status: 500,
+      }, cookieMutations);
+    }
+
+    if (!aiRequest) {
+      console.warn('[AI Confirm] Request not found during confirmation lookup', {
+        code: 'REQUEST_NOT_FOUND',
+        table: 'ai_requests',
+        hasRequestId: true,
+        requestId: shortRequestId(requestId),
+        hasUserId: !!user.id,
+        lookupStatus: 'not_found',
+      });
+      return jsonConfirmError({
+        code: 'REQUEST_NOT_FOUND',
+        message: 'This Smart Entry request is no longer available. Please parse it again.',
+        requestId,
+        status: 404,
+        category: 'state',
+      }, cookieMutations);
     }
 
     if (aiRequest.user_id !== user.id) {
-      return jsonWithCookies({ error: 'Forbidden' }, 403, cookieMutations);
+      console.warn('[AI Confirm] Request belongs to another user', {
+        code: 'REQUEST_FORBIDDEN',
+        table: 'ai_requests',
+        hasRequestId: true,
+        requestId: shortRequestId(requestId),
+        hasUserId: !!user.id,
+        lookupStatus: 'forbidden',
+      });
+      return jsonConfirmError({
+        code: 'REQUEST_FORBIDDEN',
+        message: 'This Smart Entry request is not available for the current user.',
+        requestId,
+        status: 403,
+        category: 'auth',
+      }, cookieMutations);
     }
 
     if (aiRequest.status === 'confirmed' && aiRequest.confirmation_status === 'confirmed') {

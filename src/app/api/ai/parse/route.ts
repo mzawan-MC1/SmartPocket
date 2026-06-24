@@ -37,6 +37,11 @@ const ALLOWED_LANGUAGES = new Set([
   'en', 'ar', 'fr', 'ru', 'ur', 'auto',
 ]);
 
+function shortRequestId(value: string | undefined | null) {
+  if (!value) return null;
+  return value.length > 8 ? `${value.slice(0, 8)}...` : value;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── 1. Authenticate — derive user from token, never from body ──────────
@@ -256,6 +261,41 @@ export async function POST(req: NextRequest) {
       retainTranscript: config.enableTranscriptRetention && !!response.transcript,
       existingRequestId: existingRequest?.id,
     });
+
+    if (responseBody.parsed && (!persistedRequest?.id || !UUID_PATTERN.test(persistedRequest.id))) {
+      if (!existingRequest && creditCycleId && creditLedgerId) {
+        await supabase.rpc('refund_ai_credits', {
+          p_user_id: user.id,
+          p_cycle_id: creditCycleId,
+          p_ledger_id: creditLedgerId,
+          p_reason: 'persistence_failure',
+        }).catch(() => undefined);
+      }
+
+      console.error('[AI Parse] Parsed request persistence failed', {
+        code: 'AI_REQUEST_PERSISTENCE_FAILED',
+        table: 'ai_requests',
+        hasUserId: !!user.id,
+        requestLookup: existingRequest ? 'update' : 'insert',
+        existingRequestId: shortRequestId(existingRequest?.id),
+        providerRequestId: shortRequestId(responseBody.requestId),
+        persistedRequestId: shortRequestId(persistedRequest?.id),
+      });
+
+      const failureRequestId = createClientId();
+      return NextResponse.json(
+        buildErrorResponse({
+          requestId: failureRequestId,
+          error: {
+            code: 'AI_REQUEST_PERSISTENCE_FAILED',
+            category: 'technical',
+            message: 'Smart Entry is temporarily unavailable. Please try again.',
+            requestId: failureRequestId,
+          },
+        }),
+        { status: 500 }
+      );
+    }
 
     if (persistedRequest?.id && responseBody.parsed) {
       responseBody.requestId = persistedRequest.id;
@@ -793,6 +833,14 @@ async function persistAIRequest(args: {
       .single();
 
     if (updateError || !updatedRow?.id) {
+      console.error('[AI Parse] Failed to update ai_requests row', {
+        code: 'AI_REQUEST_PERSISTENCE_FAILED',
+        table: 'ai_requests',
+        operation: 'update',
+        hasUserId: !!args.userId,
+        existingRequestId: shortRequestId(args.existingRequestId),
+        message: updateError?.message || 'Missing updated request id',
+      });
       return null;
     }
 
@@ -811,6 +859,13 @@ async function persistAIRequest(args: {
       .single();
 
     if (insertError || !insertedRow?.id) {
+      console.error('[AI Parse] Failed to insert ai_requests row', {
+        code: 'AI_REQUEST_PERSISTENCE_FAILED',
+        table: 'ai_requests',
+        operation: 'insert',
+        hasUserId: !!args.userId,
+        message: insertError?.message || 'Missing inserted request id',
+      });
       return null;
     }
 
@@ -830,10 +885,21 @@ async function persistAIRequest(args: {
       status: 'pending',
     }));
 
-    const { data: pendingRows } = await args.supabase
+    const { data: pendingRows, error: pendingActionsError } = await args.supabase
       .from('ai_pending_actions')
       .insert(rows)
       .select('id, action_index');
+
+    if (pendingActionsError) {
+      console.error('[AI Parse] Failed to insert ai_pending_actions rows', {
+        code: 'AI_PENDING_ACTIONS_PERSISTENCE_FAILED',
+        table: 'ai_pending_actions',
+        operation: 'insert',
+        hasUserId: !!args.userId,
+        requestId: shortRequestId(requestRow.id),
+        message: pendingActionsError.message,
+      });
+    }
 
     if (pendingRows && pendingRows.length > 0 && args.response.parsed) {
       (args.response as Record<string, unknown>).pendingActionIds = pendingRows;
