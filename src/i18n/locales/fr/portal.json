@@ -41,7 +41,8 @@
         "partiallyPaid": "partiellement payée",
         "settled": "réglée"
       },
-      "recurringPaymentFallback": "Paiement recurrent"
+      "recurringPaymentFallback": "Paiement recurrent",
+      "personalSubscriptionFallback": "Abonnement personnel"
     },
     "types": {
       "successfulSignIn": {
@@ -105,6 +106,26 @@
       "aiExecutionFailed": {
         "title": "Smart Entry n'a pas pu enregistrer les données",
         "description": "Smart Entry n'a pas pu enregistrer un ou plusieurs éléments. Ouvrez l'historique IA pour revoir la demande."
+      },
+      "personalSubscriptionPaymentDueSoon": {
+        "title": "Paiement d abonnement bientot du",
+        "description": "{{subscriptionName}} se renouvelle le {{dueDate}}."
+      },
+      "personalSubscriptionTrialEnding": {
+        "title": "Fin d essai proche",
+        "description": "L essai de {{subscriptionName}} se termine le {{trialEndDate}}."
+      },
+      "personalSubscriptionCancellationDeadline": {
+        "title": "Date limite d annulation proche",
+        "description": "{{subscriptionName}} a une date limite d annulation le {{cancellationDeadline}}."
+      },
+      "personalSubscriptionThresholdWarning": {
+        "title": "Le cout de l abonnement depasse votre seuil",
+        "description": "{{subscriptionName}} est a {{amount}}, au-dessus de votre seuil de {{threshold}}."
+      },
+      "personalSubscriptionContractExpired": {
+        "title": "Contrat d abonnement expire",
+        "description": "Le contrat de {{subscriptionName}} a expire le {{contractEndDate}}."
       }
     }
   },
@@ -122,7 +143,8 @@
       "settlements": "Règlements",
       "people": "Personnes",
       "spaces": "Espaces",
-      "aiHistory": "Historique IA"
+      "aiHistory": "Historique IA",
+      "personalSubscriptions": "Abonnements personnels"
     },
     "expand": "Développer la barre latérale",
     "collapse": "Réduire la barre latérale",
@@ -146,7 +168,8 @@
     "reports": "Rapports",
     "accounts": "Comptes",
     "people": "Personnes",
-    "aiHistory": "Historique IA"
+    "aiHistory": "Historique IA",
+    "personalSubscriptions": "Abonnements personnels"
   },
   "dashboardHeader": {
     "title": "Tableau de bord",
@@ -2046,5 +2069,271 @@
     "contactSupportYearlyPlan": "Contactez le support pour cette offre annuelle",
     "invalidDiscount": "Saisissez une remise annuelle valide entre 0% et 100%.",
     "wholeNumberPriceRequirement": "Les prix doivent etre en AED entiers."
+  },
+  "personalSubscriptions": {
+    "title": "Abonnements personnels",
+    "description": "Suivez les services recurrents, les renouvellements, les essais, les frais et les dates limites d annulation.",
+    "badge": "Abonnements",
+    "searchPlaceholder": "Rechercher des abonnements, fournisseurs ou notes",
+    "loadFailed": "Impossible de charger les abonnements personnels.",
+    "newTitle": "Ajouter un abonnement personnel",
+    "newDescription": "Enregistrez un service recurrent, choisissez le mode de paiement et preparez les rappels avant la prochaine facturation.",
+    "editTitle": "Modifier l abonnement personnel",
+    "editHelper": "Les modifications mettent a jour les rappels, les widgets du tableau de bord et toute depense recurrente liee.",
+    "formTitle": "Details de l abonnement",
+    "formDescription": "Enregistrez les dates de facturation, les informations de paiement, les rappels et le suivi optionnel de l annulation.",
+    "listTitle": "Liste des abonnements",
+    "listDescription": "Passez en revue chaque service suivi, calendrier de facturation et niveau d alerte en un seul endroit.",
+    "upcomingChargesTitle": "Frais a venir",
+    "upcomingChargesDescription": "Abonnements avec le renouvellement le plus proche et alertes de paiement.",
+    "upcomingChargesEmpty": "Aucun abonnement n est bientot facture.",
+    "notFoundDescription": "Cet abonnement personnel est introuvable ou n est plus disponible.",
+    "summary": {
+      "monthlyCost": "Cout mensuel des abonnements",
+      "monthlyCostDescription": "Depense mensuelle estimee pour les abonnements actifs et en cours.",
+      "activeCount": "{{count}} abonnements actifs",
+      "annualCost": "Cout annuel projete",
+      "annualCostDescription": "Depense d abonnement estimee sur 12 mois selon chaque cadence.",
+      "annualProjectionHint": "Les estimations annuelles sont normalisees a partir de chaque frequence de facturation.",
+      "health": "Etat des abonnements",
+      "healthDescription": "Surveillez les services actifs, les essais et les dates limites d annulation.",
+      "active": "Actifs",
+      "trials": "Essais",
+      "deadlines": "Echeances",
+      "upcomingCharges": "{{count}} a venir"
+    },
+    "filters": {
+      "title": "Filtres",
+      "description": "Affinez la liste par statut, categorie, compte de paiement ou frequence.",
+      "quickFilter": "Filtre rapide",
+      "allCategories": "Toutes les categories",
+      "allAccounts": "Tous les comptes",
+      "allFrequencies": "Toutes les frequences",
+      "options": {
+        "all": "Tous",
+        "active": "Actif",
+        "trial": "Essai",
+        "paused": "En pause",
+        "cancelling": "Annulation en cours",
+        "cancelled": "Annule",
+        "expired": "Expire",
+        "upcoming_7_days": "Dans 7 jours",
+        "trial_ending": "Fin d essai",
+        "cancellation_deadline": "Date limite d annulation"
+      }
+    },
+    "empty": {
+      "title": "Gardez chaque service recurrent sous controle",
+      "description": "Ajoutez vos abonnements, adhesions et services recurrents pour suivre les frais, renouvellements, essais et dates limites d annulation.",
+      "action": "Ajouter votre premier abonnement",
+      "filtered": "Aucun abonnement ne correspond aux filtres actuels."
+    },
+    "statuses": {
+      "trial": "Essai",
+      "active": "Actif",
+      "paused": "En pause",
+      "cancellation_requested": "Annulation demandee",
+      "cancelling": "Annulation en cours",
+      "cancelled": "Annule",
+      "expired": "Expire"
+    },
+    "labels": {
+      "customProvider": "Service personnalise",
+      "frequency": "Frequence de facturation",
+      "nextCharge": "Prochain frais",
+      "paymentAccount": "Compte de paiement",
+      "autoRenew": "Renouvellement automatique",
+      "reminders": "Rappels",
+      "linkedRecurring": "Depense recurrente liee",
+      "linked": "Lie",
+      "unlinked": "Non lie",
+      "enabled": "Active",
+      "disabled": "Desactive",
+      "off": "Desactive"
+    },
+    "frequencies": {
+      "weekly": "Hebdomadaire",
+      "monthly": "Mensuel",
+      "quarterly": "Trimestriel",
+      "semi_annual": "Semestriel",
+      "yearly": "Annuel",
+      "custom": "Personnalise"
+    },
+    "paymentMethods": {
+      "Credit Card": "Carte de credit",
+      "Debit Card": "Carte de debit",
+      "Bank Account": "Compte bancaire",
+      "PayPal": "PayPal",
+      "Cash": "Especes",
+      "Apple Pay": "Apple Pay",
+      "Google Pay": "Google Pay",
+      "Other": "Autre"
+    },
+    "actions": {
+      "addSubscription": "Ajouter un abonnement",
+      "filter": "Filtrer",
+      "pause": "Mettre en pause",
+      "resume": "Reprendre",
+      "markPaid": "Marquer comme paye",
+      "requestCancellation": "Demander l annulation",
+      "cancelNow": "Marquer comme annule",
+      "markCancelled": "Marquer comme annule",
+      "pausedSuccess": "{{name}} a ete mis en pause.",
+      "resumedSuccess": "{{name}} a repris.",
+      "markedPaidSuccess": "{{name}} a ete marque comme paye.",
+      "updateFailed": "Impossible de mettre a jour cet abonnement.",
+      "confirmDelete": "Supprimer {{name}} ? Cette action est irreversible.",
+      "deletedSuccess": "{{name}} a ete supprime.",
+      "deleteFailed": "Impossible de supprimer cet abonnement.",
+      "confirmCancelNow": "Marquer {{name}} comme annule ? Les rappels futurs s arreteront apres la date effective.",
+      "confirmMarkCancelled": "Marquer {{name}} comme annule ? Les rappels futurs s arreteront apres la date effective.",
+      "cancelledSuccess": "{{name}} a ete marque comme annule.",
+      "cancelFailed": "Impossible de mettre a jour le statut d annulation.",
+      "backToSubscriptions": "Retour aux abonnements personnels",
+      "backToDetails": "Retour aux details de l abonnement"
+    },
+    "cancellation": {
+      "modalTitle": "Demander l annulation de {{name}}",
+      "requestDate": "Date de demande",
+      "effectiveDate": "Date d annulation effective",
+      "confirmationReference": "Reference de confirmation",
+      "submitting": "Enregistrement de la demande...",
+      "requestedSuccess": "L annulation a ete demandee pour {{name}}.",
+      "requestFailed": "Impossible d enregistrer la demande d annulation."
+    },
+    "warnings": {
+      "upcoming": {
+        "today": "Renouvelle aujourd hui",
+        "tomorrow": "Renouvelle demain",
+        "days": "Renouvelle dans {{count}} jours"
+      },
+      "trial": {
+        "today": "L essai se termine aujourd hui",
+        "tomorrow": "L essai se termine demain",
+        "days": "L essai se termine dans {{count}} jours"
+      },
+      "cancellation": {
+        "today": "Date limite d annulation aujourd hui",
+        "days": "Date limite d annulation dans {{count}} jours"
+      },
+      "threshold": "Le montant depasse votre seuil d alerte",
+      "expired": "La date de fin de contrat est depassee"
+    },
+    "warningLevels": {
+      "info": "Info",
+      "warning": "Alerte",
+      "urgent": "Urgent"
+    },
+    "form": {
+      "loadFailed": "Impossible de charger les donnees de support de l abonnement.",
+      "accountCurrencyMismatch": "Le compte selectionne utilise {{currency}}. Alignez la devise avant d enregistrer.",
+      "nextBillingBeforeStart": "La prochaine date de facturation ne peut pas preceder la date de debut.",
+      "contractBeforeStart": "La date de fin de contrat ne peut pas preceder la date de debut.",
+      "deadlineAfterContract": "La date limite d annulation ne peut pas etre apres la fin du contrat.",
+      "updated": "Abonnement mis a jour avec succes.",
+      "created": "Abonnement cree avec succes.",
+      "saveFailed": "Impossible d enregistrer cet abonnement.",
+      "loading": "Chargement du formulaire d abonnement...",
+      "saving": "Enregistrement des modifications...",
+      "creating": "Creation de l abonnement...",
+      "saveChanges": "Enregistrer les modifications",
+      "reminderOption_one": "{{count}} jour",
+      "reminderOption_other": "{{count}} jours",
+      "sections": {
+        "basic": "Informations de base",
+        "basicDescription": "Nommez le service et choisissez son affichage dans vos enregistrements.",
+        "billing": "Facturation",
+        "billingDescription": "Definissez le montant, le calendrier et les dates de renouvellement a suivre.",
+        "payment": "Paiement",
+        "paymentDescription": "Connectez le compte de paiement et choisissez la methode de paiement.",
+        "reminders": "Rappels",
+        "remindersDescription": "Preparez les rappels d echeance, le delai d annulation et les seuils d alerte.",
+        "additional": "Details supplementaires",
+        "additionalDescription": "Conservez les references, liens de site et notes en toute securite."
+      },
+      "fields": {
+        "name": "Nom de l abonnement",
+        "provider": "Fournisseur",
+        "description": "Description",
+        "category": "Categorie",
+        "status": "Statut",
+        "amount": "Montant",
+        "currency": "Devise",
+        "billingFrequency": "Frequence de facturation",
+        "billingInterval": "Intervalle personnalise",
+        "startDate": "Date de debut",
+        "nextBillingDate": "Prochaine date de facturation",
+        "trialEndDate": "Date de fin d essai",
+        "contractEndDate": "Date de fin de contrat",
+        "financialAccount": "Compte financier",
+        "noFinancialAccount": "Aucun compte financier lie",
+        "paymentMethod": "Methode de paiement",
+        "selectPaymentMethod": "Choisir une methode de paiement",
+        "autoRenew": "Renouveler automatiquement cet abonnement",
+        "createLinkedRecurringExpense": "Creer une depense recurrente liee",
+        "reminderDaysBefore": "Jours de rappel avant le debit",
+        "cancellationNoticeDays": "Preavis d annulation (jours)",
+        "cancellationDeadline": "Date limite d annulation",
+        "warningThresholdAmount": "Seuil de montant d alerte",
+        "websiteUrl": "URL du site",
+        "accountReference": "Compte / numero de reference",
+        "notes": "Notes"
+      },
+      "errors": {
+        "nameRequired": "Le nom de l abonnement est requis.",
+        "amountRequired": "Le montant est requis.",
+        "amountMin": "Le montant ne peut pas etre negatif."
+      },
+      "helpers": {
+        "billingInterval": "Utilisez ceci pour les intervalles personnalises ou les repetitions plus longues.",
+        "linkedRecurringExists": "Cet abonnement est deja lie a une depense recurrente.",
+        "linkedRecurringSupported": "La depense recurrente liee reutilisera le montant, le compte et la description.",
+        "linkedRecurringUnsupported": "Les depenses recurrentes liees ne sont pas encore prises en charge pour la cadence {{frequency}}."
+      }
+    },
+    "widget": {
+      "title": "Abonnements personnels a venir",
+      "description": "Affiche les trois prochaines facturations et leurs alertes.",
+      "emptyTitle": "Aucun abonnement bientot facture",
+      "emptyDescription": "Les prochains renouvellements d abonnement apparaitront ici lorsque leur prochaine date de facturation sera planifiee."
+    },
+    "detail": {
+      "subtitle": "{{amount}} {{currency}} planifie par cycle de facturation.",
+      "noWarnings": "Aucun signal d alerte actif pour le moment.",
+      "lastPaidDate": "Derniere date de paiement",
+      "createdAt": "Cree le",
+      "updatedAt": "Mis a jour le",
+      "metrics": {
+        "amount": "Montant actuel",
+        "nextCharge": "Prochain frais",
+        "account": "Compte de paiement",
+        "reminders": "Jours de rappel"
+      },
+      "sections": {
+        "overview": "Vue d ensemble",
+        "overviewDescription": "Principaux details de l abonnement et enregistrements lies.",
+        "warnings": "Alertes",
+        "warningsDescription": "Signaux de paiement, d essai, de date limite, de seuil et d expiration.",
+        "billing": "Details de facturation",
+        "billingDescription": "Revoyez les dates, le rythme de facturation et le moment du renouvellement.",
+        "payment": "Details de paiement",
+        "paymentDescription": "Consultez le compte et la methode lies a cet abonnement.",
+        "reminders": "Parametres de rappel",
+        "remindersDescription": "Suivez les preavis, seuils d alerte et le calendrier d annulation.",
+        "additional": "Details supplementaires",
+        "additionalDescription": "Liens de reference, notes et horodatages.",
+        "links": "Elements lies",
+        "linksDescription": "Contexte rapide pour les comptes associes, les depenses recurrentes et la preparation des notifications."
+      },
+      "linkCards": {
+        "account": "Compte financier",
+        "accountEmpty": "Aucun compte financier n est encore lie.",
+        "recurring": "Depense recurrente",
+        "recurringLinked": "Cet abonnement est connecte a une depense recurrente.",
+        "recurringEmpty": "Aucune depense recurrente n est encore liee.",
+        "notifications": "Couverture des rappels",
+        "notificationsDescription": "Utilise {{count}} reglages de rappel ainsi que des alertes integrees basees sur les avertissements."
+      }
+    }
   }
 }

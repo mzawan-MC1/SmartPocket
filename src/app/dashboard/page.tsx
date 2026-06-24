@@ -9,6 +9,7 @@ import DashboardCharts from '@/app/components/DashboardCharts';
 import RecentTransactions from '@/app/components/RecentTransactions';
 import AccountBalances from '@/app/components/AccountBalances';
 import UpcomingRecurring from '@/app/components/UpcomingRecurring';
+import UpcomingPersonalSubscriptions from '@/app/components/UpcomingPersonalSubscriptions';
 import PeopleDashboardWidget from '@/app/components/PeopleDashboardWidget';
 import AIUsageCard from '@/app/components/AIUsageCard';
 import ReceiptInsightsCard from '@/app/components/ReceiptInsightsCard';
@@ -235,7 +236,10 @@ export default function DashboardPage() {
                   <AccountBalances />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2 lg:gap-4">
+              <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-4">
+                <div className="h-full">
+                  <UpcomingPersonalSubscriptions activePeriod={activePeriod} />
+                </div>
                 <div className="h-full">
                   <PeopleDashboardWidget />
                 </div>

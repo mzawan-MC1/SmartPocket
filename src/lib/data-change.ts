@@ -13,6 +13,7 @@ export type SmartPocketDataEntity =
   | 'transfers'
   | 'financial_accounts'
   | 'categories'
+  | 'personal_subscriptions'
   | 'people'
   | 'reimbursements'
   | 'settlements'

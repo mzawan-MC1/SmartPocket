@@ -41,7 +41,8 @@
         "partiallyPaid": "مدفوع جزئيًا",
         "settled": "مسوّى"
       },
-      "recurringPaymentFallback": "دفعة متكررة"
+      "recurringPaymentFallback": "دفعة متكررة",
+      "personalSubscriptionFallback": "اشتراك شخصي"
     },
     "types": {
       "successfulSignIn": {
@@ -105,6 +106,26 @@
       "aiExecutionFailed": {
         "title": "تعذر على Smart Entry حفظ السجلات",
         "description": "تعذر على Smart Entry حفظ سجل واحد أو أكثر. افتح سجل الذكاء الاصطناعي لمراجعة الطلب."
+      },
+      "personalSubscriptionPaymentDueSoon": {
+        "title": "دفعة اشتراك قريبة",
+        "description": "سيُجدد {{subscriptionName}} في {{dueDate}}."
+      },
+      "personalSubscriptionTrialEnding": {
+        "title": "الفترة التجريبية تنتهي قريبًا",
+        "description": "تنتهي الفترة التجريبية لـ {{subscriptionName}} في {{trialEndDate}}."
+      },
+      "personalSubscriptionCancellationDeadline": {
+        "title": "موعد الإلغاء يقترب",
+        "description": "لدى {{subscriptionName}} موعد إلغاء نهائي في {{cancellationDeadline}}."
+      },
+      "personalSubscriptionThresholdWarning": {
+        "title": "تكلفة الاشتراك تجاوزت الحد",
+        "description": "تكلفة {{subscriptionName}} هي {{amount}}، وهي أعلى من حدك {{threshold}}."
+      },
+      "personalSubscriptionContractExpired": {
+        "title": "انتهى عقد الاشتراك",
+        "description": "انتهى عقد {{subscriptionName}} في {{contractEndDate}}."
       }
     }
   },
@@ -122,7 +143,8 @@
       "settlements": "التسويات",
       "people": "الأشخاص",
       "spaces": "المساحات",
-      "aiHistory": "سجل الذكاء الاصطناعي"
+      "aiHistory": "سجل الذكاء الاصطناعي",
+      "personalSubscriptions": "الاشتراكات الشخصية"
     },
     "expand": "توسيع الشريط الجانبي",
     "collapse": "طي الشريط الجانبي",
@@ -151,7 +173,8 @@
     "people": "الأشخاص",
     "reimbursements": "التعويضات",
     "settlements": "التسويات",
-    "aiHistory": "سجل الذكاء الاصطناعي"
+    "aiHistory": "سجل الذكاء الاصطناعي",
+    "personalSubscriptions": "الاشتراكات الشخصية"
   },
   "dashboardHeader": {
     "title": "لوحة التحكم",
@@ -2074,5 +2097,271 @@
     "contactSupportYearlyPlan": "تواصل مع الدعم بشأن هذه الخطة السنوية",
     "invalidDiscount": "أدخل خصما سنويا صالحا بين 0% و100%.",
     "wholeNumberPriceRequirement": "يجب حفظ الأسعار كمبالغ صحيحة بالدرهم الإماراتي."
+  },
+  "personalSubscriptions": {
+    "title": "الاشتراكات الشخصية",
+    "description": "تتبع الخدمات المتكررة والتجديدات والفترات التجريبية والرسوم ومواعيد الإلغاء النهائية.",
+    "badge": "الاشتراكات",
+    "searchPlaceholder": "ابحث في الاشتراكات أو المزودين أو الملاحظات",
+    "loadFailed": "تعذر تحميل الاشتراكات الشخصية.",
+    "newTitle": "إضافة اشتراك شخصي",
+    "newDescription": "احفظ خدمة متكررة، واختر طريقة الدفع، وجهز التذكيرات قبل الرسوم القادمة.",
+    "editTitle": "تعديل اشتراك شخصي",
+    "editHelper": "تحديثاتك تنعكس على التذكيرات وبطاقات لوحة التحكم وأي مصروف متكرر مرتبط.",
+    "formTitle": "تفاصيل الاشتراك",
+    "formDescription": "سجل تواريخ الفوترة ومعلومات الدفع والتذكيرات وتتبع الإلغاء الاختياري.",
+    "listTitle": "قائمة الاشتراكات",
+    "listDescription": "راجع كل خدمة متعقبة وجدول الفوترة وحالة التنبيه من مكان واحد.",
+    "upcomingChargesTitle": "الرسوم القادمة",
+    "upcomingChargesDescription": "الاشتراكات ذات أقرب تجديد وتنبيهات دفع.",
+    "upcomingChargesEmpty": "لا توجد رسوم اشتراكات مستحقة قريبًا حاليًا.",
+    "notFoundDescription": "لم يتم العثور على هذا الاشتراك الشخصي أو لم يعد متاحًا.",
+    "summary": {
+      "monthlyCost": "التكلفة الشهرية للاشتراكات",
+      "monthlyCostDescription": "تقدير الإنفاق الشهري عبر الاشتراكات النشطة والجارية.",
+      "activeCount": "{{count}} اشتراكًا نشطًا",
+      "annualCost": "التكلفة السنوية المتوقعة",
+      "annualCostDescription": "تقدير إنفاق 12 شهرًا حسب كل وتيرة فوترة.",
+      "annualProjectionHint": "تُطبَّع التقديرات السنوية من كل وتيرة فوترة.",
+      "health": "حالة الاشتراكات",
+      "healthDescription": "راقب الخدمات النشطة والفترات التجريبية ومواعيد الإلغاء.",
+      "active": "نشطة",
+      "trials": "تجريبية",
+      "deadlines": "مواعيد",
+      "upcomingCharges": "{{count}} قادمة"
+    },
+    "filters": {
+      "title": "عوامل التصفية",
+      "description": "صفِّ القائمة حسب الحالة أو الفئة أو حساب الدفع أو وتيرة الفوترة.",
+      "quickFilter": "تصفية سريعة",
+      "allCategories": "كل الفئات",
+      "allAccounts": "كل الحسابات",
+      "allFrequencies": "كل الوتيرات",
+      "options": {
+        "all": "الكل",
+        "active": "نشط",
+        "trial": "تجريبي",
+        "paused": "متوقف",
+        "cancelling": "قيد الإلغاء",
+        "cancelled": "ملغي",
+        "expired": "منتهي",
+        "upcoming_7_days": "خلال 7 أيام",
+        "trial_ending": "التجربة تنتهي",
+        "cancellation_deadline": "موعد الإلغاء"
+      }
+    },
+    "empty": {
+      "title": "أبقِ كل خدمة متكررة تحت السيطرة",
+      "description": "أضف اشتراكاتك وعضوياتك وخدماتك المتكررة لتتبع الرسوم والتجديدات والفترات التجريبية ومواعيد الإلغاء النهائية.",
+      "action": "أضف أول اشتراك لك",
+      "filtered": "لا توجد اشتراكات تطابق عوامل التصفية الحالية."
+    },
+    "statuses": {
+      "trial": "تجريبي",
+      "active": "نشط",
+      "paused": "متوقف",
+      "cancellation_requested": "تم طلب الإلغاء",
+      "cancelling": "قيد الإلغاء",
+      "cancelled": "ملغي",
+      "expired": "منتهي"
+    },
+    "labels": {
+      "customProvider": "خدمة مخصصة",
+      "frequency": "وتيرة الفوترة",
+      "nextCharge": "الرسوم القادمة",
+      "paymentAccount": "حساب الدفع",
+      "autoRenew": "التجديد التلقائي",
+      "reminders": "التذكيرات",
+      "linkedRecurring": "مصروف متكرر مرتبط",
+      "linked": "مرتبط",
+      "unlinked": "غير مرتبط",
+      "enabled": "مفعل",
+      "disabled": "معطل",
+      "off": "متوقف"
+    },
+    "frequencies": {
+      "weekly": "أسبوعي",
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي",
+      "semi_annual": "نصف سنوي",
+      "yearly": "سنوي",
+      "custom": "مخصص"
+    },
+    "paymentMethods": {
+      "Credit Card": "بطاقة ائتمان",
+      "Debit Card": "بطاقة خصم",
+      "Bank Account": "حساب بنكي",
+      "PayPal": "باي بال",
+      "Cash": "نقدًا",
+      "Apple Pay": "Apple Pay",
+      "Google Pay": "Google Pay",
+      "Other": "أخرى"
+    },
+    "actions": {
+      "addSubscription": "إضافة اشتراك",
+      "filter": "تصفية",
+      "pause": "إيقاف",
+      "resume": "استئناف",
+      "markPaid": "تحديد كمدفوع",
+      "requestCancellation": "طلب إلغاء",
+      "cancelNow": "تحديد كملغي",
+      "markCancelled": "تحديد كملغي",
+      "pausedSuccess": "تم إيقاف {{name}}.",
+      "resumedSuccess": "تم استئناف {{name}}.",
+      "markedPaidSuccess": "تم تحديد {{name}} كمدفوع.",
+      "updateFailed": "تعذر تحديث هذا الاشتراك.",
+      "confirmDelete": "هل تريد حذف {{name}}؟ لا يمكن التراجع عن ذلك.",
+      "deletedSuccess": "تم حذف {{name}}.",
+      "deleteFailed": "تعذر حذف هذا الاشتراك.",
+      "confirmCancelNow": "هل تريد تحديد {{name}} كملغي؟ ستتوقف التذكيرات المستقبلية بعد التاريخ الفعلي.",
+      "confirmMarkCancelled": "هل تريد تحديد {{name}} كملغي؟ ستتوقف التذكيرات المستقبلية بعد التاريخ الفعلي.",
+      "cancelledSuccess": "تم تحديد {{name}} كملغي.",
+      "cancelFailed": "تعذر تحديث حالة الإلغاء.",
+      "backToSubscriptions": "العودة إلى الاشتراكات الشخصية",
+      "backToDetails": "العودة إلى تفاصيل الاشتراك"
+    },
+    "cancellation": {
+      "modalTitle": "طلب إلغاء {{name}}",
+      "requestDate": "تاريخ الطلب",
+      "effectiveDate": "تاريخ الإلغاء الفعلي",
+      "confirmationReference": "مرجع التأكيد",
+      "submitting": "جارٍ حفظ الطلب...",
+      "requestedSuccess": "تم طلب إلغاء {{name}}.",
+      "requestFailed": "تعذر حفظ طلب الإلغاء."
+    },
+    "warnings": {
+      "upcoming": {
+        "today": "يتجدد اليوم",
+        "tomorrow": "يتجدد غدًا",
+        "days": "يتجدد خلال {{count}} أيام"
+      },
+      "trial": {
+        "today": "تنتهي التجربة اليوم",
+        "tomorrow": "تنتهي التجربة غدًا",
+        "days": "تنتهي التجربة خلال {{count}} أيام"
+      },
+      "cancellation": {
+        "today": "موعد الإلغاء اليوم",
+        "days": "موعد الإلغاء خلال {{count}} أيام"
+      },
+      "threshold": "المبلغ يتجاوز حد التنبيه المحدد",
+      "expired": "تم تجاوز تاريخ انتهاء العقد"
+    },
+    "warningLevels": {
+      "info": "معلومة",
+      "warning": "تنبيه",
+      "urgent": "عاجل"
+    },
+    "form": {
+      "loadFailed": "تعذر تحميل بيانات الاشتراك المساندة.",
+      "accountCurrencyMismatch": "الحساب المحدد يستخدم {{currency}}. طابق عملة الاشتراك قبل الحفظ.",
+      "nextBillingBeforeStart": "لا يمكن أن يكون تاريخ الفوترة القادم قبل تاريخ البدء.",
+      "contractBeforeStart": "لا يمكن أن يكون تاريخ انتهاء العقد قبل تاريخ البدء.",
+      "deadlineAfterContract": "لا يمكن أن يكون موعد الإلغاء بعد تاريخ انتهاء العقد.",
+      "updated": "تم تحديث الاشتراك بنجاح.",
+      "created": "تم إنشاء الاشتراك بنجاح.",
+      "saveFailed": "تعذر حفظ هذا الاشتراك.",
+      "loading": "جارٍ تحميل نموذج الاشتراك...",
+      "saving": "جارٍ حفظ التغييرات...",
+      "creating": "جارٍ إنشاء الاشتراك...",
+      "saveChanges": "حفظ التغييرات",
+      "reminderOption_one": "{{count}} يوم",
+      "reminderOption_other": "{{count}} أيام",
+      "sections": {
+        "basic": "المعلومات الأساسية",
+        "basicDescription": "سمِّ الخدمة وحدد كيف تظهر في سجلاتك.",
+        "billing": "الفوترة",
+        "billingDescription": "حدد المبلغ والجدول الزمني وتواريخ التجديد التي تريد متابعتها.",
+        "payment": "الدفع",
+        "paymentDescription": "اربط حساب الدفع واختر طريقة دفع الاشتراك.",
+        "reminders": "التذكيرات",
+        "remindersDescription": "جهز تذكيرات الاستحقاق وفترة الإلغاء وحدود التنبيه.",
+        "additional": "تفاصيل إضافية",
+        "additionalDescription": "احفظ معلومات المرجع وروابط الموقع والملاحظات بأمان."
+      },
+      "fields": {
+        "name": "اسم الاشتراك",
+        "provider": "المزود",
+        "description": "الوصف",
+        "category": "الفئة",
+        "status": "الحالة",
+        "amount": "المبلغ",
+        "currency": "العملة",
+        "billingFrequency": "وتيرة الفوترة",
+        "billingInterval": "فاصل مخصص",
+        "startDate": "تاريخ البدء",
+        "nextBillingDate": "تاريخ الفوترة القادم",
+        "trialEndDate": "تاريخ نهاية التجربة",
+        "contractEndDate": "تاريخ نهاية العقد",
+        "financialAccount": "الحساب المالي",
+        "noFinancialAccount": "لا يوجد حساب مالي مرتبط",
+        "paymentMethod": "طريقة الدفع",
+        "selectPaymentMethod": "اختر طريقة الدفع",
+        "autoRenew": "تجديد الاشتراك تلقائيًا",
+        "createLinkedRecurringExpense": "إنشاء مصروف متكرر مرتبط",
+        "reminderDaysBefore": "أيام التذكير قبل الخصم",
+        "cancellationNoticeDays": "فترة إشعار الإلغاء (أيام)",
+        "cancellationDeadline": "موعد الإلغاء النهائي",
+        "warningThresholdAmount": "حد مبلغ التنبيه",
+        "websiteUrl": "رابط الموقع",
+        "accountReference": "رقم الحساب / المرجع",
+        "notes": "ملاحظات"
+      },
+      "errors": {
+        "nameRequired": "اسم الاشتراك مطلوب.",
+        "amountRequired": "المبلغ مطلوب.",
+        "amountMin": "لا يمكن أن يكون المبلغ سالبًا."
+      },
+      "helpers": {
+        "billingInterval": "استخدم هذا للفواصل المخصصة أو للفترات المتكررة الأطول.",
+        "linkedRecurringExists": "هذا الاشتراك مرتبط بالفعل بمصروف متكرر.",
+        "linkedRecurringSupported": "سيستخدم المصروف المتكرر المرتبط نفس المبلغ والحساب والوصف.",
+        "linkedRecurringUnsupported": "المصروفات المتكررة المرتبطة غير مدعومة بعد لجدول {{frequency}}."
+      }
+    },
+    "widget": {
+      "title": "الاشتراكات الشخصية القادمة",
+      "description": "اعرض الرسوم الثلاث القادمة وحالات التنبيه الخاصة بها.",
+      "emptyTitle": "لا توجد اشتراكات مستحقة قريبًا",
+      "emptyDescription": "ستظهر تجديدات الاشتراكات القادمة هنا عند جدولة تاريخ الفوترة التالي."
+    },
+    "detail": {
+      "subtitle": "{{amount}} {{currency}} مجدولة لكل دورة فوترة.",
+      "noWarnings": "لا توجد إشارات تنبيه نشطة الآن.",
+      "lastPaidDate": "آخر تاريخ دفع",
+      "createdAt": "تاريخ الإنشاء",
+      "updatedAt": "آخر تحديث",
+      "metrics": {
+        "amount": "المبلغ الحالي",
+        "nextCharge": "الرسوم القادمة",
+        "account": "حساب الدفع",
+        "reminders": "أيام التذكير"
+      },
+      "sections": {
+        "overview": "نظرة عامة",
+        "overviewDescription": "تفاصيل الاشتراك الأساسية والسجلات المرتبطة.",
+        "warnings": "التنبيهات",
+        "warningsDescription": "إشارات الدفع القادم والتجربة والموعد النهائي والحد والانتهاء.",
+        "billing": "تفاصيل الفوترة",
+        "billingDescription": "راجع التواريخ وإيقاع الفوترة وتوقيت التجديد.",
+        "payment": "تفاصيل الدفع",
+        "paymentDescription": "اعرف الحساب والطريقة المرتبطين بهذا الاشتراك.",
+        "reminders": "إعدادات التذكير",
+        "remindersDescription": "تابع فترات الإشعار وحدود التنبيه وتوقيت الإلغاء.",
+        "additional": "تفاصيل إضافية",
+        "additionalDescription": "روابط مرجعية وملاحظات وطوابع زمنية.",
+        "links": "العناصر المرتبطة",
+        "linksDescription": "سياق سريع للحسابات ذات الصلة والمصروفات المتكررة وجاهزية التنبيهات."
+      },
+      "linkCards": {
+        "account": "الحساب المالي",
+        "accountEmpty": "لا يوجد حساب مالي مرتبط بعد.",
+        "recurring": "مصروف متكرر",
+        "recurringLinked": "هذا الاشتراك متصل بمصروف متكرر.",
+        "recurringEmpty": "لا يوجد مصروف متكرر مرتبط بعد.",
+        "notifications": "تغطية التذكيرات",
+        "notificationsDescription": "يستخدم {{count}} إعدادات تذكير مع تنبيهات داخل التطبيق مبنية على التحذيرات."
+      }
+    }
   }
 }

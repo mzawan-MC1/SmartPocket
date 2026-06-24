@@ -7,6 +7,11 @@ import { formatCurrencyValue } from '@/lib/currency-formatting';
 import { getClientReferenceData } from '@/lib/reference-data/client';
 import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 import type { CurrencyReference } from '@/lib/reference-data/types';
+import {
+  getPersonalSubscriptionWarnings,
+  shouldStopRemindersAfterEffectiveDate,
+  type PersonalSubscriptionStatus,
+} from '@/lib/personal-subscriptions-shared';
 
 export interface AppNotification {
   id: string;
@@ -316,6 +321,93 @@ export function getLocalizedNotificationContent(args: {
           description,
           frequency,
           dueDate,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'personal_subscription_payment_due_soon': {
+      const subscriptionName = getMetadataString(metadata, 'subscription_name')
+        || t('notifications.values.personalSubscriptionFallback');
+      const dueDate = formatNotificationDate(getMetadataString(metadata, 'next_billing_date'), language);
+      if (!subscriptionName || !dueDate) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.personalSubscriptionPaymentDueSoon.title'),
+        message: t('notifications.types.personalSubscriptionPaymentDueSoon.description', {
+          subscriptionName,
+          dueDate,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'personal_subscription_trial_ending': {
+      const subscriptionName = getMetadataString(metadata, 'subscription_name')
+        || t('notifications.values.personalSubscriptionFallback');
+      const trialEndDate = formatNotificationDate(getMetadataString(metadata, 'trial_end_date'), language);
+      if (!subscriptionName || !trialEndDate) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.personalSubscriptionTrialEnding.title'),
+        message: t('notifications.types.personalSubscriptionTrialEnding.description', {
+          subscriptionName,
+          trialEndDate,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'personal_subscription_cancellation_deadline': {
+      const subscriptionName = getMetadataString(metadata, 'subscription_name')
+        || t('notifications.values.personalSubscriptionFallback');
+      const cancellationDeadline = formatNotificationDate(getMetadataString(metadata, 'cancellation_deadline'), language);
+      if (!subscriptionName || !cancellationDeadline) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.personalSubscriptionCancellationDeadline.title'),
+        message: t('notifications.types.personalSubscriptionCancellationDeadline.description', {
+          subscriptionName,
+          cancellationDeadline,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'personal_subscription_threshold_warning': {
+      const subscriptionName = getMetadataString(metadata, 'subscription_name')
+        || t('notifications.values.personalSubscriptionFallback');
+      const amountText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'amount'),
+        currencyCode: getMetadataString(metadata, 'currency_code'),
+        language,
+        currencies,
+      });
+      const thresholdText = formatNotificationCurrencyAmount({
+        amount: getMetadataNumber(metadata, 'warning_threshold_amount'),
+        currencyCode: getMetadataString(metadata, 'currency_code'),
+        language,
+        currencies,
+      });
+      if (!subscriptionName || !amountText || !thresholdText) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.personalSubscriptionThresholdWarning.title'),
+        message: t('notifications.types.personalSubscriptionThresholdWarning.description', {
+          subscriptionName,
+          amount: amountText,
+          threshold: thresholdText,
+        }),
+        usedFallback: false,
+      };
+    }
+    case 'personal_subscription_contract_expired': {
+      const subscriptionName = getMetadataString(metadata, 'subscription_name')
+        || t('notifications.values.personalSubscriptionFallback');
+      const contractEndDate = formatNotificationDate(getMetadataString(metadata, 'contract_end_date'), language);
+      if (!subscriptionName || !contractEndDate) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.personalSubscriptionContractExpired.title'),
+        message: t('notifications.types.personalSubscriptionContractExpired.description', {
+          subscriptionName,
+          contractEndDate,
         }),
         usedFallback: false,
       };
@@ -926,6 +1018,147 @@ export async function syncInAppNotificationSignals(): Promise<void> {
           },
           sourceKey: `large_due:${recurring.id}:${currentFinancialPeriod.startDate}:${currentFinancialPeriod.endDate}`,
         });
+      }
+    }
+
+    const { data: personalSubscriptionSignals, error: personalSubscriptionSignalsError } = await supabase
+      .from('personal_subscriptions')
+      .select('id, name, amount, currency_code, next_billing_date, trial_end_date, cancellation_deadline, contract_end_date, cancel_effective_date, status, warning_threshold_amount')
+      .order('next_billing_date', { ascending: true, nullsFirst: false })
+      .limit(50);
+
+    if (personalSubscriptionSignalsError) {
+      throw personalSubscriptionSignalsError;
+    }
+
+    for (const subscription of personalSubscriptionSignals || []) {
+      const subscriptionStatus = subscription.status as PersonalSubscriptionStatus;
+      if (
+        shouldStopRemindersAfterEffectiveDate(
+          {
+            cancel_effective_date: subscription.cancel_effective_date,
+            status: subscriptionStatus,
+          },
+          todayIso
+        )
+      ) {
+        continue;
+      }
+
+      const warnings = getPersonalSubscriptionWarnings(
+        {
+          amount: Number(subscription.amount || 0),
+          warning_threshold_amount:
+            subscription.warning_threshold_amount === null || subscription.warning_threshold_amount === undefined
+              ? null
+              : Number(subscription.warning_threshold_amount),
+          next_billing_date: subscription.next_billing_date,
+          trial_end_date: subscription.trial_end_date,
+          cancellation_deadline: subscription.cancellation_deadline,
+          contract_end_date: subscription.contract_end_date,
+          cancel_effective_date: subscription.cancel_effective_date,
+          status: subscriptionStatus,
+        },
+        todayIso
+      );
+
+      for (const warning of warnings) {
+        if (warning.type === 'upcoming_payment' && subscription.next_billing_date) {
+          await createNotificationOnce({
+            type: 'personal_subscription_payment_due_soon',
+            title: 'Subscription payment due soon',
+            message: `${subscription.name} renews on ${subscription.next_billing_date}.`,
+            actionUrl: `/personal-subscriptions/${subscription.id}`,
+            metadata: {
+              subscription_id: subscription.id,
+              subscription_name: subscription.name,
+              amount: subscription.amount,
+              currency_code: subscription.currency_code,
+              next_billing_date: subscription.next_billing_date,
+              warning_level: warning.level,
+              days_until: warning.daysUntil,
+            },
+            sourceKey: `personal_subscription_payment_due:${subscription.id}:${subscription.next_billing_date}`,
+          });
+          continue;
+        }
+
+        if (warning.type === 'trial_ending' && subscription.trial_end_date) {
+          await createNotificationOnce({
+            type: 'personal_subscription_trial_ending',
+            title: 'Subscription trial ending soon',
+            message: `${subscription.name} trial ends on ${subscription.trial_end_date}.`,
+            actionUrl: `/personal-subscriptions/${subscription.id}`,
+            metadata: {
+              subscription_id: subscription.id,
+              subscription_name: subscription.name,
+              amount: subscription.amount,
+              currency_code: subscription.currency_code,
+              trial_end_date: subscription.trial_end_date,
+              warning_level: warning.level,
+              days_until: warning.daysUntil,
+            },
+            sourceKey: `personal_subscription_trial:${subscription.id}:${subscription.trial_end_date}`,
+          });
+          continue;
+        }
+
+        if (warning.type === 'cancellation_deadline' && subscription.cancellation_deadline) {
+          await createNotificationOnce({
+            type: 'personal_subscription_cancellation_deadline',
+            title: 'Cancellation deadline approaching',
+            message: `${subscription.name} has a cancellation deadline on ${subscription.cancellation_deadline}.`,
+            actionUrl: `/personal-subscriptions/${subscription.id}`,
+            metadata: {
+              subscription_id: subscription.id,
+              subscription_name: subscription.name,
+              amount: subscription.amount,
+              currency_code: subscription.currency_code,
+              cancellation_deadline: subscription.cancellation_deadline,
+              warning_level: warning.level,
+              days_until: warning.daysUntil,
+            },
+            sourceKey: `personal_subscription_deadline:${subscription.id}:${subscription.cancellation_deadline}`,
+          });
+          continue;
+        }
+
+        if (warning.type === 'over_threshold') {
+          await createNotificationOnce({
+            type: 'personal_subscription_threshold_warning',
+            title: 'Subscription cost exceeds your threshold',
+            message: `${subscription.name} is above its warning threshold.`,
+            actionUrl: `/personal-subscriptions/${subscription.id}`,
+            metadata: {
+              subscription_id: subscription.id,
+              subscription_name: subscription.name,
+              amount: subscription.amount,
+              currency_code: subscription.currency_code,
+              warning_threshold_amount: subscription.warning_threshold_amount,
+              warning_level: warning.level,
+            },
+            sourceKey: `personal_subscription_threshold:${subscription.id}:${subscription.amount}:${subscription.warning_threshold_amount}`,
+          });
+          continue;
+        }
+
+        if (warning.type === 'expired' && subscription.contract_end_date) {
+          await createNotificationOnce({
+            type: 'personal_subscription_contract_expired',
+            title: 'Subscription contract expired',
+            message: `${subscription.name} contract expired on ${subscription.contract_end_date}.`,
+            actionUrl: `/personal-subscriptions/${subscription.id}`,
+            metadata: {
+              subscription_id: subscription.id,
+              subscription_name: subscription.name,
+              amount: subscription.amount,
+              currency_code: subscription.currency_code,
+              contract_end_date: subscription.contract_end_date,
+              warning_level: warning.level,
+            },
+            sourceKey: `personal_subscription_expired:${subscription.id}:${subscription.contract_end_date}`,
+          });
+        }
       }
     }
   }

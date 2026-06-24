@@ -42,7 +42,8 @@
     "apply": "Apply",
     "reset": "Reset",
     "submit": "Submit",
-    "continue": "Continue"
+    "continue": "Continue",
+    "more": "More"
   },
   "status": {
     "loading": "Loading...",
@@ -174,5 +175,6 @@
     "insurance": "Insurance",
     "otherExpense": "Other Expense",
     "other": "Other"
-  }
+  },
+  "notAvailable": "Not available"
 }

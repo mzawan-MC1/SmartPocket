@@ -41,7 +41,8 @@
         "partiallyPaid": "partially paid",
         "settled": "settled"
       },
-      "recurringPaymentFallback": "Recurring payment"
+      "recurringPaymentFallback": "Recurring payment",
+      "personalSubscriptionFallback": "Personal subscription"
     },
     "types": {
       "successfulSignIn": {
@@ -105,6 +106,26 @@
       "aiExecutionFailed": {
         "title": "Smart Entry could not save records",
         "description": "Smart Entry could not save one or more records. Open AI History to review the request."
+      },
+      "personalSubscriptionPaymentDueSoon": {
+        "title": "Subscription payment due soon",
+        "description": "{{subscriptionName}} renews on {{dueDate}}."
+      },
+      "personalSubscriptionTrialEnding": {
+        "title": "Subscription trial ending soon",
+        "description": "{{subscriptionName}} trial ends on {{trialEndDate}}."
+      },
+      "personalSubscriptionCancellationDeadline": {
+        "title": "Cancellation deadline approaching",
+        "description": "{{subscriptionName}} has a cancellation deadline on {{cancellationDeadline}}."
+      },
+      "personalSubscriptionThresholdWarning": {
+        "title": "Subscription cost exceeds your threshold",
+        "description": "{{subscriptionName}} is {{amount}}, above your threshold of {{threshold}}."
+      },
+      "personalSubscriptionContractExpired": {
+        "title": "Subscription contract expired",
+        "description": "{{subscriptionName}} contract expired on {{contractEndDate}}."
       }
     },
     "time": {
@@ -128,7 +149,8 @@
       "settlements": "Settlements",
       "people": "People",
       "spaces": "Spaces",
-      "aiHistory": "AI History"
+      "aiHistory": "AI History",
+      "personalSubscriptions": "Personal Subscriptions"
     },
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
@@ -157,7 +179,8 @@
     "people": "People",
     "reimbursements": "Reimbursements",
     "settlements": "Settlements",
-    "aiHistory": "AI History"
+    "aiHistory": "AI History",
+    "personalSubscriptions": "Personal Subscriptions"
   },
   "dashboardHeader": {
     "title": "Dashboard",
@@ -2447,5 +2470,271 @@
     "contactSupportYearlyPlan": "Contact support for this yearly plan",
     "invalidDiscount": "Enter a valid yearly discount between 0% and 100%.",
     "wholeNumberPriceRequirement": "Prices must be saved as whole AED amounts."
+  },
+  "personalSubscriptions": {
+    "title": "Personal Subscriptions",
+    "description": "Track recurring services, renewals, trials, charges, and cancellation deadlines.",
+    "badge": "Subscriptions",
+    "searchPlaceholder": "Search subscriptions, providers, or notes",
+    "loadFailed": "Failed to load personal subscriptions.",
+    "newTitle": "Add Personal Subscription",
+    "newDescription": "Save a recurring service, choose how you pay, and prepare reminders before the next charge.",
+    "editTitle": "Edit Personal Subscription",
+    "editHelper": "Changes update reminders, dashboard signals, and any linked recurring expense details.",
+    "formTitle": "Subscription Details",
+    "formDescription": "Capture billing dates, payment information, reminders, and optional cancellation tracking.",
+    "listTitle": "Subscription List",
+    "listDescription": "Review every tracked service, billing schedule, and warning state in one place.",
+    "upcomingChargesTitle": "Upcoming Charges",
+    "upcomingChargesDescription": "Subscriptions with the nearest renewal and payment warnings.",
+    "upcomingChargesEmpty": "No subscription charges are currently due soon.",
+    "notFoundDescription": "This personal subscription could not be found or is no longer available.",
+    "summary": {
+      "monthlyCost": "Monthly Subscription Cost",
+      "monthlyCostDescription": "Estimated monthly spend across active and in-flight subscriptions.",
+      "activeCount": "{{count}} active subscriptions",
+      "annualCost": "Projected Annual Cost",
+      "annualCostDescription": "Estimated 12-month subscription spend using each billing cadence.",
+      "annualProjectionHint": "Annual estimates are normalized from each billing frequency.",
+      "health": "Subscription Health",
+      "healthDescription": "Keep an eye on active services, trials, and cancellation deadlines.",
+      "active": "Active",
+      "trials": "Trials",
+      "deadlines": "Deadlines",
+      "upcomingCharges": "{{count}} upcoming"
+    },
+    "filters": {
+      "title": "Filters",
+      "description": "Refine the list by status, category, payment account, or billing frequency.",
+      "quickFilter": "Quick Filter",
+      "allCategories": "All categories",
+      "allAccounts": "All accounts",
+      "allFrequencies": "All frequencies",
+      "options": {
+        "all": "All",
+        "active": "Active",
+        "trial": "Trial",
+        "paused": "Paused",
+        "cancelling": "Cancelling",
+        "cancelled": "Cancelled",
+        "expired": "Expired",
+        "upcoming_7_days": "Upcoming in 7 days",
+        "trial_ending": "Trial ending",
+        "cancellation_deadline": "Cancellation deadline"
+      }
+    },
+    "empty": {
+      "title": "Keep every recurring service under control",
+      "description": "Add your subscriptions, memberships, and recurring services to track charges, renewals, trials, and cancellation deadlines.",
+      "action": "Add Your First Subscription",
+      "filtered": "No subscriptions match the current filters."
+    },
+    "statuses": {
+      "trial": "Trial",
+      "active": "Active",
+      "paused": "Paused",
+      "cancellation_requested": "Cancellation Requested",
+      "cancelling": "Cancelling",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "labels": {
+      "customProvider": "Custom service",
+      "frequency": "Billing frequency",
+      "nextCharge": "Next charge",
+      "paymentAccount": "Payment account",
+      "autoRenew": "Auto-renew",
+      "reminders": "Reminders",
+      "linkedRecurring": "Linked recurring expense",
+      "linked": "Linked",
+      "unlinked": "Unlinked",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "off": "Off"
+    },
+    "frequencies": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "semi_annual": "Semi-annual",
+      "yearly": "Yearly",
+      "custom": "Custom"
+    },
+    "paymentMethods": {
+      "Credit Card": "Credit Card",
+      "Debit Card": "Debit Card",
+      "Bank Account": "Bank Account",
+      "PayPal": "PayPal",
+      "Cash": "Cash",
+      "Apple Pay": "Apple Pay",
+      "Google Pay": "Google Pay",
+      "Other": "Other"
+    },
+    "actions": {
+      "addSubscription": "Add Subscription",
+      "filter": "Filter",
+      "pause": "Pause",
+      "resume": "Resume",
+      "markPaid": "Mark Paid",
+      "requestCancellation": "Request Cancellation",
+      "cancelNow": "Mark as Cancelled",
+      "markCancelled": "Mark as Cancelled",
+      "pausedSuccess": "{{name}} was paused.",
+      "resumedSuccess": "{{name}} was resumed.",
+      "markedPaidSuccess": "{{name}} was marked as paid.",
+      "updateFailed": "Failed to update this subscription.",
+      "confirmDelete": "Delete {{name}}? This cannot be undone.",
+      "deletedSuccess": "{{name}} was deleted.",
+      "deleteFailed": "Failed to delete this subscription.",
+      "confirmCancelNow": "Mark {{name}} as cancelled? Future reminders will stop after the effective date.",
+      "confirmMarkCancelled": "Mark {{name}} as cancelled? Future reminders will stop after the effective date.",
+      "cancelledSuccess": "{{name}} was marked as cancelled.",
+      "cancelFailed": "Failed to update cancellation status.",
+      "backToSubscriptions": "Back to Personal Subscriptions",
+      "backToDetails": "Back to Subscription Details"
+    },
+    "cancellation": {
+      "modalTitle": "Request Cancellation for {{name}}",
+      "requestDate": "Request date",
+      "effectiveDate": "Effective cancellation date",
+      "confirmationReference": "Confirmation reference",
+      "submitting": "Saving request...",
+      "requestedSuccess": "Cancellation was requested for {{name}}.",
+      "requestFailed": "Failed to save the cancellation request."
+    },
+    "warnings": {
+      "upcoming": {
+        "today": "Renews today",
+        "tomorrow": "Renews tomorrow",
+        "days": "Renews in {{count}} days"
+      },
+      "trial": {
+        "today": "Trial ends today",
+        "tomorrow": "Trial ends tomorrow",
+        "days": "Trial ends in {{count}} days"
+      },
+      "cancellation": {
+        "today": "Cancellation deadline today",
+        "days": "Cancellation deadline in {{count}} days"
+      },
+      "threshold": "Amount exceeds your warning threshold",
+      "expired": "Contract end date has passed"
+    },
+    "warningLevels": {
+      "info": "Info",
+      "warning": "Warning",
+      "urgent": "Urgent"
+    },
+    "form": {
+      "loadFailed": "Failed to load supporting subscription data.",
+      "accountCurrencyMismatch": "The selected account uses {{currency}}. Match the subscription currency before saving.",
+      "nextBillingBeforeStart": "Next billing date cannot be before the start date.",
+      "contractBeforeStart": "Contract end date cannot be before the start date.",
+      "deadlineAfterContract": "Cancellation deadline cannot be after the contract end date.",
+      "updated": "Subscription updated successfully.",
+      "created": "Subscription created successfully.",
+      "saveFailed": "Failed to save this subscription.",
+      "loading": "Loading subscription form...",
+      "saving": "Saving changes...",
+      "creating": "Creating subscription...",
+      "saveChanges": "Save Changes",
+      "reminderOption_one": "{{count}} day",
+      "reminderOption_other": "{{count}} days",
+      "sections": {
+        "basic": "Basic Information",
+        "basicDescription": "Name the service and define how it should appear in your records.",
+        "billing": "Billing",
+        "billingDescription": "Set the amount, schedule, and renewal dates you want to track.",
+        "payment": "Payment",
+        "paymentDescription": "Connect the payment account and choose how the subscription is paid.",
+        "reminders": "Reminders",
+        "remindersDescription": "Prepare due-date reminders, cancellation lead time, and warning thresholds.",
+        "additional": "Additional Details",
+        "additionalDescription": "Store reference information, website links, and notes safely."
+      },
+      "fields": {
+        "name": "Subscription name",
+        "provider": "Provider",
+        "description": "Description",
+        "category": "Category",
+        "status": "Status",
+        "amount": "Amount",
+        "currency": "Currency",
+        "billingFrequency": "Billing frequency",
+        "billingInterval": "Custom interval",
+        "startDate": "Start date",
+        "nextBillingDate": "Next billing date",
+        "trialEndDate": "Trial end date",
+        "contractEndDate": "Contract end date",
+        "financialAccount": "Financial account",
+        "noFinancialAccount": "No linked financial account",
+        "paymentMethod": "Payment method",
+        "selectPaymentMethod": "Select payment method",
+        "autoRenew": "Auto-renew this subscription",
+        "createLinkedRecurringExpense": "Create linked recurring expense",
+        "reminderDaysBefore": "Reminder days before charge",
+        "cancellationNoticeDays": "Cancellation notice period (days)",
+        "cancellationDeadline": "Cancellation deadline",
+        "warningThresholdAmount": "Warning threshold amount",
+        "websiteUrl": "Website URL",
+        "accountReference": "Account / reference number",
+        "notes": "Notes"
+      },
+      "errors": {
+        "nameRequired": "Subscription name is required.",
+        "amountRequired": "Amount is required.",
+        "amountMin": "Amount cannot be negative."
+      },
+      "helpers": {
+        "billingInterval": "Use this for custom billing intervals or longer repeating gaps.",
+        "linkedRecurringExists": "This subscription is already linked to a recurring expense.",
+        "linkedRecurringSupported": "A linked recurring expense will use the same amount, account, and description.",
+        "linkedRecurringUnsupported": "Linked recurring expenses are not supported for the {{frequency}} schedule yet."
+      }
+    },
+    "widget": {
+      "title": "Upcoming Personal Subscriptions",
+      "description": "Show the next three subscription charges and warning states.",
+      "emptyTitle": "No subscriptions due soon",
+      "emptyDescription": "Upcoming subscription renewals will appear here when their next billing dates are scheduled."
+    },
+    "detail": {
+      "subtitle": "{{amount}} {{currency}} scheduled per billing cycle.",
+      "noWarnings": "No active warning signals right now.",
+      "lastPaidDate": "Last paid date",
+      "createdAt": "Created",
+      "updatedAt": "Updated",
+      "metrics": {
+        "amount": "Current amount",
+        "nextCharge": "Next charge",
+        "account": "Payment account",
+        "reminders": "Reminder days"
+      },
+      "sections": {
+        "overview": "Overview",
+        "overviewDescription": "Core subscription details and linked records.",
+        "warnings": "Warnings",
+        "warningsDescription": "Upcoming payment, trial, deadline, threshold, and expiry signals.",
+        "billing": "Billing Details",
+        "billingDescription": "Review dates, billing rhythm, and renewal timing.",
+        "payment": "Payment Details",
+        "paymentDescription": "See which account and method are tied to this subscription.",
+        "reminders": "Reminder Settings",
+        "remindersDescription": "Track notice periods, warning thresholds, and cancellation timing.",
+        "additional": "Additional Details",
+        "additionalDescription": "Reference links, notes, and audit timestamps.",
+        "links": "Linked Items",
+        "linksDescription": "Quick context for related accounts, recurring expenses, and notification readiness."
+      },
+      "linkCards": {
+        "account": "Financial account",
+        "accountEmpty": "No financial account is linked yet.",
+        "recurring": "Recurring expense",
+        "recurringLinked": "This subscription is connected to a recurring expense.",
+        "recurringEmpty": "No recurring expense is linked yet.",
+        "notifications": "Reminder coverage",
+        "notificationsDescription": "Using {{count}} reminder settings plus warning-based in-app alerts."
+      }
+    }
   }
 }

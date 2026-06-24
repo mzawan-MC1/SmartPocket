@@ -41,7 +41,8 @@
         "partiallyPaid": "частично оплачено",
         "settled": "погашено"
       },
-      "recurringPaymentFallback": "Регулярный платеж"
+      "recurringPaymentFallback": "Регулярный платеж",
+      "personalSubscriptionFallback": "Личная подписка"
     },
     "types": {
       "successfulSignIn": {
@@ -105,6 +106,26 @@
       "aiExecutionFailed": {
         "title": "Smart Entry не смог сохранить записи",
         "description": "Smart Entry не смог сохранить одну или несколько записей. Откройте историю AI, чтобы проверить запрос."
+      },
+      "personalSubscriptionPaymentDueSoon": {
+        "title": "Скоро списание по подписке",
+        "description": "{{subscriptionName}} продлевается {{dueDate}}."
+      },
+      "personalSubscriptionTrialEnding": {
+        "title": "Скоро закончится пробный период",
+        "description": "Пробный период {{subscriptionName}} заканчивается {{trialEndDate}}."
+      },
+      "personalSubscriptionCancellationDeadline": {
+        "title": "Приближается срок отмены",
+        "description": "У {{subscriptionName}} срок отмены {{cancellationDeadline}}."
+      },
+      "personalSubscriptionThresholdWarning": {
+        "title": "Стоимость подписки превышает порог",
+        "description": "Стоимость {{subscriptionName}} составляет {{amount}}, это выше вашего порога {{threshold}}."
+      },
+      "personalSubscriptionContractExpired": {
+        "title": "Срок действия подписки истек",
+        "description": "Срок действия контракта {{subscriptionName}} истек {{contractEndDate}}."
       }
     }
   },
@@ -122,7 +143,8 @@
       "settlements": "Расчеты",
       "people": "Люди",
       "spaces": "Пространства",
-      "aiHistory": "История AI"
+      "aiHistory": "История AI",
+      "personalSubscriptions": "Личные подписки"
     },
     "expand": "Развернуть боковую панель",
     "collapse": "Свернуть боковую панель",
@@ -146,7 +168,8 @@
     "reports": "Отчеты",
     "accounts": "Счета",
     "people": "Люди",
-    "aiHistory": "История AI"
+    "aiHistory": "История AI",
+    "personalSubscriptions": "Личные подписки"
   },
   "dashboardHeader": {
     "title": "Панель управления",
@@ -2046,5 +2069,273 @@
     "contactSupportYearlyPlan": "Свяжитесь с поддержкой по этому годовому плану",
     "invalidDiscount": "Введите корректную годовую скидку от 0% до 100%.",
     "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы AED."
+  },
+  "personalSubscriptions": {
+    "title": "Личные подписки",
+    "description": "Отслеживайте регулярные сервисы, продления, пробные периоды, списания и сроки отмены.",
+    "badge": "Подписки",
+    "searchPlaceholder": "Искать подписки, провайдеров или заметки",
+    "loadFailed": "Не удалось загрузить личные подписки.",
+    "newTitle": "Добавить личную подписку",
+    "newDescription": "Сохраните регулярный сервис, выберите способ оплаты и подготовьте напоминания до следующего списания.",
+    "editTitle": "Изменить личную подписку",
+    "editHelper": "Изменения обновляют напоминания, виджеты панели и связанные регулярные расходы.",
+    "formTitle": "Детали подписки",
+    "formDescription": "Сохраните даты списания, данные оплаты, напоминания и при необходимости контроль отмены.",
+    "listTitle": "Список подписок",
+    "listDescription": "Просматривайте все отслеживаемые сервисы, графики списаний и уровни предупреждений в одном месте.",
+    "upcomingChargesTitle": "Ближайшие списания",
+    "upcomingChargesDescription": "Подписки с ближайшим продлением и предупреждениями по оплате.",
+    "upcomingChargesEmpty": "Скорых списаний по подпискам сейчас нет.",
+    "notFoundDescription": "Эта личная подписка не найдена или больше недоступна.",
+    "summary": {
+      "monthlyCost": "Ежемесячная стоимость подписок",
+      "monthlyCostDescription": "Оценка ежемесячных расходов по активным и текущим подпискам.",
+      "activeCount": "{{count}} активных подписок",
+      "annualCost": "Прогноз годовой стоимости",
+      "annualCostDescription": "Оценка расходов на 12 месяцев с учетом каждой периодичности списаний.",
+      "annualProjectionHint": "Годовые оценки нормализуются из каждой частоты списаний.",
+      "health": "Состояние подписок",
+      "healthDescription": "Следите за активными сервисами, пробными периодами и сроками отмены.",
+      "active": "Активные",
+      "trials": "Пробные",
+      "deadlines": "Сроки",
+      "upcomingCharges": "{{count}} скоро"
+    },
+    "filters": {
+      "title": "Фильтры",
+      "description": "Уточняйте список по статусу, категории, счету оплаты или частоте списаний.",
+      "quickFilter": "Быстрый фильтр",
+      "allCategories": "Все категории",
+      "allAccounts": "Все счета",
+      "allFrequencies": "Все частоты",
+      "options": {
+        "all": "Все",
+        "active": "Активные",
+        "trial": "Пробные",
+        "paused": "На паузе",
+        "cancelling": "Отмена в процессе",
+        "cancelled": "Отмененные",
+        "expired": "Истекшие",
+        "upcoming_7_days": "В ближайшие 7 дней",
+        "trial_ending": "Окончание пробного периода",
+        "cancellation_deadline": "Срок отмены"
+      }
+    },
+    "empty": {
+      "title": "Держите каждый регулярный сервис под контролем",
+      "description": "Добавляйте свои подписки, членства и регулярные сервисы, чтобы отслеживать списания, продления, пробные периоды и сроки отмены.",
+      "action": "Добавить первую подписку",
+      "filtered": "Нет подписок, соответствующих текущим фильтрам."
+    },
+    "statuses": {
+      "trial": "Пробный период",
+      "active": "Активна",
+      "paused": "На паузе",
+      "cancellation_requested": "Запрошена отмена",
+      "cancelling": "Отменяется",
+      "cancelled": "Отменена",
+      "expired": "Истекла"
+    },
+    "labels": {
+      "customProvider": "Пользовательский сервис",
+      "frequency": "Частота списаний",
+      "nextCharge": "Следующее списание",
+      "paymentAccount": "Счет оплаты",
+      "autoRenew": "Автопродление",
+      "reminders": "Напоминания",
+      "linkedRecurring": "Связанный регулярный расход",
+      "linked": "Связан",
+      "unlinked": "Не связан",
+      "enabled": "Включено",
+      "disabled": "Выключено",
+      "off": "Отключено"
+    },
+    "frequencies": {
+      "weekly": "Еженедельно",
+      "monthly": "Ежемесячно",
+      "quarterly": "Ежеквартально",
+      "semi_annual": "Раз в полгода",
+      "yearly": "Ежегодно",
+      "custom": "Пользовательская"
+    },
+    "paymentMethods": {
+      "Credit Card": "Кредитная карта",
+      "Debit Card": "Дебетовая карта",
+      "Bank Account": "Банковский счет",
+      "PayPal": "PayPal",
+      "Cash": "Наличные",
+      "Apple Pay": "Apple Pay",
+      "Google Pay": "Google Pay",
+      "Other": "Другое"
+    },
+    "actions": {
+      "addSubscription": "Добавить подписку",
+      "filter": "Фильтр",
+      "pause": "Пауза",
+      "resume": "Возобновить",
+      "markPaid": "Отметить как оплачено",
+      "requestCancellation": "Запросить отмену",
+      "cancelNow": "Отметить как отмененную",
+      "markCancelled": "Отметить как отмененную",
+      "pausedSuccess": "{{name}} приостановлена.",
+      "resumedSuccess": "{{name}} возобновлена.",
+      "markedPaidSuccess": "{{name}} отмечена как оплаченная.",
+      "updateFailed": "Не удалось обновить эту подписку.",
+      "confirmDelete": "Удалить {{name}}? Это действие нельзя отменить.",
+      "deletedSuccess": "{{name}} удалена.",
+      "deleteFailed": "Не удалось удалить эту подписку.",
+      "confirmCancelNow": "Отметить {{name}} как отмененную? Будущие напоминания прекратятся после даты вступления в силу.",
+      "confirmMarkCancelled": "Отметить {{name}} как отмененную? Будущие напоминания прекратятся после даты вступления в силу.",
+      "cancelledSuccess": "{{name}} отмечена как отмененная.",
+      "cancelFailed": "Не удалось обновить статус отмены.",
+      "backToSubscriptions": "Назад к личным подпискам",
+      "backToDetails": "Назад к деталям подписки"
+    },
+    "cancellation": {
+      "modalTitle": "Запросить отмену для {{name}}",
+      "requestDate": "Дата запроса",
+      "effectiveDate": "Дата вступления отмены в силу",
+      "confirmationReference": "Номер подтверждения",
+      "submitting": "Сохранение запроса...",
+      "requestedSuccess": "Для {{name}} запрошена отмена.",
+      "requestFailed": "Не удалось сохранить запрос на отмену."
+    },
+    "warnings": {
+      "upcoming": {
+        "today": "Продление сегодня",
+        "tomorrow": "Продление завтра",
+        "days": "Продление через {{count}} дней"
+      },
+      "trial": {
+        "today": "Пробный период заканчивается сегодня",
+        "tomorrow": "Пробный период заканчивается завтра",
+        "days": "Пробный период заканчивается через {{count}} дней"
+      },
+      "cancellation": {
+        "today": "Срок отмены сегодня",
+        "days": "Срок отмены через {{count}} дней"
+      },
+      "threshold": "Сумма превышает ваш порог предупреждения",
+      "expired": "Дата окончания контракта уже прошла"
+    },
+    "warningLevels": {
+      "info": "Инфо",
+      "warning": "Предупреждение",
+      "urgent": "Срочно"
+    },
+    "form": {
+      "loadFailed": "Не удалось загрузить вспомогательные данные подписки.",
+      "accountCurrencyMismatch": "Выбранный счет использует {{currency}}. Перед сохранением выровняйте валюту подписки.",
+      "nextBillingBeforeStart": "Следующая дата списания не может быть раньше даты начала.",
+      "contractBeforeStart": "Дата окончания контракта не может быть раньше даты начала.",
+      "deadlineAfterContract": "Срок отмены не может быть позже даты окончания контракта.",
+      "updated": "Подписка успешно обновлена.",
+      "created": "Подписка успешно создана.",
+      "saveFailed": "Не удалось сохранить эту подписку.",
+      "loading": "Загрузка формы подписки...",
+      "saving": "Сохранение изменений...",
+      "creating": "Создание подписки...",
+      "saveChanges": "Сохранить изменения",
+      "reminderOption_one": "{{count}} день",
+      "reminderOption_few": "{{count}} дня",
+      "reminderOption_many": "{{count}} дней",
+      "reminderOption_other": "{{count}} дней",
+      "sections": {
+        "basic": "Основная информация",
+        "basicDescription": "Назовите сервис и определите, как он будет отображаться в ваших записях.",
+        "billing": "Списание",
+        "billingDescription": "Укажите сумму, график и даты продления для отслеживания.",
+        "payment": "Оплата",
+        "paymentDescription": "Привяжите счет оплаты и выберите способ оплаты подписки.",
+        "reminders": "Напоминания",
+        "remindersDescription": "Подготовьте напоминания о списании, срок отмены и пороги предупреждений.",
+        "additional": "Дополнительные детали",
+        "additionalDescription": "Безопасно храните справочные данные, ссылки на сайт и заметки."
+      },
+      "fields": {
+        "name": "Название подписки",
+        "provider": "Провайдер",
+        "description": "Описание",
+        "category": "Категория",
+        "status": "Статус",
+        "amount": "Сумма",
+        "currency": "Валюта",
+        "billingFrequency": "Частота списаний",
+        "billingInterval": "Пользовательский интервал",
+        "startDate": "Дата начала",
+        "nextBillingDate": "Следующая дата списания",
+        "trialEndDate": "Дата окончания пробного периода",
+        "contractEndDate": "Дата окончания контракта",
+        "financialAccount": "Финансовый счет",
+        "noFinancialAccount": "Нет привязанного финансового счета",
+        "paymentMethod": "Способ оплаты",
+        "selectPaymentMethod": "Выберите способ оплаты",
+        "autoRenew": "Автопродление подписки",
+        "createLinkedRecurringExpense": "Создать связанный регулярный расход",
+        "reminderDaysBefore": "Дни напоминаний до списания",
+        "cancellationNoticeDays": "Период уведомления об отмене (дни)",
+        "cancellationDeadline": "Срок отмены",
+        "warningThresholdAmount": "Пороговая сумма предупреждения",
+        "websiteUrl": "URL сайта",
+        "accountReference": "Номер счета / ссылка",
+        "notes": "Заметки"
+      },
+      "errors": {
+        "nameRequired": "Название подписки обязательно.",
+        "amountRequired": "Сумма обязательна.",
+        "amountMin": "Сумма не может быть отрицательной."
+      },
+      "helpers": {
+        "billingInterval": "Используйте это для пользовательских интервалов списания или более длинных повторов.",
+        "linkedRecurringExists": "Эта подписка уже связана с регулярным расходом.",
+        "linkedRecurringSupported": "Связанный регулярный расход будет использовать ту же сумму, счет и описание.",
+        "linkedRecurringUnsupported": "Связанные регулярные расходы пока не поддерживаются для графика {{frequency}}."
+      }
+    },
+    "widget": {
+      "title": "Ближайшие личные подписки",
+      "description": "Показывает три ближайших списания и их состояния предупреждений.",
+      "emptyTitle": "Скорых подписок нет",
+      "emptyDescription": "Ближайшие продления подписок появятся здесь, когда будут запланированы следующие даты списаний."
+    },
+    "detail": {
+      "subtitle": "{{amount}} {{currency}} запланировано на каждый расчетный цикл.",
+      "noWarnings": "Сейчас нет активных предупреждений.",
+      "lastPaidDate": "Дата последней оплаты",
+      "createdAt": "Создано",
+      "updatedAt": "Обновлено",
+      "metrics": {
+        "amount": "Текущая сумма",
+        "nextCharge": "Следующее списание",
+        "account": "Счет оплаты",
+        "reminders": "Дни напоминаний"
+      },
+      "sections": {
+        "overview": "Обзор",
+        "overviewDescription": "Основные данные подписки и связанные записи.",
+        "warnings": "Предупреждения",
+        "warningsDescription": "Сигналы по ближайшей оплате, пробному периоду, сроку, порогу и истечению.",
+        "billing": "Детали списания",
+        "billingDescription": "Проверьте даты, ритм списаний и момент продления.",
+        "payment": "Детали оплаты",
+        "paymentDescription": "Посмотрите, какой счет и способ оплаты привязаны к подписке.",
+        "reminders": "Настройки напоминаний",
+        "remindersDescription": "Отслеживайте сроки уведомлений, пороги предупреждений и дату отмены.",
+        "additional": "Дополнительные сведения",
+        "additionalDescription": "Справочные ссылки, заметки и временные метки.",
+        "links": "Связанные элементы",
+        "linksDescription": "Быстрый контекст для связанных счетов, регулярных расходов и готовности уведомлений."
+      },
+      "linkCards": {
+        "account": "Финансовый счет",
+        "accountEmpty": "Финансовый счет пока не привязан.",
+        "recurring": "Регулярный расход",
+        "recurringLinked": "Эта подписка связана с регулярным расходом.",
+        "recurringEmpty": "Связанный регулярный расход пока отсутствует.",
+        "notifications": "Покрытие напоминаний",
+        "notificationsDescription": "Используется {{count}} настроек напоминаний и встроенные предупреждения в приложении."
+      }
+    }
   }
 }

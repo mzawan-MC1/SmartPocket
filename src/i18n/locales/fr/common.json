@@ -42,7 +42,8 @@
     "apply": "Appliquer",
     "reset": "Réinitialiser",
     "submit": "Soumettre",
-    "continue": "Continuer"
+    "continue": "Continuer",
+    "more": "Plus"
   },
   "status": {
     "loading": "Chargement...",
@@ -174,5 +175,6 @@
     "insurance": "Assurance",
     "otherExpense": "Autre depense",
     "other": "Autre"
-  }
+  },
+  "notAvailable": "Non disponible"
 }

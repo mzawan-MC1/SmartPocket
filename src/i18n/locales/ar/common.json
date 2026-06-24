@@ -42,7 +42,8 @@
     "apply": "تطبيق",
     "reset": "إعادة تعيين",
     "submit": "إرسال",
-    "continue": "متابعة"
+    "continue": "متابعة",
+    "more": "المزيد"
   },
   "status": {
     "loading": "جارٍ التحميل...",
@@ -174,5 +175,6 @@
     "insurance": "التأمين",
     "otherExpense": "مصاريف أخرى",
     "other": "أخرى"
-  }
+  },
+  "notAvailable": "غير متاح"
 }

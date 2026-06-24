@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,6 +56,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         { id: 'nav-transfers', label: t('sidebar.nav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
         { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
         { id: 'nav-recurring', label: t('sidebar.nav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
+        { id: 'nav-personal-subscriptions', label: t('sidebar.nav.personalSubscriptions', { ns: 'portal' }), icon: CreditCard, href: '/personal-subscriptions' },
         { id: 'nav-categories', label: t('sidebar.nav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
       ],
     },
