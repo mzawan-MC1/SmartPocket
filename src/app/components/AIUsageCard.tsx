@@ -163,7 +163,19 @@ async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResu
   return inFlightSummaryRequest;
 }
 
-function UsageBar({ used, total, label }: { used: number; total: number; label: string }) {
+function UsageBar({
+  used,
+  total,
+  label,
+  usedLabel,
+  totalLabel,
+}: {
+  used: number;
+  total: number;
+  label: string;
+  usedLabel?: string | number;
+  totalLabel?: string | number;
+}) {
   const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
   const color =
     pct >= 100 ? 'bg-negative' :
@@ -174,7 +186,7 @@ function UsageBar({ used, total, label }: { used: number; total: number; label: 
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-xs font-600 text-foreground">{used} / {total}</span>
+        <span className="text-xs font-600 text-foreground">{usedLabel ?? used} / {totalLabel ?? total}</span>
       </div>
       <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
@@ -191,16 +203,20 @@ function UsageRow({
   progressLabel,
   used,
   total,
+  usedLabel,
+  progressTotalLabel,
   remainingText,
   danger = false,
 }: {
   title: string;
   helper: string;
-  value: number;
+  value: string | number;
   totalLabel: string;
   progressLabel: string;
   used: number;
   total: number;
+  usedLabel?: string | number;
+  progressTotalLabel?: string | number;
   remainingText?: string;
   danger?: boolean;
 }) {
@@ -217,13 +233,45 @@ function UsageRow({
         </p>
       </div>
       <div className="mt-1.5">
-        <UsageBar used={used} total={total} label={progressLabel} />
+        <UsageBar
+          used={used}
+          total={total}
+          label={progressLabel}
+          usedLabel={usedLabel}
+          totalLabel={progressTotalLabel}
+        />
       </div>
       {remainingText ? (
         <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{remainingText}</p>
       ) : null}
     </div>
   );
+}
+
+function formatVoiceMinutes(seconds: number) {
+  const minutes = Math.max(0, seconds) / 60;
+  if (minutes === 0) return '0';
+  if (minutes < 10) return minutes.toFixed(1).replace(/\.0$/, '');
+  return minutes.toFixed(1).replace(/\.0$/, '');
+}
+
+function formatVoiceUsage(seconds: number) {
+  const normalized = Math.max(0, Math.ceil(seconds));
+  if (normalized <= 0) return '0';
+  if (normalized < 60) return `${normalized} sec`;
+  return `${formatVoiceMinutes(normalized)} min`;
+}
+
+function formatVoiceTotal(seconds: number) {
+  if (seconds <= 0) return 'None';
+  return `${formatVoiceMinutes(seconds)} min`;
+}
+
+function formatVoiceRemaining(seconds: number) {
+  const normalized = Math.max(0, Math.ceil(seconds));
+  if (normalized <= 0) return '0 min remaining';
+  if (normalized < 60) return `${normalized} sec remaining`;
+  return `${formatVoiceMinutes(normalized)} min remaining`;
 }
 
 function UsageUnavailableRow({
@@ -392,10 +440,12 @@ export default function AIUsageCard() {
   const textUsed = summary.requests_today ?? 0;
   const textTotal = summary.daily_ai_request_limit ?? 0;
   const textPct = textTotal > 0 ? Math.round((textUsed / textTotal) * 100) : 0;
-  const voiceUsedMin = Math.round((summary.voice_seconds_used ?? 0) / 60);
-  const voiceTotalMin = Math.round((summary.monthly_voice_seconds ?? 0) / 60);
-  const voicePct = voiceTotalMin > 0 ? Math.round((voiceUsedMin / voiceTotalMin) * 100) : 0;
-  const voiceRemainingMin = Math.max(0, voiceTotalMin - voiceUsedMin);
+  const voiceUsedSeconds = Math.max(0, summary.voice_seconds_used ?? 0);
+  const voiceTotalSeconds = Math.max(0, summary.monthly_voice_seconds ?? 0);
+  const voiceUsedDisplay = formatVoiceUsage(voiceUsedSeconds);
+  const voiceTotalDisplay = voiceTotalSeconds > 0 ? formatVoiceTotal(voiceTotalSeconds) : String(t('aiUsage.none'));
+  const voicePct = voiceTotalSeconds > 0 ? Math.round((voiceUsedSeconds / voiceTotalSeconds) * 100) : 0;
+  const voiceRemainingText = formatVoiceRemaining(Math.max(0, voiceTotalSeconds - voiceUsedSeconds));
 
   const receiptEnabled = Boolean(summary.receipt_intelligence_enabled);
   const receiptIncluded = receiptEnabled ? (summary.receipt_extractions_included ?? summary.monthly_receipt_extractions ?? 0) : 0;
@@ -478,12 +528,14 @@ export default function AIUsageCard() {
             <UsageRow
               title={t('aiUsage.voiceAi')}
               helper={t('aiUsage.voiceUsedIncluded')}
-              value={voiceUsedMin}
-              totalLabel={String(voiceTotalMin || t('aiUsage.none'))}
+              value={voiceUsedDisplay}
+              totalLabel={voiceTotalDisplay}
               progressLabel={t('aiUsage.voiceMinutes')}
-              used={voiceUsedMin}
-              total={voiceTotalMin}
-              remainingText={t('aiUsage.remainingMinutes', { count: voiceRemainingMin })}
+              used={voiceUsedSeconds}
+              total={voiceTotalSeconds}
+              usedLabel={voiceUsedDisplay}
+              progressTotalLabel={voiceTotalDisplay}
+              remainingText={voiceRemainingText}
             />
             {receiptEnabled ? (
               <UsageRow

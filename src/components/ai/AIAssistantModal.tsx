@@ -1389,6 +1389,11 @@ function isReceiptInsightQuestion(value: string) {
       setApiError(null);
       setErrorMessage('');
       setUsageSummary(null);
+      dispatchSmartPocketDataChanged({
+        source: 'smart-entry-voice-transcription',
+        entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
+      });
+      router.refresh();
     } catch (err) {
       handleVoiceFailure({
         error: {
@@ -1398,7 +1403,7 @@ function isReceiptInsightQuestion(value: string) {
         },
       }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
     }
-  }, [getAuthToken, handleVoiceFailure, language, resetRequestState, t]);
+  }, [getAuthToken, handleVoiceFailure, language, resetRequestState, router, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!parsed || !reviewState || unresolvedReviewFields.length > 0) return;

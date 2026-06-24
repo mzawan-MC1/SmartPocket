@@ -35,6 +35,10 @@ function parsePositiveNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function toSpeechDurationMs(durationSeconds: number) {
+  return Math.max(1, Math.ceil(durationSeconds * 1000));
+}
+
 function buildError(
   code: AIErrorPayload['code'],
   category: AIErrorPayload['category'],
@@ -439,6 +443,7 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      const durationMs = toSpeechDurationMs(durationSeconds);
       const audioBuffer = Buffer.from(await fileEntry.arrayBuffer());
       const openRouterResult = await transcribeAudioWithOpenRouter({
         audioBuffer,
@@ -458,10 +463,10 @@ export async function POST(req: NextRequest) {
         language,
         providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
-        durationMs: Math.round(durationSeconds * 1000),
+        durationMs,
       });
 
-      await supabase.rpc('finalise_ai_credits', {
+      const { data: finalised, error: finaliseError } = await supabase.rpc('finalise_ai_credits', {
         p_user_id: user.id,
         p_cycle_id: reserveData.cycle_id,
         p_ledger_id: reserveData.ledger_id,
@@ -469,12 +474,64 @@ export async function POST(req: NextRequest) {
         p_input_tokens: null,
         p_output_tokens: null,
         p_total_tokens: null,
-        p_speech_duration_ms: Math.round(durationSeconds * 1000),
+        p_speech_duration_ms: durationMs,
         p_provider_name: runtimeConfig.gateway,
         p_model_name: runtimeConfig.model,
         p_estimated_cost: null,
         p_credit_cost: 2,
       });
+
+      if (finaliseError || finalised !== true) {
+        console.error('[voice/transcribe] finalise_ai_credits failed', {
+          requestId,
+          aiRequestId: persistedRequest?.id || null,
+          cycleId: reserveData.cycle_id,
+          ledgerId: reserveData.ledger_id,
+          durationMs,
+          finalised,
+          error: finaliseError?.message || null,
+        });
+
+        const { error: refundError } = await supabase.rpc('refund_ai_credits', {
+          p_user_id: user.id,
+          p_cycle_id: reserveData.cycle_id,
+          p_ledger_id: reserveData.ledger_id,
+          p_reason: 'voice_metering_finalisation_failed',
+        });
+
+        if (refundError) {
+          console.error('[voice/transcribe] refund after finalise failure failed', {
+            requestId,
+            aiRequestId: persistedRequest?.id || null,
+            cycleId: reserveData.cycle_id,
+            ledgerId: reserveData.ledger_id,
+            error: refundError.message,
+          });
+        }
+
+        await persistVoiceRequest({
+          supabase,
+          userId: user.id,
+          idempotencyKey,
+          transcriptRetained: false,
+          language,
+          providerUsed: runtimeConfig.gateway,
+          modelUsed: runtimeConfig.model,
+          durationMs,
+          errorCode: 'transcription_failed',
+          errorMessage: 'voice_metering_finalisation_failed',
+        });
+
+        return NextResponse.json(
+          buildError(
+            'transcription_failed',
+            'technical',
+            'Voice transcription is temporarily unavailable.',
+            requestId
+          ),
+          { status: 503 }
+        );
+      }
 
       return NextResponse.json({
         success: true,
@@ -509,7 +566,7 @@ export async function POST(req: NextRequest) {
         language,
         providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
-        durationMs: Math.round(durationSeconds * 1000),
+        durationMs: toSpeechDurationMs(durationSeconds),
         errorCode: mappedCode,
         errorMessage: message,
       });
