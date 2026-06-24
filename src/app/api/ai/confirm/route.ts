@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
-import type { FinancialAction, ParsedFinancialInstruction, SmartEntryReview } from '@/lib/ai-types';
+import type { AccountScope, FinancialAction, ParsedFinancialInstruction, SmartEntryReview } from '@/lib/ai-types';
 import { applySmartEntryReviewToInstruction, getSmartEntryMissingFields, isAccountEligibleForPurpose, isManagedPurpose } from '@/lib/smart-entry';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACCOUNT_TYPES = new Set(['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other']);
+const ACCOUNT_SCOPES = new Set<AccountScope>(['personal', 'managed']);
 const RELATIONSHIPS = new Set(['spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other']);
 const SUBSCRIPTION_INTENTS = new Set([
   'personal_subscription_create',
