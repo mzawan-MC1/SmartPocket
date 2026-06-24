@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2, Mail, ShieldCheck, TestTube } from 'lucide-react';
+import { Check, Loader2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
+import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
 
@@ -221,20 +222,7 @@ export default function AdminEmailPage() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/notifications')}>
-          <ShieldCheck size={16} />
-          Notification settings
-        </button>
-        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/templates')}>
-          <Mail size={16} />
-          Templates
-        </button>
-        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/logs')}>
-          <TestTube size={16} />
-          Delivery logs
-        </button>
-      </div>
+      <EmailModuleNav />
 
       <div className="card-elevated p-5 space-y-4">
         <h2 className="text-base font-600 text-foreground">Email Provider</h2>

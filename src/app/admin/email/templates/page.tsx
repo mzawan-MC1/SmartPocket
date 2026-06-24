@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, Loader2, RefreshCw, Save, Search, Send, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 
 type TemplateListItem = {
   template_key: string;
@@ -206,6 +207,8 @@ export default function AdminEmailTemplatesPage() {
           Save
         </button>
       </div>
+
+      <EmailModuleNav />
 
       <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-5">
         <div className="card-elevated p-4">

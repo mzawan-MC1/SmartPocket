@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, RefreshCw, Send } from 'lucide-react';
 import { toast } from 'sonner';
+import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 
 type DeliveryLog = {
   id: string;
@@ -96,6 +97,8 @@ export default function AdminEmailLogsPage() {
           Refresh
         </button>
       </div>
+
+      <EmailModuleNav />
 
       <div className="card-elevated p-4 flex items-center gap-3">
         <label className="text-sm font-600 text-foreground">Status</label>

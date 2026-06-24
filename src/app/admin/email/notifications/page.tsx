@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 
 type NotificationSettings = {
   admin_notification_email: string | null;
@@ -131,6 +132,8 @@ export default function AdminEmailNotificationsPage() {
           Save
         </button>
       </div>
+
+      <EmailModuleNav />
 
       <div className="card-elevated p-5 space-y-4">
         <h2 className="text-base font-700 text-foreground">Admin recipients</h2>
