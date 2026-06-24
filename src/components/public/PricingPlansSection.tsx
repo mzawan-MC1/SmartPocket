@@ -70,9 +70,11 @@ function getPublicPlanFeatureRows(
 export default function PricingPlansSection({
   sectionId,
   showViewDetailsLink = false,
+  variant = 'default',
 }: {
   sectionId?: string;
   showViewDetailsLink?: boolean;
+  variant?: 'default' | 'dark';
 }) {
   const { t } = useTranslation('public');
   const { language } = useLanguage();
@@ -83,6 +85,7 @@ export default function PricingPlansSection({
   const [selectedInterval, setSelectedInterval] = useState<'monthly' | 'yearly'>('monthly');
   const locale = getIntlLocale(language);
   const isAuthenticated = Boolean(user && !authLoading);
+  const isDark = variant === 'dark';
 
   useEffect(() => {
     let cancelled = false;
@@ -151,17 +154,20 @@ export default function PricingPlansSection({
   }, [sectionId]);
 
   return (
-    <section id={sectionId} className="scroll-mt-28 py-20 px-4 bg-card/50">
-      <div className="max-w-5xl mx-auto">
+    <section
+      id={sectionId}
+      className={`scroll-mt-28 px-4 py-20 ${isDark ? 'bg-[#041229] text-white' : 'bg-card/50'}`}
+    >
+      <div className={`mx-auto ${isDark ? 'max-w-7xl' : 'max-w-5xl'}`}>
         <div className="text-center mb-14">
-          <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">
+          <h2 className={`text-3xl sm:text-4xl font-800 mb-4 ${isDark ? 'text-white' : 'text-foreground'}`}>
             {t('home.sections.pricingTitle')}
           </h2>
-          <p className="text-muted-foreground">{t('home.pricing.subtitle')}</p>
+          <p className={isDark ? 'text-slate-300' : 'text-muted-foreground'}>{t('home.pricing.subtitle')}</p>
         </div>
         {availableIntervals.length > 1 ? (
           <div className="mb-8 flex justify-center">
-            <div className="inline-flex rounded-2xl border border-border bg-secondary/40 p-1">
+            <div className={`inline-flex rounded-2xl p-1 ${isDark ? 'border border-white/10 bg-white/5' : 'border border-border bg-secondary/40'}`}>
               {(['monthly', 'yearly'] as const).map((interval) => {
                 const supported = availableIntervals.includes(interval);
                 return (
@@ -172,8 +178,12 @@ export default function PricingPlansSection({
                     disabled={!supported}
                     className={`min-w-[8.5rem] rounded-xl px-4 py-2 text-sm font-700 transition-all ${
                       selectedInterval === interval
-                        ? 'bg-card text-foreground shadow-sm'
-                        : 'text-muted-foreground'
+                        ? isDark
+                          ? 'bg-white text-slate-950 shadow-sm'
+                          : 'bg-card text-foreground shadow-sm'
+                        : isDark
+                          ? 'text-slate-300'
+                          : 'text-muted-foreground'
                     } ${!supported ? 'cursor-not-allowed opacity-50' : ''}`}
                   >
                     {t(`home.pricing.intervals.${interval}`)}
@@ -183,19 +193,24 @@ export default function PricingPlansSection({
             </div>
           </div>
         ) : null}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {plansLoading
             ? Array.from({ length: 3 }, (_, index) => (
-                <div key={index} className="card-elevated p-6 flex flex-col animate-pulse">
-                  <div className="h-6 w-24 rounded bg-secondary" />
-                  <div className="mt-4 h-10 w-28 rounded bg-secondary" />
+                <div
+                  key={index}
+                  className={`flex flex-col animate-pulse rounded-[2rem] p-6 ${
+                    isDark ? 'border border-white/10 bg-white/5' : 'card-elevated'
+                  }`}
+                >
+                  <div className={`h-6 w-24 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
+                  <div className={`mt-4 h-10 w-28 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
                   <div className="mt-6 space-y-2">
-                    <div className="h-4 rounded bg-secondary" />
-                    <div className="h-4 rounded bg-secondary" />
-                    <div className="h-4 rounded bg-secondary" />
-                    <div className="h-4 rounded bg-secondary" />
+                    <div className={`h-4 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
+                    <div className={`h-4 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
+                    <div className={`h-4 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
+                    <div className={`h-4 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
                   </div>
-                  <div className="mt-6 h-11 rounded bg-secondary" />
+                  <div className={`mt-6 h-11 rounded ${isDark ? 'bg-white/10' : 'bg-secondary'}`} />
                 </div>
               ))
             : visiblePlans.map((plan) => {
@@ -216,20 +231,26 @@ export default function PricingPlansSection({
                 return (
                   <div
                     key={plan.id}
-                    className={`card-elevated p-6 relative flex flex-col ${accent ? 'border-accent border-2' : ''}`}
+                    className={`relative flex flex-col rounded-[2rem] p-6 ${
+                      isDark
+                        ? `border ${accent ? 'border-cyan-300/70 bg-gradient-to-b from-cyan-400/10 to-white/5 shadow-[0_20px_50px_rgba(2,12,32,0.22)]' : 'border-white/10 bg-white/5'}`
+                        : `card-elevated ${accent ? 'border-accent border-2' : ''}`
+                    }`}
                   >
                     {accent ? (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-700 bg-accent text-accent-foreground px-3 py-1 rounded-full">
+                      <span className={`absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-700 ${
+                        isDark ? 'bg-cyan-300 text-slate-950' : 'bg-accent text-accent-foreground'
+                      }`}>
                         {t('home.pricing.mostPopular')}
                       </span>
                     ) : null}
                     <div className="mb-5">
-                      <h2 className="text-lg font-700 text-foreground">{plan.planName}</h2>
+                      <h2 className={`text-lg font-700 ${isDark ? 'text-white' : 'text-foreground'}`}>{plan.planName}</h2>
                       <div className="mt-3 flex items-baseline gap-1">
-                        <span className="text-3xl font-800 text-foreground">
+                        <span className={`text-3xl font-800 ${isDark ? 'text-white' : 'text-foreground'}`}>
                           {priceText || t('home.pricing.freePrice')}
                         </span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className={isDark ? 'text-sm text-slate-300' : 'text-sm text-muted-foreground'}>
                           {plan.billingInterval === 'yearly'
                             ? t('home.pricing.perYear')
                             : plan.billingInterval === 'monthly'
@@ -240,28 +261,30 @@ export default function PricingPlansSection({
                       {plan.billingInterval === 'yearly' ? (
                         <div className="mt-3 space-y-1.5">
                           {plan.yearlyDiscountPercent > 0 ? (
-                            <span className="inline-flex rounded-full bg-positive-soft px-2.5 py-1 text-xs font-700 text-positive">
+                            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-700 ${
+                              isDark ? 'bg-emerald-400/15 text-emerald-300' : 'bg-positive-soft text-positive'
+                            }`}>
                               {t('home.pricing.savePercent', { percent: plan.yearlyDiscountPercent })}
                             </span>
                           ) : null}
-                          <p className="text-sm text-muted-foreground">
+                          <p className={isDark ? 'text-sm text-slate-300' : 'text-sm text-muted-foreground'}>
                             {t('home.pricing.equivalentPerMonth', { amount: equivalentMonthlyText })}
                           </p>
                           {plan.yearlySavingAmount > 0 ? (
-                            <p className="text-sm font-600 text-positive">
+                            <p className={isDark ? 'text-sm font-600 text-emerald-300' : 'text-sm font-600 text-positive'}>
                               {t('home.pricing.saveAmountPerYear', { amount: yearlySavingText })}
                             </p>
                           ) : null}
                         </div>
                       ) : null}
                       {plan.description ? (
-                        <p className="mt-3 text-sm text-muted-foreground">{plan.description}</p>
+                        <p className={isDark ? 'mt-3 text-sm text-slate-300' : 'mt-3 text-sm text-muted-foreground'}>{plan.description}</p>
                       ) : null}
                     </div>
                     <ul className="space-y-2.5 mb-6 flex-1">
                       {featureRows.map((feature) => (
-                        <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <CheckCircle2 size={14} className="text-positive flex-shrink-0" />
+                        <li key={feature} className={`flex items-center gap-2 text-sm ${isDark ? 'text-slate-200' : 'text-muted-foreground'}`}>
+                          <CheckCircle2 size={14} className={`${isDark ? 'text-emerald-300' : 'text-positive'} flex-shrink-0`} />
                           {feature}
                         </li>
                       ))}
@@ -275,7 +298,15 @@ export default function PricingPlansSection({
                           authenticated: isAuthenticated,
                         })
                       }
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-600 transition-all ${accent ? 'btn-primary' : 'btn-secondary'}`}
+                      className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-600 transition-all ${
+                        isDark
+                          ? accent
+                            ? 'bg-cyan-300 text-slate-950 hover:bg-cyan-200'
+                            : 'border border-white/15 bg-white/5 text-white hover:bg-white/10'
+                          : accent
+                            ? 'btn-primary'
+                            : 'btn-secondary'
+                      }`}
                     >
                       {isAuthenticated ? t('home.pricing.managePlanCta') : t('home.pricing.guestPlanCta')}
                       <ArrowRight size={14} />
@@ -285,7 +316,7 @@ export default function PricingPlansSection({
               })}
         </div>
         {freeTrialPlan?.trialDurationDays ? (
-          <p className="text-center text-sm text-muted-foreground mt-8">
+          <p className={`mt-8 text-center text-sm ${isDark ? 'text-slate-300' : 'text-muted-foreground'}`}>
             {t('home.pricing.trialHint', {
               days: freeTrialPlan.trialDurationDays,
               planName: freeTrialPlan.planName,
@@ -293,7 +324,7 @@ export default function PricingPlansSection({
           </p>
         ) : null}
         {isAuthenticated && billing && !billing.providerConfigured ? (
-          <p className="text-center text-sm text-muted-foreground mt-3">
+          <p className={`mt-3 text-center text-sm ${isDark ? 'text-slate-300' : 'text-muted-foreground'}`}>
             {billing.contactEmail
               ? t('home.pricing.providerUnavailable', { email: billing.contactEmail })
               : t('home.pricing.providerUnavailableNoEmail')}
@@ -301,7 +332,10 @@ export default function PricingPlansSection({
         ) : null}
         {showViewDetailsLink ? (
           <div className="text-center mt-4">
-            <Link href="/home#pricing" className="inline-flex items-center gap-1.5 text-sm font-600 text-accent hover:underline">
+            <Link
+              href="/home#pricing"
+              className={`inline-flex items-center gap-1.5 text-sm font-600 ${isDark ? 'text-cyan-300 hover:text-cyan-200' : 'text-accent hover:underline'}`}
+            >
               {t('home.pricing.viewDetails')} <ArrowRight size={14} />
             </Link>
           </div>

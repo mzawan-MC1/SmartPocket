@@ -1,13 +1,33 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Wallet, PieChart, Shield, Smartphone, TrendingUp, FileText, RefreshCw, Bell, Lock, Download, CheckCircle2, Monitor, Tablet, Zap, Languages, Star, ChevronRight, Mail, Apple, Sparkles } from 'lucide-react';
+import {
+  Apple,
+  ArrowRight,
+  BarChart3,
+  Bot,
+  CheckCircle2,
+  FileText,
+  Languages,
+  Lock,
+  Mail,
+  Monitor,
+  PieChart,
+  RefreshCw,
+  Shield,
+  Smartphone,
+  Sparkles,
+  Star,
+  Tablet,
+  TrendingUp,
+  Wallet,
+  Zap,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
 import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
-import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeroSettings {
@@ -17,15 +37,6 @@ interface HeroSettings {
   hero_cta_secondary?: string;
   app_name?: string;
 }
-
-const BENEFITS = [
-  { id: 'balance', icon: TrendingUp },
-  { id: 'budgetAlerts', icon: PieChart },
-  { id: 'reports', icon: FileText },
-  { id: 'recurring', icon: RefreshCw },
-  { id: 'reminders', icon: Bell },
-  { id: 'rls', icon: Lock },
-] as const;
 
 const FEATURES = [
   { id: 'accounts', icon: Wallet, size: 'large' },
@@ -51,7 +62,6 @@ const LANGUAGES = [
   { code: 'RU', nameKey: 'common:language.ru', dirKey: 'home.languages.ltr' },
 ] as const;
 
-/** Inline SVG dashboard preview — no external assets required */
 function DashboardPreview() {
   const { t } = useTranslation('public');
   const previewAmounts = {
@@ -62,147 +72,207 @@ function DashboardPreview() {
   };
 
   return (
-    <div className="relative w-full max-w-3xl mx-auto mt-12">
-      {/* Glow backdrop */}
-      <div className="absolute inset-0 bg-gradient-to-b from-accent/10 to-primary/5 rounded-3xl blur-2xl scale-105 pointer-events-none" />
-
-      {/* Browser chrome */}
-      <div className="relative rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
-        {/* Browser top bar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-muted/40">
-          <span className="w-3 h-3 rounded-full bg-red-400/70" />
-          <span className="w-3 h-3 rounded-full bg-yellow-400/70" />
-          <span className="w-3 h-3 rounded-full bg-green-400/70" />
-          <div className="flex-1 mx-4 h-6 rounded-md bg-muted/60 flex items-center px-3">
-            <span className="text-[10px] text-muted-foreground">{t('home.preview.dashboardUrl')}</span>
+    <div className="relative mx-auto mt-10 w-full max-w-6xl lg:mt-0">
+      <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-r from-cyan-500/20 via-sky-500/8 to-blue-500/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[#071a34]/95 shadow-[0_24px_90px_rgba(2,12,32,0.45)]">
+        <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-4 py-3">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-400/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-300/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/70" />
+          <div className="ml-3 flex h-8 flex-1 items-center rounded-full border border-white/10 bg-[#081323] px-4 text-[10px] text-slate-400">
+            {t('home.preview.dashboardUrl')}
+          </div>
+          <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] text-slate-300 sm:flex">
+            <Sparkles size={11} className="text-cyan-300" />
+            {t('home.ai.badge', { defaultValue: 'AI-ready' })}
           </div>
         </div>
 
-        {/* Dashboard body */}
-        <div className="p-4 sm:p-6 bg-background">
-          {/* Top metrics row */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: t('home.preview.totalBalance'), value: previewAmounts.totalBalance, color: 'text-foreground', bg: 'bg-accent/8' },
-              { label: t('home.preview.income'), value: previewAmounts.income, color: 'text-positive', bg: 'bg-positive/8' },
-              { label: t('home.preview.expenses'), value: previewAmounts.expenses, color: 'text-destructive', bg: 'bg-destructive/8' },
-              { label: t('home.preview.netFlow'), value: previewAmounts.netFlow, color: 'text-accent', bg: 'bg-accent/8' },
-            ].map((m) => (
-              <div key={m.label} className={`rounded-xl p-3 ${m.bg} border border-border`}>
-                <p className="text-[10px] text-muted-foreground mb-1">{m.label}</p>
-                <p className={`text-base font-800 ${m.color}`}>{m.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Charts row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-            {/* Bar chart mock */}
-            <div className="sm:col-span-2 rounded-xl border border-border bg-card p-4">
-              <p className="text-[10px] font-700 text-muted-foreground uppercase tracking-wider mb-3">{t('home.preview.incomeVsExpenses')}</p>
-              <div className="flex items-end gap-2 h-20">
-                {[
-                  { inc: 65, exp: 45 },
-                  { inc: 72, exp: 55 },
-                  { inc: 58, exp: 48 },
-                  { inc: 80, exp: 60 },
-                  { inc: 75, exp: 52 },
-                  { inc: 88, exp: 58 },
-                ].map((bar, i) => (
-                  <div key={i} className="flex-1 flex items-end gap-0.5">
-                    <div className="flex-1 rounded-t-sm bg-positive/50" style={{ height: `${bar.inc}%` }} />
-                    <div className="flex-1 rounded-t-sm bg-destructive/40" style={{ height: `${bar.exp}%` }} />
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-4 mt-2">
-                <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="w-2 h-2 rounded-sm bg-positive/50 inline-block" />{t('home.preview.income')}</span>
-                <span className="flex items-center gap-1 text-[9px] text-muted-foreground"><span className="w-2 h-2 rounded-sm bg-destructive/40 inline-block" />{t('home.preview.expenses')}</span>
-              </div>
+        <div className="grid gap-0 lg:grid-cols-[220px_minmax(0,1fr)]">
+          <aside className="hidden border-r border-white/10 bg-[#051224]/90 p-4 lg:block">
+            <div className="mb-5 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-3">
+              <AppLogo width={120} height={28} imageClassName="h-7 w-auto" />
             </div>
-
-            {/* Donut mock */}
-            <div className="rounded-xl border border-border bg-card p-4 flex flex-col">
-              <p className="text-[10px] font-700 text-muted-foreground uppercase tracking-wider mb-3">{t('home.preview.spendingByCategory')}</p>
-              <div className="flex-1 flex items-center justify-center">
-                <svg viewBox="0 0 80 80" className="w-16 h-16">
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="hsl(var(--accent)/0.15)" strokeWidth="14" />
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="hsl(var(--accent))" strokeWidth="14"
-                    strokeDasharray="52 124" strokeDashoffset="0" strokeLinecap="round" />
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="hsl(var(--positive))" strokeWidth="14"
-                    strokeDasharray="35 124" strokeDashoffset="-52" strokeLinecap="round" />
-                  <circle cx="40" cy="40" r="28" fill="none" stroke="hsl(var(--destructive)/0.6)" strokeWidth="14"
-                    strokeDasharray="25 124" strokeDashoffset="-87" strokeLinecap="round" />
-                  <circle cx="40" cy="40" r="22" fill="hsl(var(--card))" />
-                </svg>
-              </div>
-              <div className="space-y-1 mt-2">
-                {[
-                  { label: t('home.preview.food'), color: 'bg-accent' },
-                  { label: t('home.preview.transport'), color: 'bg-positive' },
-                  { label: t('home.preview.bills'), color: 'bg-destructive/60' },
-                ].map((c) => (
-                  <div key={c.label} className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${c.color} flex-shrink-0`} />
-                    <span className="text-[9px] text-muted-foreground">{c.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recent transactions mock */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            <p className="text-[10px] font-700 text-muted-foreground uppercase tracking-wider mb-3">{t('home.preview.recentTransactions')}</p>
             <div className="space-y-2">
               {[
-                { name: t('home.preview.groceryStore'), cat: t('home.preview.food'), amount: '-$84.20', color: 'text-destructive' },
-                { name: t('home.preview.salaryDeposit'), cat: t('home.preview.income'), amount: '+$3,200', color: 'text-positive' },
-                { name: t('home.preview.streamingSubscription'), cat: t('home.preview.subscriptions'), amount: '-$15.99', color: 'text-destructive' },
-              ].map((tx) => (
-                <div key={tx.name} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
-                      <Wallet size={11} className="text-accent" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-600 text-foreground">{tx.name}</p>
-                      <p className="text-[9px] text-muted-foreground">{tx.cat}</p>
-                    </div>
+                { label: t('home.preview.brandName', { defaultValue: 'Smart Pocket' }), active: true, icon: BarChart3 },
+                { label: t('home.features.accountsTitle'), active: false, icon: Wallet },
+                { label: t('home.preview.recentTransactions'), active: false, icon: RefreshCw },
+                { label: t('home.sections.pricingTitle'), active: false, icon: PieChart },
+                { label: t('home.reports.title'), active: false, icon: FileText },
+                { label: t('home.ai.badge', { defaultValue: 'AI' }), active: false, icon: Sparkles },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm ${
+                      item.active
+                        ? 'bg-cyan-500/18 text-white shadow-[inset_0_0_0_1px_rgba(103,232,249,0.2)]'
+                        : 'text-slate-400 hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon size={15} className={item.active ? 'text-cyan-300' : 'text-slate-500'} />
+                    <span className="truncate">{item.label}</span>
                   </div>
-                  <span className={`text-[10px] font-700 ${tx.color}`}>{tx.amount}</span>
+                );
+              })}
+            </div>
+          </aside>
+
+          <div className="relative bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_28%),linear-gradient(180deg,#08192f_0%,#061222_100%)] p-4 sm:p-6">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-700 uppercase tracking-[0.2em] text-cyan-300/80">
+                  {t('home.preview.brandName', { defaultValue: 'Smart Pocket' })}
+                </p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {t('home.hero.subtitle')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{t('home.preview.balance')}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">30 days</span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: t('home.preview.totalBalance'), value: previewAmounts.totalBalance, tone: 'text-white' },
+                { label: t('home.preview.income'), value: previewAmounts.income, tone: 'text-emerald-300' },
+                { label: t('home.preview.expenses'), value: previewAmounts.expenses, tone: 'text-rose-300' },
+                { label: t('home.preview.netFlow'), value: previewAmounts.netFlow, tone: 'text-cyan-300' },
+              ].map((metric) => (
+                <div key={metric.label} className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400">{metric.label}</p>
+                  <p className={`mt-2 text-lg font-800 ${metric.tone}`}>{metric.value}</p>
+                  <div className="mt-3 flex h-8 items-end gap-1">
+                    {[38, 50, 45, 62, 58, 70].map((height, index) => (
+                      <span
+                        key={`${metric.label}-${index}`}
+                        className="flex-1 rounded-t-full bg-gradient-to-t from-cyan-500/35 to-cyan-300/70"
+                        style={{ height: `${height}%` }}
+                      />
+                    ))}
+                  </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.9fr)]">
+              <div className="rounded-[1.6rem] border border-white/10 bg-[#07192d]/95 p-4 shadow-[0_18px_40px_rgba(2,12,32,0.35)]">
+                <div className="mb-4 flex items-center justify-between">
+                  <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-400">
+                    {t('home.preview.incomeVsExpenses')}
+                  </p>
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-cyan-300" />{t('home.preview.income')}</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-violet-400" />{t('home.preview.expenses')}</span>
+                  </div>
+                </div>
+                <div className="grid h-52 grid-cols-8 items-end gap-3">
+                  {[
+                    [34, 22],
+                    [46, 28],
+                    [41, 24],
+                    [60, 30],
+                    [55, 34],
+                    [70, 38],
+                    [64, 35],
+                    [78, 44],
+                  ].map(([incomeHeight, expenseHeight], index) => (
+                    <div key={index} className="flex h-full flex-col justify-end gap-1">
+                      <div className="rounded-t-2xl bg-gradient-to-t from-cyan-600 to-cyan-300" style={{ height: `${incomeHeight}%` }} />
+                      <div className="rounded-t-2xl bg-gradient-to-t from-fuchsia-700 to-violet-400" style={{ height: `${expenseHeight}%` }} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="rounded-[1.6rem] border border-white/10 bg-[#07192d]/95 p-4">
+                  <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-400">
+                    {t('home.preview.spendingByCategory')}
+                  </p>
+                  <div className="mt-5 flex items-center gap-4">
+                    <svg viewBox="0 0 120 120" className="h-24 w-24">
+                      <circle cx="60" cy="60" r="42" fill="none" stroke="rgba(148,163,184,0.15)" strokeWidth="16" />
+                      <circle cx="60" cy="60" r="42" fill="none" stroke="#22d3ee" strokeWidth="16" strokeDasharray="90 264" strokeLinecap="round" />
+                      <circle cx="60" cy="60" r="42" fill="none" stroke="#8b5cf6" strokeWidth="16" strokeDasharray="70 264" strokeDashoffset="-94" strokeLinecap="round" />
+                      <circle cx="60" cy="60" r="42" fill="none" stroke="#38bdf8" strokeWidth="16" strokeDasharray="46 264" strokeDashoffset="-170" strokeLinecap="round" />
+                      <circle cx="60" cy="60" r="28" fill="#07192d" />
+                    </svg>
+                    <div className="space-y-2">
+                      {[
+                        { label: t('home.preview.food'), tone: 'bg-cyan-300' },
+                        { label: t('home.preview.transport'), tone: 'bg-violet-400' },
+                        { label: t('home.preview.bills'), tone: 'bg-sky-400' },
+                      ].map((category) => (
+                        <div key={category.label} className="flex items-center gap-2 text-xs text-slate-300">
+                          <span className={`h-2.5 w-2.5 rounded-full ${category.tone}`} />
+                          {category.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.6rem] border border-white/10 bg-[#07192d]/95 p-4">
+                  <div className="mb-3 flex items-center gap-2 text-xs font-700 uppercase tracking-[0.18em] text-slate-400">
+                    <Bot size={13} className="text-cyan-300" />
+                    {t('home.ai.badge', { defaultValue: 'AI assistant' })}
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      t('home.ai.features.1'),
+                      t('home.ai.features.2'),
+                      t('home.ai.features.3'),
+                    ].map((item) => (
+                      <div key={item} className="rounded-2xl border border-cyan-400/10 bg-white/5 p-3 text-sm text-slate-300">
+                        {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: t('home.currency.title'), icon: Languages },
+                { label: t('home.ai.badge', { defaultValue: 'AI-assisted flows' }), icon: Sparkles },
+                { label: t('home.security.label'), icon: Shield },
+                { label: t('home.reports.title'), icon: BarChart3 },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/12">
+                      <Icon size={17} className="text-cyan-300" />
+                    </div>
+                    <span className="font-600">{item.label}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Floating mobile card */}
-      <div className="absolute -bottom-6 -right-4 sm:-right-8 w-28 sm:w-36 rounded-2xl border border-border bg-card shadow-xl overflow-hidden hidden sm:block">
-        <div className="bg-accent px-3 py-2">
-          <p className="text-[9px] font-700 text-accent-foreground uppercase tracking-wider">{t('home.preview.brandName')}</p>
+      <div className="absolute -bottom-8 left-4 hidden w-64 rounded-[1.5rem] border border-cyan-300/20 bg-[#081d35]/95 p-4 text-white shadow-[0_20px_45px_rgba(2,12,32,0.4)] md:block xl:left-auto xl:right-5">
+        <div className="mb-3 flex items-center gap-2 text-xs font-700 uppercase tracking-[0.18em] text-cyan-300">
+          <TrendingUp size={13} />
+          {t('home.preview.netFlow')}
         </div>
-        <div className="p-3 space-y-2">
-          <div>
-            <p className="text-[8px] text-muted-foreground">{t('home.preview.balance')}</p>
-            <p className="text-sm font-800 text-foreground">{previewAmounts.totalBalance}</p>
-          </div>
-          <div className="flex gap-1">
-            <div className="flex-1 rounded-lg bg-positive/10 p-1.5 text-center">
-              <p className="text-[7px] text-muted-foreground">{t('home.preview.inShort')}</p>
-                <p className="text-[9px] font-700 text-positive">{formatCurrencyText(4200, { currencyCode: 'USD', compact: true })}</p>
-            </div>
-            <div className="flex-1 rounded-lg bg-destructive/10 p-1.5 text-center">
-              <p className="text-[7px] text-muted-foreground">{t('home.preview.outShort')}</p>
-                <p className="text-[9px] font-700 text-destructive">{formatCurrencyText(-2700, { currencyCode: 'USD', compact: true })}</p>
-            </div>
-          </div>
-          <div className="flex items-end gap-0.5 h-8">
-            {[40, 60, 45, 75, 55, 80, 65].map((h, i) => (
-              <div key={i} className="flex-1 rounded-t-sm bg-accent/40" style={{ height: `${h}%` }} />
-            ))}
-          </div>
+        <p className="text-2xl font-800">{previewAmounts.netFlow}</p>
+        <div className="mt-4 flex h-10 items-end gap-1">
+          {[32, 40, 34, 58, 48, 70, 55, 74].map((height, index) => (
+            <span
+              key={index}
+              className="flex-1 rounded-t-full bg-gradient-to-t from-cyan-600 to-cyan-300"
+              style={{ height: `${height}%` }}
+            />
+          ))}
         </div>
       </div>
     </div>
@@ -212,7 +282,6 @@ function DashboardPreview() {
 export default function HomePage() {
   const { t } = useTranslation(['public', 'common']);
   const { language } = useLanguage();
-  const { user, loading: authLoading } = useAuth();
   const [hero, setHero] = useState<HeroSettings>({});
 
   useEffect(() => {
@@ -228,100 +297,117 @@ export default function HomePage() {
   const heroSubtitle = canUseSingleLanguageHeroOverride && hero.hero_subtitle ? hero.hero_subtitle : t('home.hero.subtitle');
   const heroCTAPrimary = canUseSingleLanguageHeroOverride && hero.hero_cta_primary ? hero.hero_cta_primary : t('home.hero.primaryCta');
   const heroCTASecondary = canUseSingleLanguageHeroOverride && hero.hero_cta_secondary ? hero.hero_cta_secondary : t('home.hero.secondaryCta');
-  void user;
-  void authLoading;
+  const heroTitleLines = heroTitle.split('\n');
+  const heroAccentIndex = Math.max(heroTitleLines.length - 1, 0);
 
   return (
-    <div className="overflow-x-hidden">
-
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative pt-14 pb-0 px-4 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-accent/5 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-accent/5 blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-primary/5 blur-3xl pointer-events-none translate-y-1/2 -translate-x-1/3" />
-        <div className="relative max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-800 text-foreground tracking-tight mb-5 leading-[1.05] whitespace-pre-line">
-            {heroTitle.split('\n').map((line, i) => (
-              <span key={i}>
-                {i === 1 ? <span className="text-accent">{line}</span> : line}
-                {i < heroTitle.split('\n').length - 1 && <br />}
-              </span>
-            ))}
-          </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            {heroSubtitle}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-5">
-            <Link href="/sign-up-login" className="btn-primary text-base py-3.5 px-10 gap-2">
-              {heroCTAPrimary}
-              <ArrowRight size={18} />
-            </Link>
-            <Link href="/home#features" className="btn-secondary text-base py-3.5 px-10">
-              {heroCTASecondary}
-            </Link>
+    <div className="overflow-x-hidden bg-[#f4f7fb] text-slate-950">
+      <section className="relative overflow-hidden bg-[#041229] px-4 pb-20 pt-14 text-white">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.14),transparent_22%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-b from-transparent to-[#061426]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[minmax(0,0.88fr)_minmax(520px,1fr)] lg:gap-10">
+          <div className="max-w-2xl pt-4 lg:pt-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-xs font-700 uppercase tracking-[0.22em] text-cyan-200">
+              <Sparkles size={12} className="text-cyan-300" />
+              {t('home.hero.aiBadge', { defaultValue: 'AI-powered personal finance' })}
+            </div>
+            <h1 className="mt-6 text-5xl font-800 leading-[1.02] tracking-tight text-white sm:text-6xl xl:text-7xl">
+              {heroTitleLines.map((line, index) => (
+                <span key={index} className="block">
+                  {index === heroAccentIndex ? (
+                    <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-emerald-300 bg-clip-text text-transparent">
+                      {line}
+                    </span>
+                  ) : (
+                    line
+                  )}
+                </span>
+              ))}
+            </h1>
+            <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300 sm:text-xl">
+              {heroSubtitle}
+            </p>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+              <Link
+                href="/sign-up-login"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-8 py-4 text-base font-700 text-slate-950 shadow-[0_18px_40px_rgba(34,211,238,0.25)] transition-transform hover:-translate-y-0.5"
+              >
+                {heroCTAPrimary}
+                <ArrowRight size={18} />
+              </Link>
+              <Link
+                href="/home#features"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-8 py-4 text-base font-700 text-white transition-colors hover:bg-white/10"
+              >
+                {heroCTASecondary}
+              </Link>
+            </div>
+            <div className="mt-7 flex flex-wrap gap-x-6 gap-y-3 text-sm text-slate-300">
+              <span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-emerald-300" />{t('home.trust.noCard')}</span>
+              <span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-emerald-300" />{t('home.trust.freePlan')}</span>
+              <span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-emerald-300" />{t('home.trust.oauthEnabled')}</span>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground mb-4">
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-positive" /> {t('home.trust.noCard')}</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-positive" /> {t('home.trust.freePlan')}</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={13} className="text-positive" /> {t('home.trust.oauthEnabled')}</span>
-          </div>
-
-          {/* Dashboard preview */}
           <DashboardPreview />
         </div>
       </section>
 
-      {/* Spacer to account for floating mobile card */}
-      <div className="h-16 sm:h-20" />
-
-      {/* ── Product Overview ─────────────────────────────────────────────── */}
-      <section id="about" className="scroll-mt-28 py-20 px-4 bg-card/50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.aboutTitle')}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">{t('home.sections.aboutDescription')}</p>
+      <section id="about" className="scroll-mt-28 px-4 py-20 sm:py-24">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 grid gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-end">
+            <div>
+              <p className="text-xs font-800 uppercase tracking-[0.24em] text-cyan-600">
+                {t('home.sections.aboutEyebrow', { defaultValue: 'Everything in one place' })}
+              </p>
+              <h2 className="mt-4 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
+                {t('home.sections.aboutTitle')}
+              </h2>
+            </div>
+            <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
+              {t('home.sections.aboutDescription')}
+            </p>
           </div>
-          {/* Bento grid — varied sizes */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f) => {
-              const FIcon = f.icon;
-              const isLarge = f.size === 'large';
-              const isMedium = f.size === 'medium';
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_16px_40px_rgba(15,23,42,0.06)] xl:col-span-1">
+              <h3 className="text-[2rem] font-800 leading-tight text-slate-950">
+                {t('home.sections.aboutTitle')}
+              </h3>
+              <p className="mt-4 text-sm leading-6 text-slate-600">
+                {t('home.sections.featuresDescription')}
+              </p>
+            </div>
+
+            {FEATURES.map((feature) => {
+              const Icon = feature.icon;
+              const isLarge = feature.size === 'large';
+              const isMedium = feature.size === 'medium';
               return (
                 <div
-                  key={f.id}
-                  className={`card-elevated p-6 flex flex-col gap-3 ${isLarge ? 'col-span-2 lg:col-span-2 row-span-2' : ''} ${isMedium ? 'col-span-2 lg:col-span-1' : ''}`}
+                  key={feature.id}
+                  className={`rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)] ${
+                    isLarge ? 'md:col-span-2 xl:col-span-1' : ''
+                  } ${isMedium ? 'md:col-span-2 xl:col-span-1' : ''}`}
                 >
-                  <div className={`rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0 ${isLarge ? 'w-14 h-14' : 'w-10 h-10'}`}>
-                    <FIcon size={isLarge ? 26 : 18} className="text-accent" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 to-sky-100">
+                    <Icon size={22} className="text-cyan-700" />
                   </div>
-                  <h3 className={`font-700 text-foreground ${isLarge ? 'text-xl' : 'text-base'}`}>{t(`home.features.${f.id}Title`)}</h3>
-                  <p className={`text-muted-foreground leading-relaxed ${isLarge ? 'text-base' : 'text-sm'}`}>{t(`home.features.${f.id}Description`)}</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Key Benefits ─────────────────────────────────────────────────── */}
-      <section id="features" className="scroll-mt-28 py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.featuresTitle')}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">{t('home.sections.featuresDescription')}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {BENEFITS.map((b) => {
-              const BIcon = b.icon;
-              return (
-                <div key={b.id} className="flex gap-4 p-5 rounded-2xl border border-border hover:border-accent/30 hover:bg-accent/3 transition-all">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <BIcon size={17} className="text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-700 text-foreground mb-1">{t(`home.benefits.${b.id}Title`)}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{t(`home.benefits.${b.id}Description`)}</p>
+                  <h3 className="mt-5 text-xl font-700 text-slate-950">
+                    {t(`home.features.${feature.id}Title`)}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                    {t(`home.features.${feature.id}Description`)}
+                  </p>
+                  <div className="mt-6 rounded-2xl bg-slate-50 p-4">
+                    <div className="flex h-20 items-end gap-2">
+                      {[38, 45, 32, 58, 46, 68].map((height, index) => (
+                        <span
+                          key={`${feature.id}-${index}`}
+                          className="flex-1 rounded-t-full bg-gradient-to-t from-cyan-500/25 to-sky-400/60"
+                          style={{ height: `${height}%` }}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               );
@@ -330,217 +416,64 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How It Works ─────────────────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-primary/4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.stepsTitle')}</h2>
-            <p className="text-muted-foreground">{t('home.sections.stepsDescription')}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.id} className="relative">
-                <div className="card-elevated p-5 h-full">
-                  <div className="text-3xl font-800 text-accent/20 mb-3">{step.step}</div>
-                  <h3 className="text-sm font-700 text-foreground mb-2">{t(`home.steps.${step.id}Title`)}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{t(`home.steps.${step.id}Description`)}</p>
-                </div>
-                {i < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden lg:flex absolute top-1/2 -right-2 -translate-y-1/2 z-10">
-                    <ChevronRight size={16} className="text-accent/40" />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Platform Availability ─────────────────────────────────────────── */}
-      <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section id="features" className="scroll-mt-28 px-4 pb-20">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-[2.2rem] bg-[#041229] text-white shadow-[0_24px_80px_rgba(2,12,32,0.22)]">
+          <div className="grid gap-10 px-6 py-10 sm:px-10 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center lg:px-12">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.platformTitle')}</h2>
-              <p className="text-muted-foreground mb-8 leading-relaxed">{t('home.sections.platformDescription')}</p>
-              <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] text-cyan-200">
+                <Bot size={13} className="text-cyan-300" />
+                {t('home.ai.badge')}
+              </div>
+              <h2 className="mt-5 text-3xl font-800 tracking-tight sm:text-5xl">
+                {t('home.ai.title', { defaultValue: 'Your finances, understood by AI' })}
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
+                {t('home.ai.description')}
+              </p>
+              <div className="mt-6 space-y-3">
                 {[
-                  { icon: Smartphone, label: t('home.platform.mobileTitle'), desc: t('home.platform.mobileDescription') },
-                  { icon: Monitor, label: t('home.platform.desktopTitle'), desc: t('home.platform.desktopDescription') },
-                  { icon: Tablet, label: t('home.platform.tabletTitle'), desc: t('home.platform.tabletDescription') },
-                ].map((p) => {
-                  const PIcon = p.icon;
-                  return (
-                    <div key={p.label} className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center flex-shrink-0">
-                        <PIcon size={18} className="text-accent" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-600 text-foreground">{p.label}</p>
-                        <p className="text-xs text-muted-foreground">{p.desc}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="card-elevated p-6 col-span-2 flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-positive/10 flex items-center justify-center flex-shrink-0">
-                  <Zap size={22} className="text-positive" />
-                </div>
-                <div>
-                  <p className="font-700 text-foreground">{t('home.platform.pwaTitle')}</p>
-                  <p className="text-sm text-muted-foreground">{t('home.platform.pwaDescription')}</p>
-                </div>
-              </div>
-              <div className="card-elevated p-5 flex flex-col items-center text-center gap-2">
-                <Apple size={28} className="text-foreground" />
-                <p className="text-sm font-600 text-foreground">{t('home.auth.apple')}</p>
-                <p className="text-xs text-muted-foreground">{t('home.available')}</p>
-              </div>
-              <div className="card-elevated p-5 flex flex-col items-center text-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="M12 6a6 6 0 1 1 0 12A6 6 0 0 1 12 6z"/><path d="M12 10a2 2 0 1 1 0 4 2 2 0 0 1 0-4z"/></svg>
-                <p className="text-sm font-600 text-foreground">{t('home.auth.google')}</p>
-                <p className="text-xs text-muted-foreground">{t('home.available')}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Security & Privacy ───────────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-card/50">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="grid grid-cols-2 gap-4 order-2 lg:order-1">
-                {[
-                  { icon: Lock, id: 'rls' },
-                  { icon: Shield, id: 'transit' },
-                  { icon: Shield, id: 'rest' },
-                  { icon: CheckCircle2, id: 'privacy' },
-                ].map((s) => {
-                const SIcon = s.icon;
-                return (
-                  <div key={s.id} className="card-elevated p-5">
-                    <div className="w-9 h-9 rounded-lg bg-positive/10 flex items-center justify-center mb-3">
-                      <SIcon size={17} className="text-positive" />
-                    </div>
-                    <p className="text-sm font-700 text-foreground mb-1">{t(`home.security.${s.id}Title`)}</p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{t(`home.security.${s.id}Description`)}</p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 text-xs font-700 uppercase tracking-widest text-positive bg-positive/10 px-3 py-1.5 rounded-full mb-6">
-                <Shield size={12} /> {t('home.security.label')}
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.security.heading')}</h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">{t('home.security.body')}</p>
-              <Link href="/privacy" className="inline-flex items-center gap-2 text-sm font-600 text-accent hover:underline">
-                {t('home.security.readPrivacy')} <ArrowRight size={14} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Multilingual Support ─────────────────────────────────────────── */}
-      <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 text-xs font-700 uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full mb-6">
-                <Languages size={12} /> {t('home.languages.label')}
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.sections.languagesTitle')}</h2>
-              <p className="text-muted-foreground leading-relaxed mb-6">{t('home.sections.languagesDescription')}</p>
-              <div className="flex flex-wrap gap-3">
-                {LANGUAGES.map((l) => (
-                  <div key={l.code} className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border bg-card">
-                    <span className="text-sm font-700 text-foreground">{t(l.nameKey)}</span>
-                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{t(l.dirKey)}</span>
+                  t('home.benefits.balanceTitle'),
+                  t('home.benefits.reportsTitle'),
+                  t('home.security.rlsTitle'),
+                  t('home.sections.platformTitle'),
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3 text-sm text-slate-200">
+                    <CheckCircle2 size={16} className="text-emerald-300" />
+                    {item}
                   </div>
                 ))}
               </div>
             </div>
-            <div className="card-elevated p-8 space-y-4">
-              <p className="text-xs font-700 uppercase tracking-widest text-muted-foreground mb-4">{t('home.currency.title')}</p>
-              {[
-                { code: 'USD', name: t('home.currency.usd'), sample: formatCurrencyText(1250, { currencyCode: 'USD' }) },
-                { code: 'EUR', name: t('home.currency.eur'), sample: formatCurrencyText(1250, { currencyCode: 'EUR' }) },
-                { code: 'AED', name: t('home.currency.aed'), sample: formatCurrencyText(1250, { currencyCode: 'AED' }) },
-                { code: 'GBP', name: t('home.currency.gbp'), sample: formatCurrencyText(1250, { currencyCode: 'GBP' }) },
-              ].map((c) => (
-                <div key={c.code} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                  <div className="flex items-center gap-3">
-                    <span className="min-w-8 rounded-lg bg-accent/10 px-2 py-1 text-xs font-700 text-accent">{c.sample}</span>
-                    <span className="text-sm font-600 text-foreground">{c.name}</span>
-                  </div>
-                  <span className="text-xs text-muted-foreground font-600">{c.code}</span>
-                </div>
-              ))}
-              <p className="text-xs text-muted-foreground pt-2">{t('home.currency.supported')}</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── Reports & Exports ────────────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-primary/4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.reports.title')}</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">{t('home.reports.description')}</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              { icon: FileText, id: 'pdf' },
-              { icon: Download, id: 'csv' },
-              { icon: BarChart3, id: 'charts' },
-            ].map((r) => {
-              const RIcon = r.icon;
-              return (
-                <div key={r.id} className="card-elevated p-6">
-                  <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center mb-4">
-                    <RIcon size={20} className="text-accent" />
-                  </div>
-                  <h3 className="text-base font-700 text-foreground mb-2">{t(`home.reports.${r.id}Title`)}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{t(`home.reports.${r.id}Description`)}</p>
+            <div className="relative">
+              <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/20 blur-3xl" />
+              <div className="relative mx-auto flex h-44 w-44 items-center justify-center rounded-full border border-cyan-300/20 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.28),rgba(3,7,18,0.2)_50%,rgba(3,7,18,0)_70%)] shadow-[0_0_0_10px_rgba(34,211,238,0.05)]">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full border border-cyan-300/30 bg-[#05172c]">
+                  <Bot size={42} className="text-cyan-300" />
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── AI-Ready Positioning ─────────────────────────────────────────── */}
-      <section className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="card-elevated p-10 lg:p-14 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 rounded-full bg-accent/5 blur-3xl pointer-events-none" />
-            <div className="relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-              <div>
-                <div className="inline-flex items-center gap-2 text-xs font-700 uppercase tracking-widest text-accent bg-accent/10 px-3 py-1.5 rounded-full mb-6">
-                  <Sparkles size={12} /> {t('home.ai.badge')}
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-800 text-foreground mb-4">{t('home.ai.title')}</h2>
-                <p className="text-muted-foreground leading-relaxed">{t('home.ai.description')}</p>
               </div>
-              <div className="space-y-3">
+              <div className="mt-8 space-y-3">
                 {[
                   t('home.ai.features.1'),
                   t('home.ai.features.2'),
                   t('home.ai.features.3'),
                   t('home.ai.features.4'),
-                ].map((item) => (
-                  <div key={item} className="flex items-center gap-3 p-3 rounded-xl bg-muted/50">
-                    <div className="w-6 h-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
-                      <Sparkles size={11} className="text-accent" />
+                ].map((item, index) => (
+                  <div
+                    key={item}
+                    className={`rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200 shadow-[0_12px_24px_rgba(2,12,32,0.22)] ${
+                      index % 2 === 1 ? 'lg:ml-12' : 'lg:mr-12'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-400/12">
+                        <Sparkles size={14} className="text-cyan-300" />
+                      </span>
+                      <span>{item}</span>
+                      <span className="ml-auto rounded-full bg-cyan-400/10 px-2.5 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-cyan-200">
+                        {t('home.ai.planned')}
+                      </span>
                     </div>
-                    <span className="text-sm text-muted-foreground">{item}</span>
-                    <span className="ml-auto text-xs font-600 text-accent/60 bg-accent/10 px-2 py-0.5 rounded-full">{t('home.ai.planned')}</span>
                   </div>
                 ))}
               </div>
@@ -549,47 +482,235 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Pricing Teaser ───────────────────────────────────────────────── */}
-      <PricingPlansSection sectionId="pricing" showViewDetailsLink={true} />
-
-      {/* ── Contact CTA ──────────────────────────────────────────────────── */}
-      <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-700 uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1.5 rounded-full mb-6">
-            <Mail size={12} /> {t('home.contact.badge')}
+      <section className="px-4 pb-20">
+        <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <h3 className="text-2xl font-800 text-slate-950">{t('home.sections.featuresTitle')}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{t('home.sections.featuresDescription')}</p>
+            <div className="mt-5 flex h-20 items-end gap-1">
+              {[22, 30, 28, 42, 35, 48, 40].map((height, index) => (
+                <span key={index} className="flex-1 rounded-t-full bg-gradient-to-t from-cyan-500/15 to-sky-300/60" style={{ height: `${height}%` }} />
+              ))}
+            </div>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-800 text-foreground mb-4">{t('home.contact.title')}</h2>
-          <p className="text-muted-foreground mb-8 leading-relaxed">{t('home.contact.description')}</p>
-          <Link href="/contact" className="btn-primary text-base py-3.5 px-10 mx-auto gap-2">
-            <Mail size={18} /> {t('home.cta.secondary')}
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <h3 className="text-xl font-700 text-slate-950">{t('home.sections.stepsTitle')}</h3>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{t('home.sections.stepsDescription')}</p>
+            <div className="mt-5 flex flex-wrap gap-3">
+              {HOW_IT_WORKS.slice(0, 4).map((step, index) => (
+                <div key={step.id} className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-700 text-slate-700">
+                  <span className="text-cyan-600">{String(index + 1).padStart(2, '0')}</span>
+                  {t(`home.steps.${step.id}Title`)}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <h3 className="text-xl font-700 text-slate-950">{t('home.sections.platformTitle')}</h3>
+            <div className="mt-5 space-y-4">
+              {[
+                { icon: Smartphone, label: t('home.platform.mobileTitle') },
+                { icon: Monitor, label: t('home.platform.desktopTitle') },
+                { icon: Tablet, label: t('home.platform.tabletTitle') },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.label} className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50">
+                      <Icon size={18} className="text-cyan-700" />
+                    </div>
+                    <span className="text-sm font-600 text-slate-700">{item.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
+            <h3 className="text-xl font-700 text-slate-950">{t('home.security.heading')}</h3>
+            <div className="mt-5 space-y-3">
+              {[
+                { icon: Lock, id: 'rls' },
+                { icon: Shield, id: 'rest' },
+                { icon: CheckCircle2, id: 'privacy' },
+              ].map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.id} className="flex gap-3">
+                    <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50">
+                      <Icon size={14} className="text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-700 text-slate-900">{t(`home.security.${item.id}Title`)}</p>
+                      <p className="text-xs leading-5 text-slate-600">{t(`home.security.${item.id}Description`)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] text-cyan-700">
+                <Languages size={12} />
+                {t('home.languages.label')}
+              </div>
+              <h2 className="mt-5 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
+                {t('home.sections.languagesTitle')}
+              </h2>
+              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">
+                {t('home.sections.languagesDescription')}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {LANGUAGES.map((languageOption) => (
+                  <div key={languageOption.code} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <p className="text-sm font-700 text-slate-900">{t(languageOption.nameKey)}</p>
+                    <p className="mt-1 text-xs text-slate-500">{t(languageOption.dirKey)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-6 md:col-span-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-100">
+                    <Zap size={20} className="text-cyan-700" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-700 text-slate-950">{t('home.platform.pwaTitle')}</p>
+                    <p className="text-sm text-slate-600">{t('home.platform.pwaDescription')}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6">
+                <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-500">{t('home.currency.title')}</p>
+                <div className="mt-4 space-y-3">
+                  {[
+                    { code: 'USD', name: t('home.currency.usd'), sample: formatCurrencyText(1250, { currencyCode: 'USD' }) },
+                    { code: 'EUR', name: t('home.currency.eur'), sample: formatCurrencyText(1250, { currencyCode: 'EUR' }) },
+                    { code: 'AED', name: t('home.currency.aed'), sample: formatCurrencyText(1250, { currencyCode: 'AED' }) },
+                  ].map((currency) => (
+                    <div key={currency.code} className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2">
+                      <span className="text-sm font-600 text-slate-900">{currency.name}</span>
+                      <span className="text-xs font-700 text-cyan-700">{currency.sample}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-[2rem] border border-slate-200 bg-white p-6">
+                <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-500">
+                  {t('home.sections.platformTitle')}
+                </p>
+                <div className="mt-5 flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <Apple size={22} className="text-slate-900" />
+                    <span className="text-sm font-600 text-slate-700">{t('home.auth.apple')}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-50 text-cyan-700">
+                      <Sparkles size={15} />
+                    </div>
+                    <span className="text-sm font-600 text-slate-700">{t('home.auth.google')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <PricingPlansSection sectionId="pricing" showViewDetailsLink={true} variant="dark" />
+
+      <section className="px-4 py-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 rounded-[1.75rem] bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-600 px-6 py-6 text-center text-white shadow-[0_18px_45px_rgba(14,116,144,0.22)] md:flex-row md:text-left">
+          <div>
+            <p className="text-2xl font-800 tracking-tight sm:text-3xl">
+              {t('home.sections.ctaTitle')}
+            </p>
+            <p className="mt-2 max-w-2xl text-sm text-cyan-50 sm:text-base">
+              {t('home.sections.ctaDescription')}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <Link href="/sign-up-login" className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-700 text-slate-950">
+              {t('home.cta.primary')}
+            </Link>
+            <Link href="/home#about" className="inline-flex items-center justify-center rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-700 text-white">
+              {t('home.learnMore')}
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-20">
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] text-slate-600">
+            <Mail size={12} />
+            {t('home.contact.badge', { defaultValue: 'Get in touch' })}
+          </div>
+          <h2 className="mt-5 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
+            {t('home.contact.title', { defaultValue: 'Have questions? We are here.' })}
+          </h2>
+          <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">
+            {t('home.contact.description', {
+              defaultValue: 'Whether you need help getting started, have a feature request, or want to discuss pricing, our team is ready to help.',
+            })}
+          </p>
+          <Link
+            href="/contact"
+            className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-8 py-4 text-base font-700 text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)]"
+          >
+            <Mail size={18} />
+            {t('home.cta.secondary')}
           </Link>
         </div>
       </section>
 
-      {/* ── Final CTA ────────────────────────────────────────────────────── */}
-      <section className="py-24 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background pointer-events-none" />
-        <div className="relative max-w-3xl mx-auto text-center">
-          <div className="flex items-center justify-center mb-6">
-            <AppLogo size={52} />
-          </div>
-          <h2 className="text-4xl sm:text-5xl font-800 text-foreground mb-4 tracking-tight">{t('home.sections.ctaTitle')}</h2>
-          <p className="text-lg text-muted-foreground mb-10 max-w-xl mx-auto leading-relaxed">{t('home.sections.ctaDescription')}</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up-login" className="btn-primary text-base py-3.5 px-10 gap-2">
-              {t('home.cta.primary')} <ArrowRight size={18} />
-            </Link>
-            <Link href="/home#about" className="btn-secondary text-base py-3.5 px-10">
-              {t('home.learnMore')}
-            </Link>
-          </div>
-          <div className="flex items-center justify-center gap-1.5 mt-8">
-            {[1,2,3,4,5].map((s) => <Star key={s} size={14} className="text-amber-400 fill-amber-400" />)}
-            <span className="text-sm text-muted-foreground ml-2">{t('home.lovedWorldwide')}</span>
+      <section className="px-4 pb-24">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-[2.2rem] bg-[#041229] text-white shadow-[0_24px_80px_rgba(2,12,32,0.22)]">
+          <div className="grid gap-10 px-6 py-10 sm:px-10 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <div>
+              <div className="flex items-center justify-center lg:justify-start">
+                <AppLogo size={52} />
+              </div>
+              <h2 className="mt-6 text-center text-3xl font-800 tracking-tight sm:text-5xl lg:text-left">
+                {t('home.sections.ctaTitle')}
+              </h2>
+              <p className="mt-4 max-w-2xl text-center text-base leading-7 text-slate-300 lg:text-left">
+                {t('home.sections.ctaDescription')}
+              </p>
+            </div>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+                <Link
+                  href="/sign-up-login"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-700 text-slate-950"
+                >
+                  {heroCTAPrimary}
+                  <ArrowRight size={15} />
+                </Link>
+                <Link
+                  href="/home#pricing"
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-700 text-white"
+                >
+                  {t('footer.linkPricing', { defaultValue: 'Pricing' })}
+                </Link>
+              </div>
+              <div className="flex items-center justify-center gap-1.5 lg:justify-start">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star key={star} size={14} className="fill-amber-400 text-amber-400" />
+                ))}
+                <span className="ml-2 text-sm text-slate-300">{t('home.lovedWorldwide')}</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
-
     </div>
   );
 }

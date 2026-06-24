@@ -1,6 +1,7 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import FooterLegalLine from '@/components/footer/FooterLegalLine';
 import { useTranslation } from 'react-i18next';
@@ -69,6 +70,7 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
 }
 
 export default function PublicFooter() {
+  const pathname = usePathname();
   const { t } = useTranslation('public');
   const { language } = useLanguage();
   const { branding, publicUi } = usePlatformSettings();
@@ -80,9 +82,10 @@ export default function PublicFooter() {
   );
   const legalLinks = legalSection?.links ?? [];
   const topSections = publicUi.footerSections.filter((section) => section.id !== legalSection?.id);
+  const isHomePage = pathname === '/home' || pathname === '/';
 
   return (
-    <footer className="border-t border-border bg-card/95 backdrop-blur-sm">
+    <footer className={isHomePage ? 'border-t border-white/10 bg-[#041229] text-white' : 'border-t border-border bg-card/95 backdrop-blur-sm'}>
       <div className="page-shell py-8 md:py-10">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]">
           <div className="max-w-sm">
@@ -94,11 +97,11 @@ export default function PublicFooter() {
               />
               {showBrandText && (
                 <div className="min-w-0">
-                  <span className="block font-800 text-sm tracking-tight text-primary">
+                  <span className={`block font-800 text-sm tracking-tight ${isHomePage ? 'text-white' : 'text-primary'}`}>
                     {publicUi.footerCompanyName || branding.appName}
                   </span>
                   {showSingleLanguageFooterTagline && publicUi.footerTagline ? (
-                    <span className="block text-xs text-muted-foreground mt-1">
+                    <span className={`block mt-1 text-xs ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
                       {publicUi.footerTagline}
                     </span>
                   ) : null}
@@ -106,15 +109,15 @@ export default function PublicFooter() {
               )}
             </Link>
             {!showBrandText && showSingleLanguageFooterTagline && publicUi.footerTagline && (
-              <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+              <p className={`mt-3 text-sm leading-relaxed ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
                 {publicUi.footerTagline}
               </p>
             )}
-            <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+            <div className={`mt-4 space-y-2 text-sm ${isHomePage ? 'text-slate-300' : 'text-muted-foreground'}`}>
               {contactEmail && (
                 <a
                   href={`mailto:${contactEmail}`}
-                  className="inline-flex items-center gap-2 text-accent hover:underline"
+                  className={isHomePage ? 'inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200' : 'inline-flex items-center gap-2 text-accent hover:underline'}
                 >
                   <Mail size={13} />
                   {contactEmail}
@@ -123,7 +126,7 @@ export default function PublicFooter() {
               {publicUi.contactPhone && (
                 <a
                   href={`tel:${publicUi.contactPhone}`}
-                  className="flex items-center gap-2 hover:text-foreground transition-colors"
+                  className={isHomePage ? 'flex items-center gap-2 transition-colors hover:text-white' : 'flex items-center gap-2 hover:text-foreground transition-colors'}
                 >
                   <Phone size={13} />
                   {publicUi.contactPhoneFormatted || publicUi.contactPhone}
@@ -138,17 +141,17 @@ export default function PublicFooter() {
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {publicUi.socialTwitter && (
-                <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.twitter')}>
+                <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className={isHomePage ? 'p-2 rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white' : 'p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'} aria-label={t('footer.social.twitter')}>
                   <TwitterIcon size={15} />
                 </a>
               )}
               {publicUi.socialGithub && (
-                <a href={publicUi.socialGithub} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.github')}>
+                <a href={publicUi.socialGithub} target="_blank" rel="noopener noreferrer" className={isHomePage ? 'p-2 rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white' : 'p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'} aria-label={t('footer.social.github')}>
                   <GithubIcon size={15} />
                 </a>
               )}
               {publicUi.socialLinkedin && (
-                <a href={publicUi.socialLinkedin} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label={t('footer.social.linkedin')}>
+                <a href={publicUi.socialLinkedin} target="_blank" rel="noopener noreferrer" className={isHomePage ? 'p-2 rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white' : 'p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'} aria-label={t('footer.social.linkedin')}>
                   <LinkedinIcon size={15} />
                 </a>
               )}
@@ -157,7 +160,7 @@ export default function PublicFooter() {
 
           {topSections.map((section) => (
             <div key={section.id}>
-              <p className="text-[11px] font-800 uppercase tracking-[0.16em] text-foreground mb-3">
+              <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
                 {getFooterSectionTitle(section.id, section.title, t)}
               </p>
               <ul className="space-y-2">
@@ -165,7 +168,7 @@ export default function PublicFooter() {
                   <li key={link.id}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                      className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}
                     >
                       {getFooterLinkLabel(link.href, link.label, t)}
                     </Link>
@@ -176,18 +179,18 @@ export default function PublicFooter() {
           ))}
         </div>
 
-        <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className={`mt-8 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
           <FooterLegalLine />
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
-              <Link key={link.id} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Link key={link.id} href={link.href} className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>
                 {getFooterLinkLabel(link.href, link.label, t)}
               </Link>
             ))}
             {legalLinks.length === 0 && (
               <>
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t('footer.privacy')}</Link>
-                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">{t('footer.terms')}</Link>
+                <Link href="/privacy" className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>{t('footer.privacy')}</Link>
+                <Link href="/terms" className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>{t('footer.terms')}</Link>
               </>
             )}
           </div>

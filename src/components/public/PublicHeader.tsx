@@ -41,6 +41,7 @@ export default function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState('');
   const mobileRef = useRef<HTMLDivElement>(null);
+  const isHomePage = pathname === '/home' || pathname === '/';
 
   // Close mobile menu on outside click
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function PublicHeader() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const headerClass = `border-b border-border bg-card/95 backdrop-blur-sm z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
+  const headerClass = `${isHomePage ? 'border-b border-white/10 bg-[#041229]/88 text-white' : 'border-b border-border bg-card/95'} backdrop-blur-xl z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
 
   return (
     <header className={headerClass} ref={mobileRef}>
@@ -112,8 +113,12 @@ export default function PublicHeader() {
                 href={item.href}
                 className={`px-3.5 py-2.5 rounded-xl text-sm font-600 transition-colors border ${
                   isActive(item.href)
-                    ? 'text-accent bg-accent/8 border-accent/15'
-                    : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
+                    ? isHomePage
+                      ? 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200'
+                      : 'text-accent bg-accent/8 border-accent/15'
+                    : isHomePage
+                      ? 'border-transparent text-slate-300 hover:bg-white/5 hover:text-white'
+                      : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
                 }`}
               >
                 {getTranslatedNavLabel(item.href, item.label, t)}
@@ -126,11 +131,14 @@ export default function PublicHeader() {
             <LanguageSwitcher variant="compact" />
             <Link
               href="/sign-up-login?mode=login"
-              className="btn-ghost text-sm px-3 py-2 text-muted-foreground hover:text-foreground"
+              className={`text-sm px-3 py-2 rounded-xl transition-colors ${isHomePage ? 'text-slate-300 hover:bg-white/5 hover:text-white' : 'btn-ghost text-muted-foreground hover:text-foreground'}`}
             >
               {t('nav.signIn', { ns: 'common' })}
             </Link>
-            <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2 px-4">
+            <Link
+              href="/sign-up-login?mode=signup"
+              className={isHomePage ? 'inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-2 text-sm font-700 text-slate-950 shadow-[0_12px_30px_rgba(34,211,238,0.18)]' : 'btn-primary text-sm py-2 px-4'}
+            >
               {t('nav.signUp', { ns: 'common' })}
             </Link>
           </div>
@@ -140,7 +148,7 @@ export default function PublicHeader() {
             <LanguageSwitcher variant="compact" />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className={`p-2.5 rounded-xl transition-colors ${isHomePage ? 'text-slate-300 hover:bg-white/5 hover:text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               aria-label={mobileOpen ? t('header.closeMenu', { ns: 'public' }) : t('header.openMenu', { ns: 'public' })}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -150,12 +158,12 @@ export default function PublicHeader() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-border py-4 space-y-1 pb-4">
+          <div className={`md:hidden py-4 space-y-1 pb-4 ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
             {showBrandText && (
               <div className="px-3.5 pb-3">
-                <p className="text-sm font-700 text-primary">{branding.appName}</p>
+                <p className={`text-sm font-700 ${isHomePage ? 'text-white' : 'text-primary'}`}>{branding.appName}</p>
                 {showSingleLanguageTagline && branding.tagline ? (
-                  <p className="text-xs text-muted-foreground mt-1">{branding.tagline}</p>
+                  <p className={`mt-1 text-xs ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>{branding.tagline}</p>
                 ) : null}
               </div>
             )}
@@ -165,18 +173,28 @@ export default function PublicHeader() {
                 href={item.href}
                 className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
                   isActive(item.href)
-                    ? 'text-accent bg-accent/8 border border-accent/15'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
+                    ? isHomePage
+                      ? 'border border-cyan-300/20 bg-cyan-300/10 text-cyan-200'
+                      : 'text-accent bg-accent/8 border border-accent/15'
+                    : isHomePage
+                      ? 'border border-transparent text-slate-300 hover:bg-white/5 hover:text-white'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
                 }`}
               >
                 {getTranslatedNavLabel(item.href, item.label, t)}
               </Link>
             ))}
-            <div className="pt-3 border-t border-border flex flex-col gap-2">
-              <Link href="/sign-up-login?mode=login" className="btn-secondary text-sm py-2.5 justify-center">
+            <div className={`pt-3 flex flex-col gap-2 ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
+              <Link
+                href="/sign-up-login?mode=login"
+                className={isHomePage ? 'inline-flex justify-center rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-700 text-white' : 'btn-secondary text-sm py-2.5 justify-center'}
+              >
                 {t('nav.signIn', { ns: 'common' })}
               </Link>
-              <Link href="/sign-up-login?mode=signup" className="btn-primary text-sm py-2.5 justify-center">
+              <Link
+                href="/sign-up-login?mode=signup"
+                className={isHomePage ? 'inline-flex justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 py-2.5 text-sm font-700 text-slate-950' : 'btn-primary text-sm py-2.5 justify-center'}
+              >
                 {t('header.getStartedFree', { ns: 'public' })}
               </Link>
             </div>
