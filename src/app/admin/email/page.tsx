@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2, Mail } from 'lucide-react';
+import { Check, Loader2, Mail, ShieldCheck, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
