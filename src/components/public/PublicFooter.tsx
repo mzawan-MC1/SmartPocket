@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import FooterLegalLine from '@/components/footer/FooterLegalLine';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
@@ -70,10 +71,10 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
 export default function PublicFooter() {
   const { t } = useTranslation('public');
   const { language } = useLanguage();
-  const { branding, publicUi, email } = usePlatformSettings();
+  const { branding, publicUi } = usePlatformSettings();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const showSingleLanguageFooterTagline = language === 'en';
-  const contactEmail = email.supportEmail || publicUi.contactEmail || 'info@1smartpocket.com';
+  const contactEmail = publicUi.contactEmail;
   const legalSection = publicUi.footerSections.find(
     (section) => section.title.trim().toLowerCase() === 'legal'
   );
@@ -176,9 +177,7 @@ export default function PublicFooter() {
         </div>
 
         <div className="mt-8 border-t border-border pt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {publicUi.footerCopyright || `© ${publicUi.footerCompanyName || branding.appName}. ${t('footer.rights')}`}
-          </p>
+          <FooterLegalLine />
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
               <Link key={link.id} href={link.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">

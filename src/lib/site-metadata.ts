@@ -431,11 +431,11 @@ export function buildOrganizationStructuredData(settings: PlatformSettingsSnapsh
     url: getCanonicalOrigin(settings),
     logo: buildAbsoluteAssetUrl(settings.branding.organizationLogoUrl, settings),
     contactPoint:
-      settings.email.supportEmail || settings.publicUi.contactPhone
+      settings.publicUi.contactEmail || settings.publicUi.contactPhone
         ? [
             {
               '@type': 'ContactPoint',
-              email: settings.email.supportEmail || settings.publicUi.contactEmail || undefined,
+              email: settings.publicUi.contactEmail || undefined,
               telephone: settings.publicUi.contactPhone || undefined,
               contactType: 'customer support',
               availableLanguage: settings.localization.enabledLanguages,

@@ -10,8 +10,8 @@ import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 export default function HelpPage() {
   const { t } = useTranslation('portal');
-  const { email, publicUi } = usePlatformSettings();
-  const supportEmail = email.supportEmail || publicUi.contactEmail || 'info@1smartpocket.com';
+  const { publicUi } = usePlatformSettings();
+  const supportEmail = publicUi.contactEmail;
   const faq = [1, 2, 3, 4, 5, 6].map((index) => ({
     q: t(`help.faq.${index}.question`),
     a: t(`help.faq.${index}.answer`),

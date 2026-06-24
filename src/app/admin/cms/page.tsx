@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import { getPlatformSettings } from '@/lib/finance';
 import { normalizePublicNavHref } from '@/lib/platform-settings';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 import { buildNormalizedPhoneParts, getPlatformContactPhoneCountryCode } from '@/lib/phone';
@@ -90,6 +90,11 @@ export default function AdminCmsPage() {
     payment_stripe_enabled: false,
     payment_paypal_enabled: false,
   });
+  const [footerMeta, setFooterMeta] = useState({
+    footer_copyright: '© Smart Pocket. All rights reserved.',
+    footer_powered_by_text: 'MCS Consultancy',
+    footer_powered_by_url: 'https://www.mc1services.com/',
+  });
 
   useEffect(() => {
     getPlatformSettings()
@@ -134,6 +139,11 @@ export default function AdminCmsPage() {
           setPayment({
             payment_stripe_enabled: data.payment_stripe_enabled ?? false,
             payment_paypal_enabled: data.payment_paypal_enabled ?? false,
+          });
+          setFooterMeta({
+            footer_copyright: data.footer_copyright || '© Smart Pocket. All rights reserved.',
+            footer_powered_by_text: data.footer_powered_by_text || 'MCS Consultancy',
+            footer_powered_by_url: data.footer_powered_by_url || 'https://www.mc1services.com/',
           });
         }
       })
@@ -194,30 +204,43 @@ export default function AdminCmsPage() {
         countries,
       });
 
-      await savePlatformSettings({
-        header_menu: headerMenu.map((item) => ({
-          ...item,
-          href: normalizePublicNavHref(item.href),
-        })),
-        footer_sections: footerSections.map((section) => ({
-          ...section,
-          links: section.links.map((link) => ({
-            ...link,
-            href: normalizePublicNavHref(link.href),
+      const response = await fetch('/api/admin/cms/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          header_menu: headerMenu.map((item) => ({
+            ...item,
+            href: normalizePublicNavHref(item.href),
           })),
-        })),
-        contact_email: contact.contact_email,
-        contact_phone: normalizedPhone.e164 || normalizedPhone.display || '',
-        contact_phone_country_code: resolvedPhoneCountryCode,
-        contact_address: contact.contact_address,
-        ...payment,
+          footer_sections: footerSections.map((section) => ({
+            ...section,
+            links: section.links.map((link) => ({
+              ...link,
+              href: normalizePublicNavHref(link.href),
+            })),
+          })),
+          footer_copyright: footerMeta.footer_copyright,
+          footer_powered_by_text: footerMeta.footer_powered_by_text,
+          footer_powered_by_url: footerMeta.footer_powered_by_url,
+          contact_email: contact.contact_email,
+          contact_phone: normalizedPhone.e164 || normalizedPhone.display || '',
+          contact_phone_country_code: resolvedPhoneCountryCode,
+          contact_address: contact.contact_address,
+          ...payment,
+        }),
       });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Failed to save CMS settings.');
+      }
+
       setContact((current) => ({
         ...current,
         contact_phone: normalizedPhone.e164 || normalizedPhone.display || '',
         contact_phone_country_code: resolvedPhoneCountryCode,
       }));
       setContactPhoneCountryCode(resolvedPhoneCountryCode);
+      router.refresh();
       setSaved(true);
       toast.success('CMS & navigation settings saved.');
       setTimeout(() => setSaved(false), 2500);
@@ -361,6 +384,42 @@ export default function AdminCmsPage() {
 
       {activeTab === 'footer' ? (
         <div className="space-y-4">
+          <div className="card-elevated p-5 space-y-4">
+            <h2 className="text-base font-600 text-foreground">Footer Legal Content</h2>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">Copyright text</label>
+              <input
+                type="text"
+                className="input-base"
+                value={footerMeta.footer_copyright}
+                onChange={(e) => setFooterMeta((current) => ({ ...current, footer_copyright: e.target.value }))}
+                placeholder="© Smart Pocket. All rights reserved."
+              />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-600 text-foreground mb-1.5">Powered-by name</label>
+                <input
+                  type="text"
+                  className="input-base"
+                  value={footerMeta.footer_powered_by_text}
+                  onChange={(e) => setFooterMeta((current) => ({ ...current, footer_powered_by_text: e.target.value }))}
+                  placeholder="MCS Consultancy"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-600 text-foreground mb-1.5">Powered-by URL</label>
+                <input
+                  type="url"
+                  className="input-base"
+                  value={footerMeta.footer_powered_by_url}
+                  onChange={(e) => setFooterMeta((current) => ({ ...current, footer_powered_by_url: e.target.value }))}
+                  placeholder="https://www.mc1services.com/"
+                />
+              </div>
+            </div>
+          </div>
+
           {footerSections.map((section) => (
             <div key={section.id} className="card-elevated p-5 space-y-3">
               <div className="flex items-center gap-3">
@@ -413,11 +472,11 @@ export default function AdminCmsPage() {
         <div className="card-elevated p-5 space-y-4">
           <h2 className="text-base font-600 text-foreground">Contact Information</h2>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Support Email</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">Contact &amp; Support Email</label>
             <input
               type="email"
               className="input-base"
-              placeholder="info@1smartpocket.com"
+              placeholder="contact@1smartpocket.com"
               value={contact.contact_email}
               onChange={(e) => setContact((c) => ({ ...c, contact_email: e.target.value }))}
             />

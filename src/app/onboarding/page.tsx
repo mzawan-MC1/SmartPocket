@@ -209,6 +209,15 @@ export default function OnboardingPage() {
         })
         .eq('id', currentUser.id);
       if (error) throw error;
+
+      try {
+        await supabase
+          .from('user_profiles')
+          .update({ onboarding_completed_at: new Date().toISOString() })
+          .eq('id', currentUser.id)
+          .is('onboarding_completed_at', null);
+      } catch {
+      }
       clearResolvedUserDefaultCurrencyCache();
       clearFinancialPeriodProfileCache();
       dispatchSmartPocketDataChanged({

@@ -37,9 +37,9 @@ export function renderBrandedEmailShell({
   const primaryColor = settings.branding.primaryColor;
   const accentColor = settings.branding.accentColor;
   const appName = settings.branding.appName;
-  const supportEmail = settings.email.supportEmail || 'info@1smartpocket.com';
+  const supportEmail = settings.publicUi.contactEmail || settings.email.supportEmail || '';
   const siteUrl = getCanonicalOrigin(settings);
-  const footerCopyright = settings.email.footerCopyright || `© ${appName}. All rights reserved.`;
+  const footerCopyright = settings.publicUi.footerCopyright || `© ${appName}. All rights reserved.`;
 
   return `<!DOCTYPE html>
 <html lang="en">

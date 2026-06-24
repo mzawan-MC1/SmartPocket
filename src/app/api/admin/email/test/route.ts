@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
-import { buildTestEmailTemplate } from '@/lib/email/templates';
-import { sendSmtpEmail } from '@/lib/email/smtp';
-import { normalizePlatformSettings } from '@/lib/platform-settings';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { sendTransactionalEmail } from '@/lib/email/transactional';
 
 export const runtime = 'nodejs';
 
@@ -62,26 +60,11 @@ export async function POST(request: Request) {
     return auth.response;
   }
 
-  const { admin, cookieMutations } = auth;
+  const { cookieMutations } = auth;
 
   try {
     const body = (await request.json().catch(() => ({}))) as TestEmailPayload;
-    const [{ data: rawSettings, error: settingsError }, { data: secrets, error: secretsError }] =
-      await Promise.all([
-        admin.from('platform_settings').select('*').maybeSingle(),
-        admin.from('platform_email_secrets').select('smtp_password').maybeSingle(),
-      ]);
-
-    if (settingsError) {
-      throw settingsError;
-    }
-
-    if (secretsError) {
-      throw secretsError;
-    }
-
-    const settings = normalizePlatformSettings(rawSettings || null);
-    const recipient = (body.recipient || settings.email.testRecipientEmail || '').trim();
+    const recipient = (body.recipient || '').trim();
 
     if (!recipient || !isValidEmail(recipient)) {
       return applySupabaseCookies(
@@ -90,45 +73,33 @@ export async function POST(request: Request) {
       );
     }
 
-    if (settings.email.provider !== 'smtp') {
-      return applySupabaseCookies(
-        NextResponse.json(
-          {
-            error:
-              'Test sending from the application is available for SMTP mode only. Supabase-managed auth delivery must be tested from the Supabase Dashboard.',
-          },
-          { status: 400 }
-        ),
-        cookieMutations
-      );
-    }
-
-    if (!settings.email.smtpHost || !settings.email.smtpPort || !settings.email.smtpUser || !secrets?.smtp_password) {
-      return applySupabaseCookies(
-        NextResponse.json(
-          { error: 'SMTP host, port, username, and saved password are required before sending a test email.' },
-          { status: 400 }
-        ),
-        cookieMutations
-      );
-    }
-
-    const message = buildTestEmailTemplate(settings);
-
-    await sendSmtpEmail({
-      host: settings.email.smtpHost,
-      port: Number(settings.email.smtpPort),
-      username: settings.email.smtpUser,
-      password: secrets.smtp_password,
-      from: `${settings.email.fromName} <${settings.email.fromEmail}>`,
-      to: recipient,
-      replyTo: settings.email.replyToEmail,
-      subject: message.subject,
-      html: message.html,
+    const result = await sendTransactionalEmail({
+      eventKey: `admin_smtp_test:${new Date().toISOString()}:${recipient.toLowerCase()}`,
+      templateKey: 'admin_smtp_test',
+      to: { email: recipient },
+      variables: { sent_at: new Date().toISOString() },
+      isTest: true,
+      overrideTo: { email: recipient },
     });
 
+    if (result.status === 'sent') {
+      return applySupabaseCookies(
+        NextResponse.json({ success: true, messageId: result.providerMessageId }, { status: 200 }),
+        cookieMutations
+      );
+    }
+
+    if (result.status === 'skipped') {
+      const errorMessage = result.errorMessage || 'skipped';
+      const status = errorMessage === 'email_provider_not_smtp' || errorMessage === 'smtp_not_configured' ? 400 : 409;
+      return applySupabaseCookies(
+        NextResponse.json({ error: errorMessage }, { status }),
+        cookieMutations
+      );
+    }
+
     return applySupabaseCookies(
-      NextResponse.json({ success: true }, { status: 200 }),
+      NextResponse.json({ error: result.errorMessage || 'Failed to send test email.' }, { status: 500 }),
       cookieMutations
     );
   } catch (error: any) {

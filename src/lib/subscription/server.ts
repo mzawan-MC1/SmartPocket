@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendTransactionalEmail } from '@/lib/email/transactional';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { getBillingAvailability, getBillingProvider } from '@/lib/billing/provider';
 import {
@@ -627,6 +628,62 @@ export async function ensureUserSubscriptionSummary(userId: string): Promise<Ens
 
   summary = await loadSummaryForUser(userId);
 
+  if (initTrial.initialized) {
+    try {
+      const [{ data: profile }, { data: sub }] = await Promise.all([
+        admin.from('user_profiles').select('email,full_name').eq('id', userId).maybeSingle(),
+        admin.from('user_subscriptions').select('id,trial_started_at,trial_ends_at').eq('user_id', userId).maybeSingle(),
+      ]);
+
+      const customerEmail = ((profile as any)?.email as string) || '';
+      const customerName = ((profile as any)?.full_name as string) || '';
+      const subscriptionId = ((sub as any)?.id as string) || null;
+      const trialStartedAt = ((sub as any)?.trial_started_at as string | null) || null;
+      const trialEndsAt = ((sub as any)?.trial_ends_at as string | null) || summary.trialEndsAt || null;
+
+      if (customerEmail) {
+        const endDate = trialEndsAt ? String(trialEndsAt).slice(0, 10) : '';
+        const startDate = trialStartedAt ? String(trialStartedAt).slice(0, 10) : '';
+        const tasks = [
+          sendTransactionalEmail({
+            eventKey: `customer_trial_started:${userId}:${endDate || 'unknown'}`,
+            templateKey: 'customer_trial_started',
+            to: { email: customerEmail, name: customerName },
+            userId,
+            subscriptionId,
+            variables: {
+              customer_name: customerName || customerEmail.split('@')[0] || 'there',
+              customer_email: customerEmail,
+              trial_start_date: startDate,
+              trial_end_date: endDate,
+              plan_name: summary.planName || '',
+            },
+          }),
+          sendTransactionalEmail({
+            eventKey: `admin_trial_started:${userId}:${endDate || 'unknown'}`,
+            templateKey: 'admin_trial_started',
+            to: { email: customerEmail, name: customerName },
+            userId,
+            subscriptionId,
+            variables: {
+              customer_name: customerName || customerEmail.split('@')[0] || 'Unknown',
+              customer_email: customerEmail,
+              trial_start_date: startDate,
+              trial_end_date: endDate,
+              plan_name: summary.planName || '',
+            },
+          }),
+        ];
+
+        await Promise.race([
+          Promise.allSettled(tasks),
+          new Promise<void>((resolve) => setTimeout(resolve, 1200)),
+        ]);
+      }
+    } catch {
+    }
+  }
+
   return {
     summary,
     initResult: initTrial.initialized ? 'initialized' : 'empty',
@@ -1007,6 +1064,205 @@ async function applyVerifiedSubscriptionState(
   }
 }
 
+function toIsoDate(value: string | Date | null | undefined) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
+}
+
+function toCurrencyCode(value: unknown) {
+  if (typeof value !== 'string') return '';
+  return value.trim().toUpperCase();
+}
+
+function readPayloadString(payload: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
+function readPayloadNumber(payload: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = payload[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+}
+
+function rankPlanCode(value: unknown) {
+  const plan = typeof value === 'string' ? value : '';
+  if (plan === 'free_trial') return 0;
+  if (plan === 'personal') return 1;
+  if (plan === 'family') return 2;
+  return 0;
+}
+
+async function loadUserEmailContext(admin: SupabaseClient, userId: string) {
+  const { data } = await admin
+    .from('user_profiles')
+    .select('email,full_name')
+    .eq('id', userId)
+    .maybeSingle();
+  const email = ((data as any)?.email as string) || '';
+  const name = ((data as any)?.full_name as string) || '';
+  return { email, name };
+}
+
+async function loadUserSubscriptionSnapshot(admin: SupabaseClient, userId: string) {
+  const { data } = await admin
+    .from('user_subscriptions')
+    .select('id,status,current_period_start,current_period_end,trial_started_at,trial_ends_at,subscription_plans(plan_code,plan_name,price_amount,billing_interval)')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!data) return null;
+
+  const plan = (data as any).subscription_plans;
+  const planRow = Array.isArray(plan) ? plan[0] : plan;
+
+  return {
+    subscriptionId: (data as any).id as string,
+    status: ((data as any).status as string) || '',
+    currentPeriodStart: ((data as any).current_period_start as string | null) || null,
+    currentPeriodEnd: ((data as any).current_period_end as string | null) || null,
+    trialStartedAt: ((data as any).trial_started_at as string | null) || null,
+    trialEndsAt: ((data as any).trial_ends_at as string | null) || null,
+    planCode: (planRow as any)?.plan_code as string | null | undefined,
+    planName: (planRow as any)?.plan_name as string | null | undefined,
+    priceAmount: (planRow as any)?.price_amount as number | string | null | undefined,
+    billingInterval: (planRow as any)?.billing_interval as string | null | undefined,
+  };
+}
+
+async function sendBillingEmails(args: {
+  admin: SupabaseClient;
+  event: VerifiedBillingEvent;
+  paymentId: string | null;
+  userId: string;
+  before: Awaited<ReturnType<typeof loadUserSubscriptionSnapshot>> | null;
+  after: Awaited<ReturnType<typeof loadUserSubscriptionSnapshot>> | null;
+}) {
+  const userId = args.userId;
+  const payload = args.event.payload || {};
+  const user = await loadUserEmailContext(args.admin, userId).catch(() => ({ email: '', name: '' }));
+  const customerEmail = user.email || '';
+  const customerName = user.name || (customerEmail ? customerEmail.split('@')[0] : '');
+  const subscriptionId = args.after?.subscriptionId || args.before?.subscriptionId || null;
+
+  const planName = args.after?.planName || args.before?.planName || '';
+  const planCodeBefore = args.before?.planCode || '';
+  const planCodeAfter = args.after?.planCode || planCodeBefore;
+  const statusBefore = args.before?.status || '';
+  const statusAfter = args.after?.status || statusBefore;
+  const periodEndAfter = args.after?.currentPeriodEnd || null;
+  const renewalDate = periodEndAfter ? toIsoDate(periodEndAfter) : '';
+
+  const amountNumber = readPayloadNumber(payload, ['amount', 'amount_total', 'amount_paid', 'total', 'price', 'unit_amount']);
+  const currency = toCurrencyCode(readPayloadString(payload, ['currency', 'currency_code']));
+  const invoiceNumber = readPayloadString(payload, ['invoice_number', 'invoice', 'number']);
+  const paymentReference = readPayloadString(payload, ['payment_reference', 'payment_intent', 'charge', 'id', 'reference']);
+
+  const variables = {
+    customer_name: customerName || 'there',
+    customer_email: customerEmail,
+    plan_name: planName,
+    amount: amountNumber === null ? '' : String(amountNumber),
+    currency,
+    renewal_date: renewalDate,
+    invoice_number: invoiceNumber,
+    payment_reference: paymentReference,
+    subscription_end_date: renewalDate,
+  };
+
+  const baseKey = `billing:${args.event.provider}:${args.event.eventId}`;
+
+  const shouldSend = (key: string) => Boolean(key);
+  const send = async (templateKey: string) => {
+    if (!shouldSend(templateKey)) return;
+    await sendTransactionalEmail({
+      eventKey: `${baseKey}:${templateKey}`,
+      templateKey,
+      to: { email: customerEmail, name: customerName },
+      userId,
+      subscriptionId: subscriptionId,
+      paymentId: args.paymentId,
+      variables,
+    });
+  };
+
+  const afterRank = rankPlanCode(planCodeAfter);
+  const beforeRank = rankPlanCode(planCodeBefore);
+  const planChanged = Boolean(planCodeBefore && planCodeAfter && planCodeBefore !== planCodeAfter);
+
+  const converted = statusBefore === 'trialing' && statusAfter === 'active';
+  const resumed = statusAfter === 'active' && (statusBefore === 'cancelled' || statusBefore === 'paused');
+  const activated = statusAfter === 'active'
+    && statusBefore !== 'active'
+    && statusBefore !== 'trialing'
+    && !resumed;
+  const cancelled = statusAfter === 'cancelled' && statusBefore !== 'cancelled';
+  const expired = statusAfter === 'expired' && statusBefore !== 'expired';
+  const paymentFailed = statusAfter === 'past_due' || args.event.eventType.toLowerCase().includes('failed');
+  const refunded = args.event.eventType.toLowerCase().includes('refund');
+
+  if (converted) {
+    await send('customer_trial_converted');
+  }
+
+  if (activated) {
+    await send('customer_package_purchased');
+    await send('customer_package_activated');
+    await send('admin_new_package_purchase');
+    await send('admin_payment_successful');
+  }
+
+  if (resumed) {
+    await send('customer_subscription_resumed');
+  }
+
+  if (planChanged && statusAfter === 'active') {
+    if (afterRank > beforeRank) {
+      await send('customer_package_upgraded');
+      await send('admin_subscription_upgraded');
+    } else if (afterRank < beforeRank) {
+      await send('customer_package_downgraded');
+      await send('admin_subscription_downgraded');
+    }
+  }
+
+  if (!activated && statusAfter === 'active' && args.before?.currentPeriodEnd && args.after?.currentPeriodEnd && args.before.currentPeriodEnd !== args.after.currentPeriodEnd) {
+    await send('customer_subscription_renewed');
+    await send('admin_payment_successful');
+  }
+
+  if (paymentFailed) {
+    await send('customer_payment_failed');
+    await send('admin_payment_failed');
+  }
+
+  if (cancelled) {
+    await send('customer_subscription_cancelled');
+    await send('admin_subscription_cancelled');
+  }
+
+  if (expired) {
+    await send('customer_subscription_expired');
+  }
+
+  if (refunded) {
+    await send('customer_refund_processed');
+    await send('admin_refund_processed');
+  }
+}
+
 export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
   const admin = createSubscriptionAdminClient();
   if (!admin) {
@@ -1016,7 +1272,11 @@ export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
     };
   }
 
-  const { error: insertError } = await admin
+  const before = event.subscription?.userId
+    ? await loadUserSubscriptionSnapshot(admin, event.subscription.userId).catch(() => null)
+    : null;
+
+  const { data: billingRow, error: insertError } = await admin
     .from('billing_events')
     .insert({
       provider: event.provider,
@@ -1024,7 +1284,9 @@ export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
       event_type: event.eventType,
       payload: event.payload,
       processing_status: 'processing',
-    });
+    })
+    .select('id')
+    .single();
 
   if (insertError) {
     if (insertError.code === '23505') {
@@ -1045,6 +1307,22 @@ export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
       error_message: null,
     });
 
+    const after = event.subscription?.userId
+      ? await loadUserSubscriptionSnapshot(admin, event.subscription.userId).catch(() => null)
+      : null;
+
+    if (event.subscription?.userId) {
+      const paymentId = (billingRow as any)?.id as string | null | undefined;
+      await sendBillingEmails({
+        admin,
+        event,
+        paymentId: paymentId || null,
+        userId: event.subscription.userId,
+        before,
+        after,
+      }).catch(() => {});
+    }
+
     return { ok: true as const };
   } catch (error) {
     await markBillingEvent(admin, event.provider, event.eventId, {
@@ -1052,6 +1330,16 @@ export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
       processed_at: new Date().toISOString(),
       error_message: error instanceof Error ? error.message : 'subscription_activation_failed',
     });
+
+    await sendTransactionalEmail({
+      eventKey: `billing_webhook_failed:${event.provider}:${event.eventId}`,
+      templateKey: 'admin_payment_webhook_failed',
+      to: { email: 'no-reply@1smartpocket.com', name: 'System' },
+      paymentId: (billingRow as any)?.id as string | null | undefined,
+      variables: {
+        event_type: event.eventType,
+      },
+    }).catch(() => {});
 
     return {
       ok: false as const,

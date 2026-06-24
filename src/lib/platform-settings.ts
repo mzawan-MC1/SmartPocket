@@ -78,6 +78,8 @@ export interface PlatformPublicSettings {
   footerCompanyName: string;
   footerWebsiteUrl: string;
   footerCopyright: string;
+  footerPoweredByText: string;
+  footerPoweredByUrl: string;
   contactEmail: string;
   contactPhone: string;
   contactPhoneCountryCode: string;
@@ -291,6 +293,8 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     footerCompanyName: 'Smart Pocket',
     footerWebsiteUrl: PRODUCTION_CANONICAL_ORIGIN,
     footerCopyright: '© Smart Pocket. All rights reserved.',
+    footerPoweredByText: 'MCS Consultancy',
+    footerPoweredByUrl: 'https://www.mc1services.com/',
     contactEmail: '',
     contactPhone: '',
     contactPhoneCountryCode: '',
@@ -656,9 +660,13 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
     stickyHeader: sanitizeBoolean(raw.sticky_header, DEFAULT_PLATFORM_SETTINGS.publicUi.stickyHeader),
     footerSections: normalizeFooterSections(raw.footer_sections, DEFAULT_FOOTER_SECTIONS),
     footerTagline: sanitizeOptionalString(raw.footer_tagline) || branding.tagline,
-    footerCompanyName: sanitizeOptionalString(raw.footer_company_name) || branding.appName,
-    footerWebsiteUrl: sanitizeOptionalString(raw.footer_website_url) || canonicalUrl,
+    footerCompanyName: branding.appName,
+    footerWebsiteUrl: canonicalUrl,
     footerCopyright: sanitizeOptionalString(raw.footer_copyright) || DEFAULT_PLATFORM_SETTINGS.publicUi.footerCopyright,
+    footerPoweredByText:
+      sanitizeOptionalString(raw.footer_powered_by_text) || DEFAULT_PLATFORM_SETTINGS.publicUi.footerPoweredByText,
+    footerPoweredByUrl:
+      sanitizeOptionalString(raw.footer_powered_by_url) || DEFAULT_PLATFORM_SETTINGS.publicUi.footerPoweredByUrl,
     contactEmail: sanitizeOptionalString(raw.contact_email),
     contactPhone: sanitizeOptionalString(raw.contact_phone),
     contactPhoneCountryCode: sanitizeOptionalString(raw.contact_phone_country_code).toUpperCase(),
@@ -677,10 +685,10 @@ export function normalizePlatformSettings(value: unknown): PlatformSettingsSnaps
     fromEmail: sanitizeOptionalString(raw.from_email) || DEFAULT_PLATFORM_SETTINGS.email.fromEmail,
     fromName: sanitizeOptionalString(raw.from_name) || DEFAULT_PLATFORM_SETTINGS.email.fromName,
     replyToEmail: sanitizeOptionalString(raw.reply_to_email) || DEFAULT_PLATFORM_SETTINGS.email.replyToEmail,
-    supportEmail: sanitizeOptionalString(raw.support_email) || publicUi.contactEmail || DEFAULT_PLATFORM_SETTINGS.email.supportEmail,
+    supportEmail: publicUi.contactEmail || DEFAULT_PLATFORM_SETTINGS.email.supportEmail,
     emailLogoUrl: sanitizeOptionalString(raw.email_logo_url) || branding.emailLogoUrl,
-    footerCompanyName: publicUi.footerCompanyName,
-    footerWebsiteUrl: publicUi.footerWebsiteUrl,
+    footerCompanyName: branding.appName,
+    footerWebsiteUrl: canonicalUrl,
     footerCopyright: publicUi.footerCopyright,
     testRecipientEmail: sanitizeOptionalString(raw.test_recipient_email),
   };

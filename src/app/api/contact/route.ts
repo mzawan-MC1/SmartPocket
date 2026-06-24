@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendTransactionalEmail } from '@/lib/email/transactional';
 
 type ContactPayload = {
   name?: string;
@@ -102,13 +103,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const { error } = await admin.from('contact_submissions').insert({
-      name,
-      email,
-      subject,
-      message,
-      status: 'new',
-    });
+    const { data: submission, error } = await admin
+      .from('contact_submissions')
+      .insert({
+        name,
+        email,
+        subject,
+        message,
+        status: 'new',
+      })
+      .select('id')
+      .maybeSingle();
 
     if (error) {
       console.error('[contact] Failed to store submission.');
@@ -116,6 +121,27 @@ export async function POST(request: Request) {
         { error: 'We could not submit your message right now. Please try again later.' },
         { status: 500 }
       );
+    }
+
+    try {
+      const submissionId = (submission as any)?.id as string | undefined;
+      const eventKey = submissionId
+        ? `admin_contact_form_received:${submissionId}`
+        : `admin_contact_form_received:${Date.now()}:${Math.random().toString(16).slice(2)}`;
+
+      await sendTransactionalEmail({
+        eventKey,
+        templateKey: 'admin_contact_form_received',
+        to: { email: 'no-reply@1smartpocket.com', name: 'System' },
+        variables: {
+          contact_name: name,
+          contact_email: email,
+          contact_subject: subject,
+          contact_message: message,
+        },
+      });
+    } catch {
+      console.error('[contact] Failed to send admin notification email.');
     }
 
     return NextResponse.json({ success: true }, { status: 200 });

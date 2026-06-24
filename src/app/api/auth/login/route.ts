@@ -5,6 +5,7 @@ import {
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendTransactionalEmail } from '@/lib/email/transactional';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,41 @@ export async function POST(request: NextRequest) {
 
     if (profileError) {
       console.error('[api/auth/login] profile lookup failed:', profileError);
+    }
+
+    try {
+      const customerEmail = authData.user.email || email;
+      const fullName = (authData.user.user_metadata as any)?.full_name || '';
+      const tasks = [
+        sendTransactionalEmail({
+          eventKey: `customer_welcome:${userId}`,
+          templateKey: 'customer_welcome',
+          to: { email: customerEmail, name: fullName },
+          userId,
+          variables: {
+            customer_name: fullName || customerEmail.split('@')[0] || 'there',
+            customer_email: customerEmail,
+            registration_method: 'email',
+          },
+        }),
+        sendTransactionalEmail({
+          eventKey: `admin_new_user_registered:${userId}`,
+          templateKey: 'admin_new_user_registered',
+          to: { email: customerEmail, name: fullName },
+          userId,
+          variables: {
+            customer_name: fullName || customerEmail.split('@')[0] || 'Unknown',
+            customer_email: customerEmail,
+            registration_method: 'email',
+          },
+        }),
+      ];
+
+      await Promise.race([
+        Promise.allSettled(tasks),
+        new Promise<void>((resolve) => setTimeout(resolve, 1200)),
+      ]);
+    } catch {
     }
 
     try {

@@ -35,6 +35,6 @@ export function getBillingAvailability(contactEmail?: string | null): BillingAva
     supportsCheckout: provider.configured,
     supportsCustomerPortal: Boolean(provider.configured && provider.createCustomerPortal),
     supportsCancellation: Boolean(provider.configured && provider.cancelSubscription),
-    contactEmail: contactEmail || process.env.BILLING_CONTACT_EMAIL || process.env.NEXT_PUBLIC_SUPPORT_EMAIL || null,
+    contactEmail: contactEmail || null,
   };
 }

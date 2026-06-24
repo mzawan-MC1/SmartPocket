@@ -24,6 +24,11 @@ export default function AdminEmailPage() {
   const [isSendingTest, setIsSendingTest] = useState(false);
   const [passwordConfigured, setPasswordConfigured] = useState(false);
   const [clearSmtpPassword, setClearSmtpPassword] = useState(false);
+  const [notificationRecipients, setNotificationRecipients] = useState({
+    admin_notification_email: '',
+    admin_cc: '',
+    admin_bcc: '',
+  });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [logoProgress, setLogoProgress] = useState(0);
@@ -36,19 +41,18 @@ export default function AdminEmailPage() {
     from_email: 'no-reply@1smartpocket.com',
     from_name: 'Smart Pocket',
     reply_to_email: 'info@1smartpocket.com',
-    support_email: 'info@1smartpocket.com',
     email_logo_url: '/assets/images/app_logo.png',
-    footer_company_name: 'Smart Pocket',
-    footer_website_url: 'https://1smartpocket.com',
-    footer_copyright: '© Smart Pocket. All rights reserved.',
     test_recipient_email: '',
   });
 
   useEffect(() => {
-    fetch('/api/admin/email/settings', { cache: 'no-store' })
-      .then(async (response) => {
-        const payload = await response.json();
-        if (!response.ok) {
+    Promise.all([
+      fetch('/api/admin/email/settings', { cache: 'no-store' }),
+      fetch('/api/admin/email/notification-settings', { cache: 'no-store' }),
+    ])
+      .then(async ([settingsRes, notificationsRes]) => {
+        const payload = await settingsRes.json().catch(() => ({}));
+        if (!settingsRes.ok) {
           throw new Error(payload?.error || 'Failed to load email settings.');
         }
 
@@ -64,13 +68,18 @@ export default function AdminEmailPage() {
             from_email: data.from_email || current.from_email,
             from_name: data.from_name || current.from_name,
             reply_to_email: data.reply_to_email || current.reply_to_email,
-            support_email: data.support_email || data.contact_email || current.support_email,
             email_logo_url: data.email_logo_url || data.logo_url || current.email_logo_url,
-            footer_company_name: data.footer_company_name || data.app_name || current.footer_company_name,
-            footer_website_url: data.footer_website_url || data.canonical_url || current.footer_website_url,
-            footer_copyright: data.footer_copyright || current.footer_copyright,
             test_recipient_email: data.test_recipient_email || current.test_recipient_email,
           }));
+        }
+
+        const notifications = await notificationsRes.json().catch(() => ({}));
+        if (notificationsRes.ok && notifications?.settings) {
+          setNotificationRecipients({
+            admin_notification_email: notifications.settings.admin_notification_email || '',
+            admin_cc: notifications.settings.admin_cc || '',
+            admin_bcc: notifications.settings.admin_bcc || '',
+          });
         }
       })
       .catch((error) => {
@@ -141,6 +150,17 @@ export default function AdminEmailPage() {
         email_logo_url: emailLogoUrl,
         smtp_password: '',
       }));
+
+      const recipientsRes = await fetch('/api/admin/email/notification-settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notificationRecipients),
+      });
+      if (!recipientsRes.ok) {
+        const recipientsJson = await recipientsRes.json().catch(() => ({}));
+        toast.error(recipientsJson?.error || 'Failed to save admin notification recipients.');
+      }
+
       setLogoFile(null);
       setLogoProgress(0);
       setClearSmtpPassword(false);
@@ -201,6 +221,21 @@ export default function AdminEmailPage() {
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/notifications')}>
+          <ShieldCheck size={16} />
+          Notification settings
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/templates')}>
+          <Mail size={16} />
+          Templates
+        </button>
+        <button type="button" className="btn-secondary" onClick={() => router.push('/admin/email/logs')}>
+          <TestTube size={16} />
+          Delivery logs
+        </button>
+      </div>
+
       <div className="card-elevated p-5 space-y-4">
         <h2 className="text-base font-600 text-foreground">Email Provider</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -257,13 +292,43 @@ export default function AdminEmailPage() {
               onChange={(event) => setSettings((current) => ({ ...current, reply_to_email: event.target.value }))}
             />
           </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Customer-facing contact email, address, copyright, and powered-by footer content are managed in `Admin → CMS & Navigation`.
+        </p>
+      </div>
+
+      <div className="card-elevated p-5 space-y-4">
+        <h2 className="text-base font-600 text-foreground">Admin Notifications</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Support Email</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">Admin notification email</label>
             <input
               type="email"
               className="input-base"
-              value={settings.support_email}
-              onChange={(event) => setSettings((current) => ({ ...current, support_email: event.target.value }))}
+              value={notificationRecipients.admin_notification_email}
+              onChange={(event) => setNotificationRecipients((current) => ({ ...current, admin_notification_email: event.target.value }))}
+              placeholder="Leave blank to use the default fallback"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-600 text-foreground mb-1.5">Admin CC (comma-separated)</label>
+            <input
+              type="text"
+              className="input-base"
+              value={notificationRecipients.admin_cc}
+              onChange={(event) => setNotificationRecipients((current) => ({ ...current, admin_cc: event.target.value }))}
+              placeholder="cc@example.com, cc2@example.com"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-600 text-foreground mb-1.5">Admin BCC (comma-separated)</label>
+            <input
+              type="text"
+              className="input-base"
+              value={notificationRecipients.admin_bcc}
+              onChange={(event) => setNotificationRecipients((current) => ({ ...current, admin_bcc: event.target.value }))}
+              placeholder="bcc@example.com"
             />
           </div>
         </div>
@@ -354,35 +419,6 @@ export default function AdminEmailPage() {
           previewVariant="wide"
           helperText="Used in branded application emails and the Supabase template documentation."
         />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Footer Company Name</label>
-            <input
-              type="text"
-              className="input-base"
-              value={settings.footer_company_name}
-              onChange={(event) => setSettings((current) => ({ ...current, footer_company_name: event.target.value }))}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Footer Website URL</label>
-            <input
-              type="url"
-              className="input-base"
-              value={settings.footer_website_url}
-              onChange={(event) => setSettings((current) => ({ ...current, footer_website_url: event.target.value }))}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-600 text-foreground mb-1.5">Footer Copyright</label>
-            <input
-              type="text"
-              className="input-base"
-              value={settings.footer_copyright}
-              onChange={(event) => setSettings((current) => ({ ...current, footer_copyright: event.target.value }))}
-            />
-          </div>
-        </div>
       </div>
 
       <div className="card-elevated p-5 space-y-4">

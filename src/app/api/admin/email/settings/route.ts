@@ -14,11 +14,7 @@ type EmailSettingsPayload = {
   from_email?: string;
   from_name?: string;
   reply_to_email?: string;
-  support_email?: string;
   email_logo_url?: string;
-  footer_company_name?: string;
-  footer_website_url?: string;
-  footer_copyright?: string;
   test_recipient_email?: string;
 };
 
@@ -105,11 +101,7 @@ export async function POST(request: Request) {
       from_email: (body.from_email || '').trim(),
       from_name: (body.from_name || '').trim(),
       reply_to_email: (body.reply_to_email || '').trim(),
-      support_email: (body.support_email || '').trim(),
       email_logo_url: (body.email_logo_url || '').trim(),
-      footer_company_name: (body.footer_company_name || '').trim(),
-      footer_website_url: (body.footer_website_url || '').trim(),
-      footer_copyright: (body.footer_copyright || '').trim(),
       test_recipient_email: (body.test_recipient_email || '').trim(),
     };
 

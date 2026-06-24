@@ -130,7 +130,7 @@ export default async function ContactPage() {
   }
 
   const contactDetails = settings.publicUi;
-  const supportEmail = settings.email.supportEmail || contactDetails.contactEmail || 'info@1smartpocket.com';
+  const supportEmail = contactDetails.contactEmail;
   const contactText = publicText.contact || {};
   const englishContactText = englishPublicText.contact || {};
   const structuredData = [

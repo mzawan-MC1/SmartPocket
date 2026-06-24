@@ -10,6 +10,7 @@ import {
   applySupabaseCookies,
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
+import { sendTransactionalEmail } from '@/lib/email/transactional';
 
 function buildAuthErrorRedirect(
   request: NextRequest,
@@ -20,6 +21,26 @@ function buildAuthErrorRedirect(
   redirectUrl.searchParams.set('authError', code);
   redirectUrl.searchParams.set('authMessage', message);
   return NextResponse.redirect(redirectUrl);
+}
+
+function resolveRegistrationMethod(args: {
+  authType: string | null;
+  provider: unknown;
+  identities: unknown;
+}) {
+  const authType = (args.authType || '').toLowerCase();
+  if (authType === 'magiclink') return 'magic_link';
+
+  const provider = typeof args.provider === 'string' ? args.provider : '';
+  if (provider) return provider.toLowerCase();
+
+  const identities = Array.isArray(args.identities) ? args.identities : [];
+  const firstProvider = (identities as any[])?.[0]?.provider;
+  if (typeof firstProvider === 'string' && firstProvider.trim()) {
+    return firstProvider.trim().toLowerCase();
+  }
+
+  return 'email';
 }
 
 export async function GET(request: NextRequest) {
@@ -62,6 +83,49 @@ export async function GET(request: NextRequest) {
     const { destination, profileError } = await getPostAuthDestination(supabase, data.user.id, next);
     if (profileError) {
       console.error('[api/auth/callback] profile lookup failed');
+    }
+
+    try {
+      const user = data.user;
+      const email = user.email || '';
+      const fullName = (user.user_metadata as any)?.full_name || (user.user_metadata as any)?.name || '';
+      const method = resolveRegistrationMethod({
+        authType,
+        provider: (user.app_metadata as any)?.provider,
+        identities: (user as any)?.identities,
+      });
+
+      const tasks = [
+        sendTransactionalEmail({
+          eventKey: `customer_welcome:${user.id}`,
+          templateKey: 'customer_welcome',
+          to: { email, name: fullName },
+          userId: user.id,
+          variables: {
+            customer_name: fullName || email.split('@')[0] || 'there',
+            customer_email: email,
+            registration_method: method,
+          },
+        }),
+        sendTransactionalEmail({
+          eventKey: `admin_new_user_registered:${user.id}`,
+          templateKey: 'admin_new_user_registered',
+          to: { email, name: fullName },
+          userId: user.id,
+          variables: {
+            customer_name: fullName || email.split('@')[0] || 'Unknown',
+            customer_email: email,
+            registration_method: method,
+          },
+        }),
+      ];
+
+      await Promise.race([
+        Promise.allSettled(tasks),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ]);
+    } catch {
+      // ignore
     }
 
     const response = NextResponse.redirect(buildAppUrl(destination, request));

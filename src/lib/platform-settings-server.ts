@@ -13,6 +13,8 @@ import {
 import { getReferenceDataSnapshot } from '@/lib/reference-data/store';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+export const PLATFORM_SETTINGS_CACHE_TAG = 'platform-settings';
+
 async function readPlatformSettingsWithAnonClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -93,7 +95,7 @@ async function loadPlatformSettingsSnapshot(): Promise<PlatformSettingsSnapshot>
 const getCachedPlatformSettingsSnapshot = unstable_cache(
   loadPlatformSettingsSnapshot,
   ['platform-settings-snapshot'],
-  { revalidate: 60 }
+  { revalidate: 60, tags: [PLATFORM_SETTINGS_CACHE_TAG] }
 );
 
 export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSnapshot> {
