@@ -1135,6 +1135,17 @@ function isReceiptInsightQuestion(value: string) {
     [hasMissingField, t]
   );
 
+   const updateReview = useCallback((updater: (current: SmartEntryReview) => SmartEntryReview) => {
+     setReviewState((current) => {
+       if (!current) return current;
+       const next = updater(current);
+       return {
+         ...next,
+         missing: getSmartEntryReviewMissingFields(next),
+       };
+     });
+   }, []);
+
   useEffect(() => {
     if (!parsed?.requestId || !reviewState?.subscription) return;
     if (subscriptionDefaultAppliedRef.current === parsed.requestId) return;
@@ -1181,17 +1192,6 @@ function isReceiptInsightQuestion(value: string) {
     reviewState?.subscription?.financialAccountHint,
     updateReview,
   ]);
-
-   const updateReview = useCallback((updater: (current: SmartEntryReview) => SmartEntryReview) => {
-     setReviewState((current) => {
-       if (!current) return current;
-       const next = updater(current);
-       return {
-         ...next,
-         missing: getSmartEntryReviewMissingFields(next),
-       };
-     });
-   }, []);
 
   const handleReviewAmountChange = useCallback((value: string) => {
     const trimmed = value.trim();
