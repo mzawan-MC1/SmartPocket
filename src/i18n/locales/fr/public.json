@@ -199,6 +199,15 @@
     "available": "Disponible",
     "learnMore": "En savoir plus",
     "lovedWorldwide": "Adoré par des utilisateurs dans le monde entier",
+    "summary": {
+      "title": "Vue d'ensemble",
+      "subtitle": "Résumé rapide",
+      "items": {
+        "cashFlow": "Flux de trésorerie",
+        "budgets": "Budgets",
+        "reports": "Rapports"
+      }
+    },
     "preview": {
       "totalBalance": "Solde total",
       "income": "Revenus",
@@ -218,7 +227,57 @@
       "outShort": "Sorties",
       "dashboardUrl": "1smartpocket.com/dashboard",
       "streamingSubscription": "Abonnement streaming",
-      "brandName": "Smart Pocket"
+      "brandName": "Smart Pocket",
+      "range30Days": "30 jours",
+      "smartEntry": {
+        "title": "Saisie intelligente",
+        "description": "Payez le loyer demain et gardez le budget alimentation sous controle.",
+        "draft": "Brouillon",
+        "ai": "IA"
+      },
+      "aiInsight": {
+        "title": "Insight IA",
+        "description": "Les depenses de loisirs augmentent plus vite que les revenus cette semaine.",
+        "status": "Suggestion d'ajustement du budget prete"
+      },
+      "upcomingBill": {
+        "title": "Facture a venir",
+        "dueIn": "2 j",
+        "item": "Services publics"
+      }
+    },
+    "homeVisuals": {
+      "common": {
+        "live": "Actif",
+        "preview": "Apercu"
+      },
+      "multiAccount": {
+        "cash": "Especes",
+        "bank": "Banque",
+        "wallet": "Portefeuille",
+        "primary": "Principal",
+        "synced": "Synchronise",
+        "manual": "Manuel",
+        "totalBalance": "Solde total"
+      },
+      "dashboard": {
+        "cashflow": "Tresorerie",
+        "trends": "Tendances"
+      },
+      "budget": {
+        "needs": "Besoins",
+        "savings": "Epargne"
+      },
+      "reports": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "recurring": {
+        "month": "Mai"
+      },
+      "security": {
+        "vault": "Coffre"
+      }
     },
     "auth": {
       "apple": "Connexion avec Apple",
@@ -252,6 +311,16 @@
         "2": "Détection des anomalies et frais inhabituels",
         "3": "Suggestions d'épargne personnalisées",
         "4": "Recommandations budgétaires prédictives"
+      },
+      "roadmap": {
+        "previewLabel": "Apercu de la feuille de route",
+        "cashFlowSignal": "Signal de tresorerie",
+        "descriptions": {
+          "1": "Reperez plus tot les habitudes recurrentes et les ecarts de categorie.",
+          "2": "Proposez des actions d'epargne concretes a partir de l'activite recente.",
+          "3": "Recommandez des ajustements budgetaires avant que le depassement ne progresse.",
+          "4": "Mettez en avant les activites inhabituelles et les pics soudains de depenses."
+        }
       }
     },
     "contact": {

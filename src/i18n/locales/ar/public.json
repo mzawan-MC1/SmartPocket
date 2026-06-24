@@ -210,6 +210,15 @@
     "available": "متاح",
     "learnMore": "اعرف المزيد",
     "lovedWorldwide": "يحبه المستخدمون حول العالم",
+    "summary": {
+      "title": "نظرة عامة",
+      "subtitle": "ملخص سريع",
+      "items": {
+        "cashFlow": "التدفق النقدي",
+        "budgets": "الميزانيات",
+        "reports": "التقارير"
+      }
+    },
     "preview": {
       "totalBalance": "إجمالي الرصيد",
       "income": "الدخل",
@@ -229,7 +238,57 @@
       "outShort": "خارج",
       "dashboardUrl": "1smartpocket.com/dashboard",
       "streamingSubscription": "اشتراك البث",
-      "brandName": "Smart Pocket"
+      "brandName": "Smart Pocket",
+      "range30Days": "30 يوما",
+      "smartEntry": {
+        "title": "الإدخال الذكي",
+        "description": "سدّد الإيجار غدا وأبق ميزانية الطعام تحت السيطرة.",
+        "draft": "مسودة",
+        "ai": "ذكاء"
+      },
+      "aiInsight": {
+        "title": "رؤية ذكية",
+        "description": "إنفاق الترفيه يرتفع هذا الأسبوع أسرع من الدخل.",
+        "status": "اقتراح تعديل الميزانية جاهز"
+      },
+      "upcomingBill": {
+        "title": "فاتورة قادمة",
+        "dueIn": "بعد يومين",
+        "item": "المرافق"
+      }
+    },
+    "homeVisuals": {
+      "common": {
+        "live": "نشط",
+        "preview": "معاينة"
+      },
+      "multiAccount": {
+        "cash": "نقد",
+        "bank": "بنك",
+        "wallet": "محفظة",
+        "primary": "أساسي",
+        "synced": "متزامن",
+        "manual": "يدوي",
+        "totalBalance": "إجمالي الرصيد"
+      },
+      "dashboard": {
+        "cashflow": "التدفق النقدي",
+        "trends": "الاتجاهات"
+      },
+      "budget": {
+        "needs": "الاحتياجات",
+        "savings": "الادخار"
+      },
+      "reports": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "recurring": {
+        "month": "مايو"
+      },
+      "security": {
+        "vault": "الخزنة"
+      }
     },
     "auth": {
       "apple": "تسجيل الدخول عبر Apple",
@@ -263,6 +322,16 @@
         "2": "اكتشاف الرسوم الشاذة وغير المعتادة",
         "3": "اقتراحات ادخار مخصصة",
         "4": "توصيات ميزانية تنبؤية"
+      },
+      "roadmap": {
+        "previewLabel": "معاينة خارطة الطريق",
+        "cashFlowSignal": "إشارة التدفق النقدي",
+        "descriptions": {
+          "1": "اكشف الأنماط المتكررة وانحراف الفئات في وقت أبكر.",
+          "2": "اقترح خطوات ادخار عملية بناء على النشاط الأخير.",
+          "3": "أوص بتعديلات على الميزانية قبل اتساع التجاوز.",
+          "4": "سلّط الضوء على النشاط غير المعتاد وارتفاعات الإنفاق المفاجئة."
+        }
       }
     }
   },

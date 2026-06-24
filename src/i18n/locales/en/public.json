@@ -203,6 +203,15 @@
     "available": "Available",
     "learnMore": "Learn More",
     "lovedWorldwide": "Loved by users worldwide",
+    "summary": {
+      "title": "Overview",
+      "subtitle": "Quick snapshot",
+      "items": {
+        "cashFlow": "Cash flow",
+        "budgets": "Budgets",
+        "reports": "Reports"
+      }
+    },
     "preview": {
       "totalBalance": "Total Balance",
       "income": "Income",
@@ -222,7 +231,57 @@
       "outShort": "Out",
       "dashboardUrl": "1smartpocket.com/dashboard",
       "streamingSubscription": "Streaming Subscription",
-      "brandName": "Smart Pocket"
+      "brandName": "Smart Pocket",
+      "range30Days": "30 days",
+      "smartEntry": {
+        "title": "Smart Entry",
+        "description": "Pay rent tomorrow and keep your food budget under control.",
+        "draft": "Draft",
+        "ai": "AI"
+      },
+      "aiInsight": {
+        "title": "AI insight",
+        "description": "Entertainment spending is rising faster than income this week.",
+        "status": "Suggested budget adjustment ready"
+      },
+      "upcomingBill": {
+        "title": "Upcoming bill",
+        "dueIn": "2d",
+        "item": "Utilities"
+      }
+    },
+    "homeVisuals": {
+      "common": {
+        "live": "Live",
+        "preview": "Preview"
+      },
+      "multiAccount": {
+        "cash": "Cash",
+        "bank": "Bank",
+        "wallet": "Wallet",
+        "primary": "Primary",
+        "synced": "Synced",
+        "manual": "Manual",
+        "totalBalance": "Total balance"
+      },
+      "dashboard": {
+        "cashflow": "Cashflow",
+        "trends": "Trends"
+      },
+      "budget": {
+        "needs": "Needs",
+        "savings": "Savings"
+      },
+      "reports": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "recurring": {
+        "month": "May"
+      },
+      "security": {
+        "vault": "Vault"
+      }
     },
     "auth": {
       "apple": "Sign in with Apple",
@@ -256,6 +315,16 @@
         "2": "Anomaly and unusual charge detection",
         "3": "Personalized saving suggestions",
         "4": "Predictive budget recommendations"
+      },
+      "roadmap": {
+        "previewLabel": "Roadmap preview",
+        "cashFlowSignal": "Cash flow signal",
+        "descriptions": {
+          "1": "Surface recurring patterns and category drift earlier.",
+          "2": "Suggest practical saving actions based on recent activity.",
+          "3": "Recommend budget adjustments before overspending grows.",
+          "4": "Highlight unusual activity and sudden spending spikes."
+        }
       }
     },
     "contact": {

@@ -40,6 +40,7 @@ export default function PublicHeader() {
   const showSingleLanguageTagline = language === 'en';
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
   const isHomePage = pathname === '/home' || pathname === '/';
 
@@ -69,6 +70,21 @@ export default function PublicHeader() {
     return () => window.removeEventListener('hashchange', syncHash);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!isHomePage) {
+      setIsScrolled(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 16);
+    };
+
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isHomePage]);
+
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/' || pathname === '/home';
 
@@ -80,7 +96,11 @@ export default function PublicHeader() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const headerClass = `${isHomePage ? 'border-b border-white/10 bg-[#041229]/88 text-white' : 'border-b border-border bg-card/95'} backdrop-blur-xl z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
+  const headerClass = `${
+    isHomePage
+      ? 'border-b border-slate-200 bg-white shadow-sm'
+      : 'border-b border-border bg-card/95 backdrop-blur-xl'
+  } z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
 
   return (
     <header className={headerClass} ref={mobileRef}>
@@ -95,9 +115,9 @@ export default function PublicHeader() {
             />
             {showBrandText && (
               <div className="min-w-0">
-                <span className="block font-700 text-base text-primary truncate">{branding.appName}</span>
+                <span className={`block truncate text-base font-700 ${isHomePage ? 'text-primary' : 'text-primary'}`}>{branding.appName}</span>
                 {showSingleLanguageTagline && branding.tagline ? (
-                  <span className="hidden lg:block text-xs text-muted-foreground truncate">
+                  <span className={`hidden truncate text-xs lg:block ${isHomePage ? 'text-slate-500' : 'text-muted-foreground'}`}>
                     {branding.tagline}
                   </span>
                 ) : null}
@@ -114,10 +134,10 @@ export default function PublicHeader() {
                 className={`px-3.5 py-2.5 rounded-xl text-sm font-600 transition-colors border ${
                   isActive(item.href)
                     ? isHomePage
-                      ? 'border-cyan-300/25 bg-cyan-300/10 text-cyan-200'
+                      ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
                       : 'text-accent bg-accent/8 border-accent/15'
                     : isHomePage
-                      ? 'border-transparent text-slate-300 hover:bg-white/5 hover:text-white'
+                      ? 'border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
                       : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
                 }`}
               >
@@ -128,16 +148,19 @@ export default function PublicHeader() {
 
           {/* Desktop right actions */}
           <div className="hidden md:flex items-center gap-2">
-            <LanguageSwitcher variant="compact" />
+            <LanguageSwitcher
+              variant="compact"
+              theme={isHomePage ? 'light' : 'default'}
+            />
             <Link
               href="/sign-up-login?mode=login"
-              className={`text-sm px-3 py-2 rounded-xl transition-colors ${isHomePage ? 'text-slate-300 hover:bg-white/5 hover:text-white' : 'btn-ghost text-muted-foreground hover:text-foreground'}`}
+              className={`text-sm px-3 py-2 rounded-xl transition-colors ${isHomePage ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'btn-ghost text-muted-foreground hover:text-foreground'}`}
             >
               {t('nav.signIn', { ns: 'common' })}
             </Link>
             <Link
               href="/sign-up-login?mode=signup"
-              className={isHomePage ? 'inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 px-4 py-2 text-sm font-700 text-slate-950 shadow-[0_12px_30px_rgba(34,211,238,0.18)]' : 'btn-primary text-sm py-2 px-4'}
+              className={isHomePage ? 'inline-flex items-center rounded-xl bg-cyan-500 px-4 py-2 text-sm font-700 text-white shadow-sm transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2 px-4'}
             >
               {t('nav.signUp', { ns: 'common' })}
             </Link>
@@ -145,10 +168,13 @@ export default function PublicHeader() {
 
           {/* Mobile: language + hamburger */}
           <div className="flex md:hidden items-center gap-2">
-            <LanguageSwitcher variant="compact" />
+            <LanguageSwitcher
+              variant="compact"
+              theme={isHomePage ? 'light' : 'default'}
+            />
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className={`p-2.5 rounded-xl transition-colors ${isHomePage ? 'text-slate-300 hover:bg-white/5 hover:text-white' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+              className={`p-2.5 rounded-xl transition-colors ${isHomePage ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               aria-label={mobileOpen ? t('header.closeMenu', { ns: 'public' }) : t('header.openMenu', { ns: 'public' })}
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
@@ -158,12 +184,12 @@ export default function PublicHeader() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className={`md:hidden py-4 space-y-1 pb-4 ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
+          <div className={`md:hidden space-y-1 border-t py-4 pb-4 ${isHomePage ? 'border-slate-200 bg-white' : 'border-border'}`}>
             {showBrandText && (
               <div className="px-3.5 pb-3">
-                <p className={`text-sm font-700 ${isHomePage ? 'text-white' : 'text-primary'}`}>{branding.appName}</p>
+                <p className={`text-sm font-700 ${isHomePage ? 'text-primary' : 'text-primary'}`}>{branding.appName}</p>
                 {showSingleLanguageTagline && branding.tagline ? (
-                  <p className={`mt-1 text-xs ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>{branding.tagline}</p>
+                  <p className={`mt-1 text-xs ${isHomePage ? 'text-slate-500' : 'text-muted-foreground'}`}>{branding.tagline}</p>
                 ) : null}
               </div>
             )}
@@ -174,26 +200,26 @@ export default function PublicHeader() {
                 className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
                   isActive(item.href)
                     ? isHomePage
-                      ? 'border border-cyan-300/20 bg-cyan-300/10 text-cyan-200'
+                      ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
                       : 'text-accent bg-accent/8 border border-accent/15'
                     : isHomePage
-                      ? 'border border-transparent text-slate-300 hover:bg-white/5 hover:text-white'
+                      ? 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
                 }`}
               >
                 {getTranslatedNavLabel(item.href, item.label, t)}
               </Link>
             ))}
-            <div className={`pt-3 flex flex-col gap-2 ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
+            <div className={`pt-3 flex flex-col gap-2 ${isHomePage ? 'border-t border-slate-200' : 'border-t border-border'}`}>
               <Link
                 href="/sign-up-login?mode=login"
-                className={isHomePage ? 'inline-flex justify-center rounded-xl border border-white/15 bg-white/5 py-2.5 text-sm font-700 text-white' : 'btn-secondary text-sm py-2.5 justify-center'}
+                className={isHomePage ? 'inline-flex justify-center rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-700 text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950' : 'btn-secondary text-sm py-2.5 justify-center'}
               >
                 {t('nav.signIn', { ns: 'common' })}
               </Link>
               <Link
                 href="/sign-up-login?mode=signup"
-                className={isHomePage ? 'inline-flex justify-center rounded-xl bg-gradient-to-r from-cyan-400 to-sky-500 py-2.5 text-sm font-700 text-slate-950' : 'btn-primary text-sm py-2.5 justify-center'}
+                className={isHomePage ? 'inline-flex justify-center rounded-xl bg-cyan-500 py-2.5 text-sm font-700 text-white transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2.5 justify-center'}
               >
                 {t('header.getStartedFree', { ns: 'public' })}
               </Link>
