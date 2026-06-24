@@ -1,5 +1,5 @@
- 'use client';
- import React, { useState, useCallback, useEffect, useRef } from 'react';
+'use client';
+ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
  import {
    X,
@@ -34,6 +34,17 @@ import DocumentTransactionReviewModal from '@/components/transactions/DocumentTr
  } from '@/lib/ai-types';
  import { buildAIContext } from '@/lib/ai-execution';
  import { dispatchSmartPocketDataChanged, type SmartPocketDataEntity } from '@/lib/data-change';
+import {
+  getDefaultPersonalAccount,
+  getFinancialAccountDisplayLabel,
+  getActivePersonalFinancialAccounts,
+} from '@/lib/financial-account-utils';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+  getRequiredMarkerClassName,
+} from '@/lib/form-field-styles';
  import { createClientId } from '@/lib/uuid';
  import { useLanguage } from '@/contexts/LanguageContext';
  import {
@@ -42,13 +53,17 @@ import DocumentTransactionReviewModal from '@/components/transactions/DocumentTr
   getEligibleAccountsForPurpose,
   getManagedAccountName,
    getSmartEntryMissingFields,
+  getSmartEntryReviewMissingFields,
    getSmartEntryTotals,
   hydrateSmartEntryReviewWithContext,
    inferAccountType,
   isManagedPurpose,
    sanitizeCurrency,
  } from '@/lib/smart-entry';
-import { PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS } from '@/lib/personal-subscriptions-shared';
+import {
+  isPersonalSubscriptionBillingFrequency,
+  PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS,
+} from '@/lib/personal-subscriptions-shared';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
   classifyTransactionDocumentError,
@@ -91,6 +106,25 @@ type VoiceStatusResponse = {
 };
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeSubscriptionBillingFrequencyInput(
+  value: string | undefined
+): NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']> | undefined {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return undefined;
+  if (isPersonalSubscriptionBillingFrequency(trimmed)) {
+    return trimmed;
+  }
+
+  const normalized = trimmed
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/^semiannual$/, 'semi_annual')
+    .replace(/^semi_annual_plan$/, 'semi_annual')
+    .replace(/^annual$/, 'yearly');
+
+  return isPersonalSubscriptionBillingFrequency(normalized) ? normalized : undefined;
+}
 
  interface AIAssistantModalProps {
    onClose: () => void;
@@ -252,6 +286,24 @@ function getSubscriptionPaymentMethodLabel(
     ns: 'portal',
     defaultValue: method,
   });
+}
+
+function getContextAccountDisplayLabel(
+  account: NonNullable<NonNullable<FinancialContext['accounts']>[number]> | null | undefined
+) {
+  if (!account) return '';
+  return getFinancialAccountDisplayLabel(
+    {
+      name: account.name,
+      currency: account.currency,
+      is_system_default: account.isSystemDefault,
+      system_default_type: account.systemDefaultType,
+    },
+    {
+      includeCurrency: true,
+      includeDefaultLabel: true,
+    }
+  );
 }
 
 function getMissingFieldLabel(
@@ -513,6 +565,7 @@ function isReceiptInsightQuestion(value: string) {
    const dialogRef = useRef<HTMLDivElement>(null);
    const closeButtonRef = useRef<HTMLButtonElement>(null);
    const lastFocusedRef = useRef<HTMLElement | null>(null);
+   const subscriptionDefaultAppliedRef = useRef<string | null>(null);
    const [mounted, setMounted] = useState(false);
    const [step, setStep] = useState<AssistantStep>('entry');
    const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
@@ -890,8 +943,12 @@ function isReceiptInsightQuestion(value: string) {
        })
      : null;
   const isSubscriptionFlow = isSubscriptionReview(reviewState);
-  const unresolvedReviewFields = previewInstruction
-    ? getSmartEntryMissingFields(previewInstruction).map((field) => getMissingFieldLabel(field, t))
+  const currentMissingFields = reviewState
+    ? getSmartEntryReviewMissingFields(reviewState)
+    : [];
+  const missingFieldSet = useMemo(() => new Set(currentMissingFields), [currentMissingFields]);
+  const unresolvedReviewFields = currentMissingFields.length > 0
+    ? currentMissingFields.map((field) => getMissingFieldLabel(field, t))
     : [];
   const compactSummaryRows = previewInstruction
     ? getCompactSummaryRowsLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
@@ -911,9 +968,45 @@ function isReceiptInsightQuestion(value: string) {
     ? getLocalizedAmountPrompt(reviewState, previewInstruction, t)
     : t('smartEntryModal.amountFallback', { ns: 'portal' });
    const totals = previewInstruction ? getSmartEntryTotals(previewInstruction) : null;
-   const accounts = contextSnapshot?.accounts || [];
+  const accounts = contextSnapshot?.accounts || [];
    const people = contextSnapshot?.people || [];
-  const subscriptionAccounts = accounts.filter((account) => account.includeInTotal !== false);
+  const adaptedAccounts = useMemo(
+    () =>
+      accounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+        account_type: account.type,
+        currency: account.currency,
+        is_active: account.isActive !== false,
+        include_in_total: account.includeInTotal,
+        ownership_type: account.ownershipType,
+        is_system_default: account.isSystemDefault,
+        system_default_type: account.systemDefaultType,
+        sort_order: account.sortOrder,
+        created_at: account.createdAt,
+      })),
+    [accounts]
+  );
+  const subscriptionAccounts = useMemo(() => {
+    const personalAccounts = getActivePersonalFinancialAccounts(adaptedAccounts);
+    const ordered = personalAccounts
+      .map((account) => accounts.find((item) => item.id === account.id) || null)
+      .filter((account): account is NonNullable<typeof accounts[number]> => !!account);
+    const selectedSubscriptionAccountId = reviewState?.account?.accountId;
+
+    if (selectedSubscriptionAccountId && !ordered.some((account) => account.id === selectedSubscriptionAccountId)) {
+      const selected = accounts.find((account) => account.id === selectedSubscriptionAccountId);
+      if (selected) {
+        return [selected, ...ordered];
+      }
+    }
+
+    return ordered;
+  }, [accounts, adaptedAccounts, reviewState?.account?.accountId]);
+  const defaultSubscriptionCashAccount = useMemo(() => {
+    const account = getDefaultPersonalAccount(adaptedAccounts, 'personal_cash');
+    return account ? accounts.find((item) => item.id === account.id) || null : null;
+  }, [accounts, adaptedAccounts]);
   const eligiblePrimaryAccounts = getEligibleAccountsForPurpose({
     purpose: reviewState?.purpose,
     accounts,
@@ -953,7 +1046,7 @@ function isReceiptInsightQuestion(value: string) {
          ) || null
        );
    const selectedAccount = reviewState?.account?.accountId
-    ? primaryAccountOptions.find((account) => account.id === reviewState.account?.accountId) || null
+   ? accounts.find((account) => account.id === reviewState.account?.accountId) || primaryAccountOptions.find((account) => account.id === reviewState.account?.accountId) || null
      : (
         primaryAccountOptions.find(
            (account) => (account.name || '').trim().toLowerCase() === (reviewState?.account?.name || '').trim().toLowerCase()
@@ -978,20 +1071,127 @@ function isReceiptInsightQuestion(value: string) {
     [contextSnapshot?.currencies, contextSnapshot?.defaultCurrency]
   );
 
+  const hasMissingField = useCallback(
+    (field: ReturnType<typeof getSmartEntryReviewMissingFields>[number]) => missingFieldSet.has(field),
+    [missingFieldSet]
+  );
+
+  const getFieldErrorMessage = useCallback(
+    (field: ReturnType<typeof getSmartEntryReviewMissingFields>[number]) => {
+      if (!hasMissingField(field)) return null;
+      switch (field) {
+        case 'subscription':
+          return t('smartEntryModal.subscription.fieldErrors.subscription', {
+            ns: 'portal',
+            defaultValue: 'Enter or select the subscription.',
+          });
+        case 'billingFrequency':
+          return t('smartEntryModal.subscription.fieldErrors.billingFrequency', {
+            ns: 'portal',
+            defaultValue: 'Select a billing frequency.',
+          });
+        case 'amount':
+          return t('smartEntryModal.subscription.fieldErrors.amount', {
+            ns: 'portal',
+            defaultValue: 'Enter an amount.',
+          });
+        case 'account':
+          return t('smartEntryModal.subscription.fieldErrors.account', {
+            ns: 'portal',
+            defaultValue: 'Select a payment account.',
+          });
+        case 'cancelEffectiveDate':
+          return t('smartEntryModal.subscription.fieldErrors.cancelEffectiveDate', {
+            ns: 'portal',
+            defaultValue: 'Select a cancellation date.',
+          });
+        case 'person':
+          return t('smartEntryModal.fieldErrors.person', {
+            ns: 'portal',
+            defaultValue: 'Select a person.',
+          });
+        case 'destinationAccount':
+          return t('smartEntryModal.fieldErrors.destinationAccount', {
+            ns: 'portal',
+            defaultValue: 'Select a destination account.',
+          });
+        case 'purpose':
+          return t('smartEntryModal.fieldErrors.purpose', {
+            ns: 'portal',
+            defaultValue: 'Confirm the purpose.',
+          });
+        case 'currency':
+          return t('smartEntryModal.fieldErrors.currency', {
+            ns: 'portal',
+            defaultValue: 'Select a currency.',
+          });
+        default:
+          return t('smartEntryModal.fieldErrors.required', {
+            ns: 'portal',
+            defaultValue: 'This field is required.',
+          });
+      }
+    },
+    [hasMissingField, t]
+  );
+
+  useEffect(() => {
+    if (!parsed?.requestId || !reviewState?.subscription) return;
+    if (subscriptionDefaultAppliedRef.current === parsed.requestId) return;
+
+    const hasExplicitDetectedSubscriptionAccount =
+      reviewState.account?.mode === 'create'
+      || !!reviewState.account?.accountId
+      || !!reviewState.account?.name?.trim()
+      || !!reviewState.subscription.financialAccountHint?.trim();
+
+    subscriptionDefaultAppliedRef.current = parsed.requestId;
+
+    if (!defaultSubscriptionCashAccount || hasExplicitDetectedSubscriptionAccount) {
+      return;
+    }
+
+    updateReview((current) => {
+      if (!current.subscription) return current;
+
+      return {
+        ...current,
+        account: {
+          required: current.subscription.accountRequired,
+          mode: 'existing',
+          accountId: defaultSubscriptionCashAccount.id,
+          name: defaultSubscriptionCashAccount.name,
+          type: defaultSubscriptionCashAccount.type as SuggestedAccount['type'],
+          currency: normalizeReviewCurrency(defaultSubscriptionCashAccount.currency || current.currency),
+          includeInTotal: true,
+          scope: 'personal',
+          managedPersonId: undefined,
+          managedPersonName: undefined,
+        },
+      };
+    });
+  }, [
+    defaultSubscriptionCashAccount,
+    normalizeReviewCurrency,
+    parsed?.requestId,
+    reviewState?.account?.accountId,
+    reviewState?.account?.mode,
+    reviewState?.account?.name,
+    reviewState?.subscription,
+    reviewState?.subscription?.financialAccountHint,
+    updateReview,
+  ]);
+
    const updateReview = useCallback((updater: (current: SmartEntryReview) => SmartEntryReview) => {
      setReviewState((current) => {
-       if (!current || !parsed) return current;
+       if (!current) return current;
        const next = updater(current);
-       const reviewedInstruction = applySmartEntryReviewToInstruction({
-         ...parsed,
-         review: next,
-       });
        return {
          ...next,
-         missing: getSmartEntryMissingFields(reviewedInstruction),
+         missing: getSmartEntryReviewMissingFields(next),
        };
      });
-   }, [parsed]);
+   }, []);
 
   const handleReviewAmountChange = useCallback((value: string) => {
     const trimmed = value.trim();
@@ -1018,6 +1218,7 @@ function isReceiptInsightQuestion(value: string) {
     updateReview((current) => {
       if (!current.subscription) return current;
       const nextSubscription = updater(current.subscription);
+      const normalizedBillingFrequency = normalizeSubscriptionBillingFrequencyInput(nextSubscription.billingFrequency);
       const nextCurrency = normalizeReviewCurrency(nextSubscription.currencyCode || current.currency);
       const nextAccountRequired =
         nextSubscription.intent === 'personal_subscription_payment' || nextSubscription.paymentHappenedNow === true;
@@ -1027,6 +1228,7 @@ function isReceiptInsightQuestion(value: string) {
         currency: nextCurrency,
         subscription: {
           ...nextSubscription,
+          billingFrequency: normalizedBillingFrequency,
           currencyCode: nextCurrency,
           accountRequired: nextAccountRequired,
         },
@@ -1080,8 +1282,8 @@ function isReceiptInsightQuestion(value: string) {
           provider: option?.provider || matchedSubscription?.provider || current.subscription.provider,
           amount: typeof option?.amount === 'number' ? option.amount : current.subscription.amount,
           currencyCode: normalizeReviewCurrency(option?.currencyCode || matchedSubscription?.currencyCode || current.currency),
-          billingFrequency: current.subscription.billingFrequency
-            || (matchedSubscription?.billingFrequency as NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']> | undefined),
+          billingFrequency: normalizeSubscriptionBillingFrequencyInput(current.subscription.billingFrequency)
+            || normalizeSubscriptionBillingFrequencyInput(option?.billingFrequency || matchedSubscription?.billingFrequency),
         },
         account: matchedAccount
           ? {
@@ -1398,7 +1600,11 @@ function isReceiptInsightQuestion(value: string) {
 
      updateReview((current) => {
       const selection: NonNullable<SmartEntryReview['account']> = {
-         required: true,
+         required: field === 'destinationAccount'
+           ? current.destinationAccount?.required ?? true
+           : current.subscription
+             ? current.subscription.accountRequired
+             : true,
          mode: 'existing' as const,
          accountId: account.id,
          name: account.name,
@@ -2313,16 +2519,18 @@ function isReceiptInsightQuestion(value: string) {
 
                     {reviewState.subscription.requiresSubscriptionSelection && (
                       <div className={reviewFieldGroupClass}>
-                        <label className="text-xs font-600 text-muted-foreground">
+                        <label className={getFieldLabelClassName(Boolean(getFieldErrorMessage('subscription')), 'mb-1.5 block text-xs font-600')}>
                           {t('smartEntryModal.subscription.matchingSubscription', {
                             ns: 'portal',
                             defaultValue: 'Matching subscription',
                           })}
+                          <span className={getRequiredMarkerClassName()}> *</span>
                         </label>
                         <select
                           value={reviewState.subscription.subscriptionId || ''}
                           onChange={(e) => handleSubscriptionSelectionChange(e.target.value)}
-                          className="input-base w-full text-sm"
+                          aria-invalid={hasMissingField('subscription') ? 'true' : 'false'}
+                          className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('subscription'))}
                         >
                           <option value="">
                             {t('smartEntryModal.subscription.chooseMatchingSubscription', {
@@ -2338,16 +2546,22 @@ function isReceiptInsightQuestion(value: string) {
                             </option>
                           ))}
                         </select>
+                        {hasMissingField('subscription') && (
+                          <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                            {getFieldErrorMessage('subscription')}
+                          </p>
+                        )}
                       </div>
                     )}
 
                     <div className="grid gap-2.5 sm:grid-cols-2">
                       <div className={reviewFieldGroupClass}>
-                        <label className="text-xs font-600 text-muted-foreground">
+                        <label className={getFieldLabelClassName(Boolean(getFieldErrorMessage('subscription')), 'mb-1.5 block text-xs font-600')}>
                           {t('personalSubscriptions.form.fields.name', {
                             ns: 'portal',
                             defaultValue: 'Subscription name',
                           })}
+                          <span className={getRequiredMarkerClassName()}> *</span>
                         </label>
                         <input
                           value={reviewState.subscription.subscriptionName || ''}
@@ -2357,15 +2571,21 @@ function isReceiptInsightQuestion(value: string) {
                               subscriptionName: e.target.value,
                             }))
                           }
-                          className="input-base w-full text-sm"
+                          aria-invalid={hasMissingField('subscription') ? 'true' : 'false'}
+                          className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('subscription'))}
                           placeholder={t('personalSubscriptions.form.fields.name', {
                             ns: 'portal',
                             defaultValue: 'Subscription name',
                           })}
                         />
+                        {hasMissingField('subscription') && (
+                          <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                            {getFieldErrorMessage('subscription')}
+                          </p>
+                        )}
                       </div>
                       <div className={reviewFieldGroupClass}>
-                        <label className="text-xs font-600 text-muted-foreground">
+                        <label className={getFieldLabelClassName(false, 'mb-1.5 block text-xs font-600')}>
                           {t('personalSubscriptions.form.fields.provider', {
                             ns: 'portal',
                             defaultValue: 'Provider',
@@ -2393,11 +2613,12 @@ function isReceiptInsightQuestion(value: string) {
                       || reviewState.subscription.intent === 'personal_subscription_update') && (
                       <div className="grid gap-2.5 sm:grid-cols-2">
                         <div className={reviewFieldGroupClass}>
-                          <label className="text-xs font-600 text-muted-foreground">
+                          <label className={getFieldLabelClassName(Boolean(getFieldErrorMessage('amount')), 'mb-1.5 block text-xs font-600')}>
                             {t('personalSubscriptions.form.fields.amount', {
                               ns: 'portal',
                               defaultValue: 'Amount',
                             })}
+                            <span className={getRequiredMarkerClassName()}> *</span>
                           </label>
                           <input
                             type="number"
@@ -2409,29 +2630,37 @@ function isReceiptInsightQuestion(value: string) {
                                 amount: e.target.value.trim() ? Number(e.target.value) : undefined,
                               }))
                             }
-                            className="input-base w-full text-sm"
+                            aria-invalid={hasMissingField('amount') ? 'true' : 'false'}
+                            className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('amount'))}
                             placeholder={t('smartEntryModal.amountPlaceholder', {
                               ns: 'portal',
                               currency: normalizeReviewCurrency(reviewState.subscription.currencyCode || reviewState.currency),
                             })}
                           />
+                          {hasMissingField('amount') && (
+                            <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                              {getFieldErrorMessage('amount')}
+                            </p>
+                          )}
                         </div>
                         <div className={reviewFieldGroupClass}>
-                          <label className="text-xs font-600 text-muted-foreground">
+                          <label className={getFieldLabelClassName(Boolean(getFieldErrorMessage('billingFrequency')), 'mb-1.5 block text-xs font-600')}>
                             {t('personalSubscriptions.form.fields.billingFrequency', {
                               ns: 'portal',
                               defaultValue: 'Billing frequency',
                             })}
+                            <span className={getRequiredMarkerClassName()}> *</span>
                           </label>
                           <select
                             value={reviewState.subscription.billingFrequency || ''}
                             onChange={(e) =>
                               updateSubscriptionReview((current) => ({
                                 ...current,
-                                billingFrequency: (e.target.value || undefined) as NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']>,
+                                billingFrequency: normalizeSubscriptionBillingFrequencyInput(e.target.value),
                               }))
                             }
-                            className="input-base w-full text-sm"
+                            aria-invalid={hasMissingField('billingFrequency') ? 'true' : 'false'}
+                            className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('billingFrequency'))}
                           >
                             <option value="">
                               {t('smartEntryModal.subscription.chooseBillingFrequency', {
@@ -2445,6 +2674,11 @@ function isReceiptInsightQuestion(value: string) {
                               </option>
                             ))}
                           </select>
+                          {hasMissingField('billingFrequency') && (
+                            <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                              {getFieldErrorMessage('billingFrequency')}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -2496,11 +2730,12 @@ function isReceiptInsightQuestion(value: string) {
 
                     {reviewState.subscription.intent === 'personal_subscription_cancel' && (
                       <div className={reviewFieldGroupClass}>
-                        <label className="text-xs font-600 text-muted-foreground">
+                        <label className={getFieldLabelClassName(Boolean(getFieldErrorMessage('cancelEffectiveDate')), 'mb-1.5 block text-xs font-600')}>
                           {t('personalSubscriptions.cancellation.effectiveDate', {
                             ns: 'portal',
                             defaultValue: 'Effective cancellation date',
                           })}
+                          <span className={getRequiredMarkerClassName()}> *</span>
                         </label>
                         <input
                           type="date"
@@ -2511,8 +2746,14 @@ function isReceiptInsightQuestion(value: string) {
                               cancelEffectiveDate: e.target.value || undefined,
                             }))
                           }
-                          className="input-base w-full text-sm"
+                          aria-invalid={hasMissingField('cancelEffectiveDate') ? 'true' : 'false'}
+                          className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('cancelEffectiveDate'))}
                         />
+                        {hasMissingField('cancelEffectiveDate') && (
+                          <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                            {getFieldErrorMessage('cancelEffectiveDate')}
+                          </p>
+                        )}
                       </div>
                     )}
 
@@ -2748,7 +2989,7 @@ function isReceiptInsightQuestion(value: string) {
                           : getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {selectedAccount?.name || reviewState.account?.name || (
+                        {getContextAccountDisplayLabel(selectedAccount) || reviewState.account?.name || (
                           isSubscriptionFlow
                             ? t('smartEntryModal.subscription.paymentAccountFallback', {
                                 ns: 'portal',
@@ -2758,10 +2999,17 @@ function isReceiptInsightQuestion(value: string) {
                         )}
                       </p>
                     </div>
+                    <label className={getFieldLabelClassName(Boolean(isSubscriptionFlow && getFieldErrorMessage('account')), 'mb-1.5 block text-xs font-600')}>
+                      {isSubscriptionFlow
+                        ? getSubscriptionPrimaryAccountLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+                        : getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
+                      {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
+                    </label>
                     <select
                       value={primaryAccountSelectValue}
                       onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
-                      className="input-base w-full text-sm"
+                      aria-invalid={hasMissingField('account') ? 'true' : 'false'}
+                      className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('account'))}
                     >
                       <option value="">
                         {isSubscriptionFlow
@@ -2773,7 +3021,7 @@ function isReceiptInsightQuestion(value: string) {
                       </option>
                       {primaryAccountOptions.map((account) => (
                         <option key={account.id} value={account.id}>
-                          {account.name} • {getAccountTypeLabel(account.type, t)} • {account.currency}
+                          {getContextAccountDisplayLabel(account)}
                         </option>
                       ))}
                       <option value="__create__">
@@ -2783,6 +3031,11 @@ function isReceiptInsightQuestion(value: string) {
                         })}
                       </option>
                     </select>
+                    {hasMissingField('account') && (
+                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                        {getFieldErrorMessage('account')}
+                      </p>
+                    )}
                     {accountDraft && accountDraftTarget === 'account' && (
                       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                         <input

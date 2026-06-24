@@ -565,33 +565,47 @@ function getSubscriptionReviewMissingFields(review: SmartEntryReview): SmartEntr
 
   if (!subscription.subscriptionName?.trim()) {
     nextMissing.add('subscription');
+  } else {
+    nextMissing.delete('subscription');
   }
   if (
     (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
     && typeof subscription.amount !== 'number'
   ) {
     nextMissing.add('amount');
+  } else {
+    nextMissing.delete('amount');
   }
   if (
     (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
     && !subscription.currencyCode
   ) {
     nextMissing.add('currency');
+  } else {
+    nextMissing.delete('currency');
   }
   if (
     (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
     && !subscription.billingFrequency
   ) {
     nextMissing.add('billingFrequency');
+  } else {
+    nextMissing.delete('billingFrequency');
   }
   if (subscription.requiresSubscriptionSelection && !subscription.subscriptionId) {
     nextMissing.add('subscription');
+  } else if (subscription.subscriptionId) {
+    nextMissing.delete('subscription');
   }
   if (subscription.accountRequired && !isResolvedAccountSelection(review.account)) {
     nextMissing.add('account');
+  } else {
+    nextMissing.delete('account');
   }
   if (subscription.intent === 'personal_subscription_cancel' && !subscription.cancelEffectiveDate) {
     nextMissing.add('cancelEffectiveDate');
+  } else {
+    nextMissing.delete('cancelEffectiveDate');
   }
 
   return Array.from(nextMissing);
@@ -1523,9 +1537,7 @@ export function applySmartEntryReviewToInstruction(
   return nextInstruction;
 }
 
-export function getSmartEntryMissingFields(instruction: ParsedFinancialInstruction): SmartEntryMissingField[] {
-  const review = instruction.review;
-  if (!review) return [];
+export function getSmartEntryReviewMissingFields(review: SmartEntryReview): SmartEntryMissingField[] {
   if (review.subscription) {
     return getSubscriptionReviewMissingFields(review);
   }
@@ -1547,6 +1559,12 @@ export function getSmartEntryMissingFields(instruction: ParsedFinancialInstructi
   }
 
   return Array.from(nextMissing);
+}
+
+export function getSmartEntryMissingFields(instruction: ParsedFinancialInstruction): SmartEntryMissingField[] {
+  const review = instruction.review;
+  if (!review) return [];
+  return getSmartEntryReviewMissingFields(review);
 }
 
 export function getCompactSummaryRows(instruction: ParsedFinancialInstruction) {

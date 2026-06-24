@@ -35,7 +35,19 @@ export interface ParseRequest {
 }
 
 export interface FinancialContext {
-  accounts?: Array<{ id: string; name: string; type: string; currency: string; includeInTotal?: boolean }>;
+  accounts?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    currency: string;
+    includeInTotal?: boolean;
+    ownershipType?: string | null;
+    isSystemDefault?: boolean;
+    systemDefaultType?: string | null;
+    isActive?: boolean;
+    sortOrder?: number | null;
+    createdAt?: string | null;
+  }>;
   people?: Array<{
     id: string;
     fullName: string;

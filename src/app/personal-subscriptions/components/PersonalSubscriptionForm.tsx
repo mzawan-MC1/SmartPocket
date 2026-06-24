@@ -9,6 +9,12 @@ import CurrencySelector from '@/components/CurrencySelector';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { getAccounts, getCategories, type Category, type FinancialAccount } from '@/lib/finance';
 import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+  getRequiredMarkerClassName,
+} from '@/lib/form-field-styles';
+import {
   getActivePersonalFinancialAccounts,
   getFinancialAccountDisplayLabel,
   getPreferredTransactionAccount,
@@ -284,16 +290,18 @@ export default function PersonalSubscriptionForm({
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label htmlFor="subscription-name" className="mb-1.5 block text-sm font-600 text-foreground">
-              {t('personalSubscriptions.form.fields.name', { ns: 'portal' })} *
+            <label htmlFor="subscription-name" className={getFieldLabelClassName(Boolean(errors.name))}>
+              {t('personalSubscriptions.form.fields.name', { ns: 'portal' })}
+              <span className={getRequiredMarkerClassName()}> *</span>
             </label>
             <input
               id="subscription-name"
               type="text"
-              className={`input-base ${errors.name ? 'input-error' : ''}`}
+              aria-invalid={errors.name ? 'true' : 'false'}
+              className={getFieldInputClassName('input-base', Boolean(errors.name))}
               {...register('name', { required: t('personalSubscriptions.form.errors.nameRequired', { ns: 'portal' }) })}
             />
-            {errors.name ? <p className="mt-1.5 text-xs text-negative">{errors.name.message}</p> : null}
+            {errors.name ? <p className={getFieldErrorTextClassName()}>{errors.name.message}</p> : null}
           </div>
           <div>
             <label htmlFor="subscription-provider" className="mb-1.5 block text-sm font-600 text-foreground">
@@ -346,21 +354,23 @@ export default function PersonalSubscriptionForm({
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
-            <label htmlFor="subscription-amount" className="mb-1.5 block text-sm font-600 text-foreground">
-              {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })} *
+            <label htmlFor="subscription-amount" className={getFieldLabelClassName(Boolean(errors.amount))}>
+              {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })}
+              <span className={getRequiredMarkerClassName()}> *</span>
             </label>
             <input
               id="subscription-amount"
               type="number"
               step="0.01"
               min="0"
-              className={`input-base font-tabular ${errors.amount ? 'input-error' : ''}`}
+              aria-invalid={errors.amount ? 'true' : 'false'}
+              className={getFieldInputClassName('input-base font-tabular', Boolean(errors.amount))}
               {...register('amount', {
                 required: t('personalSubscriptions.form.errors.amountRequired', { ns: 'portal' }),
                 validate: (value) => Number(value) >= 0 || t('personalSubscriptions.form.errors.amountMin', { ns: 'portal' }),
               })}
             />
-            {errors.amount ? <p className="mt-1.5 text-xs text-negative">{errors.amount.message}</p> : null}
+            {errors.amount ? <p className={getFieldErrorTextClassName()}>{errors.amount.message}</p> : null}
           </div>
           <div>
             <CurrencySelector

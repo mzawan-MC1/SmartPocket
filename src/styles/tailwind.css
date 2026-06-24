@@ -396,7 +396,26 @@
 
   .input-error {
     border-color: var(--negative);
+    background-color: var(--negative-bg);
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+  }
+
+  .input-error:focus {
+    border-color: var(--negative);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14);
+  }
+
+  .field-label-error {
+    color: var(--negative);
+  }
+
+  .field-error-text {
+    color: var(--negative);
+  }
+
+  .field-required-marker {
+    color: var(--negative);
   }
 
   .badge-income {

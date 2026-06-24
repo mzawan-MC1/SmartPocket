@@ -455,6 +455,12 @@ export async function buildAIContext() {
       type: a.account_type,
       currency: a.currency,
       includeInTotal: a.include_in_total,
+      ownershipType: a.ownership_type,
+      isSystemDefault: a.is_system_default,
+      systemDefaultType: a.system_default_type,
+      isActive: a.is_active,
+      sortOrder: a.sort_order,
+      createdAt: a.created_at,
     })),
     people: ctx.people.map(p => ({
       id: p.id,
