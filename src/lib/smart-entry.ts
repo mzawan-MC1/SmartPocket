@@ -1,6 +1,7 @@
 import type {
   FinancialAction,
   FinancialContext,
+  PersonalSubscriptionIntent,
   ParsedFinancialInstruction,
   SmartEntryAccountSelection,
   SmartEntryMissingField,
@@ -8,13 +9,20 @@ import type {
   SmartEntryPurpose,
   SmartEntryPurposeOption,
   SmartEntryReview,
+  SmartEntrySubscriptionReview,
+  SubscriptionBillingFrequency,
   SuggestedAccount,
 } from '@/lib/ai-types';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import {
+  calculateNextPersonalSubscriptionBillingDate,
+  PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS,
+} from '@/lib/personal-subscriptions-shared';
 
 const FALLBACK_CURRENCY = 'USD';
 type ContextAccount = NonNullable<NonNullable<FinancialContext['accounts']>[number]>;
 type ContextPerson = NonNullable<NonNullable<FinancialContext['people']>[number]>;
+type ContextSubscription = NonNullable<NonNullable<FinancialContext['subscriptions']>[number]>;
 
 export const AMBIGUOUS_RECEIPT_PURPOSE_OPTIONS: SmartEntryPurposeOption[] = [
   {
@@ -170,6 +178,423 @@ function extractExplicitExpenseAmountFromText(raw: string, receivedAmount: numbe
   }
 
   return undefined;
+}
+
+function getTodayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function normalizeLookupValue(value: string | null | undefined) {
+  return (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasAnyPhrase(raw: string, phrases: string[]) {
+  return phrases.some((phrase) => raw.includes(phrase));
+}
+
+function isSubscriptionIntent(intent: string | undefined): intent is PersonalSubscriptionIntent {
+  return intent === 'personal_subscription_create'
+    || intent === 'personal_subscription_update'
+    || intent === 'personal_subscription_payment'
+    || intent === 'personal_subscription_cancel';
+}
+
+function isSubscriptionAction(action: FinancialAction) {
+  return isSubscriptionIntent(action.actionType);
+}
+
+function firstSubscriptionAction(actions: FinancialAction[]) {
+  return actions.find((action) => isSubscriptionAction(action));
+}
+
+function normalizeSubscriptionBillingFrequency(
+  value: string | undefined
+): SubscriptionBillingFrequency | undefined {
+  if (
+    value === 'weekly'
+    || value === 'monthly'
+    || value === 'quarterly'
+    || value === 'semi_annual'
+    || value === 'yearly'
+    || value === 'custom'
+  ) {
+    return value;
+  }
+  return undefined;
+}
+
+function normalizeReminderSelection(days: number[] | undefined) {
+  const allowed = new Set<number>(PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS);
+  return Array.from(new Set((days || []).filter((value) => allowed.has(value)))).sort((left, right) => left - right);
+}
+
+function findMatchingSubscriptions(args: {
+  action: FinancialAction;
+  context?: FinancialContext | null;
+}) {
+  const subscriptions = (args.context?.subscriptions || []).filter(
+    (subscription): subscription is ContextSubscription => !!subscription?.id && !!subscription?.name
+  );
+  const targetName = normalizeLookupValue(
+    args.action.subscriptionName || args.action.provider || args.action.merchant || args.action.description
+  );
+  const targetProvider = normalizeLookupValue(args.action.provider || args.action.merchant);
+  const targetFrequency = normalizeSubscriptionBillingFrequency(args.action.billingFrequency);
+  const targetAmount = typeof args.action.amount === 'number' ? args.action.amount : undefined;
+
+  const scored = subscriptions
+    .map((subscription) => {
+      const normalizedName = normalizeLookupValue(subscription.name);
+      const normalizedProvider = normalizeLookupValue(subscription.provider);
+      let score = 0;
+
+      if (targetName && normalizedName === targetName) score += 100;
+      else if (targetName && normalizedProvider === targetName) score += 95;
+      else if (targetName && normalizedName && (normalizedName.includes(targetName) || targetName.includes(normalizedName))) score += 86;
+      else if (targetName && normalizedProvider && (normalizedProvider.includes(targetName) || targetName.includes(normalizedProvider))) score += 82;
+
+      if (targetProvider && normalizedProvider === targetProvider) score += 12;
+      else if (targetProvider && normalizedName === targetProvider) score += 8;
+
+      if (typeof targetAmount === 'number' && typeof subscription.amount === 'number' && targetAmount === subscription.amount) {
+        score += 4;
+      }
+      if (targetFrequency && subscription.billingFrequency === targetFrequency) {
+        score += 4;
+      }
+
+      return {
+        subscription,
+        score,
+      };
+    })
+    .filter((row) => row.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  const bestScore = scored[0]?.score || 0;
+  const bestMatches = scored.filter((row) => row.score === bestScore);
+  const selected = bestScore >= 95 && bestMatches.length === 1 ? bestMatches[0].subscription : null;
+
+  return {
+    selected,
+    options: scored
+      .filter((row) => row.score >= 82)
+      .slice(0, 5)
+      .map((row) => ({
+        subscriptionId: row.subscription.id,
+        name: row.subscription.name,
+        provider: row.subscription.provider,
+        amount: row.subscription.amount,
+        currencyCode: row.subscription.currencyCode,
+        billingFrequency: row.subscription.billingFrequency,
+        status: row.subscription.status,
+      })),
+    bestScore,
+  };
+}
+
+function findSubscriptionPaymentAccount(args: {
+  hint: string | undefined;
+  context?: FinancialContext | null;
+}) {
+  const hint = normalizeLookupValue(args.hint);
+  const accounts = (args.context?.accounts || []).filter(
+    (account): account is ContextAccount => !!account?.id && account.includeInTotal !== false
+  );
+  if (!hint) {
+    return {
+      account: null,
+      ambiguous: false,
+    };
+  }
+
+  const exact = accounts.filter((account) => normalizeLookupValue(account.name) === hint);
+  if (exact.length === 1) {
+    return {
+      account: exact[0],
+      ambiguous: false,
+    };
+  }
+
+  const partial = accounts.filter((account) => {
+    const normalizedName = normalizeLookupValue(account.name);
+    return normalizedName.includes(hint) || hint.includes(normalizedName);
+  });
+  if (partial.length === 1) {
+    return {
+      account: partial[0],
+      ambiguous: false,
+    };
+  }
+
+  const typedMatches = accounts.filter((account) => {
+    if (hint.includes('bank')) return account.type === 'bank';
+    if (hint.includes('credit') || hint.includes('debit') || hint.includes('card')) return account.type === 'credit_card';
+    if (hint.includes('cash')) return account.type === 'cash';
+    if (hint.includes('wallet') || hint.includes('paypal')) return account.type === 'digital_wallet';
+    return false;
+  });
+
+  if (typedMatches.length === 1) {
+    return {
+      account: typedMatches[0],
+      ambiguous: false,
+    };
+  }
+
+  return {
+    account: null,
+    ambiguous: exact.length > 1 || partial.length > 1 || typedMatches.length > 1,
+  };
+}
+
+function buildSubscriptionAccountSelection(args: {
+  action: FinancialAction;
+  context?: FinancialContext | null;
+  currency: string;
+  required: boolean;
+}): SmartEntryReview['account'] {
+  const hint = args.action.accountName || args.action.financialAccountHint;
+  const match = findSubscriptionPaymentAccount({
+    hint,
+    context: args.context,
+  });
+
+  if (match.account?.id) {
+    return {
+      required: args.required,
+      mode: 'existing',
+      accountId: match.account.id,
+      name: match.account.name,
+      type: match.account.type as SmartEntryAccountSelection['type'],
+      currency: sanitizeCurrency(match.account.currency || args.currency),
+      includeInTotal: true,
+      scope: 'personal',
+    };
+  }
+
+  return {
+    required: args.required,
+    mode: undefined,
+    accountId: undefined,
+    name: undefined,
+    type: undefined,
+    currency: sanitizeCurrency(args.currency),
+    includeInTotal: true,
+    scope: 'personal',
+  };
+}
+
+function buildSubscriptionUnderstandingLines(args: {
+  action: FinancialAction;
+  currency: string;
+  fallbackCurrency?: string;
+  selectedSubscriptionName?: string;
+}) {
+  const amount = typeof args.action.amount === 'number'
+    ? formatSmartEntryMoney(args.action.amount, args.currency, args.fallbackCurrency)
+    : 'an unknown amount';
+  const subscriptionName = args.selectedSubscriptionName || args.action.subscriptionName || args.action.provider || 'this subscription';
+
+  switch (args.action.actionType) {
+    case 'personal_subscription_create':
+      return [
+        `Create a personal subscription for ${subscriptionName}.`,
+        `Billing amount is ${amount}${args.action.billingFrequency ? ` ${args.action.billingFrequency}` : ''}.`,
+      ];
+    case 'personal_subscription_update':
+      return [
+        `Update the personal subscription ${subscriptionName}.`,
+        typeof args.action.amount === 'number'
+          ? `Set billing amount to ${amount}${args.action.billingFrequency ? ` ${args.action.billingFrequency}` : ''}.`
+          : 'Review the changed subscription details before saving.',
+      ];
+    case 'personal_subscription_payment':
+      return [
+        `Record a payment for ${subscriptionName}.`,
+        `Payment amount is ${amount}.`,
+      ];
+    case 'personal_subscription_cancel':
+      return [
+        `Request cancellation for ${subscriptionName}.`,
+        args.action.cancelEffectiveDate
+          ? `Cancellation should take effect on ${args.action.cancelEffectiveDate}.`
+          : 'Confirm the cancellation date before saving.',
+      ];
+    default:
+      return [];
+  }
+}
+
+function buildSubscriptionReview(args: {
+  instruction: ParsedFinancialInstruction;
+  sourceText?: string;
+  context?: FinancialContext | null;
+}): SmartEntryReview | null {
+  const action = firstSubscriptionAction(args.instruction.actions);
+  if (!action) return null;
+
+  const raw = (args.sourceText || '').toLowerCase();
+  const todayIso = getTodayIso();
+  const currency = sanitizeCurrency(
+    action.currencyCode || action.currency || args.context?.defaultCurrency,
+    {
+      fallbackCurrency: args.context?.defaultCurrency,
+      allowedCurrencies: args.context?.currencies,
+    }
+  );
+  const billingFrequency = normalizeSubscriptionBillingFrequency(action.billingFrequency)
+    || normalizeSubscriptionBillingFrequency(action.recurringFrequency);
+  const amount = typeof action.amount === 'number' ? action.amount : undefined;
+  const startDate = action.startDate === 'today' || action.date === 'today'
+    ? todayIso
+    : action.startDate || action.date;
+  const selectedReminders = normalizeReminderSelection(action.reminderDaysBefore);
+  const matchingSubscriptions = findMatchingSubscriptions({
+    action,
+    context: args.context,
+  });
+  const requiresExistingSelection = action.actionType === 'personal_subscription_update' || action.actionType === 'personal_subscription_cancel';
+  const requiresSubscriptionSelection = requiresExistingSelection && !matchingSubscriptions.selected;
+  const mayHavePaymentNow = action.actionType === 'personal_subscription_payment'
+    || hasAnyPhrase(raw, ['started ', 'joined ', 'subscribed', 'free trial', 'trial']);
+  const paymentHappenedNow = action.actionType === 'personal_subscription_payment'
+    ? true
+    : action.paymentHappenedNow === true;
+  const accountRequired = action.actionType === 'personal_subscription_payment' || paymentHappenedNow === true;
+
+  let nextBillingDate = action.nextBillingDate;
+  if (!nextBillingDate && (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')) {
+    const nextStartDate = startDate || todayIso;
+    if (billingFrequency) {
+      nextBillingDate = calculateNextPersonalSubscriptionBillingDate(nextStartDate, billingFrequency, action.billingInterval);
+    }
+  }
+
+  const review: SmartEntryReview = {
+    understanding: buildSubscriptionUnderstandingLines({
+      action,
+      currency,
+      fallbackCurrency: args.context?.defaultCurrency,
+      selectedSubscriptionName: matchingSubscriptions.selected?.name,
+    }),
+    missing: [],
+    currency,
+    account: buildSubscriptionAccountSelection({
+      action,
+      context: args.context,
+      currency,
+      required: accountRequired,
+    }),
+    subscription: {
+      intent: action.actionType,
+      subscriptionId: matchingSubscriptions.selected?.id || action.subscriptionId,
+      subscriptionName: action.subscriptionName || matchingSubscriptions.selected?.name || action.provider,
+      provider: action.provider || matchingSubscriptions.selected?.provider || action.subscriptionName,
+      amount: amount ?? matchingSubscriptions.selected?.amount,
+      currencyCode: currency,
+      billingFrequency: billingFrequency || normalizeSubscriptionBillingFrequency(matchingSubscriptions.selected?.billingFrequency),
+      billingInterval: Math.max(1, Number(action.billingInterval || 1)),
+      startDate: startDate || undefined,
+      nextBillingDate: nextBillingDate || undefined,
+      trialEndDate: action.trialEndDate || undefined,
+      contractEndDate: action.contractEndDate || undefined,
+      paymentMethod: action.paymentMethod || null,
+      financialAccountHint: action.financialAccountHint || action.accountName,
+      categoryHint: action.categoryHint || action.categoryName,
+      autoRenew: action.autoRenew ?? true,
+      reminderDaysBefore: selectedReminders.length > 0 ? selectedReminders : [3, 7],
+      cancellationNoticeDays: typeof action.cancellationNoticeDays === 'number' ? action.cancellationNoticeDays : undefined,
+      cancellationDeadline: action.cancellationDeadline || undefined,
+      cancelEffectiveDate: action.cancelEffectiveDate || undefined,
+      warningThresholdAmount: typeof action.warningThresholdAmount === 'number' ? action.warningThresholdAmount : undefined,
+      websiteUrl: action.websiteUrl || undefined,
+      notes: action.notes || undefined,
+      paymentHappenedNow,
+      mayHavePaymentNow,
+      createLinkedRecurringExpense: action.createLinkedRecurringExpense !== false,
+      accountRequired,
+      requiresSubscriptionSelection,
+      subscriptionOptions: matchingSubscriptions.options,
+    },
+  };
+
+  if (!review.subscription.subscriptionName?.trim()) {
+    review.missing.push('subscription');
+  }
+  if (
+    (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
+    && typeof review.subscription.amount !== 'number'
+  ) {
+    review.missing.push('amount');
+  }
+  if (
+    (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
+    && !review.subscription.billingFrequency
+  ) {
+    review.missing.push('billingFrequency');
+  }
+  if (
+    (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
+    && !review.subscription.currencyCode
+  ) {
+    review.missing.push('currency');
+  }
+  if (requiresSubscriptionSelection) {
+    review.missing.push('subscription');
+  }
+  if (action.actionType === 'personal_subscription_cancel' && !review.subscription.cancelEffectiveDate) {
+    review.missing.push('cancelEffectiveDate');
+  }
+  if (review.account?.required && !review.account.accountId && !review.account.name) {
+    review.missing.push('account');
+  }
+
+  return review;
+}
+
+function getSubscriptionReviewMissingFields(review: SmartEntryReview): SmartEntryMissingField[] {
+  const nextMissing = new Set<SmartEntryMissingField>(review.missing);
+  const subscription = review.subscription;
+  if (!subscription) return [];
+
+  if (!subscription.subscriptionName?.trim()) {
+    nextMissing.add('subscription');
+  }
+  if (
+    (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
+    && typeof subscription.amount !== 'number'
+  ) {
+    nextMissing.add('amount');
+  }
+  if (
+    (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
+    && !subscription.currencyCode
+  ) {
+    nextMissing.add('currency');
+  }
+  if (
+    (subscription.intent === 'personal_subscription_create' || subscription.intent === 'personal_subscription_payment')
+    && !subscription.billingFrequency
+  ) {
+    nextMissing.add('billingFrequency');
+  }
+  if (subscription.requiresSubscriptionSelection && !subscription.subscriptionId) {
+    nextMissing.add('subscription');
+  }
+  if (subscription.accountRequired && !isResolvedAccountSelection(review.account)) {
+    nextMissing.add('account');
+  }
+  if (subscription.intent === 'personal_subscription_cancel' && !subscription.cancelEffectiveDate) {
+    nextMissing.add('cancelEffectiveDate');
+  }
+
+  return Array.from(nextMissing);
 }
 
 export function normalizeName(value: string | undefined) {
@@ -549,6 +974,14 @@ export function deriveUnderstandingLines(instruction: ParsedFinancialInstruction
         return `${action.personName || 'Someone'} paid you back ${amount}.`;
       case 'transfer':
         return `You moved ${amount} from ${action.accountName || 'one account'} to ${action.destinationAccountName || 'another account'}.`;
+      case 'personal_subscription_create':
+        return `Create a personal subscription for ${action.subscriptionName || action.provider || 'this service'}.`;
+      case 'personal_subscription_update':
+        return `Update the personal subscription ${action.subscriptionName || action.provider || 'this service'}.`;
+      case 'personal_subscription_payment':
+        return `Record a subscription payment for ${action.subscriptionName || action.provider || 'this service'}.`;
+      case 'personal_subscription_cancel':
+        return `Request cancellation for ${action.subscriptionName || action.provider || 'this service'}.`;
       default:
         return action.description || `${action.actionType} ${amount}`;
     }
@@ -560,6 +993,11 @@ export function buildInitialSmartEntryReview(args: {
   sourceText?: string;
   context?: FinancialContext | null;
 }): SmartEntryReview {
+  const subscriptionReview = buildSubscriptionReview(args);
+  if (subscriptionReview) {
+    return subscriptionReview;
+  }
+
   const { purpose, purposeOptions, purposeConfidence, purposeNeedsConfirmation } = inferSmartEntryPurpose(args);
   const actions = args.instruction.actions;
   const primaryPersonAction = firstPersonAction(actions);
@@ -888,6 +1326,87 @@ export function applySmartEntryReviewToInstruction(
   const review = instruction.review;
   if (!review) return instruction;
 
+  if (review.subscription) {
+    const baseActions = instruction.actions.filter(
+      (action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person'
+    );
+
+    const transformedActions = baseActions.map((action) => {
+      if (!isSubscriptionAction(action)) {
+        return { ...action };
+      }
+
+      const currency = sanitizeCurrency(
+        review.subscription?.currencyCode || review.currency || action.currencyCode || action.currency
+      );
+
+      let nextAction: FinancialAction = {
+        ...action,
+        subscriptionId: review.subscription.subscriptionId,
+        subscriptionName: review.subscription.subscriptionName,
+        provider: review.subscription.provider,
+        amount: typeof review.subscription.amount === 'number' ? review.subscription.amount : action.amount,
+        currency,
+        currencyCode: currency,
+        billingFrequency: review.subscription.billingFrequency,
+        billingInterval: review.subscription.billingInterval,
+        startDate: review.subscription.startDate,
+        nextBillingDate: review.subscription.nextBillingDate,
+        trialEndDate: review.subscription.trialEndDate,
+        contractEndDate: review.subscription.contractEndDate,
+        paymentMethod: review.subscription.paymentMethod,
+        financialAccountHint: review.subscription.financialAccountHint,
+        categoryHint: review.subscription.categoryHint,
+        autoRenew: review.subscription.autoRenew,
+        reminderDaysBefore: review.subscription.reminderDaysBefore,
+        cancellationNoticeDays: review.subscription.cancellationNoticeDays,
+        cancellationDeadline: review.subscription.cancellationDeadline,
+        cancelEffectiveDate: review.subscription.cancelEffectiveDate,
+        warningThresholdAmount: review.subscription.warningThresholdAmount,
+        websiteUrl: review.subscription.websiteUrl,
+        notes: review.subscription.notes || action.notes,
+        paymentHappenedNow: review.subscription.paymentHappenedNow,
+        createLinkedRecurringExpense: review.subscription.createLinkedRecurringExpense,
+      };
+
+      if (review.account) {
+        nextAction = {
+          ...nextAction,
+          accountId: review.account.mode === 'existing' ? review.account.accountId : undefined,
+          accountName: review.account.name,
+          accountType: review.account.type || action.accountType,
+          currency: sanitizeCurrency(review.account.currency || currency),
+        };
+      }
+
+      return nextAction;
+    });
+
+    const syntheticActions: FinancialAction[] = [];
+    if (review.account?.required && review.account.mode === 'create' && review.account.name?.trim()) {
+      syntheticActions.push({
+        actionType: 'create_account',
+        accountName: review.account.name.trim(),
+        accountType: review.account.type || inferAccountType(review.account.name),
+        currency: sanitizeCurrency(review.account.currency || review.currency),
+        openingBalance: 0,
+        includeInTotal: true,
+        accountScope: 'personal',
+        confidence: 1,
+        warnings: [],
+        description: `Create account: ${review.account.name.trim()}`,
+      });
+    }
+
+    return {
+      ...instruction,
+      actions: [...syntheticActions, ...transformedActions],
+      missingFields: [...getSubscriptionReviewMissingFields(review)],
+      requiresClarification: false,
+      clarificationQuestions: [],
+    };
+  }
+
   const baseActions = instruction.actions.filter(
     (action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person'
   );
@@ -1007,6 +1526,9 @@ export function applySmartEntryReviewToInstruction(
 export function getSmartEntryMissingFields(instruction: ParsedFinancialInstruction): SmartEntryMissingField[] {
   const review = instruction.review;
   if (!review) return [];
+  if (review.subscription) {
+    return getSubscriptionReviewMissingFields(review);
+  }
   const nextMissing = new Set<SmartEntryMissingField>(review.missing);
 
   if (!review.purpose && review.purposeOptions?.length) nextMissing.add('purpose');
@@ -1054,6 +1576,14 @@ export function getCompactSummaryRows(instruction: ParsedFinancialInstruction) {
           return `- ${amount} returned to ${action.personName || 'someone'}`;
         case 'transfer':
           return `${amount} moved from ${action.accountName || 'one account'} to ${action.destinationAccountName || 'another account'}`;
+        case 'personal_subscription_create':
+          return `Subscription ${action.subscriptionName || action.provider || 'service'} for ${amount}`;
+        case 'personal_subscription_update':
+          return `Subscription update for ${action.subscriptionName || action.provider || 'service'}`;
+        case 'personal_subscription_payment':
+          return `Subscription payment ${amount} for ${action.subscriptionName || action.provider || 'service'}`;
+        case 'personal_subscription_cancel':
+          return `Subscription cancellation for ${action.subscriptionName || action.provider || 'service'}`;
         default:
           return action.description || `${action.actionType} ${amount}`;
       }

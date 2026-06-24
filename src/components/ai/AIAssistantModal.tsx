@@ -33,7 +33,7 @@ import DocumentTransactionReviewModal from '@/components/transactions/DocumentTr
    SmartEntryPurpose,
  } from '@/lib/ai-types';
  import { buildAIContext } from '@/lib/ai-execution';
- import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+ import { dispatchSmartPocketDataChanged, type SmartPocketDataEntity } from '@/lib/data-change';
  import { createClientId } from '@/lib/uuid';
  import { useLanguage } from '@/contexts/LanguageContext';
  import {
@@ -48,6 +48,7 @@ import DocumentTransactionReviewModal from '@/components/transactions/DocumentTr
   isManagedPurpose,
    sanitizeCurrency,
  } from '@/lib/smart-entry';
+import { PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS } from '@/lib/personal-subscriptions-shared';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
   classifyTransactionDocumentError,
@@ -153,6 +154,104 @@ function getAccountTypeLabel(
   }
 }
 
+function isSubscriptionReview(review: SmartEntryReview | null | undefined): review is SmartEntryReview & {
+  subscription: NonNullable<SmartEntryReview['subscription']>;
+} {
+  return !!review?.subscription;
+}
+
+function getSmartEntrySuccessEntities(result: unknown): SmartPocketDataEntity[] {
+  const entities = new Set<SmartPocketDataEntity>([
+    'dashboard',
+    'transactions',
+    'financial_accounts',
+    'ai_usage',
+  ]);
+
+  const executedActions = isObject(result) && Array.isArray(result.executedActions)
+    ? result.executedActions
+    : [];
+
+  const hasSubscriptionChange = executedActions.some((action) => {
+    if (!isObject(action)) return false;
+    const actionType = typeof action.actionType === 'string' ? action.actionType : '';
+    const recordTable = typeof action.recordTable === 'string' ? action.recordTable : '';
+    return actionType.startsWith('personal_subscription_') || recordTable === 'personal_subscriptions';
+  });
+
+  if (hasSubscriptionChange) {
+    entities.add('personal_subscriptions');
+    entities.add('recurring_transactions');
+    entities.add('notifications');
+  }
+
+  return Array.from(entities);
+}
+
+function getSubscriptionPrimaryAccountLabel(
+  intent: NonNullable<SmartEntryReview['subscription']>['intent'] | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (intent === 'personal_subscription_payment') {
+    return t('smartEntryModal.subscription.chargeFrom', {
+      ns: 'portal',
+      defaultValue: 'Charge from',
+    });
+  }
+  return t('smartEntryModal.subscription.paymentAccount', {
+    ns: 'portal',
+    defaultValue: 'Payment account',
+  });
+}
+
+function getSubscriptionConfirmLabel(
+  intent: NonNullable<SmartEntryReview['subscription']>['intent'] | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (intent) {
+    case 'personal_subscription_payment':
+      return t('smartEntryModal.subscription.confirmPayment', {
+        ns: 'portal',
+        defaultValue: 'Confirm Payment',
+      });
+    case 'personal_subscription_update':
+      return t('smartEntryModal.subscription.confirmUpdate', {
+        ns: 'portal',
+        defaultValue: 'Confirm Subscription Update',
+      });
+    case 'personal_subscription_cancel':
+      return t('smartEntryModal.subscription.confirmCancellation', {
+        ns: 'portal',
+        defaultValue: 'Confirm Cancellation Request',
+      });
+    default:
+      return t('smartEntryModal.subscription.confirmCreate', {
+        ns: 'portal',
+        defaultValue: 'Confirm & Save Subscription',
+      });
+  }
+}
+
+function getSubscriptionFrequencyLabel(
+  frequency: NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']>,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  return t(`personalSubscriptions.frequencies.${frequency}`, {
+    ns: 'portal',
+    defaultValue: frequency.replace(/_/g, ' '),
+  });
+}
+
+function getSubscriptionPaymentMethodLabel(
+  method: NonNullable<Exclude<NonNullable<SmartEntryReview['subscription']>['paymentMethod'], null>>,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  return t(`personalSubscriptions.paymentMethods.${method}`, {
+    ns: 'portal',
+    defaultValue: method,
+  });
+}
+
 function getMissingFieldLabel(
   field: ReturnType<typeof getSmartEntryMissingFields>[number],
   t: (key: string, options?: Record<string, unknown>) => string
@@ -170,6 +269,26 @@ function getMissingFieldLabel(
       return t('smartEntryModal.missingFields.amount', { ns: 'portal' });
     case 'currency':
       return t('smartEntryModal.missingFields.currency', { ns: 'portal' });
+    case 'subscription':
+      return t('smartEntryModal.missingFields.subscription', {
+        ns: 'portal',
+        defaultValue: 'subscription',
+      });
+    case 'billingFrequency':
+      return t('smartEntryModal.missingFields.billingFrequency', {
+        ns: 'portal',
+        defaultValue: 'billing frequency',
+      });
+    case 'cancelEffectiveDate':
+      return t('smartEntryModal.missingFields.cancelEffectiveDate', {
+        ns: 'portal',
+        defaultValue: 'cancellation date',
+      });
+    case 'paymentHappenedNow':
+      return t('smartEntryModal.missingFields.paymentHappenedNow', {
+        ns: 'portal',
+        defaultValue: 'payment confirmation',
+      });
     default:
       return field;
   }
@@ -768,6 +887,7 @@ function isReceiptInsightQuestion(value: string) {
          review: reviewState,
        })
      : null;
+  const isSubscriptionFlow = isSubscriptionReview(reviewState);
   const unresolvedReviewFields = previewInstruction
     ? getSmartEntryMissingFields(previewInstruction).map((field) => getMissingFieldLabel(field, t))
     : [];
@@ -783,6 +903,7 @@ function isReceiptInsightQuestion(value: string) {
    const totals = previewInstruction ? getSmartEntryTotals(previewInstruction) : null;
    const accounts = contextSnapshot?.accounts || [];
    const people = contextSnapshot?.people || [];
+  const subscriptionAccounts = accounts.filter((account) => account.includeInTotal !== false);
   const eligiblePrimaryAccounts = getEligibleAccountsForPurpose({
     purpose: reviewState?.purpose,
     accounts,
@@ -797,6 +918,7 @@ function isReceiptInsightQuestion(value: string) {
     personName: reviewState?.person?.name,
     people,
   });
+  const primaryAccountOptions = isSubscriptionFlow ? subscriptionAccounts : eligiblePrimaryAccounts;
    const personSelectValue = reviewState?.person?.mode === 'existing'
      ? reviewState.person.personId || ''
      : reviewState?.person?.mode === 'create'
@@ -821,9 +943,9 @@ function isReceiptInsightQuestion(value: string) {
          ) || null
        );
    const selectedAccount = reviewState?.account?.accountId
-    ? eligiblePrimaryAccounts.find((account) => account.id === reviewState.account?.accountId) || null
+    ? primaryAccountOptions.find((account) => account.id === reviewState.account?.accountId) || null
      : (
-        eligiblePrimaryAccounts.find(
+        primaryAccountOptions.find(
            (account) => (account.name || '').trim().toLowerCase() === (reviewState?.account?.name || '').trim().toLowerCase()
          ) || null
        );
@@ -879,6 +1001,109 @@ function isReceiptInsightQuestion(value: string) {
       amountNeedsConfirmation: false,
     }));
   }, [reviewState?.amountQuickOptionValue, updateReview]);
+
+  const updateSubscriptionReview = useCallback((
+    updater: (current: NonNullable<SmartEntryReview['subscription']>) => NonNullable<SmartEntryReview['subscription']>
+  ) => {
+    updateReview((current) => {
+      if (!current.subscription) return current;
+      const nextSubscription = updater(current.subscription);
+      const nextCurrency = normalizeReviewCurrency(nextSubscription.currencyCode || current.currency);
+      const nextAccountRequired =
+        nextSubscription.intent === 'personal_subscription_payment' || nextSubscription.paymentHappenedNow === true;
+
+      return {
+        ...current,
+        currency: nextCurrency,
+        subscription: {
+          ...nextSubscription,
+          currencyCode: nextCurrency,
+          accountRequired: nextAccountRequired,
+        },
+        account: current.account
+          ? {
+              ...current.account,
+              required: nextAccountRequired,
+              currency: normalizeReviewCurrency(current.account.currency || nextCurrency),
+              includeInTotal: true,
+              scope: 'personal',
+            }
+          : nextAccountRequired
+            ? {
+                required: true,
+                currency: nextCurrency,
+                includeInTotal: true,
+                scope: 'personal',
+              }
+            : current.account,
+      };
+    });
+  }, [normalizeReviewCurrency, updateReview]);
+
+  const handleSubscriptionSelectionChange = useCallback((value: string) => {
+    updateReview((current) => {
+      if (!current.subscription) return current;
+
+      if (!value) {
+        return {
+          ...current,
+          subscription: {
+            ...current.subscription,
+            subscriptionId: undefined,
+          },
+        };
+      }
+
+      const option = current.subscription.subscriptionOptions?.find((item) => item.subscriptionId === value);
+      const matchedSubscription = contextSnapshot?.subscriptions?.find((item) => item.id === value);
+      const matchedAccount = matchedSubscription?.financialAccountId
+        ? subscriptionAccounts.find((account) => account.id === matchedSubscription.financialAccountId) || null
+        : null;
+
+      return {
+        ...current,
+        currency: normalizeReviewCurrency(option?.currencyCode || matchedSubscription?.currencyCode || current.currency),
+        subscription: {
+          ...current.subscription,
+          subscriptionId: value,
+          subscriptionName: option?.name || matchedSubscription?.name || current.subscription.subscriptionName,
+          provider: option?.provider || matchedSubscription?.provider || current.subscription.provider,
+          amount: typeof option?.amount === 'number' ? option.amount : current.subscription.amount,
+          currencyCode: normalizeReviewCurrency(option?.currencyCode || matchedSubscription?.currencyCode || current.currency),
+          billingFrequency: current.subscription.billingFrequency
+            || (matchedSubscription?.billingFrequency as NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']> | undefined),
+        },
+        account: matchedAccount
+          ? {
+              required: current.subscription.accountRequired,
+              mode: 'existing',
+              accountId: matchedAccount.id,
+              name: matchedAccount.name,
+              type: matchedAccount.type as SuggestedAccount['type'],
+              currency: normalizeReviewCurrency(matchedAccount.currency),
+              includeInTotal: true,
+              scope: 'personal',
+            }
+          : current.account,
+      };
+    });
+  }, [contextSnapshot?.subscriptions, normalizeReviewCurrency, subscriptionAccounts, updateReview]);
+
+  const handleSubscriptionReminderToggle = useCallback((days: number) => {
+    updateSubscriptionReview((current) => {
+      const selected = new Set(current.reminderDaysBefore || []);
+      if (selected.has(days)) {
+        selected.delete(days);
+      } else {
+        selected.add(days);
+      }
+
+      return {
+        ...current,
+        reminderDaysBefore: Array.from(selected).sort((left, right) => left - right),
+      };
+    });
+  }, [updateSubscriptionReview]);
 
   const syncManagedAccount = useCallback((
      current: SmartEntryReview,
@@ -1077,6 +1302,9 @@ function isReceiptInsightQuestion(value: string) {
      const selection = field === 'destinationAccount' ? reviewState?.destinationAccount : reviewState?.account;
      const personName = reviewState?.person?.name;
     const suggestedName =
+      field === 'account' && isSubscriptionFlow
+        ? selection?.name || ''
+        :
       field === 'account' && isManagedPurpose(reviewState?.purpose)
         ? getManagedAccountName(personName)
         : selection?.name || t('accounts.types.cash', { ns: 'portal' });
@@ -1087,25 +1315,27 @@ function isReceiptInsightQuestion(value: string) {
        name: suggestedName,
        type: selection?.type || inferAccountType(suggestedName),
        currency: normalizeReviewCurrency(selection?.currency || reviewState?.currency),
-       includeInTotal: field === 'account' ? !isManagedPurpose(reviewState?.purpose) : true,
+      includeInTotal: field === 'account'
+        ? (isSubscriptionFlow ? true : !isManagedPurpose(reviewState?.purpose))
+        : true,
      });
-  }, [reviewState]);
+  }, [isSubscriptionFlow, normalizeReviewCurrency, reviewState, t]);
 
    const handleApplyCreateAccount = useCallback(() => {
      if (!accountDraft?.name.trim()) return;
 
      updateReview((current) => {
         const selection: NonNullable<SmartEntryReview['account']> = {
-         required: true,
+        required: current.subscription ? current.subscription.accountRequired : true,
          mode: 'create' as const,
          accountId: undefined,
          name: accountDraft.name.trim(),
          type: accountDraft.type,
          currency: normalizeReviewCurrency(accountDraft.currency),
          includeInTotal: accountDraft.field === 'account' ? accountDraft.includeInTotal : true,
-         scope: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
-         managedPersonId: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
-         managedPersonName: accountDraft.field === 'account' && isManagedPurpose(current.purpose) ? current.person?.name : undefined,
+        scope: accountDraft.field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? ('managed' as const) : ('personal' as const),
+        managedPersonId: accountDraft.field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? current.person?.personId : undefined,
+        managedPersonName: accountDraft.field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? current.person?.name : undefined,
        };
 
        return accountDraft.field === 'destinationAccount'
@@ -1140,7 +1370,7 @@ function isReceiptInsightQuestion(value: string) {
                ...current,
                account: {
                  ...(current.account || {}),
-                 required: true,
+                required: current.subscription ? current.subscription.accountRequired : true,
                  mode: undefined,
                  accountId: undefined,
                 name: undefined,
@@ -1152,7 +1382,7 @@ function isReceiptInsightQuestion(value: string) {
        return;
      }
 
-    const pool = field === 'destinationAccount' ? eligibleDestinationAccounts : eligiblePrimaryAccounts;
+    const pool = field === 'destinationAccount' ? eligibleDestinationAccounts : primaryAccountOptions;
     const account = pool.find((item) => item.id === value);
      if (!account) return;
 
@@ -1164,10 +1394,12 @@ function isReceiptInsightQuestion(value: string) {
          name: account.name,
          type: account.type as SuggestedAccount['type'],
          currency: normalizeReviewCurrency(account.currency),
-         includeInTotal: field === 'account' ? !isManagedPurpose(current.purpose) : true,
-         scope: field === 'account' && isManagedPurpose(current.purpose) ? ('managed' as const) : ('personal' as const),
-         managedPersonId: field === 'account' && isManagedPurpose(current.purpose) ? current.person?.personId : undefined,
-         managedPersonName: field === 'account' && isManagedPurpose(current.purpose) ? current.person?.name : undefined,
+        includeInTotal: field === 'account'
+          ? (current.subscription ? true : !isManagedPurpose(current.purpose))
+          : true,
+        scope: field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? ('managed' as const) : ('personal' as const),
+        managedPersonId: field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? current.person?.personId : undefined,
+        managedPersonName: field === 'account' && isManagedPurpose(current.purpose) && !current.subscription ? current.person?.name : undefined,
        };
 
        return field === 'destinationAccount'
@@ -1177,7 +1409,7 @@ function isReceiptInsightQuestion(value: string) {
 
      setAccountDraft(null);
      setAccountDraftTarget(null);
-  }, [eligibleDestinationAccounts, eligiblePrimaryAccounts, handleStartCreateAccount, normalizeReviewCurrency, updateReview]);
+  }, [eligibleDestinationAccounts, handleStartCreateAccount, normalizeReviewCurrency, primaryAccountOptions, updateReview]);
 
   const checkVoiceAvailability = useCallback(async () => {
     const response = await fetch('/api/ai/voice-status', {
@@ -1463,7 +1695,7 @@ function isReceiptInsightQuestion(value: string) {
       setStep('success');
       dispatchSmartPocketDataChanged({
         source: 'smart-entry',
-        entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
+        entities: getSmartEntrySuccessEntities(result),
       });
       router.refresh();
     } catch (err) {
@@ -2007,7 +2239,356 @@ function isReceiptInsightQuestion(value: string) {
                   )}
                 </div>
 
-                {reviewState.person?.required && (
+                {isSubscriptionFlow && reviewState.subscription && (
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-4">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.subscription.title', {
+                        ns: 'portal',
+                        defaultValue: 'Subscription',
+                      })}
+                    </p>
+
+                    {reviewState.subscription.requiresSubscriptionSelection && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-600 text-muted-foreground">
+                          {t('smartEntryModal.subscription.matchingSubscription', {
+                            ns: 'portal',
+                            defaultValue: 'Matching subscription',
+                          })}
+                        </label>
+                        <select
+                          value={reviewState.subscription.subscriptionId || ''}
+                          onChange={(e) => handleSubscriptionSelectionChange(e.target.value)}
+                          className="input-base w-full text-sm"
+                        >
+                          <option value="">
+                            {t('smartEntryModal.subscription.chooseMatchingSubscription', {
+                              ns: 'portal',
+                              defaultValue: 'Select the matching subscription',
+                            })}
+                          </option>
+                          {(reviewState.subscription.subscriptionOptions || []).map((option) => (
+                            <option key={option.subscriptionId} value={option.subscriptionId}>
+                              {option.name}
+                              {option.provider ? ` • ${option.provider}` : ''}
+                              {typeof option.amount === 'number' && option.currencyCode ? ` • ${formatMoney(option.amount, option.currencyCode, contextSnapshot?.defaultCurrency)}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-xs font-600 text-muted-foreground">
+                          {t('personalSubscriptions.form.fields.name', {
+                            ns: 'portal',
+                            defaultValue: 'Subscription name',
+                          })}
+                        </label>
+                        <input
+                          value={reviewState.subscription.subscriptionName || ''}
+                          onChange={(e) =>
+                            updateSubscriptionReview((current) => ({
+                              ...current,
+                              subscriptionName: e.target.value,
+                            }))
+                          }
+                          className="input-base w-full text-sm"
+                          placeholder={t('personalSubscriptions.form.fields.name', {
+                            ns: 'portal',
+                            defaultValue: 'Subscription name',
+                          })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-600 text-muted-foreground">
+                          {t('personalSubscriptions.form.fields.provider', {
+                            ns: 'portal',
+                            defaultValue: 'Provider',
+                          })}
+                        </label>
+                        <input
+                          value={reviewState.subscription.provider || ''}
+                          onChange={(e) =>
+                            updateSubscriptionReview((current) => ({
+                              ...current,
+                              provider: e.target.value,
+                            }))
+                          }
+                          className="input-base w-full text-sm"
+                          placeholder={t('personalSubscriptions.form.fields.provider', {
+                            ns: 'portal',
+                            defaultValue: 'Provider',
+                          })}
+                        />
+                      </div>
+                    </div>
+
+                    {(reviewState.subscription.intent === 'personal_subscription_create'
+                      || reviewState.subscription.intent === 'personal_subscription_payment'
+                      || reviewState.subscription.intent === 'personal_subscription_update') && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.amount', {
+                              ns: 'portal',
+                              defaultValue: 'Amount',
+                            })}
+                          </label>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            value={typeof reviewState.subscription.amount === 'number' ? String(reviewState.subscription.amount) : ''}
+                            onChange={(e) =>
+                              updateSubscriptionReview((current) => ({
+                                ...current,
+                                amount: e.target.value.trim() ? Number(e.target.value) : undefined,
+                              }))
+                            }
+                            className="input-base w-full text-sm"
+                            placeholder={t('smartEntryModal.amountPlaceholder', {
+                              ns: 'portal',
+                              currency: normalizeReviewCurrency(reviewState.subscription.currencyCode || reviewState.currency),
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.billingFrequency', {
+                              ns: 'portal',
+                              defaultValue: 'Billing frequency',
+                            })}
+                          </label>
+                          <select
+                            value={reviewState.subscription.billingFrequency || ''}
+                            onChange={(e) =>
+                              updateSubscriptionReview((current) => ({
+                                ...current,
+                                billingFrequency: (e.target.value || undefined) as NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']>,
+                              }))
+                            }
+                            className="input-base w-full text-sm"
+                          >
+                            <option value="">
+                              {t('smartEntryModal.subscription.chooseBillingFrequency', {
+                                ns: 'portal',
+                                defaultValue: 'Select billing frequency',
+                              })}
+                            </option>
+                            {(['weekly', 'monthly', 'quarterly', 'semi_annual', 'yearly', 'custom'] as const).map((frequency) => (
+                              <option key={frequency} value={frequency}>
+                                {getSubscriptionFrequencyLabel(frequency, t)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    )}
+
+                    {(reviewState.subscription.intent === 'personal_subscription_create'
+                      || reviewState.subscription.intent === 'personal_subscription_payment'
+                      || reviewState.subscription.intent === 'personal_subscription_update') && (
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.startDate', {
+                              ns: 'portal',
+                              defaultValue: 'Start date',
+                            })}
+                          </label>
+                          <input
+                            type="date"
+                            value={reviewState.subscription.startDate || ''}
+                            onChange={(e) =>
+                              updateSubscriptionReview((current) => ({
+                                ...current,
+                                startDate: e.target.value || undefined,
+                              }))
+                            }
+                            className="input-base w-full text-sm"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.nextBillingDate', {
+                              ns: 'portal',
+                              defaultValue: 'Next billing date',
+                            })}
+                          </label>
+                          <input
+                            type="date"
+                            value={reviewState.subscription.nextBillingDate || ''}
+                            onChange={(e) =>
+                              updateSubscriptionReview((current) => ({
+                                ...current,
+                                nextBillingDate: e.target.value || undefined,
+                              }))
+                            }
+                            className="input-base w-full text-sm"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {reviewState.subscription.intent === 'personal_subscription_cancel' && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-600 text-muted-foreground">
+                          {t('personalSubscriptions.cancellation.effectiveDate', {
+                            ns: 'portal',
+                            defaultValue: 'Effective cancellation date',
+                          })}
+                        </label>
+                        <input
+                          type="date"
+                          value={reviewState.subscription.cancelEffectiveDate || ''}
+                          onChange={(e) =>
+                            updateSubscriptionReview((current) => ({
+                              ...current,
+                              cancelEffectiveDate: e.target.value || undefined,
+                            }))
+                          }
+                          className="input-base w-full text-sm"
+                        />
+                      </div>
+                    )}
+
+                    {(reviewState.subscription.intent === 'personal_subscription_create'
+                      || reviewState.subscription.intent === 'personal_subscription_payment'
+                      || reviewState.subscription.intent === 'personal_subscription_update') && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.paymentMethod', {
+                              ns: 'portal',
+                              defaultValue: 'Payment method',
+                            })}
+                          </label>
+                          <select
+                            value={reviewState.subscription.paymentMethod || ''}
+                            onChange={(e) =>
+                              updateSubscriptionReview((current) => ({
+                                ...current,
+                                paymentMethod: (e.target.value || null) as NonNullable<SmartEntryReview['subscription']>['paymentMethod'],
+                              }))
+                            }
+                            className="input-base w-full text-sm"
+                          >
+                            <option value="">
+                              {t('personalSubscriptions.form.fields.selectPaymentMethod', {
+                                ns: 'portal',
+                                defaultValue: 'Select payment method',
+                              })}
+                            </option>
+                            {(['Credit Card', 'Debit Card', 'Bank Account', 'PayPal', 'Cash', 'Apple Pay', 'Google Pay', 'Other'] as const).map((method) => (
+                              <option key={method} value={method}>
+                                {getSubscriptionPaymentMethodLabel(method, t)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-3 rounded-xl bg-card p-3">
+                          <label className="flex items-center gap-3 text-sm text-foreground">
+                            <input
+                              type="checkbox"
+                              checked={reviewState.subscription.autoRenew !== false}
+                              onChange={(e) =>
+                                updateSubscriptionReview((current) => ({
+                                  ...current,
+                                  autoRenew: e.target.checked,
+                                }))
+                              }
+                              className="h-4 w-4 rounded border-border"
+                            />
+                            <span>
+                              {t('personalSubscriptions.form.fields.autoRenew', {
+                                ns: 'portal',
+                                defaultValue: 'Auto-renew this subscription',
+                              })}
+                            </span>
+                          </label>
+
+                          <label className="flex items-center gap-3 text-sm text-foreground">
+                            <input
+                              type="checkbox"
+                              checked={reviewState.subscription.createLinkedRecurringExpense !== false}
+                              onChange={(e) =>
+                                updateSubscriptionReview((current) => ({
+                                  ...current,
+                                  createLinkedRecurringExpense: e.target.checked,
+                                }))
+                              }
+                              className="h-4 w-4 rounded border-border"
+                            />
+                            <span>
+                              {t('personalSubscriptions.form.fields.createLinkedRecurringExpense', {
+                                ns: 'portal',
+                                defaultValue: 'Create linked recurring expense',
+                              })}
+                            </span>
+                          </label>
+
+                          {reviewState.subscription.mayHavePaymentNow && reviewState.subscription.intent === 'personal_subscription_create' && (
+                            <label className="flex items-center gap-3 text-sm text-foreground">
+                              <input
+                                type="checkbox"
+                                checked={reviewState.subscription.paymentHappenedNow === true}
+                                onChange={(e) =>
+                                  updateSubscriptionReview((current) => ({
+                                    ...current,
+                                    paymentHappenedNow: e.target.checked,
+                                  }))
+                                }
+                                className="h-4 w-4 rounded border-border"
+                              />
+                              <span>
+                                {t('smartEntryModal.subscription.createPaymentToday', {
+                                  ns: 'portal',
+                                  defaultValue: 'Create payment today',
+                                })}
+                              </span>
+                            </label>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-600 text-muted-foreground">
+                            {t('personalSubscriptions.form.fields.reminderDaysBefore', {
+                              ns: 'portal',
+                              defaultValue: 'Reminder days before charge',
+                            })}
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((days) => {
+                              const selected = (reviewState.subscription?.reminderDaysBefore || []).includes(days);
+                              return (
+                                <button
+                                  key={days}
+                                  type="button"
+                                  onClick={() => handleSubscriptionReminderToggle(days)}
+                                  className={`rounded-full border px-3 py-1.5 text-xs font-600 transition-colors ${
+                                    selected
+                                      ? 'border-accent bg-accent/10 text-accent'
+                                      : 'border-border bg-card text-muted-foreground hover:border-accent/40'
+                                  }`}
+                                >
+                                  {t('personalSubscriptions.form.reminderOption', {
+                                    ns: 'portal',
+                                    count: days,
+                                    defaultValue: days === 1 ? '{{count}} day' : '{{count}} days',
+                                  })}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {!isSubscriptionFlow && reviewState.person?.required && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.personTitle', { ns: 'portal' })}
@@ -2085,17 +2666,31 @@ function isReceiptInsightQuestion(value: string) {
                   </div>
                 )}
 
-                {reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear') && (
+                {(isSubscriptionFlow || (reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear'))) && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
-                      {t('smartEntryModal.accountTitle', { ns: 'portal' })}
+                      {isSubscriptionFlow
+                        ? t('smartEntryModal.subscription.paymentAccountSection', {
+                            ns: 'portal',
+                            defaultValue: 'Payment account',
+                          })
+                        : t('smartEntryModal.accountTitle', { ns: 'portal' })}
                     </p>
                     <div className="rounded-xl bg-card p-3">
                       <p className="text-xs text-muted-foreground">
-                        {getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
+                        {isSubscriptionFlow
+                          ? getSubscriptionPrimaryAccountLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+                          : getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {selectedAccount?.name || reviewState.account.name || t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
+                        {selectedAccount?.name || reviewState.account?.name || (
+                          isSubscriptionFlow
+                            ? t('smartEntryModal.subscription.paymentAccountFallback', {
+                                ns: 'portal',
+                                defaultValue: 'Select a payment account',
+                              })
+                            : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })
+                        )}
                       </p>
                     </div>
                     <select
@@ -2103,8 +2698,15 @@ function isReceiptInsightQuestion(value: string) {
                       onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
                       className="input-base w-full text-sm"
                     >
-                      <option value="">{t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}</option>
-                      {eligiblePrimaryAccounts.map((account) => (
+                      <option value="">
+                        {isSubscriptionFlow
+                          ? t('smartEntryModal.subscription.paymentAccountFallback', {
+                              ns: 'portal',
+                              defaultValue: 'Select a payment account',
+                            })
+                          : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
+                      </option>
+                      {primaryAccountOptions.map((account) => (
                         <option key={account.id} value={account.id}>
                           {account.name} • {getAccountTypeLabel(account.type, t)} • {account.currency}
                         </option>
@@ -2171,7 +2773,7 @@ function isReceiptInsightQuestion(value: string) {
                   </div>
                 )}
 
-                {reviewState.amountActionIndex !== undefined && (
+                {!isSubscriptionFlow && reviewState.amountActionIndex !== undefined && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.amountTitle', { ns: 'portal' })}
@@ -2207,7 +2809,7 @@ function isReceiptInsightQuestion(value: string) {
                   </div>
                 )}
 
-                {reviewState.destinationAccount?.required && (
+                {!isSubscriptionFlow && reviewState.destinationAccount?.required && (
                   <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-3">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.destinationAccountTitle', { ns: 'portal' })}
@@ -2302,7 +2904,7 @@ function isReceiptInsightQuestion(value: string) {
                       <p key={index} className="text-sm text-foreground">{row}</p>
                     ))}
                   </div>
-                  {totals && reviewState.purpose === 'managed_money' && (
+                  {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_money' && (
                     <p className="text-sm font-600 text-foreground">
                       {t('smartEntryModal.summary.remainingFor', {
                         ns: 'portal',
@@ -2311,7 +2913,7 @@ function isReceiptInsightQuestion(value: string) {
                       })}
                     </p>
                   )}
-                  {totals && reviewState.purpose === 'borrowed_money' && (
+                  {!isSubscriptionFlow && totals && reviewState.purpose === 'borrowed_money' && (
                     <div className="space-y-1 text-sm font-600 text-foreground">
                       <p>
                         {t('smartEntryModal.summary.cashRemainingAfterSpending', {
@@ -2328,7 +2930,7 @@ function isReceiptInsightQuestion(value: string) {
                       </p>
                     </div>
                   )}
-                  {totals && reviewState.purpose === 'managed_return' && (
+                  {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_return' && (
                     <p className="text-sm font-600 text-foreground">
                       {t('smartEntryModal.summary.managedBalanceChange', {
                         ns: 'portal',
@@ -2357,7 +2959,9 @@ function isReceiptInsightQuestion(value: string) {
                   className="flex-1 py-3 rounded-xl bg-positive text-white text-sm font-700 hover:bg-positive/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle size={16} />
-                  {t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
+                  {isSubscriptionFlow
+                    ? getSubscriptionConfirmLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+                    : t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
                 </button>
                 <button
                   onClick={handleReset}

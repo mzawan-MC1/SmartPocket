@@ -192,11 +192,13 @@ export default function UpcomingRecurring({
             })}
           </div>
           <div className="border-t border-border bg-muted/20 px-4 py-3">
-            <p className="text-xs text-muted-foreground text-center">
-              {activePeriod.mode === 'month'
-                ? t('recurring.totalScheduled', { ns: 'portal' })
-                : t('recurring.totalDueThisPeriod', { ns: 'portal' })}
-              <span className="font-700 text-foreground font-tabular inline-flex flex-col items-center">
+            <div className="flex items-center justify-between gap-4 text-xs">
+              <span className="min-w-0 text-muted-foreground">
+                {activePeriod.mode === 'month'
+                  ? t('recurring.totalScheduled', { ns: 'portal' })
+                  : t('recurring.totalDueThisPeriod', { ns: 'portal' })}
+              </span>
+              <span className="flex flex-shrink-0 flex-col items-end whitespace-nowrap font-700 text-foreground font-tabular">
                 {totalDueByCurrency.map((row) => (
                   <FormattedCurrencyAmount
                     key={row.currency}
@@ -207,7 +209,7 @@ export default function UpcomingRecurring({
                   />
                 ))}
               </span>
-            </p>
+            </div>
           </div>
         </div>
       )}

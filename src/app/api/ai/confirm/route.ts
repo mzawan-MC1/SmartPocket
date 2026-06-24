@@ -7,6 +7,30 @@ import { applySmartEntryReviewToInstruction, getSmartEntryMissingFields, isAccou
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACCOUNT_TYPES = new Set(['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other']);
 const RELATIONSHIPS = new Set(['spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other']);
+const SUBSCRIPTION_INTENTS = new Set([
+  'personal_subscription_create',
+  'personal_subscription_update',
+  'personal_subscription_payment',
+  'personal_subscription_cancel',
+]);
+const SUBSCRIPTION_BILLING_FREQUENCIES = new Set([
+  'weekly',
+  'monthly',
+  'quarterly',
+  'semi_annual',
+  'yearly',
+  'custom',
+]);
+const SUBSCRIPTION_PAYMENT_METHODS = new Set([
+  'Credit Card',
+  'Debit Card',
+  'Bank Account',
+  'PayPal',
+  'Cash',
+  'Apple Pay',
+  'Google Pay',
+  'Other',
+]);
 const PURPOSES = new Set([
   'personal_expense',
   'personal_income',
@@ -18,8 +42,19 @@ const PURPOSES = new Set([
   'reimbursement',
   'unclear',
 ]);
-const REVIEW_MISSING_FIELDS = new Set(['purpose', 'amount', 'currency', 'person', 'account', 'destinationAccount']);
-const ACCOUNT_SCOPES = new Set(['personal', 'managed']);
+
+const REVIEW_MISSING_FIELDS = new Set([
+  'purpose',
+  'amount',
+  'currency',
+  'person',
+  'account',
+  'destinationAccount',
+  'subscription',
+  'billingFrequency',
+  'paymentHappenedNow',
+  'cancelEffectiveDate',
+]);
 
 function jsonWithCookies(
   body: Record<string, unknown>,
@@ -102,6 +137,80 @@ function sanitizeReview(value: unknown): SmartEntryReview | null {
     };
   };
 
+  const sanitizeSubscription = (input: unknown): SmartEntryReview['subscription'] => {
+    if (!isObject(input)) return undefined;
+    return {
+      intent: typeof input.intent === 'string' && SUBSCRIPTION_INTENTS.has(input.intent)
+        ? input.intent as NonNullable<SmartEntryReview['subscription']>['intent']
+        : undefined,
+      subscriptionId: typeof input.subscriptionId === 'string' && UUID_PATTERN.test(input.subscriptionId)
+        ? input.subscriptionId
+        : undefined,
+      subscriptionName: typeof input.subscriptionName === 'string' ? input.subscriptionName.trim() || undefined : undefined,
+      provider: typeof input.provider === 'string' ? input.provider.trim() || undefined : undefined,
+      amount: typeof input.amount === 'number' && Number.isFinite(input.amount) ? input.amount : undefined,
+      currencyCode: typeof input.currencyCode === 'string' ? input.currencyCode.trim().toUpperCase() || undefined : undefined,
+      billingFrequency: typeof input.billingFrequency === 'string' && SUBSCRIPTION_BILLING_FREQUENCIES.has(input.billingFrequency)
+        ? input.billingFrequency as NonNullable<SmartEntryReview['subscription']>['billingFrequency']
+        : undefined,
+      billingInterval: typeof input.billingInterval === 'number' && Number.isFinite(input.billingInterval) && input.billingInterval >= 1
+        ? Math.trunc(input.billingInterval)
+        : undefined,
+      startDate: typeof input.startDate === 'string' ? input.startDate.trim() || undefined : undefined,
+      nextBillingDate: typeof input.nextBillingDate === 'string' ? input.nextBillingDate.trim() || undefined : undefined,
+      trialEndDate: typeof input.trialEndDate === 'string' ? input.trialEndDate.trim() || undefined : undefined,
+      contractEndDate: typeof input.contractEndDate === 'string' ? input.contractEndDate.trim() || undefined : undefined,
+      paymentMethod: typeof input.paymentMethod === 'string' && SUBSCRIPTION_PAYMENT_METHODS.has(input.paymentMethod)
+        ? input.paymentMethod as NonNullable<SmartEntryReview['subscription']>['paymentMethod']
+        : input.paymentMethod === null
+          ? null
+          : undefined,
+      financialAccountHint: typeof input.financialAccountHint === 'string' ? input.financialAccountHint.trim() || undefined : undefined,
+      categoryHint: typeof input.categoryHint === 'string' ? input.categoryHint.trim() || undefined : undefined,
+      autoRenew: typeof input.autoRenew === 'boolean' ? input.autoRenew : undefined,
+      reminderDaysBefore: Array.isArray(input.reminderDaysBefore)
+        ? input.reminderDaysBefore
+            .map((value) => (typeof value === 'number' && Number.isInteger(value) ? value : null))
+            .filter((value): value is number => value !== null)
+        : undefined,
+      cancellationNoticeDays: typeof input.cancellationNoticeDays === 'number' && Number.isFinite(input.cancellationNoticeDays)
+        ? Math.trunc(input.cancellationNoticeDays)
+        : undefined,
+      cancellationDeadline: typeof input.cancellationDeadline === 'string' ? input.cancellationDeadline.trim() || undefined : undefined,
+      cancelEffectiveDate: typeof input.cancelEffectiveDate === 'string' ? input.cancelEffectiveDate.trim() || undefined : undefined,
+      warningThresholdAmount: typeof input.warningThresholdAmount === 'number' && Number.isFinite(input.warningThresholdAmount)
+        ? input.warningThresholdAmount
+        : undefined,
+      websiteUrl: typeof input.websiteUrl === 'string' ? input.websiteUrl.trim() || undefined : undefined,
+      notes: typeof input.notes === 'string' ? input.notes.trim() || undefined : undefined,
+      paymentHappenedNow: typeof input.paymentHappenedNow === 'boolean' ? input.paymentHappenedNow : undefined,
+      mayHavePaymentNow: typeof input.mayHavePaymentNow === 'boolean' ? input.mayHavePaymentNow : undefined,
+      createLinkedRecurringExpense: typeof input.createLinkedRecurringExpense === 'boolean'
+        ? input.createLinkedRecurringExpense
+        : undefined,
+      accountRequired: input.accountRequired === true,
+      requiresSubscriptionSelection: input.requiresSubscriptionSelection === true,
+      subscriptionOptions: Array.isArray(input.subscriptionOptions)
+        ? input.subscriptionOptions
+            .filter(isObject)
+            .map((item) => ({
+              subscriptionId: typeof item.subscriptionId === 'string' && UUID_PATTERN.test(item.subscriptionId)
+                ? item.subscriptionId
+                : undefined,
+              name: typeof item.name === 'string' ? item.name.trim() : '',
+              provider: typeof item.provider === 'string' ? item.provider.trim() || undefined : undefined,
+              amount: typeof item.amount === 'number' && Number.isFinite(item.amount) ? item.amount : undefined,
+              currencyCode: typeof item.currencyCode === 'string' ? item.currencyCode.trim().toUpperCase() || undefined : undefined,
+              billingFrequency: typeof item.billingFrequency === 'string' ? item.billingFrequency.trim() || undefined : undefined,
+              status: typeof item.status === 'string' ? item.status.trim() || undefined : undefined,
+            }))
+            .filter((item): item is NonNullable<NonNullable<SmartEntryReview['subscription']>['subscriptionOptions']>[number] =>
+              !!item.subscriptionId && !!item.name
+            )
+        : undefined,
+    };
+  };
+
   return {
     understanding: Array.isArray(value.understanding)
       ? value.understanding.filter((item): item is string => typeof item === 'string').map((item) => item.trim()).filter(Boolean)
@@ -140,6 +249,7 @@ function sanitizeReview(value: unknown): SmartEntryReview | null {
     person: sanitizePerson(value.person),
     account: sanitizeAccount(value.account),
     destinationAccount: sanitizeAccount(value.destinationAccount),
+    subscription: sanitizeSubscription(value.subscription),
   };
 }
 
@@ -161,10 +271,71 @@ function mergeReview(base: SmartEntryReview | undefined, next: SmartEntryReview)
     person: { ...(base?.person || {}), ...(next.person || {}) },
     account: { ...(base?.account || {}), ...(next.account || {}) },
     destinationAccount: { ...(base?.destinationAccount || {}), ...(next.destinationAccount || {}) },
+    subscription: next.subscription
+      ? {
+          ...(base?.subscription || {}),
+          ...next.subscription,
+          subscriptionOptions: next.subscription.subscriptionOptions || base?.subscription?.subscriptionOptions,
+        }
+      : base?.subscription,
   };
 }
 
 function validateReviewSelection(review: SmartEntryReview): string | null {
+  const validateAccount = (
+    selection: SmartEntryReview['account'] | SmartEntryReview['destinationAccount'],
+    label: string
+  ) => {
+    if (!selection?.required) return null;
+    if (selection.mode === 'existing' && !selection.accountId) {
+      return `Please choose an existing ${label}.`;
+    }
+    if (selection.mode === 'create' && !selection.name?.trim()) {
+      return `Please enter a name for the new ${label}.`;
+    }
+    if (!selection.mode) {
+      return `Please complete the ${label} details.`;
+    }
+    return null;
+  };
+
+  if (review.subscription) {
+    if (!review.subscription.intent || !SUBSCRIPTION_INTENTS.has(review.subscription.intent)) {
+      return 'Please confirm the subscription action before saving.';
+    }
+    if (!review.subscription.subscriptionName?.trim()) {
+      return 'Please enter or select the subscription name.';
+    }
+    if (review.subscription.requiresSubscriptionSelection && !review.subscription.subscriptionId) {
+      return 'Please select the matching subscription.';
+    }
+    if (
+      (review.subscription.intent === 'personal_subscription_create' || review.subscription.intent === 'personal_subscription_payment') &&
+      typeof review.subscription.amount !== 'number'
+    ) {
+      return 'Please confirm the subscription amount.';
+    }
+    if (
+      (review.subscription.intent === 'personal_subscription_create' || review.subscription.intent === 'personal_subscription_payment') &&
+      !review.subscription.currencyCode
+    ) {
+      return 'Please confirm the subscription currency.';
+    }
+    if (
+      (review.subscription.intent === 'personal_subscription_create' || review.subscription.intent === 'personal_subscription_payment') &&
+      !review.subscription.billingFrequency
+    ) {
+      return 'Please confirm the billing frequency.';
+    }
+    if (
+      review.subscription.intent === 'personal_subscription_cancel' &&
+      !review.subscription.cancelEffectiveDate
+    ) {
+      return 'Please confirm the cancellation date.';
+    }
+    return validateAccount(review.account, 'payment account');
+  }
+
   if (!review.purpose || review.purpose === 'unclear' || review.purposeNeedsConfirmation) {
     return 'Please confirm how this money should be treated.';
   }
@@ -182,23 +353,6 @@ function validateReviewSelection(review: SmartEntryReview): string | null {
       return 'Please complete the person details.';
     }
   }
-
-  const validateAccount = (
-    selection: SmartEntryReview['account'] | SmartEntryReview['destinationAccount'],
-    label: string
-  ) => {
-    if (!selection?.required) return null;
-    if (selection.mode === 'existing' && !selection.accountId) {
-      return `Please choose an existing ${label}.`;
-    }
-    if (selection.mode === 'create' && !selection.name?.trim()) {
-      return `Please enter a name for the new ${label}.`;
-    }
-    if (!selection.mode) {
-      return `Please complete the ${label} details.`;
-    }
-    return null;
-  };
 
   return validateAccount(review.account, 'account') || validateAccount(review.destinationAccount, 'destination account');
 }
@@ -336,6 +490,7 @@ export async function POST(req: NextRequest) {
       mergedReview.account?.accountId,
       mergedReview.destinationAccount?.accountId,
     ].filter((value): value is string => !!value);
+    const selectedSubscriptionIds = mergedReview.subscription?.subscriptionId ? [mergedReview.subscription.subscriptionId] : [];
 
     const { data: selectedPeopleRows, error: selectedPeopleError } = selectedPersonIds.length > 0
       ? await admin
@@ -353,6 +508,13 @@ export async function POST(req: NextRequest) {
           .eq('user_id', user.id)
           .in('id', selectedAccountIds)
       : { data: [], error: null };
+    const { data: selectedSubscriptionsRows, error: selectedSubscriptionsError } = selectedSubscriptionIds.length > 0
+      ? await admin
+          .from('personal_subscriptions')
+          .select('id, name, provider, amount, currency_code, billing_frequency, status, next_billing_date')
+          .eq('user_id', user.id)
+          .in('id', selectedSubscriptionIds)
+      : { data: [], error: null };
     const { data: allPeopleRows, error: allPeopleError } = await admin
       .from('managed_people')
       .select('id, full_name')
@@ -366,6 +528,10 @@ export async function POST(req: NextRequest) {
     }
     if (selectedAccountsError) {
       console.error('[AI Confirm] Failed to load selected accounts:', selectedAccountsError.message);
+      return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+    }
+    if (selectedSubscriptionsError) {
+      console.error('[AI Confirm] Failed to load selected subscriptions:', selectedSubscriptionsError.message);
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
     }
     if (allPeopleError) {
@@ -387,6 +553,7 @@ export async function POST(req: NextRequest) {
       return jsonWithCookies({ error: 'Selected account not found.' }, 409, cookieMutations);
     }
     if (
+      !mergedReview.subscription &&
       mergedReview.account?.mode === 'existing' &&
       selectedPrimaryAccount &&
       !isAccountEligibleForPurpose({
@@ -416,6 +583,7 @@ export async function POST(req: NextRequest) {
       return jsonWithCookies({ error: 'Selected destination account not found.' }, 409, cookieMutations);
     }
     if (
+      !mergedReview.subscription &&
       mergedReview.destinationAccount?.mode === 'existing' &&
       selectedDestinationAccount &&
       !isAccountEligibleForPurpose({
@@ -436,6 +604,13 @@ export async function POST(req: NextRequest) {
       })
     ) {
       return jsonWithCookies({ error: 'Selected destination account does not match this Smart Entry purpose.' }, 409, cookieMutations);
+    }
+
+    const selectedSubscription = mergedReview.subscription?.subscriptionId
+      ? (selectedSubscriptionsRows || []).find((row) => row.id === mergedReview.subscription?.subscriptionId)
+      : null;
+    if (mergedReview.subscription?.subscriptionId && !selectedSubscription) {
+      return jsonWithCookies({ error: 'Selected subscription not found.' }, 409, cookieMutations);
     }
 
     const nextInstruction = applySmartEntryReviewToInstruction({
@@ -471,6 +646,23 @@ export async function POST(req: NextRequest) {
               name: selectedDestinationAccount?.name || mergedReview.destinationAccount.name,
               type: (selectedDestinationAccount?.account_type as NonNullable<NonNullable<SmartEntryReview['destinationAccount']>['type']>) || mergedReview.destinationAccount.type,
               currency: selectedDestinationAccount?.currency || mergedReview.destinationAccount.currency,
+            }
+          : undefined,
+        subscription: mergedReview.subscription
+          ? {
+              ...mergedReview.subscription,
+              subscriptionId: selectedSubscription?.id || mergedReview.subscription.subscriptionId,
+              subscriptionName: selectedSubscription?.name || mergedReview.subscription.subscriptionName,
+              provider: selectedSubscription?.provider || mergedReview.subscription.provider,
+              amount: typeof mergedReview.subscription.amount === 'number'
+                ? mergedReview.subscription.amount
+                : typeof selectedSubscription?.amount === 'number'
+                  ? Number(selectedSubscription.amount)
+                  : undefined,
+              currencyCode: mergedReview.subscription.currencyCode || selectedSubscription?.currency_code || mergedReview.currency,
+              billingFrequency: mergedReview.subscription.billingFrequency
+                || (selectedSubscription?.billing_frequency as NonNullable<NonNullable<SmartEntryReview['subscription']>['billingFrequency']> | undefined),
+              nextBillingDate: mergedReview.subscription.nextBillingDate || selectedSubscription?.next_billing_date || undefined,
             }
           : undefined,
       },

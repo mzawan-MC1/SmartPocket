@@ -44,6 +44,17 @@ export interface FinancialContext {
     moneyHeld?: number;
   }>;
   categories?: Array<{ id: string; name: string; type: string }>;
+  subscriptions?: Array<{
+    id: string;
+    name: string;
+    provider?: string | null;
+    amount?: number;
+    currencyCode?: string;
+    billingFrequency?: string;
+    status?: string;
+    nextBillingDate?: string | null;
+    financialAccountId?: string | null;
+  }>;
   currencies?: string[];
   defaultCurrency?: string;
 }
@@ -51,10 +62,47 @@ export interface FinancialContext {
 // ─── Parsed Financial Instruction ────────────────────────────────────────────
 
 export type OverallIntent =
-  | 'personal_transaction' |'managed_person_transaction' |'transfer' |'reimbursement' |'settlement' |'budget' |'recurring_transaction' |'multiple_actions' |'unclear';
+  | 'personal_transaction' |'managed_person_transaction' |'transfer' |'reimbursement' |'settlement' |'budget' |'recurring_transaction'
+  | 'personal_subscription_create' | 'personal_subscription_update' | 'personal_subscription_payment' | 'personal_subscription_cancel'
+  |'multiple_actions' |'unclear';
 
 export type ActionType =
-  | 'income' |'expense' |'money_received_from_person' |'money_returned_to_person' |'expense_from_held_balance' |'expense_paid_for_person' |'expense_paid_by_person' |'reimbursement_payment' |'settlement' |'transfer' |'budget' |'recurring_transaction' | 'create_account' | 'create_managed_person' | 'loan_received' | 'loan_repayment';
+  | 'income' |'expense' |'money_received_from_person' |'money_returned_to_person' |'expense_from_held_balance' |'expense_paid_for_person' |'expense_paid_by_person' |'reimbursement_payment' |'settlement' |'transfer' |'budget' |'recurring_transaction'
+  | 'personal_subscription_create' | 'personal_subscription_update' | 'personal_subscription_payment' | 'personal_subscription_cancel'
+  | 'create_account' | 'create_managed_person' | 'loan_received' | 'loan_repayment';
+
+export type SubscriptionBillingFrequency =
+  | 'weekly'
+  | 'monthly'
+  | 'quarterly'
+  | 'semi_annual'
+  | 'yearly'
+  | 'custom';
+
+export type SubscriptionPaymentMethod =
+  | 'Credit Card'
+  | 'Debit Card'
+  | 'Bank Account'
+  | 'PayPal'
+  | 'Cash'
+  | 'Apple Pay'
+  | 'Google Pay'
+  | 'Other';
+
+export type SubscriptionStatus =
+  | 'trial'
+  | 'active'
+  | 'paused'
+  | 'cancellation_requested'
+  | 'cancelling'
+  | 'cancelled'
+  | 'expired';
+
+export type PersonalSubscriptionIntent =
+  | 'personal_subscription_create'
+  | 'personal_subscription_update'
+  | 'personal_subscription_payment'
+  | 'personal_subscription_cancel';
 
 export type AccountScope = 'personal' | 'managed';
 export type SmartEntryPurpose =
@@ -74,7 +122,11 @@ export type SmartEntryMissingField =
   | 'currency'
   | 'person'
   | 'account'
-  | 'destinationAccount';
+  | 'destinationAccount'
+  | 'subscription'
+  | 'billingFrequency'
+  | 'paymentHappenedNow'
+  | 'cancelEffectiveDate';
 
 export interface SmartEntryPurposeOption {
   id: SmartEntryPurpose;
@@ -104,6 +156,48 @@ export interface SmartEntryAccountSelection {
   managedPersonName?: string;
 }
 
+export interface SmartEntrySubscriptionSelectionOption {
+  subscriptionId: string;
+  name: string;
+  provider?: string | null;
+  amount?: number;
+  currencyCode?: string;
+  billingFrequency?: string;
+  status?: string;
+}
+
+export interface SmartEntrySubscriptionReview {
+  intent: PersonalSubscriptionIntent;
+  subscriptionId?: string;
+  subscriptionName?: string;
+  provider?: string;
+  amount?: number;
+  currencyCode?: string;
+  billingFrequency?: SubscriptionBillingFrequency;
+  billingInterval?: number;
+  startDate?: string;
+  nextBillingDate?: string;
+  trialEndDate?: string;
+  contractEndDate?: string;
+  paymentMethod?: SubscriptionPaymentMethod | null;
+  financialAccountHint?: string;
+  categoryHint?: string;
+  autoRenew?: boolean;
+  reminderDaysBefore?: number[];
+  cancellationNoticeDays?: number;
+  cancellationDeadline?: string;
+  cancelEffectiveDate?: string;
+  warningThresholdAmount?: number;
+  websiteUrl?: string;
+  notes?: string;
+  paymentHappenedNow?: boolean;
+  mayHavePaymentNow?: boolean;
+  createLinkedRecurringExpense?: boolean;
+  accountRequired?: boolean;
+  requiresSubscriptionSelection?: boolean;
+  subscriptionOptions?: SmartEntrySubscriptionSelectionOption[];
+}
+
 export interface SmartEntryReview {
   understanding: string[];
   missing: SmartEntryMissingField[];
@@ -121,6 +215,7 @@ export interface SmartEntryReview {
   person?: SmartEntryPersonSelection;
   account?: SmartEntryAccountSelection;
   destinationAccount?: SmartEntryAccountSelection;
+  subscription?: SmartEntrySubscriptionReview;
 }
 
 export interface FinancialAction {
@@ -163,6 +258,30 @@ export interface FinancialAction {
   recurringFrequency?: 'weekly' | 'monthly' | 'quarterly' | 'yearly';
   recurrenceStartDate?: string;
   recurrenceDayOfMonth?: number;
+
+  subscriptionId?: string;
+  subscriptionName?: string;
+  provider?: string;
+  currencyCode?: string;
+  billingFrequency?: SubscriptionBillingFrequency;
+  billingInterval?: number;
+  startDate?: string;
+  nextBillingDate?: string;
+  trialEndDate?: string;
+  contractEndDate?: string;
+  paymentMethod?: SubscriptionPaymentMethod | null;
+  financialAccountHint?: string;
+  categoryHint?: string;
+  autoRenew?: boolean;
+  reminderDaysBefore?: number[];
+  cancellationNoticeDays?: number;
+  cancellationDeadline?: string;
+  cancelEffectiveDate?: string;
+  warningThresholdAmount?: number;
+  websiteUrl?: string;
+  paymentHappenedNow?: boolean;
+  createLinkedRecurringExpense?: boolean;
+  subscriptionStatus?: SubscriptionStatus;
 
   amountNeedsConfirmation?: boolean;
 
@@ -361,6 +480,7 @@ export interface ExecutedAction {
   actionType: ActionType;
   recordId?: string;
   recordTable?: string;
+  rollbackStrategy?: 'delete_record' | 'none';
 }
 
 export interface FailedAction {
@@ -393,6 +513,8 @@ export function validateParsedInstruction(raw: unknown): ParsedFinancialInstruct
   const validIntents: OverallIntent[] = [
     'personal_transaction', 'managed_person_transaction', 'transfer',
     'reimbursement', 'settlement', 'budget', 'recurring_transaction',
+    'personal_subscription_create', 'personal_subscription_update',
+    'personal_subscription_payment', 'personal_subscription_cancel',
     'multiple_actions', 'unclear',
   ];
   if (!validIntents.includes(obj.overallIntent as OverallIntent)) {
@@ -404,6 +526,8 @@ export function validateParsedInstruction(raw: unknown): ParsedFinancialInstruct
     'income', 'expense', 'money_received_from_person', 'money_returned_to_person',
     'expense_from_held_balance', 'expense_paid_for_person', 'expense_paid_by_person',
     'reimbursement_payment', 'settlement', 'transfer', 'budget', 'recurring_transaction',
+    'personal_subscription_create', 'personal_subscription_update',
+    'personal_subscription_payment', 'personal_subscription_cancel',
     'create_account', 'create_managed_person', 'loan_received', 'loan_repayment',
   ];
 
@@ -457,10 +581,10 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
   "requestId": "<echo the requestId from input>",
   "language": "<detected BCP-47 language code>",
   "confidence": <0.0-1.0>,
-  "overallIntent": "<one of: personal_transaction|managed_person_transaction|transfer|reimbursement|settlement|budget|recurring_transaction|multiple_actions|unclear>",
+  "overallIntent": "<one of: personal_transaction|managed_person_transaction|transfer|reimbursement|settlement|budget|recurring_transaction|personal_subscription_create|personal_subscription_update|personal_subscription_payment|personal_subscription_cancel|multiple_actions|unclear>",
   "actions": [
     {
-      "actionType": "<one of: income|expense|money_received_from_person|money_returned_to_person|expense_from_held_balance|expense_paid_for_person|expense_paid_by_person|reimbursement_payment|settlement|transfer|budget|recurring_transaction|loan_received|loan_repayment>",
+      "actionType": "<one of: income|expense|money_received_from_person|money_returned_to_person|expense_from_held_balance|expense_paid_for_person|expense_paid_by_person|reimbursement_payment|settlement|transfer|budget|recurring_transaction|personal_subscription_create|personal_subscription_update|personal_subscription_payment|personal_subscription_cancel|loan_received|loan_repayment>",
       "amount": <number or null>,
       "currency": "<ISO 4217 code or null>",
       "date": "<YYYY-MM-DD or 'today' or null>",
@@ -476,6 +600,27 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
       "reimbursementRequired": <true|false|null>,
       "recurringFrequency": "<weekly|monthly|quarterly|yearly|null>",
       "recurrenceDayOfMonth": <1-31 or null>,
+      "subscriptionName": "<subscription or service name>",
+      "provider": "<provider or merchant name>",
+      "currencyCode": "<ISO 4217 code for subscription billing or null>",
+      "billingFrequency": "<weekly|monthly|quarterly|semi_annual|yearly|custom|null>",
+      "billingInterval": <number or null>,
+      "startDate": "<YYYY-MM-DD or 'today' or null>",
+      "nextBillingDate": "<YYYY-MM-DD or null>",
+      "trialEndDate": "<YYYY-MM-DD or null>",
+      "contractEndDate": "<YYYY-MM-DD or null>",
+      "paymentMethod": "<Credit Card|Debit Card|Bank Account|PayPal|Cash|Apple Pay|Google Pay|Other|null>",
+      "financialAccountHint": "<account wording such as bank account or Emirates NBD>",
+      "categoryHint": "<expense category hint>",
+      "autoRenew": <true|false|null>,
+      "reminderDaysBefore": [<supported reminder day values>],
+      "cancellationNoticeDays": <number or null>,
+      "cancellationDeadline": "<YYYY-MM-DD or null>",
+      "cancelEffectiveDate": "<YYYY-MM-DD or null>",
+      "warningThresholdAmount": <number or null>,
+      "websiteUrl": "<http/https url or null>",
+      "paymentHappenedNow": <true|false|null>,
+      "createLinkedRecurringExpense": <true|false|null>,
       "confidence": <0.0-1.0>,
       "warnings": []
     }
@@ -500,6 +645,11 @@ RULES:
 - "today" is acceptable for date when user says today/now
 - If amount is missing, add "amount"to missingFields - If account is ambiguous, add"account" to missingFields
 - Set requiresClarification: true if any critical field is missing or ambiguous
+- Use personal subscription intents for subscription and membership wording such as subscription, subscribed, monthly plan, annual plan, membership, renews monthly, renews yearly, free trial, auto-renew, Netflix, ChatGPT Plus, Amazon Prime, Google One, iCloud, gym membership, hosting plan, domain renewal, or software licence when the meaning is clearly about a personal subscription
+- Do not route ordinary recurring items like salary, rent, loan instalment, school fee, family allowance, or savings transfer to personal subscription intents
+- For personal_subscription_create, minimum fields should include subscriptionName, amount, currencyCode, and billingFrequency when they are clearly available
+- For personal_subscription_payment, use a known matching subscription from context when confidence is high; otherwise only choose this intent when the text also clearly describes an ongoing renewing subscription
+- For personal_subscription_update and personal_subscription_cancel, include subscriptionName and any changed dates, amount, account, renewal, or cancellation details that are clearly stated
 - For "Ahmed paid me AED 2300 for my work": actionType = income
 - For "I borrowed AED 2300 from Ahmed" or "Ahmed lent me AED 2300": actionType = loan_received
 - For "I paid Ahmed AED 500 back" or "I repaid Ahmed AED 500": actionType = loan_repayment

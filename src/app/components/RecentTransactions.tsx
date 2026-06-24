@@ -117,7 +117,7 @@ export default function RecentTransactions() {
             const catColor = txn.category?.color || '#6b7280';
             const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
             return (
-              <div key={txn.id} className="group flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
+              <div key={txn.id} className="group flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
                 <div
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
                   style={{ backgroundColor: catColor + '20' }}
@@ -127,32 +127,25 @@ export default function RecentTransactions() {
                     : <TrendingDown size={16} style={{ color: catColor }} />
                   }
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="text-sm font-700 text-foreground truncate">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="min-w-0 flex-1 truncate text-sm font-700 text-foreground">
                       {title}
                     </p>
                     {hasDocument ? (
                       <button
                         type="button"
                         onClick={() => setDetailsTransactionId(txn.id)}
-                        className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-600 text-muted-foreground"
+                        className="inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-600 leading-4 text-muted-foreground transition-colors hover:bg-muted/80"
                       >
                         <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
-                        {itemCount > 0
-                          ? t('transactions.documentReview.itemCountLabel', {
-                              ns: 'portal',
-                              count: itemCount,
-                              defaultValue: '{{count}} items',
-                            })
-                          : t('transactions.documentDetails.documentSection', {
-                              ns: 'portal',
-                              defaultValue: 'Receipt / Document',
-                            })}
+                        <span className="whitespace-nowrap font-tabular">
+                          {itemCount > 0 ? itemCount : ''}
+                        </span>
                       </button>
                     ) : null}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
                     {txn.category?.name
                       ? translateSystemCategoryName(txn.category.name, (key, options) =>
                           t(key, { ...(options || {}), ns: 'common' })
@@ -160,7 +153,7 @@ export default function RecentTransactions() {
                       : t('recentTransactions.uncategorized', { ns: 'portal' })} · {txn.account?.name || ''}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                <div className="flex flex-shrink-0 flex-col items-end gap-1 text-right">
                   <FormattedCurrencyAmount
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}

@@ -366,7 +366,32 @@ function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> 
     safe.categories = (ctx.categories as unknown[]).map((c) => {
       if (typeof c !== 'object' || !c) return null;
       const cat = c as Record<string, unknown>;
-      return { name: cat.name };
+      return {
+        id: typeof cat.id === 'string' && UUID_PATTERN.test(cat.id) ? cat.id : undefined,
+        name: cat.name,
+        type: typeof cat.type === 'string' ? cat.type : undefined,
+      };
+    }).filter(Boolean);
+  }
+  if (Array.isArray(ctx.subscriptions)) {
+    safe.subscriptions = (ctx.subscriptions as unknown[]).map((s) => {
+      if (typeof s !== 'object' || !s) return null;
+      const subscription = s as Record<string, unknown>;
+      return {
+        id: typeof subscription.id === 'string' && UUID_PATTERN.test(subscription.id) ? subscription.id : undefined,
+        name: typeof subscription.name === 'string' ? subscription.name : undefined,
+        provider: typeof subscription.provider === 'string' ? subscription.provider : undefined,
+        amount: typeof subscription.amount === 'number' && Number.isFinite(subscription.amount) ? subscription.amount : undefined,
+        currencyCode: typeof subscription.currencyCode === 'string'
+          ? subscription.currencyCode.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3)
+          : undefined,
+        billingFrequency: typeof subscription.billingFrequency === 'string' ? subscription.billingFrequency : undefined,
+        status: typeof subscription.status === 'string' ? subscription.status : undefined,
+        nextBillingDate: typeof subscription.nextBillingDate === 'string' ? subscription.nextBillingDate : undefined,
+        financialAccountId: typeof subscription.financialAccountId === 'string' && UUID_PATTERN.test(subscription.financialAccountId)
+          ? subscription.financialAccountId
+          : undefined,
+      };
     }).filter(Boolean);
   }
   if (typeof ctx.defaultCurrency === 'string') {
@@ -394,6 +419,8 @@ function sanitizeRequestStatus(status: string | undefined): string {
 const VALID_INTENTS = new Set([
   'personal_transaction', 'managed_person_transaction', 'transfer',
   'reimbursement', 'settlement', 'budget', 'recurring_transaction',
+  'personal_subscription_create', 'personal_subscription_update',
+  'personal_subscription_payment', 'personal_subscription_cancel',
   'multiple_actions', 'unclear',
 ]);
 function sanitizeOverallIntent(intent: string | undefined): string | null {

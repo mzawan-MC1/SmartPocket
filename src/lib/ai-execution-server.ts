@@ -14,6 +14,18 @@ import {
   type FinancialAccountSystemDefaultType,
 } from '@/lib/financial-account-utils';
 import { ensureDefaultPersonalAccounts } from '@/lib/financial-accounts-server';
+import {
+  createPersonalSubscription,
+  deletePersonalSubscription,
+  markPersonalSubscriptionCancelled,
+  markPersonalSubscriptionPaid,
+  requestPersonalSubscriptionCancellation,
+  updatePersonalSubscription,
+} from '@/lib/personal-subscriptions-server';
+import type {
+  PersonalSubscription,
+  PersonalSubscriptionUpsertInput,
+} from '@/lib/personal-subscriptions-shared';
 
 type AccountType =
   | 'bank'
@@ -199,7 +211,24 @@ class InvalidExecutionActionError extends Error {
 }
 
 function actionRequiresAmount(action: FinancialAction) {
-  return action.actionType !== 'create_account' && action.actionType !== 'create_managed_person';
+  return [
+    'income',
+    'expense',
+    'money_received_from_person',
+    'money_returned_to_person',
+    'expense_from_held_balance',
+    'expense_paid_for_person',
+    'expense_paid_by_person',
+    'reimbursement_payment',
+    'settlement',
+    'transfer',
+    'budget',
+    'recurring_transaction',
+    'loan_received',
+    'loan_repayment',
+    'personal_subscription_create',
+    'personal_subscription_payment',
+  ].includes(action.actionType);
 }
 
 function resolveDefaultCurrency(
@@ -498,6 +527,81 @@ function preflightInstruction(
           field: 'account',
           context: previewContext,
         });
+        break;
+      case 'personal_subscription_payment':
+        requireSubscriptionAccountResolution({
+          action,
+          actionIndex: index,
+          context: previewContext,
+        });
+        break;
+      case 'personal_subscription_create':
+        if (action.paymentHappenedNow === true) {
+          requireSubscriptionAccountResolution({
+            action,
+            actionIndex: index,
+            context: previewContext,
+          });
+        } else if (hasSubscriptionAccountSelection(action)) {
+          requireAccountResolution({
+            action,
+            actionIndex: index,
+            field: 'account',
+            context: previewContext,
+          });
+        }
+        if (!action.subscriptionName?.trim()) {
+          throw new ExecutionClarificationError({
+            status: 'clarification_required',
+            code: 'invalid_action',
+            message: 'This Smart Entry request still needs a subscription name before it can be saved.',
+            actionIndex: index,
+          });
+        }
+        if (!action.billingFrequency) {
+          throw new ExecutionClarificationError({
+            status: 'clarification_required',
+            code: 'invalid_action',
+            message: 'This Smart Entry request still needs a billing frequency before it can be saved.',
+            actionIndex: index,
+          });
+        }
+        break;
+      case 'personal_subscription_update':
+        if (!action.subscriptionId && !action.subscriptionName?.trim() && !action.provider?.trim()) {
+          throw new ExecutionClarificationError({
+            status: 'clarification_required',
+            code: 'invalid_action',
+            message: 'Select the matching subscription before saving these changes.',
+            actionIndex: index,
+          });
+        }
+        if (hasSubscriptionAccountSelection(action)) {
+          requireAccountResolution({
+            action,
+            actionIndex: index,
+            field: 'account',
+            context: previewContext,
+          });
+        }
+        break;
+      case 'personal_subscription_cancel':
+        if (!action.subscriptionId && !action.subscriptionName?.trim() && !action.provider?.trim()) {
+          throw new ExecutionClarificationError({
+            status: 'clarification_required',
+            code: 'invalid_action',
+            message: 'Select the matching subscription before saving this cancellation request.',
+            actionIndex: index,
+          });
+        }
+        if (!action.cancelEffectiveDate) {
+          throw new ExecutionClarificationError({
+            status: 'clarification_required',
+            code: 'invalid_action',
+            message: 'Confirm the cancellation date before saving this subscription request.',
+            actionIndex: index,
+          });
+        }
         break;
       default:
         break;
@@ -1227,6 +1331,236 @@ async function executeActionServer(args: {
       };
     }
 
+    case 'personal_subscription_create': {
+      const account = action.paymentHappenedNow === true || hasSubscriptionAccountSelection(action)
+        ? requireSubscriptionAccountResolution({
+            action,
+            actionIndex: index,
+            context,
+          })
+        : null;
+
+      const subscription = await createSubscriptionServer({
+        action,
+        userId,
+        supabase,
+        context,
+        accountId: account?.id || null,
+        paymentDate: date,
+        forPayment: action.paymentHappenedNow === true,
+      });
+
+      let createdSubscription = subscription;
+
+      if (action.paymentHappenedNow === true) {
+        try {
+          createdSubscription = await markSubscriptionPaidServer({
+            subscriptionId: subscription.id,
+            userId,
+            supabase,
+          });
+
+          if (action.nextBillingDate && action.nextBillingDate !== createdSubscription.next_billing_date) {
+            createdSubscription = await updateSubscriptionServer({
+              action: {
+                ...action,
+                nextBillingDate: action.nextBillingDate,
+              },
+              subscriptionId: createdSubscription.id,
+              userId,
+              supabase,
+              context,
+              accountId: account?.id || null,
+            });
+          }
+        } catch (error) {
+          await deletePersonalSubscription({
+            supabase,
+            userId,
+            subscriptionId: subscription.id,
+          }).catch(() => undefined);
+          throw error;
+        }
+      }
+
+      return {
+        actionIndex: index,
+        actionType: action.actionType,
+        recordId: createdSubscription.id,
+        recordTable: 'personal_subscriptions',
+        rollbackStrategy: 'delete_record',
+      };
+    }
+
+    case 'personal_subscription_update': {
+      const matchedSubscription = await resolveSubscriptionForAction({
+        action,
+        userId,
+        supabase,
+      });
+
+      if (!matchedSubscription) {
+        throw new InvalidExecutionActionError('Please select the matching subscription before saving these changes.');
+      }
+
+      const account = hasSubscriptionAccountSelection(action)
+        ? requireSubscriptionAccountResolution({
+            action,
+            actionIndex: index,
+            context,
+          })
+        : null;
+
+      const updatedSubscription = await updateSubscriptionServer({
+        action,
+        subscriptionId: matchedSubscription.id,
+        userId,
+        supabase,
+        context,
+        accountId: account?.id || null,
+      });
+
+      return {
+        actionIndex: index,
+        actionType: action.actionType,
+        recordId: updatedSubscription.id,
+        recordTable: 'personal_subscriptions',
+        rollbackStrategy: 'none',
+      };
+    }
+
+    case 'personal_subscription_payment': {
+      const account = requireSubscriptionAccountResolution({
+        action,
+        actionIndex: index,
+        context,
+      });
+
+      let matchedSubscription = await resolveSubscriptionForAction({
+        action,
+        userId,
+        supabase,
+      });
+      let createdSubscriptionId: string | null = null;
+
+      if (!matchedSubscription) {
+        if (!action.subscriptionName?.trim()) {
+          throw new InvalidExecutionActionError('Please enter the subscription name before recording this payment.');
+        }
+        if (!action.billingFrequency) {
+          throw new InvalidExecutionActionError('Please confirm the billing frequency before recording this payment.');
+        }
+
+        matchedSubscription = await createSubscriptionServer({
+          action,
+          userId,
+          supabase,
+          context,
+          accountId: account.id,
+          paymentDate: date,
+          forPayment: true,
+        });
+        createdSubscriptionId = matchedSubscription.id;
+      } else {
+        matchedSubscription = await updateSubscriptionServer({
+          action,
+          subscriptionId: matchedSubscription.id,
+          userId,
+          supabase,
+          context,
+          accountId: account.id,
+        });
+      }
+
+      let paidSubscription;
+      try {
+        paidSubscription = await markSubscriptionPaidServer({
+          subscriptionId: matchedSubscription.id,
+          userId,
+          supabase,
+        });
+
+        if (action.nextBillingDate && action.nextBillingDate !== paidSubscription.next_billing_date) {
+          paidSubscription = await updateSubscriptionServer({
+            action: {
+              ...action,
+              nextBillingDate: action.nextBillingDate,
+            },
+            subscriptionId: matchedSubscription.id,
+            userId,
+            supabase,
+            context,
+            accountId: account.id,
+          });
+        }
+      } catch (error) {
+        if (createdSubscriptionId) {
+          await deletePersonalSubscription({
+            supabase,
+            userId,
+            subscriptionId: createdSubscriptionId,
+          }).catch(() => undefined);
+        }
+        throw error;
+      }
+
+      return {
+        actionIndex: index,
+        actionType: action.actionType,
+        recordId: paidSubscription.id,
+        recordTable: 'personal_subscriptions',
+        rollbackStrategy: createdSubscriptionId ? 'delete_record' : 'none',
+      };
+    }
+
+    case 'personal_subscription_cancel': {
+      const matchedSubscription = await resolveSubscriptionForAction({
+        action,
+        userId,
+        supabase,
+      });
+
+      if (!matchedSubscription) {
+        throw new InvalidExecutionActionError('Please select the matching subscription before saving this cancellation request.');
+      }
+
+      try {
+        const cancelledNow = action.cancelEffectiveDate && action.cancelEffectiveDate <= date;
+        const updatedSubscription = cancelledNow
+          ? await markPersonalSubscriptionCancelled({
+              supabase,
+              userId,
+              subscriptionId: matchedSubscription.id,
+              effectiveDate: action.cancelEffectiveDate,
+            })
+          : await requestPersonalSubscriptionCancellation({
+              supabase,
+              userId,
+              subscriptionId: matchedSubscription.id,
+              input: {
+                request_date: date,
+                effective_cancellation_date: action.cancelEffectiveDate || null,
+                notes: action.notes || null,
+              },
+            });
+
+        return {
+          actionIndex: index,
+          actionType: action.actionType,
+          recordId: updatedSubscription.id,
+          recordTable: 'personal_subscriptions',
+          rollbackStrategy: 'none',
+        };
+      } catch (error) {
+        throw new ExecutionPersistenceError({
+          code: 'SUBSCRIPTION_CANCELLATION_FAILED',
+          category: 'technical',
+          message: error instanceof Error ? error.message : 'Failed to update subscription cancellation',
+          publicMessage: 'The subscription cancellation could not be saved. Please review the details and try again.',
+        });
+      }
+    }
+
     case 'create_managed_person': {
       const person = await createManagedPersonServer(
         {
@@ -1386,6 +1720,417 @@ function inferAccountType(name?: string): AccountType {
   if (value.includes('invest')) return 'investment';
   if (value.includes('bank')) return 'bank';
   return 'other';
+}
+
+function normalizeLookup(value: string | undefined): string {
+  return (value || '').trim().toLowerCase();
+}
+
+function hasSubscriptionAccountSelection(action: FinancialAction) {
+  return !!(action.accountId || action.accountName);
+}
+
+function getExistingAccountChoices(context: ServerExecutionContext) {
+  return context.accounts.map((account) => ({
+    id: account.id,
+    name: account.name,
+    type: account.account_type,
+    currency: account.currency,
+  }));
+}
+
+function requireSubscriptionAccountResolution(args: {
+  action: FinancialAction;
+  actionIndex: number;
+  context: ServerExecutionContext;
+}): ServerAccount {
+  if (!hasSubscriptionAccountSelection(args.action)) {
+    throw new ExecutionClarificationError({
+      status: 'clarification_required',
+      code: 'account_missing',
+      message: 'Select a payment account before saving this subscription payment.',
+      actionIndex: args.actionIndex,
+      field: 'account',
+      existingAccounts: getExistingAccountChoices(args.context),
+    });
+  }
+
+  return requireAccountResolution({
+    action: args.action,
+    actionIndex: args.actionIndex,
+    field: 'account',
+    context: args.context,
+  });
+}
+
+async function listPersonalSubscriptionsServer(
+  userId: string,
+  supabase: SupabaseClient
+): Promise<PersonalSubscription[]> {
+  const { data, error } = await supabase
+    .from('personal_subscriptions')
+    .select(`
+      id,
+      user_id,
+      name,
+      provider,
+      description,
+      category_id,
+      financial_account_id,
+      recurring_transaction_id,
+      amount,
+      currency_code,
+      billing_frequency,
+      billing_interval,
+      start_date,
+      next_billing_date,
+      trial_end_date,
+      contract_end_date,
+      auto_renew,
+      payment_method,
+      cancellation_notice_days,
+      cancellation_deadline,
+      reminder_days_before,
+      warning_threshold_amount,
+      website_url,
+      account_reference,
+      notes,
+      status,
+      last_paid_date,
+      cancel_requested_at,
+      cancel_effective_date,
+      cancel_confirmation_reference,
+      created_at,
+      updated_at
+    `)
+    .eq('user_id', userId);
+
+  if (error) {
+    throw new ExecutionPersistenceError({
+      code: 'SUBSCRIPTION_LOOKUP_FAILED',
+      category: 'technical',
+      message: error.message || 'Failed to load personal subscriptions',
+      publicMessage: 'The matching subscription could not be loaded. Please try again.',
+    });
+  }
+
+  return (data || []) as PersonalSubscription[];
+}
+
+async function resolveSubscriptionForAction(args: {
+  action: FinancialAction;
+  userId: string;
+  supabase: SupabaseClient;
+}): Promise<PersonalSubscription | null> {
+  if (args.action.subscriptionId) {
+    const { data, error } = await args.supabase
+      .from('personal_subscriptions')
+      .select(`
+        id,
+        user_id,
+        name,
+        provider,
+        description,
+        category_id,
+        financial_account_id,
+        recurring_transaction_id,
+        amount,
+        currency_code,
+        billing_frequency,
+        billing_interval,
+        start_date,
+        next_billing_date,
+        trial_end_date,
+        contract_end_date,
+        auto_renew,
+        payment_method,
+        cancellation_notice_days,
+        cancellation_deadline,
+        reminder_days_before,
+        warning_threshold_amount,
+        website_url,
+        account_reference,
+        notes,
+        status,
+        last_paid_date,
+        cancel_requested_at,
+        cancel_effective_date,
+        cancel_confirmation_reference,
+        created_at,
+        updated_at
+      `)
+      .eq('id', args.action.subscriptionId)
+      .eq('user_id', args.userId)
+      .maybeSingle();
+
+    if (error) {
+      throw new ExecutionPersistenceError({
+        code: 'SUBSCRIPTION_LOOKUP_FAILED',
+        category: 'technical',
+        message: error.message || 'Failed to load the selected subscription',
+        publicMessage: 'The selected subscription could not be loaded. Please try again.',
+      });
+    }
+
+    return (data as PersonalSubscription | null) || null;
+  }
+
+  const subscriptions = await listPersonalSubscriptionsServer(args.userId, args.supabase);
+  const targetName = normalizeLookup(
+    args.action.subscriptionName || args.action.provider || args.action.merchant || args.action.description
+  );
+  const targetProvider = normalizeLookup(args.action.provider || args.action.merchant);
+  const targetAmount = typeof args.action.amount === 'number' ? args.action.amount : undefined;
+  const targetFrequency = args.action.billingFrequency;
+
+  const scored = subscriptions
+    .map((subscription) => {
+      const normalizedName = normalizeLookup(subscription.name);
+      const normalizedProvider = normalizeLookup(subscription.provider || undefined);
+      let score = 0;
+
+      if (targetName && normalizedName === targetName) score += 100;
+      else if (targetName && normalizedProvider === targetName) score += 95;
+      else if (targetName && normalizedName && (normalizedName.includes(targetName) || targetName.includes(normalizedName))) score += 86;
+      else if (targetName && normalizedProvider && (normalizedProvider.includes(targetName) || targetName.includes(normalizedProvider))) score += 82;
+
+      if (targetProvider && normalizedProvider === targetProvider) score += 12;
+      else if (targetProvider && normalizedName === targetProvider) score += 8;
+
+      if (typeof targetAmount === 'number' && Number(subscription.amount) === targetAmount) {
+        score += 4;
+      }
+      if (targetFrequency && subscription.billing_frequency === targetFrequency) {
+        score += 4;
+      }
+
+      return { subscription, score };
+    })
+    .filter((row) => row.score > 0)
+    .sort((left, right) => right.score - left.score);
+
+  const bestScore = scored[0]?.score || 0;
+  const bestMatches = scored.filter((row) => row.score === bestScore);
+  if (bestScore >= 95 && bestMatches.length === 1) {
+    return bestMatches[0].subscription;
+  }
+
+  return null;
+}
+
+function resolveExpenseCategoryForSubscription(
+  action: FinancialAction,
+  categories: ServerCategory[]
+): ServerCategory | null {
+  const expenseCategories = categories.filter((category) => category.category_type === 'expense');
+  if (action.categoryId) {
+    const byId = expenseCategories.find((category) => category.id === action.categoryId);
+    if (byId) return byId;
+  }
+
+  const hints = [
+    action.categoryHint,
+    action.categoryName,
+    'subscription',
+    'subscriptions',
+    'membership',
+    'memberships',
+    'software',
+    'streaming',
+    'utilities',
+  ]
+    .map((value) => normalizeLookup(value))
+    .filter(Boolean);
+
+  for (const hint of hints) {
+    const exact = expenseCategories.find((category) => normalizeLookup(category.name) === hint);
+    if (exact) return exact;
+  }
+
+  for (const hint of hints) {
+    const partial = expenseCategories.find((category) => {
+      const normalizedName = normalizeLookup(category.name);
+      return normalizedName.includes(hint) || hint.includes(normalizedName);
+    });
+    if (partial) return partial;
+  }
+
+  return null;
+}
+
+function buildSubscriptionCreatePayload(args: {
+  action: FinancialAction;
+  context: ServerExecutionContext;
+  accountId?: string | null;
+  paymentDate: string;
+  forPayment: boolean;
+}): PersonalSubscriptionUpsertInput {
+  const { action, context, accountId, paymentDate, forPayment } = args;
+  const category = resolveExpenseCategoryForSubscription(action, context.categories);
+  const currency = sanitizeCurrency(
+    action.currencyCode || action.currency,
+    context.supportedCurrencies,
+    context.defaultCurrency
+  );
+  const billingFrequency = action.billingFrequency || 'monthly';
+
+  return {
+    name: (action.subscriptionName || action.provider || action.merchant || 'Subscription').trim(),
+    provider: action.provider || action.merchant || null,
+    category_id: category?.id || null,
+    financial_account_id: accountId || null,
+    amount: typeof action.amount === 'number' ? action.amount : 0,
+    currency_code: currency,
+    billing_frequency: billingFrequency,
+    billing_interval: typeof action.billingInterval === 'number' && action.billingInterval >= 1 ? Math.trunc(action.billingInterval) : 1,
+    start_date: action.startDate || paymentDate,
+    next_billing_date: forPayment ? paymentDate : (action.nextBillingDate || null),
+    trial_end_date: action.trialEndDate || null,
+    contract_end_date: action.contractEndDate || null,
+    auto_renew: action.autoRenew ?? true,
+    payment_method: action.paymentMethod ?? null,
+    cancellation_notice_days: typeof action.cancellationNoticeDays === 'number' ? Math.trunc(action.cancellationNoticeDays) : undefined,
+    cancellation_deadline: action.cancellationDeadline || null,
+    reminder_days_before: action.reminderDaysBefore && action.reminderDaysBefore.length > 0 ? action.reminderDaysBefore : [3, 7],
+    warning_threshold_amount: typeof action.warningThresholdAmount === 'number' ? action.warningThresholdAmount : null,
+    website_url: action.websiteUrl || null,
+    notes: action.notes || null,
+    status: action.subscriptionStatus || (action.trialEndDate ? 'trial' : 'active'),
+  };
+}
+
+function buildSubscriptionUpdatePayload(args: {
+  action: FinancialAction;
+  context: ServerExecutionContext;
+  accountId?: string | null;
+}): PersonalSubscriptionUpsertInput {
+  const { action, context, accountId } = args;
+  const category = resolveExpenseCategoryForSubscription(action, context.categories);
+  const payload: PersonalSubscriptionUpsertInput = {};
+
+  if (action.subscriptionName?.trim()) payload.name = action.subscriptionName.trim();
+  if (action.provider !== undefined) payload.provider = action.provider || null;
+  if (typeof action.amount === 'number') payload.amount = action.amount;
+  if (action.currencyCode || action.currency) {
+    payload.currency_code = sanitizeCurrency(
+      action.currencyCode || action.currency,
+      context.supportedCurrencies,
+      context.defaultCurrency
+    );
+  }
+  if (action.billingFrequency) payload.billing_frequency = action.billingFrequency;
+  if (typeof action.billingInterval === 'number' && action.billingInterval >= 1) {
+    payload.billing_interval = Math.trunc(action.billingInterval);
+  }
+  if (action.startDate) payload.start_date = action.startDate;
+  if (action.nextBillingDate) payload.next_billing_date = action.nextBillingDate;
+  if (action.trialEndDate) payload.trial_end_date = action.trialEndDate;
+  if (action.contractEndDate) payload.contract_end_date = action.contractEndDate;
+  if (action.paymentMethod !== undefined) payload.payment_method = action.paymentMethod ?? null;
+  if (accountId) payload.financial_account_id = accountId;
+  if (category?.id) payload.category_id = category.id;
+  if (action.autoRenew !== undefined) payload.auto_renew = action.autoRenew;
+  if (Array.isArray(action.reminderDaysBefore) && action.reminderDaysBefore.length > 0) {
+    payload.reminder_days_before = action.reminderDaysBefore;
+  }
+  if (typeof action.cancellationNoticeDays === 'number') {
+    payload.cancellation_notice_days = Math.trunc(action.cancellationNoticeDays);
+  }
+  if (action.cancellationDeadline) payload.cancellation_deadline = action.cancellationDeadline;
+  if (typeof action.warningThresholdAmount === 'number') payload.warning_threshold_amount = action.warningThresholdAmount;
+  if (action.websiteUrl) payload.website_url = action.websiteUrl;
+  if (action.notes) payload.notes = action.notes;
+  if (action.subscriptionStatus) payload.status = action.subscriptionStatus;
+  if (action.cancelEffectiveDate) payload.cancel_effective_date = action.cancelEffectiveDate;
+
+  return payload;
+}
+
+async function createSubscriptionServer(args: {
+  action: FinancialAction;
+  userId: string;
+  supabase: SupabaseClient;
+  context: ServerExecutionContext;
+  accountId?: string | null;
+  paymentDate: string;
+  forPayment: boolean;
+}) {
+  try {
+    return await createPersonalSubscription({
+      supabase: args.supabase,
+      userId: args.userId,
+      payload: buildSubscriptionCreatePayload({
+        action: args.action,
+        context: args.context,
+        accountId: args.accountId,
+        paymentDate: args.paymentDate,
+        forPayment: args.forPayment,
+      }),
+      options: {
+        createLinkedRecurringExpense: args.action.createLinkedRecurringExpense !== false,
+      },
+    });
+  } catch (error) {
+    throw new ExecutionPersistenceError({
+      code: 'SUBSCRIPTION_CREATE_FAILED',
+      category: 'technical',
+      message: error instanceof Error ? error.message : 'Failed to create subscription',
+      publicMessage: 'The personal subscription could not be saved. Please review the details and try again.',
+    });
+  }
+}
+
+async function updateSubscriptionServer(args: {
+  action: FinancialAction;
+  subscriptionId: string;
+  userId: string;
+  supabase: SupabaseClient;
+  context: ServerExecutionContext;
+  accountId?: string | null;
+}) {
+  try {
+    return await updatePersonalSubscription({
+      supabase: args.supabase,
+      userId: args.userId,
+      subscriptionId: args.subscriptionId,
+      payload: buildSubscriptionUpdatePayload({
+        action: args.action,
+        context: args.context,
+        accountId: args.accountId,
+      }),
+      options: {
+        createLinkedRecurringExpense: args.action.createLinkedRecurringExpense !== false,
+      },
+    });
+  } catch (error) {
+    throw new ExecutionPersistenceError({
+      code: 'SUBSCRIPTION_UPDATE_FAILED',
+      category: 'technical',
+      message: error instanceof Error ? error.message : 'Failed to update subscription',
+      publicMessage: 'The personal subscription could not be updated. Please review the details and try again.',
+    });
+  }
+}
+
+async function markSubscriptionPaidServer(args: {
+  subscriptionId: string;
+  userId: string;
+  supabase: SupabaseClient;
+}) {
+  try {
+    return await markPersonalSubscriptionPaid({
+      supabase: args.supabase,
+      userId: args.userId,
+      subscriptionId: args.subscriptionId,
+    });
+  } catch (error) {
+    throw new ExecutionPersistenceError({
+      code: 'SUBSCRIPTION_PAYMENT_FAILED',
+      category: 'technical',
+      message: error instanceof Error ? error.message : 'Failed to record subscription payment',
+      publicMessage: 'The subscription payment could not be recorded. Please review the details and try again.',
+    });
+  }
 }
 
 async function prepareServerTransfer(args: {
@@ -2162,6 +2907,20 @@ async function rollbackExecutedActions(args: {
         break;
       }
 
+      case 'personal_subscriptions': {
+        if (executed.rollbackStrategy !== 'delete_record') {
+          break;
+        }
+
+        await rollbackCreatedSubscriptionAndDependents({
+          subscriptionId: executed.recordId,
+          userId: args.userId,
+          supabase: args.supabase,
+          accountIdsToRecalculate,
+        });
+        break;
+      }
+
       default:
         break;
     }
@@ -2200,6 +2959,61 @@ async function deleteTransactionAndTrackAccount(
     .delete()
     .eq('id', transactionId)
     .eq('user_id', userId);
+}
+
+async function rollbackCreatedSubscriptionAndDependents(args: {
+  subscriptionId: string;
+  userId: string;
+  supabase: SupabaseClient;
+  accountIdsToRecalculate: Set<string>;
+}) {
+  const { data: subscription } = await args.supabase
+    .from('personal_subscriptions')
+    .select('id, financial_account_id, recurring_transaction_id')
+    .eq('id', args.subscriptionId)
+    .eq('user_id', args.userId)
+    .maybeSingle();
+
+  if (!subscription) {
+    return;
+  }
+
+  const subscriptionTag = `personal_subscription:${args.subscriptionId}`;
+  const { data: taggedTransactions } = await args.supabase
+    .from('transactions')
+    .select('id, account_id')
+    .eq('user_id', args.userId)
+    .contains('tags', [subscriptionTag]);
+
+  for (const transaction of taggedTransactions || []) {
+    if (transaction.account_id) {
+      args.accountIdsToRecalculate.add(String(transaction.account_id));
+    }
+
+    await args.supabase
+      .from('transactions')
+      .delete()
+      .eq('id', transaction.id)
+      .eq('user_id', args.userId);
+  }
+
+  if (subscription.recurring_transaction_id) {
+    await args.supabase
+      .from('recurring_transactions')
+      .delete()
+      .eq('id', subscription.recurring_transaction_id)
+      .eq('user_id', args.userId);
+  }
+
+  if (subscription.financial_account_id) {
+    args.accountIdsToRecalculate.add(String(subscription.financial_account_id));
+  }
+
+  await args.supabase
+    .from('personal_subscriptions')
+    .delete()
+    .eq('id', args.subscriptionId)
+    .eq('user_id', args.userId);
 }
 
 async function createBudgetServer(

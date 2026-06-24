@@ -6,6 +6,7 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
 import { getClientReferenceData } from '@/lib/reference-data/client';
+import { getPersonalSubscriptions } from './personal-subscriptions';
 import type { FinancialAction, ParsedFinancialInstruction, ExecutionResult, ExecutedAction, FailedAction } from './ai-types';
 import {
   createTransaction,
@@ -443,7 +444,10 @@ export async function createPersonFromAI(
 // ─── Context Builder for AI ───────────────────────────────────────────────────
 
 export async function buildAIContext() {
-  const ctx = await loadExecutionContext();
+  const [ctx, subscriptions] = await Promise.all([
+    loadExecutionContext(),
+    getPersonalSubscriptions().catch(() => []),
+  ]);
   return {
     accounts: ctx.accounts.map(a => ({
       id: a.id,
@@ -463,6 +467,17 @@ export async function buildAIContext() {
       id: c.id,
       name: c.name,
       type: c.category_type,
+    })),
+    subscriptions: subscriptions.map((subscription) => ({
+      id: subscription.id,
+      name: subscription.name,
+      provider: subscription.provider,
+      amount: subscription.amount,
+      currencyCode: subscription.currency_code,
+      billingFrequency: subscription.billing_frequency,
+      status: subscription.status,
+      nextBillingDate: subscription.next_billing_date,
+      financialAccountId: subscription.financial_account_id,
     })),
     currencies: ctx.supportedCurrencies,
     defaultCurrency: ctx.defaultCurrency,

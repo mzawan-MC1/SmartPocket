@@ -135,6 +135,124 @@ class MockLanguageProvider implements LanguageProvider {
       input.text.match(/([A-Za-z][A-Za-z\s'-]+)\s+(?:gave me|paid me|reimbursed me|lent me|sent me)/i);
     const parsedPersonName = personFromReceipt?.[1]?.split(/,|and|for/i)[0]?.trim() || 'Ayesha';
     const firstAccountName = input.context?.accounts?.[0]?.name || extractAccount(text) || 'Cash';
+    const matchedSubscription = findMatchingContextSubscription(input.text, input.context);
+    const subscriptionName = matchedSubscription?.name || extractSubscriptionName(input.text, input.context) || 'Subscription';
+    const billingFrequency = extractSubscriptionFrequency(text);
+    const hintedPaymentAccount = extractAccount(text) || undefined;
+
+    if (hasSubscriptionCancelWording(text)) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.92,
+        overallIntent: 'personal_subscription_cancel',
+        actions: [{
+          actionType: 'personal_subscription_cancel',
+          subscriptionId: matchedSubscription?.id,
+          subscriptionName,
+          provider: matchedSubscription?.provider || subscriptionName,
+          cancelEffectiveDate: text.includes('end of this month') ? endOfCurrentMonthIso() : undefined,
+          confidence: matchedSubscription ? 0.95 : 0.84,
+          warnings: matchedSubscription ? [] : ['Please confirm the matching subscription.'],
+        }],
+        warnings: matchedSubscription ? [] : ['Please confirm the matching subscription.'],
+        missingFields: matchedSubscription ? [] : ['subscription'],
+        requiresClarification: !matchedSubscription,
+        clarificationQuestions: matchedSubscription ? [] : ['Which subscription should be cancelled?'],
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (hasSubscriptionUpdateWording(text)) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.91,
+        overallIntent: 'personal_subscription_update',
+        actions: [{
+          actionType: 'personal_subscription_update',
+          subscriptionId: matchedSubscription?.id,
+          subscriptionName,
+          provider: matchedSubscription?.provider || subscriptionName,
+          amount: extractAmount(text) || matchedSubscription?.amount,
+          currency: primaryCurrency,
+          currencyCode: primaryCurrency,
+          billingFrequency: billingFrequency || matchedSubscription?.billingFrequency as ParsedFinancialInstruction['actions'][number]['billingFrequency'],
+          confidence: matchedSubscription ? 0.94 : 0.84,
+          warnings: matchedSubscription ? [] : ['Please confirm the matching subscription.'],
+        }],
+        warnings: matchedSubscription ? [] : ['Please confirm the matching subscription.'],
+        missingFields: matchedSubscription ? [] : ['subscription'],
+        requiresClarification: !matchedSubscription,
+        clarificationQuestions: matchedSubscription ? [] : ['Which subscription should be updated?'],
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (hasSubscriptionPaymentWording(text) && (matchedSubscription || billingFrequency || hasStrongSubscriptionLanguage(text))) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: matchedSubscription ? 0.94 : 0.86,
+        overallIntent: 'personal_subscription_payment',
+        actions: [{
+          actionType: 'personal_subscription_payment',
+          subscriptionId: matchedSubscription?.id,
+          subscriptionName,
+          provider: matchedSubscription?.provider || subscriptionName,
+          amount: extractAmount(text) || matchedSubscription?.amount || 39,
+          currency: primaryCurrency,
+          currencyCode: primaryCurrency,
+          date: 'today',
+          accountName: hintedPaymentAccount,
+          financialAccountHint: hintedPaymentAccount,
+          billingFrequency: billingFrequency || matchedSubscription?.billingFrequency as ParsedFinancialInstruction['actions'][number]['billingFrequency'],
+          paymentHappenedNow: true,
+          createLinkedRecurringExpense: true,
+          confidence: matchedSubscription ? 0.95 : 0.84,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: billingFrequency || matchedSubscription ? [] : ['billingFrequency'],
+        requiresClarification: !billingFrequency && !matchedSubscription,
+        clarificationQuestions: billingFrequency || matchedSubscription ? [] : ['What billing frequency should be used for this subscription?'],
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (hasStrongSubscriptionLanguage(text) && !hasOrdinaryRecurringNonSubscriptionWording(text)) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.93,
+        overallIntent: 'personal_subscription_create',
+        actions: [{
+          actionType: 'personal_subscription_create',
+          subscriptionName,
+          provider: subscriptionName,
+          amount: extractAmount(text) || 39,
+          currency: primaryCurrency,
+          currencyCode: primaryCurrency,
+          date: 'today',
+          startDate: text.includes('today') ? 'today' : undefined,
+          billingFrequency: billingFrequency || 'monthly',
+          accountName: hintedPaymentAccount,
+          financialAccountHint: hintedPaymentAccount,
+          paymentHappenedNow: false,
+          createLinkedRecurringExpense: true,
+          confidence: 0.93,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
 
     if (
       (text.includes('received money from') || text.includes('received') || text.includes('got money from') || text.includes('sent me')) &&
@@ -1820,6 +1938,18 @@ function buildUserMessage(input: ParseRequest): string {
     if (input.context.categories?.length) {
       msg += `\nAvailable categories: ${input.context.categories.map(c => c.name).join(', ')}`;
     }
+    if (input.context.subscriptions?.length) {
+      msg += `\nKnown subscriptions: ${input.context.subscriptions
+        .map((subscription) => {
+          const parts = [subscription.name];
+          if (subscription.provider) parts.push(`provider: ${subscription.provider}`);
+          if (subscription.amount && subscription.currencyCode) parts.push(`amount: ${subscription.amount} ${subscription.currencyCode}`);
+          if (subscription.billingFrequency) parts.push(`frequency: ${subscription.billingFrequency}`);
+          if (subscription.status) parts.push(`status: ${subscription.status}`);
+          return parts.join(' | ');
+        })
+        .join(', ')}`;
+    }
     if (input.context.defaultCurrency) {
       msg += `\nDefault currency: ${input.context.defaultCurrency}`;
     }
@@ -2146,4 +2276,133 @@ function extractDayOfMonth(text: string): number | null {
   if (m && m[1]) return parseInt(m[1], 10);
   if (/first/i.test(text)) return 1;
   return null;
+}
+
+function normalizeLookupValue(value: string | undefined | null) {
+  return (value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasStrongSubscriptionLanguage(text: string) {
+  return [
+    'subscription',
+    'subscribed',
+    'monthly plan',
+    'annual plan',
+    'membership',
+    'renews monthly',
+    'renews yearly',
+    'free trial',
+    'trial ends',
+    'auto-renew',
+    'netflix',
+    'chatgpt plus',
+    'amazon prime',
+    'google one',
+    'icloud',
+    'gym membership',
+    'hosting plan',
+    'domain renewal',
+    'software licence',
+    'software license',
+    'joined a gym',
+    'started ',
+  ].some((phrase) => text.includes(phrase));
+}
+
+function hasOrdinaryRecurringNonSubscriptionWording(text: string) {
+  return [
+    'salary',
+    'rent',
+    'loan instalment',
+    'loan installment',
+    'school fee',
+    'family allowance',
+    'savings transfer',
+  ].some((phrase) => text.includes(phrase));
+}
+
+function hasSubscriptionPaymentWording(text: string) {
+  return text.includes('paid') || text.includes('charged me') || text.includes('charge me');
+}
+
+function hasSubscriptionUpdateWording(text: string) {
+  return [
+    'increased to',
+    'increased from',
+    'is now',
+    'now aed',
+    'now usd',
+    'now eur',
+    'price changed',
+  ].some((phrase) => text.includes(phrase));
+}
+
+function hasSubscriptionCancelWording(text: string) {
+  return text.includes('cancel ');
+}
+
+function extractSubscriptionFrequency(text: string): ParsedFinancialInstruction['actions'][number]['billingFrequency'] | undefined {
+  if (text.includes('weekly')) return 'weekly';
+  if (text.includes('monthly') || text.includes('per month') || text.includes('renews monthly')) return 'monthly';
+  if (text.includes('quarterly')) return 'quarterly';
+  if (text.includes('yearly') || text.includes('annual') || text.includes('per year') || text.includes('renews yearly')) return 'yearly';
+  return undefined;
+}
+
+function extractSubscriptionName(rawText: string, context?: FinancialContext) {
+  const normalizedText = normalizeLookupValue(rawText);
+  const knownNames = [
+    'netflix',
+    'amazon prime',
+    'chatgpt plus',
+    'google one',
+    'icloud',
+    'canva',
+    'gym membership',
+  ];
+
+  for (const subscription of context?.subscriptions || []) {
+    const normalizedName = normalizeLookupValue(subscription.name);
+    if (normalizedName && normalizedText.includes(normalizedName)) {
+      return subscription.name;
+    }
+    const normalizedProvider = normalizeLookupValue(subscription.provider);
+    if (normalizedProvider && normalizedText.includes(normalizedProvider)) {
+      return subscription.name;
+    }
+  }
+
+  for (const knownName of knownNames) {
+    if (normalizedText.includes(knownName)) {
+      return knownName
+        .split(' ')
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+    }
+  }
+
+  const match = rawText.match(/(?:for|paid|cancel|started|joined)\s+([A-Za-z0-9][A-Za-z0-9+\s'-]{1,50})/i);
+  return match?.[1]?.trim();
+}
+
+function findMatchingContextSubscription(rawText: string, context?: FinancialContext) {
+  const normalizedText = normalizeLookupValue(rawText);
+  return (context?.subscriptions || []).find((subscription) => {
+    const normalizedName = normalizeLookupValue(subscription.name);
+    const normalizedProvider = normalizeLookupValue(subscription.provider);
+    return (normalizedName && normalizedText.includes(normalizedName))
+      || (normalizedProvider && normalizedText.includes(normalizedProvider));
+  });
+}
+
+function endOfCurrentMonthIso() {
+  const date = new Date();
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 12, 0, 0))
+    .toISOString()
+    .slice(0, 10);
 }
