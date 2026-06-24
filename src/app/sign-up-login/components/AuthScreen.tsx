@@ -23,12 +23,32 @@ export default function AuthScreen() {
   const year = new Date().getFullYear();
   const faviconSrc = getSettingsAssetUrl(branding.faviconUrl, updatedAt);
   const requestedMode = searchParams.get('mode');
+  const authError = searchParams.get('authError');
+  const authMessage = searchParams.get('authMessage');
   const mode: AuthMode =
     requestedMode === 'signup'
       ? 'signup'
       : requestedMode === 'forgot' && auth.emailPasswordEnabled
         ? 'forgot'
         : 'login';
+  const authFeedback = authError
+    ? {
+        tone: authError === 'oauth_cancelled' ? 'warning' : 'negative',
+        title:
+          authError === 'oauth_cancelled'
+            ? t('authScreen.oauthCancelledTitle', { ns: 'public', defaultValue: 'Google sign-in was cancelled' })
+            : authError === 'oauth_provider_error'
+              ? t('authScreen.oauthProviderErrorTitle', { ns: 'public', defaultValue: 'Google sign-in failed' })
+              : t('authScreen.oauthCallbackErrorTitle', { ns: 'public', defaultValue: 'Sign-in callback failed' }),
+        message:
+          authMessage
+          || (authError === 'oauth_cancelled'
+            ? t('authScreen.oauthCancelledMessage', { ns: 'public', defaultValue: 'Restart Google sign-in when you are ready.' })
+            : authError === 'oauth_provider_error'
+              ? t('authScreen.oauthProviderErrorMessage', { ns: 'public', defaultValue: 'The identity provider returned an error. Please try again.' })
+              : t('authScreen.oauthCallbackErrorMessage', { ns: 'public', defaultValue: 'We could not complete sign-in after returning from Google. Please try again.' })),
+      }
+    : null;
   const hasOauthProviders = auth.googleOauthEnabled || auth.appleOauthEnabled;
   const hasAnyAuthMethod =
     auth.emailPasswordEnabled ||
@@ -137,6 +157,18 @@ export default function AuthScreen() {
 
         <div className="w-full max-w-[460px] rounded-[28px] border border-border bg-card/95 p-5 sm:p-7 shadow-card-lg">
           <Suspense fallback={<div className="w-full h-64 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" /></div>}>
+            {authFeedback ? (
+              <div
+                className={`mb-5 rounded-2xl border px-4 py-3 text-sm ${
+                  authFeedback.tone === 'warning'
+                    ? 'border-warning/30 bg-warning-soft text-warning'
+                    : 'border-negative/25 bg-negative-soft text-negative'
+                }`}
+              >
+                <p className="font-700">{authFeedback.title}</p>
+                <p className="mt-1 opacity-90">{authFeedback.message}</p>
+              </div>
+            ) : null}
             {!hasAnyAuthMethod ? (
               <div className="py-10 text-center">
                 <h1 className="text-2xl font-700 text-foreground tracking-tight">{t('authScreen.unavailableTitle', { ns: 'public' })}</h1>

@@ -11,14 +11,42 @@ import {
   createRouteHandlerSupabaseClient,
 } from '@/lib/supabase/server';
 
+function buildAuthErrorRedirect(
+  request: NextRequest,
+  code: 'oauth_cancelled' | 'oauth_provider_error' | 'callback_error',
+  message: string
+) {
+  const redirectUrl = buildAppUrl('/sign-up-login', request);
+  redirectUrl.searchParams.set('authError', code);
+  redirectUrl.searchParams.set('authMessage', message);
+  return NextResponse.redirect(redirectUrl);
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const code = searchParams.get('code');
   const next = getSafeNextPath(searchParams.get('next'));
   const authType = searchParams.get('type');
+  const providerError = searchParams.get('error');
+  const providerErrorDescription = searchParams.get('error_description');
+
+  if (providerError) {
+    const isCancelled = providerError === 'access_denied';
+    return buildAuthErrorRedirect(
+      request,
+      isCancelled ? 'oauth_cancelled' : 'oauth_provider_error',
+      isCancelled
+        ? 'Google sign-in was cancelled before completion.'
+        : providerErrorDescription || 'Google sign-in could not be completed.'
+    );
+  }
 
   if (!code) {
-    return NextResponse.redirect(buildAppUrl('/sign-up-login', request));
+    return buildAuthErrorRedirect(
+      request,
+      'callback_error',
+      'The Google sign-in callback was incomplete. Please try again.'
+    );
   }
 
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
@@ -26,7 +54,11 @@ export async function GET(request: NextRequest) {
 
   if (error || !data.user) {
     console.error('[api/auth/callback] exchangeCodeForSession failed:', error?.message);
-    return NextResponse.redirect(buildAppUrl('/sign-up-login', request));
+    return buildAuthErrorRedirect(
+      request,
+      'callback_error',
+      error?.message || 'Google sign-in could not be completed.'
+    );
   }
 
   const { destination, profileError } = await getPostAuthDestination(supabase, data.user.id, next);
