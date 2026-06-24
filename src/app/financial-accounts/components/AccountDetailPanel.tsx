@@ -6,6 +6,12 @@ import { getTransactions, type Transaction, type FinancialAccount } from '@/lib/
 import EmptyState from '@/components/ui/EmptyState';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import Badge from '@/components/ui/Badge';
+import {
+  getFinancialAccountOwnershipType,
+  isDefaultBankAccount,
+  isDefaultCashAccount,
+} from '@/lib/financial-account-utils';
 
 interface AccountDetailPanelProps {
   account: FinancialAccount;
@@ -40,6 +46,27 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
                 {account.account_type.replace('_', ' ')}
               </p>
               <h2 className="text-white font-700 text-lg mt-0.5">{account.name}</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Badge variant="default" className="bg-white/15 text-white border-white/20">
+                  {getFinancialAccountOwnershipType(account) === 'shared'
+                    ? t('accounts.sharedOwnershipLabel', { ns: 'portal', defaultValue: 'Shared' })
+                    : getFinancialAccountOwnershipType(account) === 'business'
+                      ? t('accounts.businessOwnershipLabel', { ns: 'portal', defaultValue: 'Business' })
+                      : getFinancialAccountOwnershipType(account) === 'other'
+                        ? t('accounts.otherOwnershipLabel', { ns: 'portal', defaultValue: 'Other' })
+                        : t('accounts.personalOwnershipLabel', { ns: 'portal', defaultValue: 'Personal' })}
+                </Badge>
+                {isDefaultCashAccount(account) ? (
+                  <Badge variant="warning" className="bg-white text-warning border-white">
+                    {t('accounts.defaultCashBadge', { ns: 'portal', defaultValue: 'Default Cash' })}
+                  </Badge>
+                ) : null}
+                {isDefaultBankAccount(account) ? (
+                  <Badge variant="warning" className="bg-white text-warning border-white">
+                    {t('accounts.defaultBankBadge', { ns: 'portal', defaultValue: 'Default Bank' })}
+                  </Badge>
+                ) : null}
+              </div>
             </div>
             <button
               onClick={onClose}
@@ -88,6 +115,21 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
             <p className="text-sm text-foreground">{account.notes}</p>
           </div>
         )}
+
+        {(account.bank_name || account.account_holder_name || account.account_number_masked || account.iban || account.swift_bic || account.branch_name || account.bank_account_type) ? (
+          <div className="px-4 py-3 border-b border-border space-y-2">
+            <p className="text-xs font-600 text-muted-foreground mb-1">
+              {t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
+            </p>
+            {account.bank_name ? <p className="text-sm text-foreground">{t('accounts.form.bankName', { ns: 'portal', defaultValue: 'Bank name' })}: {account.bank_name}</p> : null}
+            {account.account_holder_name ? <p className="text-sm text-foreground">{t('accounts.form.accountHolderName', { ns: 'portal', defaultValue: 'Account holder name' })}: {account.account_holder_name}</p> : null}
+            {account.account_number_masked ? <p className="text-sm text-foreground">{t('accounts.form.maskedAccountNumber', { ns: 'portal', defaultValue: 'Masked account number' })}: {account.account_number_masked}</p> : null}
+            {account.iban ? <p className="text-sm text-foreground">{t('accounts.form.iban', { ns: 'portal', defaultValue: 'IBAN' })}: {account.iban}</p> : null}
+            {account.swift_bic ? <p className="text-sm text-foreground">{t('accounts.form.swiftBic', { ns: 'portal', defaultValue: 'SWIFT / BIC' })}: {account.swift_bic}</p> : null}
+            {account.branch_name ? <p className="text-sm text-foreground">{t('accounts.form.branchName', { ns: 'portal', defaultValue: 'Branch name' })}: {account.branch_name}</p> : null}
+            {account.bank_account_type ? <p className="text-sm text-foreground">{t('accounts.form.bankAccountType', { ns: 'portal', defaultValue: 'Bank account type' })}: {account.bank_account_type.replace('_', ' ')}</p> : null}
+          </div>
+        ) : null}
 
         {/* Recent Transactions */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">

@@ -42,6 +42,11 @@ import {
   getTransactionDocumentMaxSizeLabel,
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
+import {
+  getActivePersonalFinancialAccounts,
+  getFinancialAccountDisplayLabel,
+  getPreferredTransactionAccount,
+} from '@/lib/financial-account-utils';
 
 type TransactionModalMode = 'single' | 'multiple';
 type TransactionEntryKind = 'standard' | 'loan_repayment';
@@ -245,13 +250,20 @@ export default function AddTransactionModal({
   const accounts = providedAccounts ?? internalAccounts;
   const categories = providedCategories ?? internalCategories;
   const people = providedPeople ?? internalPeople;
+  const selectorAccounts = useMemo(
+    () => getActivePersonalFinancialAccounts(accounts),
+    [accounts]
+  );
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
     [accounts]
   );
 
   const buildEmptyDraft = useCallback((overrides: Partial<TransactionDraftRow> = {}): TransactionDraftRow => {
-    const defaultAccount = accounts[0];
+    const defaultAccount = getPreferredTransactionAccount(
+      selectorAccounts,
+      initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType
+    );
     const base = buildBaseForm();
     return {
       id: createDraftId(),
@@ -266,7 +278,7 @@ export default function AddTransactionModal({
       showManagedPerson: false,
       ...overrides,
     };
-  }, [accounts, initialEntryKind, initialTransactionType, preselectedPersonId, referenceData?.platformDefaultCurrency]);
+  }, [initialEntryKind, initialTransactionType, preselectedPersonId, referenceData?.platformDefaultCurrency, selectorAccounts]);
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
 
@@ -281,7 +293,7 @@ export default function AddTransactionModal({
       providedPeople ? Promise.resolve(providedPeople) : getManagedPeople(false),
     ])
       .then(([nextAccounts, nextCategories, nextPeople]) => {
-        if (!providedAccounts) setInternalAccounts(nextAccounts.filter((account) => account.is_active));
+        if (!providedAccounts) setInternalAccounts(nextAccounts);
         if (!providedCategories) setInternalCategories(nextCategories);
         if (!providedPeople) setInternalPeople(nextPeople);
       })
@@ -867,7 +879,11 @@ export default function AddTransactionModal({
 
                       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
                         <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>
+                          <label className="mb-1 block text-sm font-600 text-foreground">
+                            {row.transaction_type === 'income'
+                              ? t('transactions.form.receivedInto', { ns: 'portal', defaultValue: 'Received into' })
+                              : t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })} *
+                          </label>
                           <select
                             className="input-base h-9 text-sm"
                             value={row.account_id}
@@ -882,8 +898,13 @@ export default function AddTransactionModal({
                             }}
                           >
                             <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
-                            {accounts.map((accountOption) => (
-                              <option key={accountOption.id} value={accountOption.id}>{accountOption.name}</option>
+                            {selectorAccounts.map((accountOption) => (
+                              <option key={accountOption.id} value={accountOption.id}>
+                                {getFinancialAccountDisplayLabel(accountOption, {
+                                  includeCurrency: true,
+                                  includeDefaultLabel: true,
+                                })}
+                              </option>
                             ))}
                           </select>
                         </div>

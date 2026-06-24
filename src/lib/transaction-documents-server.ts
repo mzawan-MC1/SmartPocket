@@ -62,7 +62,12 @@ export function mapDocumentOptionsFromContext(context: ServerExecutionContext) {
   const accounts: TransactionDocumentOptionAccount[] = context.accounts.map((account) => ({
     id: account.id,
     name: account.name,
+    account_type: account.account_type,
     currency: account.currency,
+    is_active: account.is_active,
+    ownership_type: account.ownership_type || null,
+    is_system_default: account.is_system_default || false,
+    system_default_type: account.system_default_type || null,
   }));
 
   const categories: TransactionDocumentOptionCategory[] = context.categories

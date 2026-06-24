@@ -15,6 +15,11 @@ import {
   type RecurringTransaction,
 } from '@/lib/finance';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import {
+  getActivePersonalFinancialAccounts,
+  getFinancialAccountDisplayLabel,
+  getPreferredTransactionAccount,
+} from '@/lib/financial-account-utils';
 
 interface RecurringFormData {
   description: string;
@@ -45,7 +50,7 @@ export default function RecurringTransactionForm({
   const [categories, setCategories] = useState<Category[]>(providedCategories || []);
   const [loadingSupportingData, setLoadingSupportingData] = useState(!providedAccounts || !providedCategories);
   const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<RecurringFormData>({
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<RecurringFormData>({
     defaultValues: {
       transaction_type: 'expense',
       frequency: 'monthly',
@@ -93,10 +98,23 @@ export default function RecurringTransactionForm({
   }, [providedAccounts, providedCategories]);
 
   const txnType = watch('transaction_type');
+  const selectedAccountId = watch('account_id');
+  const selectorAccounts = useMemo(
+    () => getActivePersonalFinancialAccounts(accounts),
+    [accounts]
+  );
   const filteredCategories = useMemo(
     () => categories.filter((category) => category.category_type === txnType),
     [categories, txnType]
   );
+
+  useEffect(() => {
+    if (selectedAccountId || selectorAccounts.length === 0) return;
+    const preferred = getPreferredTransactionAccount(selectorAccounts, txnType);
+    if (preferred?.id) {
+      setValue('account_id', preferred.id, { shouldDirty: false });
+    }
+  }, [selectedAccountId, selectorAccounts, setValue, txnType]);
 
   const onSubmit = async (data: RecurringFormData) => {
     if (!data.account_id) {
@@ -186,7 +204,14 @@ export default function RecurringTransactionForm({
         <label htmlFor="rec-account-shared" className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.account', { ns: 'portal' })} *</label>
         <select id="rec-account-shared" className={`input-base ${errors.account_id ? 'input-error' : ''}`} {...register('account_id', { required: t('recurring.form.accountRequired', { ns: 'portal' }) })}>
           <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
-          {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+          {selectorAccounts.map((account) => (
+            <option key={account.id} value={account.id}>
+              {getFinancialAccountDisplayLabel(account, {
+                includeCurrency: true,
+                includeDefaultLabel: true,
+              })}
+            </option>
+          ))}
         </select>
         {errors.account_id && <p className="mt-1.5 text-xs text-negative font-500">{errors.account_id.message}</p>}
       </div>

@@ -8,6 +8,12 @@ import type {
 } from '@/lib/ai-types';
 import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
 import { getLatestExchangeRateSnapshot } from '@/lib/exchange-rates/service';
+import {
+  sortFinancialAccounts,
+  type FinancialAccountOwnershipType,
+  type FinancialAccountSystemDefaultType,
+} from '@/lib/financial-account-utils';
+import { ensureDefaultPersonalAccounts } from '@/lib/financial-accounts-server';
 
 type AccountType =
   | 'bank'
@@ -47,11 +53,16 @@ interface ServerAccount {
   user_id: string;
   name: string;
   account_type: AccountType;
+  ownership_type?: FinancialAccountOwnershipType | null;
+  system_default_type?: FinancialAccountSystemDefaultType | null;
+  is_system_default?: boolean;
   currency: string;
   opening_balance: number;
   current_balance: number;
   include_in_total: boolean;
   is_active: boolean;
+  sort_order?: number | null;
+  created_at?: string;
 }
 
 interface ServerCategory {
@@ -214,10 +225,15 @@ export async function loadExecutionContextServer(args: {
 }): Promise<ServerExecutionContext> {
   const needsPersonBalances = instructionNeedsPersonBalances(args.instruction);
 
+  await ensureDefaultPersonalAccounts(args.userId, {
+    supabase: args.supabase,
+    logErrors: true,
+  });
+
   const [accountsResult, categoriesResult, peopleResult, balancesResult, aliasesResult, currenciesResult, profileResult, platformSettingsResult] = await Promise.all([
     args.supabase
       .from('financial_accounts')
-      .select('id, user_id, name, account_type, currency, opening_balance, current_balance, include_in_total, is_active')
+      .select('id, user_id, name, account_type, ownership_type, is_system_default, system_default_type, currency, opening_balance, current_balance, include_in_total, is_active, sort_order, created_at')
       .eq('user_id', args.userId)
       .eq('is_active', true)
       .order('sort_order', { ascending: true })
@@ -314,7 +330,7 @@ export async function loadExecutionContextServer(args: {
     .map((currency) => currency.code);
 
   return {
-    accounts: (accountsResult.data || []) as ServerAccount[],
+    accounts: sortFinancialAccounts((accountsResult.data || []) as ServerAccount[]),
     categories: (categoriesResult.data || []) as ServerCategory[],
     people,
     supportedCurrencies,

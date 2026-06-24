@@ -9,14 +9,24 @@ import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finan
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
+import type { FinancialBankAccountType } from '@/lib/financial-account-utils';
 
 interface AccountFormData {
   name: string;
   account_type: string;
+  ownership_type: string;
   currency: string;
   opening_balance: string;
   notes: string;
   include_in_total: boolean;
+  is_active: boolean;
+  bank_name: string;
+  account_holder_name: string;
+  account_number_masked: string;
+  iban: string;
+  swift_bic: string;
+  branch_name: string;
+  bank_account_type: string;
 }
 
 export default function FinancialAccountForm({
@@ -36,10 +46,19 @@ export default function FinancialAccountForm({
   const [form, setForm] = useState<AccountFormData>({
     name: '',
     account_type: 'bank',
+    ownership_type: 'personal',
     currency: '',
     opening_balance: '0.00',
     notes: '',
     include_in_total: true,
+    is_active: true,
+    bank_name: '',
+    account_holder_name: '',
+    account_number_masked: '',
+    iban: '',
+    swift_bic: '',
+    branch_name: '',
+    bank_account_type: 'current',
   });
 
   const defaultCurrency = useMemo(
@@ -62,10 +81,19 @@ export default function FinancialAccountForm({
       setForm({
         name: account.name,
         account_type: account.account_type,
+        ownership_type: account.ownership_type || 'personal',
         currency: account.currency,
         opening_balance: String(account.opening_balance),
         notes: account.notes || '',
         include_in_total: account.include_in_total,
+        is_active: account.is_active,
+        bank_name: account.bank_name || '',
+        account_holder_name: account.account_holder_name || '',
+        account_number_masked: account.account_number_masked || '',
+        iban: account.iban || '',
+        swift_bic: account.swift_bic || '',
+        branch_name: account.branch_name || '',
+        bank_account_type: account.bank_account_type || 'current',
       });
       return;
     }
@@ -73,10 +101,19 @@ export default function FinancialAccountForm({
     setForm({
       name: '',
       account_type: 'bank',
+      ownership_type: 'personal',
       currency: defaultCurrency,
       opening_balance: '0.00',
       notes: '',
       include_in_total: true,
+      is_active: true,
+      bank_name: '',
+      account_holder_name: '',
+      account_number_masked: '',
+      iban: '',
+      swift_bic: '',
+      branch_name: '',
+      bank_account_type: 'current',
     });
   }, [account, defaultCurrency]);
 
@@ -95,10 +132,21 @@ export default function FinancialAccountForm({
       const payload = {
         name: form.name.trim(),
         account_type: form.account_type as FinancialAccount['account_type'],
+        ownership_type: form.ownership_type as FinancialAccount['ownership_type'],
         currency: form.currency,
         opening_balance: parseFloat(form.opening_balance) || 0,
         notes: form.notes || null,
         include_in_total: form.include_in_total,
+        is_active: form.is_active,
+        bank_name: form.account_type === 'bank' ? form.bank_name || null : null,
+        account_holder_name: form.account_type === 'bank' ? form.account_holder_name || null : null,
+        account_number_masked: form.account_type === 'bank' ? form.account_number_masked || null : null,
+        iban: form.account_type === 'bank' ? form.iban || null : null,
+        swift_bic: form.account_type === 'bank' ? form.swift_bic || null : null,
+        branch_name: form.account_type === 'bank' ? form.branch_name || null : null,
+        bank_account_type: form.account_type === 'bank'
+          ? (form.bank_account_type || null) as FinancialBankAccountType | null
+          : null,
       };
 
       if (account) {
@@ -131,6 +179,23 @@ export default function FinancialAccountForm({
     { value: 'other', label: t('accounts.types.other', { ns: 'portal' }) },
   ];
 
+  const ownershipTypeOptions = [
+    { value: 'personal', label: t('accounts.personalOwnershipLabel', { ns: 'portal', defaultValue: 'Personal' }) },
+    { value: 'shared', label: t('accounts.sharedOwnershipLabel', { ns: 'portal', defaultValue: 'Shared' }) },
+    { value: 'business', label: t('accounts.businessOwnershipLabel', { ns: 'portal', defaultValue: 'Business' }) },
+    { value: 'other', label: t('accounts.otherOwnershipLabel', { ns: 'portal', defaultValue: 'Other' }) },
+  ];
+
+  const bankAccountTypeOptions = [
+    { value: 'current', label: t('accounts.bankAccountTypes.current', { ns: 'portal', defaultValue: 'Current' }) },
+    { value: 'savings', label: t('accounts.bankAccountTypes.savings', { ns: 'portal', defaultValue: 'Savings' }) },
+    { value: 'credit_card', label: t('accounts.bankAccountTypes.creditCard', { ns: 'portal', defaultValue: 'Credit card' }) },
+    { value: 'wallet', label: t('accounts.bankAccountTypes.wallet', { ns: 'portal', defaultValue: 'Wallet' }) },
+    { value: 'other', label: t('accounts.bankAccountTypes.other', { ns: 'portal', defaultValue: 'Other' }) },
+  ];
+
+  const isBankAccount = form.account_type === 'bank';
+
   return (
     <div className="space-y-4">
       <div>
@@ -151,6 +216,20 @@ export default function FinancialAccountForm({
           </select>
         </div>
         <div>
+          <label className="block text-sm font-600 text-foreground mb-1.5">
+            {t('accounts.form.ownershipType', { ns: 'portal', defaultValue: 'Ownership type' })} *
+          </label>
+          <select
+            className="input-base"
+            value={form.ownership_type}
+            onChange={(event) => setForm((current) => ({ ...current, ownership_type: event.target.value }))}
+          >
+            {ownershipTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency', { ns: 'portal' })} *</label>
           <CurrencySelector
             value={form.currency}
@@ -159,6 +238,17 @@ export default function FinancialAccountForm({
             placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
           />
         </div>
+        <label className="flex items-center gap-3 rounded-xl bg-muted/40 p-3 sm:mt-7">
+          <input
+            type="checkbox"
+            className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
+            checked={form.is_active}
+            onChange={(event) => setForm((current) => ({ ...current, is_active: event.target.checked }))}
+          />
+          <span className="text-sm font-500 text-foreground">
+            {t('accounts.form.activeStatus', { ns: 'portal', defaultValue: 'Active account' })}
+          </span>
+        </label>
       </div>
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.openingBalance', { ns: 'portal' })}</label>
@@ -172,6 +262,102 @@ export default function FinancialAccountForm({
           onChange={(event) => setForm((current) => ({ ...current, opening_balance: event.target.value }))}
         />
       </div>
+      {isBankAccount ? (
+        <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
+          <div>
+            <p className="text-sm font-700 text-foreground">
+              {t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {t('accounts.form.bankDetailsHelper', {
+                ns: 'portal',
+                defaultValue: 'Only masked account numbers are shown in the app. Use this section for optional banking details.',
+              })}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.bankName', { ns: 'portal', defaultValue: 'Bank name' })}
+              </label>
+              <input
+                type="text"
+                className="input-base"
+                value={form.bank_name}
+                onChange={(event) => setForm((current) => ({ ...current, bank_name: event.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.accountHolderName', { ns: 'portal', defaultValue: 'Account holder name' })}
+              </label>
+              <input
+                type="text"
+                className="input-base"
+                value={form.account_holder_name}
+                onChange={(event) => setForm((current) => ({ ...current, account_holder_name: event.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.maskedAccountNumber', { ns: 'portal', defaultValue: 'Masked account number' })}
+              </label>
+              <input
+                type="text"
+                className="input-base"
+                placeholder="****1234"
+                value={form.account_number_masked}
+                onChange={(event) => setForm((current) => ({ ...current, account_number_masked: event.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.bankAccountType', { ns: 'portal', defaultValue: 'Bank account type' })}
+              </label>
+              <select
+                className="input-base"
+                value={form.bank_account_type}
+                onChange={(event) => setForm((current) => ({ ...current, bank_account_type: event.target.value }))}
+              >
+                {bankAccountTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.iban', { ns: 'portal', defaultValue: 'IBAN' })}
+              </label>
+              <input
+                type="text"
+                className="input-base"
+                value={form.iban}
+                onChange={(event) => setForm((current) => ({ ...current, iban: event.target.value.toUpperCase() }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('accounts.form.swiftBic', { ns: 'portal', defaultValue: 'SWIFT / BIC' })}
+              </label>
+              <input
+                type="text"
+                className="input-base"
+                value={form.swift_bic}
+                onChange={(event) => setForm((current) => ({ ...current, swift_bic: event.target.value.toUpperCase() }))}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-600 text-foreground mb-1.5">
+              {t('accounts.form.branchName', { ns: 'portal', defaultValue: 'Branch name' })}
+            </label>
+            <input
+              type="text"
+              className="input-base"
+              value={form.branch_name}
+              onChange={(event) => setForm((current) => ({ ...current, branch_name: event.target.value }))}
+            />
+          </div>
+        </div>
+      ) : null}
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">{t('reimbursements.notes', { ns: 'portal' })}</label>
         <textarea rows={2} className="input-base resize-none" placeholder={t('accounts.form.notesPlaceholder', { ns: 'portal' })} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />

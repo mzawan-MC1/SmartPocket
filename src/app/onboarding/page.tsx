@@ -218,6 +218,15 @@ export default function OnboardingPage() {
           .is('onboarding_completed_at', null);
       } catch {
       }
+
+      try {
+        await fetch('/api/financial-accounts/ensure-defaults', {
+          method: 'POST',
+          credentials: 'include',
+        });
+      } catch {
+      }
+
       clearResolvedUserDefaultCurrencyCache();
       clearFinancialPeriodProfileCache();
       dispatchSmartPocketDataChanged({

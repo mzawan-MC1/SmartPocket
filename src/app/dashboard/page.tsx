@@ -88,6 +88,13 @@ export default function DashboardPage() {
     void loadPeriodContext();
   }, [loadPeriodContext]);
 
+  useEffect(() => {
+    void fetch('/api/financial-accounts/ensure-defaults', {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(() => {});
+  }, []);
+
   useSmartPocketDataChanged(['profile'], 'DashboardPagePeriodContext', async () => {
     await loadPeriodContext();
   });

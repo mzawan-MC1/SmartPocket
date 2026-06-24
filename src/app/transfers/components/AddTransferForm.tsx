@@ -16,6 +16,7 @@ import {
   getAccounts,
   type FinancialAccount,
 } from '@/lib/finance';
+import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 
 interface TransferFormData {
@@ -285,7 +286,10 @@ export default function AddTransferForm({
             <option value="">{t('transactions.form.selectAccount', { ns: 'portal' })}</option>
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.name} ({account.currency} {account.current_balance})
+                {getFinancialAccountDisplayLabel(account, {
+                  includeCurrency: true,
+                  includeDefaultLabel: true,
+                })}
               </option>
             ))}
           </select>
@@ -304,7 +308,10 @@ export default function AddTransferForm({
               .filter((account) => account.id !== form.from_account_id)
               .map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.name}
+                  {getFinancialAccountDisplayLabel(account, {
+                    includeCurrency: true,
+                    includeDefaultLabel: true,
+                  })}
                 </option>
               ))}
           </select>

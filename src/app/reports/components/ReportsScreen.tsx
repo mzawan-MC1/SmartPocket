@@ -37,6 +37,7 @@ import {
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
+import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
@@ -947,7 +948,19 @@ export default function ReportsScreen() {
       <div className="hidden print:block rounded-xl border border-border p-4">
         <p className="text-lg font-700 text-foreground">{activeTitle}</p>
         <p className="text-sm text-muted-foreground">{t('reports.range')}: {activeRange ? formatReportPeriodLabel(activeRange) : t('reports.loading')}</p>
-        <p className="text-sm text-muted-foreground">{t('reports.accountFilter')}: {selectedAccount === 'all' ? t('reports.allAccounts') : selectedAccount}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('reports.accountFilter')}: {selectedAccount === 'all'
+            ? t('reports.allAccounts')
+            : getFinancialAccountDisplayLabel(
+                (reportData?.accounts || []).find((account) => account.id === selectedAccount) || {
+                  name: selectedAccount,
+                  currency: '',
+                  is_system_default: false,
+                  system_default_type: null,
+                },
+                { includeDefaultLabel: true }
+              )}
+        </p>
         <p className="text-sm text-muted-foreground">{t('reports.reportingCurrencyLabel')}: {reportData?.reportingCurrency || t('reports.loading')}</p>
         <p className="text-sm text-muted-foreground">{t('reports.generated')}: {generatedAtLabel || t('reports.loading')}</p>
       </div>
@@ -1070,7 +1083,12 @@ export default function ReportsScreen() {
                     >
                       <option value="all">{t('reports.allAccounts')}</option>
                       {(reportData?.accounts || []).map((account) => (
-                        <option key={account.id} value={account.id}>{account.name}</option>
+                        <option key={account.id} value={account.id}>
+                          {getFinancialAccountDisplayLabel(account, {
+                            includeCurrency: true,
+                            includeDefaultLabel: true,
+                          })}
+                        </option>
                       ))}
                     </select>
                   </div>

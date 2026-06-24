@@ -2,6 +2,13 @@
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import {
+  getFinancialAccountOwnershipType,
+  sortFinancialAccounts,
+  type FinancialAccountOwnershipType,
+  type FinancialAccountSystemDefaultType,
+  type FinancialBankAccountType,
+} from '@/lib/financial-account-utils';
+import {
   addCurrencyAmount,
   ensureZeroCurrencyTotal,
   mapCurrencyTotals,
@@ -124,12 +131,22 @@ export interface FinancialAccount {
   user_id: string;
   name: string;
   account_type: 'bank' | 'credit_card' | 'cash' | 'savings' | 'digital_wallet' | 'investment' | 'other';
+  ownership_type: FinancialAccountOwnershipType;
+  system_default_type: FinancialAccountSystemDefaultType | null;
+  is_system_default: boolean;
   currency: string;
   opening_balance: number;
   current_balance: number;
   color: string | null;
   icon: string | null;
   notes: string | null;
+  bank_name: string | null;
+  account_holder_name: string | null;
+  account_number_masked: string | null;
+  iban: string | null;
+  swift_bic: string | null;
+  branch_name: string | null;
+  bank_account_type: FinancialBankAccountType | null;
   is_active: boolean;
   include_in_total: boolean;
   sort_order: number;
@@ -1294,15 +1311,29 @@ async function getLoanMetrics(
 
 // ─── Accounts ─────────────────────────────────────────────────────────────────
 
+async function parseFinancialAccountResponse(response: Response) {
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(
+      typeof body?.error === 'string' && body.error.trim()
+        ? body.error
+        : 'Financial account request failed'
+    );
+  }
+  return body as Record<string, unknown>;
+}
+
 export async function getAccounts(): Promise<FinancialAccount[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('financial_accounts')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  const response = await fetch('/api/financial-accounts', {
+    method: 'GET',
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return sortFinancialAccounts(((body.accounts as FinancialAccount[]) || []).map((account) => ({
+    ...account,
+    ownership_type: getFinancialAccountOwnershipType(account),
+  })));
 }
 
 export async function getFinancialAccountsSummary(
@@ -1351,37 +1382,52 @@ export async function getFinancialAccountsSummary(
 }
 
 export async function createAccount(payload: Partial<FinancialAccount>): Promise<FinancialAccount> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-  const { data, error } = await supabase
-    .from('financial_accounts')
-    .insert({ ...payload, user_id: user.id, current_balance: payload.opening_balance ?? 0 })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  const response = await fetch('/api/financial-accounts', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return body.account as FinancialAccount;
 }
 
 export async function updateAccount(id: string, payload: Partial<FinancialAccount>): Promise<FinancialAccount> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('financial_accounts')
-    .update(payload)
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  const response = await fetch(`/api/financial-accounts/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return body.account as FinancialAccount;
 }
 
 export async function archiveAccount(id: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from('financial_accounts')
-    .update({ is_active: false })
-    .eq('id', id);
-  if (error) throw error;
+  const response = await fetch(`/api/financial-accounts/${id}/archive`, {
+    method: 'POST',
+    credentials: 'include',
+  });
+  await parseFinancialAccountResponse(response);
+}
+
+export async function setDefaultAccount(
+  id: string,
+  defaultType: FinancialAccountSystemDefaultType
+): Promise<void> {
+  const response = await fetch(`/api/financial-accounts/${id}/set-default`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({ defaultType }),
+  });
+  await parseFinancialAccountResponse(response);
 }
 
 export async function recalculateAccountBalance(accountId: string): Promise<number> {

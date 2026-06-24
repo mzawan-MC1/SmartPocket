@@ -8,6 +8,7 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 
 
 function getAccountIcon(type: string) {
@@ -137,7 +138,11 @@ export default function AccountBalances() {
                   <Icon size={15} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-700 text-foreground truncate">{acct.name}</p>
+                  <p className="text-sm font-700 text-foreground truncate">
+                    {getFinancialAccountDisplayLabel(acct, {
+                      includeDefaultLabel: true,
+                    })}
+                  </p>
                   <p className="text-[11px] text-muted-foreground capitalize">{getAccountTypeLabel(acct.account_type)}</p>
                 </div>
                 <div className="text-right flex-shrink-0">

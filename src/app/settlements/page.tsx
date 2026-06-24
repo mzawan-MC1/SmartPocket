@@ -16,6 +16,7 @@ import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 
 interface NewSettlementModalProps {
   people: ManagedPerson[];
@@ -134,7 +135,14 @@ function NewSettlementModal({ people, accounts, reimbursements, onClose, onSucce
             <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
               className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
               <option value="">{t('settlements.noneExternal')}</option>
-              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {getFinancialAccountDisplayLabel(a, {
+                    includeCurrency: true,
+                    includeDefaultLabel: true,
+                  })}
+                </option>
+              ))}
             </select>
           </div>
 

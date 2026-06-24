@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, Loader2,  } from 'lucide-react';
+import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -11,6 +11,7 @@ import {
   archiveAccount,
   getFinancialAccountsSummary,
   getLatestReportingContext,
+  setDefaultAccount,
   type AccountsSummaryMetrics,
   type FinancialAccount,
 } from '@/lib/finance';
@@ -19,6 +20,11 @@ import AccountDetailPanel from './AccountDetailPanel';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import FinancialAccountForm from './FinancialAccountForm';
 import AccountsHeader from './AccountsHeader';
+import {
+  getFinancialAccountOwnershipType,
+  isDefaultBankAccount,
+  isDefaultCashAccount,
+} from '@/lib/financial-account-utils';
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -59,6 +65,77 @@ function getAccountTypeLabel(type: string, t: (key: string) => string) {
     default:
       return t('accounts.types.other');
   }
+}
+
+function getOwnershipLabel(account: FinancialAccount, t: (key: string, options?: Record<string, unknown>) => string) {
+  const ownershipType = getFinancialAccountOwnershipType(account);
+  switch (ownershipType) {
+    case 'shared':
+      return t('accounts.sharedOwnershipLabel', { defaultValue: 'Shared' });
+    case 'business':
+      return t('accounts.businessOwnershipLabel', { defaultValue: 'Business' });
+    case 'other':
+      return t('accounts.otherOwnershipLabel', { defaultValue: 'Other' });
+    default:
+      return t('accounts.personalOwnershipLabel', { defaultValue: 'Personal' });
+  }
+}
+
+function getSectionedAccounts(accounts: FinancialAccount[]) {
+  const personalAccounts = accounts.filter((account) => getFinancialAccountOwnershipType(account) === 'personal');
+  const otherAccounts = accounts.filter((account) => getFinancialAccountOwnershipType(account) !== 'personal');
+
+  return {
+    personalSections: [
+      {
+        id: 'cash',
+        title: 'Cash',
+        accounts: personalAccounts.filter((account) => account.account_type === 'cash'),
+      },
+      {
+        id: 'bank',
+        title: 'Bank Accounts',
+        accounts: personalAccounts.filter((account) => account.account_type === 'bank'),
+      },
+      {
+        id: 'wallet',
+        title: 'Wallets',
+        accounts: personalAccounts.filter((account) => account.account_type === 'digital_wallet'),
+      },
+      {
+        id: 'credit-card',
+        title: 'Credit Cards',
+        accounts: personalAccounts.filter((account) => account.account_type === 'credit_card'),
+      },
+      {
+        id: 'other-personal',
+        title: 'Other Personal Financial Accounts',
+        accounts: personalAccounts.filter((account) =>
+          account.account_type !== 'cash'
+          && account.account_type !== 'bank'
+          && account.account_type !== 'digital_wallet'
+          && account.account_type !== 'credit_card'
+        ),
+      },
+    ],
+    otherSections: [
+      {
+        id: 'shared',
+        title: 'Shared',
+        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'shared'),
+      },
+      {
+        id: 'business',
+        title: 'Business',
+        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'business'),
+      },
+      {
+        id: 'other',
+        title: 'Other',
+        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'other'),
+      },
+    ],
+  };
 }
 
 type SummaryMetric =
@@ -118,14 +195,165 @@ export default function AccountsGrid() {
     }
   };
 
+  const handleSetDefault = async (
+    id: string,
+    defaultType: 'personal_cash' | 'personal_bank'
+  ) => {
+    try {
+      await setDefaultAccount(id, defaultType);
+      toast.success(
+        defaultType === 'personal_cash'
+          ? t('accounts.defaultCashAssigned', { defaultValue: 'Default Cash updated.' })
+          : t('accounts.defaultBankAssigned', { defaultValue: 'Default Bank updated.' })
+      );
+      load();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : t('accounts.updateDefaultFailed', { defaultValue: 'Failed to update the default account.' }));
+    }
+  };
+
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
+  const { personalSections, otherSections } = getSectionedAccounts(activeAccounts);
   const summaryCards = [
     { id: 'sum-total', label: t('accounts.summary.totalNetWorth'), field: 'totalNetWorth' as const },
     { id: 'sum-assets', label: t('accounts.summary.totalAssets'), field: 'totalAssets' as const },
     { id: 'sum-liabilities', label: t('accounts.summary.totalLiabilities'), field: 'totalLiabilities' as const },
     { id: 'sum-count', label: t('accounts.summary.activeAccounts'), isCount: true },
   ] satisfies SummaryMetric[];
+
+  const renderAccountCards = (sectionAccounts: FinancialAccount[]) => (
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      {sectionAccounts.map((acct) => {
+        const Icon = getIcon(acct.account_type);
+        const gradient = GRADIENT_MAP[acct.account_type] || GRADIENT_MAP.other;
+        const canSetDefaultCash = acct.account_type === 'cash' && getFinancialAccountOwnershipType(acct) === 'personal' && !isDefaultCashAccount(acct);
+        const canSetDefaultBank = acct.account_type === 'bank' && getFinancialAccountOwnershipType(acct) === 'personal' && !isDefaultBankAccount(acct);
+
+        return (
+          <div
+            key={acct.id}
+            className="card-elevated overflow-hidden hover:shadow-card-md transition-shadow duration-200 cursor-pointer"
+            onClick={() => setSelectedAccount(acct)}
+          >
+            <div className={`relative overflow-hidden bg-gradient-to-r ${gradient} p-5 max-[480px]:p-4`}>
+              <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white opacity-5 translate-x-8 -translate-y-8" />
+              <div className="flex items-start justify-between relative">
+                <div>
+                  <p className="text-white/70 text-xs font-500 uppercase tracking-wider">
+                    {getAccountTypeLabel(acct.account_type, t)}
+                  </p>
+                  <p className="text-white font-700 text-base mt-0.5 truncate max-w-[180px]">{acct.name}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Icon size={16} className="text-white" />
+                  </div>
+                  <button
+                    className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === acct.id ? null : acct.id); }}
+                    aria-label={t('accounts.accountOptions')}
+                  >
+                    <MoreVertical size={15} className="text-white" />
+                  </button>
+                </div>
+              </div>
+              <div className="relative mt-3 flex flex-wrap gap-2">
+                <Badge variant="default" className="bg-white/15 text-white border-white/20">
+                  {getOwnershipLabel(acct, t)}
+                </Badge>
+                {isDefaultCashAccount(acct) ? (
+                  <Badge variant="warning" className="bg-white text-warning border-white">
+                    {t('accounts.defaultCashBadge', { defaultValue: 'Default Cash' })}
+                  </Badge>
+                ) : null}
+                {isDefaultBankAccount(acct) ? (
+                  <Badge variant="warning" className="bg-white text-warning border-white">
+                    {t('accounts.defaultBankBadge', { defaultValue: 'Default Bank' })}
+                  </Badge>
+                ) : null}
+              </div>
+              <div className="relative mt-4 max-[480px]:mt-3">
+                <p className="text-white/70 text-[11px] font-500">{t('accounts.currentBalance')}</p>
+                <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
+                  <FormattedCurrencyAmount
+                    amount={acct.current_balance}
+                    currencyCode={acct.currency}
+                    className={acct.current_balance < 0 ? 'text-red-200' : 'text-white'}
+                  />
+                </p>
+              </div>
+              {openMenuId === acct.id && (
+                <div
+                  className="absolute top-12 right-4 z-10 bg-card border border-border rounded-xl shadow-card-lg py-1 min-w-[190px]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
+                    <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
+                  </button>
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
+                    <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
+                  </button>
+                  {canSetDefaultCash ? (
+                    <button
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      onClick={() => {
+                        setOpenMenuId(null);
+                        void handleSetDefault(acct.id, 'personal_cash');
+                      }}
+                    >
+                      <Wallet size={14} className="text-muted-foreground" /> {t('accounts.setAsDefaultCash', { defaultValue: 'Set as Default Cash' })}
+                    </button>
+                  ) : null}
+                  {canSetDefaultBank ? (
+                    <button
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                      onClick={() => {
+                        setOpenMenuId(null);
+                        void handleSetDefault(acct.id, 'personal_bank');
+                      }}
+                    >
+                      <Building2 size={14} className="text-muted-foreground" /> {t('accounts.setAsDefaultBank', { defaultValue: 'Set as Default Bank' })}
+                    </button>
+                  ) : null}
+                  <hr className="my-1 border-border" />
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning-soft transition-colors" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
+                    <Archive size={14} /> {t('accounts.archiveAccount')}
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
+              <div>
+                <p className="text-xs text-muted-foreground">{t('accounts.openingBalance')}</p>
+                <FormattedCurrencyAmount
+                  amount={acct.opening_balance}
+                  currencyCode={acct.currency}
+                  className="text-sm font-600 text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                {acct.current_balance >= acct.opening_balance
+                  ? <TrendingUp size={14} className="text-positive" />
+                  : <TrendingDown size={14} className="text-negative" />
+                }
+                <span className={`text-xs font-600 font-tabular ${acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}`}>
+                  <FormattedCurrencyAmount
+                    amount={acct.current_balance - acct.opening_balance}
+                    currencyCode={acct.currency}
+                    className={acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}
+                  />
+                </span>
+              </div>
+              <Badge variant={acct.include_in_total ? 'active' : 'default'}>
+                {acct.include_in_total ? t('accounts.inTotal') : t('accounts.excluded')}
+              </Badge>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -249,100 +477,44 @@ export default function AccountsGrid() {
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {activeAccounts.map((acct) => {
-              const Icon = getIcon(acct.account_type);
-              const gradient = GRADIENT_MAP[acct.account_type] || GRADIENT_MAP.other;
-              return (
-                <div
-                  key={acct.id}
-                  className="card-elevated overflow-hidden hover:shadow-card-md transition-shadow duration-200 cursor-pointer"
-                  onClick={() => setSelectedAccount(acct)}
-                >
-                  <div className={`relative overflow-hidden bg-gradient-to-r ${gradient} p-5 max-[480px]:p-4`}>
-                    <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white opacity-5 translate-x-8 -translate-y-8" />
-                    <div className="flex items-start justify-between relative">
-                      <div>
-                        <p className="text-white/70 text-xs font-500 uppercase tracking-wider">
-                          {getAccountTypeLabel(acct.account_type, t)}
-                        </p>
-                        <p className="text-white font-700 text-base mt-0.5 truncate max-w-[180px]">{acct.name}</p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
-                          <Icon size={16} className="text-white" />
-                        </div>
-                        <button
-                          className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === acct.id ? null : acct.id); }}
-                          aria-label={t('accounts.accountOptions')}
-                        >
-                          <MoreVertical size={15} className="text-white" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="relative mt-4 max-[480px]:mt-3">
-                      <p className="text-white/70 text-[11px] font-500">{t('accounts.currentBalance')}</p>
-                      <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
-                        <FormattedCurrencyAmount
-                          amount={acct.current_balance}
-                          currencyCode={acct.currency}
-                          className={acct.current_balance < 0 ? 'text-red-200' : 'text-white'}
-                        />
-                      </p>
-                    </div>
-                    {openMenuId === acct.id && (
-                      <div
-                        className="absolute top-12 right-4 z-10 bg-card border border-border rounded-xl shadow-card-lg py-1 min-w-[160px]"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
-                          <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
-                        </button>
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
-                          <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
-                        </button>
-                        <hr className="my-1 border-border" />
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning-soft transition-colors" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
-                          <Archive size={14} /> {t('accounts.archiveAccount')}
-                        </button>
-                      </div>
-                    )}
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-700 text-foreground">
+                  {t('accounts.personalAccountsSection', { defaultValue: 'Personal Accounts' })}
+                </h3>
+              </div>
+              {personalSections
+                .filter((section) => section.accounts.length > 0)
+                .map((section) => (
+                  <div key={section.id} className="space-y-3">
+                    <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{section.title}</p>
+                    {renderAccountCards(section.accounts)}
                   </div>
-                  <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">{t('accounts.openingBalance')}</p>
-                      <FormattedCurrencyAmount
-                        amount={acct.opening_balance}
-                        currencyCode={acct.currency}
-                        className="text-sm font-600 text-foreground"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      {acct.current_balance >= acct.opening_balance
-                        ? <TrendingUp size={14} className="text-positive" />
-                        : <TrendingDown size={14} className="text-negative" />
-                      }
-                      <span className={`text-xs font-600 font-tabular ${acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}`}>
-                        <FormattedCurrencyAmount
-                          amount={acct.current_balance - acct.opening_balance}
-                          currencyCode={acct.currency}
-                          className={acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}
-                        />
-                      </span>
-                    </div>
-                    <Badge variant={acct.include_in_total ? 'active' : 'default'}>
-                      {acct.include_in_total ? t('accounts.inTotal') : t('accounts.excluded')}
-                    </Badge>
-                  </div>
-                </div>
-              );
-            })}
+                ))}
+            </div>
 
-            {/* Add Account Card */}
+            {otherSections.some((section) => section.accounts.length > 0) ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-700 text-foreground">
+                    {t('accounts.otherAccountTypesSection', { defaultValue: 'Other Account Types' })}
+                  </h3>
+                </div>
+                {otherSections
+                  .filter((section) => section.accounts.length > 0)
+                  .map((section) => (
+                    <div key={section.id} className="space-y-3">
+                      <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{section.title}</p>
+                      {renderAccountCards(section.accounts)}
+                    </div>
+                  ))}
+              </div>
+            ) : null}
+
             <button
               onClick={openAdd}
-              className="group flex min-h-[180px] flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-8 transition-all duration-200 hover:border-accent hover:bg-accent/5 card-elevated max-[480px]:min-h-[140px] max-[480px]:p-5"
+              className="group flex min-h-[180px] w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-8 transition-all duration-200 hover:border-accent hover:bg-accent/5 card-elevated max-[480px]:min-h-[140px] max-[480px]:p-5"
             >
               <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
                 <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />

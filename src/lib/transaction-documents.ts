@@ -167,7 +167,12 @@ export interface TransactionDocumentFileSummary {
 export interface TransactionDocumentOptionAccount {
   id: string;
   name: string;
+  account_type: string;
   currency: string;
+  is_active: boolean;
+  ownership_type?: string | null;
+  is_system_default?: boolean | null;
+  system_default_type?: 'personal_cash' | 'personal_bank' | null;
 }
 
 export interface TransactionDocumentOptionCategory {

@@ -29,6 +29,10 @@ import {
   type TransactionDocumentSourceSurface,
 } from '@/lib/transaction-documents';
 import { prepareTransactionDocumentUpload } from '@/lib/transaction-documents-client';
+import {
+  getFinancialAccountDisplayLabel,
+  getPreferredDocumentAccount,
+} from '@/lib/financial-account-utils';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
   id: string;
@@ -452,10 +456,16 @@ export default function DocumentTransactionReviewModal({
         setAccounts(payload.options.accounts || []);
         setCategories(payload.options.categories || []);
 
-        const defaultAccount = (payload.options.accounts || [])[0];
+        const defaultAccount = getPreferredDocumentAccount(
+          payload.options.accounts || [],
+          'expense',
+          payload.options.defaultCurrency
+        ) || (payload.options.accounts || [])[0];
         const mappedTransactions = (payload.extraction.transactions || []).map((draft) => {
-          const preferredAccount = (payload.options.accounts || []).find(
-            (account) => account.currency === (draft.currency || defaultAccount?.currency)
+          const preferredAccount = getPreferredDocumentAccount(
+            payload.options.accounts || [],
+            draft.transactionType,
+            draft.currency || defaultAccount?.currency
           ) || defaultAccount;
 
           return {
@@ -1229,7 +1239,10 @@ export default function DocumentTransactionReviewModal({
                             <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
                             {accounts.map((account) => (
                               <option key={account.id} value={account.id}>
-                                {account.name} · {account.currency}
+                                {getFinancialAccountDisplayLabel(account, {
+                                  includeCurrency: true,
+                                  includeDefaultLabel: true,
+                                })}
                               </option>
                             ))}
                           </select>
