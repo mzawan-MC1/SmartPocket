@@ -27,6 +27,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import { formatCurrencyValue, getRichCurrencyToken } from '@/lib/currency-formatting';
+import { resolveCurrencySymbolAssetPath } from '@/lib/currency-symbols';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCurrencyByCode } from '@/lib/reference-data/lookups';
@@ -63,17 +64,18 @@ function CurrencyAxisTick({
     currencyCode,
     compact: true,
   });
+  const symbolAssetPath = resolveCurrencySymbolAssetPath(currency);
   const isAssetCurrency =
     currency?.symbolType === 'asset' &&
-    typeof currency.symbolAssetPath === 'string' &&
-    currency.symbolAssetPath.trim().length > 0;
+    typeof symbolAssetPath === 'string' &&
+    symbolAssetPath.trim().length > 0;
 
   return (
     <g transform={`translate(${x},${y})`}>
       {isAssetCurrency ? (
         <>
           <image
-            href={currency.symbolAssetPath!}
+            href={symbolAssetPath!}
             x={-64}
             y={-6}
             width={12}

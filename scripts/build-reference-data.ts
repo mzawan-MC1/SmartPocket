@@ -108,7 +108,7 @@ const CURRENCY_SOURCE_URLS = [
 
 const AED_OFFICIAL_ASSET_URL =
   'https://assets.u.ae/api/public/content/4da1199046564235bcbabc394869e3a8?v=4b517110';
-const AED_OFFICIAL_ASSET_PATH = '/currencies/aed-dirham-symbol-official.png';
+const AED_OFFICIAL_ASSET_PATH = '/currencies/aed-dirham-symbol.svg';
 
 const NON_TENDER_CURRENCY_CODES = new Set([
   'BOV',
