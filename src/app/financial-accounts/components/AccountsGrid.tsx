@@ -215,6 +215,7 @@ export default function AccountsGrid() {
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
   const { personalSections, otherSections } = getSectionedAccounts(activeAccounts);
+  const personalAccounts = personalSections.flatMap((section) => section.accounts);
   const summaryCards = [
     { id: 'sum-total', label: t('accounts.summary.totalNetWorth'), field: 'totalNetWorth' as const },
     { id: 'sum-assets', label: t('accounts.summary.totalAssets'), field: 'totalAssets' as const },
@@ -222,8 +223,8 @@ export default function AccountsGrid() {
     { id: 'sum-count', label: t('accounts.summary.activeAccounts'), isCount: true },
   ] satisfies SummaryMetric[];
 
-  const renderAccountCards = (sectionAccounts: FinancialAccount[]) => (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+  const renderAccountCards = (sectionAccounts: FinancialAccount[], gridClassName = 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3') => (
+    <div className={gridClassName}>
       {sectionAccounts.map((acct) => {
         const Icon = getIcon(acct.account_type);
         const gradient = GRADIENT_MAP[acct.account_type] || GRADIENT_MAP.other;
@@ -484,14 +485,9 @@ export default function AccountsGrid() {
                   {t('accounts.personalAccountsSection', { defaultValue: 'Personal Accounts' })}
                 </h3>
               </div>
-              {personalSections
-                .filter((section) => section.accounts.length > 0)
-                .map((section) => (
-                  <div key={section.id} className="space-y-3">
-                    <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{section.title}</p>
-                    {renderAccountCards(section.accounts)}
-                  </div>
-                ))}
+              {personalAccounts.length > 0 ? (
+                renderAccountCards(personalAccounts, 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3')
+              ) : null}
             </div>
 
             {otherSections.some((section) => section.accounts.length > 0) ? (
