@@ -66,8 +66,8 @@
       "recurringDescription": "Set up subscriptions and recurring bills once and let Smart Pocket track them.",
       "remindersTitle": "Upcoming payment reminders",
       "remindersDescription": "Never miss a bill. The dashboard shows what is due in the next 7 days.",
-      "rlsTitle": "Row-level data isolation",
-      "rlsDescription": "Your data is invisible to every other user and enforced at the database level."
+      "rlsTitle": "Private account isolation",
+      "rlsDescription": "Your data stays private to your account and is kept separate from every other user."
     },
     "features": {
       "accountsTitle": "Multi-account management",
@@ -81,7 +81,7 @@
       "recurringTitle": "Recurring transactions",
       "recurringDescription": "Automate subscriptions, rent, and salary entries.",
       "securityTitle": "Bank-level security",
-      "securityDescription": "Supabase row-level security ensures only you can access your data."
+      "securityDescription": "Private account isolation and encryption help ensure only you can access your data."
     },
     "steps": {
       "createTitle": "Create your account",
@@ -106,8 +106,8 @@
       "pwaDescription": "Add Smart Pocket to your home screen and keep it available offline with background sync."
     },
     "security": {
-      "rlsTitle": "Row-level security",
-      "rlsDescription": "Database-enforced isolation keeps your data invisible to other users.",
+      "rlsTitle": "Private account isolation",
+      "rlsDescription": "Strong access controls keep your information private and separate from other users.",
       "transitTitle": "Encrypted in transit",
       "transitDescription": "All data travels over TLS without plain-text transmission.",
       "restTitle": "Encrypted at rest",
@@ -116,7 +116,7 @@
       "privacyDescription": "Smart Pocket does not sell, share, or monetize your financial data.",
       "label": "Security & Privacy",
       "heading": "Your data stays yours",
-      "body": "Smart Pocket uses Supabase with Row Level Security, a database-level policy that makes it technically impossible for one user to read another user's data even if they know the table structure.",
+      "body": "Smart Pocket uses layered security controls to keep each customer's information private and inaccessible to other users.",
       "readPrivacy": "Read our Privacy Policy"
     },
     "pricing": {
@@ -338,7 +338,7 @@
     "featureTrack": "Track every dollar across all accounts",
     "featureBudget": "Set budgets and receive spending alerts",
     "featureReports": "Generate professional reports and PDF statements",
-    "featureSecurity": "Protect your data with row-level access control",
+    "featureSecurity": "Protect your data with private account access controls",
     "footerNote": "Your data stays yours.",
     "unavailableTitle": "Authentication unavailable",
     "unavailableDescription": "No sign-in methods are currently enabled. Please contact support or try again later.",
@@ -421,7 +421,7 @@
         },
         {
           "title": "Data Storage and Security",
-          "content": "Smart Pocket uses encrypted transport, protected infrastructure, and row-level access controls designed to keep each account's data isolated."
+          "content": "Smart Pocket uses encrypted transport, protected infrastructure, and strict account-level access controls designed to keep each account's data isolated."
         },
         {
           "title": "Your Choices",

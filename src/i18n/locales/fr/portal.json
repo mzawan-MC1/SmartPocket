@@ -1560,7 +1560,7 @@
       },
       "5": {
         "question": "Mes donnees sont-elles securisees ?",
-        "answer": "Oui. Vos donnees sont protegees par chiffrement et par la securite au niveau des lignes de Supabase."
+        "answer": "Oui. Vos donnees sont protegees par le chiffrement, l'isolation de votre compte et des controles d'acces securises, afin que vous seul puissiez y acceder."
       },
       "6": {
         "question": "Comment passer a l'arabe (RTL) ?",

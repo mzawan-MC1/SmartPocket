@@ -367,6 +367,10 @@ export default function SupportTicketDetailPage() {
                         disabled={sending || ['closed'].includes(ticket.status)}
                       />
                     </div>
+                    <div className="flex items-start gap-2 rounded-2xl border border-border/60 bg-muted/15 px-3 py-2.5 text-sm text-muted-foreground">
+                      <Lock size={14} className="mt-0.5 shrink-0 text-info" />
+                      <p>{t('support.detail.securityBody')}</p>
+                    </div>
                     <div className="flex flex-wrap items-center justify-end gap-3">
                       <button
                         type="button"
@@ -451,15 +455,6 @@ export default function SupportTicketDetailPage() {
                   </div>
                 </SectionCard>
 
-                <SectionCard
-                  title={t('support.detail.securityTitle')}
-                  description={t('support.detail.securityDescription')}
-                >
-                  <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-foreground">
-                    <Lock size={16} className="mt-0.5 shrink-0 text-info" />
-                    <p className="leading-6">{t('support.detail.securityBody')}</p>
-                  </div>
-                </SectionCard>
               </div>
             </div>
           </>

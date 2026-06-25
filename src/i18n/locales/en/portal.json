@@ -2017,7 +2017,7 @@
       },
       "5": {
         "question": "Is my data secure?",
-        "answer": "Yes. Your data is protected with encryption and Supabase Row Level Security so only you can access it."
+        "answer": "Yes. Your data is protected with encryption, private account isolation, and secure access controls so only you can access it."
       },
       "6": {
         "question": "How do I switch to Arabic (RTL)?",
@@ -2853,7 +2853,7 @@
       "conversationTitle": "Conversation",
       "conversationDescription": "Replies and visible system updates for this ticket.",
       "replyTitle": "Reply",
-      "replyDescription": "Reply securely. Attachments remain private and use signed URLs only.",
+      "replyDescription": "Reply securely. Your messages and attachments stay private within this support conversation.",
       "replyPlaceholder": "Add more detail, confirm the fix, or ask for an update.",
       "sendReply": "Send reply",
       "sendingReply": "Sending...",
@@ -2867,8 +2867,8 @@
       "timelineTitle": "Activity Timeline",
       "timelineDescription": "Visible status and workflow updates.",
       "securityTitle": "Security",
-      "securityDescription": "Files and replies stay inside your authenticated support workspace.",
-      "securityBody": "Attachments are stored in a private Supabase bucket and are only opened through short-lived signed URLs.",
+      "securityDescription": "Files and replies stay private within your authenticated support workspace.",
+      "securityBody": "Attachments are private and only visible to you and the Smart Pocket support team.",
       "emptyValue": "-",
       "confirmCloseTitle": "Close Ticket?",
       "confirmCloseDescription": "Close this resolved ticket now? You can reopen it within the allowed window if more help is needed.",

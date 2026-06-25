@@ -61,8 +61,8 @@
       "recurringDescription": "Configurez abonnements et factures récurrentes une seule fois, puis laissez Smart Pocket les suivre.",
       "remindersTitle": "Rappels des paiements à venir",
       "remindersDescription": "Ne ratez plus aucune facture. Le tableau de bord affiche ce qui arrive à échéance dans les 7 prochains jours.",
-      "rlsTitle": "Isolation des données au niveau des lignes",
-      "rlsDescription": "Vos données sont invisibles pour tout autre utilisateur, avec application directe en base."
+      "rlsTitle": "Isolation privée du compte",
+      "rlsDescription": "Vos données restent privées dans votre compte et séparées de celles des autres utilisateurs."
     },
     "features": {
       "accountsTitle": "Gestion multi-comptes",
@@ -76,7 +76,7 @@
       "recurringTitle": "Transactions récurrentes",
       "recurringDescription": "Automatisez abonnements, loyer et salaires.",
       "securityTitle": "Sécurité de niveau bancaire",
-      "securityDescription": "La sécurité au niveau des lignes de Supabase garantit que vous seul pouvez accéder à vos données."
+      "securityDescription": "L'isolation privée du compte et le chiffrement permettent de garantir que vous seul pouvez accéder à vos données."
     },
     "steps": {
       "createTitle": "Créez votre compte",
@@ -101,8 +101,8 @@
       "pwaDescription": "Ajoutez Smart Pocket à votre écran d'accueil et gardez-la disponible hors ligne avec synchronisation en arrière-plan."
     },
     "security": {
-      "rlsTitle": "Sécurité au niveau des lignes",
-      "rlsDescription": "L'isolation appliquée par la base garde vos données invisibles aux autres utilisateurs.",
+      "rlsTitle": "Isolation privée du compte",
+      "rlsDescription": "Des controles d'acces renforces gardent vos informations privees et separees des autres utilisateurs.",
       "transitTitle": "Chiffré en transit",
       "transitDescription": "Toutes les données transitent via TLS sans transmission en clair.",
       "restTitle": "Chiffré au repos",
@@ -111,7 +111,7 @@
       "privacyDescription": "Smart Pocket ne vend, ne partage ni ne monétise vos données financières.",
       "label": "Sécurité et confidentialité",
       "heading": "Vos données restent les vôtres",
-      "body": "Smart Pocket utilise Supabase avec Row Level Security, une politique au niveau de la base qui rend techniquement impossible pour un utilisateur de lire les données d'un autre.",
+      "body": "Smart Pocket utilise des mesures de securite multicouches pour garder les informations de chaque client privees et inaccessibles aux autres utilisateurs.",
       "readPrivacy": "Lire notre politique de confidentialité"
     },
     "pricing": {
@@ -411,7 +411,7 @@
         },
         {
           "title": "Stockage et sécurité des données",
-          "content": "Smart Pocket utilise un transport chiffré, une infrastructure protégée et des contrôles d'accès au niveau des lignes pour garder les données de chaque compte isolées."
+          "content": "Smart Pocket utilise un transport chiffre, une infrastructure protegee et des controles d'acces stricts au niveau du compte pour garder les donnees de chaque compte isolees."
         },
         {
           "title": "Vos choix",
