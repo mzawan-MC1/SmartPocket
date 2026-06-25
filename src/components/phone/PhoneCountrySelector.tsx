@@ -126,16 +126,16 @@ export default function PhoneCountrySelector({
         onClick={() => !disabled && setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`input-base flex w-full items-center gap-2 px-3 py-2.5 text-left ${
-          disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-accent/40'
+        className={`input-base selector-trigger flex w-full items-center gap-2 px-3 py-2.5 text-left ${
+          disabled ? 'cursor-not-allowed opacity-60' : ''
         }`}
       >
         {selectedCountry ? (
-          <span className="min-w-0 flex-1 whitespace-nowrap text-sm font-600 text-foreground">
+          <span className="selector-value-primary min-w-0 flex-1 whitespace-nowrap text-sm font-600">
             {selectedCountryLabel}
           </span>
         ) : (
-          <span className="text-sm text-muted-foreground">
+          <span className="selector-placeholder text-sm">
             {isLoading ? t('country.loading') : t('country.select')}
           </span>
         )}
@@ -151,7 +151,7 @@ export default function PhoneCountrySelector({
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[min(24rem,90vw)] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg">
+        <div className="selector-menu absolute left-0 top-full z-50 mt-2 w-[min(24rem,90vw)] overflow-hidden rounded-2xl border shadow-card-lg">
           <div className="border-b border-border p-3">
             <SearchField
               ref={searchRef}
@@ -178,22 +178,22 @@ export default function PhoneCountrySelector({
                       setOpen(false);
                       setSearch('');
                     }}
-                    className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    className={`selector-option flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                       country.isoAlpha2 === normalizedValue
-                        ? 'border-accent bg-accent/5 shadow-card-sm'
+                        ? 'selector-option-selected'
                         : index === highlightedIndex
-                          ? 'border-accent/40 bg-muted/30'
-                          : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
+                          ? 'selector-option-highlighted'
+                          : ''
                     }`}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-700 text-foreground">{country.name}</p>
-                      <p className="whitespace-nowrap text-sm text-muted-foreground">
+                      <p className={`text-sm font-700 ${country.isoAlpha2 === normalizedValue ? 'selector-value-primary' : 'text-foreground'}`}>{country.name}</p>
+                      <p className={`whitespace-nowrap text-sm ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
                         {[country.isoAlpha2, getCanonicalCountryCallingCode(country)].filter(Boolean).join(' • ')}
                       </p>
                     </div>
                     {country.isoAlpha2 === normalizedValue ? (
-                      <Check size={14} className="shrink-0 text-accent" />
+                      <Check size={14} className="selector-check shrink-0" />
                     ) : null}
                   </button>
                 ))}

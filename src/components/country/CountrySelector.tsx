@@ -154,8 +154,8 @@ export default function CountrySelector({
         onClick={() => !disabled && setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`input-base flex w-full items-center gap-3 px-3 py-2.5 text-left ${
-          disabled ? 'cursor-not-allowed opacity-60' : 'hover:border-accent/40'
+        className={`input-base selector-trigger flex w-full items-center gap-3 px-3 py-2.5 text-left ${
+          disabled ? 'cursor-not-allowed opacity-60' : ''
         }`}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -163,12 +163,12 @@ export default function CountrySelector({
         {selectedCountry ? (
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-700 text-foreground">{selectedCountry.name}</span>
+              <span className="selector-value-primary text-sm font-700">{selectedCountry.name}</span>
             </div>
-            <p className="whitespace-nowrap text-sm text-muted-foreground">{selectedCountryMeta}</p>
+            <p className="selector-value-secondary whitespace-nowrap text-sm">{selectedCountryMeta}</p>
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">
+          <span className="selector-placeholder text-sm">
             {loading ? t('country.loading') : resolvedPlaceholder}
           </span>
         )}
@@ -185,7 +185,7 @@ export default function CountrySelector({
       {helperText ? <p className="mt-1.5 text-xs text-muted-foreground">{helperText}</p> : null}
 
       {open ? (
-        <div className="absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg">
+        <div className="selector-menu absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border shadow-card-lg">
           <div className="border-b border-border p-3">
             <SearchField
               ref={searchRef}
@@ -208,25 +208,25 @@ export default function CountrySelector({
                     key={country.isoAlpha2}
                     type="button"
                     onClick={() => handleSelect(country.isoAlpha2)}
-                    className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+                    className={`selector-option flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
                       country.isoAlpha2 === normalizedValue
-                        ? 'border-accent bg-accent/5 shadow-card-sm'
+                        ? 'selector-option-selected'
                         : index === highlightedIndex
-                          ? 'border-accent/40 bg-muted/30'
-                          : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
+                          ? 'selector-option-highlighted'
+                          : ''
                     }`}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-700 text-foreground">{country.name}</span>
-                        <span className="text-xs font-600 text-muted-foreground">{country.isoAlpha2}</span>
+                        <span className={`text-sm font-700 ${country.isoAlpha2 === normalizedValue ? 'selector-value-primary' : 'text-foreground'}`}>{country.name}</span>
+                        <span className={`text-xs font-600 ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>{country.isoAlpha2}</span>
                       </div>
-                    <p className="whitespace-nowrap text-sm text-muted-foreground">
+                    <p className={`whitespace-nowrap text-sm ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
                       {[country.callingCode, country.defaultCurrencyCode].filter(Boolean).join(' • ')}
                       </p>
                     </div>
                     {country.isoAlpha2 === normalizedValue ? (
-                      <Check size={14} className="shrink-0 text-accent" />
+                      <Check size={14} className="selector-check shrink-0" />
                     ) : null}
                   </button>
                 ))}

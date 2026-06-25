@@ -34,7 +34,7 @@ export default function CurrencyOptionRow({
         </div>
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-700 text-foreground">{currency.code}</span>
+            <span className={`text-sm font-700 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>{currency.code}</span>
             {showFeaturedBadge && currency.isFeatured ? <StatusBadge status="info" label="Featured" /> : null}
             {showActiveStatus ? (
               <StatusBadge
@@ -43,12 +43,12 @@ export default function CurrencyOptionRow({
               />
             ) : null}
           </div>
-          <p className="truncate text-sm text-muted-foreground">{currency.name}</p>
+          <p className={`truncate text-sm ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>{currency.name}</p>
         </div>
       </div>
       <div className="ms-auto flex shrink-0 items-center gap-3">
         {showCountryCount ? (
-          <span className="text-xs font-600 text-muted-foreground">
+          <span className={`text-xs font-600 ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
             {typeof countryCount === 'number' ? `${countryCount} countries` : 'No countries'}
           </span>
         ) : null}
@@ -62,10 +62,10 @@ export default function CurrencyOptionRow({
       <button
         type="button"
         onClick={onClick}
-        className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+        className={`selector-option flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
           selected
-            ? 'border-accent bg-accent/5 shadow-card-sm'
-            : 'border-border bg-card hover:border-accent/40 hover:bg-muted/30'
+            ? 'selector-option-selected'
+            : ''
         } ${className}`.trim()}
       >
         {content}
@@ -75,8 +75,8 @@ export default function CurrencyOptionRow({
 
   return (
     <div
-      className={`flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 ${
-        selected ? 'border-accent bg-accent/5 shadow-card-sm' : ''
+      className={`selector-option flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+        selected ? 'selector-option-selected' : ''
       } ${className}`.trim()}
     >
       {content}

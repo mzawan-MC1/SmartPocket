@@ -84,14 +84,14 @@ export default function LanguageSwitcher({
               className={`flex w-full items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
                 isDark
                   ? `hover:bg-white/10 ${
-                      lang.code === language ? 'font-600 text-cyan-300' : 'font-400 text-slate-200'
+                      lang.code === language ? 'bg-cyan-400/12 font-600 text-cyan-200' : 'font-400 text-slate-200'
                     }`
                   : isLight
                     ? `hover:bg-slate-100 ${
-                        lang.code === language ? 'font-600 text-cyan-700' : 'font-400 text-slate-700'
+                        lang.code === language ? 'bg-cyan-50 font-600 text-cyan-800' : 'font-400 text-slate-700'
                       }`
-                  : `hover:bg-muted ${
-                      lang.code === language ? 'font-600 text-accent' : 'font-400 text-foreground'
+                  : `hover:bg-slate-100 ${
+                      lang.code === language ? 'bg-cyan-50 font-600 text-cyan-800' : 'font-400 text-foreground'
                     }`
               }`}
             >
@@ -100,7 +100,7 @@ export default function LanguageSwitcher({
                 <Check
                   size={14}
                   className={`${
-                    isDark ? 'text-cyan-300' : isLight ? 'text-cyan-700' : 'text-accent'
+                    isDark ? 'text-cyan-200' : isLight ? 'text-cyan-700' : 'text-cyan-600'
                   } flex-shrink-0`}
                 />
               )}

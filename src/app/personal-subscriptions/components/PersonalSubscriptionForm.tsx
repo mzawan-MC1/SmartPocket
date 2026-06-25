@@ -520,7 +520,7 @@ export default function PersonalSubscriptionForm({
           <p className="text-sm font-600 text-foreground">{t('personalSubscriptions.form.fields.reminderDaysBefore', { ns: 'portal' })}</p>
           <div className="flex flex-wrap gap-2">
             {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((day) => (
-              <label key={day} className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm text-foreground">
+              <label key={day} className="choice-check-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
                 <input type="checkbox" value={String(day)} className="rounded border-border" {...register('reminder_days_before')} />
                 <span>{t('personalSubscriptions.form.reminderOption', { ns: 'portal', count: day })}</span>
               </label>

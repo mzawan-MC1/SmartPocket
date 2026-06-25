@@ -394,6 +394,35 @@
     color: var(--muted-foreground);
   }
 
+  select.input-base {
+    color: var(--foreground);
+    background-color: #ffffff;
+  }
+
+  select.input-base:has(option[value=""]:checked),
+  select.input-base:has(option[value=" "]:checked) {
+    color: var(--muted-foreground);
+  }
+
+  select.input-base option {
+    color: #0f172a;
+    background: #ffffff;
+  }
+
+  select.input-base option:disabled {
+    color: #94a3b8;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--accent);
+  }
+
+  input[type="checkbox"]:disabled,
+  input[type="radio"]:disabled {
+    cursor: not-allowed;
+  }
+
   .input-error {
     border-color: var(--negative);
     background-color: var(--negative-bg);
@@ -416,6 +445,93 @@
 
   .field-required-marker {
     color: var(--negative);
+  }
+
+  .selector-trigger {
+    color: var(--foreground);
+    background-color: #ffffff;
+  }
+
+  .selector-trigger:hover:not(:disabled) {
+    border-color: rgba(var(--accent-rgb), 0.4);
+  }
+
+  .selector-placeholder {
+    color: #94a3b8;
+  }
+
+  .selector-value-primary {
+    color: #0f172a;
+  }
+
+  .selector-value-secondary {
+    color: #334155;
+  }
+
+  .selector-menu {
+    background-color: #ffffff;
+    border-color: rgba(217, 227, 236, 0.95);
+  }
+
+  .selector-option {
+    border-color: var(--border);
+    background-color: #ffffff;
+    color: var(--foreground);
+  }
+
+  .selector-option:hover,
+  .selector-option-highlighted {
+    border-color: rgba(148, 163, 184, 0.45);
+    background-color: #f1f5f9;
+    color: #020617;
+  }
+
+  .selector-option-selected {
+    border-color: rgba(var(--accent-rgb), 0.42);
+    background-color: #ecfeff;
+    color: #155e75;
+    box-shadow: 0 10px 24px -20px rgba(var(--accent-rgb), 0.7);
+  }
+
+  .selector-option-selected:hover {
+    border-color: rgba(var(--accent-rgb), 0.5);
+    background-color: #dff9fb;
+  }
+
+  .selector-check {
+    color: #0891b2;
+  }
+
+  .choice-check-chip {
+    border: 1px solid var(--border);
+    background-color: #ffffff;
+    color: var(--foreground);
+    transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  }
+
+  .choice-check-chip:hover {
+    border-color: rgba(var(--accent-rgb), 0.34);
+    background-color: #f8fafc;
+  }
+
+  .choice-check-chip input[type="checkbox"] {
+    accent-color: var(--accent);
+    border-color: var(--border);
+  }
+
+  .choice-check-chip input[type="checkbox"]:checked {
+    border-color: var(--accent);
+  }
+
+  .choice-check-chip:has(input:checked) {
+    border-color: rgba(var(--accent-rgb), 0.42);
+    background-color: #ecfeff;
+    color: #155e75;
+    box-shadow: 0 10px 24px -20px rgba(var(--accent-rgb), 0.7);
+  }
+
+  .choice-check-chip:has(input:focus-visible) {
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.16);
   }
 
   .badge-income {
