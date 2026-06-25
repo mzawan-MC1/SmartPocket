@@ -17,12 +17,14 @@ import {
 } from '@/lib/support';
 import { uploadSupportAttachments } from '@/lib/support-attachments';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { createClientId } from '@/lib/uuid';
 
 export default function SupportNewPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation('portal');
+  const { isRTL } = useLanguage();
   const [subject, setSubject] = React.useState('');
   const [category, setCategory] = React.useState('other');
   const [priority, setPriority] = React.useState('normal');
@@ -122,7 +124,8 @@ export default function SupportNewPage() {
                 </label>
                 <input
                   id="support-subject"
-                  className="input-base"
+                  className="input-base text-start"
+                  dir={isRTL ? 'rtl' : 'ltr'}
                   value={subject}
                   onChange={(event) => setSubject(event.target.value)}
                   placeholder={t('support.newTicket.subjectPlaceholder')}
@@ -201,7 +204,8 @@ export default function SupportNewPage() {
                 </label>
                 <textarea
                   id="support-message"
-                  className="input-base min-h-[180px] resize-y"
+                  className="input-base min-h-[180px] resize-y text-start"
+                  dir={isRTL ? 'rtl' : 'ltr'}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder={t('support.newTicket.messagePlaceholder')}
@@ -225,7 +229,7 @@ export default function SupportNewPage() {
             />
           </SectionCard>
 
-          <div className="flex flex-wrap items-center justify-end gap-3">
+          <div className={`flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse justify-start' : 'justify-end'}`}>
             <button
               type="button"
               className="btn-secondary"

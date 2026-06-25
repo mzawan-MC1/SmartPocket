@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CalendarClock, CreditCard, Filter, Loader2, MoreVertical, Pause, Play, Search, Trash2, XCircle } from 'lucide-react';
+import { CalendarClock, CreditCard, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
@@ -11,7 +11,9 @@ import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { getAccounts, getCategories, type Category, type FinancialAccount } from '@/lib/finance';
 import {
@@ -111,6 +113,7 @@ function renderCurrencyRows(rows: Array<{ currency: string; amount: number }>, c
 
 export default function PersonalSubscriptionsPage() {
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
   const router = useRouter();
   const todayIso = normalizeTodayIso();
   const [subscriptions, setSubscriptions] = useState<PersonalSubscription[]>([]);
@@ -312,18 +315,17 @@ export default function PersonalSubscriptionsPage() {
           compact
           actionsClassName="w-full"
           actions={
-            <div className="flex w-full flex-col gap-2 md:flex-row md:flex-wrap md:items-center">
-              <div className="relative min-w-0 w-full flex-1 md:min-w-[20rem] lg:min-w-[28rem]">
-                <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <input
+            <div className={`flex w-full flex-col gap-2 md:flex-row md:flex-wrap md:items-center ${isRTL ? 'md:flex-row-reverse' : ''}`}>
+              <div className="min-w-0 w-full flex-1 md:min-w-[20rem] lg:min-w-[28rem]">
+                <SearchField
                   type="search"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder={t('personalSubscriptions.searchPlaceholder', { ns: 'portal' })}
-                  className="input-base w-full pl-9"
+                  inputClassName="w-full"
                 />
               </div>
-              <div className="flex w-full gap-2 sm:w-auto">
+              <div className={`flex w-full gap-2 sm:w-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <button
                   type="button"
                   onClick={() => setShowFilters((current) => !current)}
@@ -399,7 +401,7 @@ export default function PersonalSubscriptionsPage() {
           ) : (
             <div className="divide-y divide-border">
               {upcomingCharges.map((subscription) => (
-                <div key={subscription.id} className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div key={subscription.id} className={`flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link href={`/personal-subscriptions/${subscription.id}`} className="truncate text-sm font-700 text-foreground hover:text-accent">
@@ -414,7 +416,7 @@ export default function PersonalSubscriptionsPage() {
                   <FormattedCurrencyAmount
                     amount={subscription.amount}
                     currencyCode={subscription.currency_code}
-                    className="text-sm font-700 text-foreground"
+                    className={`text-sm font-700 text-foreground ${isRTL ? 'text-start' : 'text-end'}`}
                     showCode
                   />
                 </div>
@@ -517,7 +519,7 @@ export default function PersonalSubscriptionsPage() {
             <div className="divide-y divide-border">
               {filteredSubscriptions.map((subscription) => (
                 <article key={subscription.id} className="space-y-4 px-5 py-5">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className={`flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <Link href={`/personal-subscriptions/${subscription.id}`} className="text-base font-700 text-foreground hover:text-accent">
@@ -538,14 +540,14 @@ export default function PersonalSubscriptionsPage() {
                         <p>{t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}: {subscription.recurring_transaction_id ? t('personalSubscriptions.labels.linked', { ns: 'portal' }) : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</p>
                       </div>
                     </div>
-                    <div className="flex min-w-[140px] flex-col items-start gap-2 lg:items-end">
+                    <div className={`flex min-w-[140px] flex-col gap-2 ${isRTL ? 'items-end lg:items-start' : 'items-start lg:items-end'}`}>
                       <FormattedCurrencyAmount
                         amount={subscription.amount}
                         currencyCode={subscription.currency_code}
                         className="text-base font-700 text-foreground"
                         showCode
                       />
-                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'lg:justify-start' : 'lg:justify-end'}`}>
                         <Link href={`/personal-subscriptions/${subscription.id}`} className="btn-secondary px-3 py-2 text-xs">
                           {t('actions.view', { ns: 'common' })}
                         </Link>
@@ -575,14 +577,14 @@ export default function PersonalSubscriptionsPage() {
                           {openMenuId === subscription.id ? (
                             <div
                               role="menu"
-                              className="absolute right-0 top-full z-20 mt-2 flex min-w-[13rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg"
+                              className={`absolute top-full z-20 mt-2 flex min-w-[13rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}
                             >
                               {canPauseOrResumePersonalSubscription(subscription.status) ? (
                                 <button
                                   type="button"
                                   role="menuitem"
                                   onClick={() => void handlePauseToggle(subscription)}
-                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
+                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
                                 >
                                   {subscription.status === 'paused' ? <Play size={14} className="text-muted-foreground" /> : <Pause size={14} className="text-muted-foreground" />}
                                   {subscription.status === 'paused'
@@ -598,7 +600,7 @@ export default function PersonalSubscriptionsPage() {
                                     setCancellationTarget(subscription);
                                     setOpenMenuId(null);
                                   }}
-                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
+                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
                                 >
                                   <CalendarClock size={14} className="text-muted-foreground" />
                                   {t('personalSubscriptions.actions.requestCancellation', { ns: 'portal' })}
@@ -609,7 +611,7 @@ export default function PersonalSubscriptionsPage() {
                                   type="button"
                                   role="menuitem"
                                   onClick={() => void handleMarkCancelled(subscription)}
-                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
+                                  className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
                                 >
                                   <XCircle size={14} className="text-muted-foreground" />
                                   {t('personalSubscriptions.actions.markCancelled', { ns: 'portal' })}
@@ -619,7 +621,7 @@ export default function PersonalSubscriptionsPage() {
                                 type="button"
                                 role="menuitem"
                                 onClick={() => void handleDelete(subscription)}
-                                className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-negative transition-colors hover:bg-negative-soft"
+                                className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-negative transition-colors hover:bg-negative-soft"
                               >
                                 <Trash2 size={14} />
                                 {t('actions.delete', { ns: 'common' })}

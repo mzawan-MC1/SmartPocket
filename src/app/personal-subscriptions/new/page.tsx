@@ -6,22 +6,24 @@ import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import StatusBadge from '@/components/ui/StatusBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
 import PersonalSubscriptionForm from '../components/PersonalSubscriptionForm';
 
 export default function NewPersonalSubscriptionPage() {
   const router = useRouter();
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
 
   return (
     <AppLayout activeRoute="/personal-subscriptions">
       <div className="mx-auto max-w-4xl space-y-5 pb-6">
-        <div className="flex items-start gap-3">
+        <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
             href="/personal-subscriptions"
             className="rounded-xl border border-border p-2 text-muted-foreground transition-colors hover:bg-muted"
             aria-label={t('personalSubscriptions.actions.backToSubscriptions', { ns: 'portal' })}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={18} className={isRTL ? 'rotate-180' : ''} />
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">

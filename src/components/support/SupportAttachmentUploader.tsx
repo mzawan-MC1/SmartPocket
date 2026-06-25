@@ -2,6 +2,7 @@ import React from 'react';
 import { FileText, ImageIcon, Loader2, Paperclip, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { isSupportedUploadFile } from '@/lib/media-upload';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS,
   SUPPORT_ATTACHMENT_ALLOWED_MIME_TYPES,
@@ -40,6 +41,7 @@ export default function SupportAttachmentUploader({
   namespace = 'portal',
 }: SupportAttachmentUploaderProps) {
   const { t } = useTranslation(namespace);
+  const { isRTL } = useLanguage();
   const [error, setError] = React.useState<string | null>(null);
   const effectiveLabel = label || t('support.attachmentUploader.label');
 
@@ -59,19 +61,36 @@ export default function SupportAttachmentUploader({
     if (selected.length === 0) return;
 
     if (files.length + selected.length > SUPPORT_ATTACHMENT_MAX_FILES) {
-      setError(`You can attach up to ${SUPPORT_ATTACHMENT_MAX_FILES} files per message.`);
+      setError(
+        t('support.attachmentUploader.errors.maxFiles', {
+          count: SUPPORT_ATTACHMENT_MAX_FILES,
+        })
+      );
       event.target.value = '';
       return;
     }
 
     try {
       const nextFiles = selected.map((file) => {
-        isSupportedUploadFile({
-          file,
-          allowedMimeTypes: [...SUPPORT_ATTACHMENT_ALLOWED_MIME_TYPES],
-          allowedExtensions: [...SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS],
-          maxSizeBytes: SUPPORT_ATTACHMENT_MAX_SIZE_BYTES,
-        });
+        const extension = file.name.split('.').pop()?.trim().toLowerCase() || '';
+        const hasAllowedExtension = SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS.includes(extension);
+        const hasAllowedMimeType = SUPPORT_ATTACHMENT_ALLOWED_MIME_TYPES.includes(file.type);
+
+        if (!hasAllowedExtension || (!hasAllowedMimeType && file.type)) {
+          throw new Error(
+            t('support.attachmentUploader.errors.unsupportedType', {
+              formats: SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS.map((item) => item.toUpperCase()).join(', '),
+            })
+          );
+        }
+
+        if (file.size > SUPPORT_ATTACHMENT_MAX_SIZE_BYTES) {
+          throw new Error(
+            t('support.attachmentUploader.errors.tooLarge', {
+              maxSize: `${Math.round(SUPPORT_ATTACHMENT_MAX_SIZE_BYTES / (1024 * 1024))} MB`,
+            })
+          );
+        }
 
         const isImage = file.type.startsWith('image/');
         return {
@@ -84,7 +103,11 @@ export default function SupportAttachmentUploader({
       onChange([...files, ...nextFiles]);
       event.target.value = '';
     } catch (validationError) {
-      setError(validationError instanceof Error ? validationError.message : 'Failed to attach file.');
+      setError(
+        validationError instanceof Error
+          ? validationError.message
+          : t('support.attachmentUploader.errors.failedAttach')
+      );
       event.target.value = '';
     }
   };
@@ -99,10 +122,10 @@ export default function SupportAttachmentUploader({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-3">
+      <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div>
-          <p className="text-sm font-700 text-foreground">{effectiveLabel}</p>
-          <p className="text-xs text-muted-foreground">{t('support.attachmentUploader.helper')}</p>
+          <p className="text-sm font-700 text-foreground text-start">{effectiveLabel}</p>
+          <p className="text-xs text-muted-foreground text-start">{t('support.attachmentUploader.helper')}</p>
         </div>
         <label className={`btn-secondary cursor-pointer ${disabled ? 'pointer-events-none opacity-60' : ''}`}>
           <Paperclip size={14} />
@@ -143,7 +166,7 @@ export default function SupportAttachmentUploader({
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-600 text-foreground">{item.file.name}</p>
+                    <p className="truncate text-sm font-600 text-foreground" dir="auto">{item.file.name}</p>
                     <p className="text-xs text-muted-foreground">{formatSize(item.file.size)}</p>
                     {typeof progress === 'number' ? (
                       <div className="mt-2">

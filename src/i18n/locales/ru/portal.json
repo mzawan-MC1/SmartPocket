@@ -2175,6 +2175,7 @@
       "pause": "Пауза",
       "resume": "Возобновить",
       "markPaid": "Отметить как оплачено",
+      "markPaidFailed": "Не удалось отметить эту подписку как оплаченную.",
       "requestCancellation": "Запросить отмену",
       "cancelNow": "Отметить как отмененную",
       "markCancelled": "Отметить как отмененную",
@@ -2336,6 +2337,167 @@
         "notifications": "Покрытие напоминаний",
         "notificationsDescription": "Используется {{count}} настроек напоминаний и встроенные предупреждения в приложении."
       }
+    }
+  },
+  "support": {
+    "nav": {
+      "title": "Поддержка"
+    },
+    "values": {
+      "categories": {
+        "account": "Аккаунт",
+        "transactions": "Транзакции",
+        "financial_accounts": "Финансовые счета",
+        "subscriptions": "Подписки",
+        "payments": "Платежи",
+        "reports": "Отчеты",
+        "smart_entry_ai": "Smart Entry AI",
+        "technical_error": "Техническая ошибка",
+        "feature_request": "Запрос функции",
+        "security": "Безопасность",
+        "other": "Другое"
+      },
+      "roles": {
+        "user": "Клиент",
+        "admin": "Поддержка"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Открыт",
+        "assigned": "Назначен",
+        "in_progress": "В работе",
+        "waiting_for_customer": "Ожидание клиента",
+        "waiting_for_support": "Ожидание поддержки",
+        "resolved": "Решен",
+        "closed": "Закрыт",
+        "new": "Новый",
+        "spam": "Спам"
+      },
+      "priority": {
+        "low": "Низкий",
+        "normal": "Обычный",
+        "high": "Высокий",
+        "urgent": "Срочный"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Вложения",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF до 10 МБ каждый",
+      "addFiles": "Добавить файлы",
+      "emptyTitle": "Вложения еще не добавлены",
+      "emptyDescription": "Добавьте скриншоты или PDF, чтобы поддержка могла быстрее разобраться.",
+      "uploading": "Загрузка {{progress}}%",
+      "ready": "Готово",
+      "removeFile": "Удалить {{name}}",
+      "errors": {
+        "maxFiles": "К одному сообщению можно прикрепить не более {{count}} файлов.",
+        "unsupportedType": "Неподдерживаемый тип файла. Разрешенные форматы: {{formats}}.",
+        "tooLarge": "Файл слишком большой. Максимальный размер — {{maxSize}}.",
+        "failedAttach": "Не удалось прикрепить файл."
+      }
+    },
+    "list": {
+      "title": "Поддержка",
+      "description": "Отслеживайте обращения в поддержку Smart Pocket, просматривайте ответы и безопасно отвечайте с приватными вложениями.",
+      "newTicket": "Новый тикет",
+      "filtersTitle": "Поиск и фильтры",
+      "filtersDescription": "Найдите тикет по номеру, теме, категории или статусу.",
+      "searchPlaceholder": "Искать тикеты...",
+      "allStatuses": "Все статусы",
+      "allCategories": "Все категории",
+      "allPriorities": "Все приоритеты",
+      "sectionTitle": "Мои тикеты",
+      "sectionDescription": "Сначала отображаются самые новые тикеты.",
+      "loading": "Загрузка тикетов поддержки...",
+      "loadError": "Не удалось загрузить тикеты поддержки.",
+      "emptyTitle": "Тикеты поддержки не найдены",
+      "emptyDescription": "Создайте тикет, если вам нужна помощь по Smart Pocket.",
+      "newReply": "Новый ответ",
+      "updatedLabel": "Обновлено",
+      "updatedAt": "Обновлено {{value}}",
+      "pageOf": "Страница {{page}} из {{total}}",
+      "previous": "Назад",
+      "next": "Далее"
+    },
+    "newTicket": {
+      "title": "Новый тикет поддержки",
+      "description": "Опишите проблему, добавьте контекст и приложите скриншоты или PDF, чтобы команда Smart Pocket помогла быстрее.",
+      "badge": "Поддержка",
+      "detailsTitle": "Детали тикета",
+      "detailsDescription": "Укажите достаточно информации для точного первого ответа.",
+      "subject": "Тема",
+      "subjectPlaceholder": "Например: не работает экспорт PDF-отчета",
+      "category": "Категория",
+      "priority": "Приоритет",
+      "relatedPath": "Связанная страница или модуль",
+      "relatedPathPlaceholder": "/reports или Smart Entry AI",
+      "errorCode": "Код ошибки",
+      "errorCodePlaceholder": "Необязательный код ошибки",
+      "message": "Подробное сообщение",
+      "messagePlaceholder": "Опишите, что произошло, что вы ожидали и какие шаги позволяют воспроизвести проблему.",
+      "attachmentsTitle": "Вложения",
+      "attachmentsDescription": "Добавьте скриншоты или PDF, чтобы поддержка могла быстрее разобраться с вашей проблемой.",
+      "cancel": "Отмена",
+      "create": "Создать тикет",
+      "creating": "Создание тикета...",
+      "created": "Тикет поддержки создан.",
+      "createError": "Не удалось создать тикет поддержки.",
+      "authRequired": "Пожалуйста, войдите снова перед созданием тикета поддержки."
+    },
+    "detail": {
+      "loadError": "Не удалось загрузить тикет поддержки.",
+      "replySent": "Ответ отправлен.",
+      "replyError": "Не удалось отправить ответ.",
+      "attachmentError": "Не удалось открыть вложение.",
+      "closed": "Тикет закрыт.",
+      "reopened": "Тикет снова открыт.",
+      "actionError": "Не удалось обновить тикет.",
+      "headerDescription": "Тикет {{ticketNumber}} • Создан {{createdAt}}",
+      "ticketNumberLabel": "Тикет",
+      "createdAtLabel": "Создан",
+      "closeTicket": "Закрыть тикет",
+      "reopen": "Открыть снова",
+      "roleCustomer": "Клиент",
+      "roleSupport": "Поддержка",
+      "conversationTitle": "Переписка",
+      "conversationDescription": "Ответы и видимые системные обновления по этому тикету.",
+      "replyTitle": "Ответ",
+      "replyDescription": "Отвечайте безопасно. Ваши сообщения и вложения остаются приватными внутри этой переписки.",
+      "replyPlaceholder": "Добавьте детали, подтвердите исправление или попросите обновление.",
+      "sendReply": "Отправить ответ",
+      "sendingReply": "Отправка...",
+      "summaryTitle": "Сводка",
+      "summaryDescription": "Статус тикета и важные сведения.",
+      "category": "Категория",
+      "relatedPage": "Связанная страница",
+      "errorCode": "Код ошибки",
+      "firstResponse": "Первый ответ",
+      "resolved": "Решен",
+      "timelineTitle": "Лента активности",
+      "timelineDescription": "Видимые обновления статуса и обработки.",
+      "timelineEvents": {
+        "ticketCreated": "Тикет создан.",
+        "ticketClosed": "Тикет закрыт.",
+        "ticketReopened": "Тикет снова открыт.",
+        "attachmentDeleted": "Вложение удалено.",
+        "firstResponseRecorded": "Зафиксирован первый ответ поддержки."
+      },
+      "securityTitle": "Конфиденциальность",
+      "securityDescription": "Файлы и ответы остаются приватными в вашей защищенной зоне поддержки.",
+      "securityBody": "Вложения приватны и видны только вам и команде поддержки Smart Pocket.",
+      "emptyValue": "—",
+      "confirmCloseTitle": "Закрыть тикет?",
+      "confirmCloseDescription": "Закрыть этот решенный тикет сейчас? При необходимости его можно снова открыть в течение доступного периода.",
+      "confirmReopenTitle": "Открыть тикет снова?",
+      "confirmReopenDescription": "Снова открыть этот тикет и вернуть его в очередь поддержки?",
+      "deleteAttachment": "Удалить вложение",
+      "deleteAttachmentSuccess": "Вложение удалено.",
+      "deleteAttachmentError": "Не удалось удалить вложение.",
+      "confirmDeleteAttachmentTitle": "Удалить вложение?",
+      "confirmDeleteAttachmentDescription": "Удалить {{name}} из этого тикета сейчас? Это действие нельзя отменить.",
+      "confirmAction": "Подтвердить",
+      "cancelAction": "Отмена"
     }
   }
 }

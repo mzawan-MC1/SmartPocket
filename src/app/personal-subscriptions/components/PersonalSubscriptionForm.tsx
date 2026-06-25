@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { getAccounts, getCategories, type Category, type FinancialAccount } from '@/lib/finance';
 import {
@@ -112,6 +113,7 @@ export default function PersonalSubscriptionForm({
   categories?: Category[];
 }) {
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
   const [accounts, setAccounts] = useState<FinancialAccount[]>(providedAccounts || []);
   const [categories, setCategories] = useState<Category[]>(providedCategories || []);
   const [loadingSupportingData, setLoadingSupportingData] = useState(!providedAccounts || !providedCategories);
@@ -582,7 +584,7 @@ export default function PersonalSubscriptionForm({
         </div>
       </section>
 
-      <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+      <div className={`flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row ${isRTL ? 'sm:justify-start sm:flex-row-reverse' : 'sm:justify-end'}`}>
         <button type="button" onClick={onCancel} className="btn-secondary">
           {t('actions.cancel', { ns: 'common' })}
         </button>

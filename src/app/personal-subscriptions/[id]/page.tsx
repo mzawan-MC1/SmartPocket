@@ -21,6 +21,7 @@ import AppLayout from '@/components/AppLayout';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import {
   getPersonalSubscriptionById,
@@ -89,6 +90,7 @@ function WarningListItem({
   warning: ReturnType<typeof getPersonalSubscriptionWarnings>[number];
   t: ReturnType<typeof useTranslation>['t'];
 }) {
+  const { isRTL } = useLanguage();
   const label = (() => {
     switch (warning.type) {
       case 'upcoming_payment':
@@ -117,8 +119,8 @@ function WarningListItem({
   })();
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-      <div>
+    <div className={`flex items-start justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+      <div className="min-w-0 text-start">
         <p className="text-sm font-700 text-foreground">{label}</p>
         <p className="text-xs text-muted-foreground">
           {t(`personalSubscriptions.warningLevels.${warning.level}`, { ns: 'portal' })}
@@ -139,10 +141,12 @@ function DetailRow({
   label: string;
   value: React.ReactNode;
 }) {
+  const { isRTL } = useLanguage();
+
   return (
-    <div className="flex flex-col gap-1 border-b border-border/70 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <span className="text-[15px] font-600 text-foreground/75">{label}</span>
-      <div className="text-[15px] text-foreground sm:max-w-[65%] sm:text-right">{value}</div>
+    <div className={`flex flex-col gap-1 border-b border-border/70 py-3 last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+      <span className="text-[15px] font-600 text-foreground/75 text-start">{label}</span>
+      <div className={`text-[15px] text-foreground text-start sm:max-w-[65%] ${isRTL ? 'sm:text-start' : 'sm:text-end'}`}>{value}</div>
     </div>
   );
 }
@@ -151,6 +155,7 @@ export default function PersonalSubscriptionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
   const subscriptionId = params.id as string;
   const todayIso = normalizeTodayIso();
   const [subscription, setSubscription] = useState<PersonalSubscription | null>(null);
@@ -310,15 +315,15 @@ export default function PersonalSubscriptionDetailPage() {
   return (
     <AppLayout activeRoute="/personal-subscriptions">
       <div className="page-section max-[480px]:gap-3">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
           <div className="min-w-0">
-            <div className="mb-3 flex items-start gap-3">
+            <div className={`mb-3 flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <Link
                 href="/personal-subscriptions"
                 className="rounded-xl border border-border p-2 text-muted-foreground transition-colors hover:bg-muted"
                 aria-label={t('personalSubscriptions.actions.backToSubscriptions', { ns: 'portal' })}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={18} className={isRTL ? 'rotate-180' : ''} />
               </Link>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -350,7 +355,7 @@ export default function PersonalSubscriptionDetailPage() {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 lg:justify-end">
+          <div className={`flex flex-wrap gap-2 ${isRTL ? 'lg:justify-start' : 'lg:justify-end'}`}>
             <Link href={`/personal-subscriptions/${subscription.id}/edit`} className="btn-secondary">
               {t('actions.edit', { ns: 'common' })}
             </Link>

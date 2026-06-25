@@ -2579,6 +2579,7 @@
       "pause": "Pause",
       "resume": "Resume",
       "markPaid": "Mark Paid",
+      "markPaidFailed": "Failed to mark this subscription as paid.",
       "requestCancellation": "Request Cancellation",
       "cancelNow": "Mark as Cancelled",
       "markCancelled": "Mark as Cancelled",
@@ -2790,7 +2791,13 @@
       "emptyDescription": "Add screenshots or PDFs to help support investigate faster.",
       "uploading": "Uploading {{progress}}%",
       "ready": "Ready",
-      "removeFile": "Remove {{name}}"
+      "removeFile": "Remove {{name}}",
+      "errors": {
+        "maxFiles": "You can attach up to {{count}} files per message.",
+        "unsupportedType": "Unsupported file type. Allowed formats: {{formats}}.",
+        "tooLarge": "File is too large. Maximum size is {{maxSize}}.",
+        "failedAttach": "Failed to attach file."
+      }
     },
     "list": {
       "title": "Support",
@@ -2809,6 +2816,7 @@
       "emptyTitle": "No support tickets found",
       "emptyDescription": "Create a ticket when you need help with Smart Pocket.",
       "newReply": "New reply",
+      "updatedLabel": "Updated",
       "updatedAt": "Updated {{value}}",
       "pageOf": "Page {{page}} of {{total}}",
       "previous": "Previous",
@@ -2847,9 +2855,13 @@
       "closed": "Ticket closed.",
       "reopened": "Ticket reopened.",
       "actionError": "Failed to update ticket.",
-      "headerDescription": "Ticket {{ticketNumber}} \u2022 Created {{createdAt}}",
+      "headerDescription": "Ticket {{ticketNumber}} • Created {{createdAt}}",
+      "ticketNumberLabel": "Ticket",
+      "createdAtLabel": "Created",
       "closeTicket": "Close ticket",
       "reopen": "Reopen",
+      "roleCustomer": "Customer",
+      "roleSupport": "Support",
       "conversationTitle": "Conversation",
       "conversationDescription": "Replies and visible system updates for this ticket.",
       "replyTitle": "Reply",
@@ -2866,6 +2878,13 @@
       "resolved": "Resolved",
       "timelineTitle": "Activity Timeline",
       "timelineDescription": "Visible status and workflow updates.",
+      "timelineEvents": {
+        "ticketCreated": "Ticket created.",
+        "ticketClosed": "Ticket closed.",
+        "ticketReopened": "Ticket reopened.",
+        "attachmentDeleted": "Attachment deleted.",
+        "firstResponseRecorded": "First support response recorded."
+      },
       "securityTitle": "Security",
       "securityDescription": "Files and replies stay private within your authenticated support workspace.",
       "securityBody": "Attachments are private and only visible to you and the Smart Pocket support team.",

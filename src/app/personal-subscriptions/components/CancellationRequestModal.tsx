@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Modal from '@/components/ui/Modal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface CancellationRequestValues {
   request_date: string;
@@ -26,6 +27,7 @@ export default function CancellationRequestModal({
   defaultValues?: Partial<CancellationRequestValues>;
 }) {
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
   const [values, setValues] = useState<CancellationRequestValues>({
     request_date: defaultValues?.request_date || new Date().toISOString().slice(0, 10),
     effective_cancellation_date: defaultValues?.effective_cancellation_date || '',
@@ -103,7 +105,7 @@ export default function CancellationRequestModal({
             onChange={(event) => updateField('notes', event.target.value)}
           />
         </div>
-        <div className="flex justify-end gap-2 border-t border-border pt-4">
+        <div className={`flex gap-2 border-t border-border pt-4 ${isRTL ? 'justify-start' : 'justify-end'}`}>
           <button type="button" onClick={onClose} className="btn-secondary">
             {t('actions.cancel', { ns: 'common' })}
           </button>

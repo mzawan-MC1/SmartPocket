@@ -10,6 +10,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import SearchField from '@/components/ui/SearchField';
 import { SupportPriorityBadge, SupportStatusBadge } from '@/components/support/SupportBadges';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { SUPPORT_TICKET_CATEGORIES, SUPPORT_TICKET_PRIORITIES, SUPPORT_TICKET_STATUSES, formatSupportDateTime, toTitleLabel } from '@/lib/support';
 
 type TicketListItem = {
@@ -26,6 +27,7 @@ type TicketListItem = {
 
 export default function SupportPage() {
   const { t } = useTranslation('portal');
+  const { isRTL } = useLanguage();
   const [items, setItems] = React.useState<TicketListItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
@@ -84,10 +86,12 @@ export default function SupportPage() {
           title={t('support.list.title')}
           description={t('support.list.description')}
           actions={
-            <Link href="/support/new" className="btn-primary">
-              <Plus size={16} />
-              {t('support.list.newTicket')}
-            </Link>
+            <div className={`flex w-full ${isRTL ? 'justify-start' : 'justify-end'}`}>
+              <Link href="/support/new" className="btn-primary">
+                <Plus size={16} />
+                {t('support.list.newTicket')}
+              </Link>
+            </div>
           }
         />
 
@@ -154,10 +158,10 @@ export default function SupportPage() {
                   href={`/support/${ticket.id}`}
                   className="block rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-muted/20"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className={`flex flex-wrap items-start justify-between gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs font-800 uppercase tracking-[0.16em] text-muted-foreground">
+                      <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+                        <span className="text-xs font-800 uppercase tracking-[0.16em] text-muted-foreground" dir="ltr">
                           {ticket.ticket_number}
                         </span>
                         {ticket.customer_unread_count > 0 ? (
@@ -166,12 +170,15 @@ export default function SupportPage() {
                           </span>
                         ) : null}
                       </div>
-                      <p className="mt-1 text-sm font-700 text-foreground">{ticket.subject}</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {getCategoryLabel(ticket.category)} • {t('support.list.updatedAt', { value: formatSupportDateTime(ticket.updated_at) })}
-                      </p>
+                      <p className="mt-1 text-sm font-700 text-foreground text-start" dir="auto">{ticket.subject}</p>
+                      <div className={`mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
+                        <span>{getCategoryLabel(ticket.category)}</span>
+                        <span aria-hidden="true">{'\u2022'}</span>
+                        <span>{t('support.list.updatedLabel')}</span>
+                        <bdi dir="ltr">{formatSupportDateTime(ticket.updated_at)}</bdi>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'sm:justify-start' : 'sm:justify-end'}`}>
                       <SupportPriorityBadge priority={ticket.priority} namespace="portal" />
                       <SupportStatusBadge status={ticket.status} namespace="portal" />
                     </div>
@@ -181,9 +188,9 @@ export default function SupportPage() {
             </div>
           )}
 
-          <div className="mt-4 flex items-center justify-between gap-3">
+          <div className={`mt-4 flex items-center gap-3 ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
             <p className="text-xs text-muted-foreground">{t('support.list.pageOf', { page, total: totalPages })}</p>
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button type="button" className="btn-secondary" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1 || loading}>
                 {t('support.list.previous')}
               </button>

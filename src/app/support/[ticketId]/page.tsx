@@ -14,6 +14,7 @@ import SupportConfirmationModal from '@/components/support/SupportConfirmationMo
 import { canReopenTicket, formatSupportDateTime, toTitleLabel, type FinalizedSupportUpload } from '@/lib/support';
 import { uploadSupportAttachments } from '@/lib/support-attachments';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type TicketDetail = {
   id: string;
@@ -45,16 +46,44 @@ type TicketDetail = {
   }>;
   events: Array<{
     id: string;
+    event_type?: string | null;
+    actor_name?: string | null;
+    actor_role?: string | null;
+    metadata?: Record<string, unknown> | null;
     description: string;
     created_at: string;
   }>;
 };
+
+function SummaryRow({
+  label,
+  value,
+  isRTL,
+  valueDir,
+}: {
+  label: string;
+  value: React.ReactNode;
+  isRTL: boolean;
+  valueDir?: 'auto' | 'ltr' | 'rtl';
+}) {
+  return (
+    <div className={`flex flex-col gap-1 py-0.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground text-start">
+        {label}
+      </p>
+      <div className="text-sm text-foreground text-start sm:max-w-[65%]" dir={valueDir}>
+        {value}
+      </div>
+    </div>
+  );
+}
 
 export default function SupportTicketDetailPage() {
   const params = useParams<{ ticketId: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useTranslation(['portal', 'common']);
+  const { isRTL } = useLanguage();
   const [ticket, setTicket] = React.useState<TicketDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [replyMessage, setReplyMessage] = React.useState('');
@@ -87,6 +116,28 @@ export default function SupportTicketDetailPage() {
   const formatDisplayDate = React.useCallback(
     (value: string | null | undefined) => (value ? formatSupportDateTime(value) : '—'),
     []
+  );
+  const getTimelineEventLabel = React.useCallback(
+    (event: TicketDetail['events'][number]) => {
+      switch (event.event_type) {
+        case 'ticket_created':
+        case 'submitted':
+          return t('support.detail.timelineEvents.ticketCreated', { defaultValue: 'Ticket created.' });
+        case 'ticket_closed':
+          return t('support.detail.timelineEvents.ticketClosed', { defaultValue: 'Ticket closed.' });
+        case 'ticket_reopened':
+          return t('support.detail.timelineEvents.ticketReopened', { defaultValue: 'Ticket reopened.' });
+        case 'attachment_deleted':
+          return t('support.detail.timelineEvents.attachmentDeleted', { defaultValue: 'Attachment deleted.' });
+        case 'first_response_recorded':
+          return t('support.detail.timelineEvents.firstResponseRecorded', {
+            defaultValue: 'First support response recorded.',
+          });
+        default:
+          return event.description;
+      }
+    },
+    [t]
   );
 
   const loadTicket = React.useCallback(async () => {
@@ -233,33 +284,36 @@ export default function SupportTicketDetailPage() {
         ) : (
           <>
             <section className="rounded-3xl border border-border bg-card px-5 py-4 shadow-card-sm sm:px-6">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className={`flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between ${isRTL ? 'xl:flex-row-reverse' : ''}`}>
                 <div className="min-w-0 flex-1 space-y-3">
                   <Link href="/support" className="btn-secondary w-fit">
-                    <ArrowLeft size={16} />
+                    <ArrowLeft size={16} className={isRTL ? 'rotate-180' : ''} />
                     {t('actions.back', { ns: 'common' })}
                   </Link>
                   <div className="space-y-2">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className={`flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
                       <div className="min-w-0 space-y-2">
                         <h1 className="text-2xl font-800 tracking-tight text-foreground sm:text-3xl">
                           {ticket.subject}
                         </h1>
-                        <p className="text-sm text-muted-foreground">
-                          {t('support.detail.headerDescription', {
-                            ticketNumber: ticket.ticket_number,
-                            createdAt: formatSupportDateTime(ticket.created_at),
-                          })}
-                        </p>
+                        <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse justify-end lg:justify-start' : ''}`}>
+                          <span>{t('support.detail.ticketNumberLabel')}</span>
+                          <bdi dir="ltr" className="font-600 text-foreground/80">
+                            {ticket.ticket_number}
+                          </bdi>
+                          <span aria-hidden="true">{'\u2022'}</span>
+                          <span>{t('support.detail.createdAtLabel')}</span>
+                          <bdi dir="ltr">{formatSupportDateTime(ticket.created_at)}</bdi>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse lg:justify-start' : 'lg:justify-end'}`}>
                         <SupportStatusBadge status={ticket.status} namespace="portal" />
                         <SupportPriorityBadge priority={ticket.priority} namespace="portal" />
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse xl:justify-start' : 'xl:justify-end'}`}>
                   {ticket.status === 'resolved' ? (
                     <button type="button" className="btn-secondary" onClick={() => setPendingAction('close')}>
                       <XCircle size={16} />
@@ -292,9 +346,9 @@ export default function SupportTicketDetailPage() {
                             : 'border-border bg-background'
                         }`}
                       >
-                        <div className="flex flex-wrap items-start justify-between gap-3">
-                          <div className="min-w-0 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2">
+                        <div className={`flex flex-wrap items-start justify-between gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                          <div className="min-w-0 space-y-1 text-start">
+                            <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
                               <p className="text-sm font-700 text-foreground">{message.sender_name}</p>
                               <span
                                 className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-700 uppercase tracking-[0.14em] ${
@@ -306,11 +360,11 @@ export default function SupportTicketDetailPage() {
                                 {getMessageRoleBadgeLabel(message.sender_role)}
                               </span>
                             </div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground text-start">
                               {getRoleLabel(message.sender_role)}
                             </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{formatSupportDateTime(message.created_at)}</p>
+                          <p className="text-xs text-muted-foreground" dir="ltr">{formatSupportDateTime(message.created_at)}</p>
                         </div>
                         <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
                           {message.body}
@@ -325,7 +379,7 @@ export default function SupportTicketDetailPage() {
                                 onClick={() => void openAttachment(attachment.id)}
                               >
                                 <Paperclip size={12} />
-                                {attachment.file_name}
+                                <span dir="auto">{attachment.file_name}</span>
                               </button>
                             ))}
                             {message.sender_role === 'user'
@@ -367,11 +421,11 @@ export default function SupportTicketDetailPage() {
                         disabled={sending || ['closed'].includes(ticket.status)}
                       />
                     </div>
-                    <div className="flex items-start gap-2 rounded-2xl border border-border/60 bg-muted/15 px-3 py-2.5 text-sm text-muted-foreground">
+                    <div className={`flex items-start gap-2 rounded-2xl border border-border/60 bg-muted/15 px-3 py-2.5 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse text-start' : ''}`}>
                       <Lock size={14} className="mt-0.5 shrink-0 text-info" />
                       <p>{t('support.detail.securityBody')}</p>
                     </div>
-                    <div className="flex flex-wrap items-center justify-end gap-3">
+                    <div className={`flex flex-wrap items-center gap-3 ${isRTL ? 'justify-start' : 'justify-end'}`}>
                       <button
                         type="button"
                         className="btn-primary"
@@ -401,34 +455,43 @@ export default function SupportTicketDetailPage() {
                   description={t('support.detail.summaryDescription')}
                 >
                   <div className="space-y-4 text-sm">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse justify-start' : ''}`}>
                       <SupportStatusBadge status={ticket.status} namespace="portal" />
                       <SupportPriorityBadge priority={ticket.priority} namespace="portal" />
                     </div>
-                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,120px)_1fr]">
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                        {t('support.detail.category')}
-                      </p>
-                      <p className="text-sm text-foreground">{getCategoryLabel(ticket.category)}</p>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                        {t('support.detail.relatedPage')}
-                      </p>
-                      <p className="truncate text-sm text-foreground">{formatDisplayValue(ticket.related_path)}</p>
+                    <div className="space-y-3">
+                      <SummaryRow
+                        label={t('support.detail.category')}
+                        value={getCategoryLabel(ticket.category)}
+                        isRTL={isRTL}
+                      />
+                      <SummaryRow
+                        label={t('support.detail.relatedPage')}
+                        value={<span className="truncate">{formatDisplayValue(ticket.related_path)}</span>}
+                        isRTL={isRTL}
+                        valueDir="auto"
+                      />
                     </div>
                     <div className="border-t border-border/70" />
-                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,120px)_1fr]">
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                        {t('support.detail.errorCode')}
-                      </p>
-                      <p className="text-sm text-foreground">{formatDisplayValue(ticket.error_code)}</p>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                        {t('support.detail.firstResponse')}
-                      </p>
-                      <p className="text-sm text-foreground">{formatDisplayDate(ticket.first_response_at)}</p>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                        {t('support.detail.resolved')}
-                      </p>
-                      <p className="text-sm text-foreground">{formatDisplayDate(ticket.resolved_at)}</p>
+                    <div className="space-y-3">
+                      <SummaryRow
+                        label={t('support.detail.errorCode')}
+                        value={<span className="truncate">{formatDisplayValue(ticket.error_code)}</span>}
+                        isRTL={isRTL}
+                        valueDir="auto"
+                      />
+                      <SummaryRow
+                        label={t('support.detail.firstResponse')}
+                        value={formatDisplayDate(ticket.first_response_at)}
+                        isRTL={isRTL}
+                        valueDir="ltr"
+                      />
+                      <SummaryRow
+                        label={t('support.detail.resolved')}
+                        value={formatDisplayDate(ticket.resolved_at)}
+                        isRTL={isRTL}
+                        valueDir="ltr"
+                      />
                     </div>
                   </div>
                 </SectionCard>
@@ -439,16 +502,16 @@ export default function SupportTicketDetailPage() {
                 >
                   <div className="space-y-0">
                     {orderedEvents.map((event, index) => (
-                      <div key={event.id} className="relative ps-6 pb-4 last:pb-0">
+                      <div key={event.id} className={`relative pb-4 last:pb-0 ${isRTL ? 'pe-6' : 'ps-6'}`}>
                         {index < orderedEvents.length - 1 ? (
-                          <span className="absolute left-[0.44rem] top-4 h-[calc(100%-0.25rem)] w-px bg-border" />
+                          <span className={`absolute top-4 h-[calc(100%-0.25rem)] w-px bg-border ${isRTL ? 'right-[0.44rem]' : 'left-[0.44rem]'}`} />
                         ) : null}
-                        <span className="absolute left-0 top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-accent/20 bg-card">
+                        <span className={`absolute top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-accent/20 bg-card ${isRTL ? 'right-0' : 'left-0'}`}>
                           <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
                         </span>
-                        <div className="space-y-1">
-                          <p className="text-sm font-600 leading-5 text-foreground">{event.description}</p>
-                          <p className="text-xs text-muted-foreground">{formatSupportDateTime(event.created_at)}</p>
+                        <div className="space-y-1 text-start">
+                          <p className="text-sm font-600 leading-5 text-foreground">{getTimelineEventLabel(event)}</p>
+                          <p className="text-xs text-muted-foreground" dir="ltr">{formatSupportDateTime(event.created_at)}</p>
                         </div>
                       </div>
                     ))}

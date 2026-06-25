@@ -3,6 +3,7 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type SupportConfirmationModalProps = {
   open: boolean;
@@ -25,6 +26,8 @@ export default function SupportConfirmationModal({
   onClose,
   pending = false,
 }: SupportConfirmationModalProps) {
+  const { isRTL } = useLanguage();
+
   return (
     <Modal
       isOpen={open}
@@ -37,7 +40,7 @@ export default function SupportConfirmationModal({
       description={description}
       size="md"
     >
-      <div className="flex justify-end gap-3">
+      <div className={`flex gap-3 ${isRTL ? 'justify-start' : 'justify-end'}`}>
         <button
           type="button"
           className="btn-secondary"

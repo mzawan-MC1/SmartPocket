@@ -2175,6 +2175,7 @@
       "pause": "Mettre en pause",
       "resume": "Reprendre",
       "markPaid": "Marquer comme paye",
+      "markPaidFailed": "Impossible de marquer cet abonnement comme paye.",
       "requestCancellation": "Demander l annulation",
       "cancelNow": "Marquer comme annule",
       "markCancelled": "Marquer comme annule",
@@ -2334,6 +2335,167 @@
         "notifications": "Couverture des rappels",
         "notificationsDescription": "Utilise {{count}} reglages de rappel ainsi que des alertes integrees basees sur les avertissements."
       }
+    }
+  },
+  "support": {
+    "nav": {
+      "title": "Support"
+    },
+    "values": {
+      "categories": {
+        "account": "Compte",
+        "transactions": "Transactions",
+        "financial_accounts": "Comptes financiers",
+        "subscriptions": "Abonnements",
+        "payments": "Paiements",
+        "reports": "Rapports",
+        "smart_entry_ai": "Smart Entry AI",
+        "technical_error": "Erreur technique",
+        "feature_request": "Demande de fonctionnalite",
+        "security": "Securite",
+        "other": "Autre"
+      },
+      "roles": {
+        "user": "Client",
+        "admin": "Support"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Ouvert",
+        "assigned": "Assigne",
+        "in_progress": "En cours",
+        "waiting_for_customer": "En attente du client",
+        "waiting_for_support": "En attente du support",
+        "resolved": "Resolue",
+        "closed": "Fermee",
+        "new": "Nouvelle",
+        "spam": "Spam"
+      },
+      "priority": {
+        "low": "Faible",
+        "normal": "Normale",
+        "high": "Elevee",
+        "urgent": "Urgente"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Pieces jointes",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF jusqu a 10 Mo chacun",
+      "addFiles": "Ajouter des fichiers",
+      "emptyTitle": "Aucune piece jointe ajoutee",
+      "emptyDescription": "Ajoutez des captures d ecran ou des PDF pour aider le support a enqueter plus vite.",
+      "uploading": "Telechargement {{progress}}%",
+      "ready": "Pret",
+      "removeFile": "Retirer {{name}}",
+      "errors": {
+        "maxFiles": "Vous pouvez joindre jusqu a {{count}} fichiers par message.",
+        "unsupportedType": "Type de fichier non pris en charge. Formats autorises : {{formats}}.",
+        "tooLarge": "Le fichier est trop volumineux. La taille maximale est {{maxSize}}.",
+        "failedAttach": "Impossible de joindre le fichier."
+      }
+    },
+    "list": {
+      "title": "Support",
+      "description": "Suivez vos tickets Smart Pocket, consultez les reponses et repondez en toute securite avec des pieces jointes privees.",
+      "newTicket": "Nouveau ticket",
+      "filtersTitle": "Recherche et filtres",
+      "filtersDescription": "Retrouvez un ticket par numero, sujet, categorie ou statut.",
+      "searchPlaceholder": "Rechercher des tickets...",
+      "allStatuses": "Tous les statuts",
+      "allCategories": "Toutes les categories",
+      "allPriorities": "Toutes les priorites",
+      "sectionTitle": "Mes tickets",
+      "sectionDescription": "Les tickets les plus recents apparaissent en premier.",
+      "loading": "Chargement des tickets de support...",
+      "loadError": "Impossible de charger les tickets de support.",
+      "emptyTitle": "Aucun ticket de support trouve",
+      "emptyDescription": "Creez un ticket lorsque vous avez besoin d aide avec Smart Pocket.",
+      "newReply": "Nouvelle reponse",
+      "updatedLabel": "Mis a jour",
+      "updatedAt": "Mis a jour {{value}}",
+      "pageOf": "Page {{page}} sur {{total}}",
+      "previous": "Precedent",
+      "next": "Suivant"
+    },
+    "newTicket": {
+      "title": "Nouveau ticket de support",
+      "description": "Decrivez le probleme, ajoutez du contexte et joignez des captures d ecran ou des PDF pour aider l equipe Smart Pocket plus rapidement.",
+      "badge": "Support",
+      "detailsTitle": "Details du ticket",
+      "detailsDescription": "Donnez suffisamment de contexte pour obtenir une premiere reponse precise.",
+      "subject": "Sujet",
+      "subjectPlaceholder": "Exemple : l export du rapport PDF echoue",
+      "category": "Categorie",
+      "priority": "Priorite",
+      "relatedPath": "Page ou module concerne",
+      "relatedPathPlaceholder": "/reports ou Smart Entry AI",
+      "errorCode": "Code erreur",
+      "errorCodePlaceholder": "Code erreur facultatif",
+      "message": "Message detaille",
+      "messagePlaceholder": "Expliquez ce qui s est passe, ce que vous attendiez et les etapes permettant de reproduire le probleme.",
+      "attachmentsTitle": "Pieces jointes",
+      "attachmentsDescription": "Ajoutez des captures d ecran ou des PDF pour aider le support a examiner votre probleme.",
+      "cancel": "Annuler",
+      "create": "Creer le ticket",
+      "creating": "Creation du ticket...",
+      "created": "Ticket de support cree.",
+      "createError": "Impossible de creer le ticket de support.",
+      "authRequired": "Reconnectez-vous avant de creer un ticket de support."
+    },
+    "detail": {
+      "loadError": "Impossible de charger le ticket de support.",
+      "replySent": "Reponse envoyee.",
+      "replyError": "Impossible d envoyer la reponse.",
+      "attachmentError": "Impossible d ouvrir la piece jointe.",
+      "closed": "Ticket ferme.",
+      "reopened": "Ticket rouvert.",
+      "actionError": "Impossible de mettre a jour le ticket.",
+      "headerDescription": "Ticket {{ticketNumber}} • Cree {{createdAt}}",
+      "ticketNumberLabel": "Ticket",
+      "createdAtLabel": "Cree",
+      "closeTicket": "Fermer le ticket",
+      "reopen": "Rouvrir",
+      "roleCustomer": "Client",
+      "roleSupport": "Support",
+      "conversationTitle": "Conversation",
+      "conversationDescription": "Reponses et mises a jour visibles du systeme pour ce ticket.",
+      "replyTitle": "Repondre",
+      "replyDescription": "Repondez en toute securite. Vos messages et pieces jointes restent prives dans cette conversation.",
+      "replyPlaceholder": "Ajoutez plus de details, confirmez la correction ou demandez une mise a jour.",
+      "sendReply": "Envoyer la reponse",
+      "sendingReply": "Envoi en cours...",
+      "summaryTitle": "Resume",
+      "summaryDescription": "Statut du ticket et metadonnees importantes.",
+      "category": "Categorie",
+      "relatedPage": "Page concernee",
+      "errorCode": "Code erreur",
+      "firstResponse": "Premiere reponse",
+      "resolved": "Resolue",
+      "timelineTitle": "Chronologie d activite",
+      "timelineDescription": "Mises a jour visibles du statut et du traitement.",
+      "timelineEvents": {
+        "ticketCreated": "Ticket cree.",
+        "ticketClosed": "Ticket ferme.",
+        "ticketReopened": "Ticket rouvert.",
+        "attachmentDeleted": "Piece jointe supprimee.",
+        "firstResponseRecorded": "Premiere reponse du support enregistree."
+      },
+      "securityTitle": "Confidentialite",
+      "securityDescription": "Les fichiers et les reponses restent prives dans votre espace de support authentifie.",
+      "securityBody": "Les pieces jointes sont privees et visibles uniquement par vous et l equipe de support Smart Pocket.",
+      "emptyValue": "—",
+      "confirmCloseTitle": "Fermer le ticket ?",
+      "confirmCloseDescription": "Fermer ce ticket resolu maintenant ? Vous pourrez le rouvrir pendant la periode autorisee si vous avez encore besoin d aide.",
+      "confirmReopenTitle": "Rouvrir le ticket ?",
+      "confirmReopenDescription": "Rouvrir ce ticket et le replacer dans la file du support ?",
+      "deleteAttachment": "Supprimer la piece jointe",
+      "deleteAttachmentSuccess": "Piece jointe supprimee.",
+      "deleteAttachmentError": "Impossible de supprimer la piece jointe.",
+      "confirmDeleteAttachmentTitle": "Supprimer la piece jointe ?",
+      "confirmDeleteAttachmentDescription": "Supprimer {{name}} de ce ticket maintenant ? Cette action est irreversible.",
+      "confirmAction": "Confirmer",
+      "cancelAction": "Annuler"
     }
   }
 }

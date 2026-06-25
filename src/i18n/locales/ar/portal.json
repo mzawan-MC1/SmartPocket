@@ -2203,6 +2203,7 @@
       "pause": "إيقاف",
       "resume": "استئناف",
       "markPaid": "تحديد كمدفوع",
+      "markPaidFailed": "تعذر تحديد هذا الاشتراك كمدفوع.",
       "requestCancellation": "طلب إلغاء",
       "cancelNow": "تحديد كملغي",
       "markCancelled": "تحديد كملغي",
@@ -2362,6 +2363,167 @@
         "notifications": "تغطية التذكيرات",
         "notificationsDescription": "يستخدم {{count}} إعدادات تذكير مع تنبيهات داخل التطبيق مبنية على التحذيرات."
       }
+    }
+  },
+  "support": {
+    "nav": {
+      "title": "الدعم"
+    },
+    "values": {
+      "categories": {
+        "account": "الحساب",
+        "transactions": "المعاملات",
+        "financial_accounts": "الحسابات المالية",
+        "subscriptions": "الاشتراكات",
+        "payments": "المدفوعات",
+        "reports": "التقارير",
+        "smart_entry_ai": "الإدخال الذكي بالذكاء الاصطناعي",
+        "technical_error": "خطأ تقني",
+        "feature_request": "طلب ميزة",
+        "security": "الأمان",
+        "other": "أخرى"
+      },
+      "roles": {
+        "user": "العميل",
+        "admin": "الدعم"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "مفتوحة",
+        "assigned": "مُسندة",
+        "in_progress": "قيد المعالجة",
+        "waiting_for_customer": "بانتظار العميل",
+        "waiting_for_support": "بانتظار الدعم",
+        "resolved": "تم الحل",
+        "closed": "مغلقة",
+        "new": "جديدة",
+        "spam": "مزعجة"
+      },
+      "priority": {
+        "low": "منخفضة",
+        "normal": "عادية",
+        "high": "مرتفعة",
+        "urgent": "عاجلة"
+      }
+    },
+    "attachmentUploader": {
+      "label": "المرفقات",
+      "helper": "PNG وJPG وJPEG وWEBP وPDF حتى 10 ميجابايت لكل ملف",
+      "addFiles": "إضافة ملفات",
+      "emptyTitle": "لم تتم إضافة مرفقات بعد",
+      "emptyDescription": "أضف لقطات شاشة أو ملفات PDF لمساعدة فريق الدعم على التحقق بشكل أسرع.",
+      "uploading": "جارٍ الرفع {{progress}}%",
+      "ready": "جاهز",
+      "removeFile": "إزالة {{name}}",
+      "errors": {
+        "maxFiles": "يمكنك إرفاق حتى {{count}} ملفات لكل رسالة.",
+        "unsupportedType": "نوع الملف غير مدعوم. التنسيقات المسموح بها: {{formats}}.",
+        "tooLarge": "الملف كبير جدًا. الحد الأقصى هو {{maxSize}}.",
+        "failedAttach": "تعذر إرفاق الملف."
+      }
+    },
+    "list": {
+      "title": "الدعم",
+      "description": "تابع تذاكر دعم Smart Pocket، وراجع الردود، ورد بأمان مع مرفقات خاصة.",
+      "newTicket": "تذكرة جديدة",
+      "filtersTitle": "البحث والتصفية",
+      "filtersDescription": "اعثر على تذكرة برقمها أو عنوانها أو فئتها أو حالتها.",
+      "searchPlaceholder": "ابحث في التذاكر...",
+      "allStatuses": "كل الحالات",
+      "allCategories": "كل الفئات",
+      "allPriorities": "كل الأولويات",
+      "sectionTitle": "تذاكري",
+      "sectionDescription": "تظهر أحدث التذاكر أولًا.",
+      "loading": "جارٍ تحميل تذاكر الدعم...",
+      "loadError": "تعذر تحميل تذاكر الدعم.",
+      "emptyTitle": "لم يتم العثور على تذاكر دعم",
+      "emptyDescription": "أنشئ تذكرة عندما تحتاج إلى مساعدة في Smart Pocket.",
+      "newReply": "رد جديد",
+      "updatedLabel": "آخر تحديث",
+      "updatedAt": "آخر تحديث {{value}}",
+      "pageOf": "الصفحة {{page}} من {{total}}",
+      "previous": "السابق",
+      "next": "التالي"
+    },
+    "newTicket": {
+      "title": "تذكرة دعم جديدة",
+      "description": "اشرح المشكلة، وأضف السياق، وأرفق لقطات شاشة أو ملفات PDF ليتمكن فريق دعم Smart Pocket من المساعدة بسرعة أكبر.",
+      "badge": "الدعم",
+      "detailsTitle": "تفاصيل التذكرة",
+      "detailsDescription": "قدّم تفاصيل كافية للحصول على رد أول دقيق.",
+      "subject": "الموضوع",
+      "subjectPlaceholder": "مثال: فشل تصدير تقرير PDF",
+      "category": "الفئة",
+      "priority": "الأولوية",
+      "relatedPath": "الصفحة أو الوحدة المرتبطة",
+      "relatedPathPlaceholder": "/reports أو Smart Entry AI",
+      "errorCode": "رمز الخطأ",
+      "errorCodePlaceholder": "رمز خطأ اختياري",
+      "message": "الرسالة التفصيلية",
+      "messagePlaceholder": "اشرح ما حدث، وما الذي كنت تتوقعه، وأي خطوات تعيد ظهور المشكلة.",
+      "attachmentsTitle": "المرفقات",
+      "attachmentsDescription": "أضف لقطات شاشة أو ملفات PDF لمساعدة الدعم على التحقق من مشكلتك.",
+      "cancel": "إلغاء",
+      "create": "إنشاء تذكرة",
+      "creating": "جارٍ إنشاء التذكرة...",
+      "created": "تم إنشاء تذكرة الدعم.",
+      "createError": "تعذر إنشاء تذكرة الدعم.",
+      "authRequired": "يرجى تسجيل الدخول مرة أخرى قبل إنشاء تذكرة دعم."
+    },
+    "detail": {
+      "loadError": "تعذر تحميل تذكرة الدعم.",
+      "replySent": "تم إرسال الرد.",
+      "replyError": "تعذر إرسال الرد.",
+      "attachmentError": "تعذر فتح المرفق.",
+      "closed": "تم إغلاق التذكرة.",
+      "reopened": "تمت إعادة فتح التذكرة.",
+      "actionError": "تعذر تحديث التذكرة.",
+      "headerDescription": "التذكرة {{ticketNumber}} • أُنشئت {{createdAt}}",
+      "ticketNumberLabel": "التذكرة",
+      "createdAtLabel": "أُنشئت",
+      "closeTicket": "إغلاق التذكرة",
+      "reopen": "إعادة الفتح",
+      "roleCustomer": "العميل",
+      "roleSupport": "الدعم",
+      "conversationTitle": "المحادثة",
+      "conversationDescription": "الردود وتحديثات النظام المرئية لهذه التذكرة.",
+      "replyTitle": "الرد",
+      "replyDescription": "رد بأمان. تبقى رسائلك ومرفقاتك خاصة داخل هذه المحادثة.",
+      "replyPlaceholder": "أضف تفاصيل إضافية، أو أكد الحل، أو اطلب تحديثًا.",
+      "sendReply": "إرسال الرد",
+      "sendingReply": "جارٍ الإرسال...",
+      "summaryTitle": "الملخص",
+      "summaryDescription": "حالة التذكرة والبيانات المهمة.",
+      "category": "الفئة",
+      "relatedPage": "الصفحة المرتبطة",
+      "errorCode": "رمز الخطأ",
+      "firstResponse": "أول رد",
+      "resolved": "تم الحل",
+      "timelineTitle": "الجدول الزمني للنشاط",
+      "timelineDescription": "تحديثات الحالة وسير العمل المرئية.",
+      "timelineEvents": {
+        "ticketCreated": "تم إنشاء التذكرة.",
+        "ticketClosed": "تم إغلاق التذكرة.",
+        "ticketReopened": "تمت إعادة فتح التذكرة.",
+        "attachmentDeleted": "تم حذف المرفق.",
+        "firstResponseRecorded": "تم تسجيل أول رد من الدعم."
+      },
+      "securityTitle": "الخصوصية",
+      "securityDescription": "تبقى الملفات والردود خاصة داخل مساحة الدعم الخاصة بحسابك.",
+      "securityBody": "المرفقات خاصة ولا يراها إلا أنت وفريق دعم Smart Pocket.",
+      "emptyValue": "—",
+      "confirmCloseTitle": "إغلاق التذكرة؟",
+      "confirmCloseDescription": "هل تريد إغلاق هذه التذكرة المحلولة الآن؟ يمكنك إعادة فتحها خلال الفترة المسموح بها إذا احتجت إلى مزيد من المساعدة.",
+      "confirmReopenTitle": "إعادة فتح التذكرة؟",
+      "confirmReopenDescription": "هل تريد إعادة فتح هذه التذكرة وإعادتها إلى قائمة انتظار الدعم؟",
+      "deleteAttachment": "حذف المرفق",
+      "deleteAttachmentSuccess": "تم حذف المرفق.",
+      "deleteAttachmentError": "تعذر حذف المرفق.",
+      "confirmDeleteAttachmentTitle": "حذف المرفق؟",
+      "confirmDeleteAttachmentDescription": "هل تريد حذف {{name}} من هذه التذكرة الآن؟ لا يمكن التراجع عن ذلك.",
+      "confirmAction": "تأكيد",
+      "cancelAction": "إلغاء"
     }
   }
 }
