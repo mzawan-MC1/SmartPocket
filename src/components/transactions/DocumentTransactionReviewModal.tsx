@@ -33,6 +33,7 @@ import {
   getFinancialAccountDisplayLabel,
   getPreferredDocumentAccount,
 } from '@/lib/financial-account-utils';
+import { createClientId } from '@/lib/uuid';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
   id: string;
@@ -41,10 +42,7 @@ type EditableDocumentTransaction = TransactionDocumentReviewInput & {
 };
 
 function createLocalId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `doc-tx-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return createClientId();
 }
 
 function getTodayDate() {
@@ -419,7 +417,7 @@ export default function DocumentTransactionReviewModal({
         formData.set('file', preparedUpload.file);
         formData.set('sourceSurface', sourceSurface);
         formData.set('language', 'en');
-        formData.set('idempotencyKey', crypto.randomUUID());
+        formData.set('idempotencyKey', createClientId());
 
         const response = await fetch('/api/transaction-documents/extract', {
           method: 'POST',
@@ -807,8 +805,8 @@ export default function DocumentTransactionReviewModal({
       })}
       size="xl"
       mobileLayout="fullscreen"
-      contentClassName="sm:w-[92vw] sm:max-w-[1160px] sm:max-h-[90vh]"
-      bodyClassName="overflow-hidden p-0"
+      contentClassName="sm:h-[min(900px,calc(100dvh-24px))] sm:max-h-[calc(100dvh-24px)] sm:w-[calc(100vw-24px)] sm:max-w-[1480px]"
+      bodyClassName="flex min-h-0 flex-col overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col">
         <input
@@ -825,7 +823,7 @@ export default function DocumentTransactionReviewModal({
             event.currentTarget.value = '';
           }}
         />
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
               !receiptAllowance.enabled
@@ -920,10 +918,10 @@ export default function DocumentTransactionReviewModal({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(280px,0.56fr)_minmax(0,1fr)] lg:gap-4 xl:grid-cols-[minmax(310px,0.52fr)_minmax(0,1fr)] xl:gap-5">
-              <div className="space-y-3 lg:sticky lg:top-0 lg:self-start">
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(360px,0.58fr)_minmax(0,1fr)] 2xl:gap-5">
+              <div className="min-w-0 space-y-3">
                 <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
-                  <div className="border-b border-slate-200 px-4 py-3 sm:px-5">
+                  <div className="border-b border-slate-200 px-4 py-2.5 sm:px-5">
                     <div className="flex items-center gap-2">
                     {activeFile?.type === 'application/pdf' ? (
                       <FileText size={16} className="text-accent" />
@@ -938,25 +936,25 @@ export default function DocumentTransactionReviewModal({
                     </h3>
                     </div>
                   </div>
-                  <div className="px-4 py-4 sm:px-5">
+                  <div className="px-4 py-3 sm:px-5">
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     {activeFile?.type === 'application/pdf' ? (
                       <iframe
                         src={previewUrl}
                         title={activeFile?.name || 'document-preview'}
-                        className="h-[22rem] w-full bg-white lg:h-[26rem]"
+                        className="h-[18rem] w-full bg-white lg:h-[20rem] xl:h-[21rem]"
                       />
                     ) : (
                       <img
                         src={previewUrl}
                         alt={activeFile?.name || 'document-preview'}
-                        className="h-[22rem] w-full object-contain bg-white lg:h-[26rem]"
+                        className="h-[18rem] w-full bg-white object-contain lg:h-[20rem] xl:h-[21rem]"
                       />
                     )}
                   </div>
                   {activeFile ? (
-                    <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                      <p className="truncate font-600 text-foreground">{activeFile.name}</p>
+                    <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      <p className="break-all font-600 text-foreground sm:break-words">{activeFile.name}</p>
                       <p>{formatTransactionDocumentFileSize(activeFile.size)}</p>
                     </div>
                   ) : null}
@@ -964,7 +962,7 @@ export default function DocumentTransactionReviewModal({
                 </section>
 
                 {hasDuplicates ? (
-                  <section className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-4 sm:px-5">
+                  <section className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5">
                     <div className="flex items-start gap-3">
                       <AlertTriangle size={18} className="mt-0.5 text-amber-700" />
                       <div className="min-w-0 flex-1">
@@ -974,22 +972,22 @@ export default function DocumentTransactionReviewModal({
                             defaultValue: 'Possible duplicate',
                           })}
                         </h3>
-                        <p className="mt-1 text-sm leading-6 text-amber-900/85">
+                        <p className="mt-1 text-sm leading-5 text-amber-900/85">
                           {t('transactions.documentReview.duplicateDescription', {
                             ns: 'portal',
                             defaultValue: 'This receipt looks similar to one you already saved. Check the existing transaction before continuing.',
                           })}
                         </p>
-                        <p className="mt-2 text-xs font-600 leading-5 text-amber-800/90">
+                        <p className="mt-1.5 text-xs font-600 leading-4 text-amber-800/90">
                           {t('transactions.documentReview.duplicateGuidance', {
                             ns: 'portal',
                             defaultValue: 'Click "Save Anyway" only if you are sure this is a different transaction.',
                           })}
                         </p>
-                        <div className="mt-3 space-y-3">
+                        <div className="mt-2.5 space-y-2">
                           {duplicates.map((duplicate) => (
-                            <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-2xl border border-amber-200/80 bg-white/90 p-3 text-xs text-foreground">
-                              <p className="text-sm font-600 leading-5 text-foreground">
+                            <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-2xl border border-amber-200/80 bg-white/90 p-2.5 text-xs text-foreground">
+                              <p className="break-words text-sm font-600 leading-5 text-foreground">
                                 {getTransactionDocumentDisplayTitle({
                                   merchant: duplicate.merchant,
                                   description: duplicate.description,
@@ -1014,7 +1012,7 @@ export default function DocumentTransactionReviewModal({
                                 </span>
                               </div>
                               {duplicate.transactionId ? (
-                                <div className="mt-3 flex justify-end">
+                                <div className="mt-2 flex justify-end">
                                   <button
                                     type="button"
                                     onClick={() => setDuplicateViewTransactionId(duplicate.transactionId || null)}
@@ -1030,11 +1028,11 @@ export default function DocumentTransactionReviewModal({
                             </div>
                           ))}
                         </div>
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                           <button
                             type="button"
                             onClick={() => setDuplicateConfirmed(true)}
-                            className="btn-secondary h-11 w-full justify-center border-amber-300 bg-white text-amber-900 hover:bg-amber-100 sm:w-auto"
+                            className="btn-secondary h-10 w-full justify-center border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100 sm:w-auto"
                           >
                             {t('transactions.documentReview.saveAnyway', {
                               ns: 'portal',
@@ -1043,7 +1041,7 @@ export default function DocumentTransactionReviewModal({
                           </button>
                         </div>
                         {duplicateConfirmed ? (
-                          <p className="mt-3 text-sm font-600 text-amber-900">
+                          <p className="mt-2.5 text-sm font-600 text-amber-900">
                             {t('transactions.documentReview.duplicateConfirmedLabel', {
                               ns: 'portal',
                               defaultValue: 'Duplicate warning confirmed. You can save when the rest of the review is ready.',
@@ -1056,7 +1054,7 @@ export default function DocumentTransactionReviewModal({
                 ) : null}
               </div>
 
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-3.5">
                 {reviewTransactions.map((transaction, index) => {
                   const lineItemCategories = transaction.transactionType === 'income'
                     ? filteredCategoriesByType.income
@@ -1069,7 +1067,7 @@ export default function DocumentTransactionReviewModal({
 
                   return (
                     <section key={transaction.id} className="overflow-hidden rounded-3xl border border-blue-200/70 bg-[#F5F9FF]">
-                      <div className="border-b border-blue-200/70 px-4 py-4 sm:px-5">
+                      <div className="border-b border-blue-200/70 px-4 py-3 sm:px-5">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-700 text-foreground">
@@ -1115,8 +1113,8 @@ export default function DocumentTransactionReviewModal({
                       </div>
                       </div>
 
-                      <div className="space-y-4 px-4 py-4 sm:px-5">
-                      <div className="grid grid-cols-2 gap-2 sm:max-w-[18rem]">
+                      <div className="space-y-2 px-4 py-3 sm:px-5">
+                      <div className="grid grid-cols-2 gap-2 sm:max-w-[16rem]">
                         {(['expense', 'income'] as const).map((type) => (
                           <button
                             key={`${transaction.id}-${type}`}
@@ -1135,7 +1133,7 @@ export default function DocumentTransactionReviewModal({
                               })),
                               totalsConfirmed: false,
                             }))}
-                            className={`min-h-11 rounded-2xl border px-3 py-2 text-sm font-600 ${
+                            className={`min-h-10 rounded-2xl border px-3 py-2 text-sm font-600 ${
                               transaction.transactionType === type
                                 ? type === 'income'
                                   ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
@@ -1148,38 +1146,38 @@ export default function DocumentTransactionReviewModal({
                         ))}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                      <div className="grid grid-cols-1 gap-x-3 gap-y-2.5 md:grid-cols-2">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.merchantSource', { ns: 'portal' })}
                           </label>
                           <input
                             type="text"
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.merchant}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({ ...current, merchant: event.target.value }))}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.date', { ns: 'portal' })} *
                           </label>
                           <input
                             type="date"
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.transactionDate}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({ ...current, transactionDate: event.target.value }))}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.amount', { ns: 'portal' })} *
                           </label>
                           <input
                             type="number"
                             step="0.01"
                             min="0.01"
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.amount > 0 ? String(transaction.amount) : ''}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({
                               ...current,
@@ -1188,15 +1186,15 @@ export default function DocumentTransactionReviewModal({
                             }))}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.form.tax', { ns: 'portal', defaultValue: 'Tax' })}
                           </label>
                           <input
                             type="number"
                             step="0.01"
                             min="0"
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={typeof transaction.tax === 'number' ? String(transaction.tax) : ''}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({
                               ...current,
@@ -1205,8 +1203,8 @@ export default function DocumentTransactionReviewModal({
                             }))}
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.currency', { ns: 'portal', defaultValue: 'Currency' })} *
                           </label>
                           <CurrencySelector
@@ -1218,14 +1216,15 @@ export default function DocumentTransactionReviewModal({
                               ns: 'portal',
                               defaultValue: 'Currency follows the selected account.',
                             })}
+                            className="[&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3"
                           />
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.account', { ns: 'portal' })} *
                           </label>
                           <select
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.accountId}
                             onChange={(event) => {
                               const nextAccount = accounts.find((account) => account.id === event.target.value);
@@ -1247,12 +1246,12 @@ export default function DocumentTransactionReviewModal({
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.category', { ns: 'portal' })}
                           </label>
                           <select
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.categoryId || ''}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({
                               ...current,
@@ -1267,8 +1266,8 @@ export default function DocumentTransactionReviewModal({
                             ))}
                           </select>
                         </div>
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
+                        <div className="min-w-0">
+                          <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.documentReview.receiptNumber', {
                               ns: 'portal',
                               defaultValue: 'Receipt / Reference Number',
@@ -1276,7 +1275,7 @@ export default function DocumentTransactionReviewModal({
                           </label>
                           <input
                             type="text"
-                            className="input-base min-h-11 text-sm"
+                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                             value={transaction.receiptNumber}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({
                               ...current,
@@ -1287,12 +1286,12 @@ export default function DocumentTransactionReviewModal({
                       </div>
 
                       <div>
-                        <label className="mb-1 block text-sm font-600 text-foreground">
+                        <label className="mb-0.5 block text-xs font-600 text-foreground">
                           {t('settlements.descriptionLabel', { ns: 'portal' })} *
                         </label>
                         <input
                           type="text"
-                          className="input-base min-h-11 text-sm"
+                          className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
                           value={transaction.description}
                           onChange={(event) => updateTransaction(transaction.id, (current) => ({
                             ...current,
@@ -1302,12 +1301,12 @@ export default function DocumentTransactionReviewModal({
                       </div>
 
                       <div>
-                        <label className="mb-1 block text-sm font-600 text-foreground">
+                        <label className="mb-0.5 block text-xs font-600 text-foreground">
                           {t('transactions.notes', { ns: 'portal', defaultValue: 'Notes' })}
                         </label>
                         <textarea
-                          rows={3}
-                          className="input-base resize-none text-sm"
+                          rows={2}
+                          className="input-base min-h-[3.75rem] w-full min-w-0 resize-none px-3 py-2 text-sm"
                           value={transaction.notes}
                           onChange={(event) => updateTransaction(transaction.id, (current) => ({
                             ...current,
@@ -1316,18 +1315,27 @@ export default function DocumentTransactionReviewModal({
                         />
                       </div>
 
-                      <section className="rounded-2xl border border-blue-200/70 bg-white/55 p-3.5 sm:p-4">
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                          <h4 className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                            {t('transactions.documentReview.lineItemsTitle', {
-                              ns: 'portal',
-                              defaultValue: 'Detected line items',
-                            })}
-                          </h4>
+                      <section className="rounded-2xl border border-blue-200/70 bg-white/55 p-3 sm:p-3.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                              {t('transactions.documentReview.lineItemsTitle', {
+                                ns: 'portal',
+                                defaultValue: 'Detected line items',
+                              })}
+                            </h4>
+                            <span className="rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-700 text-muted-foreground ring-1 ring-blue-100">
+                              {t('transactions.documentReview.itemCountLabel', {
+                                ns: 'portal',
+                                count: transaction.lineItems.length,
+                                defaultValue: '{{count}} items',
+                              })}
+                            </span>
+                          </div>
                           <button
                             type="button"
                             onClick={() => addLineItem(transaction.id)}
-                            className="btn-secondary min-h-11 px-3 text-xs"
+                            className="btn-secondary min-h-10 px-3 text-xs"
                           >
                             <Plus size={14} />
                             {t('transactions.documentReview.addItem', {
@@ -1345,24 +1353,27 @@ export default function DocumentTransactionReviewModal({
                             })}
                           </p>
                         ) : (
-                          <div className="mt-3 space-y-3">
-                            {transaction.lineItems.map((item, itemIndex) => {
-                              const itemTotal = getTransactionDocumentLineItemTotal(item);
+                          <>
+                            <div className="mt-2 hidden 2xl:block">
+                              <div className="grid items-end gap-2 border-b border-slate-200/70 px-2.5 py-2 text-[11px] font-700 uppercase tracking-wide text-muted-foreground 2xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
+                                <div>{t('transactions.documentReview.itemName', { ns: 'portal', defaultValue: 'Item name' })}</div>
+                                <div>{t('transactions.documentReview.quantity', { ns: 'portal', defaultValue: 'Quantity' })}</div>
+                                <div>{t('transactions.documentReview.unitPrice', { ns: 'portal', defaultValue: 'Unit price' })}</div>
+                                <div>{t('transactions.documentReview.itemCategory', { ns: 'portal', defaultValue: 'Item category' })}</div>
+                                <div>{t('transactions.documentReview.itemType', { ns: 'portal', defaultValue: 'Item type' })}</div>
+                                <div>{t('transactions.documentReview.computedLineTotal', { ns: 'portal', defaultValue: 'Calculated line total' })}</div>
+                                <div>{t('transactions.documentReview.action', { ns: 'portal', defaultValue: 'Action' })}</div>
+                              </div>
+                              <div className="divide-y divide-slate-200/60">
+                                {transaction.lineItems.map((item, itemIndex) => {
+                                  const itemTotal = getTransactionDocumentLineItemTotal(item);
 
-                              return (
-                                <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-2xl border border-slate-200 bg-white p-3 sm:p-3.5">
-                                  <div className="space-y-3">
-                                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_92px_132px_140px] md:items-end">
+                                  return (
+                                    <div key={`${transaction.id}-line-${itemIndex}`} className="grid items-end gap-2 px-2.5 py-2 2xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
                                       <div className="min-w-0">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.itemName', {
-                                          ns: 'portal',
-                                          defaultValue: 'Item name',
-                                        })}
-                                        </label>
                                         <input
                                           type="text"
-                                          className="input-base min-h-11 w-full min-w-0 text-[13px]"
+                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-[13px]"
                                           value={item.name}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
@@ -1370,18 +1381,12 @@ export default function DocumentTransactionReviewModal({
                                           }))}
                                         />
                                       </div>
-                                      <div className="min-w-0 md:w-[92px]">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.quantity', {
-                                          ns: 'portal',
-                                          defaultValue: 'Quantity',
-                                        })}
-                                        </label>
+                                      <div className="min-w-0">
                                         <input
                                           type="number"
                                           step="0.001"
                                           min="0"
-                                          className="input-base min-h-11 w-full min-w-0 text-[13px]"
+                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-[13px]"
                                           value={formatOptionalNumberInput(item.quantity)}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
@@ -1389,18 +1394,12 @@ export default function DocumentTransactionReviewModal({
                                           }))}
                                         />
                                       </div>
-                                      <div className="min-w-0 md:w-[132px]">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.unitPrice', {
-                                          ns: 'portal',
-                                          defaultValue: 'Unit price',
-                                        })}
-                                        </label>
+                                      <div className="min-w-0">
                                         <input
                                           type="number"
                                           step="0.01"
                                           min="0"
-                                          className="input-base min-h-11 w-full min-w-0 text-[13px]"
+                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-[13px]"
                                           value={formatOptionalNumberInput(item.unitPrice)}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
@@ -1408,37 +1407,9 @@ export default function DocumentTransactionReviewModal({
                                           }))}
                                         />
                                       </div>
-                                      <div className="min-w-0 md:w-[140px]">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                          {t('transactions.documentReview.lineTotal', {
-                                            ns: 'portal',
-                                            defaultValue: 'Line total',
-                                          })}
-                                        </label>
-                                        <input
-                                          type="number"
-                                          step="0.01"
-                                          min="0"
-                                          className="input-base min-h-11 w-full min-w-0 text-[13px]"
-                                          value={formatOptionalNumberInput(item.total)}
-                                          onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
-                                            ...current,
-                                            total: parseOptionalNumber(event.target.value),
-                                          }))}
-                                        />
-                                      </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(150px,1fr)_132px] lg:items-end">
                                       <div className="min-w-0">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.itemCategory', {
-                                          ns: 'portal',
-                                          defaultValue: 'Item category',
-                                        })}
-                                        </label>
                                         <select
-                                          className="input-base min-h-11 w-full min-w-0 pr-10 text-[13px]"
+                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 pr-9 text-[13px]"
                                           value={item.categoryId || ''}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
@@ -1453,15 +1424,9 @@ export default function DocumentTransactionReviewModal({
                                           ))}
                                         </select>
                                       </div>
-                                      <div className="min-w-0 lg:w-[132px]">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.itemType', {
-                                          ns: 'portal',
-                                          defaultValue: 'Item type',
-                                        })}
-                                        </label>
+                                      <div className="min-w-0">
                                         <select
-                                          className="input-base min-h-11 w-full min-w-0 pr-10 text-[13px]"
+                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 pr-9 text-[13px]"
                                           value={item.itemKind || 'regular'}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
@@ -1478,17 +1443,8 @@ export default function DocumentTransactionReviewModal({
                                           ))}
                                         </select>
                                       </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                                      <div className="min-w-0 sm:flex-1">
-                                        <label className="mb-1 block whitespace-nowrap text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                                        {t('transactions.documentReview.computedLineTotal', {
-                                          ns: 'portal',
-                                          defaultValue: 'Calculated line total',
-                                        })}
-                                        </label>
-                                        <div className="flex min-h-11 items-center rounded-2xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-600 text-foreground whitespace-nowrap">
+                                      <div className="min-w-0">
+                                        <div className="flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-[13px] font-600 text-foreground">
                                           {itemTotal > 0
                                             ? formatCurrencyText(itemTotal, {
                                                 currencyCode: transaction.currency || undefined,
@@ -1501,25 +1457,168 @@ export default function DocumentTransactionReviewModal({
                                       <div className="flex items-end justify-end">
                                         <button
                                           type="button"
+                                          aria-label={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove' })}
                                           onClick={() => removeLineItem(transaction.id, itemIndex)}
-                                          className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-2xl border border-rose-200 bg-rose-50 px-3 text-xs font-600 text-rose-700 transition-colors hover:bg-rose-100 md:w-auto"
+                                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700"
                                         >
                                           <Trash2 size={14} />
-                                          {t('transactions.documentReview.removeItem', {
-                                            ns: 'portal',
-                                            defaultValue: 'Remove',
-                                          })}
                                         </button>
                                       </div>
                                     </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="mt-2 space-y-1.5 2xl:hidden">
+                              {transaction.lineItems.map((item, itemIndex) => {
+                                const itemTotal = getTransactionDocumentLineItemTotal(item);
+
+                                return (
+                                  <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-2xl border border-slate-200 bg-white p-2">
+                                    <div className="space-y-1.5">
+                                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,0.7fr))]">
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.itemName', { ns: 'portal', defaultValue: 'Item name' })}
+                                          </label>
+                                          <input
+                                            type="text"
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            value={item.name}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              name: event.target.value,
+                                            }))}
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.quantity', { ns: 'portal', defaultValue: 'Quantity' })}
+                                          </label>
+                                          <input
+                                            type="number"
+                                            step="0.001"
+                                            min="0"
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            value={formatOptionalNumberInput(item.quantity)}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              quantity: parseOptionalNumber(event.target.value),
+                                            }))}
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.unitPrice', { ns: 'portal', defaultValue: 'Unit price' })}
+                                          </label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            value={formatOptionalNumberInput(item.unitPrice)}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              unitPrice: parseOptionalNumber(event.target.value),
+                                            }))}
+                                          />
+                                        </div>
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.lineTotal', { ns: 'portal', defaultValue: 'Line total' })}
+                                          </label>
+                                          <input
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            value={formatOptionalNumberInput(item.total)}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              total: parseOptionalNumber(event.target.value),
+                                            }))}
+                                          />
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto]">
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.itemCategory', { ns: 'portal', defaultValue: 'Item category' })}
+                                          </label>
+                                          <select
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 pr-9 text-xs"
+                                            value={item.categoryId || ''}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              categoryId: event.target.value || null,
+                                            }))}
+                                          >
+                                            <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
+                                            {lineItemCategories.map((category) => (
+                                              <option key={category.id} value={category.id}>
+                                                {category.name}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.itemType', { ns: 'portal', defaultValue: 'Item type' })}
+                                          </label>
+                                          <select
+                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 pr-9 text-xs"
+                                            value={item.itemKind || 'regular'}
+                                            onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
+                                              ...current,
+                                              itemKind: event.target.value as TransactionDocumentItemKind,
+                                            }))}
+                                          >
+                                            {TRANSACTION_DOCUMENT_ITEM_KINDS.map((itemKind) => (
+                                              <option key={`${transaction.id}-${itemIndex}-${itemKind}`} value={itemKind}>
+                                                {t(`transactions.documentReview.itemKinds.${itemKind}` as const, {
+                                                  ns: 'portal',
+                                                  defaultValue: itemKind,
+                                                })}
+                                              </option>
+                                            ))}
+                                          </select>
+                                        </div>
+                                        <div className="min-w-0">
+                                          <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
+                                            {t('transactions.documentReview.computedLineTotal', { ns: 'portal', defaultValue: 'Calculated line total' })}
+                                          </label>
+                                          <div className="flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-600 text-foreground">
+                                            {itemTotal > 0
+                                              ? formatCurrencyText(itemTotal, {
+                                                  currencyCode: transaction.currency || undefined,
+                                                  fallbackCurrencyCode: transaction.currency || 'USD',
+                                                  textOnly: true,
+                                                })
+                                              : '—'}
+                                          </div>
+                                        </div>
+                                        <div className="flex items-end justify-end">
+                                          <button
+                                            type="button"
+                                            onClick={() => removeLineItem(transaction.id, itemIndex)}
+                                            className="inline-flex h-9 min-h-9 items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 text-xs font-600 text-rose-700"
+                                          >
+                                            <Trash2 size={14} />
+                                            {t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove' })}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                                );
+                              })}
+                            </div>
+                          </>
                         )}
 
-                        <section className="rounded-2xl border border-amber-200/80 bg-[#FFF9F0] p-3.5 sm:p-4">
+                        <section className="rounded-2xl border border-amber-200/80 bg-[#FFF9F0] p-3 sm:p-3.5">
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <h4 className="text-xs font-700 uppercase tracking-wide text-amber-900/70">
                               {t('transactions.documentReview.totalsTitle', {
@@ -1545,7 +1644,8 @@ export default function DocumentTransactionReviewModal({
                               </span>
                             ) : null}
                           </div>
-                          <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-3">
+                          <div className="mt-2.5 rounded-2xl border border-amber-200/70 bg-white/60 p-3">
+                          <div className="grid gap-3 md:grid-cols-3 2xl:grid-cols-6">
                             {[
                               ['subtotal', totalSummary.subtotal],
                               ['tax', totalSummary.tax],
@@ -1554,18 +1654,14 @@ export default function DocumentTransactionReviewModal({
                               ['calculatedTotal', totalSummary.calculatedTotal],
                               ['receiptTotal', totalSummary.receiptTotal],
                             ].map(([key, value]) => (
-                              <div key={`${transaction.id}-${key}`} className={`rounded-2xl border px-3 py-3 ${
-                                key === 'calculatedTotal' || key === 'receiptTotal'
-                                  ? 'border-amber-300 bg-white'
-                                  : 'border-amber-200/70 bg-white/70'
-                              }`}>
-                                <p className="text-xs font-700 uppercase tracking-wide text-amber-900/60">
+                              <div key={`${transaction.id}-${key}`} className="min-w-0">
+                                <p className="text-[11px] font-700 uppercase tracking-wide text-amber-900/60">
                                   {t(`transactions.documentReview.${key}` as const, {
                                     ns: 'portal',
                                     defaultValue: key,
                                   })}
                                 </p>
-                                <p className={`mt-1 font-700 text-foreground ${
+                                <p className={`mt-0.5 break-words font-800 text-foreground ${
                                   key === 'calculatedTotal' || key === 'receiptTotal' ? 'text-base' : 'text-sm'
                                 }`}>
                                   {formatCurrencyText(value as number, {
@@ -1577,9 +1673,10 @@ export default function DocumentTransactionReviewModal({
                               </div>
                             ))}
                           </div>
+                          </div>
 
                           {totalSummary.hasMismatch ? (
-                            <div className={`mt-3 rounded-2xl border p-3 text-sm ${
+                            <div className={`mt-2.5 rounded-2xl border p-3 text-sm ${
                               totalSummary.requiresConfirmation
                                 ? 'border-amber-300 bg-amber-100 text-amber-900'
                                 : totalSummary.hasOnlyRoundingMismatch
@@ -1630,7 +1727,7 @@ export default function DocumentTransactionReviewModal({
           )}
         </div>
 
-        <div className="safe-area-bottom border-t border-border/80 bg-white/95 px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/80 sm:px-5">
+        <div className="safe-area-bottom sticky bottom-0 z-10 shrink-0 border-t border-border/80 bg-white px-4 py-3 backdrop-blur supports-[backdrop-filter]:bg-white/95 sm:px-5 lg:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className={`text-sm ${
               extractError
@@ -1646,7 +1743,7 @@ export default function DocumentTransactionReviewModal({
               type="button"
               onClick={onClose}
               disabled={isSaving || isExtracting}
-              className="btn-secondary min-h-11 w-full sm:w-auto"
+              className="btn-secondary min-h-10 w-full sm:w-auto"
             >
               {t('actions.cancel', { ns: 'common' })}
             </button>
@@ -1655,7 +1752,7 @@ export default function DocumentTransactionReviewModal({
                 <button
                   type="button"
                   onClick={handleChooseAnotherFile}
-                  className="btn-primary min-h-11 w-full justify-center sm:w-auto"
+                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
                 >
                   {t('transactions.documentReview.chooseAnotherFile', {
                     ns: 'portal',
@@ -1667,7 +1764,7 @@ export default function DocumentTransactionReviewModal({
                   type="button"
                   onClick={() => setRetryKey((current) => current + 1)}
                   disabled={!canRetry}
-                  className="btn-primary min-h-11 w-full justify-center sm:w-auto"
+                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
                 >
                   {t('transactions.documentReview.tryAgain', {
                     ns: 'portal',
@@ -1675,7 +1772,7 @@ export default function DocumentTransactionReviewModal({
                   })}
                 </button>
               ) : (extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included') ? (
-                <Link href="/settings/subscription" className="btn-primary min-h-11 w-full justify-center sm:w-auto">
+                <Link href="/settings/subscription" className="btn-primary min-h-10 w-full justify-center sm:w-auto">
                   {t('subscriptionBilling.upgrade', {
                     ns: 'portal',
                     defaultValue: 'Upgrade',
@@ -1687,7 +1784,7 @@ export default function DocumentTransactionReviewModal({
                 type="button"
                 onClick={handleSave}
                 disabled={!canSave}
-                className="btn-primary min-h-11 w-full justify-center sm:w-auto"
+                className="btn-primary min-h-10 w-full justify-center sm:w-auto"
               >
                 {isSaving ? (
                   <>
