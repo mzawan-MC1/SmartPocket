@@ -7,7 +7,6 @@ import { ArrowLeft, Loader2, Lock, MessageSquare, Paperclip, RotateCcw, Trash2, 
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
-import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import SupportAttachmentUploader, { type PendingSupportFile } from '@/components/support/SupportAttachmentUploader';
 import { SupportPriorityBadge, SupportStatusBadge } from '@/components/support/SupportBadges';
@@ -70,17 +69,24 @@ export default function SupportTicketDetailPage() {
     (value: string) => t(`support.values.roles.${value}`, { defaultValue: toTitleLabel(value) }),
     [t]
   );
+  const getMessageRoleBadgeLabel = React.useCallback(
+    (value: string) =>
+      value === 'admin'
+        ? t('support.detail.roleSupport', { defaultValue: 'Support' })
+        : t('support.detail.roleCustomer', { defaultValue: 'Customer' }),
+    [t]
+  );
   const getCategoryLabel = React.useCallback(
     (value: string) => t(`support.values.categories.${value}`, { defaultValue: toTitleLabel(value) }),
     [t]
   );
   const formatDisplayValue = React.useCallback(
-    (value: string | null | undefined) => value || t('support.detail.emptyValue'),
-    [t]
+    (value: string | null | undefined) => value || '—',
+    []
   );
   const formatDisplayDate = React.useCallback(
-    (value: string | null | undefined) => (value ? formatSupportDateTime(value) : t('support.detail.emptyValue')),
-    [t]
+    (value: string | null | undefined) => (value ? formatSupportDateTime(value) : '—'),
+    []
   );
 
   const loadTicket = React.useCallback(async () => {
@@ -207,30 +213,53 @@ export default function SupportTicketDetailPage() {
   };
 
   const canReopen = ticket ? canReopenTicket(ticket.resolved_at, ticket.closed_at) : false;
+  const orderedEvents = React.useMemo(
+    () =>
+      ticket?.events
+        ? [...ticket.events].sort(
+            (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+          )
+        : [],
+    [ticket?.events]
+  );
 
   return (
     <AppLayout activeRoute="/support">
-      <div className="page-section page-shell-readable">
+      <div className="page-section page-shell-readable space-y-5">
         {loading || !ticket ? (
           <div className="flex min-h-[320px] items-center justify-center">
             <Loader2 size={24} className="animate-spin text-accent" />
           </div>
         ) : (
           <>
-            <PageHeader
-              title={ticket.subject}
-              description={t('support.detail.headerDescription', {
-                ticketNumber: ticket.ticket_number,
-                createdAt: formatSupportDateTime(ticket.created_at),
-              })}
-              badge={(
-                <Link href="/support" className="btn-secondary">
-                  <ArrowLeft size={16} />
-                  {t('actions.back', { ns: 'common' })}
-                </Link>
-              )}
-              actions={
-                <div className="flex flex-wrap items-center gap-2">
+            <section className="rounded-3xl border border-border bg-card px-5 py-4 shadow-card-sm sm:px-6">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <Link href="/support" className="btn-secondary w-fit">
+                    <ArrowLeft size={16} />
+                    {t('actions.back', { ns: 'common' })}
+                  </Link>
+                  <div className="space-y-2">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 space-y-2">
+                        <h1 className="text-2xl font-800 tracking-tight text-foreground sm:text-3xl">
+                          {ticket.subject}
+                        </h1>
+                        <p className="text-sm text-muted-foreground">
+                          {t('support.detail.headerDescription', {
+                            ticketNumber: ticket.ticket_number,
+                            createdAt: formatSupportDateTime(ticket.created_at),
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                        <SupportStatusBadge status={ticket.status} namespace="portal" />
+                        <SupportPriorityBadge priority={ticket.priority} namespace="portal" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
                   {ticket.status === 'resolved' ? (
                     <button type="button" className="btn-secondary" onClick={() => setPendingAction('close')}>
                       <XCircle size={16} />
@@ -244,32 +273,55 @@ export default function SupportTicketDetailPage() {
                     </button>
                   ) : null}
                 </div>
-              }
-            />
+              </div>
+            </section>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_360px]">
-              <div className="space-y-6">
+            <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,2.2fr)_minmax(300px,0.95fr)]">
+              <div className="space-y-5">
                 <SectionCard
                   title={t('support.detail.conversationTitle')}
                   description={t('support.detail.conversationDescription')}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     {ticket.messages.map((message) => (
-                      <div key={message.id} className={`rounded-2xl border p-4 ${message.sender_role === 'admin' ? 'border-accent/20 bg-accent/5' : 'border-border bg-card'}`}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="text-sm font-700 text-foreground">
-                            {message.sender_name} <span className="font-500 text-muted-foreground">({getRoleLabel(message.sender_role)})</span>
-                          </p>
+                      <article
+                        key={message.id}
+                        className={`rounded-2xl border px-4 py-3.5 shadow-card-sm ${
+                          message.sender_role === 'admin'
+                            ? 'border-accent/15 bg-accent/5'
+                            : 'border-border bg-background'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-700 text-foreground">{message.sender_name}</p>
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-700 uppercase tracking-[0.14em] ${
+                                  message.sender_role === 'admin'
+                                    ? 'border-accent/20 bg-accent/10 text-accent'
+                                    : 'border-border bg-muted/70 text-muted-foreground'
+                                }`}
+                              >
+                                {getMessageRoleBadgeLabel(message.sender_role)}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {getRoleLabel(message.sender_role)}
+                            </p>
+                          </div>
                           <p className="text-xs text-muted-foreground">{formatSupportDateTime(message.created_at)}</p>
                         </div>
-                        <p className="mt-3 whitespace-pre-wrap text-sm text-foreground">{message.body}</p>
+                        <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+                          {message.body}
+                        </p>
                         {message.attachments.length > 0 ? (
-                          <div className="mt-4 flex flex-wrap gap-2">
+                          <div className="mt-3 flex flex-wrap gap-2">
                             {message.attachments.map((attachment) => (
                               <button
                                 key={attachment.id}
                                 type="button"
-                                className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+                                className="inline-flex h-8 items-center gap-2 rounded-full border border-border bg-muted/45 px-3 text-xs font-600 text-foreground transition-colors hover:bg-muted"
                                 onClick={() => void openAttachment(attachment.id)}
                               >
                                 <Paperclip size={12} />
@@ -281,7 +333,7 @@ export default function SupportTicketDetailPage() {
                                   <button
                                     key={`${attachment.id}-delete`}
                                     type="button"
-                                    className="inline-flex items-center gap-2 rounded-full border border-negative/20 bg-negative-soft/40 px-3 py-1.5 text-xs font-600 text-negative transition-colors hover:bg-negative-soft/60"
+                                    className="inline-flex h-8 items-center gap-2 rounded-full border border-negative/20 bg-negative-soft/40 px-3 text-xs font-600 text-negative transition-colors hover:bg-negative-soft/60"
                                     onClick={() => setAttachmentToDelete({ id: attachment.id, name: attachment.file_name })}
                                   >
                                     <Trash2 size={12} />
@@ -291,7 +343,7 @@ export default function SupportTicketDetailPage() {
                               : null}
                           </div>
                         ) : null}
-                      </div>
+                      </article>
                     ))}
                   </div>
                 </SectionCard>
@@ -300,20 +352,22 @@ export default function SupportTicketDetailPage() {
                   title={t('support.detail.replyTitle')}
                   description={t('support.detail.replyDescription')}
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     <textarea
-                      className="input-base min-h-[160px] resize-y"
+                      className="input-base min-h-[132px] resize-y"
                       value={replyMessage}
                       onChange={(event) => setReplyMessage(event.target.value)}
                       placeholder={t('support.detail.replyPlaceholder')}
                     />
-                    <SupportAttachmentUploader
-                      files={replyFiles}
-                      onChange={setReplyFiles}
-                      uploadProgress={uploadProgress}
-                      disabled={sending || ['closed'].includes(ticket.status)}
-                    />
-                    <div className="flex justify-end">
+                    <div className="rounded-2xl border border-border/70 bg-muted/15 p-3">
+                      <SupportAttachmentUploader
+                        files={replyFiles}
+                        onChange={setReplyFiles}
+                        uploadProgress={uploadProgress}
+                        disabled={sending || ['closed'].includes(ticket.status)}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                       <button
                         type="button"
                         className="btn-primary"
@@ -337,35 +391,40 @@ export default function SupportTicketDetailPage() {
                 </SectionCard>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-5 xl:sticky xl:top-6">
                 <SectionCard
                   title={t('support.detail.summaryTitle')}
                   description={t('support.detail.summaryDescription')}
                 >
-                  <div className="space-y-3 text-sm">
+                  <div className="space-y-4 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <SupportStatusBadge status={ticket.status} namespace="portal" />
                       <SupportPriorityBadge priority={ticket.priority} namespace="portal" />
                     </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('support.detail.category')}</p>
-                      <p className="mt-1 text-foreground">{getCategoryLabel(ticket.category)}</p>
+                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,120px)_1fr]">
+                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                        {t('support.detail.category')}
+                      </p>
+                      <p className="text-sm text-foreground">{getCategoryLabel(ticket.category)}</p>
+                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                        {t('support.detail.relatedPage')}
+                      </p>
+                      <p className="truncate text-sm text-foreground">{formatDisplayValue(ticket.related_path)}</p>
                     </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('support.detail.relatedPage')}</p>
-                      <p className="mt-1 text-foreground">{formatDisplayValue(ticket.related_path)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('support.detail.errorCode')}</p>
-                      <p className="mt-1 text-foreground">{formatDisplayValue(ticket.error_code)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('support.detail.firstResponse')}</p>
-                      <p className="mt-1 text-foreground">{formatDisplayDate(ticket.first_response_at)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('support.detail.resolved')}</p>
-                      <p className="mt-1 text-foreground">{formatDisplayDate(ticket.resolved_at)}</p>
+                    <div className="border-t border-border/70" />
+                    <div className="grid gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,120px)_1fr]">
+                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                        {t('support.detail.errorCode')}
+                      </p>
+                      <p className="text-sm text-foreground">{formatDisplayValue(ticket.error_code)}</p>
+                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                        {t('support.detail.firstResponse')}
+                      </p>
+                      <p className="text-sm text-foreground">{formatDisplayDate(ticket.first_response_at)}</p>
+                      <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                        {t('support.detail.resolved')}
+                      </p>
+                      <p className="text-sm text-foreground">{formatDisplayDate(ticket.resolved_at)}</p>
                     </div>
                   </div>
                 </SectionCard>
@@ -374,11 +433,19 @@ export default function SupportTicketDetailPage() {
                   title={t('support.detail.timelineTitle')}
                   description={t('support.detail.timelineDescription')}
                 >
-                  <div className="space-y-3">
-                    {ticket.events.map((event) => (
-                      <div key={event.id} className="rounded-2xl border border-border bg-card p-3">
-                        <p className="text-sm font-600 text-foreground">{event.description}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{formatSupportDateTime(event.created_at)}</p>
+                  <div className="space-y-0">
+                    {orderedEvents.map((event, index) => (
+                      <div key={event.id} className="relative ps-6 pb-4 last:pb-0">
+                        {index < orderedEvents.length - 1 ? (
+                          <span className="absolute left-[0.44rem] top-4 h-[calc(100%-0.25rem)] w-px bg-border" />
+                        ) : null}
+                        <span className="absolute left-0 top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-accent/20 bg-card">
+                          <span className="h-1.5 w-1.5 rounded-full bg-accent/70" />
+                        </span>
+                        <div className="space-y-1">
+                          <p className="text-sm font-600 leading-5 text-foreground">{event.description}</p>
+                          <p className="text-xs text-muted-foreground">{formatSupportDateTime(event.created_at)}</p>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -388,9 +455,9 @@ export default function SupportTicketDetailPage() {
                   title={t('support.detail.securityTitle')}
                   description={t('support.detail.securityDescription')}
                 >
-                  <div className="flex items-start gap-3 rounded-2xl border border-info/20 bg-info-soft/50 p-4 text-sm text-foreground">
-                    <Lock size={18} className="mt-0.5 text-info" />
-                    <p>{t('support.detail.securityBody')}</p>
+                  <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3 text-sm text-foreground">
+                    <Lock size={16} className="mt-0.5 shrink-0 text-info" />
+                    <p className="leading-6">{t('support.detail.securityBody')}</p>
                   </div>
                 </SectionCard>
               </div>
