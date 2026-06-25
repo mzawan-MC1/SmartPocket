@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Download, Loader2, Mail, MessageSquare, Paperclip, Shield, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2, Mail, MessageSquare, Paperclip, Shield, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
@@ -69,7 +70,7 @@ type TicketDetail = {
 
 export default function AdminSupportTicketDetailPage() {
   const params = useParams<{ ticketId: string }>();
-  const { t } = useTranslation('admin');
+  const { t } = useTranslation(['admin', 'common']);
   const [ticket, setTicket] = React.useState<TicketDetail | null>(null);
   const [adminUsers, setAdminUsers] = React.useState<AdminUserOption[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -318,6 +319,12 @@ export default function AdminSupportTicketDetailPage() {
           <PageHeader
             title={ticket.subject}
             description={`${ticket.ticket_number} • ${ticket.user_name_snapshot} • ${ticket.user_email_snapshot}`}
+            badge={(
+              <Link href="/admin/support/tickets" className="btn-secondary">
+                <ArrowLeft size={16} />
+                {t('actions.back', { ns: 'common' })}
+              </Link>
+            )}
             actions={
               <div className="flex flex-wrap items-center gap-2">
                 <SupportPriorityBadge priority={ticket.priority} namespace="admin" />

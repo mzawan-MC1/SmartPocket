@@ -1,8 +1,9 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, Lock, MessageSquare, Paperclip, RotateCcw, Trash2, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, Lock, MessageSquare, Paperclip, RotateCcw, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
@@ -54,7 +55,7 @@ export default function SupportTicketDetailPage() {
   const params = useParams<{ ticketId: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { t } = useTranslation('portal');
+  const { t } = useTranslation(['portal', 'common']);
   const [ticket, setTicket] = React.useState<TicketDetail | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [replyMessage, setReplyMessage] = React.useState('');
@@ -222,6 +223,12 @@ export default function SupportTicketDetailPage() {
                 ticketNumber: ticket.ticket_number,
                 createdAt: formatSupportDateTime(ticket.created_at),
               })}
+              badge={(
+                <Link href="/support" className="btn-secondary">
+                  <ArrowLeft size={16} />
+                  {t('actions.back', { ns: 'common' })}
+                </Link>
+              )}
               actions={
                 <div className="flex flex-wrap items-center gap-2">
                   {ticket.status === 'resolved' ? (

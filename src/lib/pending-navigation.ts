@@ -36,7 +36,9 @@ export function usePendingNavigation(activeRoute?: string) {
       return false;
     }
 
-    if (matchesRoute(pathname, href) || matchesRoute(resolvedPath, href)) {
+    // Keep parent routes visually active on child pages, but still allow clicks
+    // to navigate back to the explicit parent route.
+    if (pathname === href) {
       setPendingPath(null);
       event?.preventDefault();
       return false;
