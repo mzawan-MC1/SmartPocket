@@ -9,7 +9,6 @@ import type {
   SmartEntryPurpose,
   SmartEntryPurposeOption,
   SmartEntryReview,
-  SmartEntrySubscriptionReview,
   SubscriptionBillingFrequency,
   SuggestedAccount,
 } from '@/lib/ai-types';
@@ -204,7 +203,9 @@ function isSubscriptionIntent(intent: string | undefined): intent is PersonalSub
     || intent === 'personal_subscription_cancel';
 }
 
-function isSubscriptionAction(action: FinancialAction) {
+function isSubscriptionAction(
+  action: FinancialAction
+): action is FinancialAction & { actionType: PersonalSubscriptionIntent } {
   return isSubscriptionIntent(action.actionType);
 }
 
@@ -472,7 +473,8 @@ function buildSubscriptionReview(args: {
   if (!nextBillingDate && (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')) {
     const nextStartDate = startDate || todayIso;
     if (billingFrequency) {
-      nextBillingDate = calculateNextPersonalSubscriptionBillingDate(nextStartDate, billingFrequency, action.billingInterval);
+      nextBillingDate =
+        calculateNextPersonalSubscriptionBillingDate(nextStartDate, billingFrequency, action.billingInterval) || undefined;
     }
   }
 
@@ -523,32 +525,33 @@ function buildSubscriptionReview(args: {
       subscriptionOptions: matchingSubscriptions.options,
     },
   };
+  const subscription = review.subscription;
 
-  if (!review.subscription.subscriptionName?.trim()) {
+  if (!subscription?.subscriptionName?.trim()) {
     review.missing.push('subscription');
   }
   if (
     (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
-    && typeof review.subscription.amount !== 'number'
+    && typeof subscription?.amount !== 'number'
   ) {
     review.missing.push('amount');
   }
   if (
     (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
-    && !review.subscription.billingFrequency
+    && !subscription?.billingFrequency
   ) {
     review.missing.push('billingFrequency');
   }
   if (
     (action.actionType === 'personal_subscription_create' || action.actionType === 'personal_subscription_payment')
-    && !review.subscription.currencyCode
+    && !subscription?.currencyCode
   ) {
     review.missing.push('currency');
   }
   if (requiresSubscriptionSelection) {
     review.missing.push('subscription');
   }
-  if (action.actionType === 'personal_subscription_cancel' && !review.subscription.cancelEffectiveDate) {
+  if (action.actionType === 'personal_subscription_cancel' && !subscription?.cancelEffectiveDate) {
     review.missing.push('cancelEffectiveDate');
   }
   if (review.account?.required && !review.account.accountId && !review.account.name) {
@@ -1341,6 +1344,7 @@ export function applySmartEntryReviewToInstruction(
   if (!review) return instruction;
 
   if (review.subscription) {
+    const subscription = review.subscription;
     const baseActions = instruction.actions.filter(
       (action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person'
     );
@@ -1351,36 +1355,36 @@ export function applySmartEntryReviewToInstruction(
       }
 
       const currency = sanitizeCurrency(
-        review.subscription?.currencyCode || review.currency || action.currencyCode || action.currency
+        subscription.currencyCode || review.currency || action.currencyCode || action.currency
       );
 
       let nextAction: FinancialAction = {
         ...action,
-        subscriptionId: review.subscription.subscriptionId,
-        subscriptionName: review.subscription.subscriptionName,
-        provider: review.subscription.provider,
-        amount: typeof review.subscription.amount === 'number' ? review.subscription.amount : action.amount,
+        subscriptionId: subscription.subscriptionId,
+        subscriptionName: subscription.subscriptionName,
+        provider: subscription.provider,
+        amount: typeof subscription.amount === 'number' ? subscription.amount : action.amount,
         currency,
         currencyCode: currency,
-        billingFrequency: review.subscription.billingFrequency,
-        billingInterval: review.subscription.billingInterval,
-        startDate: review.subscription.startDate,
-        nextBillingDate: review.subscription.nextBillingDate,
-        trialEndDate: review.subscription.trialEndDate,
-        contractEndDate: review.subscription.contractEndDate,
-        paymentMethod: review.subscription.paymentMethod,
-        financialAccountHint: review.subscription.financialAccountHint,
-        categoryHint: review.subscription.categoryHint,
-        autoRenew: review.subscription.autoRenew,
-        reminderDaysBefore: review.subscription.reminderDaysBefore,
-        cancellationNoticeDays: review.subscription.cancellationNoticeDays,
-        cancellationDeadline: review.subscription.cancellationDeadline,
-        cancelEffectiveDate: review.subscription.cancelEffectiveDate,
-        warningThresholdAmount: review.subscription.warningThresholdAmount,
-        websiteUrl: review.subscription.websiteUrl,
-        notes: review.subscription.notes || action.notes,
-        paymentHappenedNow: review.subscription.paymentHappenedNow,
-        createLinkedRecurringExpense: review.subscription.createLinkedRecurringExpense,
+        billingFrequency: subscription.billingFrequency,
+        billingInterval: subscription.billingInterval,
+        startDate: subscription.startDate,
+        nextBillingDate: subscription.nextBillingDate,
+        trialEndDate: subscription.trialEndDate,
+        contractEndDate: subscription.contractEndDate,
+        paymentMethod: subscription.paymentMethod,
+        financialAccountHint: subscription.financialAccountHint,
+        categoryHint: subscription.categoryHint,
+        autoRenew: subscription.autoRenew,
+        reminderDaysBefore: subscription.reminderDaysBefore,
+        cancellationNoticeDays: subscription.cancellationNoticeDays,
+        cancellationDeadline: subscription.cancellationDeadline,
+        cancelEffectiveDate: subscription.cancelEffectiveDate,
+        warningThresholdAmount: subscription.warningThresholdAmount,
+        websiteUrl: subscription.websiteUrl,
+        notes: subscription.notes || action.notes,
+        paymentHappenedNow: subscription.paymentHappenedNow,
+        createLinkedRecurringExpense: subscription.createLinkedRecurringExpense,
       };
 
       if (review.account) {

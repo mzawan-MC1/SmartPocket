@@ -196,6 +196,10 @@ function isSubscriptionReview(review: SmartEntryReview | null | undefined): revi
   return !!review?.subscription;
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function getSmartEntrySuccessEntities(result: unknown): SmartPocketDataEntity[] {
   const entities = new Set<SmartPocketDataEntity>([
     'dashboard',
@@ -205,11 +209,10 @@ function getSmartEntrySuccessEntities(result: unknown): SmartPocketDataEntity[] 
   ]);
 
   const executedActions = isObject(result) && Array.isArray(result.executedActions)
-    ? result.executedActions
+    ? result.executedActions.filter(isObject)
     : [];
 
   const hasSubscriptionChange = executedActions.some((action) => {
-    if (!isObject(action)) return false;
     const actionType = typeof action.actionType === 'string' ? action.actionType : '';
     const recordTable = typeof action.recordTable === 'string' ? action.recordTable : '';
     return actionType.startsWith('personal_subscription_') || recordTable === 'personal_subscriptions';
@@ -695,8 +698,6 @@ function isReceiptInsightQuestion(value: string) {
     if (!session?.access_token) throw new Error(t('errors.sessionExpired', { ns: 'common' }));
     return session.access_token;
   };
-
-  const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
   const getErrorText = (value: unknown) => {
     if (typeof value === 'string') return value;
@@ -3027,7 +3028,7 @@ function isReceiptInsightQuestion(value: string) {
                       <option value="__create__">
                         {t('smartEntryModal.createAccountAction', {
                           ns: 'portal',
-                          name: reviewState.account.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
+                          name: reviewState.account?.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
                         })}
                       </option>
                     </select>

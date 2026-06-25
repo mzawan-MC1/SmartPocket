@@ -52,7 +52,7 @@ export function normalizeCallingCodeSuffix(value: string | null | undefined) {
 }
 
 export function getCanonicalCountryCallingCode(
-  country: Pick<CountryReference, 'isoAlpha2' | 'callingCode' | 'callingCodeSuffix'> | null | undefined
+  country: Pick<CountryReference, 'callingCode' | 'callingCodeSuffix'> | null | undefined
 ) {
   const normalizedCallingCode = normalizeCallingCode(country?.callingCode);
   const normalizedSuffix = normalizeCallingCodeSuffix(country?.callingCodeSuffix);

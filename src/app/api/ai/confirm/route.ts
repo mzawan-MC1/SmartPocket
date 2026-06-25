@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
-import type { AccountScope, FinancialAction, ParsedFinancialInstruction, SmartEntryReview } from '@/lib/ai-types';
+import type {
+  AccountScope,
+  FinancialAction,
+  ParsedFinancialInstruction,
+  PersonalSubscriptionIntent,
+  SmartEntryReview,
+  SmartEntrySubscriptionSelectionOption,
+} from '@/lib/ai-types';
 import { applySmartEntryReviewToInstruction, getSmartEntryMissingFields, isAccountEligibleForPurpose, isManagedPurpose } from '@/lib/smart-entry';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -106,6 +113,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function isAccountScope(value: unknown): value is AccountScope {
+  return typeof value === 'string' && ACCOUNT_SCOPES.has(value as AccountScope);
+}
+
+function isPersonalSubscriptionIntent(value: unknown): value is PersonalSubscriptionIntent {
+  return typeof value === 'string' && SUBSCRIPTION_INTENTS.has(value as PersonalSubscriptionIntent);
+}
+
 function sanitizeReview(value: unknown): SmartEntryReview | null {
   if (!isObject(value)) return null;
 
@@ -135,8 +150,8 @@ function sanitizeReview(value: unknown): SmartEntryReview | null {
         : undefined,
       currency: typeof input.currency === 'string' ? input.currency.trim().toUpperCase() : undefined,
       includeInTotal: typeof input.includeInTotal === 'boolean' ? input.includeInTotal : undefined,
-      scope: typeof input.scope === 'string' && ACCOUNT_SCOPES.has(input.scope)
-        ? input.scope as NonNullable<SmartEntryReview['account']>['scope']
+      scope: isAccountScope(input.scope)
+        ? input.scope
         : undefined,
       managedPersonId: typeof input.managedPersonId === 'string' && UUID_PATTERN.test(input.managedPersonId) ? input.managedPersonId : undefined,
       managedPersonName: typeof input.managedPersonName === 'string' ? input.managedPersonName.trim() || undefined : undefined,
@@ -145,10 +160,40 @@ function sanitizeReview(value: unknown): SmartEntryReview | null {
 
   const sanitizeSubscription = (input: unknown): SmartEntryReview['subscription'] => {
     if (!isObject(input)) return undefined;
+    const intent = isPersonalSubscriptionIntent(input.intent)
+      ? input.intent
+      : undefined;
+    const subscriptionOptions = Array.isArray(input.subscriptionOptions)
+      ? (() => {
+          const sanitized: SmartEntrySubscriptionSelectionOption[] = [];
+          for (const rawItem of input.subscriptionOptions) {
+            if (!isObject(rawItem)) continue;
+
+            const subscriptionId =
+              typeof rawItem.subscriptionId === 'string' && UUID_PATTERN.test(rawItem.subscriptionId)
+                ? rawItem.subscriptionId
+                : undefined;
+            const name = typeof rawItem.name === 'string' ? rawItem.name.trim() : '';
+
+            if (!subscriptionId || !name) continue;
+
+            sanitized.push({
+              subscriptionId,
+              name,
+              provider: typeof rawItem.provider === 'string' ? rawItem.provider.trim() || undefined : undefined,
+              amount: typeof rawItem.amount === 'number' && Number.isFinite(rawItem.amount) ? rawItem.amount : undefined,
+              currencyCode: typeof rawItem.currencyCode === 'string' ? rawItem.currencyCode.trim().toUpperCase() || undefined : undefined,
+              billingFrequency: typeof rawItem.billingFrequency === 'string' ? rawItem.billingFrequency.trim() || undefined : undefined,
+              status: typeof rawItem.status === 'string' ? rawItem.status.trim() || undefined : undefined,
+            });
+          }
+          return sanitized.length > 0 ? sanitized : undefined;
+        })()
+      : undefined;
+    if (!intent) return undefined;
+
     return {
-      intent: typeof input.intent === 'string' && SUBSCRIPTION_INTENTS.has(input.intent)
-        ? input.intent as NonNullable<SmartEntryReview['subscription']>['intent']
-        : undefined,
+      intent,
       subscriptionId: typeof input.subscriptionId === 'string' && UUID_PATTERN.test(input.subscriptionId)
         ? input.subscriptionId
         : undefined,
@@ -196,24 +241,7 @@ function sanitizeReview(value: unknown): SmartEntryReview | null {
         : undefined,
       accountRequired: input.accountRequired === true,
       requiresSubscriptionSelection: input.requiresSubscriptionSelection === true,
-      subscriptionOptions: Array.isArray(input.subscriptionOptions)
-        ? input.subscriptionOptions
-            .filter(isObject)
-            .map((item) => ({
-              subscriptionId: typeof item.subscriptionId === 'string' && UUID_PATTERN.test(item.subscriptionId)
-                ? item.subscriptionId
-                : undefined,
-              name: typeof item.name === 'string' ? item.name.trim() : '',
-              provider: typeof item.provider === 'string' ? item.provider.trim() || undefined : undefined,
-              amount: typeof item.amount === 'number' && Number.isFinite(item.amount) ? item.amount : undefined,
-              currencyCode: typeof item.currencyCode === 'string' ? item.currencyCode.trim().toUpperCase() || undefined : undefined,
-              billingFrequency: typeof item.billingFrequency === 'string' ? item.billingFrequency.trim() || undefined : undefined,
-              status: typeof item.status === 'string' ? item.status.trim() || undefined : undefined,
-            }))
-            .filter((item): item is NonNullable<NonNullable<SmartEntryReview['subscription']>['subscriptionOptions']>[number] =>
-              !!item.subscriptionId && !!item.name
-            )
-        : undefined,
+      subscriptionOptions,
     };
   };
 
@@ -306,7 +334,7 @@ function validateReviewSelection(review: SmartEntryReview): string | null {
   };
 
   if (review.subscription) {
-    if (!review.subscription.intent || !SUBSCRIPTION_INTENTS.has(review.subscription.intent)) {
+    if (!isPersonalSubscriptionIntent(review.subscription.intent)) {
       return 'Please confirm the subscription action before saving.';
     }
     if (!review.subscription.subscriptionName?.trim()) {

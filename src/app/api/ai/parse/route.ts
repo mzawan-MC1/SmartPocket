@@ -29,6 +29,8 @@ function createServerClient() {
   );
 }
 
+type ServerSupabaseClient = ReturnType<typeof createServerClient>;
+
 // Allowlisted request types — never trust caller-supplied values directly
 const ALLOWED_REQUEST_TYPES = new Set(['voice', 'text']);
 
@@ -43,7 +45,7 @@ function shortRequestId(value: string | undefined | null) {
 }
 
 async function refundAICreditsSafely(args: {
-  supabase: ReturnType<typeof createClient>;
+  supabase: ServerSupabaseClient;
   userId: string;
   cycleId: string;
   ledgerId: string;

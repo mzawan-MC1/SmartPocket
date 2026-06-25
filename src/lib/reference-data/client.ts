@@ -156,10 +156,10 @@ async function loadClientReferenceData(): Promise<ClientReferenceDataResult> {
 
   return {
     snapshot: {
-      currencies: (currencyResult.data ?? []).map((row) => mapCurrencyRow(row as CurrencyRow)),
-      countries: (countryResult.data ?? []).map((row) => mapCountryRow(row as CountryRow)),
-      countryCurrencies: (mappingResult.data ?? []).map((row) =>
-        mapCountryCurrencyRow(row as CountryCurrencyRow)
+      currencies: (currencyResult.data ?? []).map((row: CurrencyRow) => mapCurrencyRow(row)),
+      countries: (countryResult.data ?? []).map((row: CountryRow) => mapCountryRow(row)),
+      countryCurrencies: (mappingResult.data ?? []).map((row: CountryCurrencyRow) =>
+        mapCountryCurrencyRow(row)
       ),
     },
     platformDefaultCurrency: normalizeCurrencyCode(

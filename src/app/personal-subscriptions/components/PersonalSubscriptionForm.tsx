@@ -28,8 +28,14 @@ import {
   PERSONAL_SUBSCRIPTION_PAYMENT_METHODS,
   PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS,
   PERSONAL_SUBSCRIPTION_STATUSES,
+  isPersonalSubscriptionBillingFrequency,
+  isPersonalSubscriptionPaymentMethod,
+  isPersonalSubscriptionStatus,
   supportsLinkedRecurringExpense,
   type PersonalSubscription,
+  type PersonalSubscriptionBillingFrequency,
+  type PersonalSubscriptionPaymentMethod,
+  type PersonalSubscriptionStatus,
 } from '@/lib/personal-subscriptions-shared';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 
@@ -38,17 +44,17 @@ interface PersonalSubscriptionFormValues {
   provider: string;
   description: string;
   category_id: string;
-  status: string;
+  status: PersonalSubscriptionStatus;
   amount: string;
   currency_code: string;
-  billing_frequency: string;
+  billing_frequency: PersonalSubscriptionBillingFrequency;
   billing_interval: string;
   start_date: string;
   next_billing_date: string;
   trial_end_date: string;
   contract_end_date: string;
   financial_account_id: string;
-  payment_method: string;
+  payment_method: PersonalSubscriptionPaymentMethod | '';
   auto_renew: boolean;
   create_linked_recurring_expense: boolean;
   reminder_days_before: string[];
@@ -137,7 +143,7 @@ export default function PersonalSubscriptionForm({
     [accountOptions, selectedAccountId]
   );
   const linkedRecurringSupported = supportsLinkedRecurringExpense(
-    (frequency || 'monthly') as PersonalSubscription['billing_frequency']
+    isPersonalSubscriptionBillingFrequency(frequency) ? frequency : 'monthly'
   );
 
   useEffect(() => {
@@ -225,17 +231,17 @@ export default function PersonalSubscriptionForm({
         provider: data.provider || null,
         description: data.description || null,
         category_id: data.category_id || null,
-        status: data.status as PersonalSubscription['status'],
+        status: isPersonalSubscriptionStatus(data.status) ? data.status : 'active',
         amount: Number(data.amount),
         currency_code: data.currency_code,
-        billing_frequency: data.billing_frequency as PersonalSubscription['billing_frequency'],
+        billing_frequency: isPersonalSubscriptionBillingFrequency(data.billing_frequency) ? data.billing_frequency : 'monthly',
         billing_interval: Number(data.billing_interval || 1),
         start_date: data.start_date || null,
         next_billing_date: data.next_billing_date || null,
         trial_end_date: data.trial_end_date || null,
         contract_end_date: data.contract_end_date || null,
         financial_account_id: data.financial_account_id || null,
-        payment_method: data.payment_method || null,
+        payment_method: isPersonalSubscriptionPaymentMethod(data.payment_method) ? data.payment_method : null,
         auto_renew: Boolean(data.auto_renew),
         create_linked_recurring_expense:
           linkedRecurringSupported
