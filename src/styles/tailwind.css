@@ -83,8 +83,27 @@
   }
 
   ::selection {
-    background-color: rgba(var(--accent-rgb), 0.18);
-    color: var(--foreground);
+    background-color: rgba(8, 145, 178, 0.28);
+    color: inherit;
+  }
+
+  ::-moz-selection {
+    background-color: rgba(8, 145, 178, 0.28);
+    color: inherit;
+  }
+
+  input::selection,
+  textarea::selection,
+  [contenteditable='true']::selection {
+    background-color: #0891b2;
+    color: #ffffff;
+  }
+
+  input::-moz-selection,
+  textarea::-moz-selection,
+  [contenteditable='true']::-moz-selection {
+    background-color: #0891b2;
+    color: #ffffff;
   }
 
   h1, h2, h3, h4, h5, h6, p {
