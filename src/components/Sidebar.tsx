@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,6 +73,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       heading: t('sidebar.sections.reports', { ns: 'portal' }),
       items: [
         { id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' },
+      ],
+    },
+    {
+      heading: t('sidebar.sections.support', { ns: 'portal', defaultValue: 'Support' }),
+      items: [
+        { id: 'nav-support', label: t('sidebar.nav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
       ],
     },
   ];
@@ -301,6 +307,16 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </div>
           ))}
           {renderReportsSection()}
+          <div className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
+            {!collapsed && (
+              <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
+                {navSections[3].heading}
+              </p>
+            )}
+            <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
+              {navSections[3].items.map((item) => renderNavItem(item))}
+            </ul>
+          </div>
         </div>
       </nav>
 

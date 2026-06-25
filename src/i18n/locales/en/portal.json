@@ -139,7 +139,8 @@
     "sections": {
       "finance": "Finance",
       "manage": "Manage",
-      "reports": "Reports"
+      "reports": "Reports",
+      "support": "Support"
     },
     "nav": {
       "transfers": "Transfers",
@@ -150,7 +151,8 @@
       "people": "People",
       "spaces": "Spaces",
       "aiHistory": "AI History",
-      "personalSubscriptions": "Personal Subscriptions"
+      "personalSubscriptions": "Personal Subscriptions",
+      "support": "Support"
     },
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
@@ -180,15 +182,16 @@
     "reimbursements": "Reimbursements",
     "settlements": "Settlements",
     "aiHistory": "AI History",
-    "personalSubscriptions": "Personal Subscriptions"
+    "personalSubscriptions": "Personal Subscriptions",
+    "support": "Support"
   },
   "dashboardHeader": {
     "title": "Dashboard",
     "description": "Your financial overview for {{period}}",
     "greeting": {
-      "morning": "Good morning, {{name}}! 👋",
-      "afternoon": "Good afternoon, {{name}}! 👋",
-      "evening": "Good evening, {{name}}! 👋"
+      "morning": "Good morning, {{name}}! \ud83d\udc4b",
+      "afternoon": "Good afternoon, {{name}}! \ud83d\udc4b",
+      "evening": "Good evening, {{name}}! \ud83d\udc4b"
     },
     "badgeMonthFallback": "Month fallback",
     "badgeMonthView": "Month view",
@@ -1706,9 +1709,9 @@
       "subscriptionPayment": "I paid AED 600 for Ahmed's subscription from my credit card.",
       "placeholder": {
         "en": "e.g. \"I spent AED 85 on groceries today from cash\" or \"Ahmed gave me AED 2,300\"",
-        "ar": "مثال: أنفقت 85 درهما على البقالة اليوم من حساب النقد",
-        "fr": "ex. : j'ai dépensé 85 AED aujourd'hui pour les courses depuis mon compte espèces",
-        "ru": "например: я потратил 85 AED на продукты сегодня с наличного счета"
+        "ar": "\u0645\u062b\u0627\u0644: \u0623\u0646\u0641\u0642\u062a 85 \u062f\u0631\u0647\u0645\u0627 \u0639\u0644\u0649 \u0627\u0644\u0628\u0642\u0627\u0644\u0629 \u0627\u0644\u064a\u0648\u0645 \u0645\u0646 \u062d\u0633\u0627\u0628 \u0627\u0644\u0646\u0642\u062f",
+        "fr": "ex. : j'ai d\u00e9pens\u00e9 85 AED aujourd'hui pour les courses depuis mon compte esp\u00e8ces",
+        "ru": "\u043d\u0430\u043f\u0440\u0438\u043c\u0435\u0440: \u044f \u043f\u043e\u0442\u0440\u0430\u0442\u0438\u043b 85 AED \u043d\u0430 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u044b \u0441\u0435\u0433\u043e\u0434\u043d\u044f \u0441 \u043d\u0430\u043b\u0438\u0447\u043d\u043e\u0433\u043e \u0441\u0447\u0435\u0442\u0430"
       },
       "items": {
         "en": {
@@ -1718,22 +1721,22 @@
           "4": "I paid AED 600 for Ahmed's subscription from my credit card"
         },
         "ar": {
-          "1": "أنفقت 85 درهما على البقالة من حساب النقد",
-          "2": "أحمد أعطاني 2300 درهم اليوم",
-          "3": "حوّل 1000 درهم من الحساب البنكي إلى النقد",
-          "4": "دفعت 600 درهم لاشتراك أحمد من بطاقتي الائتمانية"
+          "1": "\u0623\u0646\u0641\u0642\u062a 85 \u062f\u0631\u0647\u0645\u0627 \u0639\u0644\u0649 \u0627\u0644\u0628\u0642\u0627\u0644\u0629 \u0645\u0646 \u062d\u0633\u0627\u0628 \u0627\u0644\u0646\u0642\u062f",
+          "2": "\u0623\u062d\u0645\u062f \u0623\u0639\u0637\u0627\u0646\u064a 2300 \u062f\u0631\u0647\u0645 \u0627\u0644\u064a\u0648\u0645",
+          "3": "\u062d\u0648\u0651\u0644 1000 \u062f\u0631\u0647\u0645 \u0645\u0646 \u0627\u0644\u062d\u0633\u0627\u0628 \u0627\u0644\u0628\u0646\u0643\u064a \u0625\u0644\u0649 \u0627\u0644\u0646\u0642\u062f",
+          "4": "\u062f\u0641\u0639\u062a 600 \u062f\u0631\u0647\u0645 \u0644\u0627\u0634\u062a\u0631\u0627\u0643 \u0623\u062d\u0645\u062f \u0645\u0646 \u0628\u0637\u0627\u0642\u062a\u064a \u0627\u0644\u0627\u0626\u062a\u0645\u0627\u0646\u064a\u0629"
         },
         "fr": {
-          "1": "J'ai dépensé 85 AED pour les courses depuis mon compte espèces",
-          "2": "Ahmed m'a donné 2 300 AED aujourd'hui",
-          "3": "Transférer 1 000 AED de la banque vers les espèces",
-          "4": "J'ai payé 600 AED pour l'abonnement d'Ahmed avec ma carte de crédit"
+          "1": "J'ai d\u00e9pens\u00e9 85 AED pour les courses depuis mon compte esp\u00e8ces",
+          "2": "Ahmed m'a donn\u00e9 2\u202f300 AED aujourd'hui",
+          "3": "Transf\u00e9rer 1\u202f000 AED de la banque vers les esp\u00e8ces",
+          "4": "J'ai pay\u00e9 600 AED pour l'abonnement d'Ahmed avec ma carte de cr\u00e9dit"
         },
         "ru": {
-          "1": "Потратил 85 AED на продукты с наличного счета",
-          "2": "Ахмед дал мне сегодня 2 300 AED",
-          "3": "Переведи 1 000 AED из банка в наличные",
-          "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
+          "1": "\u041f\u043e\u0442\u0440\u0430\u0442\u0438\u043b 85 AED \u043d\u0430 \u043f\u0440\u043e\u0434\u0443\u043a\u0442\u044b \u0441 \u043d\u0430\u043b\u0438\u0447\u043d\u043e\u0433\u043e \u0441\u0447\u0435\u0442\u0430",
+          "2": "\u0410\u0445\u043c\u0435\u0434 \u0434\u0430\u043b \u043c\u043d\u0435 \u0441\u0435\u0433\u043e\u0434\u043d\u044f 2 300 AED",
+          "3": "\u041f\u0435\u0440\u0435\u0432\u0435\u0434\u0438 1 000 AED \u0438\u0437 \u0431\u0430\u043d\u043a\u0430 \u0432 \u043d\u0430\u043b\u0438\u0447\u043d\u044b\u0435",
+          "4": "\u042f \u043e\u043f\u043b\u0430\u0442\u0438\u043b 600 AED \u0437\u0430 \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0443 \u0410\u0445\u043c\u0435\u0434\u0430 \u0441 \u043a\u0440\u0435\u0434\u0438\u0442\u043d\u043e\u0439 \u043a\u0430\u0440\u0442\u044b"
         }
       }
     },
@@ -2735,6 +2738,149 @@
         "notifications": "Reminder coverage",
         "notificationsDescription": "Using {{count}} reminder settings plus warning-based in-app alerts."
       }
+    }
+  },
+  "support": {
+    "nav": {
+      "title": "Support"
+    },
+    "values": {
+      "categories": {
+        "account": "Account",
+        "transactions": "Transactions",
+        "financial_accounts": "Financial Accounts",
+        "subscriptions": "Subscriptions",
+        "payments": "Payments",
+        "reports": "Reports",
+        "smart_entry_ai": "Smart Entry AI",
+        "technical_error": "Technical Error",
+        "feature_request": "Feature Request",
+        "security": "Security",
+        "other": "Other"
+      },
+      "roles": {
+        "user": "Customer",
+        "admin": "Support"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Open",
+        "assigned": "Assigned",
+        "in_progress": "In Progress",
+        "waiting_for_customer": "Waiting for Customer",
+        "waiting_for_support": "Waiting for Support",
+        "resolved": "Resolved",
+        "closed": "Closed",
+        "new": "New",
+        "spam": "Spam"
+      },
+      "priority": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High",
+        "urgent": "Urgent"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Attachments",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF up to 10 MB each",
+      "addFiles": "Add files",
+      "emptyTitle": "No attachments added yet",
+      "emptyDescription": "Add screenshots or PDFs to help support investigate faster.",
+      "uploading": "Uploading {{progress}}%",
+      "ready": "Ready",
+      "removeFile": "Remove {{name}}"
+    },
+    "list": {
+      "title": "Support",
+      "description": "Track your Smart Pocket support tickets, review responses, and reply securely with private attachments.",
+      "newTicket": "New ticket",
+      "filtersTitle": "Search and Filter",
+      "filtersDescription": "Find a ticket by number, subject, category, or status.",
+      "searchPlaceholder": "Search tickets...",
+      "allStatuses": "All statuses",
+      "allCategories": "All categories",
+      "allPriorities": "All priorities",
+      "sectionTitle": "My Tickets",
+      "sectionDescription": "Newest tickets appear first.",
+      "loading": "Loading support tickets...",
+      "loadError": "Failed to load support tickets.",
+      "emptyTitle": "No support tickets found",
+      "emptyDescription": "Create a ticket when you need help with Smart Pocket.",
+      "newReply": "New reply",
+      "updatedAt": "Updated {{value}}",
+      "pageOf": "Page {{page}} of {{total}}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "newTicket": {
+      "title": "New Support Ticket",
+      "description": "Share the issue, add context, and attach screenshots or PDFs so the Smart Pocket support team can help faster.",
+      "badge": "Support",
+      "detailsTitle": "Ticket Details",
+      "detailsDescription": "Provide enough detail for an accurate first response.",
+      "subject": "Subject",
+      "subjectPlaceholder": "Example: PDF report export is failing",
+      "category": "Category",
+      "priority": "Priority",
+      "relatedPath": "Related page or module",
+      "relatedPathPlaceholder": "/reports or Smart Entry AI",
+      "errorCode": "Error code",
+      "errorCodePlaceholder": "Optional error code",
+      "message": "Detailed message",
+      "messagePlaceholder": "Describe what happened, what you expected, and any steps that reproduce the issue.",
+      "attachmentsTitle": "Attachments",
+      "attachmentsDescription": "Add screenshots or PDFs to help support investigate your issue.",
+      "cancel": "Cancel",
+      "create": "Create ticket",
+      "creating": "Creating ticket...",
+      "created": "Support ticket created.",
+      "createError": "Failed to create support ticket.",
+      "authRequired": "Please sign in again before creating a support ticket."
+    },
+    "detail": {
+      "loadError": "Failed to load support ticket.",
+      "replySent": "Reply sent.",
+      "replyError": "Failed to send reply.",
+      "attachmentError": "Failed to open attachment.",
+      "closed": "Ticket closed.",
+      "reopened": "Ticket reopened.",
+      "actionError": "Failed to update ticket.",
+      "headerDescription": "Ticket {{ticketNumber}} \u2022 Created {{createdAt}}",
+      "closeTicket": "Close ticket",
+      "reopen": "Reopen",
+      "conversationTitle": "Conversation",
+      "conversationDescription": "Replies and visible system updates for this ticket.",
+      "replyTitle": "Reply",
+      "replyDescription": "Reply securely. Attachments remain private and use signed URLs only.",
+      "replyPlaceholder": "Add more detail, confirm the fix, or ask for an update.",
+      "sendReply": "Send reply",
+      "sendingReply": "Sending...",
+      "summaryTitle": "Summary",
+      "summaryDescription": "Ticket status and important metadata.",
+      "category": "Category",
+      "relatedPage": "Related page",
+      "errorCode": "Error code",
+      "firstResponse": "First response",
+      "resolved": "Resolved",
+      "timelineTitle": "Activity Timeline",
+      "timelineDescription": "Visible status and workflow updates.",
+      "securityTitle": "Security",
+      "securityDescription": "Files and replies stay inside your authenticated support workspace.",
+      "securityBody": "Attachments are stored in a private Supabase bucket and are only opened through short-lived signed URLs.",
+      "emptyValue": "-",
+      "confirmCloseTitle": "Close Ticket?",
+      "confirmCloseDescription": "Close this resolved ticket now? You can reopen it within the allowed window if more help is needed.",
+      "confirmReopenTitle": "Reopen Ticket?",
+      "confirmReopenDescription": "Reopen this ticket and move it back to the support queue?",
+      "deleteAttachment": "Delete attachment",
+      "deleteAttachmentSuccess": "Attachment deleted.",
+      "deleteAttachmentError": "Failed to delete attachment.",
+      "confirmDeleteAttachmentTitle": "Delete Attachment?",
+      "confirmDeleteAttachmentDescription": "Delete {{name}} from this ticket now? This cannot be undone.",
+      "confirmAction": "Confirm",
+      "cancelAction": "Cancel"
     }
   }
 }

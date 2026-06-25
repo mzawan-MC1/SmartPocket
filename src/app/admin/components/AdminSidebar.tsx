@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowLeft, BarChart3, CreditCard, FileText, Globe, HeartPulse, Layout, Languages, Mail, Settings2, Shield, Sparkles, ToggleLeft, Users, Activity, ClipboardList, Loader2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, CreditCard, FileText, Globe, HeartPulse, Layout, Languages, Mail, Settings2, Shield, Sparkles, ToggleLeft, Users, Activity, ClipboardList, Loader2, LifeBuoy, MessagesSquare } from 'lucide-react';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
@@ -72,6 +72,14 @@ const ADMIN_GROUPS: Array<{ id: string; label: string; items: AdminNavItem[] }> 
     items: [
       { id: 'activity', label: 'Activity Logs', href: '/admin/activity', icon: Activity },
       { id: 'health', label: 'System Health', href: '/admin/system-health', icon: HeartPulse },
+    ],
+  },
+  {
+    id: 'support',
+    label: 'Support',
+    items: [
+      { id: 'support-enquiries', label: 'Contact Enquiries', href: '/admin/support/enquiries', icon: Mail },
+      { id: 'support-tickets', label: 'Support Tickets', href: '/admin/support/tickets', icon: MessagesSquare },
     ],
   },
 ];

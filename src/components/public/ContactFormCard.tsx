@@ -10,6 +10,7 @@ import { trackMarketingEvent } from '@/lib/analytics';
 interface ContactFormData {
   name: string;
   email: string;
+  phone: string;
   subject: string;
   message: string;
   website: string;
@@ -19,6 +20,7 @@ export default function ContactFormCard() {
   const { t } = useTranslation('public');
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
 
   const {
     register,
@@ -33,7 +35,10 @@ export default function ContactFormCard() {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          sourcePage: window.location.pathname || '/contact',
+        }),
       });
       const payload = await response.json();
 
@@ -48,8 +53,14 @@ export default function ContactFormCard() {
 
       trackMarketingEvent('contact_submitted');
       reset();
+      setReferenceNumber(typeof payload?.referenceNumber === 'string' ? payload.referenceNumber : null);
       setSent(true);
-      toast.success(t('contactForm.successToast'));
+      toast.success(
+        payload?.message ||
+          t('contactForm.successToast', {
+            defaultValue: 'Your message has been sent successfully.',
+          })
+      );
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -70,7 +81,11 @@ export default function ContactFormCard() {
           <CheckCircle2 size={32} className="text-positive" />
         </div>
         <h2 className="text-xl font-700 text-foreground mb-2">{t('contactForm.sentTitle')}</h2>
-        <p className="text-sm text-muted-foreground">{t('contactForm.sentDescription')}</p>
+        <p className="text-sm text-muted-foreground">
+          {referenceNumber
+            ? `We have received your enquiry. Reference number: ${referenceNumber}.`
+            : t('contactForm.sentDescription')}
+        </p>
       </div>
     );
   }
@@ -97,6 +112,26 @@ export default function ContactFormCard() {
             <input id="contact-email" type="email" className={`input-base ${errors.email ? 'input-error' : ''}`} placeholder={t('contactForm.emailPlaceholder')} {...register('email', { required: t('contactForm.errors.emailRequired'), pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('contactForm.errors.emailInvalid') } })} />
             {errors.email && <p className="mt-1.5 text-xs text-negative font-500">{errors.email.message}</p>}
           </div>
+        </div>
+        <div>
+          <label htmlFor="contact-phone" className="block text-sm font-600 text-foreground mb-1.5">
+            {t('contactForm.phone', { defaultValue: 'Phone (optional)' })}
+          </label>
+          <input
+            id="contact-phone"
+            type="tel"
+            className={`input-base ${errors.phone ? 'input-error' : ''}`}
+            placeholder={t('contactForm.phonePlaceholder', { defaultValue: '+44 7700 900123' })}
+            {...register('phone', {
+              maxLength: {
+                value: 40,
+                message: t('contactForm.errors.phoneTooLong', {
+                  defaultValue: 'Please enter a shorter phone number.',
+                }),
+              },
+            })}
+          />
+          {errors.phone && <p className="mt-1.5 text-xs text-negative font-500">{errors.phone.message}</p>}
         </div>
         <div>
           <label htmlFor="contact-subject" className="block text-sm font-600 text-foreground mb-1.5">{t('contactForm.subject')}</label>
