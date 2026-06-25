@@ -1,7 +1,8 @@
 import 'server-only';
 
 import type { PlatformSettingsSnapshot } from '@/lib/platform-settings';
-import { buildAbsoluteAssetUrl, getCanonicalOrigin } from '@/lib/site-metadata';
+import { buildAbsoluteAssetUrl } from '@/lib/site-metadata';
+import { resolveTransactionalBaseUrl } from '@/lib/email/transactional-config';
 
 type TransactionalLayoutInput = {
   settings: PlatformSettingsSnapshot;
@@ -34,12 +35,13 @@ export function renderTransactionalEmail(input: TransactionalLayoutInput) {
   const primaryColor = input.settings.branding.primaryColor;
   const accentColor = input.settings.branding.accentColor;
   const appName = input.settings.branding.appName;
+  const premiumHeaderBackground = 'linear-gradient(135deg, #F3F4F6 0%, #D1D5DB 100%)';
   const supportEmail =
     input.notificationSettings.supportEmail
     || input.settings.publicUi.contactEmail
     || input.settings.email.supportEmail
     || '';
-  const siteUrl = getCanonicalOrigin(input.settings);
+  const siteUrl = resolveTransactionalBaseUrl(input.settings);
   const companyAddress = (input.notificationSettings.companyAddress || '').trim();
   const signatureName = input.notificationSettings.signatureName;
   const signatureTitle = input.notificationSettings.signatureTitle;
@@ -100,8 +102,8 @@ export function renderTransactionalEmail(input: TransactionalLayoutInput) {
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #d9e2ef;">
             <tr>
-              <td style="padding:32px 32px 20px;background:${escapeHtml(primaryColor)};">
-                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(appName)} logo" style="max-width:180px;height:auto;display:block;" />` : `<div style="font-size:24px;font-weight:700;color:#ffffff;">${escapeHtml(appName)}</div>`}
+              <td style="padding:20px 24px;background:#E5E7EB;background-image:${escapeHtml(premiumHeaderBackground)};">
+                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(appName)} logo" style="max-width:190px;max-height:54px;height:auto;width:auto;display:block;" />` : `<div style="font-size:24px;font-weight:700;color:#111827;">${escapeHtml(appName)}</div>`}
               </td>
             </tr>
             <tr>

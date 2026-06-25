@@ -2,9 +2,9 @@ import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { normalizePlatformSettings, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
-import { getAppOrigin } from '@/lib/auth/urls';
 import { sendSmtpEmailWithResult, type SmtpSendResult } from '@/lib/email/smtp';
-import { renderTransactionalEmail } from '@/lib/email/transactional-layout';
+import { buildTransactionalAppUrl, resolveTransactionalBaseUrl } from '@/lib/email/transactional-config';
+import { renderTransactionalEmail } from './transactional-layout';
 
 export type EmailRecipient = {
   email: string;
@@ -218,13 +218,12 @@ async function updateDeliveryLog(args: {
   if (error) throw error;
 }
 
-function buildCommonVariables(settings: PlatformSettingsSnapshot) {
-  const origin = getAppOrigin();
+export function buildCommonVariables(settings: PlatformSettingsSnapshot) {
   return {
-    dashboard_url: `${origin}/dashboard`,
-    billing_url: `${origin}/settings/subscription`,
-    onboarding_url: `${origin}/onboarding`,
-    admin_url: `${origin}/admin/users`,
+    dashboard_url: buildTransactionalAppUrl('/dashboard', settings),
+    billing_url: buildTransactionalAppUrl('/settings/subscription', settings),
+    onboarding_url: buildTransactionalAppUrl('/onboarding', settings),
+    admin_url: buildTransactionalAppUrl('/admin/users', settings),
     support_email: settings.publicUi.contactEmail || settings.email.supportEmail || '',
     company_name: settings.branding.appName,
     company_address: settings.publicUi.contactAddress || '',
@@ -244,7 +243,7 @@ function buildPlainTextEmail(args: {
   disclaimer: string | null;
   copyrightText: string;
 }) {
-  const siteUrl = getAppOrigin();
+  const siteUrl = resolveTransactionalBaseUrl(args.settings);
   const lines: Array<string> = [];
   const push = (value: string | null | undefined) => {
     const next = (value || '').trim();
@@ -587,7 +586,6 @@ export async function queuePasswordChangedEmail(args: {
     variables: {
       customer_name: args.customerName,
       customer_email: args.customerEmail,
-      dashboard_url: `${getAppOrigin()}/dashboard`,
     },
   });
 }

@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { applySupabaseCookies } from '@/lib/supabase/server';
 import { requireEmailAdmin } from '@/lib/email/admin-auth';
 import { normalizePlatformSettings } from '@/lib/platform-settings';
-import { getAppOrigin } from '@/lib/auth/urls';
 import { renderTransactionalEmail } from '@/lib/email/transactional-layout';
-import { sendTransactionalEmail } from '@/lib/email/transactional';
+import { buildCommonVariables, sendTransactionalEmail } from '@/lib/email/transactional';
+import { buildTransactionalAppUrl } from '@/lib/email/transactional-config';
 import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';
@@ -678,11 +678,14 @@ function sanitizeTemplateHtml(value: string) {
   return withoutJavascriptUrls;
 }
 
-function buildSampleVars(templateKey: string) {
-  const origin = getAppOrigin();
+function buildSampleVars(
+  templateKey: string,
+  settings: ReturnType<typeof normalizePlatformSettings>
+) {
   const now = new Date();
   const trialEnd = new Date(Date.now() + 7 * 86400000);
   const renewal = new Date(Date.now() + 30 * 86400000);
+  const commonVars = buildCommonVariables(settings);
   const vars: Record<string, string> = {
     customer_name: 'Alex Morgan',
     customer_email: 'alex@example.com',
@@ -696,13 +699,14 @@ function buildSampleVars(templateKey: string) {
     renewal_date: renewal.toISOString().slice(0, 10),
     invoice_number: 'INV-10001',
     payment_reference: templateKey.includes('webhook') ? 'evt_123' : 'pay_123',
-    dashboard_url: `${origin}/dashboard`,
-    billing_url: `${origin}/settings/subscription`,
-    onboarding_url: `${origin}/onboarding`,
-    admin_url: `${origin}/admin/users`,
-    support_email: 'info@1smartpocket.com',
-    company_name: 'Smart Pocket',
-    company_address: 'Smart Pocket\nCustomer Success\nhttps://1smartpocket.com',
+    dashboard_url: commonVars.dashboard_url,
+    billing_url: commonVars.billing_url,
+    onboarding_url: commonVars.onboarding_url,
+    admin_url: commonVars.admin_url,
+    support_email: commonVars.support_email,
+    company_name: commonVars.company_name,
+    company_address: commonVars.company_address,
+    website_url: buildTransactionalAppUrl('/', settings),
     provider_name: 'Google',
     registration_method: 'google',
     contact_name: 'Jordan Lee',
@@ -752,10 +756,7 @@ export async function GET(
     ]);
 
     const settings = normalizePlatformSettings(settingsRow || {});
-    const vars = buildSampleVars(templateKey);
-    vars.support_email = settings.publicUi.contactEmail || settings.email.supportEmail || vars.support_email;
-    vars.company_name = settings.branding.appName || vars.company_name;
-    vars.company_address = settings.publicUi.contactAddress || vars.company_address;
+    const vars = buildSampleVars(templateKey, settings);
 
     const subject = renderTokens(((data as any).subject as string) || templateKey, vars);
     const preheader = renderTokens(((data as any).preheader as string) || '', vars);
@@ -881,7 +882,9 @@ export async function POST(
       );
     }
 
-    const vars = buildSampleVars(templateKey);
+    const { data: settingsRow } = await admin.from('platform_settings').select('*').maybeSingle();
+    const settings = normalizePlatformSettings(settingsRow || {});
+    const vars = buildSampleVars(templateKey, settings);
     const result = await sendTransactionalEmail({
       eventKey: `template_test:${templateKey}:${crypto.randomUUID()}`,
       templateKey,
