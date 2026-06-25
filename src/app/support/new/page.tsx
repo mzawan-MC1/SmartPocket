@@ -57,6 +57,7 @@ export default function SupportNewPage() {
       if (attachments.length > 0) {
         finalizedUploads = await uploadSupportAttachments({
           ticketId: draftId,
+          context: 'new_ticket',
           files: attachments.map((item) => item.file),
           onFileProgress: (index, progress) => {
             const fileId = attachments[index]?.id;

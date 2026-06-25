@@ -22,8 +22,11 @@ type FinalizedAttachmentItem = {
   extension?: string;
 };
 
+export type SupportUploadContext = 'new_ticket' | 'customer_reply' | 'admin_reply';
+
 export async function uploadSupportAttachments(args: {
   ticketId: string;
+  context: SupportUploadContext;
   files: File[];
   onFileProgress?: (index: number, progress: number) => void;
 }) {
@@ -53,6 +56,7 @@ export async function uploadSupportAttachments(args: {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       ticketId: args.ticketId,
+      context: args.context,
       files: intentDescriptors,
     }),
   });

@@ -209,6 +209,7 @@ export default function AdminSupportTicketDetailPage() {
       if (replyFiles.length > 0) {
         finalizedUploads = await uploadSupportAttachments({
           ticketId: ticket.id,
+          context: 'admin_reply',
           files: replyFiles.map((item) => item.file),
           onFileProgress: (index, progress) => {
             const fileId = replyFiles[index]?.id;

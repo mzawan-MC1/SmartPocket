@@ -16,8 +16,19 @@ import {
 
 type UploadIntentRequestBody = {
   ticketId?: unknown;
+  context?: unknown;
   files?: unknown;
 };
+
+type SupportUploadContext = 'new_ticket' | 'customer_reply' | 'admin_reply';
+
+function parseUploadContext(value: unknown): SupportUploadContext {
+  if (value === 'new_ticket' || value === 'customer_reply' || value === 'admin_reply') {
+    return value;
+  }
+
+  throw new Error('Invalid upload context.');
+}
 
 export async function POST(request: Request) {
   const auth = await requireAuthenticatedRouteUser();
@@ -45,6 +56,7 @@ export async function POST(request: Request) {
 
   try {
     const ticketId = assertValidUuid(body.ticketId, 'ticket id');
+    const context = parseUploadContext(body.context);
     const files = Array.isArray(body.files) ? body.files.map((file) => parseSupportUploadIntentInput(file)) : [];
     assertSupportAttachmentCount(files.length);
 
@@ -63,21 +75,49 @@ export async function POST(request: Request) {
       throw ticketError;
     }
 
-    if (!existingTicket && isAdmin) {
-      return buildSupportResponse(
-        NextResponse.json({ error: 'Admin attachment uploads require an existing ticket.' }, { status: 400 }),
-        auth.cookieMutations
-      );
-    }
+    let ticketOwnerUserId = auth.user.id;
 
-    if (existingTicket && !isAdmin && existingTicket.user_id !== auth.user.id) {
-      return buildSupportResponse(
-        NextResponse.json({ error: 'Ticket not found.' }, { status: 404 }),
-        auth.cookieMutations
-      );
-    }
+    if (context === 'new_ticket') {
+      if (existingTicket) {
+        return buildSupportResponse(
+          NextResponse.json({ error: 'New ticket attachment uploads require a proposed ticket ID that is not already in use.' }, { status: 400 }),
+          auth.cookieMutations
+        );
+      }
+      ticketOwnerUserId = auth.user.id;
+    } else if (context === 'customer_reply') {
+      if (!existingTicket) {
+        return buildSupportResponse(
+          NextResponse.json({ error: 'Customer reply attachment uploads require an existing ticket.' }, { status: 400 }),
+          auth.cookieMutations
+        );
+      }
 
-    const ticketOwnerUserId = existingTicket?.user_id || auth.user.id;
+      if (existingTicket.user_id !== auth.user.id) {
+        return buildSupportResponse(
+          NextResponse.json({ error: 'Ticket not found.' }, { status: 404 }),
+          auth.cookieMutations
+        );
+      }
+
+      ticketOwnerUserId = auth.user.id;
+    } else {
+      if (!isAdmin) {
+        return buildSupportResponse(
+          NextResponse.json({ error: 'Admin reply attachment uploads require administrator access.' }, { status: 403 }),
+          auth.cookieMutations
+        );
+      }
+
+      if (!existingTicket) {
+        return buildSupportResponse(
+          NextResponse.json({ error: 'Admin reply attachment uploads require an existing ticket.' }, { status: 400 }),
+          auth.cookieMutations
+        );
+      }
+
+      ticketOwnerUserId = existingTicket.user_id;
+    }
 
     const payload = files.map((file) => ({
       upload_token: createClientId(),
