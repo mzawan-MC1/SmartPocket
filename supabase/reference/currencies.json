@@ -2264,7 +2264,7 @@
     "narrow_symbol": null,
     "fallback_symbol": "AED",
     "symbol_type": "asset",
-    "symbol_asset_path": "/currencies/aed-dirham-symbol.svg",
+    "symbol_asset_path": "/currencies/aed-dirham-symbol-official.png",
     "minor_units": 2,
     "is_active": true,
     "is_featured": false,

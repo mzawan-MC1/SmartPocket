@@ -3,8 +3,6 @@
 import React, { useMemo, useState } from 'react';
 import type { CurrencyReference } from '@/lib/reference-data/types';
 import { getRichCurrencyToken } from '@/lib/currency-formatting';
-import AedDirhamSymbolAsset from '@/components/currency/AedDirhamSymbolAsset';
-import { isAedCurrency, resolveCurrencySymbolAssetPath } from '@/lib/currency-symbols';
 
 export type CurrencySymbolSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
@@ -68,7 +66,7 @@ const SIZE_STYLES: Record<
 };
 
 function getAccessibleLabel(currency: CurrencySymbolProps['currency']) {
-  return `${currency.code} ${currency.name} symbol`;
+  return `${currency.name} symbol`;
 }
 
 export default function CurrencySymbol({
@@ -83,7 +81,6 @@ export default function CurrencySymbol({
 
   const styles = SIZE_STYLES[size] ?? SIZE_STYLES.md;
   const accessibleLabel = ariaLabel || getAccessibleLabel(currency);
-  const resolvedAssetPath = resolveCurrencySymbolAssetPath(currency);
   const fallbackText = useMemo(() => {
     return getRichCurrencyToken({
       code: currency.code,
@@ -98,8 +95,8 @@ export default function CurrencySymbol({
     !textOnly &&
     !assetFailed &&
     currency.symbolType === 'asset' &&
-    typeof resolvedAssetPath === 'string' &&
-    resolvedAssetPath.trim().length > 0;
+    typeof currency.symbolAssetPath === 'string' &&
+    currency.symbolAssetPath.trim().length > 0;
 
   if (shouldRenderAsset) {
     return (
@@ -112,29 +109,18 @@ export default function CurrencySymbol({
           transform: `translateY(${styles.baselineNudgeEm}em)`,
         }}
       >
-        {isAedCurrency(currency) ? (
-          <AedDirhamSymbolAsset
-            className="block"
-            style={{
-              height: `${styles.assetHeightEm}em`,
-              width: 'auto',
-              maxWidth: `${styles.assetMaxWidthEm}em`,
-            }}
-          />
-        ) : (
-          <img
-            src={resolvedAssetPath!}
-            alt=""
-            aria-hidden="true"
-            className="block object-contain"
-            style={{
-              height: `${styles.assetHeightEm}em`,
-              width: 'auto',
-              maxWidth: `${styles.assetMaxWidthEm}em`,
-            }}
-            onError={() => setAssetFailed(true)}
-          />
-        )}
+        <img
+          src={currency.symbolAssetPath!}
+          alt=""
+          aria-hidden="true"
+          className="block object-contain"
+          style={{
+            height: `${styles.assetHeightEm}em`,
+            width: 'auto',
+            maxWidth: `${styles.assetMaxWidthEm}em`,
+          }}
+          onError={() => setAssetFailed(true)}
+        />
       </span>
     );
   }
