@@ -1005,7 +1005,7 @@ export default function FaqAdminClient({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4">
                 {filteredItems.map((item, index) => (
                   <div key={item.id} className="flex h-full flex-col rounded-2xl border border-border p-4">
                     <div className="flex items-start gap-3">
