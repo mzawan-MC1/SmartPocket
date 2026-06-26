@@ -798,6 +798,7 @@
         "multiple": "Multiple"
       },
       "entryModeAria": "Definir le mode de saisie sur {{mode}}",
+      "addNewSubscription": "Ajouter un nouvel abonnement",
       "merchantLabel": "Marchand / Source",
       "merchantPlaceholder": "ex. Carrefour, Salaire, Upwork",
       "descriptionLabel": "Description",

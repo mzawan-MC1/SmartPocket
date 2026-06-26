@@ -1229,6 +1229,7 @@
         "multiple": "Multiple"
       },
       "entryModeAria": "Set entry mode to {{mode}}",
+      "addNewSubscription": "Add New Subscription",
       "merchantLabel": "Merchant / Source",
       "merchantPlaceholder": "e.g. Carrefour, Salary, Upwork",
       "descriptionLabel": "Description",

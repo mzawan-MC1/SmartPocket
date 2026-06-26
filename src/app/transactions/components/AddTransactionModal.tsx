@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   ChevronDown as ChevronDownIcon,
@@ -871,26 +872,38 @@ export default function AddTransactionModal({
                     );
                   })}
                 </div>
-                <div className="grid w-full basis-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 md:w-auto md:basis-auto md:flex-[0_0_13rem]">
-                  {(['single', 'multiple'] as const).map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      aria-pressed={transactionMode === mode}
-                      aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
-                      onClick={() => handleModeChange(mode)}
-                      disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
-                      className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
-                        transactionMode === mode
-                          ? 'border-border bg-card text-foreground shadow-sm'
-                          : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
-                      } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                <div className="flex w-full basis-full flex-col gap-2 sm:flex-row sm:items-stretch sm:justify-between md:w-auto md:basis-auto md:flex-[0_0_22rem]">
+                  <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:w-auto sm:flex-[0_0_13rem]">
+                    {(['single', 'multiple'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        aria-pressed={transactionMode === mode}
+                        aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
+                        onClick={() => handleModeChange(mode)}
+                        disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
+                        className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
+                          transactionMode === mode
+                            ? 'border-border bg-card text-foreground shadow-sm'
+                            : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
+                        } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <span className="block whitespace-normal break-words">
+                          {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {isSubscriptionPaymentMode ? (
+                    <Link
+                      href="/personal-subscriptions/new"
+                      className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap sm:w-auto"
                     >
-                      <span className="block whitespace-normal break-words">
-                        {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
-                      </span>
-                    </button>
-                  ))}
+                      <Plus size={14} />
+                      {t('transactions.form.addNewSubscription', { ns: 'portal' })}
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ) : (

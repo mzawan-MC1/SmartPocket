@@ -826,6 +826,7 @@
         "multiple": "متعددة"
       },
       "entryModeAria": "تعيين وضع الإدخال إلى {{mode}}",
+      "addNewSubscription": "إضافة اشتراك جديد",
       "merchantLabel": "التاجر / المصدر",
       "merchantPlaceholder": "مثال: كارفور، راتب، Upwork",
       "descriptionLabel": "الوصف",

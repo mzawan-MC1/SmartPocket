@@ -798,6 +798,7 @@
         "multiple": "Несколько"
       },
       "entryModeAria": "Установить режим ввода: {{mode}}",
+      "addNewSubscription": "Добавить новую подписку",
       "merchantLabel": "Продавец / источник",
       "merchantPlaceholder": "например, Carrefour, Зарплата, Upwork",
       "descriptionLabel": "Описание",
