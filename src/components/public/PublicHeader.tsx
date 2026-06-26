@@ -20,6 +20,8 @@ function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, 
       return t('footer.linkPricing', { ns: 'public', defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { ns: 'public', defaultValue: fallback });
+    case '/faqs':
+      return t('footer.linkFaqs', { ns: 'public', defaultValue: fallback });
     case '/privacy':
       return t('footer.privacy', { ns: 'public', defaultValue: fallback });
     case '/terms':

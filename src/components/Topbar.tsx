@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, HelpCircle, ArrowUpRight } from 'lucide-react';
+import { Search, ChevronDown, Menu, X, Settings, LogOut, Shield, Sparkles, CircleHelp, ArrowUpRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
@@ -206,12 +206,12 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   {t('topbar.settings', { ns: 'portal' })}
                 </Link>
                 <Link
-                  href="/help"
+                  href="/faqs"
                   className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
                   onClick={() => setUserMenuOpen(false)}
                 >
-                  <HelpCircle size={14} className="text-muted-foreground" />
-                  {t('topbar.help', { ns: 'portal' })}
+                  <CircleHelp size={14} className="text-muted-foreground" />
+                  {t('topbar.faqs', { ns: 'portal' })}
                 </Link>
                 <Link
                   href="/ai-history"

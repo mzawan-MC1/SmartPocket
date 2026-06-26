@@ -14,7 +14,8 @@
     "signOut": "تسجيل الخروج",
     "signOutSuccess": "تم تسجيل الخروج بنجاح",
     "signOutError": "فشل تسجيل الخروج",
-    "userFallback": "المستخدم"
+    "userFallback": "المستخدم",
+    "faqs": "الأسئلة الشائعة"
   },
   "notifications": {
     "button": "الإشعارات",
@@ -144,7 +145,8 @@
       "people": "الأشخاص",
       "spaces": "المساحات",
       "aiHistory": "سجل الذكاء الاصطناعي",
-      "personalSubscriptions": "الاشتراكات الشخصية"
+      "personalSubscriptions": "الاشتراكات الشخصية",
+      "faqs": "الأسئلة الشائعة"
     },
     "expand": "توسيع الشريط الجانبي",
     "collapse": "طي الشريط الجانبي",
@@ -174,7 +176,8 @@
     "reimbursements": "التعويضات",
     "settlements": "التسويات",
     "aiHistory": "سجل الذكاء الاصطناعي",
-    "personalSubscriptions": "الاشتراكات الشخصية"
+    "personalSubscriptions": "الاشتراكات الشخصية",
+    "faqs": "الأسئلة الشائعة"
   },
   "dashboardHeader": {
     "title": "لوحة التحكم",
@@ -1607,7 +1610,10 @@
         "question": "كيف أتحول إلى العربية واتجاه RTL؟",
         "answer": "استخدم مبدل اللغة في الشريط العلوي واختر العربية، وسيتحول التخطيط تلقائيًا إلى الاتجاه من اليمين إلى اليسار."
       }
-    }
+    },
+    "faqCtaTitle": "هل تحتاج إلى إجابة سريعة؟",
+    "faqCtaDescription": "تصفح مكتبة الأسئلة الشائعة في Smart Pocket للحصول على مساعدة في الإعداد وسير العمل والدعم.",
+    "openFaqs": "فتح الأسئلة الشائعة"
   },
   "onboarding": {
     "title": "إعداد Smart Pocket",
@@ -2538,5 +2544,167 @@
       "confirmAction": "تأكيد",
       "cancelAction": "إلغاء"
     }
+  },
+  "adminFaqs": {
+    "title": "الأسئلة الشائعة",
+    "description": "أدر فئات الأسئلة الشائعة متعددة اللغات وإجاباتها المنشورة وترتيبها ومعاينتها العامة من مكان واحد.",
+    "translationComplete": "كل الترجمات مكتملة.",
+    "languages": {
+      "en": "الإنجليزية",
+      "ar": "العربية",
+      "fr": "الفرنسية",
+      "ru": "الروسية"
+    },
+    "iconLabels": {
+      "rocket": "بدء",
+      "sparkles": "مميز",
+      "receipt": "إيصال",
+      "wallet": "محفظة",
+      "creditCard": "بطاقة",
+      "piggyBank": "ميزانية",
+      "repeat": "متكرر",
+      "rotateCcw": "مبالغ مستردة",
+      "handshake": "تسويات",
+      "users": "أشخاص",
+      "lifeBuoy": "دعم",
+      "circleHelp": "مساعدة",
+      "bot": "ذكاء اصطناعي",
+      "folderKanban": "عام"
+    },
+    "errors": {
+      "loadCategories": "تعذر تحميل فئات الأسئلة الشائعة.",
+      "loadItems": "تعذر تحميل الأسئلة الشائعة.",
+      "refresh": "تعذر تحديث الأسئلة الشائعة.",
+      "saveCategory": "تعذر حفظ فئة الأسئلة الشائعة.",
+      "saveItem": "تعذر حفظ السؤال الشائع.",
+      "confirmCategoryDelete": "يرجى تأكيد حذف الفئة.",
+      "deleteContent": "تعذر حذف محتوى الأسئلة الشائعة.",
+      "reorderCategories": "تعذر إعادة ترتيب الفئات.",
+      "reorderItems": "تعذر إعادة ترتيب الأسئلة الشائعة.",
+      "toggleCategory": "تعذر تحديث حالة الفئة.",
+      "toggleItem": "تعذر تحديث حالة السؤال الشائع."
+    },
+    "toasts": {
+      "categoryCreated": "تم إنشاء الفئة.",
+      "categoryUpdated": "تم تحديث الفئة.",
+      "itemUpdated": "تم تحديث السؤال الشائع.",
+      "itemDuplicated": "تم نسخ السؤال الشائع كمسودة.",
+      "itemCreated": "تم إنشاء السؤال الشائع.",
+      "categoryDeleted": "تم حذف الفئة.",
+      "itemDeleted": "تم حذف السؤال الشائع.",
+      "categoryDeactivated": "تم إلغاء تفعيل الفئة.",
+      "categoryActivated": "تم تفعيل الفئة.",
+      "itemUnpublished": "تم تحويل السؤال الشائع إلى مسودة.",
+      "itemPublished": "تم نشر السؤال الشائع."
+    },
+    "actions": {
+      "addCategory": "إضافة فئة",
+      "addItem": "إضافة سؤال شائع",
+      "moveUp": "أعلى",
+      "moveDown": "أسفل",
+      "deactivateCategory": "إلغاء التفعيل",
+      "activateCategory": "تفعيل",
+      "edit": "تعديل",
+      "delete": "حذف",
+      "refresh": "تحديث",
+      "unpublish": "إلغاء النشر",
+      "publish": "نشر",
+      "duplicate": "نسخ",
+      "preview": "معاينة",
+      "cancel": "إلغاء",
+      "createCategory": "إنشاء فئة",
+      "saveCategory": "حفظ الفئة",
+      "saveItem": "حفظ السؤال الشائع",
+      "createDuplicate": "إنشاء نسخة",
+      "createItem": "إنشاء سؤال شائع",
+      "deleteCategory": "حذف الفئة",
+      "deleteItem": "حذف السؤال الشائع"
+    },
+    "metrics": {
+      "totalCategories": "إجمالي الفئات",
+      "totalCategoriesHint": "كل سجلات الفئات",
+      "publishedFaqs": "الأسئلة المنشورة",
+      "publishedFaqsHint": "مرئية في الصفحة العامة",
+      "draftFaqs": "مسودات / غير نشطة",
+      "draftFaqsHint": "مخفية عن الزوار",
+      "missingTranslations": "الترجمات الناقصة",
+      "missingTranslationsHint": "فجوات الترجمة في الفئات والأسئلة"
+    },
+    "sections": {
+      "categoriesTitle": "الفئات",
+      "categoriesDescription": "ابحث في الفئات وأعد ترتيبها وفعّلها وعدّل محتواها متعدد اللغات.",
+      "itemsTitle": "عناصر الأسئلة الشائعة",
+      "itemsDescription": "ابحث وعاين وانسخ وميّز وأعد ترتيب الأسئلة داخل كل فئة."
+    },
+    "searchCategoriesPlaceholder": "ابحث في الفئات...",
+    "searchItemsPlaceholder": "ابحث في الأسئلة أو الإجابات أو الكلمات المفتاحية...",
+    "emptyCategoriesTitle": "لا توجد فئات.",
+    "emptyCategoriesDescription": "عدّل البحث أو أنشئ فئة جديدة.",
+    "emptyItemsTitle": "لا توجد أسئلة مطابقة للفلاتر الحالية.",
+    "emptyItemsDescription": "عدّل الفلاتر أو أضف سؤالاً شائعاً جديداً.",
+    "status": {
+      "active": "نشطة",
+      "inactive": "غير نشطة",
+      "published": "منشور",
+      "featured": "مميز"
+    },
+    "counts": {
+      "categoryItems": "{{count}} سؤالاً شائعاً"
+    },
+    "fallbacks": {
+      "noEnglishDescription": "لا يوجد وصف باللغة الإنجليزية بعد.",
+      "untitledQuestion": "سؤال بلا عنوان"
+    },
+    "filters": {
+      "allCategories": "كل الفئات",
+      "allStatuses": "كل الحالات",
+      "allVisibility": "كل الظهور",
+      "standard": "عادي"
+    },
+    "modals": {
+      "addCategoryTitle": "إضافة فئة أسئلة شائعة",
+      "editCategoryTitle": "تعديل فئة الأسئلة الشائعة",
+      "categoryDescription": "أدر الأيقونة والترتيب والحالة والترجمات الخاصة بهذه الفئة.",
+      "editItemTitle": "تعديل السؤال الشائع",
+      "duplicateItemTitle": "نسخ السؤال الشائع",
+      "addItemTitle": "إضافة سؤال شائع",
+      "itemDescription": "عدّل الفئة وحالة التمييز والترتيب والترجمات لهذا السؤال الشائع."
+    },
+    "fields": {
+      "slug": "المعرف",
+      "name": "الاسم",
+      "description": "الوصف",
+      "answer": "الإجابة",
+      "question": "السؤال",
+      "keywords": "الكلمات المفتاحية",
+      "icon": "الأيقونة",
+      "sortOrder": "ترتيب العرض",
+      "categoryActive": "الفئة نشطة",
+      "category": "الفئة",
+      "published": "منشور",
+      "featured": "مميز"
+    },
+    "translationFieldLabel": "اسم {{language}}",
+    "translationDescriptionLabel": "وصف {{language}}",
+    "translationQuestionLabel": "سؤال {{language}}",
+    "translationAnswerLabel": "إجابة {{language}}",
+    "translationKeywordsLabel": "كلمات {{language}} المفتاحية",
+    "placeholders": {
+      "categorySlug": "getting-started",
+      "categoryName": "اسم الفئة",
+      "categoryDescription": "وصف قصير للفئة",
+      "selectCategory": "اختر فئة",
+      "itemSlug": "how-do-i-get-started",
+      "itemQuestion": "أدخل السؤال",
+      "itemAnswer": "اكتب إجابة السؤال الشائع...",
+      "itemKeywords": "كلمة أولى، كلمة ثانية"
+    },
+    "previewTitle": "معاينة",
+    "deleteCategoryTitle": "حذف {{name}}؟",
+    "deleteCategoryDescriptionLinked": "لا يزال هناك {{count}} سؤالاً شائعاً مرتبطاً بهذه الفئة.",
+    "deleteCategoryDescription": "ستتم إزالة هذه الفئة نهائياً.",
+    "deleteCategoryCascadeDescription": "سيتم أيضاً حذف {{count}} سؤالاً شائعاً مرتبطاً. لا يمكن التراجع عن هذا الإجراء.",
+    "deleteItemTitle": "حذف {{name}}؟",
+    "deleteItemDescription": "ستتم إزالة هذا السؤال الشائع نهائياً."
   }
 }

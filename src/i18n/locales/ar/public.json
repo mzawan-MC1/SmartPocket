@@ -23,7 +23,8 @@
     "linkPricing": "الأسعار",
     "linkContact": "اتصل بنا",
     "linkHelp": "مركز المساعدة",
-    "backToTop": "العودة إلى الأعلى"
+    "backToTop": "العودة إلى الأعلى",
+    "linkFaqs": "الأسئلة الشائعة"
   },
   "home": {
     "hero": {
@@ -469,5 +470,25 @@
     "description": "يتطلب Smart Pocket اتصالاً بالإنترنت لمزامنة بياناتك المالية. يرجى التحقق من الاتصال ثم المحاولة مرة أخرى.",
     "retry": "إعادة المحاولة",
     "helper": "بياناتك آمنة وستتم مزامنتها عند عودة الاتصال."
+  },
+  "faqs": {
+    "title": "الأسئلة الشائعة",
+    "introduction": "اعثر على إجابات سريعة حول البدء وسير العمل اليومي وأماكن الحصول على المساعدة داخل Smart Pocket.",
+    "searchPlaceholder": "ابحث في الأسئلة أو الإجابات أو الكلمات المفتاحية",
+    "categoriesLabel": "تصفح حسب الفئة",
+    "resultsLabel": "نتيجة",
+    "allCategories": "كل الفئات",
+    "emptyTitle": "لا توجد أسئلة مطابقة لبحثك.",
+    "emptyDescription": "جرّب كلمة مختلفة أو انتقل إلى فئة أخرى.",
+    "uncategorized": "عام",
+    "featured": "مميز",
+    "supportCtaTitle": "هل ما زلت بحاجة إلى مساعدة؟",
+    "supportCtaDescription": "تواصل مع فريق دعم Smart Pocket أو أنشئ تذكرة دعم.",
+    "createTicketAction": "إنشاء تذكرة دعم",
+    "contactAction": "التواصل مع Smart Pocket",
+    "seoTitle": "الأسئلة الشائعة | Smart Pocket",
+    "seoDescription": "تصفح أسئلة Smart Pocket الشائعة حول الإعداد والمعاملات والميزانيات والاشتراكات والدعم وغير ذلك.",
+    "ogTitle": "الأسئلة الشائعة في Smart Pocket",
+    "ogDescription": "اعثر على إجابات حول مزايا Smart Pocket والدعم وسير العمل المالي اليومي."
   }
 }

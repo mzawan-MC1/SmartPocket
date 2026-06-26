@@ -102,6 +102,54 @@ export async function getPlatformSettingsSnapshot(): Promise<PlatformSettingsSna
   return getCachedPlatformSettingsSnapshot();
 }
 
+function injectFaqNavigation(settings: PlatformSettingsSnapshot) {
+  const faqHref = normalizePublicNavHref('/faqs');
+  const headerHasFaq = settings.publicUi.headerMenu.some(
+    (item) => normalizePublicNavHref(item.href) === faqHref
+  );
+  const footerHasFaq = settings.publicUi.footerSections.some((section) =>
+    section.links.some((link) => normalizePublicNavHref(link.href) === faqHref)
+  );
+
+  const headerMenu = headerHasFaq
+    ? settings.publicUi.headerMenu
+    : [
+        ...settings.publicUi.headerMenu,
+        {
+          id: 'sp-faqs',
+          label: 'FAQs',
+          href: '/faqs',
+        },
+      ];
+
+  const footerSections = footerHasFaq
+    ? settings.publicUi.footerSections
+    : settings.publicUi.footerSections.map((section, index) =>
+        index === 1
+          ? {
+              ...section,
+              links: [
+                ...section.links,
+                {
+                  id: 'sp-faqs',
+                  label: 'FAQs',
+                  href: '/faqs',
+                },
+              ],
+            }
+          : section
+      );
+
+  return {
+    ...settings,
+    publicUi: {
+      ...settings.publicUi,
+      headerMenu,
+      footerSections,
+    },
+  };
+}
+
 function mergePublicCmsNavigation(
   settings: PlatformSettingsSnapshot,
   pages: Awaited<ReturnType<typeof listPublicCmsPages>>
@@ -150,14 +198,14 @@ function mergePublicCmsNavigation(
         ]
       : settings.publicUi.footerSections;
 
-  return {
+  return injectFaqNavigation({
     ...settings,
     publicUi: {
       ...settings.publicUi,
       headerMenu: [...settings.publicUi.headerMenu, ...headerPages],
       footerSections,
     },
-  };
+  });
 }
 
 function enrichPlatformContactPhone(

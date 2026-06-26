@@ -14,7 +14,8 @@
     "signOut": "Se déconnecter",
     "signOutSuccess": "Déconnexion réussie",
     "signOutError": "Échec de la déconnexion",
-    "userFallback": "Utilisateur"
+    "userFallback": "Utilisateur",
+    "faqs": "FAQ"
   },
   "notifications": {
     "button": "Notifications",
@@ -144,7 +145,8 @@
       "people": "Personnes",
       "spaces": "Espaces",
       "aiHistory": "Historique IA",
-      "personalSubscriptions": "Abonnements personnels"
+      "personalSubscriptions": "Abonnements personnels",
+      "faqs": "FAQ"
     },
     "expand": "Développer la barre latérale",
     "collapse": "Réduire la barre latérale",
@@ -169,7 +171,8 @@
     "accounts": "Comptes",
     "people": "Personnes",
     "aiHistory": "Historique IA",
-    "personalSubscriptions": "Abonnements personnels"
+    "personalSubscriptions": "Abonnements personnels",
+    "faqs": "FAQ"
   },
   "dashboardHeader": {
     "title": "Tableau de bord",
@@ -1579,7 +1582,10 @@
         "question": "Comment passer a l'arabe (RTL) ?",
         "answer": "Utilisez le selecteur de langue dans la barre superieure et choisissez l'arabe. La mise en page passe automatiquement en droite a gauche."
       }
-    }
+    },
+    "faqCtaTitle": "Besoin d'une réponse rapide ?",
+    "faqCtaDescription": "Parcourez la bibliothèque FAQ Smart Pocket pour l'aide de configuration, les workflows et les réponses du support.",
+    "openFaqs": "Ouvrir la FAQ"
   },
   "onboarding": {
     "title": "Configurer Smart Pocket",
@@ -2510,5 +2516,167 @@
       "confirmAction": "Confirmer",
       "cancelAction": "Annuler"
     }
+  },
+  "adminFaqs": {
+    "title": "FAQ",
+    "description": "Gerez les categories FAQ multilingues, les reponses publiees, l'ordre et les apercus publics depuis un seul endroit.",
+    "translationComplete": "Toutes les traductions sont completes.",
+    "languages": {
+      "en": "Anglais",
+      "ar": "Arabe",
+      "fr": "Francais",
+      "ru": "Russe"
+    },
+    "iconLabels": {
+      "rocket": "Demarrage",
+      "sparkles": "Mise en avant",
+      "receipt": "Recu",
+      "wallet": "Portefeuille",
+      "creditCard": "Carte",
+      "piggyBank": "Budget",
+      "repeat": "Recurrent",
+      "rotateCcw": "Remboursements",
+      "handshake": "Reglements",
+      "users": "Personnes",
+      "lifeBuoy": "Support",
+      "circleHelp": "Aide",
+      "bot": "IA",
+      "folderKanban": "General"
+    },
+    "errors": {
+      "loadCategories": "Impossible de charger les categories FAQ.",
+      "loadItems": "Impossible de charger les FAQ.",
+      "refresh": "Impossible d'actualiser les FAQ.",
+      "saveCategory": "Impossible d'enregistrer la categorie FAQ.",
+      "saveItem": "Impossible d'enregistrer la FAQ.",
+      "confirmCategoryDelete": "Veuillez confirmer la suppression de la categorie.",
+      "deleteContent": "Impossible de supprimer le contenu FAQ.",
+      "reorderCategories": "Impossible de reordonner les categories.",
+      "reorderItems": "Impossible de reordonner les FAQ.",
+      "toggleCategory": "Impossible de mettre a jour le statut de la categorie.",
+      "toggleItem": "Impossible de mettre a jour le statut de la FAQ."
+    },
+    "toasts": {
+      "categoryCreated": "Categorie creee.",
+      "categoryUpdated": "Categorie mise a jour.",
+      "itemUpdated": "FAQ mise a jour.",
+      "itemDuplicated": "FAQ dupliquee en brouillon.",
+      "itemCreated": "FAQ creee.",
+      "categoryDeleted": "Categorie supprimee.",
+      "itemDeleted": "FAQ supprimee.",
+      "categoryDeactivated": "Categorie desactivee.",
+      "categoryActivated": "Categorie activee.",
+      "itemUnpublished": "FAQ repassee en brouillon.",
+      "itemPublished": "FAQ publiee."
+    },
+    "actions": {
+      "addCategory": "Ajouter une categorie",
+      "addItem": "Ajouter une FAQ",
+      "moveUp": "Monter",
+      "moveDown": "Descendre",
+      "deactivateCategory": "Desactiver",
+      "activateCategory": "Activer",
+      "edit": "Modifier",
+      "delete": "Supprimer",
+      "refresh": "Actualiser",
+      "unpublish": "Depublier",
+      "publish": "Publier",
+      "duplicate": "Dupliquer",
+      "preview": "Apercu",
+      "cancel": "Annuler",
+      "createCategory": "Creer la categorie",
+      "saveCategory": "Enregistrer la categorie",
+      "saveItem": "Enregistrer la FAQ",
+      "createDuplicate": "Creer la copie",
+      "createItem": "Creer la FAQ",
+      "deleteCategory": "Supprimer la categorie",
+      "deleteItem": "Supprimer la FAQ"
+    },
+    "metrics": {
+      "totalCategories": "Total categories",
+      "totalCategoriesHint": "Tous les enregistrements de categories",
+      "publishedFaqs": "FAQ publiees",
+      "publishedFaqsHint": "Visibles sur la page publique",
+      "draftFaqs": "Brouillons / inactives",
+      "draftFaqsHint": "Cachees pour les visiteurs",
+      "missingTranslations": "Traductions manquantes",
+      "missingTranslationsHint": "Ecarts de traduction pour les categories et les FAQ"
+    },
+    "sections": {
+      "categoriesTitle": "Categories",
+      "categoriesDescription": "Recherchez, reordonnez, activez et modifiez le contenu multilingue des categories.",
+      "itemsTitle": "Questions FAQ",
+      "itemsDescription": "Recherchez, previsualisez, dupliquez, mettez en avant et reordonnez les questions dans chaque categorie."
+    },
+    "searchCategoriesPlaceholder": "Rechercher des categories...",
+    "searchItemsPlaceholder": "Rechercher des questions, reponses ou mots-cles...",
+    "emptyCategoriesTitle": "Aucune categorie trouvee.",
+    "emptyCategoriesDescription": "Ajustez la recherche ou creez une nouvelle categorie.",
+    "emptyItemsTitle": "Aucune FAQ ne correspond aux filtres actuels.",
+    "emptyItemsDescription": "Ajustez les filtres ou ajoutez une nouvelle FAQ.",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "published": "Publiee",
+      "featured": "En vedette"
+    },
+    "counts": {
+      "categoryItems": "{{count}} FAQ"
+    },
+    "fallbacks": {
+      "noEnglishDescription": "Aucune description anglaise pour le moment.",
+      "untitledQuestion": "Question sans titre"
+    },
+    "filters": {
+      "allCategories": "Toutes les categories",
+      "allStatuses": "Tous les statuts",
+      "allVisibility": "Toute visibilite",
+      "standard": "Standard"
+    },
+    "modals": {
+      "addCategoryTitle": "Ajouter une categorie FAQ",
+      "editCategoryTitle": "Modifier la categorie FAQ",
+      "categoryDescription": "Gerez l'icone, l'ordre, le statut et les traductions de cette categorie.",
+      "editItemTitle": "Modifier la FAQ",
+      "duplicateItemTitle": "Dupliquer la FAQ",
+      "addItemTitle": "Ajouter une FAQ",
+      "itemDescription": "Modifiez la categorie, la mise en avant, l'ordre et les traductions de cette FAQ."
+    },
+    "fields": {
+      "slug": "Slug",
+      "name": "nom",
+      "description": "description",
+      "answer": "reponse",
+      "question": "question",
+      "keywords": "mots-cles",
+      "icon": "Icone",
+      "sortOrder": "Ordre",
+      "categoryActive": "La categorie est active",
+      "category": "Categorie",
+      "published": "Publiee",
+      "featured": "En vedette"
+    },
+    "translationFieldLabel": "Nom en {{language}}",
+    "translationDescriptionLabel": "Description en {{language}}",
+    "translationQuestionLabel": "Question en {{language}}",
+    "translationAnswerLabel": "Reponse en {{language}}",
+    "translationKeywordsLabel": "Mots-cles en {{language}}",
+    "placeholders": {
+      "categorySlug": "getting-started",
+      "categoryName": "Nom de la categorie",
+      "categoryDescription": "Description courte de la categorie",
+      "selectCategory": "Selectionnez une categorie",
+      "itemSlug": "how-do-i-get-started",
+      "itemQuestion": "Saisissez la question",
+      "itemAnswer": "Redigez la reponse FAQ...",
+      "itemKeywords": "mot-cle un, mot-cle deux"
+    },
+    "previewTitle": "Apercu",
+    "deleteCategoryTitle": "Supprimer {{name}} ?",
+    "deleteCategoryDescriptionLinked": "{{count}} FAQ sont encore liees a cette categorie.",
+    "deleteCategoryDescription": "Cette categorie sera supprimee definitivement.",
+    "deleteCategoryCascadeDescription": "{{count}} FAQ liees seront egalement supprimees. Cette action est irreversible.",
+    "deleteItemTitle": "Supprimer {{name}} ?",
+    "deleteItemDescription": "Cette FAQ sera supprimee definitivement."
   }
 }

@@ -23,7 +23,8 @@
     "linkPricing": "Pricing",
     "linkContact": "Contact",
     "linkHelp": "Help Center",
-    "backToTop": "Back to top"
+    "backToTop": "Back to top",
+    "linkFaqs": "FAQs"
   },
   "home": {
     "hero": {
@@ -467,5 +468,25 @@
     "description": "Smart Pocket requires an internet connection to sync your financial data. Please check your connection and try again.",
     "retry": "Try Again",
     "helper": "Your data is safe and will sync when you reconnect."
+  },
+  "faqs": {
+    "title": "Frequently Asked Questions",
+    "introduction": "Find quick answers about getting started, everyday workflows, and where to get help in Smart Pocket.",
+    "searchPlaceholder": "Search questions, answers, or keywords",
+    "categoriesLabel": "Browse by category",
+    "resultsLabel": "results",
+    "allCategories": "All categories",
+    "emptyTitle": "No FAQs match your search.",
+    "emptyDescription": "Try another keyword or switch to a different category.",
+    "uncategorized": "General",
+    "featured": "Featured",
+    "supportCtaTitle": "Still need help?",
+    "supportCtaDescription": "Contact the Smart Pocket support team or create a support ticket.",
+    "createTicketAction": "Create Support Ticket",
+    "contactAction": "Contact Smart Pocket",
+    "seoTitle": "Frequently Asked Questions | Smart Pocket",
+    "seoDescription": "Browse Smart Pocket FAQs about setup, transactions, budgets, subscriptions, support, and more.",
+    "ogTitle": "Smart Pocket FAQs",
+    "ogDescription": "Find answers about Smart Pocket features, support, and everyday financial workflows."
   }
 }

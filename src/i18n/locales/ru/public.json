@@ -23,7 +23,8 @@
     "linkPricing": "Тарифы",
     "linkContact": "Контакты",
     "linkHelp": "Центр помощи",
-    "backToTop": "Наверх"
+    "backToTop": "Наверх",
+    "linkFaqs": "FAQ"
   },
   "home": {
     "hero": {
@@ -456,5 +457,25 @@
     "description": "Smart Pocket нужен доступ к Интернету для синхронизации финансовых данных. Проверьте соединение и попробуйте снова.",
     "retry": "Попробовать снова",
     "helper": "Ваши данные в безопасности и синхронизируются после восстановления соединения."
+  },
+  "faqs": {
+    "title": "Часто задаваемые вопросы",
+    "introduction": "Найдите быстрые ответы о начале работы, повседневных сценариях и способах получить помощь в Smart Pocket.",
+    "searchPlaceholder": "Искать вопросы, ответы или ключевые слова",
+    "categoriesLabel": "По категориям",
+    "resultsLabel": "результатов",
+    "allCategories": "Все категории",
+    "emptyTitle": "По вашему запросу ничего не найдено.",
+    "emptyDescription": "Попробуйте другое ключевое слово или выберите другую категорию.",
+    "uncategorized": "Общее",
+    "featured": "Рекомендуем",
+    "supportCtaTitle": "Нужна дополнительная помощь?",
+    "supportCtaDescription": "Свяжитесь с командой поддержки Smart Pocket или создайте тикет.",
+    "createTicketAction": "Создать тикет",
+    "contactAction": "Связаться с Smart Pocket",
+    "seoTitle": "FAQ | Smart Pocket",
+    "seoDescription": "Изучите FAQ Smart Pocket о настройке, транзакциях, бюджетах, подписках и поддержке.",
+    "ogTitle": "FAQ Smart Pocket",
+    "ogDescription": "Найдите ответы о функциях Smart Pocket, поддержке и ежедневных финансовых сценариях."
   }
 }

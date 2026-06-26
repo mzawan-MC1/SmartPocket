@@ -23,7 +23,8 @@
     "linkPricing": "Tarifs",
     "linkContact": "Contact",
     "linkHelp": "Centre d'aide",
-    "backToTop": "Retour en haut"
+    "backToTop": "Retour en haut",
+    "linkFaqs": "FAQ"
   },
   "home": {
     "hero": {
@@ -457,5 +458,25 @@
     "description": "Smart Pocket a besoin d'une connexion Internet pour synchroniser vos donnees financieres. Verifiez votre connexion puis reessayez.",
     "retry": "Reessayer",
     "helper": "Vos donnees sont en securite et seront synchronisees lorsque la connexion reviendra."
+  },
+  "faqs": {
+    "title": "Questions fréquentes",
+    "introduction": "Trouvez des réponses rapides sur la mise en route, les workflows quotidiens et les moyens d'obtenir de l'aide dans Smart Pocket.",
+    "searchPlaceholder": "Rechercher des questions, réponses ou mots-clés",
+    "categoriesLabel": "Parcourir par catégorie",
+    "resultsLabel": "résultats",
+    "allCategories": "Toutes les catégories",
+    "emptyTitle": "Aucune FAQ ne correspond à votre recherche.",
+    "emptyDescription": "Essayez un autre mot-clé ou changez de catégorie.",
+    "uncategorized": "Général",
+    "featured": "En vedette",
+    "supportCtaTitle": "Vous avez encore besoin d'aide ?",
+    "supportCtaDescription": "Contactez l'équipe Smart Pocket ou créez un ticket de support.",
+    "createTicketAction": "Créer un ticket",
+    "contactAction": "Contacter Smart Pocket",
+    "seoTitle": "FAQ | Smart Pocket",
+    "seoDescription": "Parcourez les FAQ Smart Pocket sur la configuration, les transactions, les budgets, les abonnements et le support.",
+    "ogTitle": "FAQ Smart Pocket",
+    "ogDescription": "Trouvez des réponses sur les fonctionnalités Smart Pocket, le support et les workflows financiers du quotidien."
   }
 }

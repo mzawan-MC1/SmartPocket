@@ -14,7 +14,8 @@
     "signOut": "Выйти",
     "signOutSuccess": "Выход выполнен успешно",
     "signOutError": "Не удалось выйти",
-    "userFallback": "Пользователь"
+    "userFallback": "Пользователь",
+    "faqs": "FAQ"
   },
   "notifications": {
     "button": "Уведомления",
@@ -144,7 +145,8 @@
       "people": "Люди",
       "spaces": "Пространства",
       "aiHistory": "История AI",
-      "personalSubscriptions": "Личные подписки"
+      "personalSubscriptions": "Личные подписки",
+      "faqs": "FAQ"
     },
     "expand": "Развернуть боковую панель",
     "collapse": "Свернуть боковую панель",
@@ -169,7 +171,8 @@
     "accounts": "Счета",
     "people": "Люди",
     "aiHistory": "История AI",
-    "personalSubscriptions": "Личные подписки"
+    "personalSubscriptions": "Личные подписки",
+    "faqs": "FAQ"
   },
   "dashboardHeader": {
     "title": "Панель управления",
@@ -1579,7 +1582,10 @@
         "question": "Как переключиться на арабский язык и RTL?",
         "answer": "Используйте переключатель языка в верхней панели и выберите арабский. Интерфейс автоматически перейдет в режим справа налево."
       }
-    }
+    },
+    "faqCtaTitle": "Нужен быстрый ответ?",
+    "faqCtaDescription": "Откройте библиотеку FAQ Smart Pocket с подсказками по настройке, сценариям работы и вопросам поддержки.",
+    "openFaqs": "Открыть FAQ"
   },
   "onboarding": {
     "title": "Настройка Smart Pocket",
@@ -2512,5 +2518,167 @@
       "confirmAction": "Подтвердить",
       "cancelAction": "Отмена"
     }
+  },
+  "adminFaqs": {
+    "title": "FAQ",
+    "description": "Управляйте многоязычными категориями FAQ, опубликованными ответами, порядком и публичным предпросмотром из одного места.",
+    "translationComplete": "Все переводы заполнены.",
+    "languages": {
+      "en": "Английский",
+      "ar": "Арабский",
+      "fr": "Французский",
+      "ru": "Русский"
+    },
+    "iconLabels": {
+      "rocket": "Старт",
+      "sparkles": "Выделенное",
+      "receipt": "Чек",
+      "wallet": "Кошелек",
+      "creditCard": "Карта",
+      "piggyBank": "Бюджет",
+      "repeat": "Повтор",
+      "rotateCcw": "Возмещения",
+      "handshake": "Расчеты",
+      "users": "Люди",
+      "lifeBuoy": "Поддержка",
+      "circleHelp": "Помощь",
+      "bot": "ИИ",
+      "folderKanban": "Общее"
+    },
+    "errors": {
+      "loadCategories": "Не удалось загрузить категории FAQ.",
+      "loadItems": "Не удалось загрузить FAQ.",
+      "refresh": "Не удалось обновить FAQ.",
+      "saveCategory": "Не удалось сохранить категорию FAQ.",
+      "saveItem": "Не удалось сохранить FAQ.",
+      "confirmCategoryDelete": "Подтвердите удаление категории.",
+      "deleteContent": "Не удалось удалить FAQ-контент.",
+      "reorderCategories": "Не удалось изменить порядок категорий.",
+      "reorderItems": "Не удалось изменить порядок FAQ.",
+      "toggleCategory": "Не удалось обновить статус категории.",
+      "toggleItem": "Не удалось обновить статус FAQ."
+    },
+    "toasts": {
+      "categoryCreated": "Категория создана.",
+      "categoryUpdated": "Категория обновлена.",
+      "itemUpdated": "FAQ обновлен.",
+      "itemDuplicated": "FAQ продублирован как черновик.",
+      "itemCreated": "FAQ создан.",
+      "categoryDeleted": "Категория удалена.",
+      "itemDeleted": "FAQ удален.",
+      "categoryDeactivated": "Категория деактивирована.",
+      "categoryActivated": "Категория активирована.",
+      "itemUnpublished": "FAQ переведен в черновик.",
+      "itemPublished": "FAQ опубликован."
+    },
+    "actions": {
+      "addCategory": "Добавить категорию",
+      "addItem": "Добавить FAQ",
+      "moveUp": "Вверх",
+      "moveDown": "Вниз",
+      "deactivateCategory": "Отключить",
+      "activateCategory": "Включить",
+      "edit": "Редактировать",
+      "delete": "Удалить",
+      "refresh": "Обновить",
+      "unpublish": "Снять с публикации",
+      "publish": "Опубликовать",
+      "duplicate": "Дублировать",
+      "preview": "Предпросмотр",
+      "cancel": "Отмена",
+      "createCategory": "Создать категорию",
+      "saveCategory": "Сохранить категорию",
+      "saveItem": "Сохранить FAQ",
+      "createDuplicate": "Создать копию",
+      "createItem": "Создать FAQ",
+      "deleteCategory": "Удалить категорию",
+      "deleteItem": "Удалить FAQ"
+    },
+    "metrics": {
+      "totalCategories": "Всего категорий",
+      "totalCategoriesHint": "Все записи категорий",
+      "publishedFaqs": "Опубликованные FAQ",
+      "publishedFaqsHint": "Видны на публичной странице",
+      "draftFaqs": "Черновики / неактивные",
+      "draftFaqsHint": "Скрыты от посетителей",
+      "missingTranslations": "Отсутствующие переводы",
+      "missingTranslationsHint": "Пробелы в переводах категорий и FAQ"
+    },
+    "sections": {
+      "categoriesTitle": "Категории",
+      "categoriesDescription": "Ищите, меняйте порядок, включайте и редактируйте многоязычный контент категорий.",
+      "itemsTitle": "Элементы FAQ",
+      "itemsDescription": "Ищите, просматривайте, дублируйте, выделяйте и меняйте порядок вопросов внутри каждой категории."
+    },
+    "searchCategoriesPlaceholder": "Поиск категорий...",
+    "searchItemsPlaceholder": "Искать вопросы, ответы или ключевые слова...",
+    "emptyCategoriesTitle": "Категории не найдены.",
+    "emptyCategoriesDescription": "Измените поиск или создайте новую категорию.",
+    "emptyItemsTitle": "По текущим фильтрам ничего не найдено.",
+    "emptyItemsDescription": "Измените фильтры или добавьте новый FAQ.",
+    "status": {
+      "active": "Активна",
+      "inactive": "Неактивна",
+      "published": "Опубликован",
+      "featured": "Рекомендуемый"
+    },
+    "counts": {
+      "categoryItems": "{{count}} FAQ"
+    },
+    "fallbacks": {
+      "noEnglishDescription": "Пока нет описания на английском.",
+      "untitledQuestion": "Вопрос без названия"
+    },
+    "filters": {
+      "allCategories": "Все категории",
+      "allStatuses": "Все статусы",
+      "allVisibility": "Любая видимость",
+      "standard": "Обычный"
+    },
+    "modals": {
+      "addCategoryTitle": "Добавить категорию FAQ",
+      "editCategoryTitle": "Изменить категорию FAQ",
+      "categoryDescription": "Управляйте иконкой, порядком, статусом и переводами этой категории.",
+      "editItemTitle": "Редактировать FAQ",
+      "duplicateItemTitle": "Дублировать FAQ",
+      "addItemTitle": "Добавить FAQ",
+      "itemDescription": "Изменяйте категорию, выделение, порядок и переводы этого FAQ."
+    },
+    "fields": {
+      "slug": "Slug",
+      "name": "название",
+      "description": "описание",
+      "answer": "ответ",
+      "question": "вопрос",
+      "keywords": "ключевые слова",
+      "icon": "Иконка",
+      "sortOrder": "Порядок",
+      "categoryActive": "Категория активна",
+      "category": "Категория",
+      "published": "Опубликован",
+      "featured": "Рекомендуемый"
+    },
+    "translationFieldLabel": "Название на {{language}}",
+    "translationDescriptionLabel": "Описание на {{language}}",
+    "translationQuestionLabel": "Вопрос на {{language}}",
+    "translationAnswerLabel": "Ответ на {{language}}",
+    "translationKeywordsLabel": "Ключевые слова на {{language}}",
+    "placeholders": {
+      "categorySlug": "getting-started",
+      "categoryName": "Название категории",
+      "categoryDescription": "Краткое описание категории",
+      "selectCategory": "Выберите категорию",
+      "itemSlug": "how-do-i-get-started",
+      "itemQuestion": "Введите вопрос",
+      "itemAnswer": "Введите ответ FAQ...",
+      "itemKeywords": "ключевое слово один, ключевое слово два"
+    },
+    "previewTitle": "Предпросмотр",
+    "deleteCategoryTitle": "Удалить {{name}}?",
+    "deleteCategoryDescriptionLinked": "С этой категорией все еще связано {{count}} FAQ.",
+    "deleteCategoryDescription": "Эта категория будет удалена без возможности восстановления.",
+    "deleteCategoryCascadeDescription": "{{count}} связанных FAQ также будут удалены. Это действие необратимо.",
+    "deleteItemTitle": "Удалить {{name}}?",
+    "deleteItemDescription": "Этот FAQ будет удален без возможности восстановления."
   }
 }

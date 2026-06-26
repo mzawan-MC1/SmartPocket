@@ -58,6 +58,8 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
       return t('footer.linkPricing', { defaultValue: fallback });
     case '/contact':
       return t('footer.linkContact', { defaultValue: fallback });
+    case '/faqs':
+      return t('footer.linkFaqs', { defaultValue: fallback });
     case '/privacy':
       return t('footer.privacy', { defaultValue: fallback });
     case '/terms':
