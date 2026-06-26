@@ -102,6 +102,7 @@ export async function middleware(request: NextRequest) {
     '/features',
     '/pricing',
     '/contact',
+    '/faqs',
     '/privacy',
     '/terms',
     '/offline',
