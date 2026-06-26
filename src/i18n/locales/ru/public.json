@@ -465,6 +465,8 @@
     "categoriesLabel": "По категориям",
     "resultsLabel": "результатов",
     "allCategories": "Все категории",
+    "questionSingular": "вопрос",
+    "questionPlural": "вопросов",
     "emptyTitle": "По вашему запросу ничего не найдено.",
     "emptyDescription": "Попробуйте другое ключевое слово или выберите другую категорию.",
     "uncategorized": "Общее",

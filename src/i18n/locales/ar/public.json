@@ -478,6 +478,8 @@
     "categoriesLabel": "تصفح حسب الفئة",
     "resultsLabel": "نتيجة",
     "allCategories": "كل الفئات",
+    "questionSingular": "سؤال",
+    "questionPlural": "أسئلة",
     "emptyTitle": "لا توجد أسئلة مطابقة لبحثك.",
     "emptyDescription": "جرّب كلمة مختلفة أو انتقل إلى فئة أخرى.",
     "uncategorized": "عام",

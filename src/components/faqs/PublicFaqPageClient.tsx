@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, LifeBuoy, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CmsHtml from '@/components/cms/CmsHtml';
@@ -25,19 +25,10 @@ export default function PublicFaqPageClient({
   supportHref: string;
 }) {
   const { t } = useTranslation('public');
-  const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [query, setQuery] = React.useState('');
   const [openSlug, setOpenSlug] = React.useState('');
-
-  const categoryParam = searchParams.get('category') || 'all';
-  const requestedSlug = React.useMemo(() => {
-    if (typeof window === 'undefined') {
-      return '';
-    }
-    return hashToFaqSlug(window.location.hash.replace(/^#/, ''));
-  }, [searchParams]);
+  const [selectedCategory, setSelectedCategory] = React.useState('all');
 
   const itemBySlug = React.useMemo(
     () => new Map(items.map((item) => [item.slug, item] as const)),
@@ -48,26 +39,59 @@ export default function PublicFaqPageClient({
     [categories]
   );
 
-  const resolvedCategory = React.useMemo(() => {
-    if (requestedSlug) {
-      const linkedItem = itemBySlug.get(requestedSlug);
-      if (linkedItem) {
-        return linkedItem.categorySlug;
-      }
-    }
-    return categoryParam;
-  }, [categoryParam, itemBySlug, requestedSlug]);
-
   React.useEffect(() => {
-    if (requestedSlug && itemBySlug.has(requestedSlug)) {
-      setOpenSlug(requestedSlug);
+    if (typeof window === 'undefined') {
+      return;
     }
-  }, [itemBySlug, requestedSlug]);
+
+    const syncFromLocation = () => {
+      const params = new URLSearchParams(window.location.search);
+      const categoryParam = params.get('category') || 'all';
+      const requestedSlug = hashToFaqSlug(window.location.hash.replace(/^#/, ''));
+      const linkedItem = requestedSlug ? itemBySlug.get(requestedSlug) : null;
+      const nextCategory =
+        linkedItem?.categorySlug ||
+        (categoryParam === 'all' || categoryBySlug.has(categoryParam) ? categoryParam : 'all');
+
+      setSelectedCategory(nextCategory);
+      setOpenSlug(linkedItem ? requestedSlug : '');
+    };
+
+    syncFromLocation();
+    window.addEventListener('hashchange', syncFromLocation);
+    window.addEventListener('popstate', syncFromLocation);
+
+    return () => {
+      window.removeEventListener('hashchange', syncFromLocation);
+      window.removeEventListener('popstate', syncFromLocation);
+    };
+  }, [categoryBySlug, itemBySlug]);
+
+  const updateUrlState = React.useCallback(
+    (categorySlug: string, accordionSlug: string) => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      if (categorySlug === 'all') {
+        params.delete('category');
+      } else {
+        params.set('category', categorySlug);
+      }
+
+      const nextQuery = params.toString();
+      const hash = accordionSlug ? `#${formatFaqHash(accordionSlug)}` : '';
+      const nextUrl = `${pathname}${nextQuery ? `?${nextQuery}` : ''}${hash}`;
+      window.history.replaceState(window.history.state, '', nextUrl);
+    },
+    [pathname]
+  );
 
   const filteredItems = React.useMemo(() => {
     const normalizedQuery = normalizeQuery(query);
     return items.filter((item) => {
-      const matchesCategory = resolvedCategory === 'all' || item.categorySlug === resolvedCategory;
+      const matchesCategory = selectedCategory === 'all' || item.categorySlug === selectedCategory;
       if (!matchesCategory) {
         return false;
       }
@@ -82,32 +106,31 @@ export default function PublicFaqPageClient({
         item.keywords.some((keyword) => keyword.toLowerCase().includes(normalizedQuery))
       );
     });
-  }, [items, query, resolvedCategory]);
+  }, [items, query, selectedCategory]);
 
-  const visibleCategorySlugs = React.useMemo(
-    () => new Set(filteredItems.map((item) => item.categorySlug)),
-    [filteredItems]
+  const categoryCounts = React.useMemo(
+    () =>
+      items.reduce<Record<string, number>>((counts, item) => {
+        counts[item.categorySlug] = (counts[item.categorySlug] || 0) + 1;
+        return counts;
+      }, {}),
+    [items]
   );
 
+  const selectedCategoryRecord = selectedCategory === 'all' ? null : categoryBySlug.get(selectedCategory);
+  const resultLabel =
+    filteredItems.length === 1 ? t('faqs.questionSingular') : t('faqs.questionPlural');
+
   const handleCategoryChange = (slug: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (slug === 'all') {
-      params.delete('category');
-    } else {
-      params.set('category', slug);
-    }
-    const nextQuery = params.toString();
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false });
+    setSelectedCategory(slug);
+    setOpenSlug('');
+    updateUrlState(slug, '');
   };
 
   const handleAccordionToggle = (slug: string) => {
     const nextSlug = openSlug === slug ? '' : slug;
     setOpenSlug(nextSlug);
-
-    const params = new URLSearchParams(searchParams.toString());
-    const nextQuery = params.toString();
-    const hash = nextSlug ? `#${formatFaqHash(nextSlug)}` : '';
-    router.replace(`${pathname}${nextQuery ? `?${nextQuery}` : ''}${hash}`, { scroll: false });
+    updateUrlState(selectedCategory, nextSlug);
   };
 
   return (
@@ -134,74 +157,67 @@ export default function PublicFaqPageClient({
         </div>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-sm font-700 uppercase tracking-[0.14em] text-muted-foreground">
-            {t('faqs.categoriesLabel')}
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            {filteredItems.length} {t('faqs.resultsLabel')}
-          </p>
-        </div>
-        <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-full gap-2">
+      <section className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block">
+          <div className="space-y-2">
             <button
               type="button"
               onClick={() => handleCategoryChange('all')}
-              className={`inline-flex min-h-11 items-center justify-center rounded-2xl border px-4 py-2 text-sm font-700 whitespace-nowrap transition-colors ${
-                resolvedCategory === 'all'
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-border bg-card text-foreground hover:border-accent/40'
+              className={`flex min-h-12 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+                selectedCategory === 'all'
+                  ? 'border-accent bg-accent/10 text-accent shadow-sm'
+                  : 'border-transparent text-foreground hover:border-border hover:bg-muted/30'
               }`}
             >
-              {t('faqs.allCategories')}
+              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${selectedCategory === 'all' ? 'bg-accent text-accent-foreground' : 'bg-accent/10 text-accent'}`}>
+                <FaqCategoryIcon icon="circle-help" />
+              </span>
+              <span className="min-w-0 flex-1 text-sm font-700 text-start">
+                {t('faqs.allCategories')}
+              </span>
+              <span
+                dir="ltr"
+                className={`ms-auto inline-flex min-w-8 shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-700 tabular-nums ${
+                  selectedCategory === 'all'
+                    ? 'bg-accent text-accent-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {items.length}
+              </span>
             </button>
             {categories.map((category) => (
               <button
                 key={category.id}
                 type="button"
                 onClick={() => handleCategoryChange(category.slug)}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-700 whitespace-nowrap transition-colors ${
-                  resolvedCategory === category.slug
-                    ? 'border-accent bg-accent/10 text-accent'
-                    : 'border-border bg-card text-foreground hover:border-accent/40'
+                className={`flex min-h-12 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+                  selectedCategory === category.slug
+                    ? 'border-accent bg-accent/10 text-accent shadow-sm'
+                    : 'border-transparent text-foreground hover:border-border hover:bg-muted/30'
                 }`}
               >
-                <FaqCategoryIcon icon={category.icon} size={16} />
-                {category.name}
-                {visibleCategorySlugs.has(category.slug) ? null : (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-700 text-muted-foreground">
-                    0
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block">
-          <div className="space-y-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => handleCategoryChange(category.slug)}
-                className={`flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-start transition-colors ${
-                  resolvedCategory === category.slug
-                    ? 'border-accent bg-accent/10'
-                    : 'border-transparent hover:border-border hover:bg-muted/30'
-                }`}
-              >
-                <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <span
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                    selectedCategory === category.slug
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-accent/10 text-accent'
+                  }`}
+                >
                   <FaqCategoryIcon icon={category.icon} />
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-700 text-foreground">{category.name}</span>
-                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">
-                    {category.description}
-                  </span>
+                <span className="min-w-0 flex-1 text-sm font-700 text-start">
+                  <span className="block truncate">{category.name}</span>
+                </span>
+                <span
+                  dir="ltr"
+                  className={`ms-auto inline-flex min-w-8 shrink-0 items-center justify-center rounded-full px-2.5 py-1 text-xs font-700 tabular-nums ${
+                    selectedCategory === category.slug
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-muted text-muted-foreground'
+                  }`}
+                >
+                  {categoryCounts[category.slug] || 0}
                 </span>
               </button>
             ))}
@@ -209,6 +225,43 @@ export default function PublicFaqPageClient({
         </aside>
 
         <div className="space-y-4">
+          <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:hidden">
+            <label className="block text-sm font-700 text-foreground" htmlFor="faq-category-select">
+              {t('faqs.categoriesLabel')}
+            </label>
+            <div className="mt-3">
+              <select
+                id="faq-category-select"
+                value={selectedCategory}
+                onChange={(event) => handleCategoryChange(event.target.value)}
+                className="h-11 w-full rounded-2xl border border-border bg-background px-4 text-sm font-600 text-foreground outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+              >
+                <option value="all">
+                  {t('faqs.allCategories')} ({items.length})
+                </option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.slug}>
+                    {category.name} ({categoryCounts[category.slug] || 0})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-start justify-between gap-3 rounded-[28px] border border-border bg-card px-5 py-4 shadow-card-sm sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {selectedCategoryRecord?.name || t('faqs.allCategories')}
+              </p>
+              <p className="mt-2 text-lg font-700 text-foreground">
+                <span dir="ltr" className="inline-block tabular-nums">
+                  {filteredItems.length}
+                </span>{' '}
+                {resultLabel}
+              </p>
+            </div>
+          </div>
+
           {filteredItems.length === 0 ? (
             <div className="rounded-[28px] border border-dashed border-border bg-card px-6 py-12 text-center shadow-card-sm">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">

@@ -476,6 +476,8 @@
     "categoriesLabel": "Browse by category",
     "resultsLabel": "results",
     "allCategories": "All categories",
+    "questionSingular": "question",
+    "questionPlural": "questions",
     "emptyTitle": "No FAQs match your search.",
     "emptyDescription": "Try another keyword or switch to a different category.",
     "uncategorized": "General",
