@@ -117,8 +117,8 @@ export default function SupportNewPage() {
             title={t('support.newTicket.detailsTitle')}
             description={t('support.newTicket.detailsDescription')}
           >
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
+            <div className="space-y-4">
+              <div>
                 <label htmlFor="support-subject" className="mb-1.5 block text-sm font-600 text-foreground">
                   {t('support.newTicket.subject')}
                 </label>
@@ -134,77 +134,79 @@ export default function SupportNewPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="support-category" className="mb-1.5 block text-sm font-600 text-foreground">
-                  {t('support.newTicket.category')}
-                </label>
-                <select
-                  id="support-category"
-                  className="input-base"
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                >
-                  {SUPPORT_TICKET_CATEGORIES.map((item) => (
-                    <option key={item} value={item}>
-                      {getCategoryLabel(item)}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="min-w-0">
+                  <label htmlFor="support-category" className="mb-1.5 block text-sm font-600 text-foreground">
+                    {t('support.newTicket.category')}
+                  </label>
+                  <select
+                    id="support-category"
+                    className="input-base"
+                    value={category}
+                    onChange={(event) => setCategory(event.target.value)}
+                  >
+                    {SUPPORT_TICKET_CATEGORIES.map((item) => (
+                      <option key={item} value={item}>
+                        {getCategoryLabel(item)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-0">
+                  <label htmlFor="support-priority" className="mb-1.5 block text-sm font-600 text-foreground">
+                    {t('support.newTicket.priority')}
+                  </label>
+                  <select
+                    id="support-priority"
+                    className="input-base"
+                    value={priority}
+                    onChange={(event) => setPriority(event.target.value)}
+                  >
+                    {SUPPORT_TICKET_PRIORITIES.map((item) => (
+                      <option key={item} value={item}>
+                        {getPriorityLabel(item)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="min-w-0">
+                  <label htmlFor="support-related-path" className="mb-1.5 block text-sm font-600 text-foreground">
+                    {t('support.newTicket.relatedPath')}
+                  </label>
+                  <input
+                    id="support-related-path"
+                    className="input-base"
+                    value={relatedPath}
+                    onChange={(event) => setRelatedPath(event.target.value)}
+                    placeholder={t('support.newTicket.relatedPathPlaceholder')}
+                    maxLength={240}
+                  />
+                </div>
+
+                <div className="min-w-0">
+                  <label htmlFor="support-error-code" className="mb-1.5 block text-sm font-600 text-foreground">
+                    {t('support.newTicket.errorCode')}
+                  </label>
+                  <input
+                    id="support-error-code"
+                    className="input-base"
+                    value={errorCode}
+                    onChange={(event) => setErrorCode(event.target.value)}
+                    placeholder={t('support.newTicket.errorCodePlaceholder')}
+                    maxLength={120}
+                  />
+                </div>
               </div>
 
               <div>
-                <label htmlFor="support-priority" className="mb-1.5 block text-sm font-600 text-foreground">
-                  {t('support.newTicket.priority')}
-                </label>
-                <select
-                  id="support-priority"
-                  className="input-base"
-                  value={priority}
-                  onChange={(event) => setPriority(event.target.value)}
-                >
-                  {SUPPORT_TICKET_PRIORITIES.map((item) => (
-                    <option key={item} value={item}>
-                      {getPriorityLabel(item)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="support-related-path" className="mb-1.5 block text-sm font-600 text-foreground">
-                  {t('support.newTicket.relatedPath')}
-                </label>
-                <input
-                  id="support-related-path"
-                  className="input-base"
-                  value={relatedPath}
-                  onChange={(event) => setRelatedPath(event.target.value)}
-                  placeholder={t('support.newTicket.relatedPathPlaceholder')}
-                  maxLength={240}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="support-error-code" className="mb-1.5 block text-sm font-600 text-foreground">
-                  {t('support.newTicket.errorCode')}
-                </label>
-                <input
-                  id="support-error-code"
-                  className="input-base"
-                  value={errorCode}
-                  onChange={(event) => setErrorCode(event.target.value)}
-                  placeholder={t('support.newTicket.errorCodePlaceholder')}
-                  maxLength={120}
-                />
-              </div>
-
-              <div className="md:col-span-2">
                 <label htmlFor="support-message" className="mb-1.5 block text-sm font-600 text-foreground">
                   {t('support.newTicket.message')}
                 </label>
                 <textarea
                   id="support-message"
-                  className="input-base min-h-[180px] resize-y text-start"
+                  className="input-base min-h-[230px] resize-y text-start"
                   dir={isRTL ? 'rtl' : 'ltr'}
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
