@@ -119,6 +119,15 @@ type TranslationPair<TLanguage extends string, TValue> = {
   language_code: TLanguage;
 } & TValue;
 
+function hasFaqTranslationContent(value: Record<string, unknown>) {
+  return Object.values(value).some((entry) => {
+    if (Array.isArray(entry)) {
+      return entry.some((item) => typeof item === 'string' && item.trim());
+    }
+    return typeof entry === 'string' && entry.trim().length > 0;
+  });
+}
+
 const FAQ_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const FAQ_UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -291,7 +300,11 @@ export function resolveFaqTranslation<TValue extends Record<string, unknown>, TL
   translations: Array<TranslationPair<TLanguage, TValue>>,
   language: TLanguage
 ) {
-  const exact = translations.find((translation) => translation.language_code === language);
+  const exact = translations.find(
+    (translation) =>
+      translation.language_code === language &&
+      hasFaqTranslationContent(translation as Record<string, unknown>)
+  );
   if (exact) {
     return {
       translation: exact,
@@ -300,7 +313,11 @@ export function resolveFaqTranslation<TValue extends Record<string, unknown>, TL
     };
   }
 
-  const english = translations.find((translation) => translation.language_code === 'en');
+  const english = translations.find(
+    (translation) =>
+      translation.language_code === 'en' &&
+      hasFaqTranslationContent(translation as Record<string, unknown>)
+  );
   if (english) {
     return {
       translation: english,
@@ -309,7 +326,9 @@ export function resolveFaqTranslation<TValue extends Record<string, unknown>, TL
     };
   }
 
-  const first = translations[0];
+  const first = translations.find((translation) =>
+    hasFaqTranslationContent(translation as Record<string, unknown>)
+  );
   return first
     ? {
         translation: first,
@@ -374,5 +393,13 @@ export function hashToFaqSlug(value: string | null | undefined) {
 }
 
 export function normalizeFaqLanguage(value: unknown, fallback: SupportedLanguage = 'en'): FaqLanguageCode {
-  return isFaqLanguageCode(value) ? value : fallback;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase().replace(/_/g, '-');
+    const baseLanguage = normalized.split('-')[0];
+    if (isFaqLanguageCode(baseLanguage)) {
+      return baseLanguage;
+    }
+  }
+
+  return isFaqLanguageCode(fallback) ? fallback : 'en';
 }

@@ -70,6 +70,8 @@ type DeleteState =
     }
   | null;
 
+type AdminFaqView = 'categories' | 'items';
+
 const EMPTY_CATEGORY_FORM = normalizeFaqCategoryInput({
   slug: '',
   icon: 'circle-help',
@@ -146,7 +148,7 @@ function MetricCard({
   hint: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 shadow-card-sm">
+    <div className="h-full rounded-2xl border border-border bg-card p-4 shadow-card-sm">
       <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
       <p className="mt-2 text-3xl font-800 text-foreground">{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
@@ -175,6 +177,7 @@ export default function FaqAdminClient({
   const [itemCategoryFilter, setItemCategoryFilter] = React.useState('all');
   const [itemStatusFilter, setItemStatusFilter] = React.useState<'all' | 'active' | 'inactive'>('all');
   const [itemFeaturedFilter, setItemFeaturedFilter] = React.useState<'all' | 'featured' | 'standard'>('all');
+  const [activeView, setActiveView] = React.useState<AdminFaqView>('categories');
   const [categoryModal, setCategoryModal] = React.useState<CategoryModalState>({
     open: false,
     mode: 'create',
@@ -321,6 +324,7 @@ export default function FaqAdminClient({
   }, [itemCategoryFilter, itemFeaturedFilter, itemSearch, itemStatusFilter, items]);
 
   const openCreateCategory = () => {
+    setActiveView('categories');
     setCategoryModal({
       open: true,
       mode: 'create',
@@ -334,6 +338,7 @@ export default function FaqAdminClient({
   };
 
   const openEditCategory = (category: AdminFaqCategory) => {
+    setActiveView('categories');
     setCategoryModal({
       open: true,
       mode: 'edit',
@@ -350,6 +355,7 @@ export default function FaqAdminClient({
   };
 
   const openCreateItem = () => {
+    setActiveView('items');
     setItemModal({
       open: true,
       mode: 'create',
@@ -367,6 +373,7 @@ export default function FaqAdminClient({
   };
 
   const openEditItem = (item: AdminFaqItem) => {
+    setActiveView('items');
     setItemModal({
       open: true,
       mode: 'edit',
@@ -384,6 +391,7 @@ export default function FaqAdminClient({
   };
 
   const openDuplicateItem = (item: AdminFaqItem) => {
+    setActiveView('items');
     setItemModal({
       open: true,
       mode: 'duplicate',
@@ -726,7 +734,7 @@ export default function FaqAdminClient({
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           label={tp('adminFaqs.metrics.totalCategories', 'Total Categories')}
           value={metrics.totalCategories}
@@ -749,8 +757,69 @@ export default function FaqAdminClient({
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="space-y-4">
+      <div className="rounded-[28px] border border-border bg-card p-2 shadow-card-sm">
+        <div role="tablist" aria-label={tp('adminFaqs.title', 'FAQs')} className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            role="tab"
+            id="faq-admin-tab-categories"
+            aria-selected={activeView === 'categories'}
+            aria-controls="faq-admin-panel-categories"
+            onClick={() => setActiveView('categories')}
+            className={`flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+              activeView === 'categories'
+                ? 'border-accent bg-accent/10 text-accent shadow-sm'
+                : 'border-transparent text-foreground hover:border-border hover:bg-muted/30'
+            }`}
+          >
+            <span className="text-sm font-700">{tp('adminFaqs.sections.categoriesTitle', 'Categories')}</span>
+            <span
+              dir="ltr"
+              className={`inline-flex min-w-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-700 tabular-nums ${
+                activeView === 'categories'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {categories.length}
+            </span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="faq-admin-tab-items"
+            aria-selected={activeView === 'items'}
+            aria-controls="faq-admin-panel-items"
+            onClick={() => setActiveView('items')}
+            className={`flex min-h-12 items-center justify-between rounded-2xl border px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+              activeView === 'items'
+                ? 'border-accent bg-accent/10 text-accent shadow-sm'
+                : 'border-transparent text-foreground hover:border-border hover:bg-muted/30'
+            }`}
+          >
+            <span className="text-sm font-700">{tp('adminFaqs.sections.itemsTitle', 'FAQ Items')}</span>
+            <span
+              dir="ltr"
+              className={`inline-flex min-w-8 items-center justify-center rounded-full px-2.5 py-1 text-xs font-700 tabular-nums ${
+                activeView === 'items'
+                  ? 'bg-accent text-accent-foreground'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {items.length}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {activeView === 'categories' ? (
+        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+          <section
+            id="faq-admin-panel-categories"
+            role="tabpanel"
+            aria-labelledby="faq-admin-tab-categories"
+            className="space-y-4"
+          >
           <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -861,9 +930,15 @@ export default function FaqAdminClient({
               </div>
             )}
           </div>
-        </section>
-
-        <section className="space-y-4">
+          </section>
+        </div>
+      ) : (
+        <section
+          id="faq-admin-panel-items"
+          role="tabpanel"
+          aria-labelledby="faq-admin-tab-items"
+          className="space-y-4"
+        >
           <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
@@ -1008,7 +1083,7 @@ export default function FaqAdminClient({
             )}
           </div>
         </section>
-      </div>
+      )}
 
       <Modal
         isOpen={categoryModal.open}

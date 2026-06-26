@@ -124,6 +124,7 @@ export default async function FaqPage() {
             categories={faqData.categories}
             items={faqData.items}
             supportHref={user ? '/support/new' : '/contact'}
+            initialLanguage={initialI18nState.language}
           />
         </div>
       </div>

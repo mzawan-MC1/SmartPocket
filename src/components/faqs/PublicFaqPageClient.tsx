@@ -2,14 +2,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ChevronDown, LifeBuoy, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CmsHtml from '@/components/cms/CmsHtml';
 import SearchField from '@/components/ui/SearchField';
 import FaqCategoryIcon from '@/components/faqs/FaqCategoryIcon';
 import type { PublicFaqCategory, PublicFaqItem } from '@/lib/faqs';
-import { formatFaqHash, hashToFaqSlug } from '@/lib/faqs';
+import { formatFaqHash, hashToFaqSlug, normalizeFaqLanguage } from '@/lib/faqs';
 
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase();
@@ -19,16 +19,23 @@ export default function PublicFaqPageClient({
   categories,
   items,
   supportHref,
+  initialLanguage,
 }: {
   categories: PublicFaqCategory[];
   items: PublicFaqItem[];
   supportHref: string;
+  initialLanguage: string;
 }) {
-  const { t } = useTranslation('public');
+  const { t, i18n } = useTranslation('public');
   const pathname = usePathname();
+  const router = useRouter();
   const [query, setQuery] = React.useState('');
   const [openSlug, setOpenSlug] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('all');
+  const requestedRefreshLanguageRef = React.useRef<string | null>(null);
+  const activeLanguage = normalizeFaqLanguage(i18n.resolvedLanguage || i18n.language || initialLanguage);
+  const initialFaqLanguage = normalizeFaqLanguage(initialLanguage);
+  const isRtl = activeLanguage === 'ar';
 
   const itemBySlug = React.useMemo(
     () => new Map(items.map((item) => [item.slug, item] as const)),
@@ -121,6 +128,20 @@ export default function PublicFaqPageClient({
   const resultLabel =
     filteredItems.length === 1 ? t('faqs.questionSingular') : t('faqs.questionPlural');
 
+  React.useEffect(() => {
+    if (activeLanguage === initialFaqLanguage) {
+      requestedRefreshLanguageRef.current = null;
+      return;
+    }
+
+    if (requestedRefreshLanguageRef.current === activeLanguage) {
+      return;
+    }
+
+    requestedRefreshLanguageRef.current = activeLanguage;
+    router.refresh();
+  }, [activeLanguage, initialFaqLanguage, router]);
+
   const handleCategoryChange = (slug: string) => {
     setSelectedCategory(slug);
     setOpenSlug('');
@@ -157,8 +178,8 @@ export default function PublicFaqPageClient({
         </div>
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block">
+      <section className={`grid gap-6 ${isRtl ? 'lg:grid-cols-[minmax(0,1fr)_280px]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'}`}>
+        <aside className={`hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block ${isRtl ? 'lg:order-2' : ''}`}>
           <div className="space-y-2">
             <button
               type="button"
@@ -224,7 +245,7 @@ export default function PublicFaqPageClient({
           </div>
         </aside>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${isRtl ? 'lg:order-1' : ''}`}>
           <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:hidden">
             <label className="block text-sm font-700 text-foreground" htmlFor="faq-category-select">
               {t('faqs.categoriesLabel')}
@@ -318,10 +339,12 @@ export default function PublicFaqPageClient({
                       id={`${formatFaqHash(item.slug)}-answer`}
                       className="border-t border-border px-5 py-5 sm:px-6"
                     >
-                      <CmsHtml
-                        html={item.answerHtml}
-                        className="prose prose-slate max-w-none text-sm leading-7 text-muted-foreground [&_a]:text-accent [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground"
-                      />
+                      <div dir={isRtl ? 'rtl' : 'ltr'}>
+                        <CmsHtml
+                          html={item.answerHtml}
+                          className="prose prose-slate max-w-none text-sm leading-7 text-muted-foreground [&_a]:text-accent [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_ol]:ps-6 [&_p]:text-start [&_ul]:ps-6"
+                        />
+                      </div>
                     </div>
                   ) : null}
                 </article>
