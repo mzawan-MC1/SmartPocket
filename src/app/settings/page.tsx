@@ -125,7 +125,7 @@ export default function SettingsPage() {
   const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
   const { user } = useAuth();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, isRTL } = useLanguage();
   const { data: referenceData } = useClientReferenceData();
   const snapshot = referenceData?.snapshot;
   const locale = getIntlLocale(language);
@@ -710,33 +710,34 @@ export default function SettingsPage() {
                 notificationItems.map((item) => {
                   const enabled = Boolean(notificationPreferences[item.key]);
                   return (
-                    <div key={item.key} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border">
-                      <div>
+                    <div key={item.key} className="flex items-start gap-3 rounded-xl border border-border p-3 sm:items-center">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-600 text-foreground">{item.label}</p>
                         <p className="text-xs text-muted-foreground">{item.desc}</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleNotificationPreference(item.key)}
-                        className={`relative h-5 w-10 rounded-full transition-colors ${
-                          enabled ? 'bg-accent' : 'bg-muted'
-                        }`}
-                        aria-label={t('settings.notifications.toggle', { ns: 'portal', label: item.label })}
-                        aria-pressed={enabled}
-                      >
-                        <span
-                          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all duration-200 ${
-                            enabled ? 'start-5' : 'start-0.5'
+                      <div className="shrink-0 pt-0.5 sm:pt-0">
+                        <button
+                          type="button"
+                          onClick={() => toggleNotificationPreference(item.key)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 overflow-hidden rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 focus-visible:ring-offset-card ${
+                            enabled ? 'bg-accent' : 'bg-muted'
                           }`}
-                        />
-                      </button>
+                          aria-label={t('settings.notifications.toggle', { ns: 'portal', label: item.label })}
+                          aria-pressed={enabled}
+                        >
+                          <span
+                            className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-all duration-200 ${
+                              enabled
+                                ? (isRTL ? 'left-0.5' : 'left-[1.375rem]')
+                                : (isRTL ? 'left-[1.375rem]' : 'left-0.5')
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
                   );
                 })
               )}
-              <div className="rounded-xl border border-dashed border-border bg-muted/20 p-3 text-xs text-muted-foreground">
-                {t('settings.notifications.availabilityNote', { ns: 'portal' })}
-              </div>
               <div className="flex justify-end">
                 <button
                   type="button"

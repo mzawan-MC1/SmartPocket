@@ -1472,8 +1472,7 @@
       "loadFailedTitle": "Les paramètres de notification n'ont pas pu être chargés.",
       "saved": "Paramètres de notification enregistrés avec succès",
       "saveFailed": "Impossible d'enregistrer les paramètres de notification",
-      "saveAction": "Enregistrer les notifications",
-      "availabilityNote": "Les notifications par e-mail et push navigateur ne sont pas encore implémentées, elles ne sont donc pas affichées comme actives.",
+      "saveAction": "Enregistrer les parametres de notification",
       "toggle": "Basculer {{label}}",
       "items": {
         "inApp": {

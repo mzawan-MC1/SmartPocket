@@ -1928,7 +1928,6 @@
       "saved": "Notification settings saved successfully",
       "saveFailed": "Failed to save notification settings",
       "saveAction": "Save Notification Settings",
-      "availabilityNote": "Email and browser push notifications are not implemented yet, so they are not shown as active settings.",
       "toggle": "Toggle {{label}}",
       "items": {
         "inApp": {
