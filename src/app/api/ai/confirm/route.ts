@@ -10,6 +10,7 @@ import type {
   SmartEntrySubscriptionSelectionOption,
 } from '@/lib/ai-types';
 import { applySmartEntryReviewToInstruction, getSmartEntryMissingFields, isAccountEligibleForPurpose, isManagedPurpose } from '@/lib/smart-entry';
+import { requireTextAiAccess } from '@/lib/subscription/server';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACCOUNT_TYPES = new Set(['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other']);
@@ -491,6 +492,21 @@ export async function POST(req: NextRequest) {
     if (!admin) {
       console.error('[AI Confirm] Missing service-role Supabase client');
       return jsonWithCookies({ error: 'Confirmation is temporarily unavailable.' }, 500, cookieMutations);
+    }
+
+    const access = await requireTextAiAccess(user.id, { skipUsageCheck: true });
+    if (!access.ok) {
+      return jsonWithCookies(
+        {
+          success: false,
+          status: 'failed',
+          requestId,
+          error: access.error,
+          errorMessage: access.error.message,
+        },
+        access.error.code === 'usage_exhausted' ? 429 : 403,
+        cookieMutations
+      );
     }
 
     const { data: aiRequest, error: fetchError } = await admin

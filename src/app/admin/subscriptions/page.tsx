@@ -14,6 +14,7 @@ import {
   normalizeDiscountPercent,
   normalizeWholeMoneyAmount,
 } from '@/lib/subscription/pricing';
+import AiTopUpAdminPanel from '@/components/subscription/AiTopUpAdminPanel';
 
 
 interface Plan {
@@ -262,7 +263,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
           ['managed_people_enabled', 'Managed People'],
           ['shared_spaces_enabled', 'Shared Spaces'],
           ['standard_reports_enabled', 'Standard Reports'],
-          ['family_reports_enabled', 'Family Reports'],
+          ['family_reports_enabled', 'Family Reports (Not implemented)'],
           ['is_active', 'Active'],
         ] as [keyof Plan, string][]).map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-2 bg-secondary/50 rounded-lg px-3 py-2">
@@ -291,7 +292,7 @@ export default function AdminSubscriptionsPage() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'plans' | 'users' | 'stats'>('plans');
+  const [activeTab, setActiveTab] = useState<'plans' | 'users' | 'stats' | 'topups' | 'topupOrders'>('plans');
   const [promoUserId, setPromoUserId] = useState('');
   const [promoCredits, setPromoCredits] = useState(50);
   const [promoNotes, setPromoNotes] = useState('');
@@ -511,6 +512,8 @@ export default function AdminSubscriptionsPage() {
     { id: 'plans', label: 'Plans', icon: CreditCard },
     { id: 'users', label: 'Subscribers', icon: Users },
     { id: 'stats', label: 'Usage Stats', icon: BarChart3 },
+    { id: 'topups', label: 'AI Top-Ups', icon: Gift },
+    { id: 'topupOrders', label: 'Top-Up Orders', icon: CreditCard },
   ] as const;
 
   return (
@@ -905,6 +908,14 @@ export default function AdminSubscriptionsPage() {
                   Stats reflect current billing month. Estimated AI cost is based on provider token usage recorded in the credit ledger.
                 </p>
               </div>
+            )}
+
+            {activeTab === 'topups' && (
+              <AiTopUpAdminPanel mode="products" />
+            )}
+
+            {activeTab === 'topupOrders' && (
+              <AiTopUpAdminPanel mode="orders" />
             )}
           </>
         )}

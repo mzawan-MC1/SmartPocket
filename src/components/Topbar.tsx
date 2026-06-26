@@ -213,14 +213,16 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   <CircleHelp size={14} className="text-muted-foreground" />
                   {t('topbar.faqs', { ns: 'portal' })}
                 </Link>
-                <Link
-                  href="/ai-history"
-                  className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
-                  onClick={() => setUserMenuOpen(false)}
-                >
-                  <Sparkles size={14} className="text-muted-foreground" />
-                  {t('topbar.aiHistory', { ns: 'portal' })}
-                </Link>
+                {subscriptionSummary?.entitlements?.aiHistory ? (
+                  <Link
+                    href="/ai-history"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <Sparkles size={14} className="text-muted-foreground" />
+                    {t('topbar.aiHistory', { ns: 'portal' })}
+                  </Link>
+                ) : null}
                 {isAdmin && (
                   <Link
                     href="/admin"

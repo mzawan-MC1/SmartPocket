@@ -10,6 +10,7 @@ import {
   loadExecutionContextServer,
 } from '@/lib/ai-execution-server';
 import type { ParsedFinancialInstruction } from '@/lib/ai-types';
+import { requireTextAiAccess } from '@/lib/subscription/server';
 
 // ─── Server-side Supabase clients ─────────────────────────────────────────────
 
@@ -245,6 +246,20 @@ export async function POST(req: NextRequest) {
         httpStatus: 409,
         category: 'state',
       });
+    }
+
+    const access = await requireTextAiAccess(user.id, { skipUsageCheck: true });
+    if (!access.ok) {
+      return NextResponse.json(
+        {
+          success: false,
+          status: 'failed',
+          requestId,
+          error: access.error,
+          errorMessage: access.error.message,
+        },
+        { status: access.error.code === 'usage_exhausted' ? 429 : 403 }
+      );
     }
 
     // ── 6. Validate server-stored parsed_result ───────────────────────────

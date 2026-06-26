@@ -11,6 +11,10 @@ import {
   getRecurringPurchaseSuggestions,
   getSpendingByItem,
 } from '@/lib/transaction-item-insights';
+import {
+  requireReceiptIntelligenceAccess,
+  requireTextAiAccess,
+} from '@/lib/subscription/server';
 
 type ReceiptInsightSource = {
   transactionDate: string;
@@ -134,6 +138,24 @@ export async function POST(request: NextRequest) {
       success: false,
       errorMessage: rt(requestLanguage, 'receiptInsights.ai.unauthorized', 'Unauthorized'),
     }, { status: 401 });
+  }
+
+  const receiptAccess = await requireReceiptIntelligenceAccess(user.id, { skipUsageCheck: true });
+  if (!receiptAccess.ok) {
+    return NextResponse.json({
+      success: false,
+      error: receiptAccess.error,
+      errorMessage: receiptAccess.error.message,
+    }, { status: receiptAccess.error.code === 'usage_exhausted' ? 429 : 403 });
+  }
+
+  const textAccess = await requireTextAiAccess(user.id);
+  if (!textAccess.ok) {
+    return NextResponse.json({
+      success: false,
+      error: textAccess.error,
+      errorMessage: textAccess.error.message,
+    }, { status: textAccess.error.code === 'usage_exhausted' ? 429 : 403 });
   }
 
   const body = await request.json().catch(() => ({}));

@@ -1,7 +1,16 @@
 import type {
+  AiTopUpAdminAdjustmentResponse,
+  AiTopUpAdminCatalogResponse,
+  AiTopUpAdminOrdersResponse,
+  AiTopUpCatalogResponse,
   BillingCheckoutResponse,
   BillingMutationResponse,
   BillingPortalResponse,
+  AiTopUpCheckoutResponse,
+  AiTopUpHistoryResponse,
+  AiTopUpProduct,
+  AiTopUpQuoteResponse,
+  AiTopUpSelectionInput,
   SubscriptionPlansResponse,
   SubscriptionSummaryResponse,
   SupportedBillingInterval,
@@ -78,4 +87,117 @@ export async function resumeBillingSubscription() {
   });
 
   return parseJsonResponse<BillingMutationResponse>(response);
+}
+
+export async function fetchAiTopUpCatalog() {
+  const response = await fetch('/api/subscription/topups/catalog', {
+    cache: 'no-store',
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error('topup_catalog_load_failed');
+  }
+
+  return parseJsonResponse<AiTopUpCatalogResponse>(response);
+}
+
+export async function quoteAiTopUpSelection(lines: AiTopUpSelectionInput[]) {
+  const response = await fetch('/api/subscription/topups/quote', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ lines }),
+  });
+
+  return parseJsonResponse<AiTopUpQuoteResponse>(response);
+}
+
+export async function createAiTopUpCheckout(lines: AiTopUpSelectionInput[]) {
+  const response = await fetch('/api/subscription/topups/checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ lines }),
+  });
+
+  return parseJsonResponse<AiTopUpCheckoutResponse>(response);
+}
+
+export async function fetchAiTopUpHistory() {
+  const response = await fetch('/api/subscription/topups/history', {
+    cache: 'no-store',
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error('topup_history_failed');
+  }
+
+  return parseJsonResponse<AiTopUpHistoryResponse>(response);
+}
+
+export async function fetchAdminAiTopUpCatalog() {
+  const response = await fetch('/api/admin/subscriptions/topups/products', {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('admin_topup_catalog_failed');
+  }
+
+  return parseJsonResponse<AiTopUpAdminCatalogResponse>(response);
+}
+
+export async function saveAdminAiTopUpProduct(product: Partial<AiTopUpProduct>) {
+  const response = await fetch('/api/admin/subscriptions/topups/products', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(product),
+  });
+
+  if (!response.ok) {
+    throw new Error('admin_topup_product_save_failed');
+  }
+
+  return parseJsonResponse<{ product: AiTopUpProduct }>(response);
+}
+
+export async function fetchAdminAiTopUpOrders() {
+  const response = await fetch('/api/admin/subscriptions/topups/orders', {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error('admin_topup_orders_failed');
+  }
+
+  return parseJsonResponse<AiTopUpAdminOrdersResponse>(response);
+}
+
+export async function createAdminAiTopUpAdjustment(input: {
+  userId: string;
+  resourceType: Exclude<AiTopUpProduct['resourceType'], 'bundle'>;
+  quantityDelta: number;
+  reason: string;
+}) {
+  const response = await fetch('/api/admin/subscriptions/topups/adjustments', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(input),
+  });
+
+  return parseJsonResponse<AiTopUpAdminAdjustmentResponse>(response);
 }

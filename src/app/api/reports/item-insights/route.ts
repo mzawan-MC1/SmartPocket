@@ -5,6 +5,7 @@ import {
   getItemInsightsSnapshot,
   getReceiptDashboardInsights,
 } from '@/lib/transaction-item-insights';
+import { requireStandardReportsAccess } from '@/lib/subscription/server';
 
 function parseBoolean(value: string | null) {
   return value === 'true';
@@ -44,6 +45,18 @@ export async function GET(request: NextRequest) {
         success: false,
         errorMessage: 'Unauthorized',
       }, { status: 401 }),
+      cookieMutations
+    );
+  }
+
+  const access = await requireStandardReportsAccess(user.id, { skipUsageCheck: true });
+  if (!access.ok) {
+    return applySupabaseCookies(
+      NextResponse.json({
+        success: false,
+        error: access.error,
+        errorMessage: access.error.message,
+      }, { status: access.error.code === 'usage_exhausted' ? 429 : 403 }),
       cookieMutations
     );
   }

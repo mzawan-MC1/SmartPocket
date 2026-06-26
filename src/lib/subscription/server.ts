@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendTransactionalEmail } from '@/lib/email/transactional';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { getBillingAvailability, getBillingProvider } from '@/lib/billing/provider';
+import { processVerifiedTopUpBillingEvent } from '@/lib/subscription/topups-server';
 import {
   buildPlanPricingDetails,
 } from '@/lib/subscription/pricing';
@@ -13,15 +14,21 @@ import type {
   VerifiedBillingEvent,
 } from '@/lib/billing/types';
 import type {
+  AiTopUpBalanceSummary,
   BillingActionError,
   BillingCheckoutResponse,
   BillingMutationResponse,
   BillingPortalResponse,
   PublicSubscriptionPlan,
+  SubscriptionEntitlementError,
+  SubscriptionEntitlementErrorCode,
+  SubscriptionFeatureCode,
+  SubscriptionTopUpBalances,
   SubscriptionSummary,
   SubscriptionSummaryResponse,
   SubscriptionPlansResponse,
   SupportedBillingInterval,
+  UsageBalanceSnapshot,
 } from '@/lib/subscription/types';
 
 type EnsureSummaryResult = {
@@ -102,12 +109,22 @@ type RawUsageCycleRow = {
   credits_reserved: number | null;
   credits_refunded: number | null;
   voice_seconds_used: number | null;
+  voice_seconds_reserved: number | null;
   requests_today: number | null;
   last_request_date: string | null;
   receipt_extractions_allocated: number | null;
   receipt_extractions_consumed: number | null;
   receipt_extractions_reserved: number | null;
   receipt_extractions_refunded: number | null;
+};
+
+type RawTopUpBalanceRow = {
+  resource_type: 'text_credit' | 'voice_second' | 'receipt_extraction';
+  available_quantity: number | null;
+  reserved_quantity: number | null;
+  total_purchased_quantity: number | null;
+  total_consumed_quantity: number | null;
+  updated_at: string | null;
 };
 
 type AuthenticatedCheckoutInput = {
@@ -122,6 +139,17 @@ type AuthenticatedCheckoutInput = {
 const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
   hasSubscription: false,
   status: 'inactive',
+  planActive: false,
+  subscriptionActive: false,
+  trialExpired: false,
+  textAiEnabled: false,
+  voiceAiEnabled: false,
+  aiHistoryEnabled: false,
+  aiHistoryRetentionDays: 0,
+  managedPeopleEnabled: false,
+  sharedSpacesEnabled: false,
+  standardReportsEnabled: false,
+  familyReportsEnabled: false,
   creditsAllocated: 0,
   creditsConsumed: 0,
   creditsReserved: 0,
@@ -135,7 +163,295 @@ const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
   receiptExtractionsReserved: 0,
   receiptExtractionsRefunded: 0,
   receiptExtractionsRemaining: 0,
+  topUpBalances: {
+    textCredit: {
+      resourceType: 'text_credit',
+      availableQuantity: 0,
+      reservedQuantity: 0,
+      totalPurchasedQuantity: 0,
+      totalConsumedQuantity: 0,
+      updatedAt: null,
+    },
+    voiceSecond: {
+      resourceType: 'voice_second',
+      availableQuantity: 0,
+      reservedQuantity: 0,
+      totalPurchasedQuantity: 0,
+      totalConsumedQuantity: 0,
+      updatedAt: null,
+    },
+    receiptExtraction: {
+      resourceType: 'receipt_extraction',
+      availableQuantity: 0,
+      reservedQuantity: 0,
+      totalPurchasedQuantity: 0,
+      totalConsumedQuantity: 0,
+      updatedAt: null,
+    },
+  },
+  usageAvailability: {
+    textCredit: { includedRemaining: 0, purchasedRemaining: 0, totalAvailable: 0 },
+    voiceSecond: { includedRemaining: 0, purchasedRemaining: 0, totalAvailable: 0 },
+    receiptExtraction: { includedRemaining: 0, purchasedRemaining: 0, totalAvailable: 0 },
+  },
+  entitlements: {
+    planActive: false,
+    subscriptionActive: false,
+    trialExpired: false,
+    textAi: false,
+    voiceAi: false,
+    receiptIntelligence: false,
+    aiHistory: false,
+    managedPeople: false,
+    sharedSpaces: false,
+    standardReports: false,
+    familyReports: false,
+    aiHistoryRetentionDays: 0,
+  },
 };
+
+function buildTopUpBalanceSummary(
+  resourceType: AiTopUpBalanceSummary['resourceType'],
+  row?: RawTopUpBalanceRow | null
+): AiTopUpBalanceSummary {
+  return {
+    resourceType,
+    availableQuantity: Math.max(0, row?.available_quantity ?? 0),
+    reservedQuantity: Math.max(0, row?.reserved_quantity ?? 0),
+    totalPurchasedQuantity: Math.max(0, row?.total_purchased_quantity ?? 0),
+    totalConsumedQuantity: Math.max(0, row?.total_consumed_quantity ?? 0),
+    updatedAt: row?.updated_at ?? null,
+  };
+}
+
+function buildTopUpBalances(rows: RawTopUpBalanceRow[] | null | undefined): SubscriptionTopUpBalances {
+  const rowMap = new Map((rows ?? []).map((row) => [row.resource_type, row] as const));
+  return {
+    textCredit: buildTopUpBalanceSummary('text_credit', rowMap.get('text_credit')),
+    voiceSecond: buildTopUpBalanceSummary('voice_second', rowMap.get('voice_second')),
+    receiptExtraction: buildTopUpBalanceSummary('receipt_extraction', rowMap.get('receipt_extraction')),
+  };
+}
+
+function buildUsageAvailability(args: {
+  includedRemaining: number;
+  purchasedRemaining: number;
+}): UsageBalanceSnapshot {
+  const includedRemaining = Math.max(0, args.includedRemaining);
+  const purchasedRemaining = Math.max(0, args.purchasedRemaining);
+  return {
+    includedRemaining,
+    purchasedRemaining,
+    totalAvailable: includedRemaining + purchasedRemaining,
+  };
+}
+
+function isSummaryActiveStatus(status: SubscriptionSummary['status']) {
+  return status === 'active' || status === 'trialing';
+}
+
+function featureEnabled(summary: SubscriptionSummary, feature: SubscriptionFeatureCode) {
+  switch (feature) {
+    case 'text_ai':
+      return Boolean(summary.textAiEnabled);
+    case 'voice_ai':
+      return Boolean(summary.voiceAiEnabled);
+    case 'receipt_intelligence':
+      return Boolean(summary.receiptIntelligenceEnabled);
+    case 'ai_history':
+      return Boolean(summary.aiHistoryEnabled);
+    case 'managed_people':
+      return Boolean(summary.managedPeopleEnabled);
+    case 'shared_spaces':
+      return Boolean(summary.sharedSpacesEnabled);
+    case 'standard_reports':
+      return Boolean(summary.standardReportsEnabled);
+    case 'family_reports':
+      return Boolean(summary.familyReportsEnabled);
+    default:
+      return false;
+  }
+}
+
+function getUsageSnapshotForFeature(summary: SubscriptionSummary, feature: SubscriptionFeatureCode) {
+  switch (feature) {
+    case 'text_ai':
+      return summary.usageAvailability?.textCredit;
+    case 'voice_ai':
+      return summary.usageAvailability?.voiceSecond;
+    case 'receipt_intelligence':
+      return summary.usageAvailability?.receiptExtraction;
+    default:
+      return undefined;
+  }
+}
+
+function buildEntitlementError(args: {
+  summary: SubscriptionSummary;
+  feature: SubscriptionFeatureCode;
+  message: string;
+  code: SubscriptionEntitlementErrorCode;
+}): SubscriptionEntitlementError {
+  const usage = getUsageSnapshotForFeature(args.summary, args.feature);
+  return {
+    code: args.code,
+    feature: args.feature,
+    message: args.message,
+    resource: args.feature === 'text_ai'
+      ? 'text_credit'
+      : args.feature === 'voice_ai'
+        ? 'voice_second'
+        : args.feature === 'receipt_intelligence'
+          ? 'receipt_extraction'
+          : undefined,
+    includedRemaining: usage?.includedRemaining,
+    topUpRemaining: usage?.purchasedRemaining,
+    totalAvailable: usage?.totalAvailable,
+    canBuyTopUp: (
+      args.feature === 'text_ai'
+      || args.feature === 'voice_ai'
+      || args.feature === 'receipt_intelligence'
+    )
+      && Boolean(args.summary.planActive)
+      && Boolean(args.summary.subscriptionActive)
+      && !Boolean(args.summary.trialExpired),
+  };
+}
+
+function isTrialExpired(summary: SubscriptionSummary) {
+  return Boolean(summary.trialExpired);
+}
+
+function isSubscriptionActive(summary: SubscriptionSummary) {
+  return Boolean(summary.planActive)
+    && Boolean(summary.subscriptionActive)
+    && !isTrialExpired(summary);
+}
+
+function buildEntitlements(summary: SubscriptionSummary) {
+  return {
+    planActive: Boolean(summary.planActive),
+    subscriptionActive: Boolean(summary.subscriptionActive),
+    trialExpired: Boolean(summary.trialExpired),
+    textAi: Boolean(summary.textAiEnabled) && isSubscriptionActive(summary),
+    voiceAi: Boolean(summary.voiceAiEnabled) && isSubscriptionActive(summary),
+    receiptIntelligence: Boolean(summary.receiptIntelligenceEnabled) && isSubscriptionActive(summary),
+    aiHistory: Boolean(summary.aiHistoryEnabled) && isSubscriptionActive(summary),
+    managedPeople: Boolean(summary.managedPeopleEnabled) && isSubscriptionActive(summary),
+    sharedSpaces: Boolean(summary.sharedSpacesEnabled) && isSubscriptionActive(summary),
+    standardReports: Boolean(summary.standardReportsEnabled) && isSubscriptionActive(summary),
+    familyReports: Boolean(summary.familyReportsEnabled) && isSubscriptionActive(summary),
+    aiHistoryRetentionDays: Math.max(0, summary.aiHistoryRetentionDays ?? 0),
+  };
+}
+
+function evaluateFeatureAccess(
+  summary: SubscriptionSummary,
+  feature: SubscriptionFeatureCode,
+  options?: { skipUsageCheck?: boolean }
+): SubscriptionEntitlementError | null {
+  if (!summary.hasSubscription) {
+    return buildEntitlementError({
+      summary,
+      feature,
+      code: 'subscription_inactive',
+      message: 'An active subscription is required for this feature.',
+    });
+  }
+
+  if (!summary.planActive) {
+    return buildEntitlementError({
+      summary,
+      feature,
+      code: 'plan_inactive',
+      message: 'This plan is inactive.',
+    });
+  }
+
+  if (isTrialExpired(summary)) {
+    return buildEntitlementError({
+      summary,
+      feature,
+      code: 'trial_expired',
+      message: 'Your trial has expired.',
+    });
+  }
+
+  if (!summary.subscriptionActive || !isSummaryActiveStatus(summary.status)) {
+    return buildEntitlementError({
+      summary,
+      feature,
+      code: 'subscription_inactive',
+      message: 'Your subscription is inactive.',
+    });
+  }
+
+  if (!featureEnabled(summary, feature)) {
+    return buildEntitlementError({
+      summary,
+      feature,
+      code: 'feature_not_in_plan',
+      message: 'This feature is not included in your current plan.',
+    });
+  }
+
+  if (!options?.skipUsageCheck) {
+    const usage = getUsageSnapshotForFeature(summary, feature);
+    if (usage && usage.totalAvailable <= 0) {
+      return buildEntitlementError({
+        summary,
+        feature,
+        code: 'usage_exhausted',
+        message: 'The available usage for this feature has been exhausted.',
+      });
+    }
+  }
+
+  return null;
+}
+
+async function loadTopUpBalances(
+  admin: SupabaseClient,
+  userId: string
+): Promise<SubscriptionTopUpBalances> {
+  const { data, error } = await admin
+    .from('ai_topup_balances')
+    .select(`
+      resource_type,
+      available_quantity,
+      reserved_quantity,
+      total_purchased_quantity,
+      total_consumed_quantity,
+      updated_at
+    `)
+    .eq('user_id', userId);
+
+  if (error) {
+    if (error.code === '42P01') {
+      return buildTopUpBalances(null);
+    }
+    throw error;
+  }
+
+  return buildTopUpBalances((data as RawTopUpBalanceRow[] | null) ?? null);
+}
+
+type SubscriptionAccessResult =
+  | { ok: true; summary: SubscriptionSummary }
+  | { ok: false; summary: SubscriptionSummary; error: SubscriptionEntitlementError };
+
+async function requireFeatureAccess(
+  userId: string,
+  feature: SubscriptionFeatureCode,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  const { summary } = await ensureUserSubscriptionSummary(userId);
+  const error = evaluateFeatureAccess(summary, feature, options);
+  if (error) {
+    return { ok: false, summary, error };
+  }
+  return { ok: true, summary };
+}
 
 function createSubscriptionAdminClient(): SupabaseClient | null {
   return createAdminClient();
@@ -456,14 +772,23 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     || null;
 
   const usageCycle = await loadCurrentUsageCycle(admin, userId, preferredCycleStart);
+  const topUpBalances = await loadTopUpBalances(admin, userId);
   const trialDaysRemaining = calculateTrialDaysRemaining(subscription.trial_ends_at);
+  const trialExpired = subscription.status === 'trialing'
+    && Boolean(subscription.trial_ends_at)
+    && new Date(subscription.trial_ends_at as string).getTime() < Date.now();
   const effectiveStatus = normalizeSummaryStatus(
     billingSubscription?.status || subscription.status,
     subscription.trial_ends_at
   );
+  const planActive = Boolean(planRow.is_active);
+  const subscriptionActive = effectiveStatus === 'active' || effectiveStatus === 'trialing';
   const cycleStart = usageCycle?.cycle_start ?? preferredCycleStart ?? null;
   const cycleEnd = usageCycle?.cycle_end ?? billingSubscription?.current_period_end ?? null;
   const receiptIntelligenceEnabled = Boolean(planRow.receipt_intelligence_enabled);
+  const creditsAllocated = usageCycle?.credits_allocated ?? 0;
+  const creditsConsumed = usageCycle?.credits_consumed ?? 0;
+  const creditsReserved = usageCycle?.credits_reserved ?? 0;
   const receiptUsed = usageCycle?.receipt_extractions_consumed ?? 0;
   const receiptReserved = usageCycle?.receipt_extractions_reserved ?? 0;
   const receiptIncluded = receiptIntelligenceEnabled
@@ -479,8 +804,22 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     monthlyBasePriceAmount: monthlyBasePlan?.price_amount ?? planRow.price_amount,
     yearlyDiscountPercent: monthlyBasePlan?.yearly_discount_percent ?? planRow.yearly_discount_percent ?? 0,
   });
+  const usageAvailability = {
+    textCredit: buildUsageAvailability({
+      includedRemaining: creditsAllocated - creditsConsumed - creditsReserved,
+      purchasedRemaining: topUpBalances.textCredit.availableQuantity,
+    }),
+    voiceSecond: buildUsageAvailability({
+      includedRemaining: (planRow.monthly_voice_seconds ?? 0) - (usageCycle?.voice_seconds_used ?? 0) - (usageCycle?.voice_seconds_reserved ?? 0),
+      purchasedRemaining: topUpBalances.voiceSecond.availableQuantity,
+    }),
+    receiptExtraction: buildUsageAvailability({
+      includedRemaining: receiptIncluded - receiptUsed - receiptReserved,
+      purchasedRemaining: topUpBalances.receiptExtraction.availableQuantity,
+    }),
+  };
 
-  return {
+  const baseSummary: SubscriptionSummary = {
     hasSubscription: true,
     planId: planRow.id,
     planName: planRow.plan_name,
@@ -516,9 +855,17 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     textAiEnabled: Boolean(planRow.text_ai_enabled),
     voiceAiEnabled: Boolean(planRow.voice_ai_enabled),
     aiHistoryEnabled: Boolean(planRow.ai_history_enabled),
-    creditsAllocated: usageCycle?.credits_allocated ?? 0,
-    creditsConsumed: usageCycle?.credits_consumed ?? 0,
-    creditsReserved: usageCycle?.credits_reserved ?? 0,
+    aiHistoryRetentionDays: planRow.ai_history_retention_days ?? 0,
+    managedPeopleEnabled: Boolean(planRow.managed_people_enabled),
+    sharedSpacesEnabled: Boolean(planRow.shared_spaces_enabled),
+    standardReportsEnabled: Boolean(planRow.standard_reports_enabled),
+    familyReportsEnabled: Boolean(planRow.family_reports_enabled),
+    planActive,
+    subscriptionActive,
+    trialExpired,
+    creditsAllocated,
+    creditsConsumed,
+    creditsReserved,
     creditsRefunded: usageCycle?.credits_refunded ?? 0,
     voiceSecondsUsed: usageCycle?.voice_seconds_used ?? 0,
     requestsToday: usageCycle?.requests_today ?? 0,
@@ -527,6 +874,13 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     receiptExtractionsReserved: receiptReserved,
     receiptExtractionsRefunded: usageCycle?.receipt_extractions_refunded ?? 0,
     receiptExtractionsRemaining: Math.max(0, receiptIncluded - receiptUsed - receiptReserved),
+    topUpBalances,
+    usageAvailability,
+  };
+
+  return {
+    ...baseSummary,
+    entitlements: buildEntitlements(baseSummary),
   };
 }
 
@@ -696,6 +1050,55 @@ export async function ensureUserSubscriptionSummaryWithUserClient(
   _userSupabase: SupabaseClient
 ): Promise<EnsureSummaryResult> {
   return ensureUserSubscriptionSummary(userId);
+}
+
+export async function requireTextAiAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'text_ai', options);
+}
+
+export async function requireVoiceAiAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'voice_ai', options);
+}
+
+export async function requireReceiptIntelligenceAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'receipt_intelligence', options);
+}
+
+export async function requireAiHistoryAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'ai_history', options);
+}
+
+export async function requireManagedPeopleAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'managed_people', options);
+}
+
+export async function requireSharedSpacesAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'shared_spaces', options);
+}
+
+export async function requireStandardReportsAccess(
+  userId: string,
+  options?: { skipUsageCheck?: boolean }
+): Promise<SubscriptionAccessResult> {
+  return requireFeatureAccess(userId, 'standard_reports', options);
 }
 
 function buildBillingError(code: BillingActionError['code'], message: string): BillingActionError {
@@ -1300,6 +1703,24 @@ export async function processVerifiedBillingEvent(event: VerifiedBillingEvent) {
   }
 
   try {
+    const topUpProcessed = await processVerifiedTopUpBillingEvent(event);
+    if (topUpProcessed.handled) {
+      await markBillingEvent(admin, event.provider, event.eventId, {
+        processing_status: topUpProcessed.ok ? 'processed' : 'failed',
+        processed_at: new Date().toISOString(),
+        error_message: topUpProcessed.ok ? null : topUpProcessed.error.message,
+      });
+
+      if (!topUpProcessed.ok) {
+        return {
+          ok: false as const,
+          error: topUpProcessed.error,
+        };
+      }
+
+      return { ok: true as const };
+    }
+
     await applyVerifiedSubscriptionState(admin, event);
     await markBillingEvent(admin, event.provider, event.eventId, {
       processing_status: 'processed',

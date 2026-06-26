@@ -21,6 +21,7 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 import { toast } from 'sonner';
 import Icon from '@/components/ui/AppIcon';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 
 
 const ENTRY_TYPE_STYLES: Record<string, { color: string; sign: '+' | '-' }> = {
@@ -310,7 +311,8 @@ export default function PersonDetailPage() {
 
   return (
     <AppLayout activeRoute="/people">
-      <div className="space-y-5 pb-6">
+      <SubscriptionFeatureGate feature="managed_people">
+        <div className="space-y-5 pb-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -626,22 +628,23 @@ export default function PersonDetailPage() {
         )}
       </div>
 
-      {showTxnModal && (
-        <QuickTransactionModal
-          person={person}
-          onClose={() => setShowTxnModal(false)}
-          onSuccess={loadData}
+        {showTxnModal && (
+          <QuickTransactionModal
+            person={person}
+            onClose={() => setShowTxnModal(false)}
+            onSuccess={loadData}
+          />
+        )}
+        <AddTransactionModal
+          isOpen={showRepaymentModal}
+          onClose={() => setShowRepaymentModal(false)}
+          initialMode="single"
+          initialTransactionType="expense"
+          initialEntryKind="loan_repayment"
+          preselectedPersonId={person.id}
+          onSaved={loadData}
         />
-      )}
-      <AddTransactionModal
-        isOpen={showRepaymentModal}
-        onClose={() => setShowRepaymentModal(false)}
-        initialMode="single"
-        initialTransactionType="expense"
-        initialEntryKind="loan_repayment"
-        preselectedPersonId={person.id}
-        onSaved={loadData}
-      />
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

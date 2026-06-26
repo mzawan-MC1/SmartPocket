@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const ROLE_COLORS: Record<SpaceRole, string> = {
@@ -246,7 +247,8 @@ export default function SpacesPage() {
 
   return (
     <AppLayout activeRoute="/spaces">
-      <div className="page-section pb-6">
+      <SubscriptionFeatureGate feature="shared_spaces">
+        <div className="page-section pb-6">
         <PageHeader
           title={t('spaces.title', { ns: 'portal' })}
           description={t('spaces.description', { ns: 'portal' })}
@@ -644,6 +646,7 @@ export default function SpacesPage() {
           </div>
         </div>
       )}
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

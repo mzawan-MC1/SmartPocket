@@ -10,6 +10,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 
 const RELATIONSHIPS = [
@@ -122,7 +123,8 @@ export default function ManagedPeoplePage() {
 
   return (
     <AppLayout activeRoute="/people">
-      <div className="page-section pb-6 max-[480px]:gap-3">
+      <SubscriptionFeatureGate feature="managed_people">
+        <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
           title={t('people.title')}
           description={t('people.description')}
@@ -353,12 +355,13 @@ export default function ManagedPeoplePage() {
             ))}
           </div>
         )}
-      </div>
+        </div>
 
-      {/* Close menu on outside click */}
-      {openMenuId && (
-        <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
-      )}
+        {/* Close menu on outside click */}
+        {openMenuId && (
+          <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+        )}
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

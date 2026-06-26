@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 
 
 interface SidebarProps {
@@ -36,9 +38,14 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const router = useRouter();
   const { pathname, isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const { branding } = usePlatformSettings();
+  const { summary } = useSubscriptionSummary();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const isReportsRoute = pathname === '/reports' || pathname.startsWith('/reports/');
   const [reportsExpanded, setReportsExpanded] = React.useState(isReportsRoute);
+  const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
+  const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
+  const canUseSharedSpaces = hasSubscriptionFeature(summary, 'shared_spaces');
+  const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
 
   React.useEffect(() => {
     if (isReportsRoute) {
@@ -65,14 +72,20 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       items: [
         { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
         { id: 'nav-settlements', label: t('sidebar.nav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
-        { id: 'nav-people', label: t('sidebar.nav.people', { ns: 'portal' }), icon: Users, href: '/people' },
-        { id: 'nav-spaces', label: t('sidebar.nav.spaces', { ns: 'portal' }), icon: Home, href: '/spaces' },
+        ...(canUseManagedPeople
+          ? [{ id: 'nav-people', label: t('sidebar.nav.people', { ns: 'portal' }), icon: Users, href: '/people' }]
+          : []),
+        ...(canUseSharedSpaces
+          ? [{ id: 'nav-spaces', label: t('sidebar.nav.spaces', { ns: 'portal' }), icon: Home, href: '/spaces' }]
+          : []),
       ],
     },
     {
       heading: t('sidebar.sections.reports', { ns: 'portal' }),
       items: [
-        { id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' },
+        ...(canUseAiHistory
+          ? [{ id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' }]
+          : []),
       ],
     },
     {
@@ -168,6 +181,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   };
 
   const renderReportsSection = () => {
+    if (!canUseStandardReports) {
+      return null;
+    }
+
     const parentActive = isRouteActive('/reports');
     const parentPending = isRoutePending('/reports');
     const ReportsIcon = BarChart3;

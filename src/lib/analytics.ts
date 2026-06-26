@@ -7,6 +7,7 @@ export type MarketingEventName =
   | 'plan_selected'
   | 'checkout_started'
   | 'subscription_completed'
+  | 'topup_completed'
   | 'login'
   | 'contact_submitted';
 

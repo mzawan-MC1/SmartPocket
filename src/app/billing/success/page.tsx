@@ -9,7 +9,7 @@ import AppLayout from '@/components/AppLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
-import { fetchSubscriptionSummary } from '@/lib/subscription/client';
+import { fetchAiTopUpHistory, fetchSubscriptionSummary } from '@/lib/subscription/client';
 import { trackMarketingEvent } from '@/lib/analytics';
 
 export default function BillingSuccessPage() {
@@ -19,12 +19,22 @@ export default function BillingSuccessPage() {
   const [confirmed, setConfirmed] = React.useState(false);
   const hasTrackedCompletionRef = React.useRef(false);
 
+  const source = searchParams.get('source');
+  const isTopUpFlow = source === 'topup';
+  const orderId = searchParams.get('orderId');
   const expectedPlanCode = searchParams.get('plan');
   const expectedInterval = searchParams.get('interval');
 
   const refresh = React.useCallback(async () => {
     setLoading(true);
     try {
+      if (isTopUpFlow) {
+        const payload = await fetchAiTopUpHistory();
+        const matchedOrder = payload?.orders.find((order) => order.id === orderId);
+        setConfirmed(Boolean(matchedOrder && matchedOrder.status === 'paid'));
+        return;
+      }
+
       const payload = await fetchSubscriptionSummary();
       const summary = payload?.summary;
       const matched = Boolean(
@@ -37,7 +47,7 @@ export default function BillingSuccessPage() {
     } finally {
       setLoading(false);
     }
-  }, [expectedInterval, expectedPlanCode]);
+  }, [expectedInterval, expectedPlanCode, isTopUpFlow, orderId]);
 
   React.useEffect(() => {
     void refresh();
@@ -54,19 +64,20 @@ export default function BillingSuccessPage() {
     }
 
     hasTrackedCompletionRef.current = true;
-    trackMarketingEvent('subscription_completed', {
+    trackMarketingEvent(isTopUpFlow ? 'topup_completed' : 'subscription_completed', {
       plan_code: expectedPlanCode || undefined,
       billing_interval: expectedInterval || undefined,
+      order_id: orderId || undefined,
     });
-  }, [confirmed, expectedInterval, expectedPlanCode]);
+  }, [confirmed, expectedInterval, expectedPlanCode, isTopUpFlow, orderId]);
 
   return (
     <AppLayout activeRoute="/settings">
       <div className="page-section page-shell-readable">
         <PageHeader
-          title={t('subscriptionBilling.paymentSuccessful', { ns: 'portal' })}
-          description={t('subscriptionBilling.paymentSuccessfulDescription', { ns: 'portal' })}
-          badge={<StatusBadge status={confirmed ? 'success' : 'pending'} label={confirmed ? t('subscriptionBilling.status.active', { ns: 'portal' }) : t('subscriptionBilling.waitingForPaymentConfirmation', { ns: 'portal' })} />}
+          title={t(isTopUpFlow ? 'subscriptionTopUps.paymentSuccessful' : 'subscriptionBilling.paymentSuccessful', { ns: 'portal' })}
+          description={t(isTopUpFlow ? 'subscriptionTopUps.paymentSuccessfulDescription' : 'subscriptionBilling.paymentSuccessfulDescription', { ns: 'portal' })}
+          badge={<StatusBadge status={confirmed ? 'success' : 'pending'} label={confirmed ? t(isTopUpFlow ? 'subscriptionTopUps.statuses.paid' : 'subscriptionBilling.status.active', { ns: 'portal' }) : t(isTopUpFlow ? 'subscriptionTopUps.waitingForPaymentConfirmation' : 'subscriptionBilling.waitingForPaymentConfirmation', { ns: 'portal' })} />}
         />
 
         <SectionCard>
@@ -78,8 +89,8 @@ export default function BillingSuccessPage() {
             )}
             <p className="max-w-xl text-sm text-muted-foreground">
               {confirmed
-                ? t('subscriptionBilling.paymentConfirmedMessage', { ns: 'portal' })
-                : t('subscriptionBilling.waitingForPaymentConfirmation', { ns: 'portal' })}
+                ? t(isTopUpFlow ? 'subscriptionTopUps.paymentConfirmedMessage' : 'subscriptionBilling.paymentConfirmedMessage', { ns: 'portal' })
+                : t(isTopUpFlow ? 'subscriptionTopUps.waitingForPaymentConfirmation' : 'subscriptionBilling.waitingForPaymentConfirmation', { ns: 'portal' })}
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <button type="button" onClick={() => void refresh()} className="btn-secondary">
@@ -90,7 +101,7 @@ export default function BillingSuccessPage() {
                 {t('subscriptionBilling.returnToDashboard', { ns: 'portal' })}
               </Link>
               <Link href="/settings/subscription" className="btn-secondary">
-                {t('subscriptionBilling.manageSubscription', { ns: 'portal' })}
+                {t(isTopUpFlow ? 'subscriptionTopUps.returnToTopUps' : 'subscriptionBilling.manageSubscription', { ns: 'portal' })}
               </Link>
             </div>
           </div>

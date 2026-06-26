@@ -6,6 +6,8 @@ import { CheckCircle, XCircle, Clock, AlertTriangle, Home, ArrowRight, Loader2 }
 import { useTranslation } from 'react-i18next';
 import { getInvitationByToken, respondToInvitation, type SpaceInvitation } from '@/lib/spaces';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 
 function mapInvitationError(
   message: string,
@@ -37,6 +39,7 @@ export default function InvitationPage() {
   const params = useParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { summary } = useSubscriptionSummary();
   const token = params.token as string;
 
   const [invitation, setInvitation] = useState<SpaceInvitation | null>(null);
@@ -66,7 +69,8 @@ export default function InvitationPage() {
     invitation.status === 'pending' &&
     !isExpired &&
     user &&
-    !emailMismatch;
+    !emailMismatch &&
+    hasSubscriptionFeature(summary, 'shared_spaces');
 
   const handleRespond = async (response: 'accepted' | 'declined') => {
     if (!invitation) return;
@@ -229,6 +233,15 @@ export default function InvitationPage() {
             {t('spaces.invitationPage.emailMismatch', { ns: 'portal', invitedEmail: invitation.email, currentEmail: user?.email })}
           </div>
         )}
+
+        {user && !hasSubscriptionFeature(summary, 'shared_spaces') && invitation.status === 'pending' && !isExpired ? (
+          <div className="bg-warning-soft rounded-xl p-4 text-sm text-warning font-600 text-center">
+            {t('featureGate.description', {
+              ns: 'portal',
+              feature: t('featureGate.features.sharedSpaces', { ns: 'portal' }),
+            })}
+          </div>
+        ) : null}
 
         {error && (
           <div className="bg-negative-soft rounded-xl p-3 text-sm text-negative font-500 text-center">

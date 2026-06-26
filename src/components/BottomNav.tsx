@@ -5,6 +5,8 @@ import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, Trendi
 import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { useQuickActions, type QuickActionId } from '@/components/quick-actions/QuickActionsContext';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 interface BottomNavProps {
   activeRoute: string;
 }
@@ -15,6 +17,12 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   const { t } = useTranslation(['common', 'portal']);
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const quickActionsController = useQuickActions();
+  const { summary } = useSubscriptionSummary();
+  const canUseTextAi = hasSubscriptionFeature(summary, 'text_ai');
+  const canUseVoiceAi = hasSubscriptionFeature(summary, 'voice_ai');
+  const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
+  const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
+  const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
 
   const navItems = [
     { id: 'bottom-dashboard', label: t('nav.dashboard', { ns: 'common' }), icon: LayoutDashboard, href: '/dashboard' },
@@ -29,8 +37,12 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     { id: 'qa-income', label: t('bottomNav.income', { ns: 'portal' }), icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
     { id: 'qa-transfer', label: t('bottomNav.transfer', { ns: 'portal' }), icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', action: 'transfer' as QuickActionId },
     { id: 'qa-account', label: t('bottomNav.account', { ns: 'portal' }), icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', action: 'account' as QuickActionId },
-    { id: 'qa-person', label: t('bottomNav.person', { ns: 'portal' }), icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', action: 'person' as QuickActionId },
-    { id: 'qa-reimb', label: t('bottomNav.reimbursement', { ns: 'portal' }), icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', action: 'reimbursement' as QuickActionId },
+    ...(canUseManagedPeople
+      ? [
+          { id: 'qa-person', label: t('bottomNav.person', { ns: 'portal' }), icon: Users, color: 'bg-accent/10 text-accent border border-accent/20', action: 'person' as QuickActionId },
+          { id: 'qa-reimb', label: t('bottomNav.reimbursement', { ns: 'portal' }), icon: RotateCcw, color: 'bg-purple-100 text-purple-700 border border-purple-200', action: 'reimbursement' as QuickActionId },
+        ]
+      : []),
   ];
 
   const moreItems = [
@@ -38,12 +50,18 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     { id: 'more-recurring', label: t('bottomNav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
     { id: 'more-personal-subscriptions', label: t('bottomNav.personalSubscriptions', { ns: 'portal' }), icon: CreditCard, href: '/personal-subscriptions' },
     { id: 'more-categories', label: t('bottomNav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
-    { id: 'more-reports', label: t('bottomNav.reports', { ns: 'portal' }), icon: BarChart3, href: '/reports' },
-    { id: 'more-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' },
+    ...(canUseStandardReports
+      ? [
+          { id: 'more-reports', label: t('bottomNav.reports', { ns: 'portal' }), icon: BarChart3, href: '/reports' },
+          { id: 'more-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' },
+        ]
+      : []),
     { id: 'more-accounts', label: t('bottomNav.accounts', { ns: 'portal' }), icon: Wallet, href: '/financial-accounts' },
     { id: 'more-faqs', label: t('bottomNav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
     { id: 'more-support', label: t('bottomNav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
-    { id: 'more-people', label: t('bottomNav.people', { ns: 'portal' }), icon: Users, href: '/people' },
+    ...(canUseManagedPeople
+      ? [{ id: 'more-people', label: t('bottomNav.people', { ns: 'portal' }), icon: Users, href: '/people' }]
+      : []),
     { id: 'more-reimbursements', label: t('bottomNav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
     { id: 'more-settlements', label: t('bottomNav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
   ];
@@ -78,26 +96,30 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
             </div>
             <div className="max-h-[min(60vh,28rem)] space-y-3 overflow-y-auto px-4 py-4 scrollbar-thin">
               <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => {
-                    quickActionsController?.openQuickAction('smart_entry');
-                    setQuickAddOpen(false);
-                  }}
-                  className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
-                >
-                  <Sparkles size={20} />
-                  <span className="text-xs font-700">{t('bottomNav.smartEntry', { ns: 'portal' })}</span>
-                </button>
-                <button
-                  onClick={() => {
-                    quickActionsController?.openQuickAction('voice_entry');
-                    setQuickAddOpen(false);
-                  }}
-                  className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
-                >
-                  <Mic size={20} />
-                  <span className="text-xs font-700">{t('bottomNav.voiceEntry', { ns: 'portal' })}</span>
-                </button>
+                {canUseTextAi ? (
+                  <button
+                    onClick={() => {
+                      quickActionsController?.openQuickAction('smart_entry');
+                      setQuickAddOpen(false);
+                    }}
+                    className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
+                  >
+                    <Sparkles size={20} />
+                    <span className="text-xs font-700">{t('bottomNav.smartEntry', { ns: 'portal' })}</span>
+                  </button>
+                ) : null}
+                {canUseVoiceAi ? (
+                  <button
+                    onClick={() => {
+                      quickActionsController?.openQuickAction('voice_entry');
+                      setQuickAddOpen(false);
+                    }}
+                    className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
+                  >
+                    <Mic size={20} />
+                    <span className="text-xs font-700">{t('bottomNav.voiceEntry', { ns: 'portal' })}</span>
+                  </button>
+                ) : null}
               </div>
               <div className="border-t border-border pt-3">
                 <div className="grid grid-cols-2 gap-2.5">
@@ -165,28 +187,30 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                   </Link>
                 );
               })}
-              <div className="mt-2 border-t border-border pt-2">
-                <Link
-                  href="/ai-history"
-                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-500 transition-colors ${
-                    isRouteActive('/ai-history') ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
-                  }`}
-                  onClick={(event) => {
-                    const shouldNavigate = handleNavigationIntent('/ai-history', event);
-                    if (shouldNavigate) {
-                      setMoreOpen(false);
+              {canUseAiHistory ? (
+                <div className="mt-2 border-t border-border pt-2">
+                  <Link
+                    href="/ai-history"
+                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-500 transition-colors ${
+                      isRouteActive('/ai-history') ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
+                    }`}
+                    onClick={(event) => {
+                      const shouldNavigate = handleNavigationIntent('/ai-history', event);
+                      if (shouldNavigate) {
+                        setMoreOpen(false);
+                      }
+                    }}
+                    aria-current={isRouteActive('/ai-history') ? 'page' : undefined}
+                    aria-busy={isRoutePending('/ai-history') ? 'true' : undefined}
+                  >
+                    {isRoutePending('/ai-history')
+                      ? <Loader2 size={16} className="animate-spin text-accent" />
+                      : <Sparkles size={16} className="text-accent" />
                     }
-                  }}
-                  aria-current={isRouteActive('/ai-history') ? 'page' : undefined}
-                  aria-busy={isRoutePending('/ai-history') ? 'true' : undefined}
-                >
-                  {isRoutePending('/ai-history')
-                    ? <Loader2 size={16} className="animate-spin text-accent" />
-                    : <Sparkles size={16} className="text-accent" />
-                  }
-                  {t('bottomNav.aiHistory', { ns: 'portal' })}
-                </Link>
-              </div>
+                    {t('bottomNav.aiHistory', { ns: 'portal' })}
+                  </Link>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>

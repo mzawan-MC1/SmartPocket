@@ -19,6 +19,7 @@ import AppLayout from '@/components/AppLayout';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import AiTopUpPurchaseSection from '@/components/subscription/AiTopUpPurchaseSection';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
@@ -611,6 +612,8 @@ export default function SubscriptionSettingsPage() {
                 </div>
               </div>
             </SectionCard>
+
+            <AiTopUpPurchaseSection summary={summary} />
 
             {!billing?.providerConfigured ? (
               <div className="rounded-3xl border border-warning/30 bg-warning-soft/20 px-4 py-3">

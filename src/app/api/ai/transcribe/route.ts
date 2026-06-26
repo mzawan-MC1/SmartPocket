@@ -426,6 +426,7 @@ export async function POST(req: NextRequest) {
       p_user_id: user.id,
       p_request_type: 'voice',
       p_idempotency_key: idempotencyKey,
+      p_expected_voice_seconds: roundedDurationSeconds,
     });
 
     const reserveData = reserveResult as {

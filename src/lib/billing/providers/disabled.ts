@@ -5,6 +5,7 @@ import type {
   CancelSubscriptionInput,
   CheckoutSessionResult,
   CreateCheckoutInput,
+  CreateOneTimeCheckoutInput,
   CustomerPortalInput,
   CustomerPortalResult,
   ResumeSubscriptionInput,
@@ -20,6 +21,10 @@ export class DisabledBillingProvider implements BillingProvider {
   readonly configured = false;
 
   async createCheckoutSession(_input: CreateCheckoutInput): Promise<CheckoutSessionResult> {
+    throw providerUnavailableError();
+  }
+
+  async createOneTimeCheckoutSession(_input: CreateOneTimeCheckoutInput): Promise<CheckoutSessionResult> {
     throw providerUnavailableError();
   }
 

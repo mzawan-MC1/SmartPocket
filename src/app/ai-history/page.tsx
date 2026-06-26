@@ -8,6 +8,7 @@ import { Mic, Type, CheckCircle, RotateCcw, Trash2, ChevronDown, ChevronUp, Load
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 
@@ -295,39 +296,40 @@ export default function AIHistoryPage() {
 
   return (
     <AppLayout activeRoute={pathname}>
-      <div className="page-shell-readable page-section">
-        <PageHeader
-          title={t('aiHistory.title')}
-          description={t('aiHistory.description')}
-          badge={<StatusBadge status="ai" label={t('aiHistory.badge')} />}
-          compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
-          actionsClassName="w-full sm:w-auto"
-          actions={
-            <button
-              onClick={loadHistory}
-              className="btn-secondary max-[480px]:w-full"
-              aria-label={t('aiHistory.refresh')}
-            >
-              <RotateCcw size={16} />
-              {t('aiHistory.refresh')}
-            </button>
-          }
-        />
+      <SubscriptionFeatureGate feature="ai_history">
+        <div className="page-shell-readable page-section">
+          <PageHeader
+            title={t('aiHistory.title')}
+            description={t('aiHistory.description')}
+            badge={<StatusBadge status="ai" label={t('aiHistory.badge')} />}
+            compact
+            className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+            actionsClassName="w-full sm:w-auto"
+            actions={
+              <button
+                onClick={loadHistory}
+                className="btn-secondary max-[480px]:w-full"
+                aria-label={t('aiHistory.refresh')}
+              >
+                <RotateCcw size={16} />
+                {t('aiHistory.refresh')}
+              </button>
+            }
+          />
 
-        {requests.length === 0 ? (
-          <div className="card p-12 text-center">
-            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-              <Sparkles size={24} className="text-muted-foreground" />
+          {requests.length === 0 ? (
+            <div className="card p-12 text-center">
+              <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                <Sparkles size={24} className="text-muted-foreground" />
+              </div>
+              <p className="text-sm font-600 text-foreground mb-2">{t('aiHistory.emptyTitle')}</p>
+              <p className="text-sm text-muted-foreground">
+                {t('aiHistory.emptyDescription')}
+              </p>
             </div>
-            <p className="text-sm font-600 text-foreground mb-2">{t('aiHistory.emptyTitle')}</p>
-            <p className="text-sm text-muted-foreground">
-              {t('aiHistory.emptyDescription')}
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {requests.map(req => {
+          ) : (
+            <div className="space-y-3">
+              {requests.map(req => {
               const isExpanded = expandedId === req.id;
               const existingFeedback = feedbackMap[req.id];
 
@@ -514,10 +516,11 @@ export default function AIHistoryPage() {
                   )}
                 </div>
               );
-            })}
-          </div>
-        )}
-      </div>
+              })}
+            </div>
+          )}
+        </div>
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { getManagedPeople, getPersonReport, type ManagedPerson, type PersonLedgerEntry, type Reimbursement, type Settlement, type PersonBalance } from '@/lib/people';
 import { toast } from 'sonner';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 
 
 function getEntryTypeMeta(t: (key: string, options?: Record<string, unknown>) => string): Record<string, { label: string; sign: '+' | '-'; group: string }> {
@@ -205,7 +206,8 @@ export default function PersonReportsPage() {
 
   return (
     <AppLayout activeRoute="/reports">
-      <div className="space-y-5 pb-6 print:space-y-3">
+      <SubscriptionFeatureGate feature="standard_reports">
+        <div className="space-y-5 pb-6 print:space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between print:hidden">
           <div>
@@ -562,7 +564,8 @@ export default function PersonReportsPage() {
             )}
           </>
         )}
-      </div>
+        </div>
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

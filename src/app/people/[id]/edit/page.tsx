@@ -9,6 +9,7 @@ import { getManagedPerson, updateManagedPerson, type ManagedPerson, type Relatio
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 
 const RELATIONSHIPS: RelationshipType[] = [
@@ -108,18 +109,18 @@ export default function EditPersonPage() {
 
   return (
     <AppLayout activeRoute="/people">
-      <div className="max-w-xl mx-auto space-y-5 pb-6">
-        <div className="flex items-center gap-3">
-          <Link href={`/people/${personId}`} className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <h1 className="text-xl font-700 text-foreground">{t('people.editProfile')}</h1>
-            <p className="text-sm text-muted-foreground">{form.full_name}</p>
+      <SubscriptionFeatureGate feature="managed_people">
+        <div className="max-w-xl mx-auto space-y-5 pb-6">
+          <div className="flex items-center gap-3">
+            <Link href={`/people/${personId}`} className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <ArrowLeft size={18} />
+            </Link>
+            <div>
+              <h1 className="text-xl font-700 text-foreground">{t('people.editProfile')}</h1>
+              <p className="text-sm text-muted-foreground">{form.full_name}</p>
+            </div>
           </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="card p-6 space-y-5">
+          <form onSubmit={handleSubmit} className="card p-6 space-y-5">
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span></label>
             <input type="text" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })}
@@ -185,8 +186,9 @@ export default function EditPersonPage() {
               {saving ? t('status.saving', { ns: 'common' }) : t('people.form.saveChanges', { ns: 'portal' })}
             </button>
           </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

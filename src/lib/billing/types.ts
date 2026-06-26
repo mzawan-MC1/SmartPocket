@@ -15,6 +15,20 @@ export interface CreateCheckoutInput {
   checkoutSessionId: string;
 }
 
+export interface CreateOneTimeCheckoutInput {
+  userId: string;
+  email: string | null;
+  orderId: string;
+  orderReference: string;
+  currencyCode: string;
+  subtotalAmount: number;
+  vatAmount: number;
+  totalAmount: number;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface CheckoutSessionResult {
   checkoutUrl: string;
   providerSessionId: string;
@@ -59,18 +73,27 @@ export interface VerifiedBillingSubscriptionPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface VerifiedBillingTopUpOrderPayload {
+  orderId: string;
+  userId: string;
+  paymentReference: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface VerifiedBillingEvent {
   provider: BillingProviderName;
   eventId: string;
   eventType: string;
   payload: Record<string, unknown>;
   subscription?: VerifiedBillingSubscriptionPayload | null;
+  topUpOrder?: VerifiedBillingTopUpOrderPayload | null;
 }
 
 export interface BillingProvider {
   readonly name: BillingProviderName;
   readonly configured: boolean;
   createCheckoutSession(input: CreateCheckoutInput): Promise<CheckoutSessionResult>;
+  createOneTimeCheckoutSession?(input: CreateOneTimeCheckoutInput): Promise<CheckoutSessionResult>;
   verifyWebhook(request: Request): Promise<VerifiedBillingEvent>;
   createCustomerPortal?(input: CustomerPortalInput): Promise<CustomerPortalResult>;
   cancelSubscription?(input: CancelSubscriptionInput): Promise<void>;
