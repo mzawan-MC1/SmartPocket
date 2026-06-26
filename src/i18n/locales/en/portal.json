@@ -1584,7 +1584,7 @@
     "description": "Review AI-assisted financial entries before saving them.",
     "close": "Close Smart Entry",
     "primaryAccountLabels": {
-      "spendFrom": "Spend from",
+      "spendFrom": "Pay from",
       "addBorrowedMoneyTo": "Add borrowed money to",
       "trackTheirMoneyIn": "Track their money in",
       "returnMoneyFrom": "Return money from",

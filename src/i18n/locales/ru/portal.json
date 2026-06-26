@@ -1350,7 +1350,7 @@
       "fallback": "{{actionType}} {{amount}}"
     },
     "primaryAccountLabels": {
-      "spendFrom": "Списать со счета",
+      "spendFrom": "Оплатить со счета",
       "addBorrowedMoneyTo": "Добавить заемные деньги на",
       "trackTheirMoneyIn": "Учитывать их деньги в",
       "returnMoneyFrom": "Вернуть деньги со счета",

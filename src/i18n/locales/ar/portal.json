@@ -1378,7 +1378,7 @@
       "fallback": "{{actionType}} {{amount}}"
     },
     "primaryAccountLabels": {
-      "spendFrom": "الصرف من",
+      "spendFrom": "الدفع من",
       "addBorrowedMoneyTo": "إضافة المال المقترض إلى",
       "trackTheirMoneyIn": "تتبع أموالهم في",
       "returnMoneyFrom": "إرجاع المال من",

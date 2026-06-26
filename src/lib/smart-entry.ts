@@ -914,6 +914,9 @@ export function inferSmartEntryPurpose(args: {
   const hasReceiptFromPerson = actions.some((action) => action.actionType === 'money_received_from_person');
   const hasHeldExpense = actions.some((action) => action.actionType === 'expense_from_held_balance');
   const hasExpense = actions.some((action) => action.actionType === 'expense' || action.actionType === 'expense_from_held_balance');
+  const hasOnlyExpenseActions =
+    actions.length > 0 &&
+    actions.every((action) => action.actionType === 'expense');
   const ambiguousReceipt = hasReceiptFromPerson && hasAmbiguousReceiptWording(raw) && !hasBorrowedPurposeWording(raw) && !hasManagedPurposeWording(raw) && !hasIncomePurposeWording(raw) && !hasReimbursementPurposeWording(raw);
 
   if (actions.some((action) => action.actionType === 'transfer')) {
@@ -943,7 +946,7 @@ export function inferSmartEntryPurpose(args: {
   if (hasIncomePurposeWording(raw) || actions.some((action) => action.actionType === 'income')) {
     return { purpose: 'personal_income', purposeConfidence: 0.96 };
   }
-  if (actions.some((action) => action.actionType === 'expense') && actions.length === 1) {
+  if (hasOnlyExpenseActions) {
     return { purpose: 'personal_expense', purposeConfidence: 0.97 };
   }
   if (ambiguousReceipt && (hasExpense || actions.length === 1)) {
