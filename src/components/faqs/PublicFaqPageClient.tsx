@@ -178,8 +178,17 @@ export default function PublicFaqPageClient({
         </div>
       </section>
 
-      <section className={`grid gap-6 ${isRtl ? 'lg:grid-cols-[minmax(0,1fr)_280px]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'}`}>
-        <aside className={`hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block ${isRtl ? 'lg:order-2' : ''}`}>
+      <section
+        className={`grid gap-6 lg:[direction:ltr] ${
+          isRtl ? 'lg:grid-cols-[minmax(0,1fr)_280px]' : 'lg:grid-cols-[280px_minmax(0,1fr)]'
+        }`}
+      >
+        <aside
+          dir={isRtl ? 'rtl' : 'ltr'}
+          className={`hidden h-fit rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:block ${
+            isRtl ? 'lg:col-start-2 lg:row-start-1' : 'lg:col-start-1 lg:row-start-1'
+          }`}
+        >
           <div className="space-y-2">
             <button
               type="button"
@@ -245,7 +254,12 @@ export default function PublicFaqPageClient({
           </div>
         </aside>
 
-        <div className={`space-y-4 ${isRtl ? 'lg:order-1' : ''}`}>
+        <div
+          dir={isRtl ? 'rtl' : 'ltr'}
+          className={`space-y-4 ${
+            isRtl ? 'lg:col-start-1 lg:row-start-1' : 'lg:col-start-2 lg:row-start-1'
+          }`}
+        >
           <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm lg:hidden">
             <label className="block text-sm font-700 text-foreground" htmlFor="faq-category-select">
               {t('faqs.categoriesLabel')}
