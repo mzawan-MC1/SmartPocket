@@ -106,9 +106,11 @@ const CATEGORY_ICON_LABELS: Record<string, string> = {
   'folder-kanban': 'General',
 };
 
-const COMPACT_ACTION_BUTTON_CLASS = 'btn-secondary h-7 gap-1.5 px-2 text-xs';
-const COMPACT_ACTION_LINK_CLASS = 'btn-secondary inline-flex h-7 gap-1.5 px-2 text-xs';
-const COMPACT_ACTION_ICON_CLASS = 'h-3 w-3';
+const COMPACT_ACTION_BUTTON_CLASS =
+  'btn-secondary !h-6 !min-h-0 !rounded-md !px-1.5 !py-0 !text-[10px] !leading-none !gap-1 whitespace-nowrap';
+const COMPACT_ACTION_LINK_CLASS =
+  'btn-secondary inline-flex !h-6 !min-h-0 !rounded-md !px-1.5 !py-0 !text-[10px] !leading-none !gap-1 whitespace-nowrap';
+const COMPACT_ACTION_ICON_CLASS = 'h-2.5 w-2.5';
 
 function formatMissingFieldLabel(field: string) {
   switch (field) {
@@ -859,9 +861,14 @@ export default function FaqAdminClient({
                 {filteredCategories.map((category, index) => (
                   <div key={category.id} className="flex h-full flex-col rounded-2xl border border-border p-4">
                     <div className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                        <FaqCategoryIcon icon={category.icon} />
-                      </span>
+                      <div className="flex w-11 shrink-0 flex-col items-center gap-1 text-center">
+                        <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                          <FaqCategoryIcon icon={category.icon} />
+                        </span>
+                        <span dir="ltr" className="text-[10px] font-600 text-muted-foreground">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-800 text-foreground">{category.translations.en.name || category.slug}</p>
@@ -886,7 +893,7 @@ export default function FaqAdminClient({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-4 flex flex-wrap items-center gap-1">
                       <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderCategories('up', category.id)} disabled={index === 0}>
                         <ArrowUp className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveUp', 'Up')}
@@ -999,12 +1006,17 @@ export default function FaqAdminClient({
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {filteredItems.map((item) => (
+                {filteredItems.map((item, index) => (
                   <div key={item.id} className="flex h-full flex-col rounded-2xl border border-border p-4">
                     <div className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-                        <FaqCategoryIcon icon={categories.find((category) => category.id === item.category_id)?.icon} />
-                      </span>
+                      <div className="flex w-11 shrink-0 flex-col items-center gap-1 text-center">
+                        <span className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                          <FaqCategoryIcon icon={categories.find((category) => category.id === item.category_id)?.icon} />
+                        </span>
+                        <span dir="ltr" className="text-[10px] font-600 text-muted-foreground">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-800 text-foreground">{item.translations.en.question || item.slug}</p>
@@ -1030,7 +1042,7 @@ export default function FaqAdminClient({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    <div className="mt-4 flex flex-wrap items-center gap-1">
                       <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderItems('up', item)}>
                         <ArrowUp className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveUp', 'Up')}
