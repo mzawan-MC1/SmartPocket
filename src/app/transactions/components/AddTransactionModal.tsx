@@ -7,6 +7,7 @@ import {
   ChevronUp as ChevronUpIcon,
   Loader2,
   Plus,
+  RefreshCw,
   Tag,
   Trash2,
   TrendingDown,
@@ -32,6 +33,11 @@ import {
   uploadReceipt,
 } from '@/lib/finance';
 import { createLoanRepayment, getManagedPeople, type ManagedPerson } from '@/lib/people';
+import { getPersonalSubscriptions, markPersonalSubscriptionPaid } from '@/lib/personal-subscriptions';
+import {
+  isPersonalSubscriptionUpcomingChargeStatus,
+  type PersonalSubscription,
+} from '@/lib/personal-subscriptions-shared';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
@@ -49,11 +55,12 @@ import {
 } from '@/lib/financial-account-utils';
 
 type TransactionModalMode = 'single' | 'multiple';
-type TransactionEntryKind = 'standard' | 'loan_repayment';
+type TransactionEntryKind = 'standard' | 'personal_subscription_payment' | 'loan_repayment';
 
 interface TxnFormData {
   account_id: string;
   category_id: string;
+  personal_subscription_id: string;
   entry_kind: TransactionEntryKind;
   transaction_type: 'income' | 'expense';
   amount: string;
@@ -90,6 +97,7 @@ function buildBaseForm(): TxnFormData {
   return {
     account_id: '',
     category_id: '',
+    personal_subscription_id: '',
     entry_kind: 'standard',
     transaction_type: 'expense',
     amount: '',
@@ -139,6 +147,7 @@ function isDraftRowPopulated(row: TransactionDraftRow) {
   return Boolean(
     row.account_id ||
     row.category_id ||
+    row.personal_subscription_id ||
     row.amount ||
     row.currency ||
     row.description.trim() ||
@@ -151,11 +160,44 @@ function isDraftRowPopulated(row: TransactionDraftRow) {
   );
 }
 
+function applyPersonalSubscriptionToDraft(
+  row: TransactionDraftRow,
+  subscription: PersonalSubscription
+): TransactionDraftRow {
+  return {
+    ...row,
+    personal_subscription_id: subscription.id,
+    entry_kind: 'personal_subscription_payment',
+    transaction_type: 'expense',
+    account_id: subscription.financial_account_id || '',
+    category_id: subscription.category_id || '',
+    amount: String(subscription.amount),
+    currency: subscription.currency_code,
+    description: subscription.description || subscription.name,
+    merchant: subscription.provider || '',
+    notes: subscription.notes || '',
+    transaction_date: getTodayDate(),
+    tags: '',
+    receiptFile: null,
+    showManagedPerson: false,
+    showMoreOptions: false,
+    person_id: '',
+    expense_owner: 'user',
+    paid_by: 'user',
+    paid_from: 'account',
+    use_held_balance: false,
+    reimbursement_required: false,
+    reimbursement_status: '',
+    is_recurring: false,
+  };
+}
+
 function buildDraftFromTransaction(txn: Transaction): TransactionDraftRow {
   return {
     id: createDraftId(),
     account_id: txn.account_id,
     category_id: txn.category_id || '',
+    personal_subscription_id: '',
     entry_kind: 'standard',
     transaction_type: txn.transaction_type as 'income' | 'expense',
     amount: String(txn.amount),
@@ -238,6 +280,7 @@ export default function AddTransactionModal({
   const [internalAccounts, setInternalAccounts] = useState<FinancialAccount[]>([]);
   const [internalCategories, setInternalCategories] = useState<Category[]>([]);
   const [internalPeople, setInternalPeople] = useState<ManagedPerson[]>([]);
+  const [subscriptions, setSubscriptions] = useState<PersonalSubscription[]>([]);
   const [supportingDataLoading, setSupportingDataLoading] = useState(false);
   const [transactionMode, setTransactionMode] = useState<TransactionModalMode>(initialMode);
   const [draftRows, setDraftRows] = useState<TransactionDraftRow[]>([]);
@@ -257,6 +300,22 @@ export default function AddTransactionModal({
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
     [accounts]
+  );
+  const categoryMap = useMemo(
+    () => new Map(categories.map((category) => [category.id, category])),
+    [categories]
+  );
+  const eligiblePersonalSubscriptions = useMemo(
+    () =>
+      subscriptions.filter((subscription) =>
+        isPersonalSubscriptionUpcomingChargeStatus(subscription.status)
+        && Boolean(subscription.financial_account_id)
+      ),
+    [subscriptions]
+  );
+  const eligiblePersonalSubscriptionMap = useMemo(
+    () => new Map(eligiblePersonalSubscriptions.map((subscription) => [subscription.id, subscription])),
+    [eligiblePersonalSubscriptions]
   );
 
   const buildEmptyDraft = useCallback((overrides: Partial<TransactionDraftRow> = {}): TransactionDraftRow => {
@@ -284,18 +343,19 @@ export default function AddTransactionModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    if (providedAccounts && providedCategories && providedPeople) return;
 
     setSupportingDataLoading(true);
     Promise.all([
       providedAccounts ? Promise.resolve(providedAccounts) : getAccounts(),
       providedCategories ? Promise.resolve(providedCategories) : getCategories(),
       providedPeople ? Promise.resolve(providedPeople) : getManagedPeople(false),
+      getPersonalSubscriptions(),
     ])
-      .then(([nextAccounts, nextCategories, nextPeople]) => {
+      .then(([nextAccounts, nextCategories, nextPeople, nextSubscriptions]) => {
         if (!providedAccounts) setInternalAccounts(nextAccounts);
         if (!providedCategories) setInternalCategories(nextCategories);
         if (!providedPeople) setInternalPeople(nextPeople);
+        setSubscriptions(nextSubscriptions);
       })
       .catch((error) => toast.error(error instanceof Error ? error.message : t('transactions.form.loadFailed', { ns: 'portal' })))
       .finally(() => setSupportingDataLoading(false));
@@ -344,6 +404,15 @@ export default function AddTransactionModal({
     const errors: string[] = [];
     const account = accountMap.get(row.account_id);
 
+    if (row.entry_kind === 'personal_subscription_payment') {
+      if (!row.personal_subscription_id) {
+        errors.push(t('transactions.form.rowSelectPersonalSubscription', { ns: 'portal', index: rowIndex + 1 }));
+      } else if (!eligiblePersonalSubscriptionMap.has(row.personal_subscription_id)) {
+        errors.push(t('transactions.form.rowSubscriptionUnavailable', { ns: 'portal', index: rowIndex + 1 }));
+      }
+      return errors;
+    }
+
     if (!row.account_id) errors.push(t('transactions.form.rowSelectAccount', { ns: 'portal', index: rowIndex + 1 }));
     if (!account && row.account_id) errors.push(t('transactions.form.rowAccountUnavailable', { ns: 'portal', index: rowIndex + 1 }));
     if (!row.currency) errors.push(t('transactions.form.rowSelectCurrency', { ns: 'portal', index: rowIndex + 1 }));
@@ -378,7 +447,7 @@ export default function AddTransactionModal({
     }
 
     return errors;
-  }, [accountMap, t]);
+  }, [accountMap, eligiblePersonalSubscriptionMap, t]);
 
   const closeModalAndReset = useCallback(() => {
     setRowErrors({});
@@ -408,6 +477,13 @@ export default function AddTransactionModal({
       toast.error(t('transactions.form.loanRepaymentSingleOnly', {
         ns: 'portal',
         defaultValue: 'Loan repayment is available in Single mode only.',
+      }));
+      return;
+    }
+    if (mode === 'multiple' && activeDraftRows[0]?.entry_kind === 'personal_subscription_payment') {
+      toast.error(t('transactions.form.personalSubscriptionSingleOnly', {
+        ns: 'portal',
+        defaultValue: 'Personal subscription payments are available in Single mode only.',
       }));
       return;
     }
@@ -527,6 +603,27 @@ export default function AddTransactionModal({
         return;
       }
 
+      if (rowsToSave.length === 1 && rowsToSave[0]?.entry_kind === 'personal_subscription_payment') {
+        const row = rowsToSave[0];
+        const subscription = eligiblePersonalSubscriptionMap.get(row.personal_subscription_id);
+        if (!subscription) {
+          throw new Error(t('transactions.form.subscriptionUnavailable', {
+            ns: 'portal',
+            defaultValue: 'Select an active personal subscription before saving.',
+          }));
+        }
+
+        await markPersonalSubscriptionPaid(subscription.id);
+        dispatchSmartPocketDataChanged({
+          source: 'personal-subscription-payment-modal',
+          entities: ['personal_subscriptions', 'transactions', 'financial_accounts', 'dashboard', 'recurring_transactions', 'notifications'],
+        });
+        await onSaved?.();
+        toast.success(t('personalSubscriptions.actions.markedPaidSuccess', { ns: 'portal', name: subscription.name }));
+        closeModalAndReset();
+        return;
+      }
+
       const payloads = rowsToSave.map(buildTransactionPayload);
       const result = await createTransactionsBatch(payloads, {
         onProgress: ({ completed, total }) => setSaveProgress({ completed, total }),
@@ -592,7 +689,7 @@ export default function AddTransactionModal({
       setIsSaving(false);
       setSaveProgress(null);
     }
-  }, [activeDraftRows, closeModalAndReset, editingTransaction, onSaved, t, transactionMode, user?.id, validateDraftRow]);
+  }, [activeDraftRows, closeModalAndReset, editingTransaction, eligiblePersonalSubscriptionMap, onSaved, t, transactionMode, user?.id, validateDraftRow]);
 
   const handleOpenDocumentReview = useCallback((file: File | null | undefined) => {
     if (!file) return;
@@ -601,8 +698,14 @@ export default function AddTransactionModal({
 
   const visibleRowCount = activeDraftRows.length;
   const isLoanRepaymentMode = activeDraftRows[0]?.entry_kind === 'loan_repayment';
+  const isSubscriptionPaymentMode = activeDraftRows[0]?.entry_kind === 'personal_subscription_payment';
   const addActionLabel = editingTransaction
     ? t('transactions.form.updateAction', { ns: 'portal' })
+    : isSubscriptionPaymentMode
+      ? t('transactions.form.subscriptionPaymentAction', {
+        ns: 'portal',
+        defaultValue: 'Record Subscription Payment',
+      })
     : isLoanRepaymentMode
       ? t('transactions.form.loanRepaymentAction', {
         ns: 'portal',
@@ -613,6 +716,11 @@ export default function AddTransactionModal({
       : t('transactions.form.addManyAction', { ns: 'portal', count: visibleRowCount });
   const savingActionLabel = editingTransaction
     ? t('transactions.form.savingOne', { ns: 'portal' })
+    : isSubscriptionPaymentMode
+      ? t('transactions.form.subscriptionPaymentSaving', {
+        ns: 'portal',
+        defaultValue: 'Saving subscription payment...',
+      })
     : isLoanRepaymentMode
       ? t('transactions.form.loanRepaymentSaving', {
         ns: 'portal',
@@ -638,36 +746,32 @@ export default function AddTransactionModal({
           <div className="grid grid-cols-1 gap-2">
             {!editingTransaction ? (
               <div className="rounded-2xl border border-border bg-card p-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-700 text-foreground">
-                      {t('transactions.documentReview.entryTitle', {
-                        ns: 'portal',
-                        defaultValue: 'Receipt / Document',
-                      })}
-                    </p>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                      <p className="text-sm font-700 text-foreground">
+                        {t('transactions.documentReview.entryTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Receipt / Document',
+                        })}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        ({t('transactions.documentReview.entryMetaCompact', {
+                          ns: 'portal',
+                          supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+                          maxSize: getTransactionDocumentMaxSizeLabel(),
+                          defaultValue: '{{supportedTypes}} · Max {{maxSize}}',
+                        })})
+                      </span>
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {t('transactions.documentReview.entryDescription', {
                         ns: 'portal',
-                        defaultValue: 'Upload a JPG, PNG, or PDF to extract draft transaction data for review before saving.',
-                      })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('transactions.documentReview.maxFileSizeLabel', {
-                        ns: 'portal',
-                        maxSize: getTransactionDocumentMaxSizeLabel(),
-                        defaultValue: 'Maximum file size: {{maxSize}}',
-                      })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('transactions.documentReview.supportedFileTypesLabel', {
-                        ns: 'portal',
-                        supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
-                        defaultValue: 'Supported file types: {{supportedTypes}}',
+                        defaultValue: 'Upload a receipt or invoice to prepare transaction details for review.',
                       })}
                     </p>
                   </div>
-                  <div>
+                  <div className="sm:shrink-0">
                     <input
                       type="file"
                       id="transaction-document-review-upload"
@@ -696,22 +800,28 @@ export default function AddTransactionModal({
             {transactionMode === 'single' ? (
               <div className="flex flex-wrap items-stretch gap-2.5">
                 <div
-                  className="grid w-full min-w-0 basis-full grid-cols-3 gap-1 rounded-2xl border border-border bg-muted/20 p-1 md:basis-auto md:flex-[1_1_28rem]"
+                  className="grid w-full min-w-0 basis-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:grid-cols-4 md:basis-auto md:flex-[1_1_32rem]"
                   role="group"
                   aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
                 >
                   {([
                     { kind: 'standard' as const, type: 'expense' as const },
                     { kind: 'standard' as const, type: 'income' as const },
+                    { kind: 'personal_subscription_payment' as const, type: 'expense' as const },
                     { kind: 'loan_repayment' as const, type: 'expense' as const },
                   ]).map((option) => {
                     const primaryRow = activeDraftRows[0];
                     const isLoanRepaymentOption = option.kind === 'loan_repayment';
+                    const isSubscriptionPaymentOption = option.kind === 'personal_subscription_payment';
                     const isActive = isLoanRepaymentOption
                       ? primaryRow?.entry_kind === 'loan_repayment'
+                      : isSubscriptionPaymentOption
+                        ? primaryRow?.entry_kind === 'personal_subscription_payment'
                       : primaryRow?.entry_kind === 'standard' && primaryRow?.transaction_type === option.type;
                     const label = isLoanRepaymentOption
                       ? t('transactions.form.loanRepaymentType', { ns: 'portal', defaultValue: 'Loan Repayment' })
+                      : isSubscriptionPaymentOption
+                        ? t('transactions.form.personalSubscriptionType', { ns: 'portal', defaultValue: 'Personal Subscription' })
                       : t(`transactions.types.${option.type}` as const, { ns: 'portal' });
                     return (
                       <button
@@ -725,14 +835,21 @@ export default function AddTransactionModal({
                           updateDraftRow(rowIds[0], (row) => ({
                             ...row,
                             entry_kind: option.kind,
-                            transaction_type: option.type,
+                            transaction_type: option.kind === 'standard' ? option.type : 'expense',
+                            personal_subscription_id: '',
+                            account_id: option.kind === 'standard' ? row.account_id : '',
                             category_id: '',
-                            merchant: option.kind === 'loan_repayment' ? '' : row.merchant,
-                            showManagedPerson: option.kind === 'loan_repayment' ? false : row.showManagedPerson,
-                            showMoreOptions: option.kind === 'loan_repayment' ? true : row.showMoreOptions,
+                            amount: option.kind === 'standard' ? row.amount : '',
+                            currency: option.kind === 'standard' ? row.currency : '',
+                            description: '',
+                            merchant: '',
+                            notes: option.kind === 'loan_repayment' ? row.notes : '',
+                            receiptFile: null,
+                            showManagedPerson: false,
+                            showMoreOptions: option.kind === 'loan_repayment',
                           }));
                         }}
-                        className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-center text-[13px] font-700 leading-tight transition-colors ${
+                        className={`flex min-h-10 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-[12px] font-700 leading-tight transition-colors sm:min-h-11 sm:py-2.5 sm:text-[13px] ${
                           isActive
                             ? option.type === 'income'
                               ? 'border-positive bg-positive-soft text-positive'
@@ -742,6 +859,8 @@ export default function AddTransactionModal({
                       >
                         {isLoanRepaymentOption ? (
                           <Users size={13} />
+                        ) : isSubscriptionPaymentOption ? (
+                          <RefreshCw size={13} />
                         ) : option.type === 'income' ? (
                           <TrendingUp size={13} />
                         ) : (
@@ -760,12 +879,12 @@ export default function AddTransactionModal({
                       aria-pressed={transactionMode === mode}
                       aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                       onClick={() => handleModeChange(mode)}
-                      disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
+                      disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
                       className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
                         transactionMode === mode
                           ? 'border-border bg-card text-foreground shadow-sm'
                           : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
-                      } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                      } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
                     >
                       <span className="block whitespace-normal break-words">
                         {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
@@ -789,10 +908,10 @@ export default function AddTransactionModal({
                   aria-pressed={transactionMode === mode}
                   aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                   onClick={() => handleModeChange(mode)}
-                  disabled={(editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')}
+                  disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
                   className={`rounded-lg px-2.5 py-1.5 text-sm font-600 transition-colors ${
                     transactionMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  } ${((editingTransaction !== null && mode === 'multiple') || (isLoanRepaymentMode && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                  } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
                 >
                   {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
                 </button>
@@ -811,6 +930,8 @@ export default function AddTransactionModal({
               {activeDraftRows.map((row, index) => {
                 const account = accountMap.get(row.account_id);
                 const isLoanRepaymentRow = row.entry_kind === 'loan_repayment';
+                const isSubscriptionPaymentRow = row.entry_kind === 'personal_subscription_payment';
+                const selectedSubscription = eligiblePersonalSubscriptionMap.get(row.personal_subscription_id) || null;
                 const filteredCategories = categories.filter((category) => category.category_type === row.transaction_type || category.category_type === 'transfer');
                 const rowHasErrors = rowErrors[row.id] || [];
                 const rowLabel = transactionMode === 'multiple' && !editingTransaction
@@ -877,155 +998,274 @@ export default function AddTransactionModal({
                         </div>
                       ) : null}
 
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
-                        <div>
-                          <label className="mb-1 block text-sm font-600 text-foreground">
-                            {row.transaction_type === 'income'
-                              ? t('transactions.form.receivedInto', { ns: 'portal', defaultValue: 'Received into' })
-                              : t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })} *
-                          </label>
-                          <select
-                            className="input-base h-9 text-sm"
-                            value={row.account_id}
-                            onChange={(event) => {
-                              const nextAccountId = event.target.value;
-                              const nextAccount = accountMap.get(nextAccountId);
-                              updateDraftRow(row.id, (draft) => ({
-                                ...draft,
-                                account_id: nextAccountId,
-                                currency: nextAccount?.currency || draft.currency,
-                              }));
-                            }}
-                          >
-                            <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
-                            {selectorAccounts.map((accountOption) => (
-                              <option key={accountOption.id} value={accountOption.id}>
-                                {getFinancialAccountDisplayLabel(accountOption, {
-                                  includeCurrency: true,
-                                  includeDefaultLabel: true,
-                                })}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        {isLoanRepaymentRow ? (
-                          <div>
-                            <label className="mb-1 block text-sm font-600 text-foreground">
-                              {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
-                            </label>
-                            <select
-                              className="input-base h-9 text-sm"
-                              value={row.person_id}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
-                            >
-                              <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
-                              {people.map((person) => (
-                                <option key={person.id} value={person.id}>{person.full_name}</option>
-                              ))}
-                            </select>
+                      {isSubscriptionPaymentRow ? (
+                        <>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            <div className="md:col-span-2">
+                              <label className="mb-1 block text-sm font-600 text-foreground">
+                                {t('transactions.form.personalSubscriptionLabel', { ns: 'portal' })} *
+                              </label>
+                              <select
+                                className="input-base h-9 text-sm"
+                                value={row.personal_subscription_id}
+                                onChange={(event) => {
+                                  const subscription = eligiblePersonalSubscriptionMap.get(event.target.value);
+                                  updateDraftRow(
+                                    row.id,
+                                    (draft) => (subscription
+                                      ? applyPersonalSubscriptionToDraft(draft, subscription)
+                                      : { ...draft, personal_subscription_id: '', account_id: '', category_id: '', amount: '', currency: '', description: '', merchant: '', notes: '' })
+                                  );
+                                }}
+                              >
+                                <option value="">{t('transactions.form.selectPersonalSubscription', { ns: 'portal' })}</option>
+                                {eligiblePersonalSubscriptions.map((subscription) => (
+                                  <option key={subscription.id} value={subscription.id}>
+                                    {subscription.provider
+                                      ? `${subscription.name} · ${subscription.provider} · ${subscription.currency_code} ${subscription.amount.toFixed(2)}`
+                                      : `${subscription.name} · ${subscription.currency_code} ${subscription.amount.toFixed(2)}`}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {eligiblePersonalSubscriptions.length > 0
+                                  ? t('transactions.form.personalSubscriptionHelper', { ns: 'portal' })
+                                  : t('transactions.form.noActivePersonalSubscriptions', { ns: 'portal' })}
+                              </p>
+                            </div>
                           </div>
-                        ) : (
-                          <div>
-                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
-                            <select
-                              className="input-base h-9 text-sm"
-                              value={row.category_id}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
-                            >
-                              <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
-                              {filteredCategories.map((category) => (
-                                <option key={category.id} value={category.id}>
-                                  {translateSystemCategoryName(category.name, (key, options) =>
-                                    t(key, { ...(options || {}), ns: 'common' })
-                                  )}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                      </div>
 
-                      <div className="rounded-2xl border border-border/70 bg-muted/10 p-2 max-[480px]:order-1 max-[480px]:space-y-3">
-                        <div className="max-[480px]:hidden">
-                          <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
-                        </div>
-                        <div className="hidden max-[480px]:block">
-                          <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
-                        </div>
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                          <div>
-                            <input
-                              ref={index === 0 ? firstAmountFieldRef : undefined}
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              inputMode="decimal"
-                              className="input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
-                              placeholder="0.00"
-                              value={row.amount}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
-                            />
-                          </div>
-                          <div>
-                            <CurrencySelector
-                              value={row.currency}
-                              onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
-                              placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
-                              disabled={Boolean(account)}
-                              helperText={account ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency }) : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' })}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="max-[480px]:order-4">
-                        <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.date', { ns: 'portal' })} *</label>
-                        <input
-                          type="date"
-                          className="input-base h-9 text-sm"
-                          value={row.transaction_date}
-                          onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
-                        />
-                      </div>
-
-                      {isLoanRepaymentRow ? (
-                        <div className="max-[480px]:order-5">
-                          <label className="mb-1 block text-sm font-600 text-foreground">
-                            {t('reimbursements.notes', { ns: 'portal' })} *
-                          </label>
-                          <textarea
-                            rows={3}
-                            className="input-base resize-none text-sm"
-                            placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
-                            value={row.notes}
-                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
-                          />
-                        </div>
+                          {selectedSubscription ? (
+                            <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1">
+                              <div className="mb-2 flex items-center gap-2 text-sm font-600 text-foreground">
+                                <RefreshCw size={14} className="text-accent" />
+                                <span>{t('transactions.form.subscriptionPaymentSummary', { ns: 'portal' })}</span>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.form.personalSubscriptionLabel', { ns: 'portal' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-600 text-foreground">{selectedSubscription.name}</p>
+                                </div>
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-600 text-foreground">
+                                    {selectedSubscription.financial_account_id
+                                      ? (() => {
+                                        const subscriptionAccount = accountMap.get(selectedSubscription.financial_account_id);
+                                        const displayAccount =
+                                          subscriptionAccount || {
+                                            name: selectedSubscription.account?.name || t('transactions.noAccount', { ns: 'portal' }),
+                                            currency: selectedSubscription.account?.currency || selectedSubscription.currency_code,
+                                            is_system_default: false,
+                                            system_default_type: null,
+                                          };
+                                        return getFinancialAccountDisplayLabel(displayAccount, {
+                                          includeCurrency: true,
+                                          includeDefaultLabel: true,
+                                        });
+                                      })()
+                                      : t('transactions.noAccount', { ns: 'portal' })}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.category', { ns: 'portal' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-600 text-foreground">
+                                    {selectedSubscription.category_id
+                                      ? translateSystemCategoryName(
+                                        categoryMap.get(selectedSubscription.category_id)?.name || selectedSubscription.category?.name || '',
+                                        (key, options) => t(key, { ...(options || {}), ns: 'common' })
+                                      ) || t('transactions.noCategory', { ns: 'portal' })
+                                      : t('transactions.noCategory', { ns: 'portal' })}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.amount', { ns: 'portal' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-700 text-foreground">
+                                    {selectedSubscription.currency_code} {selectedSubscription.amount.toFixed(2)}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.form.merchantLabel', { ns: 'portal' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-600 text-foreground">
+                                    {selectedSubscription.provider || t('notAvailable', { ns: 'common' })}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                  <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                    {t('transactions.form.descriptionLabel', { ns: 'portal' })}
+                                  </p>
+                                  <p className="mt-1 text-sm font-600 text-foreground">
+                                    {selectedSubscription.description || selectedSubscription.name}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </>
                       ) : (
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-5">
-                          <div className="min-w-0">
-                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.merchantLabel', { ns: 'portal' })}</label>
+                        <>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
+                            <div>
+                              <label className="mb-1 block text-sm font-600 text-foreground">
+                                {row.transaction_type === 'income'
+                                  ? t('transactions.form.receivedInto', { ns: 'portal', defaultValue: 'Received into' })
+                                  : t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })} *
+                              </label>
+                              <select
+                                className="input-base h-9 text-sm"
+                                value={row.account_id}
+                                onChange={(event) => {
+                                  const nextAccountId = event.target.value;
+                                  const nextAccount = accountMap.get(nextAccountId);
+                                  updateDraftRow(row.id, (draft) => ({
+                                    ...draft,
+                                    account_id: nextAccountId,
+                                    currency: nextAccount?.currency || draft.currency,
+                                  }));
+                                }}
+                              >
+                                <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
+                                {selectorAccounts.map((accountOption) => (
+                                  <option key={accountOption.id} value={accountOption.id}>
+                                    {getFinancialAccountDisplayLabel(accountOption, {
+                                      includeCurrency: true,
+                                      includeDefaultLabel: true,
+                                    })}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            {isLoanRepaymentRow ? (
+                              <div>
+                                <label className="mb-1 block text-sm font-600 text-foreground">
+                                  {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
+                                </label>
+                                <select
+                                  className="input-base h-9 text-sm"
+                                  value={row.person_id}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
+                                >
+                                  <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
+                                  {people.map((person) => (
+                                    <option key={person.id} value={person.id}>{person.full_name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <div>
+                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
+                                <select
+                                  className="input-base h-9 text-sm"
+                                  value={row.category_id}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
+                                >
+                                  <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
+                                  {filteredCategories.map((category) => (
+                                    <option key={category.id} value={category.id}>
+                                      {translateSystemCategoryName(category.name, (key, options) =>
+                                        t(key, { ...(options || {}), ns: 'common' })
+                                      )}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="rounded-2xl border border-border/70 bg-muted/10 p-2 max-[480px]:order-1 max-[480px]:space-y-3">
+                            <div className="max-[480px]:hidden">
+                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
+                            </div>
+                            <div className="hidden max-[480px]:block">
+                              <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                              <div>
+                                <input
+                                  ref={index === 0 ? firstAmountFieldRef : undefined}
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  inputMode="decimal"
+                                  className="input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
+                                  placeholder="0.00"
+                                  value={row.amount}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
+                                />
+                              </div>
+                              <div>
+                                <CurrencySelector
+                                  value={row.currency}
+                                  onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
+                                  placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
+                                  disabled={Boolean(account)}
+                                  helperText={account ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency }) : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' })}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="max-[480px]:order-4">
+                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.date', { ns: 'portal' })} *</label>
                             <input
-                              type="text"
-                              className="input-base h-9 min-w-0 w-full text-sm"
-                              placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
-                              value={row.merchant}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
+                              type="date"
+                              className="input-base h-9 text-sm"
+                              value={row.transaction_date}
+                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
                             />
                           </div>
-                          <div className="min-w-0">
-                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.descriptionLabel', { ns: 'portal' })} *</label>
-                            <input
-                              type="text"
-                              className="input-base h-9 min-w-0 w-full text-sm"
-                              placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
-                              value={row.description}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
-                            />
-                          </div>
-                        </div>
+
+                          {isLoanRepaymentRow ? (
+                            <div className="max-[480px]:order-5">
+                              <label className="mb-1 block text-sm font-600 text-foreground">
+                                {t('reimbursements.notes', { ns: 'portal' })} *
+                              </label>
+                              <textarea
+                                rows={3}
+                                className="input-base resize-none text-sm"
+                                placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
+                                value={row.notes}
+                                onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
+                              />
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-5">
+                              <div className="min-w-0">
+                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.merchantLabel', { ns: 'portal' })}</label>
+                                <input
+                                  type="text"
+                                  className="input-base h-9 min-w-0 w-full text-sm"
+                                  placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
+                                  value={row.merchant}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.descriptionLabel', { ns: 'portal' })} *</label>
+                                <input
+                                  type="text"
+                                  className="input-base h-9 min-w-0 w-full text-sm"
+                                  placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
+                                  value={row.description}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </>
                       )}
 
+                      {!isSubscriptionPaymentRow ? (
                       <div className="rounded-xl border border-border/70 bg-muted/10 max-[480px]:order-6">
                         <button
                           type="button"
@@ -1217,6 +1457,7 @@ export default function AddTransactionModal({
                           </div>
                         ) : null}
                       </div>
+                      ) : null}
                     </div>
                   </div>
                 );
