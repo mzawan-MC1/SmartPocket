@@ -1017,29 +1017,31 @@ export default function FaqAdminClient({
                           {String(index + 1).padStart(2, '0')}
                         </span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-800 text-foreground">{item.translations.en.question || item.slug}</p>
-                          <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase ${item.is_active ? 'bg-positive-soft text-positive' : 'bg-warning/10 text-warning'}`}>
-                            {item.is_active
-                              ? tp('adminFaqs.status.published', 'Published')
-                              : tp('adminFaqs.status.inactive', 'Inactive')}
-                          </span>
-                          {item.is_featured ? (
-                            <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-700 uppercase text-accent">
-                              {tp('adminFaqs.status.featured', 'Featured')}
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-start gap-x-3 gap-y-1 lg:items-center">
+                          <div className="min-w-0 flex flex-1 flex-wrap items-center gap-2">
+                            <p className="min-w-0 text-sm font-800 text-foreground">{item.translations.en.question || item.slug}</p>
+                            <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase ${item.is_active ? 'bg-positive-soft text-positive' : 'bg-warning/10 text-warning'}`}>
+                              {item.is_active
+                                ? tp('adminFaqs.status.published', 'Published')
+                                : tp('adminFaqs.status.inactive', 'Inactive')}
                             </span>
-                          ) : null}
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {item.category_name} · /{item.slug}
-                        </p>
-                        <div className="mt-3">
-                          <TranslationStatusBadges states={item.translation_states} />
-                          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                            {item.is_featured ? (
+                              <span className="rounded-full bg-accent/10 px-2 py-1 text-[10px] font-700 uppercase text-accent">
+                                {tp('adminFaqs.status.featured', 'Featured')}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex shrink-0 flex-wrap items-center gap-1" dir="ltr">
+                            <TranslationStatusBadges states={item.translation_states} />
+                          </div>
+                          <p className="text-xs text-muted-foreground">
                             {formatMissingSummary(item.translation_states)}
                           </p>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          {item.category_name} · /{item.slug}
+                        </p>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-1">
