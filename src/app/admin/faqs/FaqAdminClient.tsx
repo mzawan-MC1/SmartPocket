@@ -106,6 +106,10 @@ const CATEGORY_ICON_LABELS: Record<string, string> = {
   'folder-kanban': 'General',
 };
 
+const COMPACT_ACTION_BUTTON_CLASS = 'btn-secondary h-7 gap-1.5 px-2 text-xs';
+const COMPACT_ACTION_LINK_CLASS = 'btn-secondary inline-flex h-7 gap-1.5 px-2 text-xs';
+const COMPACT_ACTION_ICON_CLASS = 'h-3 w-3';
+
 function formatMissingFieldLabel(field: string) {
   switch (field) {
     case 'answer_html':
@@ -813,13 +817,12 @@ export default function FaqAdminClient({
       </div>
 
       {activeView === 'categories' ? (
-        <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-          <section
-            id="faq-admin-panel-categories"
-            role="tabpanel"
-            aria-labelledby="faq-admin-tab-categories"
-            className="space-y-4"
-          >
+        <section
+          id="faq-admin-panel-categories"
+          role="tabpanel"
+          aria-labelledby="faq-admin-tab-categories"
+          className="space-y-4"
+        >
           <div className="rounded-[28px] border border-border bg-card p-4 shadow-card-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -852,9 +855,9 @@ export default function FaqAdminClient({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredCategories.map((category, index) => (
-                  <div key={category.id} className="rounded-2xl border border-border p-4">
+                  <div key={category.id} className="flex h-full flex-col rounded-2xl border border-border p-4">
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                         <FaqCategoryIcon icon={category.icon} />
@@ -883,28 +886,28 @@ export default function FaqAdminClient({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => reorderCategories('up', category.id)} disabled={index === 0}>
-                        <ArrowUp size={13} />
+                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderCategories('up', category.id)} disabled={index === 0}>
+                        <ArrowUp className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveUp', 'Up')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => reorderCategories('down', category.id)} disabled={index === filteredCategories.length - 1}>
-                        <ArrowDown size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderCategories('down', category.id)} disabled={index === filteredCategories.length - 1}>
+                        <ArrowDown className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveDown', 'Down')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => void toggleCategoryStatus(category)}>
-                        <CheckCircle2 size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => void toggleCategoryStatus(category)}>
+                        <CheckCircle2 className={COMPACT_ACTION_ICON_CLASS} />
                         {category.is_active
                           ? tp('adminFaqs.actions.deactivateCategory', 'Deactivate')
                           : tp('adminFaqs.actions.activateCategory', 'Activate')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => openEditCategory(category)}>
-                        <Pencil size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => openEditCategory(category)}>
+                        <Pencil className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.edit', 'Edit')}
                       </button>
                       <button
                         type="button"
-                        className="btn-secondary text-xs py-2"
+                        className={COMPACT_ACTION_BUTTON_CLASS}
                         onClick={() =>
                           setDeleteState({
                             type: 'category',
@@ -921,7 +924,7 @@ export default function FaqAdminClient({
                           })
                         }
                       >
-                        <Trash2 size={13} />
+                        <Trash2 className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.delete', 'Delete')}
                       </button>
                     </div>
@@ -930,8 +933,7 @@ export default function FaqAdminClient({
               </div>
             )}
           </div>
-          </section>
-        </div>
+        </section>
       ) : (
         <section
           id="faq-admin-panel-items"
@@ -996,9 +998,9 @@ export default function FaqAdminClient({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {filteredItems.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-border p-4">
+                  <div key={item.id} className="flex h-full flex-col rounded-2xl border border-border p-4">
                     <div className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                         <FaqCategoryIcon icon={categories.find((category) => category.id === item.category_id)?.icon} />
@@ -1028,40 +1030,40 @@ export default function FaqAdminClient({
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex flex-wrap items-center gap-2">
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => reorderItems('up', item)}>
-                        <ArrowUp size={13} />
+                    <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderItems('up', item)}>
+                        <ArrowUp className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveUp', 'Up')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => reorderItems('down', item)}>
-                        <ArrowDown size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => reorderItems('down', item)}>
+                        <ArrowDown className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.moveDown', 'Down')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => void toggleItemStatus(item)}>
-                        <CheckCircle2 size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => void toggleItemStatus(item)}>
+                        <CheckCircle2 className={COMPACT_ACTION_ICON_CLASS} />
                         {item.is_active
                           ? tp('adminFaqs.actions.unpublish', 'Unpublish')
                           : tp('adminFaqs.actions.publish', 'Publish')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => openEditItem(item)}>
-                        <Pencil size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => openEditItem(item)}>
+                        <Pencil className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.edit', 'Edit')}
                       </button>
-                      <button type="button" className="btn-secondary text-xs py-2" onClick={() => openDuplicateItem(item)}>
-                        <Copy size={13} />
+                      <button type="button" className={COMPACT_ACTION_BUTTON_CLASS} onClick={() => openDuplicateItem(item)}>
+                        <Copy className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.duplicate', 'Duplicate')}
                       </button>
                       <Link
                         href={`/faqs?category=${item.category_slug}#${formatFaqHash(item.slug)}`}
                         target="_blank"
-                        className="btn-secondary inline-flex text-xs py-2"
+                        className={COMPACT_ACTION_LINK_CLASS}
                       >
-                        <Eye size={13} />
+                        <Eye className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.preview', 'Preview')}
                       </Link>
                       <button
                         type="button"
-                        className="btn-secondary text-xs py-2"
+                        className={COMPACT_ACTION_BUTTON_CLASS}
                         onClick={() =>
                           setDeleteState({
                             type: 'item',
@@ -1073,7 +1075,7 @@ export default function FaqAdminClient({
                           })
                         }
                       >
-                        <Trash2 size={13} />
+                        <Trash2 className={COMPACT_ACTION_ICON_CLASS} />
                         {tp('adminFaqs.actions.delete', 'Delete')}
                       </button>
                     </div>
