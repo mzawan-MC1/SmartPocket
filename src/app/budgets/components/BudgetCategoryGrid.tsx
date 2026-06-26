@@ -27,7 +27,7 @@ import { translateSystemCategoryName } from '@/lib/system-category-display';
 // Backend integration point: fetch from /api/budgets?month=YYYY-MM&userId=current
 const budgets = [
   { id: 'bud-001', category: 'Housing', icon: Home, allocated: 1500, spent: 1450, color: '#7c3aed', iconBg: 'bg-purple-100 text-purple-700' },
-  { id: 'bud-002', category: 'Food & Dining', icon: Utensils, allocated: 800, spent: 828.75, color: '#f97316', iconBg: 'bg-orange-100 text-orange-700' },
+  { id: 'bud-002', category: 'Dining Out', icon: Utensils, allocated: 800, spent: 828.75, color: '#f97316', iconBg: 'bg-orange-100 text-orange-700' },
   { id: 'bud-003', category: 'Transport', icon: Car, allocated: 400, spent: 248.50, color: '#2563eb', iconBg: 'bg-blue-100 text-blue-700' },
   { id: 'bud-004', category: 'Utilities', icon: Zap, allocated: 200, spent: 189.99, color: '#8b5cf6', iconBg: 'bg-violet-100 text-violet-700' },
   { id: 'bud-005', category: 'Shopping', icon: ShoppingBag, allocated: 300, spent: 374.20, color: '#d97706', iconBg: 'bg-amber-100 text-amber-700' },

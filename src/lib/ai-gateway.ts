@@ -512,7 +512,7 @@ class MockLanguageProvider implements LanguageProvider {
             amount: 30,
             currency: primaryCurrency,
             date: 'today',
-            categoryName: 'Food & Dining',
+            categoryName: 'Dining Out',
             accountName,
             paidFrom: 'account',
             confidence: 0.92,
@@ -571,7 +571,7 @@ class MockLanguageProvider implements LanguageProvider {
             currency: primaryCurrency,
             date: 'today',
             personName,
-            categoryName: 'Food & Dining',
+            categoryName: 'Dining Out',
             accountName,
             paidFrom: 'held_balance',
             confidence: 0.92,
@@ -633,7 +633,41 @@ class MockLanguageProvider implements LanguageProvider {
       };
     }
 
-    if (text.includes('groceries') || text.includes('grocery')) {
+    const groceryKeywords = [
+      'groceries',
+      'grocery',
+      'supermarket',
+      'carrefour',
+      'vegetables',
+      'vegetable',
+      'fruit',
+      'meat',
+      'milk',
+      'bakery',
+      'cake',
+      'cakes',
+      'cleaning',
+      'detergent',
+      'tissues',
+      'toiletries',
+      'household',
+    ];
+    const diningKeywords = [
+      'restaurant',
+      'restaurants',
+      'cafe',
+      'cafes',
+      'coffee',
+      'starbucks',
+      'takeaway',
+      'takeout',
+      'delivery',
+      'talabat',
+      'lunch',
+      'dinner',
+    ];
+
+    if (groceryKeywords.some((keyword) => text.includes(keyword))) {
       return {
         requestId: input.requestId || 'mock-req',
         language: 'en',
@@ -644,7 +678,32 @@ class MockLanguageProvider implements LanguageProvider {
           amount: extractAmount(text) || 85,
           currency: extractCurrency(text) || defaultCurrency,
           date: 'today',
-          categoryName: 'Groceries',
+          categoryName: 'Groceries & Household',
+          accountName: extractAccount(text) || 'Cash',
+          paidFrom: 'account',
+          confidence: 0.95,
+          warnings: [],
+        }],
+        warnings: [],
+        missingFields: [],
+        requiresClarification: false,
+        providerUsed: 'mock',
+        fallbackUsed: false,
+      };
+    }
+
+    if (diningKeywords.some((keyword) => text.includes(keyword))) {
+      return {
+        requestId: input.requestId || 'mock-req',
+        language: 'en',
+        confidence: 0.95,
+        overallIntent: 'personal_transaction',
+        actions: [{
+          actionType: 'expense',
+          amount: extractAmount(text) || 30,
+          currency: extractCurrency(text) || defaultCurrency,
+          date: 'today',
+          categoryName: 'Dining Out',
           accountName: extractAccount(text) || 'Cash',
           paidFrom: 'account',
           confidence: 0.95,

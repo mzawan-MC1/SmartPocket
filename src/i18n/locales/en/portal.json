@@ -302,7 +302,7 @@
       "category": "Category",
       "selectCategory": "Select a category",
       "name": "Budget name",
-      "namePlaceholder": "e.g. Food & Dining",
+      "namePlaceholder": "e.g. Groceries & Household",
       "amount": "Amount *",
       "currency": "Currency",
       "currencyPlaceholder": "Choose currency",
