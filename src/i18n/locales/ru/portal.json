@@ -50,6 +50,10 @@
         "title": "Успешный вход",
         "description": "Доступ к вашему аккаунту выполнен успешно."
       },
+      "spaceInvitation": {
+        "title": "Приглашение в пространство",
+        "description": "{{inviterName}} пригласил(а) вас присоединиться к {{spaceName}} как {{role}}."
+      },
       "payPeriodStartsToday": {
         "title": "Период выплат начинается сегодня",
         "description": "Ваш {{periodLabel}} начинается сегодня."
@@ -410,7 +414,14 @@
     "form": {
       "preview": "Предпросмотр перевода",
       "fromAccount": "Со счета",
-      "toAccount": "На счет"
+      "toAccount": "На счет",
+      "loadingAccounts": "Загрузка счетов...",
+      "selectAccount": "Выберите счет",
+      "noAccountsAvailable": "Нет доступных счетов",
+      "systemDefaultLabels": {
+        "personalCash": "Счет наличных по умолчанию",
+        "personalBank": "Банковский счет по умолчанию"
+      }
     }
   },
   "recurring": {
@@ -1040,6 +1051,8 @@
     "emailRequired": "Введите адрес электронной почты.",
     "invitationSent": "Приглашение отправлено на {{email}}",
     "invitationFailed": "Не удалось отправить приглашение.",
+    "emailSent": "Письмо-приглашение отправлено.",
+    "emailDeliveryFailed": "Приглашение сохранено, но письмо не удалось доставить.",
     "revokeConfirm": "Отозвать это приглашение?",
     "revoked": "Приглашение отозвано",
     "revokeFailed": "Не удалось отозвать приглашение.",
@@ -1071,6 +1084,17 @@
     "inviteTitle": "Пригласить в пространство",
     "sending": "Отправка...",
     "sendInvitation": "Отправить приглашение",
+    "received": {
+      "title": "Полученные приглашения",
+      "invitedBy": "Пригласил(а): {{inviter}}",
+      "pending": "Ожидает ответа",
+      "acceptAction": "Принять",
+      "declineAction": "Отклонить",
+      "accepted": "Приглашение успешно принято.",
+      "declined": "Приглашение успешно отклонено.",
+      "loadFailed": "Не удалось загрузить полученные приглашения.",
+      "respondFailed": "Не удалось ответить на приглашение."
+    },
     "status": {
       "accepted": "Принято",
       "declined": "Отклонено",
@@ -1136,9 +1160,11 @@
         "revoked": "Это приглашение было отозвано владельцем пространства."
       },
       "expiredBanner": "Срок действия приглашения истек",
+      "spaceUnavailable": "Это пространство больше недоступно.",
       "signInTitle": "Войдите, чтобы принять приглашение",
       "signInDescription": "Чтобы принять приглашение, войдите с адресом {{email}}.",
       "emailMismatch": "Это приглашение было отправлено на {{invitedEmail}}, но вы вошли как {{currentEmail}}. Пожалуйста, войдите под правильной учетной записью.",
+      "useCorrectAccount": "Использовать правильный аккаунт",
       "decline": "Отклонить",
       "accept": "Принять",
       "backToDashboard": "Назад на панель",
@@ -2092,7 +2118,7 @@
     "bestValue": "Лучшая ценность",
     "contactSupportYearlyPlan": "Свяжитесь с поддержкой по этому годовому плану",
     "invalidDiscount": "Введите корректную годовую скидку от 0% до 100%.",
-    "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы AED."
+    "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы USD."
   },
   "featureGate": {
     "title": "Функция недоступна",

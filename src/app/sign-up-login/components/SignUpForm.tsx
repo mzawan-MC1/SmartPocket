@@ -87,10 +87,11 @@ export default function SignUpForm({
       trackMarketingEvent('sign_up_started', { method: 'google' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: buildAuthCallbackUrl('/dashboard'),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;

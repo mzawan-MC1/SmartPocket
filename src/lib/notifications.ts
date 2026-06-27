@@ -262,6 +262,25 @@ export function getLocalizedNotificationContent(args: {
         message: t('notifications.types.successfulSignIn.description'),
         usedFallback: false,
       };
+    case 'space_invitation': {
+      const spaceName = getMetadataString(metadata, 'space_name');
+      const role = getMetadataString(metadata, 'role');
+      const inviterName = getFirstMetadataString(metadata, ['inviter_name', 'inviter_email']);
+      if (!spaceName || !role) return fallback();
+      return {
+        resolvedType,
+        title: t('notifications.types.spaceInvitation.title'),
+        message: t('notifications.types.spaceInvitation.description', {
+          spaceName,
+          inviterName: inviterName || t('spaces.invitationPage.fallbackInviter', { ns: 'portal' }),
+          role: t(`spaces.roles.${role}`, {
+            ns: 'portal',
+            defaultValue: role,
+          }),
+        }),
+        usedFallback: false,
+      };
+    }
     case 'pay_period_starts_today': {
       const periodLabel = getMetadataString(metadata, 'period_label_kind') === 'planning_period'
         ? t('notifications.values.periodKinds.planningPeriod')

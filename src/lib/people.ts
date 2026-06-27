@@ -1,7 +1,6 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
 import type { Transaction } from '@/lib/finance';
-import { getClientReferenceData } from '@/lib/reference-data/client';
 import {
   ensureZeroCurrencyTotal,
   normalizeCurrencyCode,
@@ -9,6 +8,11 @@ import {
   sortCurrencyTotals,
 } from '@/lib/currency-totals';
 import { createNotificationIfEnabled } from '@/lib/notifications';
+import {
+  getSpaceInvitations as getAuthoritativeSpaceInvitations,
+  inviteToSpace as inviteToSpaceAuthoritative,
+  revokeInvitation as revokeInvitationAuthoritative,
+} from '@/lib/spaces';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +81,7 @@ export interface SpaceInvitation {
   role: SpaceRole;
   status: InvitationStatus;
   token: string;
-  expires_at: string;
+  expires_at: string | null;
   created_at: string;
 }
 
@@ -1048,44 +1052,15 @@ export async function createSpace(payload: Partial<Space>): Promise<Space> {
 }
 
 export async function inviteToSpace(spaceId: string, email: string, role: SpaceRole): Promise<SpaceInvitation> {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
-  const { data, error } = await supabase
-    .from('space_invitations')
-    .insert({
-      space_id: spaceId,
-      invited_by: user.id,
-      email,
-      role,
-    })
-    .select()
-    .single();
-  if (error) throw error;
-
-  await logActivity(user.id, 'member_invited', 'space_invitations', data.id, null, { email, role });
-  return data as SpaceInvitation;
+  return inviteToSpaceAuthoritative(spaceId, email, role);
 }
 
 export async function getSpaceInvitations(spaceId: string): Promise<SpaceInvitation[]> {
-  const supabase = createClient();
-  const { data, error } = await supabase
-    .from('space_invitations')
-    .select('*')
-    .eq('space_id', spaceId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return (data || []) as SpaceInvitation[];
+  return getAuthoritativeSpaceInvitations(spaceId);
 }
 
 export async function revokeInvitation(invitationId: string): Promise<void> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from('space_invitations')
-    .update({ status: 'revoked' })
-    .eq('id', invitationId);
-  if (error) throw error;
+  return revokeInvitationAuthoritative(invitationId);
 }
 
 // ─── Activity Logging ─────────────────────────────────────────────────────────

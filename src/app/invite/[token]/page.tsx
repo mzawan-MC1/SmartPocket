@@ -6,8 +6,7 @@ import { CheckCircle, XCircle, Clock, AlertTriangle, Home, ArrowRight, Loader2 }
 import { useTranslation } from 'react-i18next';
 import { getInvitationByToken, respondToInvitation, type SpaceInvitation } from '@/lib/spaces';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
-import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
+import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 
 function mapInvitationError(
   message: string,
@@ -38,8 +37,7 @@ export default function InvitationPage() {
   const { t } = useTranslation(['portal', 'common']);
   const params = useParams();
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
-  const { summary } = useSubscriptionSummary();
+  const { user, loading: authLoading, signOut } = useAuth();
   const token = params.token as string;
 
   const [invitation, setInvitation] = useState<SpaceInvitation | null>(null);
@@ -70,15 +68,19 @@ export default function InvitationPage() {
     !isExpired &&
     user &&
     !emailMismatch &&
-    hasSubscriptionFeature(summary, 'shared_spaces');
+    invitation.space_available !== false;
 
   const handleRespond = async (response: 'accepted' | 'declined') => {
     if (!invitation) return;
     setResponding(true);
     setError(null);
     try {
-      await respondToInvitation(invitation.id, response);
+      await respondToInvitation(invitation.id, response, token);
       setResult(response);
+      dispatchSmartPocketDataChanged({
+        source: 'invite-page:respond-invitation',
+        entities: ['notifications'],
+      });
       if (response === 'accepted') {
         setTimeout(() => router.push('/spaces'), 2000);
       }
@@ -213,6 +215,12 @@ export default function InvitationPage() {
           </div>
         )}
 
+        {invitation.space_available === false ? (
+          <div className="bg-warning-soft rounded-xl p-4 text-center text-sm font-600 text-warning">
+            {t('spaces.invitationPage.spaceUnavailable', { ns: 'portal' })}
+          </div>
+        ) : null}
+
         {!user && invitation.status === 'pending' && !isExpired && (
           <div className="bg-info-soft rounded-xl p-4 space-y-3">
             <p className="text-sm text-info font-600 text-center">{t('spaces.invitationPage.signInTitle', { ns: 'portal' })}</p>
@@ -220,7 +228,7 @@ export default function InvitationPage() {
               {t('spaces.invitationPage.signInDescription', { ns: 'portal', email: invitation.email })}
             </p>
             <Link
-              href={`/sign-up-login?redirect=/invite/${token}`}
+              href={`/sign-up-login?next=/invite/${token}`}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
             >
               {t('nav.signIn', { ns: 'common' })} <ArrowRight size={15} />
@@ -229,19 +237,20 @@ export default function InvitationPage() {
         )}
 
         {emailMismatch && (
-          <div className="bg-warning-soft rounded-xl p-4 text-sm text-warning font-600 text-center">
-            {t('spaces.invitationPage.emailMismatch', { ns: 'portal', invitedEmail: invitation.email, currentEmail: user?.email })}
+          <div className="bg-warning-soft rounded-xl p-4 text-sm text-warning font-600 text-center space-y-3">
+            <p>{t('spaces.invitationPage.emailMismatch', { ns: 'portal', invitedEmail: invitation.email, currentEmail: user?.email })}</p>
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut();
+                router.push(`/sign-up-login?next=/invite/${token}`);
+              }}
+              className="btn-secondary mx-auto"
+            >
+              {t('spaces.invitationPage.useCorrectAccount', { ns: 'portal' })}
+            </button>
           </div>
         )}
-
-        {user && !hasSubscriptionFeature(summary, 'shared_spaces') && invitation.status === 'pending' && !isExpired ? (
-          <div className="bg-warning-soft rounded-xl p-4 text-sm text-warning font-600 text-center">
-            {t('featureGate.description', {
-              ns: 'portal',
-              feature: t('featureGate.features.sharedSpaces', { ns: 'portal' }),
-            })}
-          </div>
-        ) : null}
 
         {error && (
           <div className="bg-negative-soft rounded-xl p-3 text-sm text-negative font-500 text-center">

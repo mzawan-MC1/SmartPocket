@@ -50,6 +50,10 @@
         "title": "Successful sign-in",
         "description": "Your account was accessed successfully."
       },
+      "spaceInvitation": {
+        "title": "Space invitation",
+        "description": "{{inviterName}} invited you to join {{spaceName}} as {{role}}."
+      },
       "payPeriodStartsToday": {
         "title": "Pay period starts today",
         "description": "Your {{periodLabel}} starts today."
@@ -656,6 +660,9 @@
       "completed": "Transfer completed successfully",
       "createFailed": "Failed to complete transfer.",
       "loading": "Loading transfer form...",
+      "loadingAccounts": "Loading accounts...",
+      "selectAccount": "Select account",
+      "noAccountsAvailable": "No accounts available",
       "preview": "Transfer Preview",
       "stalePreview": "This preview uses a stale cached rate.",
       "descriptionPlaceholder": "e.g. Monthly savings transfer",
@@ -664,7 +671,11 @@
       "processing": "Processing...",
       "completeAction": "Complete Transfer",
       "fromAccount": "From Account",
-      "toAccount": "To Account"
+      "toAccount": "To Account",
+      "systemDefaultLabels": {
+        "personalCash": "Default Cash",
+        "personalBank": "Default Bank"
+      }
     }
   },
   "recurring": {
@@ -1482,6 +1493,8 @@
     "emailRequired": "Enter an email address.",
     "invitationSent": "Invitation sent to {{email}}",
     "invitationFailed": "Failed to send invitation.",
+    "emailSent": "Invitation email sent.",
+    "emailDeliveryFailed": "The invitation was saved, but the email could not be delivered.",
     "revokeConfirm": "Revoke this invitation?",
     "revoked": "Invitation revoked",
     "revokeFailed": "Failed to revoke invitation.",
@@ -1513,6 +1526,17 @@
     "inviteTitle": "Invite to Space",
     "sending": "Sending...",
     "sendInvitation": "Send Invitation",
+    "received": {
+      "title": "Received Invitations",
+      "invitedBy": "Invited by {{inviter}}",
+      "pending": "Pending",
+      "acceptAction": "Accept",
+      "declineAction": "Decline",
+      "accepted": "The invitation was accepted successfully.",
+      "declined": "The invitation was declined successfully.",
+      "loadFailed": "Failed to load received invitations.",
+      "respondFailed": "Failed to respond to the invitation."
+    },
     "status": {
       "accepted": "Accepted",
       "declined": "Declined",
@@ -1578,9 +1602,11 @@
         "revoked": "This invitation has been revoked by the space owner."
       },
       "expiredBanner": "This invitation has expired",
+      "spaceUnavailable": "This space is no longer available.",
       "signInTitle": "Sign in to accept this invitation",
       "signInDescription": "You must sign in with {{email}} to accept this invitation.",
       "emailMismatch": "This invitation was sent to {{invitedEmail}}, but you are signed in as {{currentEmail}}. Please sign in with the correct account.",
+      "useCorrectAccount": "Use the correct account",
       "decline": "Decline",
       "accept": "Accept",
       "backToDashboard": "Back to Dashboard",
@@ -2494,7 +2520,7 @@
     "bestValue": "Best value",
     "contactSupportYearlyPlan": "Contact support for this yearly plan",
     "invalidDiscount": "Enter a valid yearly discount between 0% and 100%.",
-    "wholeNumberPriceRequirement": "Prices must be saved as whole AED amounts."
+    "wholeNumberPriceRequirement": "Prices must be saved as whole USD amounts."
   },
   "featureGate": {
     "title": "Feature unavailable",

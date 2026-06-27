@@ -118,10 +118,11 @@ export default function LoginForm({
     setIsGoogleLoading(true);
     try {
       const supabase = createClient();
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: buildAuthCallbackUrl('/dashboard'),
+          redirectTo: callbackUrl,
         },
       });
       if (error) throw error;

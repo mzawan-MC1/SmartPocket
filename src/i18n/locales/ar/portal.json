@@ -50,6 +50,10 @@
         "title": "تم تسجيل الدخول بنجاح",
         "description": "تم الوصول إلى حسابك بنجاح."
       },
+      "spaceInvitation": {
+        "title": "دعوة إلى مساحة",
+        "description": "قام {{inviterName}} بدعوتك للانضمام إلى {{spaceName}} بصفتك {{role}}."
+      },
       "payPeriodStartsToday": {
         "title": "تبدأ فترة الدفع اليوم",
         "description": "تبدأ {{periodLabel}} الخاصة بك اليوم."
@@ -438,7 +442,14 @@
     "form": {
       "preview": "معاينة التحويل",
       "fromAccount": "من الحساب",
-      "toAccount": "إلى الحساب"
+      "toAccount": "إلى الحساب",
+      "loadingAccounts": "جار تحميل الحسابات...",
+      "selectAccount": "اختر حسابا",
+      "noAccountsAvailable": "لا توجد حسابات متاحة",
+      "systemDefaultLabels": {
+        "personalCash": "النقد الافتراضي",
+        "personalBank": "البنك الافتراضي"
+      }
     }
   },
   "recurring": {
@@ -1068,6 +1079,8 @@
     "emailRequired": "أدخل عنوان بريد إلكتروني.",
     "invitationSent": "تم إرسال الدعوة إلى {{email}}",
     "invitationFailed": "فشل إرسال الدعوة.",
+    "emailSent": "تم إرسال بريد الدعوة.",
+    "emailDeliveryFailed": "تم حفظ الدعوة، لكن تعذر تسليم البريد الإلكتروني.",
     "revokeConfirm": "هل تريد سحب هذه الدعوة؟",
     "revoked": "تم سحب الدعوة",
     "revokeFailed": "فشل سحب الدعوة.",
@@ -1099,6 +1112,17 @@
     "inviteTitle": "دعوة إلى مساحة",
     "sending": "جار الإرسال...",
     "sendInvitation": "إرسال الدعوة",
+    "received": {
+      "title": "الدعوات المستلمة",
+      "invitedBy": "تمت الدعوة بواسطة {{inviter}}",
+      "pending": "قيد الانتظار",
+      "acceptAction": "قبول",
+      "declineAction": "رفض",
+      "accepted": "تم قبول الدعوة بنجاح.",
+      "declined": "تم رفض الدعوة بنجاح.",
+      "loadFailed": "تعذر تحميل الدعوات المستلمة.",
+      "respondFailed": "تعذر الرد على الدعوة."
+    },
     "status": {
       "accepted": "مقبولة",
       "declined": "مرفوضة",
@@ -1164,9 +1188,11 @@
         "revoked": "تم سحب هذه الدعوة بواسطة مالك المساحة."
       },
       "expiredBanner": "انتهت صلاحية هذه الدعوة",
+      "spaceUnavailable": "لم تعد هذه المساحة متاحة.",
       "signInTitle": "سجل الدخول لقبول هذه الدعوة",
       "signInDescription": "يجب أن تسجل الدخول باستخدام {{email}} لقبول هذه الدعوة.",
       "emailMismatch": "أرسلت هذه الدعوة إلى {{invitedEmail}}، لكنك مسجل الدخول باسم {{currentEmail}}. يرجى استخدام الحساب الصحيح.",
+      "useCorrectAccount": "استخدم الحساب الصحيح",
       "decline": "رفض",
       "accept": "قبول",
       "backToDashboard": "العودة إلى لوحة التحكم",
@@ -2120,7 +2146,7 @@
     "bestValue": "أفضل قيمة",
     "contactSupportYearlyPlan": "تواصل مع الدعم بشأن هذه الخطة السنوية",
     "invalidDiscount": "أدخل خصما سنويا صالحا بين 0% و100%.",
-    "wholeNumberPriceRequirement": "يجب حفظ الأسعار كمبالغ صحيحة بالدرهم الإماراتي."
+    "wholeNumberPriceRequirement": "يجب حفظ الأسعار كمبالغ صحيحة بالدولار الأمريكي."
   },
   "featureGate": {
     "title": "الميزة غير متاحة",

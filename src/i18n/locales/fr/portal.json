@@ -50,6 +50,10 @@
         "title": "Connexion réussie",
         "description": "Votre compte a été consulté avec succès."
       },
+      "spaceInvitation": {
+        "title": "Invitation a un espace",
+        "description": "{{inviterName}} vous a invite a rejoindre {{spaceName}} en tant que {{role}}."
+      },
       "payPeriodStartsToday": {
         "title": "La période de paie commence aujourd'hui",
         "description": "Votre {{periodLabel}} commence aujourd'hui."
@@ -410,7 +414,14 @@
     "form": {
       "preview": "Aperçu du transfert",
       "fromAccount": "Compte source",
-      "toAccount": "Compte destination"
+      "toAccount": "Compte destination",
+      "loadingAccounts": "Chargement des comptes...",
+      "selectAccount": "Choisir un compte",
+      "noAccountsAvailable": "Aucun compte disponible",
+      "systemDefaultLabels": {
+        "personalCash": "Cash par défaut",
+        "personalBank": "Banque par défaut"
+      }
     }
   },
   "recurring": {
@@ -1040,6 +1051,8 @@
     "emailRequired": "Saisissez une adresse e-mail.",
     "invitationSent": "Invitation envoyee a {{email}}",
     "invitationFailed": "Impossible d'envoyer l'invitation.",
+    "emailSent": "L'e-mail d'invitation a ete envoye.",
+    "emailDeliveryFailed": "L'invitation a ete enregistree, mais l'e-mail n'a pas pu etre livre.",
     "revokeConfirm": "Revoquer cette invitation ?",
     "revoked": "Invitation revoquee",
     "revokeFailed": "Impossible de revoquer l'invitation.",
@@ -1071,6 +1084,17 @@
     "inviteTitle": "Inviter dans un espace",
     "sending": "Envoi...",
     "sendInvitation": "Envoyer l'invitation",
+    "received": {
+      "title": "Invitations recues",
+      "invitedBy": "Invite par {{inviter}}",
+      "pending": "En attente",
+      "acceptAction": "Accepter",
+      "declineAction": "Refuser",
+      "accepted": "L'invitation a ete acceptee avec succes.",
+      "declined": "L'invitation a ete refusee avec succes.",
+      "loadFailed": "Impossible de charger les invitations recues.",
+      "respondFailed": "Impossible de repondre a l'invitation."
+    },
     "status": {
       "accepted": "Acceptee",
       "declined": "Refusee",
@@ -1136,9 +1160,11 @@
         "revoked": "Cette invitation a ete revoquee par le proprietaire de l'espace."
       },
       "expiredBanner": "Cette invitation a expire",
+      "spaceUnavailable": "Cet espace n'est plus disponible.",
       "signInTitle": "Connectez-vous pour accepter cette invitation",
       "signInDescription": "Vous devez vous connecter avec {{email}} pour accepter cette invitation.",
       "emailMismatch": "Cette invitation a ete envoyee a {{invitedEmail}}, mais vous etes connecte avec {{currentEmail}}. Veuillez utiliser le bon compte.",
+      "useCorrectAccount": "Utiliser le bon compte",
       "decline": "Refuser",
       "accept": "Accepter",
       "backToDashboard": "Retour au tableau de bord",
@@ -2092,7 +2118,7 @@
     "bestValue": "Meilleur rapport qualite-prix",
     "contactSupportYearlyPlan": "Contactez le support pour cette offre annuelle",
     "invalidDiscount": "Saisissez une remise annuelle valide entre 0% et 100%.",
-    "wholeNumberPriceRequirement": "Les prix doivent etre en AED entiers."
+    "wholeNumberPriceRequirement": "Les prix doivent etre en USD entiers."
   },
   "featureGate": {
     "title": "Fonctionnalite indisponible",

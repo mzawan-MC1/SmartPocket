@@ -3,18 +3,21 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useTranslation } from 'react-i18next';
 
-import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2 } from 'lucide-react';
+import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2, CheckCircle2 } from 'lucide-react';
 import {
   getSpaces, createSpace, updateSpace, archiveSpace,
-  getSpaceMembers, getSpaceInvitations, inviteToSpace, revokeInvitation,
-  updateSpaceMemberRole, removeSpaceMember,
+  getMyPendingInvitations, getSpaceMembers, getSpaceInvitations, inviteToSpaceDetailed, revokeInvitation,
+  respondToInvitation, updateSpaceMemberRole, removeSpaceMember,
   type Space, type SpaceMember, type SpaceInvitation, type SpaceRole
 } from '@/lib/spaces';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
-import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 
 const ROLE_COLORS: Record<SpaceRole, string> = {
   owner: 'bg-accent/10 text-accent',
@@ -85,8 +88,13 @@ const DEFAULT_FORM: SpaceFormData = {
 export default function SpacesPage() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
+  const { user } = useAuth();
+  const { summary } = useSubscriptionSummary();
+  const hasSharedSpacesFeature = hasSubscriptionFeature(summary, 'shared_spaces');
   const [spaces, setSpaces] = useState<Space[]>([]);
+  const [receivedInvitations, setReceivedInvitations] = useState<SpaceInvitation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [invitations, setInvitations] = useState<SpaceInvitation[]>([]);
@@ -101,13 +109,16 @@ export default function SpacesPage() {
   const [form, setForm] = useState<SpaceFormData>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [respondingInvitationId, setRespondingInvitationId] = useState<string | null>(null);
 
   const loadSpaces = useCallback(async () => {
     setLoading(true);
     try {
       const data = await getSpaces();
       setSpaces(data);
-      if (data.length > 0 && !activeSpaceId) {
+      if (data.length === 0) {
+        setActiveSpaceId(null);
+      } else if (!activeSpaceId || !data.some((space) => space.id === activeSpaceId)) {
         setActiveSpaceId(data[0].id);
       }
     } catch {
@@ -117,7 +128,26 @@ export default function SpacesPage() {
     }
   }, [activeSpaceId, t]);
 
-  const loadSpaceDetails = useCallback(async (spaceId: string) => {
+  const loadReceivedInvitations = useCallback(async () => {
+    setLoadingInvitations(true);
+    try {
+      const data = await getMyPendingInvitations();
+      setReceivedInvitations(data);
+    } catch {
+      toast.error(t('spaces.received.loadFailed', { ns: 'portal' }));
+    } finally {
+      setLoadingInvitations(false);
+    }
+  }, [t]);
+
+  const loadSpaceDetails = useCallback(async (spaceId: string, isOwner: boolean) => {
+    if (!isOwner) {
+      setMembers([]);
+      setInvitations([]);
+      setLoadingDetails(false);
+      return;
+    }
+
     setLoadingDetails(true);
     try {
       const [m, inv] = await Promise.all([
@@ -134,9 +164,15 @@ export default function SpacesPage() {
   }, [t]);
 
   useEffect(() => { loadSpaces(); }, [loadSpaces]);
-  useEffect(() => { if (activeSpaceId) loadSpaceDetails(activeSpaceId); }, [activeSpaceId, loadSpaceDetails]);
+  useEffect(() => { loadReceivedInvitations(); }, [loadReceivedInvitations]);
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) || null;
+  const isActiveSpaceOwner = Boolean(activeSpace && user?.id && activeSpace.owner_id === user.id);
+  useEffect(() => {
+    if (activeSpaceId && activeSpace) {
+      void loadSpaceDetails(activeSpaceId, Boolean(user?.id && activeSpace.owner_id === user.id));
+    }
+  }, [activeSpace, activeSpaceId, loadSpaceDetails, user?.id]);
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error(t('spaces.nameRequired', { ns: 'portal' })); return; }
@@ -186,12 +222,17 @@ export default function SpacesPage() {
     if (!activeSpaceId || !inviteEmail.trim()) { toast.error(t('spaces.emailRequired', { ns: 'portal' })); return; }
     setSaving(true);
     try {
-      await inviteToSpace(activeSpaceId, inviteEmail.trim(), inviteRole);
+      const result = await inviteToSpaceDetailed(activeSpaceId, inviteEmail.trim(), inviteRole);
       toast.success(t('spaces.invitationSent', { ns: 'portal', email: inviteEmail }));
+      if (result.emailStatus === 'sent') {
+        toast.success(t('spaces.emailSent', { ns: 'portal' }));
+      } else if (result.emailStatus === 'failed' || result.warning) {
+        toast.warning(result.warning || t('spaces.emailDeliveryFailed', { ns: 'portal' }));
+      }
       setShowInviteModal(false);
       setInviteEmail('');
       setInviteRole('viewer');
-      loadSpaceDetails(activeSpaceId);
+      loadSpaceDetails(activeSpaceId, true);
     } catch (e: unknown) {
       toast.error((e as Error).message || t('spaces.invitationFailed', { ns: 'portal' }));
     } finally {
@@ -204,9 +245,47 @@ export default function SpacesPage() {
     try {
       await revokeInvitation(invId);
       toast.success(t('spaces.revoked', { ns: 'portal' }));
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId);
+      dispatchSmartPocketDataChanged({
+        source: 'spaces-page:revoke-invitation',
+        entities: ['notifications'],
+      });
+      void loadReceivedInvitations();
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
     } catch {
       toast.error(t('spaces.revokeFailed', { ns: 'portal' }));
+    }
+  };
+
+  const handleRespondToReceivedInvitation = async (
+    invitation: SpaceInvitation,
+    response: 'accepted' | 'declined'
+  ) => {
+    setRespondingInvitationId(invitation.id);
+    try {
+      await respondToInvitation(invitation.id, response, invitation.token);
+      toast.success(
+        t(
+          response === 'accepted'
+            ? 'spaces.received.accepted'
+            : 'spaces.received.declined',
+          { ns: 'portal' }
+        )
+      );
+      dispatchSmartPocketDataChanged({
+        source: 'spaces-page:respond-invitation',
+        entities: ['notifications'],
+      });
+      await Promise.all([
+        loadReceivedInvitations(),
+        loadSpaces(),
+      ]);
+      if (activeSpaceId && activeSpace) {
+        await loadSpaceDetails(activeSpaceId, Boolean(user?.id && activeSpace.owner_id === user.id));
+      }
+    } catch (error: unknown) {
+      toast.error((error as Error).message || t('spaces.received.respondFailed', { ns: 'portal' }));
+    } finally {
+      setRespondingInvitationId(null);
     }
   };
 
@@ -214,7 +293,7 @@ export default function SpacesPage() {
     try {
       await updateSpaceMemberRole(memberId, newRole);
       toast.success(t('spaces.roleUpdated', { ns: 'portal' }));
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId);
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
     } catch (e: unknown) {
       toast.error((e as Error).message || t('spaces.roleUpdateFailed', { ns: 'portal' }));
     }
@@ -225,7 +304,7 @@ export default function SpacesPage() {
     try {
       await removeSpaceMember(memberId);
       toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId);
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
     } catch (e: unknown) {
       toast.error((e as Error).message || t('spaces.memberRemoveFailed', { ns: 'portal' }));
     }
@@ -247,22 +326,91 @@ export default function SpacesPage() {
 
   return (
     <AppLayout activeRoute="/spaces">
-      <SubscriptionFeatureGate feature="shared_spaces">
-        <div className="page-section pb-6">
+      <div className="page-section pb-6">
         <PageHeader
           title={t('spaces.title', { ns: 'portal' })}
           description={t('spaces.description', { ns: 'portal' })}
           badge={<StatusBadge status="info" label={t('spaces.badge', { ns: 'portal' })} />}
           actions={
-            <button
-              onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
-              className="btn-primary"
-            >
-              <Plus size={16} />
-              <span>{t('spaces.newSpace', { ns: 'portal' })}</span>
-            </button>
+            hasSharedSpacesFeature ? (
+              <button
+                onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
+                className="btn-primary"
+              >
+                <Plus size={16} />
+                <span>{t('spaces.newSpace', { ns: 'portal' })}</span>
+              </button>
+            ) : null
           }
         />
+
+        {loadingInvitations && !receivedInvitations.length ? (
+          <div className="card p-4 mb-5 animate-pulse h-28 bg-muted" />
+        ) : receivedInvitations.length > 0 ? (
+          <div className="card p-5 mb-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
+                <Mail size={16} className="text-accent" />
+                {t('spaces.received.title', { ns: 'portal' })}
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {receivedInvitations.length}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {receivedInvitations.map((invitation) => (
+                <div key={invitation.id} className="rounded-2xl border border-border p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-700 text-foreground truncate">
+                        {invitation.space?.name || t('spaces.invitationPage.fallbackUnknownSpace', { ns: 'portal' })}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {t('spaces.received.invitedBy', {
+                          ns: 'portal',
+                          inviter: invitation.inviter?.full_name || invitation.inviter?.email || t('spaces.invitationPage.fallbackInviter', { ns: 'portal' }),
+                        })}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded-full font-600 ${STATUS_COLORS.pending}`}>
+                      {t('spaces.received.pending', { ns: 'portal' })}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-muted-foreground">
+                    <span>{getRoleLabel(invitation.role, (key, options) => t(key, { ns: 'portal', ...options }))}</span>
+                    {invitation.expires_at ? (
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        {t('spaces.expiresOn', {
+                          ns: 'portal',
+                          date: new Date(invitation.expires_at).toLocaleDateString(language),
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-4">
+                    <button
+                      onClick={() => handleRespondToReceivedInvitation(invitation, 'accepted')}
+                      disabled={respondingInvitationId === invitation.id}
+                      className="btn-primary"
+                    >
+                      <CheckCircle2 size={15} />
+                      <span>{t('spaces.received.acceptAction', { ns: 'portal' })}</span>
+                    </button>
+                    <button
+                      onClick={() => handleRespondToReceivedInvitation(invitation, 'declined')}
+                      disabled={respondingInvitationId === invitation.id}
+                      className="btn-secondary"
+                    >
+                      <XCircle size={15} />
+                      <span>{t('spaces.received.declineAction', { ns: 'portal' })}</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {loading ? (
           <div className="space-y-3">
@@ -275,12 +423,14 @@ export default function SpacesPage() {
             <Home size={48} className="mx-auto text-muted-foreground/40 mb-4" />
             <h3 className="text-lg font-600 text-foreground mb-2">{t('spaces.emptyTitle', { ns: 'portal' })}</h3>
             <p className="text-sm text-muted-foreground mb-6">{t('spaces.emptyDescription', { ns: 'portal' })}</p>
-            <button
-              onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
-            >
-              <Plus size={16} /> {t('spaces.createFirst', { ns: 'portal' })}
-            </button>
+            {hasSharedSpacesFeature ? (
+              <button
+                onClick={() => { setForm(DEFAULT_FORM); setShowCreateModal(true); }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
+              >
+                <Plus size={16} /> {t('spaces.createFirst', { ns: 'portal' })}
+              </button>
+            ) : null}
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -308,30 +458,32 @@ export default function SpacesPage() {
                         {getSpaceTypeLabel(space.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
                       </p>
                     </div>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === space.id ? null : space.id); }}
-                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-                      >
-                        <MoreVertical size={15} />
-                      </button>
-                      {openMenuId === space.id && (
-                        <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-card-md py-1 min-w-[140px]">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openEdit(space); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
-                          >
-                            <Edit2 size={14} /> {t('actions.edit', { ns: 'common' })}
-                          </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleArchive(space); }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
-                          >
-                            <Archive size={14} /> {t('spaces.archiveAction', { ns: 'portal' })}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {hasSharedSpacesFeature && user?.id === space.owner_id ? (
+                      <div className="relative">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === space.id ? null : space.id); }}
+                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                        >
+                          <MoreVertical size={15} />
+                        </button>
+                        {openMenuId === space.id && (
+                          <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-card-md py-1 min-w-[140px]">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openEdit(space); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                            >
+                              <Edit2 size={14} /> {t('actions.edit', { ns: 'common' })}
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleArchive(space); }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
+                            >
+                              <Archive size={14} /> {t('spaces.archiveAction', { ns: 'portal' })}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
@@ -361,18 +513,20 @@ export default function SpacesPage() {
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => setShowInviteModal(true)}
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm font-600 text-foreground hover:bg-muted transition-colors"
-                      >
-                        <UserPlus size={15} /> {t('spaces.inviteAction', { ns: 'portal' })}
-                      </button>
+                      {hasSharedSpacesFeature && isActiveSpaceOwner ? (
+                        <button
+                          onClick={() => setShowInviteModal(true)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm font-600 text-foreground hover:bg-muted transition-colors"
+                        >
+                          <UserPlus size={15} /> {t('spaces.inviteAction', { ns: 'portal' })}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
 
                   {loadingDetails ? (
                     <div className="card p-6 animate-pulse h-32 bg-muted" />
-                  ) : (
+                  ) : isActiveSpaceOwner ? (
                     <>
                       {/* Members */}
                       <div className="card p-5">
@@ -441,14 +595,14 @@ export default function SpacesPage() {
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
                             <Mail size={16} className="text-accent" />
-                            {t('spaces.invitationsTitle', { ns: 'portal', count: invitations.length })}
+                            {t('spaces.invitationsTitle', { ns: 'portal', count: pendingInvitations.length })}
                           </h3>
                         </div>
-                        {invitations.length === 0 ? (
+                        {pendingInvitations.length === 0 ? (
                           <p className="text-sm text-muted-foreground text-center py-4">{t('spaces.invitationsEmpty', { ns: 'portal' })}</p>
                         ) : (
                           <div className="space-y-3">
-                            {invitations.map((inv) => (
+                            {pendingInvitations.map((inv) => (
                               <div key={inv.id} className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
                                   <Mail size={15} className="text-muted-foreground" />
@@ -475,21 +629,19 @@ export default function SpacesPage() {
                                     )}
                                   </div>
                                 </div>
-                                {inv.status === 'pending' && (
-                                  <button
-                                    onClick={() => handleRevoke(inv.id)}
-                                    className="text-xs text-negative font-600 hover:underline flex items-center gap-1"
-                                  >
-                                    <XCircle size={13} /> {t('spaces.revokeAction', { ns: 'portal' })}
-                                  </button>
-                                )}
+                                <button
+                                  onClick={() => handleRevoke(inv.id)}
+                                  className="text-xs text-negative font-600 hover:underline flex items-center gap-1"
+                                >
+                                  <XCircle size={13} /> {t('spaces.revokeAction', { ns: 'portal' })}
+                                </button>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
                     </>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <div className="card p-12 text-center">
@@ -588,7 +740,7 @@ export default function SpacesPage() {
       )}
 
       {/* Invite Modal */}
-      {showInviteModal && (
+      {showInviteModal && hasSharedSpacesFeature && isActiveSpaceOwner && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
           <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -646,7 +798,6 @@ export default function SpacesPage() {
           </div>
         </div>
       )}
-      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

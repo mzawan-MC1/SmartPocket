@@ -2,6 +2,7 @@ import 'server-only';
 
 import { redirect } from 'next/navigation';
 import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   requireAiHistoryAccess,
   requireManagedPeopleAccess,
@@ -48,5 +49,56 @@ export async function enforceSubscriptionFeatureRoute(
   const access = await FEATURE_ACCESS_RESOLVERS[feature](user.id);
   if (!access.ok) {
     redirect(redirectPath || buildFeatureRedirect(feature));
+  }
+}
+
+export async function enforceSharedSpacesWorkspaceRoute(redirectPath?: string) {
+  const supabase = await createServerComponentSupabaseClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/sign-up-login');
+  }
+
+  const access = await requireSharedSpacesAccess(user.id, { skipUsageCheck: true });
+  if (access.ok) {
+    return;
+  }
+
+  const email = user.email?.trim().toLowerCase();
+  const admin = createAdminClient();
+  if (!admin || !email) {
+    redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
+  }
+
+  const [memberAccess, inviteAccessByUserId, inviteAccessByEmail] = await Promise.all([
+    admin
+      .from('space_members')
+      .select('id', { head: true, count: 'exact' })
+      .eq('user_id', user.id)
+      .limit(1),
+    admin
+      .from('space_invitations')
+      .select('id', { head: true, count: 'exact' })
+      .eq('status', 'pending')
+      .eq('invited_user_id', user.id)
+      .limit(1),
+    admin
+      .from('space_invitations')
+      .select('id', { head: true, count: 'exact' })
+      .eq('status', 'pending')
+      .ilike('email', email)
+      .limit(1),
+  ]);
+
+  const hasInvitationOrMembership =
+    (memberAccess.count || 0) > 0
+    || (inviteAccessByUserId.count || 0) > 0
+    || (inviteAccessByEmail.count || 0) > 0;
+
+  if (!hasInvitationOrMembership) {
+    redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
   }
 }
