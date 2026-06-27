@@ -5,8 +5,8 @@ export const TRANSACTION_DOCUMENT_MAX_SIZE_MB = Math.round(
 );
 export const TRANSACTION_DOCUMENT_MAX_PDF_PAGES = 10;
 export const TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 30;
-export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.05;
-export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.5;
+export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.02;
+export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.02;
 export const TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
 export const TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL = 'JPG, PNG, WEBP, PDF';
 
@@ -51,6 +51,7 @@ export type TransactionDocumentErrorCode =
   | 'invalid_extraction_response'
   | 'unreadable_document'
   | 'signed_url_failure'
+  | 'receipt_metering_unavailable'
   | 'extract_failed'
   | 'job_required'
   | 'review_required'
@@ -366,6 +367,7 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     || inputCode === 'unsupported_multimodal_model'
     || inputCode === 'provider_http_error'
     || inputCode === 'invalid_ai_json_response'
+    || inputCode === 'receipt_metering_unavailable'
     || inputCode === 'signed_url_failure'
   ) {
     return inputCode;
@@ -500,6 +502,12 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   }
   if (message === 'Failed to create signed preview URL') {
     return 'signed_url_failure';
+  }
+  if (
+    /PGRST203/.test(message)
+    || /receipt processing is temporarily unavailable/i.test(message)
+  ) {
+    return 'receipt_metering_unavailable';
   }
   if (
     message === 'Document extraction failed'
@@ -833,6 +841,45 @@ export function getTransactionDocumentLineItemTotal(item: {
   return 0;
 }
 
+export function transactionDocumentLineItemHasResolvableTotal(item: {
+  quantity?: number | null;
+  unitPrice?: number | null;
+  total?: number | null;
+}) {
+  if (typeof item.total === 'number' && Number.isFinite(item.total)) {
+    return true;
+  }
+  return typeof item.quantity === 'number'
+    && Number.isFinite(item.quantity)
+    && typeof item.unitPrice === 'number'
+    && Number.isFinite(item.unitPrice);
+}
+
+export function getTransactionDocumentLineItemValidation(item: {
+  name?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  total?: number | null;
+}) {
+  const computedTotal = getTransactionDocumentLineItemTotal(item);
+  const hasName = typeof item.name === 'string' && item.name.trim().length > 0;
+  const hasResolvableTotal = transactionDocumentLineItemHasResolvableTotal(item);
+  const totalAligned = !hasResolvableTotal || transactionDocumentLineItemsHaveValidTotals([item]);
+  const hasValidTotal = hasResolvableTotal
+    && Number.isFinite(computedTotal)
+    && computedTotal >= 0
+    && totalAligned;
+
+  return {
+    computedTotal,
+    hasName,
+    hasResolvableTotal,
+    totalAligned,
+    hasValidTotal,
+    isValid: hasName && hasValidTotal,
+  };
+}
+
 export function getTransactionDocumentTotalSummary(input: {
   amount: number;
   tax?: number | null;
@@ -889,6 +936,9 @@ export function getTransactionDocumentTotalSummary(input: {
   const calculatedTotal = roundTransactionDocumentMoney(resolvedSubtotal + tax + fee - discount);
   const mismatchAmount = roundTransactionDocumentMoney(calculatedTotal - receiptTotal);
   const absoluteMismatch = Math.abs(mismatchAmount);
+  const hasOnlyRoundingMismatch =
+    absoluteMismatch > 0 && absoluteMismatch <= TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD;
+  const hasMeaningfulMismatch = absoluteMismatch > TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD;
 
   return {
     subtotal: resolvedSubtotal,
@@ -898,10 +948,9 @@ export function getTransactionDocumentTotalSummary(input: {
     calculatedTotal,
     receiptTotal,
     mismatchAmount,
-    hasMismatch: absoluteMismatch > 0,
-    hasOnlyRoundingMismatch:
-      absoluteMismatch > 0 && absoluteMismatch <= TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD,
-    requiresConfirmation: absoluteMismatch > TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD,
+    hasMismatch: hasMeaningfulMismatch,
+    hasOnlyRoundingMismatch,
+    requiresConfirmation: absoluteMismatch > TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD,
   };
 }
 

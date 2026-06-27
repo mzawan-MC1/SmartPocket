@@ -99,6 +99,10 @@ function getSafeExtractErrorCode(error: unknown): TransactionDocumentErrorCode {
     return 'migration_missing';
   }
 
+  if (isErrorWithCode(error) && error.code === 'PGRST203') {
+    return 'receipt_metering_unavailable';
+  }
+
   const classified = classifyTransactionDocumentError(error);
   if (classified) {
     return classified;
@@ -124,6 +128,8 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
     case 'storage_bucket_failure':
     case 'signed_url_failure':
       return 500;
+    case 'receipt_metering_unavailable':
+      return 503;
     case 'openrouter_not_configured':
     case 'unsupported_multimodal_model':
     case 'provider_timeout':
@@ -169,6 +175,8 @@ function getErrorMessage(errorCode: TransactionDocumentErrorCode): string | unde
       return 'The receipt was processed, but the extracted data could not be validated.';
     case 'unreadable_document':
       return 'We could not read enough information from this document. Try a clearer photo.';
+    case 'receipt_metering_unavailable':
+      return 'Receipt processing is temporarily unavailable. Please try again shortly.';
     default:
       return undefined;
   }
@@ -536,6 +544,15 @@ export async function POST(request: NextRequest) {
         uploadedFile = false;
       }
       if (reserveError) {
+        logExtractionStage('error', 'receipt_allowance.reserve', {
+          extractRequestId,
+          userId: user.id,
+          documentId,
+          jobId,
+          idempotencyKey,
+          internalError: reserveError.message,
+          databaseCode: isErrorWithCode(reserveError) ? reserveError.code : null,
+        });
         throw reserveError;
       }
       const reserveErrorCode = getReceiptAccessErrorCode(reserveResult?.error || 'extract_failed');

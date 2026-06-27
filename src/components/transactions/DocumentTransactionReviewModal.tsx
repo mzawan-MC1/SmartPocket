@@ -16,9 +16,9 @@ import {
   formatTransactionDocumentFileSize,
   getTransactionDocumentMaxSizeLabel,
   getTransactionDocumentDisplayTitle,
+  getTransactionDocumentLineItemValidation,
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
-  transactionDocumentLineItemsHaveValidTotals,
   type TransactionDocumentErrorCode,
   type TransactionDocumentDuplicateMatch,
   type TransactionDocumentExtractResponse,
@@ -107,6 +107,61 @@ type ReceiptAllowanceSummary = {
   remaining: number;
   cycleEnd?: string | null;
 };
+
+type TransactionFieldKey =
+  | 'transactionDate'
+  | 'amount'
+  | 'currency'
+  | 'accountId'
+  | 'description';
+
+type LineItemFieldKey = 'name' | 'total';
+
+type LineItemValidationState = {
+  itemIndex: number;
+  fields: LineItemFieldKey[];
+  nameMessage: string;
+  totalMessage: string;
+};
+
+type ReviewTransactionValidationState = {
+  transactionId: string;
+  transactionFields: TransactionFieldKey[];
+  lineItemErrors: LineItemValidationState[];
+  totalsMismatchActive: boolean;
+  totalsMismatchBlocking: boolean;
+  totalSummary: ReturnType<typeof getTransactionDocumentTotalSummary>;
+};
+
+type ReviewValidationState = {
+  duplicateActive: boolean;
+  duplicateBlocking: boolean;
+  transactions: ReviewTransactionValidationState[];
+  hasTransactionErrors: boolean;
+  hasLineItemErrors: boolean;
+  totalsMismatchBlocking: boolean;
+  canSubmit: boolean;
+  firstBlockingTargetId: string | null;
+  footerMessage: string;
+};
+
+function getTransactionFieldElementId(transactionId: string, field: TransactionFieldKey) {
+  return `document-review-${transactionId}-${field}`;
+}
+
+function getLineItemFieldElementId(transactionId: string, itemIndex: number, field: LineItemFieldKey) {
+  return `document-review-${transactionId}-line-${itemIndex}-${field}`;
+}
+
+function getTotalsElementId(transactionId: string) {
+  return `document-review-${transactionId}-totals`;
+}
+
+function getFieldErrorClass(hasError: boolean) {
+  return hasError
+    ? 'border-negative/60 bg-negative-soft/40 text-foreground focus:border-negative focus:ring-negative/20'
+    : '';
+}
 
 function createTransactionDocumentUiError(
   code: TransactionDocumentErrorCode | null,
@@ -673,76 +728,191 @@ export default function DocumentTransactionReviewModal({
     income: categories.filter((category) => category.category_type === 'income'),
   }), [categories]);
 
-  const validationError = useMemo(() => {
-    if (reviewTransactions.length === 0) {
-      return t('transactions.documentReview.noTransactions', {
-        ns: 'portal',
-        defaultValue: 'No draft transactions were detected from this document.',
+  const reviewValidation = useMemo<ReviewValidationState>(() => {
+    const noTransactions = reviewTransactions.length === 0;
+    const duplicateActive = duplicates.length > 0;
+    const duplicateBlocking = duplicateActive && !duplicateConfirmed;
+    const transactions = reviewTransactions.map((transaction) => {
+      const transactionFields: TransactionFieldKey[] = [];
+
+      if (!transaction.transactionDate) {
+        transactionFields.push('transactionDate');
+      }
+      if (!(typeof transaction.amount === 'number' && Number.isFinite(transaction.amount) && transaction.amount > 0)) {
+        transactionFields.push('amount');
+      }
+      if (!transaction.currency) {
+        transactionFields.push('currency');
+      }
+      if (!transaction.accountId) {
+        transactionFields.push('accountId');
+      }
+      if (!transaction.description.trim()) {
+        transactionFields.push('description');
+      }
+
+      const lineItemErrors = transaction.lineItems.flatMap((item, itemIndex) => {
+        const lineItemValidation = getTransactionDocumentLineItemValidation(item);
+        const fields: LineItemFieldKey[] = [];
+        let totalMessage = '';
+
+        if (!lineItemValidation.hasName) {
+          fields.push('name');
+        }
+
+        if (!lineItemValidation.hasResolvableTotal) {
+          fields.push('total');
+          totalMessage = t('transactions.documentReview.lineItemTotalRequired', {
+            ns: 'portal',
+            defaultValue: 'Enter a line total, or both quantity and unit price.',
+          });
+        } else if (!lineItemValidation.totalAligned) {
+          fields.push('total');
+          totalMessage = t('transactions.documentReview.lineItemTotalMismatch', {
+            ns: 'portal',
+            defaultValue: 'Line total must match quantity x unit price.',
+          });
+        } else if (!lineItemValidation.hasValidTotal) {
+          fields.push('total');
+          totalMessage = t('transactions.documentReview.lineItemTotalInvalid', {
+            ns: 'portal',
+            defaultValue: 'Enter a valid line total.',
+          });
+        }
+
+        if (fields.length === 0) {
+          return [];
+        }
+
+        return [{
+          itemIndex,
+          fields,
+          nameMessage: t('transactions.documentReview.lineItemNameRequired', {
+            ns: 'portal',
+            defaultValue: 'Item name is required.',
+          }),
+          totalMessage,
+        }];
       });
-    }
 
-    const invalidRow = reviewTransactions.find(
-      (transaction) =>
-        !transaction.accountId ||
-        !transaction.transactionDate ||
-        !transaction.currency ||
-        !(typeof transaction.amount === 'number' && Number.isFinite(transaction.amount) && transaction.amount > 0) ||
-        !transaction.description.trim()
-    );
-
-    if (invalidRow) {
-      return t('transactions.documentReview.completeRequiredFields', {
-        ns: 'portal',
-        defaultValue: 'Complete the required transaction fields before saving.',
-      });
-    }
-
-    const invalidLineItem = reviewTransactions.find((transaction) => transaction.lineItems.some((item) => {
-      const computedTotal = getTransactionDocumentLineItemTotal(item);
-      return !item.name.trim()
-        || !Number.isFinite(computedTotal)
-        || computedTotal <= 0
-        || !transactionDocumentLineItemsHaveValidTotals([item]);
-    }));
-    if (invalidLineItem) {
-      return t('transactions.documentReview.invalidLineItems', {
-        ns: 'portal',
-        defaultValue: 'Each saved receipt item needs a name and a valid total.',
-      });
-    }
-
-    const requiresMismatchConfirmation = reviewTransactions.find((transaction) => {
       const totalSummary = getTransactionDocumentTotalSummary({
         amount: transaction.amount,
         tax: transaction.tax,
         lineItems: transaction.lineItems,
       });
-      return totalSummary.requiresConfirmation && transaction.totalsConfirmed !== true;
+
+      return {
+        transactionId: transaction.id,
+        transactionFields,
+        lineItemErrors,
+        totalsMismatchActive: totalSummary.hasMismatch,
+        totalsMismatchBlocking: totalSummary.requiresConfirmation && transaction.totalsConfirmed !== true,
+        totalSummary,
+      };
     });
-    if (requiresMismatchConfirmation) {
-      return t('transactions.documentReview.confirmTotalsMismatch', {
+
+    const hasTransactionErrors = transactions.some((transaction) => transaction.transactionFields.length > 0);
+    const hasLineItemErrors = transactions.some((transaction) => transaction.lineItemErrors.length > 0);
+    const totalsMismatchBlocking = transactions.some((transaction) => transaction.totalsMismatchBlocking);
+
+    let firstBlockingTargetId: string | null = null;
+    if (duplicateBlocking) {
+      firstBlockingTargetId = 'document-review-duplicate-warning';
+    } else {
+      for (const transaction of transactions) {
+        if (transaction.transactionFields.length > 0) {
+          firstBlockingTargetId = getTransactionFieldElementId(
+            transaction.transactionId,
+            transaction.transactionFields[0]
+          );
+          break;
+        }
+        if (transaction.lineItemErrors.length > 0) {
+          const firstLineItemError = transaction.lineItemErrors[0];
+          firstBlockingTargetId = getLineItemFieldElementId(
+            transaction.transactionId,
+            firstLineItemError.itemIndex,
+            firstLineItemError.fields[0]
+          );
+          break;
+        }
+        if (transaction.totalsMismatchBlocking) {
+          firstBlockingTargetId = getTotalsElementId(transaction.transactionId);
+          break;
+        }
+      }
+    }
+
+    const canSubmit = !extractError
+      && !isExtracting
+      && !isSaving
+      && !noTransactions
+      && !!jobId
+      && !duplicateBlocking
+      && !hasTransactionErrors
+      && !hasLineItemErrors
+      && !totalsMismatchBlocking;
+
+    let footerMessage = t('transactions.documentReview.readyToSave', {
+      ns: 'portal',
+      defaultValue: 'Review looks complete and is ready to save.',
+    });
+
+    if (noTransactions) {
+      footerMessage = t('transactions.documentReview.noTransactions', {
+        ns: 'portal',
+        defaultValue: 'No draft transactions were detected from this document.',
+      });
+    } else if (hasTransactionErrors) {
+      footerMessage = t('transactions.documentReview.completeRequiredFields', {
+        ns: 'portal',
+        defaultValue: 'Complete the highlighted transaction fields before saving.',
+      });
+    } else if (hasLineItemErrors) {
+      footerMessage = t('transactions.documentReview.fixLineItemErrors', {
+        ns: 'portal',
+        defaultValue: 'Fix the highlighted receipt items before saving.',
+      });
+    } else if (totalsMismatchBlocking) {
+      footerMessage = t('transactions.documentReview.confirmTotalsMismatch', {
         ns: 'portal',
         defaultValue: 'Review the totals difference before saving.',
       });
-    }
-
-    if (hasDuplicates && !duplicateConfirmed) {
-      return t('transactions.documentReview.confirmDuplicateWarning', {
+    } else if (duplicateBlocking) {
+      footerMessage = t('transactions.documentReview.confirmDuplicateWarning', {
         ns: 'portal',
         defaultValue: 'Please confirm the duplicate warning above before saving.',
       });
     }
 
-    return '';
-  }, [duplicateConfirmed, hasDuplicates, reviewTransactions, t]);
+    return {
+      duplicateActive,
+      duplicateBlocking,
+      transactions,
+      hasTransactionErrors,
+      hasLineItemErrors,
+      totalsMismatchBlocking,
+      canSubmit,
+      firstBlockingTargetId,
+      footerMessage,
+    };
+  }, [
+    duplicateConfirmed,
+    duplicates.length,
+    extractError,
+    isExtracting,
+    isSaving,
+    jobId,
+    reviewTransactions,
+    t,
+  ]);
 
   const canSave = !isExtracting
     && !isSaving
     && !extractError
-    && !validationError
     && reviewTransactions.length > 0
     && !!jobId;
-  const footerMessage = validationError || t('transactions.documentReview.readyToSave', {
+  const footerMessage = reviewValidation.footerMessage || t('transactions.documentReview.readyToSave', {
     ns: 'portal',
     defaultValue: 'Review looks complete and is ready to save.',
   });
@@ -792,8 +962,26 @@ export default function DocumentTransactionReviewModal({
 
   const handleSave = async () => {
     if (!canSave) {
-      if (validationError) {
-        toast.error(validationError);
+      toast.error(footerMessage);
+      return;
+    }
+
+    if (!reviewValidation.canSubmit) {
+      toast.error(reviewValidation.footerMessage);
+      const targetId = reviewValidation.firstBlockingTargetId;
+      if (targetId) {
+        requestAnimationFrame(() => {
+          const target = document.getElementById(targetId);
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+            });
+            if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) {
+              target.focus({ preventScroll: true });
+            }
+          }
+        });
       }
       return;
     }
@@ -883,7 +1071,7 @@ export default function DocumentTransactionReviewModal({
             event.currentTarget.value = '';
           }}
         />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 pb-28 ltr:pr-3 rtl:pl-3 sm:px-5 sm:py-4 sm:pb-32 sm:ltr:pr-4 sm:rtl:pl-4 lg:px-6 lg:ltr:pr-5 lg:rtl:pl-5">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
               !receiptAllowance.enabled
@@ -988,7 +1176,7 @@ export default function DocumentTransactionReviewModal({
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(360px,0.58fr)_minmax(0,1fr)] 2xl:gap-5">
-              <div className="min-w-0 space-y-3">
+              <div className="min-w-0 space-y-4">
                 <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
                   <div className="border-b border-slate-200 px-4 py-2.5 sm:px-5">
                     <div className="flex items-center gap-2">
@@ -1030,8 +1218,11 @@ export default function DocumentTransactionReviewModal({
                   </div>
                 </section>
 
-                {hasDuplicates ? (
-                  <section className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5">
+                {reviewValidation.duplicateBlocking ? (
+                  <section
+                    id="document-review-duplicate-warning"
+                    className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5"
+                  >
                     <div className="flex items-start gap-3">
                       <AlertTriangle size={18} className="mt-0.5 text-amber-700" />
                       <div className="min-w-0 flex-1">
@@ -1109,30 +1300,50 @@ export default function DocumentTransactionReviewModal({
                             })}
                           </button>
                         </div>
-                        {duplicateConfirmed ? (
-                          <p className="mt-2.5 text-sm font-600 text-amber-900">
-                            {t('transactions.documentReview.duplicateConfirmedLabel', {
-                              ns: 'portal',
-                              defaultValue: 'Duplicate warning confirmed. You can save when the rest of the review is ready.',
-                            })}
-                          </p>
-                        ) : null}
+                      </div>
+                    </div>
+                  </section>
+                ) : reviewValidation.duplicateActive ? (
+                  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:px-5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 h-4 w-4 rounded-full bg-emerald-500/80" aria-hidden="true" />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-sm font-700 text-emerald-900">
+                          {t('transactions.documentReview.duplicateConfirmedLabel', {
+                            ns: 'portal',
+                            defaultValue: 'Duplicate warning confirmed. You can save when the rest of the review is ready.',
+                          })}
+                        </h3>
+                        <p className="mt-1 text-sm text-emerald-900/80">
+                          {t('transactions.documentReview.duplicateConfirmedSummary', {
+                            ns: 'portal',
+                            count: duplicates.length,
+                            defaultValue: '{{count}} possible matches remain visible in this review session, but they no longer block saving.',
+                          })}
+                        </p>
                       </div>
                     </div>
                   </section>
                 ) : null}
               </div>
 
-              <div className="min-w-0 space-y-3.5">
+              <div className="min-w-0 space-y-4">
                 {reviewTransactions.map((transaction, index) => {
                   const lineItemCategories = transaction.transactionType === 'income'
                     ? filteredCategoriesByType.income
                     : filteredCategoriesByType.expense;
-                  const totalSummary = getTransactionDocumentTotalSummary({
+                  const transactionValidation = reviewValidation.transactions.find(
+                    (entry) => entry.transactionId === transaction.id
+                  );
+                  const totalSummary = transactionValidation?.totalSummary || getTransactionDocumentTotalSummary({
                     amount: transaction.amount,
                     tax: transaction.tax,
                     lineItems: transaction.lineItems,
                   });
+                  const hasTransactionFieldError = (field: TransactionFieldKey) =>
+                    transactionValidation?.transactionFields.includes(field) ?? false;
+                  const getLineItemError = (itemIndex: number) =>
+                    transactionValidation?.lineItemErrors.find((item) => item.itemIndex === itemIndex);
 
                   return (
                     <section key={transaction.id} className="overflow-hidden rounded-3xl border border-blue-200/70 bg-[#F5F9FF]">
@@ -1232,21 +1443,31 @@ export default function DocumentTransactionReviewModal({
                             {t('transactions.date', { ns: 'portal' })} *
                           </label>
                           <input
+                            id={getTransactionFieldElementId(transaction.id, 'transactionDate')}
                             type="date"
-                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                            className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('transactionDate'))}`}
                             value={transaction.transactionDate}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({ ...current, transactionDate: event.target.value }))}
                           />
+                          {hasTransactionFieldError('transactionDate') ? (
+                            <p className="mt-1 text-xs text-negative">
+                              {t('transactions.documentReview.transactionDateRequired', {
+                                ns: 'portal',
+                                defaultValue: 'Select a transaction date.',
+                              })}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="min-w-0">
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.amount', { ns: 'portal' })} *
                           </label>
                           <input
+                            id={getTransactionFieldElementId(transaction.id, 'amount')}
                             type="number"
                             step="0.01"
                             min="0.01"
-                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                            className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('amount'))}`}
                             value={transaction.amount > 0 ? String(transaction.amount) : ''}
                             onChange={(event) => updateTransaction(transaction.id, (current) => ({
                               ...current,
@@ -1254,6 +1475,14 @@ export default function DocumentTransactionReviewModal({
                               totalsConfirmed: false,
                             }))}
                           />
+                          {hasTransactionFieldError('amount') ? (
+                            <p className="mt-1 text-xs text-negative">
+                              {t('transactions.documentReview.transactionAmountRequired', {
+                                ns: 'portal',
+                                defaultValue: 'Enter a valid receipt total.',
+                              })}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="min-w-0">
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
@@ -1276,6 +1505,7 @@ export default function DocumentTransactionReviewModal({
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.currency', { ns: 'portal', defaultValue: 'Currency' })} *
                           </label>
+                          <div id={getTransactionFieldElementId(transaction.id, 'currency')}>
                           <CurrencySelector
                             value={transaction.currency}
                             onChange={(currencyCode) => updateTransaction(transaction.id, (current) => ({ ...current, currency: currencyCode }))}
@@ -1285,15 +1515,25 @@ export default function DocumentTransactionReviewModal({
                               ns: 'portal',
                               defaultValue: 'Currency follows the selected account.',
                             })}
-                            className="[&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3"
+                            className={`${hasTransactionFieldError('currency') ? '[&>button]:border-negative/60 [&>button]:bg-negative-soft/40' : ''} [&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3`}
                           />
+                          </div>
+                          {hasTransactionFieldError('currency') ? (
+                            <p className="mt-1 text-xs text-negative">
+                              {t('transactions.documentReview.transactionCurrencyRequired', {
+                                ns: 'portal',
+                                defaultValue: 'Select a currency.',
+                              })}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="min-w-0">
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.account', { ns: 'portal' })} *
                           </label>
                           <select
-                            className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                            id={getTransactionFieldElementId(transaction.id, 'accountId')}
+                            className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('accountId'))}`}
                             value={transaction.accountId}
                             onChange={(event) => {
                               const nextAccount = accounts.find((account) => account.id === event.target.value);
@@ -1314,6 +1554,14 @@ export default function DocumentTransactionReviewModal({
                               </option>
                             ))}
                           </select>
+                          {hasTransactionFieldError('accountId') ? (
+                            <p className="mt-1 text-xs text-negative">
+                              {t('transactions.documentReview.transactionAccountRequired', {
+                                ns: 'portal',
+                                defaultValue: 'Choose an account.',
+                              })}
+                            </p>
+                          ) : null}
                         </div>
                         <div className="min-w-0">
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
@@ -1359,14 +1607,23 @@ export default function DocumentTransactionReviewModal({
                           {t('settlements.descriptionLabel', { ns: 'portal' })} *
                         </label>
                         <input
+                          id={getTransactionFieldElementId(transaction.id, 'description')}
                           type="text"
-                          className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                          className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('description'))}`}
                           value={transaction.description}
                           onChange={(event) => updateTransaction(transaction.id, (current) => ({
                             ...current,
                             description: event.target.value,
                           }))}
                         />
+                        {hasTransactionFieldError('description') ? (
+                          <p className="mt-1 text-xs text-negative">
+                            {t('transactions.documentReview.transactionDescriptionRequired', {
+                              ns: 'portal',
+                              defaultValue: 'Add a description before saving.',
+                            })}
+                          </p>
+                        ) : null}
                       </div>
 
                       <div>
@@ -1436,19 +1693,27 @@ export default function DocumentTransactionReviewModal({
                               <div className="divide-y divide-slate-200/60">
                                 {transaction.lineItems.map((item, itemIndex) => {
                                   const itemTotal = getTransactionDocumentLineItemTotal(item);
+                                  const lineItemValidation = getTransactionDocumentLineItemValidation(item);
+                                  const itemError = getLineItemError(itemIndex);
+                                  const hasNameError = itemError?.fields.includes('name') ?? false;
+                                  const hasTotalError = itemError?.fields.includes('total') ?? false;
 
                                   return (
                                     <div key={`${transaction.id}-line-${itemIndex}`} className="grid items-end gap-2 px-2.5 py-2 2xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
                                       <div className="min-w-0">
                                         <input
+                                          id={getLineItemFieldElementId(transaction.id, itemIndex, 'name')}
                                           type="text"
-                                          className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-[13px]"
+                                          className={`input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-[13px] ${getFieldErrorClass(hasNameError)}`}
                                           value={item.name}
                                           onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                             ...current,
                                             name: event.target.value,
                                           }))}
                                         />
+                                        {hasNameError ? (
+                                          <p className="mt-1 text-xs text-negative">{itemError?.nameMessage}</p>
+                                        ) : null}
                                       </div>
                                       <div className="min-w-0">
                                         <input
@@ -1513,8 +1778,15 @@ export default function DocumentTransactionReviewModal({
                                         </select>
                                       </div>
                                       <div className="min-w-0">
-                                        <div className="flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-[13px] font-600 text-foreground">
-                                          {itemTotal > 0
+                                        <div
+                                          id={getLineItemFieldElementId(transaction.id, itemIndex, 'total')}
+                                          className={`flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border px-2.5 text-[13px] font-600 ${
+                                            hasTotalError
+                                              ? 'border-negative/60 bg-negative-soft/40 text-negative'
+                                              : 'border-slate-200 bg-slate-50 text-foreground'
+                                          }`}
+                                        >
+                                          {lineItemValidation.hasResolvableTotal
                                             ? formatCurrencyText(itemTotal, {
                                                 currencyCode: transaction.currency || undefined,
                                                 fallbackCurrencyCode: transaction.currency || 'USD',
@@ -1522,6 +1794,9 @@ export default function DocumentTransactionReviewModal({
                                               })
                                             : '—'}
                                         </div>
+                                        {hasTotalError ? (
+                                          <p className="mt-1 text-xs text-negative">{itemError?.totalMessage}</p>
+                                        ) : null}
                                       </div>
                                       <div className="flex items-end justify-end">
                                         <button
@@ -1542,9 +1817,18 @@ export default function DocumentTransactionReviewModal({
                             <div className="mt-2 space-y-1.5 2xl:hidden">
                               {transaction.lineItems.map((item, itemIndex) => {
                                 const itemTotal = getTransactionDocumentLineItemTotal(item);
+                                const lineItemValidation = getTransactionDocumentLineItemValidation(item);
+                                const itemError = getLineItemError(itemIndex);
+                                const hasNameError = itemError?.fields.includes('name') ?? false;
+                                const hasTotalError = itemError?.fields.includes('total') ?? false;
 
                                 return (
-                                  <div key={`${transaction.id}-line-${itemIndex}`} className="rounded-2xl border border-slate-200 bg-white p-2">
+                                  <div
+                                    key={`${transaction.id}-line-${itemIndex}`}
+                                    className={`rounded-2xl border bg-white p-2 ${
+                                      hasNameError || hasTotalError ? 'border-negative/40' : 'border-slate-200'
+                                    }`}
+                                  >
                                     <div className="space-y-1.5">
                                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,0.7fr))]">
                                         <div className="min-w-0">
@@ -1552,14 +1836,18 @@ export default function DocumentTransactionReviewModal({
                                             {t('transactions.documentReview.itemName', { ns: 'portal', defaultValue: 'Item name' })}
                                           </label>
                                           <input
+                                            id={getLineItemFieldElementId(transaction.id, itemIndex, 'name')}
                                             type="text"
-                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            className={`input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs ${getFieldErrorClass(hasNameError)}`}
                                             value={item.name}
                                             onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                               ...current,
                                               name: event.target.value,
                                             }))}
                                           />
+                                          {hasNameError ? (
+                                            <p className="mt-1 text-xs text-negative">{itemError?.nameMessage}</p>
+                                          ) : null}
                                         </div>
                                         <div className="min-w-0">
                                           <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
@@ -1598,16 +1886,20 @@ export default function DocumentTransactionReviewModal({
                                             {t('transactions.documentReview.lineTotal', { ns: 'portal', defaultValue: 'Line total' })}
                                           </label>
                                           <input
+                                            id={getLineItemFieldElementId(transaction.id, itemIndex, 'total')}
                                             type="number"
                                             step="0.01"
                                             min="0"
-                                            className="input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs"
+                                            className={`input-base h-9 min-h-9 w-full min-w-0 px-2.5 py-1.5 text-xs ${getFieldErrorClass(hasTotalError)}`}
                                             value={formatOptionalNumberInput(item.total)}
                                             onChange={(event) => updateLineItem(transaction.id, itemIndex, (current) => ({
                                               ...current,
                                               total: parseOptionalNumber(event.target.value),
                                             }))}
                                           />
+                                          {hasTotalError ? (
+                                            <p className="mt-1 text-xs text-negative">{itemError?.totalMessage}</p>
+                                          ) : null}
                                         </div>
                                       </div>
 
@@ -1658,8 +1950,12 @@ export default function DocumentTransactionReviewModal({
                                           <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
                                             {t('transactions.documentReview.computedLineTotal', { ns: 'portal', defaultValue: 'Calculated line total' })}
                                           </label>
-                                          <div className="flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border border-slate-200 bg-slate-50 px-2.5 text-xs font-600 text-foreground">
-                                            {itemTotal > 0
+                                          <div className={`flex h-9 min-h-9 items-center whitespace-nowrap rounded-xl border px-2.5 text-xs font-600 ${
+                                            hasTotalError
+                                              ? 'border-negative/60 bg-negative-soft/40 text-negative'
+                                              : 'border-slate-200 bg-slate-50 text-foreground'
+                                          }`}>
+                                            {lineItemValidation.hasResolvableTotal
                                               ? formatCurrencyText(itemTotal, {
                                                   currencyCode: transaction.currency || undefined,
                                                   fallbackCurrencyCode: transaction.currency || 'USD',
@@ -1687,7 +1983,10 @@ export default function DocumentTransactionReviewModal({
                           </>
                         )}
 
-                        <section className="rounded-2xl border border-amber-200/80 bg-[#FFF9F0] p-3 sm:p-3.5">
+                        <section
+                          id={getTotalsElementId(transaction.id)}
+                          className="rounded-2xl border border-amber-200/80 bg-[#FFF9F0] p-3 sm:p-3.5"
+                        >
                           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <h4 className="text-xs font-700 uppercase tracking-wide text-amber-900/70">
                               {t('transactions.documentReview.totalsTitle', {
@@ -1696,11 +1995,7 @@ export default function DocumentTransactionReviewModal({
                               })}
                             </h4>
                             {totalSummary.hasMismatch ? (
-                              <span className={`rounded-full px-2 py-1 text-xs font-700 ${
-                                totalSummary.requiresConfirmation || totalSummary.hasOnlyRoundingMismatch
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-white/80 text-muted-foreground'
-                              }`}>
+                              <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-700 text-amber-800">
                                 {t('transactions.documentReview.mismatchAmountLabel', {
                                   ns: 'portal',
                                   amount: formatCurrencyText(Math.abs(totalSummary.mismatchAmount), {
@@ -1745,13 +2040,7 @@ export default function DocumentTransactionReviewModal({
                           </div>
 
                           {totalSummary.hasMismatch ? (
-                            <div className={`mt-2.5 rounded-2xl border p-3 text-sm ${
-                              totalSummary.requiresConfirmation
-                                ? 'border-amber-300 bg-amber-100 text-amber-900'
-                                : totalSummary.hasOnlyRoundingMismatch
-                                  ? 'border-amber-200 bg-amber-50 text-amber-900'
-                                  : 'border-amber-200 bg-white/80 text-muted-foreground'
-                            }`}>
+                            <div className="mt-2.5 rounded-2xl border border-amber-300 bg-amber-100 p-3 text-sm text-amber-900">
                               <p className="font-700">
                                 {t('transactions.documentReview.mismatchTitle', {
                                   ns: 'portal',
@@ -1801,7 +2090,7 @@ export default function DocumentTransactionReviewModal({
             <div className={`text-sm ${
               extractError
                 ? 'text-muted-foreground'
-                : validationError
+                : !reviewValidation.canSubmit
                   ? 'text-amber-800'
                   : 'text-muted-foreground'
             }`}>

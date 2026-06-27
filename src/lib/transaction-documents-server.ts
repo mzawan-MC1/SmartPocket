@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  getTransactionDocumentLineItemValidation,
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
   isTransactionDocumentItemKind,
@@ -328,13 +329,21 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
               unitPrice,
               total: providedTotal,
             });
-
-            if (!Number.isFinite(computedTotal) || computedTotal <= 0) {
+            const lineItemValidation = getTransactionDocumentLineItemValidation({
+              name: typeof lineItem.name === 'string' ? lineItem.name : '',
+              quantity,
+              unitPrice,
+              total: providedTotal,
+            });
+            if (!lineItemValidation.hasName) {
+              throw new Error('Each reviewed line item must have a name.');
+            }
+            if (!lineItemValidation.hasValidTotal) {
               throw new Error('Each reviewed line item must have a valid total.');
             }
 
             return {
-              name: normalizeText(typeof lineItem.name === 'string' ? lineItem.name : '') || 'Item',
+              name: normalizeText(typeof lineItem.name === 'string' ? lineItem.name : '') || '',
               description: normalizeText(typeof lineItem.description === 'string' ? lineItem.description : ''),
               quantity,
               unitPrice,
