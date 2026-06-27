@@ -1093,9 +1093,88 @@ export default function DocumentTransactionReviewModal({
       size="xl"
       mobileLayout="fullscreen"
       contentClassName="sm:w-[92vw] sm:max-w-[1160px] sm:max-h-[min(90vh,920px)]"
-      bodyClassName="flex min-h-0 flex-col overflow-hidden p-0"
+      bodyClassName="min-h-0 p-0"
+      footerClassName="px-4 py-4 sm:px-5 lg:px-6"
+      footer={(
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className={`text-sm ${
+            extractError
+              ? 'text-muted-foreground'
+              : !reviewValidation.canSubmit
+                ? 'text-amber-800'
+                : 'text-muted-foreground'
+          }`}>
+            {footerHelpText}
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isSaving || isExtracting}
+              className="btn-secondary min-h-10 w-full sm:w-auto"
+            >
+              {t('actions.cancel', { ns: 'common' })}
+            </button>
+            {extractError ? (
+              isSelectionError ? (
+                <button
+                  type="button"
+                  onClick={handleChooseAnotherFile}
+                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
+                >
+                  {t('transactions.documentReview.chooseAnotherFile', {
+                    ns: 'portal',
+                    defaultValue: 'Choose another file',
+                  })}
+                </button>
+              ) : canRetry ? (
+                <button
+                  type="button"
+                  onClick={() => setRetryKey((current) => current + 1)}
+                  disabled={!canRetry}
+                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
+                >
+                  {t('transactions.documentReview.tryAgain', {
+                    ns: 'portal',
+                    defaultValue: 'Try Again',
+                  })}
+                </button>
+              ) : (extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included') ? (
+                <Link href="/settings/subscription" className="btn-primary min-h-10 w-full justify-center sm:w-auto">
+                  {t('subscriptionBilling.upgrade', {
+                    ns: 'portal',
+                    defaultValue: 'Upgrade',
+                  })}
+                </Link>
+              ) : null
+            ) : (
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={!canSave}
+                className="btn-primary min-h-10 w-full justify-center sm:w-auto"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    {t('transactions.documentReview.savingAction', {
+                      ns: 'portal',
+                      defaultValue: 'Saving...',
+                    })}
+                  </>
+                ) : (
+                  t('transactions.documentReview.confirmAndSave', {
+                    ns: 'portal',
+                    defaultValue: 'Confirm and Save',
+                  })
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     >
-      <div className="flex min-h-0 flex-1 flex-col">
+      <>
         <input
           ref={replaceFileInputRef}
           type="file"
@@ -1110,8 +1189,8 @@ export default function DocumentTransactionReviewModal({
             event.currentTarget.value = '';
           }}
         />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
-          <div className="space-y-4 pb-6 sm:pb-8">
+        <div className="px-4 py-3 sm:px-5 sm:py-4 lg:px-6">
+          <div className="space-y-4 pb-5 sm:pb-6">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
               !receiptAllowance.enabled
@@ -1891,11 +1970,12 @@ export default function DocumentTransactionReviewModal({
                                         <div className="flex items-end md:col-span-1 md:justify-end">
                                           <button
                                             type="button"
+                                            aria-label={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })}
+                                            title={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })}
                                             onClick={() => removeLineItem(transaction.id, itemIndex)}
-                                            className="inline-flex h-9 min-h-9 w-full items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 text-xs font-600 text-rose-700 md:w-auto"
+                                            className="btn-ghost inline-flex h-9 min-h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                                           >
                                             <Trash2 size={14} />
-                                            {t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove' })}
                                           </button>
                                         </div>
                                       </div>
@@ -2007,86 +2087,7 @@ export default function DocumentTransactionReviewModal({
           )}
           </div>
         </div>
-
-        <div className="safe-area-bottom shrink-0 border-t border-border/80 bg-white px-4 py-3 sm:px-5 lg:px-6">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className={`text-sm ${
-              extractError
-                ? 'text-muted-foreground'
-                : !reviewValidation.canSubmit
-                  ? 'text-amber-800'
-                  : 'text-muted-foreground'
-            }`}>
-              {footerHelpText}
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSaving || isExtracting}
-              className="btn-secondary min-h-10 w-full sm:w-auto"
-            >
-              {t('actions.cancel', { ns: 'common' })}
-            </button>
-            {extractError ? (
-              isSelectionError ? (
-                <button
-                  type="button"
-                  onClick={handleChooseAnotherFile}
-                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
-                >
-                  {t('transactions.documentReview.chooseAnotherFile', {
-                    ns: 'portal',
-                    defaultValue: 'Choose another file',
-                  })}
-                </button>
-              ) : canRetry ? (
-                <button
-                  type="button"
-                  onClick={() => setRetryKey((current) => current + 1)}
-                  disabled={!canRetry}
-                  className="btn-primary min-h-10 w-full justify-center sm:w-auto"
-                >
-                  {t('transactions.documentReview.tryAgain', {
-                    ns: 'portal',
-                    defaultValue: 'Try Again',
-                  })}
-                </button>
-              ) : (extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included') ? (
-                <Link href="/settings/subscription" className="btn-primary min-h-10 w-full justify-center sm:w-auto">
-                  {t('subscriptionBilling.upgrade', {
-                    ns: 'portal',
-                    defaultValue: 'Upgrade',
-                  })}
-                </Link>
-              ) : null
-            ) : (
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!canSave}
-                className="btn-primary min-h-10 w-full justify-center sm:w-auto"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 size={15} className="animate-spin" />
-                    {t('transactions.documentReview.savingAction', {
-                      ns: 'portal',
-                      defaultValue: 'Saving...',
-                    })}
-                  </>
-                ) : (
-                  t('transactions.documentReview.confirmAndSave', {
-                    ns: 'portal',
-                    defaultValue: 'Confirm and Save',
-                  })
-                )}
-              </button>
-            )}
-          </div>
-          </div>
-        </div>
-      </div>
+      </>
       </Modal>
       <TransactionDetailsModal
         isOpen={!!duplicateViewTransactionId}

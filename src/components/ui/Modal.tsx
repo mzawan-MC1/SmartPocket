@@ -10,11 +10,13 @@ interface ModalProps {
   title: string;
   description?: string;
   children: React.ReactNode;
+  footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   mobileLayout?: 'sheet' | 'fullscreen';
   contentClassName?: string;
   headerClassName?: string;
   bodyClassName?: string;
+  footerClassName?: string;
 }
 
 const sizeClasses = {
@@ -31,11 +33,13 @@ export default function Modal({
   title,
   description,
   children,
+  footer,
   size = 'md',
   mobileLayout = 'sheet',
   contentClassName = '',
   headerClassName = '',
   bodyClassName = '',
+  footerClassName = '',
 }: ModalProps) {
   const { t } = useTranslation('common');
   const isVisible = open || isOpen || false;
@@ -89,9 +93,14 @@ export default function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className={`safe-area-bottom flex-1 overflow-y-auto p-6 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
+        <div className={`safe-area-bottom min-h-0 flex-1 overflow-y-auto p-6 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
           {children}
         </div>
+        {footer ? (
+          <div className={`safe-area-bottom shrink-0 border-t border-border bg-card ${footerClassName}`}>
+            {footer}
+          </div>
+        ) : null}
       </div>
     </div>
   );
