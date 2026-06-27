@@ -22,6 +22,7 @@ import {
   requestPersonalSubscriptionCancellation,
   updatePersonalSubscription,
 } from '@/lib/personal-subscriptions-server';
+import { deleteTransactionWithDocumentCleanup } from '@/lib/transaction-document-links';
 import type {
   PersonalSubscription,
   PersonalSubscriptionUpsertInput,
@@ -2571,11 +2572,11 @@ async function rollbackTransactionServer(
   userId: string,
   supabase: SupabaseClient
 ) {
-  await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', transactionId)
-    .eq('user_id', userId);
+  await deleteTransactionWithDocumentCleanup({
+    supabase,
+    transactionId,
+    userId,
+  });
 
   await recalculateAccountBalanceServer(accountId, userId, supabase);
 }
@@ -2707,18 +2708,18 @@ async function createTransferServer(
     return transfer;
   } catch (error) {
     if (toTransactionId) {
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', toTransactionId)
-        .eq('user_id', userId);
+      await deleteTransactionWithDocumentCleanup({
+        supabase,
+        transactionId: toTransactionId,
+        userId,
+      });
     }
     if (fromTransactionId) {
-      await supabase
-        .from('transactions')
-        .delete()
-        .eq('id', fromTransactionId)
-        .eq('user_id', userId);
+      await deleteTransactionWithDocumentCleanup({
+        supabase,
+        transactionId: fromTransactionId,
+        userId,
+      });
     }
     throw error;
   }
@@ -2954,11 +2955,11 @@ async function deleteTransactionAndTrackAccount(
     accountIdsToRecalculate.add(String(transaction.account_id));
   }
 
-  await supabase
-    .from('transactions')
-    .delete()
-    .eq('id', transactionId)
-    .eq('user_id', userId);
+  await deleteTransactionWithDocumentCleanup({
+    supabase,
+    transactionId,
+    userId,
+  });
 }
 
 async function rollbackCreatedSubscriptionAndDependents(args: {

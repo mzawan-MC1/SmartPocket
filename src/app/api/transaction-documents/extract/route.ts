@@ -782,6 +782,7 @@ export async function POST(request: NextRequest) {
         admin,
         userId: user.id,
         fileHash,
+        currentDocumentId: documentId,
         extractedTransactions: extractionResponse.parsed.transactions.map((transaction) => ({
           merchant: transaction.merchant,
           date: transaction.date,

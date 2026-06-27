@@ -42,6 +42,59 @@ type EditableDocumentTransaction = TransactionDocumentReviewInput & {
   needsReview: boolean;
 };
 
+type TransactionDocumentSaveErrorResponse = {
+  success?: false;
+  duplicates?: TransactionDocumentDuplicateMatch[];
+  errorCode?: string;
+  errorMessage?: string;
+  message?: string;
+  referenceId?: string;
+};
+
+type TransactionDocumentSaveApiResponse =
+  | TransactionDocumentSaveResponse
+  | TransactionDocumentSaveErrorResponse;
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTransactionDocumentDuplicateMatch(value: unknown): value is TransactionDocumentDuplicateMatch {
+  return isObjectRecord(value) && typeof value.documentId === 'string';
+}
+
+function isTransactionDocumentSaveResponse(value: unknown): value is TransactionDocumentSaveResponse {
+  return isObjectRecord(value)
+    && value.success === true
+    && typeof value.jobId === 'string'
+    && typeof value.documentId === 'string'
+    && (typeof value.primaryTransactionId === 'string' || value.primaryTransactionId === null)
+    && Array.isArray(value.transactionIds)
+    && value.transactionIds.every((transactionId) => typeof transactionId === 'string')
+    && typeof value.savedCount === 'number';
+}
+
+function parseTransactionDocumentSaveApiResponse(value: unknown): TransactionDocumentSaveApiResponse {
+  if (isTransactionDocumentSaveResponse(value)) {
+    return value;
+  }
+
+  if (!isObjectRecord(value)) {
+    return {};
+  }
+
+  return {
+    success: value.success === false ? false : undefined,
+    duplicates: Array.isArray(value.duplicates)
+      ? value.duplicates.filter(isTransactionDocumentDuplicateMatch)
+      : undefined,
+    errorCode: typeof value.errorCode === 'string' ? value.errorCode : undefined,
+    errorMessage: typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
+    message: typeof value.message === 'string' ? value.message : undefined,
+    referenceId: typeof value.referenceId === 'string' ? value.referenceId : undefined,
+  };
+}
+
 function createLocalId() {
   return createClientId();
 }
@@ -66,6 +119,24 @@ function parseOptionalNumber(value: string) {
 
 function formatOptionalNumberInput(value: number | null | undefined) {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
+}
+
+function formatDuplicateCandidateAmount(args: {
+  amount: number;
+  currency?: string | null;
+  currencyUnavailableLabel: string;
+}) {
+  if (args.currency) {
+    return formatCurrencyText(args.amount, {
+      currencyCode: args.currency,
+      textOnly: true,
+    });
+  }
+
+  return `${new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(args.amount)} · ${args.currencyUnavailableLabel}`;
 }
 
 const TRANSACTION_DOCUMENT_ITEM_KINDS: TransactionDocumentItemKind[] = [
@@ -377,7 +448,6 @@ export default function DocumentTransactionReviewModal({
   const [saveErrorCode, setSaveErrorCode] = useState<TransactionDocumentErrorCode | null>(null);
   const [saveReferenceId, setSaveReferenceId] = useState('');
   const [jobId, setJobId] = useState('');
-  const [documentId, setDocumentId] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [duplicates, setDuplicates] = useState<TransactionDocumentDuplicateMatch[]>([]);
   const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
@@ -484,9 +554,7 @@ export default function DocumentTransactionReviewModal({
       setSaveErrorCode(null);
       setSaveReferenceId('');
       setJobId('');
-      setDocumentId('');
       setPreviewUrl('');
-      setDuplicates([]);
       setDuplicateConfirmed(false);
       setAccounts([]);
       setCategories([]);
@@ -511,7 +579,6 @@ export default function DocumentTransactionReviewModal({
       setSaveErrorCode(null);
       setSaveReferenceId('');
       setJobId('');
-      setDocumentId('');
       setPreviewUrl('');
       setDuplicates([]);
       setDuplicateConfirmed(false);
@@ -603,7 +670,6 @@ export default function DocumentTransactionReviewModal({
         if (cancelled) return;
         const payload = result as TransactionDocumentExtractResponse;
         setJobId(payload.jobId);
-        setDocumentId(payload.documentId);
         setSaveError('');
         setSaveErrorCode(null);
         setSaveReferenceId('');
@@ -685,7 +751,6 @@ export default function DocumentTransactionReviewModal({
         setExtractErrorCode(errorCode);
         setExtractReferenceId(referenceId);
         setJobId('');
-        setDocumentId('');
         setPreviewUrl('');
         setDuplicates([]);
         setExtractionWarnings([]);
@@ -709,7 +774,6 @@ export default function DocumentTransactionReviewModal({
     };
   }, [activeFile, isOpen, refreshReceiptAllowanceSummary, retryKey, sourceSurface, t]);
 
-  const hasDuplicates = duplicates.length > 0;
   const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
   const isPlanRestrictedError = extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included';
   const isReceiptLimitError = extractErrorCode === 'receipt_allowance_exhausted';
@@ -1102,21 +1166,36 @@ export default function DocumentTransactionReviewModal({
         body: JSON.stringify(payload),
       });
 
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok || !result?.success) {
-        const errorCode = typeof result?.errorCode === 'string'
-          ? result.errorCode as TransactionDocumentErrorCode
-          : classifyTransactionDocumentError(result?.errorMessage);
-        const referenceId = typeof result?.referenceId === 'string' ? result.referenceId : '';
-        const safeMessage = typeof result?.message === 'string'
-          ? result.message
-          : typeof result?.errorMessage === 'string'
-            ? result.errorMessage
+      const rawResult: unknown = await response.json().catch(() => null);
+      const result = parseTransactionDocumentSaveApiResponse(rawResult);
+      const saveSuccessResult = response.ok && isTransactionDocumentSaveResponse(result) ? result : null;
+
+      if (!saveSuccessResult) {
+        const saveErrorResult: TransactionDocumentSaveErrorResponse =
+          isTransactionDocumentSaveResponse(result) ? {} : result;
+        const refreshedDuplicates = saveErrorResult?.duplicates ?? null;
+        if (refreshedDuplicates) {
+          setDuplicates(refreshedDuplicates);
+          if (
+            typeof saveErrorResult?.errorCode === 'string'
+            && saveErrorResult.errorCode === 'duplicate_confirmation_required'
+          ) {
+            setDuplicateConfirmed(false);
+          }
+        }
+        const errorCode = typeof saveErrorResult?.errorCode === 'string'
+          ? saveErrorResult.errorCode as TransactionDocumentErrorCode
+          : classifyTransactionDocumentError(saveErrorResult?.errorMessage);
+        const referenceId = typeof saveErrorResult?.referenceId === 'string' ? saveErrorResult.referenceId : '';
+        const safeMessage = typeof saveErrorResult?.message === 'string'
+          ? saveErrorResult.message
+          : typeof saveErrorResult?.errorMessage === 'string'
+            ? saveErrorResult.errorMessage
             : '';
         const localizedMessage = safeMessage || getLocalizedTransactionDocumentError({
           t,
           errorCode,
-          errorMessage: safeMessage || result?.errorMessage,
+          errorMessage: safeMessage || saveErrorResult?.errorMessage,
           fallbackKey: 'saveFailed',
         });
         setSaveError(localizedMessage);
@@ -1130,10 +1209,10 @@ export default function DocumentTransactionReviewModal({
       setSaveReferenceId('');
       toast.success(t('transactions.documentReview.savedSuccessfully', {
         ns: 'portal',
-        count: Array.isArray(result.transactionIds) ? result.transactionIds.length : 0,
+        count: saveSuccessResult.transactionIds.length,
         defaultValue: 'Document transactions saved successfully.',
       }));
-      await onSaved?.(result as TransactionDocumentSaveResponse);
+      await onSaved?.(saveSuccessResult);
       onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save the reviewed document transactions.');
@@ -1450,7 +1529,7 @@ export default function DocumentTransactionReviewModal({
                       </p>
                       <div className="mt-2.5 max-h-64 space-y-2 overflow-y-auto pr-1">
                         {duplicates.map((duplicate) => (
-                          <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-2xl border border-amber-200/80 bg-white/90 p-2.5 text-xs text-foreground">
+                          <div key={duplicate.transactionId || duplicate.documentId} className="rounded-2xl border border-amber-200/80 bg-white/90 p-2.5 text-xs text-foreground">
                             <p className="break-words text-sm font-600 leading-5 text-foreground">
                               {getTransactionDocumentDisplayTitle({
                                 merchant: duplicate.merchant,
@@ -1467,14 +1546,26 @@ export default function DocumentTransactionReviewModal({
                               <span aria-hidden="true">·</span>
                               <span className="whitespace-nowrap">
                                 {typeof duplicate.total === 'number'
-                                  ? formatCurrencyText(duplicate.total, {
-                                      currencyCode: duplicate.currency || undefined,
-                                      fallbackCurrencyCode: duplicate.currency || 'USD',
-                                      textOnly: true,
+                                  ? formatDuplicateCandidateAmount({
+                                      amount: duplicate.total,
+                                      currency: duplicate.currency,
+                                      currencyUnavailableLabel: t('transactions.documentReview.currencyUnavailable', {
+                                        ns: 'portal',
+                                        defaultValue: 'Currency unavailable',
+                                      }),
                                     })
                                   : '—'}
                               </span>
                             </div>
+                            {duplicate.receiptNumber ? (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {t('transactions.documentReview.receiptNumberShort', {
+                                  ns: 'portal',
+                                  defaultValue: 'Ref: {{value}}',
+                                  value: duplicate.receiptNumber,
+                                })}
+                              </p>
+                            ) : null}
                             {duplicate.transactionId ? (
                               <div className="mt-2 flex justify-end">
                                 <button

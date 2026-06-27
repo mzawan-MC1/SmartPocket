@@ -30,6 +30,7 @@ import {
   normalizeBudgetPeriodValue,
   type ResolvedBudgetPeriod,
 } from '@/lib/financial-periods/budgets';
+import { deleteTransactionWithDocumentCleanup } from '@/lib/transaction-document-links';
 import type {
   ExchangeRateFreshness,
   ExchangeRateLookupMode,
@@ -1713,8 +1714,10 @@ export async function updateTransaction(id: string, payload: Partial<Transaction
 
 export async function deleteTransaction(id: string, accountId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase.from('transactions').delete().eq('id', id);
-  if (error) throw error;
+  await deleteTransactionWithDocumentCleanup({
+    supabase,
+    transactionId: id,
+  });
   await recalculateAccountBalance(accountId);
 }
 
@@ -1848,10 +1851,16 @@ export async function createTransfer(payload: {
     return transfer;
   } catch (error) {
     if (toTxnId) {
-      await supabase.from('transactions').delete().eq('id', toTxnId);
+      await deleteTransactionWithDocumentCleanup({
+        supabase,
+        transactionId: toTxnId,
+      });
     }
     if (fromTxnId) {
-      await supabase.from('transactions').delete().eq('id', fromTxnId);
+      await deleteTransactionWithDocumentCleanup({
+        supabase,
+        transactionId: fromTxnId,
+      });
     }
     throw error;
   }

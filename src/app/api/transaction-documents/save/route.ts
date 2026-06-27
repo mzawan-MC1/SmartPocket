@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { loadExecutionContextServer } from '@/lib/ai-execution-server';
 import {
+  refreshTransactionDocumentDuplicateMatches,
   loadSavedTransactionDocumentReviewResult,
   mapDocumentOptionsFromContext,
   requireAdminClient,
@@ -238,6 +239,51 @@ export async function POST(request: NextRequest) {
         idempotent: true,
       });
       return jsonWithCookies(existingSavedResult, 200, cookieMutations);
+    }
+
+    currentStage = 'save.duplicate_lookup.refresh';
+    logSaveStage('info', currentStage, {
+      saveRequestId,
+      referenceId,
+      userId,
+      jobId,
+      draftCount,
+    });
+
+    const refreshedDuplicateState = await refreshTransactionDocumentDuplicateMatches({
+      admin,
+      userId: user.id,
+      jobId,
+      extractedTransactions: reviewedPayload.transactions.map((transaction) => ({
+        merchant: transaction.merchant,
+        date: transaction.transactionDate,
+        total: transaction.amount,
+        currency: transaction.currency,
+        receiptNumber: transaction.receiptNumber,
+      })),
+    });
+
+    if (refreshedDuplicateState?.documentId) {
+      documentId = refreshedDuplicateState.documentId;
+    }
+
+    logSaveStage('info', 'save.duplicate_lookup.refreshed', {
+      saveRequestId,
+      referenceId,
+      userId,
+      jobId,
+      documentId,
+      duplicateCount: refreshedDuplicateState?.duplicates.length ?? 0,
+    });
+
+    if ((refreshedDuplicateState?.duplicates.length ?? 0) > 0 && reviewedPayload.duplicateConfirmed !== true) {
+      return jsonWithCookies({
+        success: false,
+        errorCode: 'duplicate_confirmation_required',
+        errorMessage: getSafeSaveErrorMessage('duplicate_confirmation_required', ''),
+        referenceId,
+        duplicates: refreshedDuplicateState?.duplicates ?? [],
+      }, getSafeSaveStatusCode('duplicate_confirmation_required'), cookieMutations);
     }
 
     currentStage = 'save.transaction.begin';
