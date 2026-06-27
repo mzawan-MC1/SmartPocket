@@ -44,8 +44,8 @@ export default function Modal({
   const { t } = useTranslation('common');
   const isVisible = open || isOpen || false;
   const mobileContentClassName = mobileLayout === 'fullscreen'
-    ? 'max-[480px]:h-[100dvh] max-[480px]:max-h-[100dvh] max-[480px]:rounded-none max-[480px]:border-0'
-    : 'max-[480px]:max-h-[88vh] max-[480px]:rounded-t-[22px]';
+    ? 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[24px]'
+    : 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[22px]';
 
   useEffect(() => {
     if (isVisible) {
@@ -72,13 +72,13 @@ export default function Modal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center sm:p-5">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative flex max-h-[92vh] w-full flex-col overflow-hidden border border-border bg-card shadow-card-lg scale-in rounded-t-[24px] sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
         <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4 ${headerClassName}`}>
           <div>
@@ -93,7 +93,7 @@ export default function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className={`safe-area-bottom min-h-0 flex-1 overflow-y-auto p-6 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
+        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-6 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
           {children}
         </div>
         {footer ? (

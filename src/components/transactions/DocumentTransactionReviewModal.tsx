@@ -1235,12 +1235,12 @@ export default function DocumentTransactionReviewModal({
       })}
       size="xl"
       mobileLayout="fullscreen"
-      contentClassName="sm:w-[92vw] sm:max-w-[1160px] sm:max-h-[min(90vh,920px)]"
-      bodyClassName="min-h-0 p-0"
+      contentClassName="sm:w-[92vw] sm:max-w-[1160px] sm:max-h-[min(calc(100dvh-2.5rem),920px)]"
+      bodyClassName="min-h-0 overflow-x-hidden overflow-y-auto p-0"
       footerClassName="px-4 py-4 sm:px-5 lg:px-6"
       footer={(
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className={`text-sm ${
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between lg:items-center">
+          <div className={`min-w-0 flex-1 text-sm ${
             extractError
               ? 'text-muted-foreground'
               : !reviewValidation.canSubmit
@@ -1249,7 +1249,7 @@ export default function DocumentTransactionReviewModal({
           }`}>
             {footerHelpText}
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+          <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={onClose}
