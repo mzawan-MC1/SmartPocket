@@ -25,6 +25,7 @@ import {
   type TransactionDocumentItemKind,
   type TransactionDocumentOptionCategory,
   type TransactionDocumentReviewInput,
+  type TransactionDocumentSaveRequest,
   type TransactionDocumentSaveResponse,
   type TransactionDocumentSourceSurface,
 } from '@/lib/transaction-documents';
@@ -312,8 +313,18 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.reviewRequired', { ns: 'portal' });
     case 'invalid_review_payload':
       return args.t('transactions.documentReview.errors.invalidReviewPayload', { ns: 'portal' });
+    case 'duplicate_confirmation_required':
+      return args.t('transactions.documentReview.errors.duplicateConfirmLabel', {
+        ns: 'portal',
+        defaultValue: 'Confirm the duplicate warning before saving.',
+      });
     case 'invalid_amount':
       return args.t('transactions.documentReview.errors.invalidAmount', { ns: 'portal' });
+    case 'invalid_line_item':
+      return args.t('transactions.documentReview.errors.invalidLineItem', {
+        ns: 'portal',
+        defaultValue: 'One or more reviewed line items are invalid.',
+      });
     case 'invalid_account':
       return args.t('transactions.documentReview.errors.invalidAccount', { ns: 'portal' });
     case 'invalid_date':
@@ -326,6 +337,16 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.alreadySaved', { ns: 'portal' });
     case 'job_not_found':
       return args.t('transactions.documentReview.errors.jobNotFound', { ns: 'portal' });
+    case 'database_conflict':
+      return args.t('transactions.documentReview.errors.databaseConflict', {
+        ns: 'portal',
+        defaultValue: 'This document could not be saved because of a data conflict. Please refresh and try again.',
+      });
+    case 'database_unavailable':
+      return args.t('transactions.documentReview.errors.databaseUnavailable', {
+        ns: 'portal',
+        defaultValue: 'Receipt saving is temporarily unavailable. Please try again shortly.',
+      });
     case 'save_failed':
       return args.t('transactions.documentReview.errors.saveFailed', { ns: 'portal' });
     default:
@@ -352,6 +373,9 @@ export default function DocumentTransactionReviewModal({
   const [extractError, setExtractError] = useState('');
   const [extractErrorCode, setExtractErrorCode] = useState<TransactionDocumentErrorCode | null>(null);
   const [extractReferenceId, setExtractReferenceId] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [saveErrorCode, setSaveErrorCode] = useState<TransactionDocumentErrorCode | null>(null);
+  const [saveReferenceId, setSaveReferenceId] = useState('');
   const [jobId, setJobId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -456,6 +480,9 @@ export default function DocumentTransactionReviewModal({
       setExtractError('');
       setExtractErrorCode(null);
       setExtractReferenceId('');
+      setSaveError('');
+      setSaveErrorCode(null);
+      setSaveReferenceId('');
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -480,6 +507,9 @@ export default function DocumentTransactionReviewModal({
       setExtractError('');
       setExtractErrorCode(null);
       setExtractReferenceId('');
+      setSaveError('');
+      setSaveErrorCode(null);
+      setSaveReferenceId('');
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -574,6 +604,9 @@ export default function DocumentTransactionReviewModal({
         const payload = result as TransactionDocumentExtractResponse;
         setJobId(payload.jobId);
         setDocumentId(payload.documentId);
+        setSaveError('');
+        setSaveErrorCode(null);
+        setSaveReferenceId('');
         setPreviewUrl(payload.previewUrl);
         setDuplicates(payload.duplicates || []);
         setExtractionWarnings(
@@ -745,6 +778,12 @@ export default function DocumentTransactionReviewModal({
       defaultValue: 'Extraction failed',
     });
   })();
+  const shouldShowSaveReferenceId = Boolean(saveReferenceId) && (
+    saveErrorCode === 'save_failed'
+    || saveErrorCode === 'database_conflict'
+    || saveErrorCode === 'database_unavailable'
+    || saveErrorCode === null
+  );
   const receiptLimitHint = extractErrorCode === 'receipt_allowance_exhausted'
     ? t('transactions.documentReview.receiptLimitHint', {
         ns: 'portal',
@@ -957,7 +996,9 @@ export default function DocumentTransactionReviewModal({
   });
   const footerHelpText = extractError
     ? (receiptLimitHint || extractError)
-    : footerMessage;
+    : saveError
+      ? saveError
+      : footerMessage;
 
   const handleChooseAnotherFile = () => {
     replaceFileInputRef.current?.click();
@@ -1000,6 +1041,9 @@ export default function DocumentTransactionReviewModal({
   };
 
   const handleSave = async () => {
+    if (isSaving) {
+      return;
+    }
     if (!canSave) {
       toast.error(footerMessage);
       return;
@@ -1026,44 +1070,64 @@ export default function DocumentTransactionReviewModal({
     }
 
     setIsSaving(true);
+    setSaveError('');
+    setSaveErrorCode(null);
+    setSaveReferenceId('');
     try {
+      const payload: TransactionDocumentSaveRequest = {
+        jobId,
+        duplicateConfirmed,
+        transactions: reviewTransactions.map((transaction) => ({
+          transactionType: transaction.transactionType,
+          merchant: transaction.merchant,
+          transactionDate: transaction.transactionDate,
+          amount: transaction.amount,
+          tax: transaction.tax,
+          currency: transaction.currency,
+          accountId: transaction.accountId,
+          categoryId: transaction.categoryId,
+          categorySuggestion: transaction.categorySuggestion,
+          description: transaction.description,
+          notes: transaction.notes,
+          receiptNumber: transaction.receiptNumber,
+          lineItems: transaction.lineItems,
+          totalsConfirmed: transaction.totalsConfirmed === true,
+        })),
+      };
       const response = await fetch('/api/transaction-documents/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          jobId,
-          duplicateConfirmed,
-          transactions: reviewTransactions.map((transaction) => ({
-            transactionType: transaction.transactionType,
-            merchant: transaction.merchant,
-            transactionDate: transaction.transactionDate,
-            amount: transaction.amount,
-            tax: transaction.tax,
-            currency: transaction.currency,
-            accountId: transaction.accountId,
-            categoryId: transaction.categoryId,
-            categorySuggestion: transaction.categorySuggestion,
-            description: transaction.description,
-            notes: transaction.notes,
-            receiptNumber: transaction.receiptNumber,
-            lineItems: transaction.lineItems,
-            totalsConfirmed: transaction.totalsConfirmed === true,
-          })),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result?.success) {
-        throw new Error(getLocalizedTransactionDocumentError({
+        const errorCode = typeof result?.errorCode === 'string'
+          ? result.errorCode as TransactionDocumentErrorCode
+          : classifyTransactionDocumentError(result?.errorMessage);
+        const referenceId = typeof result?.referenceId === 'string' ? result.referenceId : '';
+        const safeMessage = typeof result?.message === 'string'
+          ? result.message
+          : typeof result?.errorMessage === 'string'
+            ? result.errorMessage
+            : '';
+        const localizedMessage = safeMessage || getLocalizedTransactionDocumentError({
           t,
-          errorCode: result?.errorCode,
-          errorMessage: result?.errorMessage,
+          errorCode,
+          errorMessage: safeMessage || result?.errorMessage,
           fallbackKey: 'saveFailed',
-        }));
+        });
+        setSaveError(localizedMessage);
+        setSaveErrorCode(errorCode);
+        setSaveReferenceId(referenceId);
+        throw createTransactionDocumentUiError(errorCode, localizedMessage, referenceId);
       }
 
+      setSaveError('');
+      setSaveErrorCode(null);
+      setSaveReferenceId('');
       toast.success(t('transactions.documentReview.savedSuccessfully', {
         ns: 'portal',
         count: Array.isArray(result.transactionIds) ? result.transactionIds.length : 0,
@@ -1461,6 +1525,32 @@ export default function DocumentTransactionReviewModal({
                           defaultValue: '{{count}} possible matches remain visible in this review session, but they no longer block saving.',
                         })}
                       </p>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {saveError ? (
+                <section className="rounded-3xl border border-negative/30 bg-negative-soft/50 px-4 py-3 sm:px-5">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="mt-0.5 text-negative" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-700 text-foreground">
+                        {t('transactions.documentReview.saveErrorTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Save failed',
+                        })}
+                      </h3>
+                      <p className="mt-1 text-sm text-negative">{saveError}</p>
+                      {shouldShowSaveReferenceId ? (
+                        <p className="mt-2 text-xs font-600 text-negative/80">
+                          {t('transactions.documentReview.referenceId', {
+                            ns: 'portal',
+                            defaultValue: 'Reference: {{referenceId}}',
+                            referenceId: saveReferenceId,
+                          })}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </section>

@@ -68,13 +68,17 @@ export type TransactionDocumentErrorCode =
   | 'job_required'
   | 'review_required'
   | 'invalid_review_payload'
+  | 'duplicate_confirmation_required'
   | 'invalid_amount'
+  | 'invalid_line_item'
   | 'invalid_account'
   | 'invalid_date'
   | 'currency_mismatch'
   | 'invalid_category'
   | 'already_saved'
   | 'job_not_found'
+  | 'database_conflict'
+  | 'database_unavailable'
   | 'receipt_feature_unavailable'
   | 'receipt_no_documents_included'
   | 'receipt_allowance_exhausted'
@@ -175,6 +179,12 @@ export interface TransactionDocumentReviewInput {
   receiptNumber?: string;
   lineItems: TransactionDocumentReviewItemInput[];
   totalsConfirmed?: boolean;
+}
+
+export interface TransactionDocumentSaveRequest {
+  jobId: string;
+  duplicateConfirmed?: boolean;
+  transactions: TransactionDocumentReviewInput[];
 }
 
 export interface TransactionDocumentTotalSummary {
@@ -406,6 +416,19 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     && typeof input.code === 'string'
       ? input.code.trim()
       : '';
+  if (inputCode === '23505' || inputCode === '23503' || inputCode === '40001' || inputCode === '40P01') {
+    return 'database_conflict';
+  }
+  if (
+    /^08/.test(inputCode)
+    || inputCode === '53300'
+    || inputCode === '53400'
+    || inputCode === '57P01'
+    || inputCode === '57P02'
+    || inputCode === '57P03'
+  ) {
+    return 'database_unavailable';
+  }
   if (inputCode === 'migration_missing'
     || inputCode === 'storage_bucket_failure'
     || inputCode === 'openrouter_not_configured'
@@ -585,13 +608,22 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   if (/already being processed/i.test(message)) {
     return 'duplicate_request_in_progress';
   }
-  if (message === 'A document extraction job id is required.') {
+  if (
+    message === 'A document extraction job id is required.'
+    || message === 'Document extraction job id is required'
+  ) {
     return 'job_required';
   }
-  if (message === 'At least one reviewed transaction is required.') {
+  if (
+    message === 'At least one reviewed transaction is required.'
+    || message === 'At least one reviewed transaction is required'
+  ) {
     return 'review_required';
   }
   if (message === 'Invalid reviewed transaction payload.') {
+    return 'invalid_review_payload';
+  }
+  if (message === 'This document review is not ready to save.') {
     return 'invalid_review_payload';
   }
   if (
@@ -604,6 +636,9 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   }
   if (message === 'Confirm the receipt total mismatch before saving.') {
     return 'invalid_review_payload';
+  }
+  if (message === 'Confirm the duplicate warning before saving.') {
+    return 'duplicate_confirmation_required';
   }
   if (
     message === 'Each reviewed transaction must use a valid account.'
@@ -621,6 +656,12 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   }
   if (/currency must match the selected account currency/i.test(message)) {
     return 'currency_mismatch';
+  }
+  if (
+    message === 'Each reviewed line item must have a name.'
+    || message === 'Each reviewed line item must have a resolvable total.'
+  ) {
+    return 'invalid_line_item';
   }
   if (
     message === 'Selected category does not match the reviewed transaction type.'
@@ -646,6 +687,18 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     || message === 'Failed to save reviewed document transactions.'
   ) {
     return 'save_failed';
+  }
+  if (
+    /data conflict/i.test(message)
+    || /could not be saved because of a conflict/i.test(message)
+  ) {
+    return 'database_conflict';
+  }
+  if (
+    /temporarily unavailable/i.test(message)
+    || /database unavailable/i.test(message)
+  ) {
+    return 'database_unavailable';
   }
 
   return null;

@@ -13,6 +13,8 @@ import {
   type TransactionDocumentOptionAccount,
   type TransactionDocumentOptionCategory,
   type TransactionDocumentReviewInput,
+  type TransactionDocumentSaveRequest,
+  type TransactionDocumentSaveResponse,
 } from '@/lib/transaction-documents';
 import type { ServerExecutionContext } from '@/lib/ai-execution-server';
 
@@ -395,4 +397,95 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
 
     return sanitized;
   });
+}
+
+export function sanitizeTransactionDocumentSaveRequestPayload(args: {
+  rawPayload: unknown;
+  accounts: TransactionDocumentOptionAccount[];
+  categories: TransactionDocumentOptionCategory[];
+  defaultCurrency: string;
+}): TransactionDocumentSaveRequest {
+  if (!isObject(args.rawPayload)) {
+    throw new Error('Invalid reviewed transaction payload.');
+  }
+
+  const jobId = normalizeText(
+    typeof args.rawPayload.jobId === 'string' ? args.rawPayload.jobId : ''
+  );
+  if (!jobId) {
+    throw new Error('A document extraction job id is required.');
+  }
+
+  return {
+    jobId,
+    duplicateConfirmed: args.rawPayload.duplicateConfirmed === true,
+    transactions: sanitizeTransactionDocumentReviewPayload({
+      rawTransactions: args.rawPayload.transactions,
+      accounts: args.accounts,
+      categories: args.categories,
+      defaultCurrency: args.defaultCurrency,
+    }),
+  };
+}
+
+function normalizeSavedTransactionIds(value: unknown) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+}
+
+export async function loadSavedTransactionDocumentReviewResult(args: {
+  admin: SupabaseClient;
+  userId: string;
+  jobId: string;
+}): Promise<TransactionDocumentSaveResponse | null> {
+  const { data, error } = await args.admin
+    .from('document_extraction_jobs')
+    .select(`
+      id,
+      status,
+      saved_transaction_ids,
+      document_id,
+      document:transaction_documents!inner(
+        id,
+        user_id,
+        status,
+        primary_transaction_id,
+        linked_transaction_count
+      )
+    `)
+    .eq('id', args.jobId)
+    .eq('user_id', args.userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  const documentRecord = Array.isArray(data?.document)
+    ? data.document[0]
+    : data?.document;
+  if (!data || !documentRecord || documentRecord.user_id !== args.userId) {
+    return null;
+  }
+
+  const transactionIds = normalizeSavedTransactionIds(data.saved_transaction_ids);
+  const isSaved = data.status === 'saved' || documentRecord.status === 'saved';
+  if (!isSaved) {
+    return null;
+  }
+
+  return {
+    success: true,
+    jobId: data.id,
+    documentId: documentRecord.id,
+    primaryTransactionId: typeof documentRecord.primary_transaction_id === 'string'
+      ? documentRecord.primary_transaction_id
+      : null,
+    transactionIds,
+    savedCount: typeof documentRecord.linked_transaction_count === 'number'
+      ? documentRecord.linked_transaction_count
+      : transactionIds.length,
+  };
 }
