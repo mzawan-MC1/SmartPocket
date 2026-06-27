@@ -30,6 +30,17 @@ export type TransactionDocumentMimeType =
 
 export type TransactionDocumentSourceSurface = 'add_transaction' | 'smart_entry';
 export type TransactionDocumentItemKind = 'regular' | 'discount' | 'tax' | 'fee';
+export type TransactionDocumentKind =
+  | 'receipt'
+  | 'printed_receipt'
+  | 'invoice'
+  | 'handwritten_receipt'
+  | 'handwritten_expense_list'
+  | 'informal_expense_note'
+  | 'statement'
+  | 'note'
+  | 'mixed'
+  | 'unknown';
 
 export type TransactionDocumentErrorCode =
   | 'unauthorized'
@@ -93,18 +104,31 @@ export interface TransactionDocumentDraftTransaction {
   receiptNumber?: string;
   confidence: number;
   needsReview: boolean;
+  completeness?: 'partial' | 'complete';
+  missingFields?: string[];
+  warnings?: string[];
   lineItems: TransactionDocumentLineItemDraft[];
 }
 
 export interface TransactionDocumentExtraction {
   requestId: string;
   language: string;
-  documentKind: 'receipt' | 'invoice' | 'statement' | 'note' | 'mixed' | 'unknown';
+  documentKind: TransactionDocumentKind;
   confidence: number;
   warnings: string[];
   transactions: TransactionDocumentDraftTransaction[];
   providerUsed?: string;
   modelUsed?: string;
+}
+
+export interface TransactionDocumentUsability {
+  usable: boolean;
+  completeness: 'partial' | 'complete';
+  documentKind: TransactionDocumentKind;
+  missingFields: string[];
+  reviewRequired: boolean;
+  warnings: string[];
+  reason?: string;
 }
 
 export interface TransactionDocumentDuplicateMatch {
@@ -295,6 +319,26 @@ function normalizeDate(value: unknown): string | undefined {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+function isMeaningfulLineItemName(value: string | undefined) {
+  const normalized = (value || '').trim();
+  if (!normalized) return false;
+  return !/^(item|line item|expense|product|service)$/i.test(normalized);
+}
+
+function isPrintedStyleDocumentKind(documentKind: TransactionDocumentKind) {
+  return documentKind === 'receipt'
+    || documentKind === 'printed_receipt'
+    || documentKind === 'invoice'
+    || documentKind === 'statement';
+}
+
+function isHandwrittenStyleDocumentKind(documentKind: TransactionDocumentKind) {
+  return documentKind === 'handwritten_receipt'
+    || documentKind === 'handwritten_expense_list'
+    || documentKind === 'informal_expense_note'
+    || documentKind === 'note';
+}
+
 export function getTransactionDocumentExtension(fileName: string) {
   const lower = fileName.trim().toLowerCase();
   const dotIndex = lower.lastIndexOf('.');
@@ -367,6 +411,8 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     || inputCode === 'unsupported_multimodal_model'
     || inputCode === 'provider_http_error'
     || inputCode === 'invalid_ai_json_response'
+    || inputCode === 'invalid_extraction_response'
+    || inputCode === 'unreadable_document'
     || inputCode === 'receipt_metering_unavailable'
     || inputCode === 'signed_url_failure'
   ) {
@@ -629,6 +675,98 @@ export async function validateTransactionDocumentFile(file: File) {
   return { pageCount: undefined };
 }
 
+export function assessTransactionDocumentUsability(args: {
+  documentKind: TransactionDocumentKind;
+  transaction: TransactionDocumentDraftTransaction;
+}): TransactionDocumentUsability {
+  const { documentKind, transaction } = args;
+  const positiveLineItems = transaction.lineItems.filter((lineItem) => {
+    const hasName = isMeaningfulLineItemName(lineItem.name);
+    const total = normalizeAmount(lineItem.total);
+    return hasName && typeof total === 'number' && Number.isFinite(total) && total > 0;
+  });
+  const hasRecognizableTotal =
+    typeof transaction.total === 'number'
+    && Number.isFinite(transaction.total)
+    && transaction.total > 0;
+  const hasUsableDescription = Boolean(
+    normalizeText(transaction.description)
+    || normalizeText(transaction.merchant)
+    || positiveLineItems.length > 0
+  );
+  const hasReference = Boolean(transaction.date || transaction.receiptNumber);
+  const hasPrintedSource = Boolean(transaction.merchant);
+
+  const missingFields: string[] = [];
+  if (!hasRecognizableTotal) missingFields.push('total');
+  if (positiveLineItems.length === 0) missingFields.push('lineItems');
+  if (!hasUsableDescription) missingFields.push('description');
+  if (!hasReference) missingFields.push('date_or_reference');
+  if (!hasPrintedSource) missingFields.push('merchant');
+  if (!transaction.currency) missingFields.push('currency');
+
+  const isPrintedDocument = isPrintedStyleDocumentKind(documentKind);
+  const isHandwrittenDocument = isHandwrittenStyleDocumentKind(documentKind);
+  const hasCompleteReceiptShape =
+    hasRecognizableTotal
+    && hasUsableDescription
+    && hasReference
+    && (hasPrintedSource || isHandwrittenDocument || documentKind === 'mixed');
+  const hasPartialFinancialStructure =
+    positiveLineItems.length >= 2
+    || (positiveLineItems.length >= 1 && hasRecognizableTotal)
+    || (hasUsableDescription && hasRecognizableTotal);
+  const warnings: string[] = [];
+  if (!transaction.currency) {
+    warnings.push('Currency could not be detected. Please confirm it before saving.');
+  }
+  if (!hasReference) {
+    warnings.push('Date or reference number could not be detected. Please review the extracted information.');
+  }
+  if (!hasPrintedSource && !isHandwrittenDocument) {
+    warnings.push('Merchant or source details could not be detected. Please review the extracted information.');
+  }
+
+  if (hasCompleteReceiptShape) {
+    return {
+      usable: true,
+      completeness: 'complete',
+      documentKind,
+      missingFields: missingFields.filter((field) => field === 'currency'),
+      reviewRequired: transaction.needsReview === true || missingFields.includes('currency'),
+      warnings: missingFields.includes('currency')
+        ? warnings.filter((warning) => /Currency could not be detected/i.test(warning))
+        : [],
+    };
+  }
+
+  if (hasPartialFinancialStructure) {
+    return {
+      usable: true,
+      completeness: 'partial',
+      documentKind,
+      missingFields,
+      reviewRequired: true,
+      warnings: Array.from(new Set([
+        'Some receipt details could not be detected. Please review the extracted information.',
+        ...warnings,
+      ])),
+    };
+  }
+
+  return {
+    usable: false,
+    completeness: 'partial',
+    documentKind,
+    missingFields,
+    reviewRequired: true,
+    warnings,
+    reason: isPrintedDocument
+      ? 'No complete receipt metadata or meaningful financial structure was detected.'
+      : 'No usable handwritten financial structure was detected.',
+  };
+}
+
 export function validateTransactionDocumentExtraction(raw: unknown): TransactionDocumentExtraction {
   if (!isObject(raw)) {
     throw new Error('Document extraction response is not an object');
@@ -646,9 +784,21 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
     throw new Error('Document extraction is missing transactions');
   }
 
-  const documentKind = typeof raw.documentKind === 'string'
+  const documentKindRaw = typeof raw.documentKind === 'string'
     ? raw.documentKind
     : 'unknown';
+  const documentKind: TransactionDocumentKind =
+    documentKindRaw === 'receipt'
+    || documentKindRaw === 'printed_receipt'
+    || documentKindRaw === 'invoice'
+    || documentKindRaw === 'handwritten_receipt'
+    || documentKindRaw === 'handwritten_expense_list'
+    || documentKindRaw === 'informal_expense_note'
+    || documentKindRaw === 'statement'
+    || documentKindRaw === 'note'
+    || documentKindRaw === 'mixed'
+      ? documentKindRaw
+      : 'unknown';
 
   const transactions = raw.transactions.map((item) => {
     if (!isObject(item)) {
@@ -673,7 +823,7 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
                 : 'regular';
 
             return {
-              name: normalizeText(lineItem.name) || 'Item',
+              name: normalizeText(lineItem.name) || '',
               description: normalizeText(lineItem.description),
               quantity: normalizeAmount(lineItem.quantity),
               unitPrice: normalizeAmount(lineItem.unitPrice),
@@ -691,7 +841,7 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
           })
       : [];
 
-    return {
+    const normalizedTransaction = {
       transactionType,
       merchant: normalizeText(item.merchant),
       date: normalizeDate(item.date),
@@ -711,40 +861,57 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
         confidence < 0.85,
       lineItems,
     } satisfies TransactionDocumentDraftTransaction;
+    const usability = assessTransactionDocumentUsability({
+      documentKind,
+      transaction: normalizedTransaction,
+    });
+
+    return {
+      ...normalizedTransaction,
+      needsReview: normalizedTransaction.needsReview || usability.reviewRequired,
+      completeness: usability.completeness,
+      missingFields: usability.missingFields,
+      warnings: usability.warnings,
+    } satisfies TransactionDocumentDraftTransaction;
   });
 
-  const hasUsableTransaction = transactions.some((transaction) => {
-    const hasSource = Boolean(transaction.merchant || transaction.description);
-    const hasReference = Boolean(transaction.date || transaction.receiptNumber);
-    const hasAmount = typeof transaction.total === 'number' && Number.isFinite(transaction.total) && transaction.total > 0;
-    const hasDescription = Boolean(transaction.description || transaction.lineItems.length > 0);
-    return hasSource && hasReference && hasAmount && hasDescription;
-  });
+  const usabilityResults = transactions.map((transaction) => assessTransactionDocumentUsability({
+    documentKind,
+    transaction,
+  }));
+  const hasUsableTransaction = usabilityResults.some((result) => result.usable);
+  const hasPartialTransaction = usabilityResults.some(
+    (result) => result.usable && result.completeness === 'partial'
+  );
 
   if (transactions.length > 0 && !hasUsableTransaction) {
-    throw new Error('Document extraction did not contain enough usable receipt data.');
+    throw Object.assign(
+      new Error('Document extraction did not contain enough usable receipt data.'),
+      { code: 'unreadable_document' as const }
+    );
+  }
+
+  const warnings = Array.isArray(raw.warnings)
+    ? raw.warnings.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+  usabilityResults.forEach((result) => {
+    warnings.push(...result.warnings);
+  });
+  if (hasPartialTransaction) {
+    warnings.push('Some receipt details could not be detected. Please review the extracted information.');
   }
 
   return {
     requestId: raw.requestId,
     language: raw.language,
-    documentKind:
-      documentKind === 'receipt' ||
-      documentKind === 'invoice' ||
-      documentKind === 'statement' ||
-      documentKind === 'note' ||
-      documentKind === 'mixed'
-        ? documentKind
-        : 'unknown',
+    documentKind,
     confidence:
       typeof raw.confidence === 'number' && Number.isFinite(raw.confidence)
         ? Math.max(0, Math.min(1, raw.confidence))
         : transactions.length > 0
           ? Math.max(...transactions.map((item) => item.confidence))
           : 0,
-    warnings: Array.isArray(raw.warnings)
-      ? raw.warnings.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
-      : [],
+    warnings: Array.from(new Set(warnings)),
     transactions,
     providerUsed: normalizeText(raw.providerUsed),
     modelUsed: normalizeText(raw.modelUsed),
@@ -765,13 +932,13 @@ Output schema:
 {
   "requestId": "<echo requestId>",
   "language": "<detected language>",
-  "documentKind": "<receipt|invoice|statement|note|mixed|unknown>",
+  "documentKind": "<receipt|printed_receipt|invoice|handwritten_receipt|handwritten_expense_list|informal_expense_note|statement|note|mixed|unknown>",
   "confidence": <0.0-1.0>,
   "warnings": ["<warning>"],
   "transactions": [
     {
       "transactionType": "<expense|income>",
-      "merchant": "<merchant or payer>",
+      "merchant": "<merchant or payer or null>",
       "date": "<YYYY-MM-DD or null>",
       "total": <number or null>,
       "tax": <number or null>,
@@ -800,13 +967,19 @@ Output schema:
 Rules:
 - One normal receipt usually maps to one transaction
 - A written note or list may map to multiple transactions
+- Support printed receipts, invoices, handwritten receipts, handwritten expense lists, and informal expense notes
 - Extract line items only as linked items, not separate account transactions
 - itemKind should be regular unless the document clearly shows a discount, tax, or fee line
 - Use ISO currency codes
 - Handle mixed Arabic and English receipts, including UAE VAT receipts and long thermal receipts
+- Handle handwritten notes, informal expense lists, mixed capitalization, misspelled item names, missing merchant/date, manually calculated VAT, and totals written below a line
 - Normalize dates to YYYY-MM-DD when possible, including common receipt formats like DD/MM/YY
 - Convert visible numeric strings to numbers where reliable; do not fail because optional fields are missing
 - Validate arithmetic when possible: total should reflect the likely payable amount, tax should be separate when visible
+- Preserve readable item names exactly when possible and extract each visible item amount
+- Detect subtotal, VAT/tax, and final total when visible, even for handwritten lists
+- Do not invent merchant, date, currency, receipt number, or payment method if they are not visible
+- If a document has usable financial data but missing receipt metadata, still return a reviewable draft transaction and add a warning
 - If the document looks handwritten or incomplete, keep needsReview true
 - If the file is a payment received slip or income proof, transactionType may be income
 - Do not invent account ids or category ids

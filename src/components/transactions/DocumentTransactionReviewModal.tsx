@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, FileText, Image as ImageIcon, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -43,10 +43,6 @@ type EditableDocumentTransaction = TransactionDocumentReviewInput & {
 
 function createLocalId() {
   return createClientId();
-}
-
-function getTodayDate() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function createEditableLineItem() {
@@ -161,6 +157,31 @@ function getFieldErrorClass(hasError: boolean) {
   return hasError
     ? 'border-negative/60 bg-negative-soft/40 text-foreground focus:border-negative focus:ring-negative/20'
     : '';
+}
+
+function buildEditableTransactionDescription(draft: {
+  description?: string;
+  merchant?: string;
+  lineItems?: Array<{ name?: string }>;
+}) {
+  const directDescription = (draft.description || '').trim();
+  if (directDescription) {
+    return directDescription;
+  }
+
+  const merchant = (draft.merchant || '').trim();
+  if (merchant) {
+    return merchant;
+  }
+
+  const lineItemNames = Array.isArray(draft.lineItems)
+    ? draft.lineItems
+        .map((lineItem) => (lineItem.name || '').trim())
+        .filter((name) => name.length > 0)
+        .slice(0, 3)
+    : [];
+
+  return lineItemNames.join(', ');
 }
 
 function createTransactionDocumentUiError(
@@ -342,6 +363,7 @@ export default function DocumentTransactionReviewModal({
   const [duplicateViewTransactionId, setDuplicateViewTransactionId] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const [receiptAllowance, setReceiptAllowance] = useState<ReceiptAllowanceSummary | null>(null);
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [isCheckingAllowance, setIsCheckingAllowance] = useState(false);
   const [activeFile, setActiveFile] = useState<File | null>(file);
   const replaceFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -392,6 +414,32 @@ export default function DocumentTransactionReviewModal({
     };
   };
 
+  const refreshReceiptAllowanceSummary = useCallback(async (signal?: AbortSignal) => {
+    const allowanceResponse = await fetch('/api/subscription/summary', {
+      cache: 'no-store',
+      signal,
+    });
+
+    if (allowanceResponse.status === 401) {
+      throw createTransactionDocumentUiError('unauthorized', getLocalizedTransactionDocumentError({
+        t,
+        errorCode: 'unauthorized',
+        fallbackKey: 'extractFailed',
+      }));
+    }
+
+    if (!allowanceResponse.ok) {
+      return null;
+    }
+
+    const allowancePayload = await allowanceResponse.json().catch(() => null);
+    const nextAllowance = parseReceiptAllowanceSummary(allowancePayload);
+    if (nextAllowance) {
+      setReceiptAllowance(nextAllowance);
+    }
+    return nextAllowance;
+  }, [t]);
+
   useEffect(() => {
     if (!isOpen) {
       setActiveFile(null);
@@ -418,6 +466,7 @@ export default function DocumentTransactionReviewModal({
       setReviewTransactions([]);
       setDuplicateViewTransactionId(null);
       setReceiptAllowance(null);
+      setExtractionWarnings([]);
       setIsCheckingAllowance(false);
       setRetryKey(0);
       return;
@@ -440,6 +489,7 @@ export default function DocumentTransactionReviewModal({
       setCategories([]);
       setReviewTransactions([]);
       setReceiptAllowance(null);
+      setExtractionWarnings([]);
       setIsCheckingAllowance(true);
       try {
         const preparedUpload = await prepareTransactionDocumentUpload(activeFile);
@@ -478,26 +528,7 @@ export default function DocumentTransactionReviewModal({
           throw createTransactionDocumentUiError(preparedUpload.errorCode, message);
         }
 
-        const allowanceResponse = await fetch('/api/subscription/summary', {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-
-        if (allowanceResponse.status === 401) {
-          throw createTransactionDocumentUiError('unauthorized', getLocalizedTransactionDocumentError({
-            t,
-            errorCode: 'unauthorized',
-            fallbackKey: 'extractFailed',
-          }));
-        }
-
-        if (allowanceResponse.ok) {
-          const allowancePayload = await allowanceResponse.json().catch(() => null);
-          const nextAllowance = parseReceiptAllowanceSummary(allowancePayload);
-          if (nextAllowance) {
-            setReceiptAllowance(nextAllowance);
-          }
-        }
+        await refreshReceiptAllowanceSummary(controller.signal);
 
         setIsCheckingAllowance(false);
 
@@ -545,6 +576,11 @@ export default function DocumentTransactionReviewModal({
         setDocumentId(payload.documentId);
         setPreviewUrl(payload.previewUrl);
         setDuplicates(payload.duplicates || []);
+        setExtractionWarnings(
+          Array.isArray(payload.extraction.warnings)
+            ? payload.extraction.warnings.filter((warning): warning is string => typeof warning === 'string' && warning.trim().length > 0)
+            : []
+        );
         setAccounts(payload.options.accounts || []);
         setCategories(payload.options.categories || []);
 
@@ -564,7 +600,7 @@ export default function DocumentTransactionReviewModal({
             id: createLocalId(),
             transactionType: draft.transactionType,
             merchant: draft.merchant || '',
-            transactionDate: draft.date || getTodayDate(),
+            transactionDate: draft.date || '',
             amount: typeof draft.total === 'number' ? draft.total : 0,
             tax: typeof draft.tax === 'number' ? draft.tax : null,
             currency: draft.currency || preferredAccount?.currency || payload.options.defaultCurrency,
@@ -575,7 +611,7 @@ export default function DocumentTransactionReviewModal({
               draft.transactionType
             ),
             categorySuggestion: draft.categorySuggestion,
-            description: draft.description || draft.merchant || 'Document transaction',
+            description: buildEditableTransactionDescription(draft),
             notes: draft.notes || '',
             receiptNumber: draft.receiptNumber || '',
             lineItems: (draft.lineItems || []).map((lineItem) => ({
@@ -600,6 +636,7 @@ export default function DocumentTransactionReviewModal({
         });
 
         setReviewTransactions(mappedTransactions);
+        await refreshReceiptAllowanceSummary(controller.signal).catch(() => undefined);
       } catch (error) {
         if (cancelled) return;
         const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string'
@@ -618,9 +655,11 @@ export default function DocumentTransactionReviewModal({
         setDocumentId('');
         setPreviewUrl('');
         setDuplicates([]);
+        setExtractionWarnings([]);
         setAccounts([]);
         setCategories([]);
         setReviewTransactions([]);
+        await refreshReceiptAllowanceSummary().catch(() => undefined);
       } finally {
         if (!cancelled) {
           setIsCheckingAllowance(false);
@@ -635,7 +674,7 @@ export default function DocumentTransactionReviewModal({
       cancelled = true;
       controller.abort();
     };
-  }, [activeFile, isOpen, retryKey, sourceSurface, t]);
+  }, [activeFile, isOpen, refreshReceiptAllowanceSummary, retryKey, sourceSurface, t]);
 
   const hasDuplicates = duplicates.length > 0;
   const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
@@ -1119,6 +1158,28 @@ export default function DocumentTransactionReviewModal({
                     </p>
                   </div>
                 ) : null}
+              </div>
+            </div>
+          ) : null}
+          {!extractError && extractionWarnings.length > 0 ? (
+            <div className="mb-4 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="flex items-start gap-3">
+                <AlertTriangle size={18} className="mt-0.5 text-amber-700" />
+                <div className="min-w-0">
+                  <p className="font-700">
+                    {t('transactions.documentReview.reviewNoticeTitle', {
+                      ns: 'portal',
+                      defaultValue: 'Review recommended',
+                    })}
+                  </p>
+                  <div className="mt-1 space-y-1">
+                    {extractionWarnings.map((warning, index) => (
+                      <p key={`document-warning-${index}`} className="leading-6">
+                        {warning}
+                      </p>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           ) : null}

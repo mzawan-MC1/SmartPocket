@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { loadAIConfig, processTransactionDocumentAIRequest } from '@/lib/ai-gateway';
 import { loadExecutionContextServer } from '@/lib/ai-execution-server';
@@ -57,31 +55,6 @@ function logExtractionStage(
   stage: string,
   meta: Record<string, unknown>
 ) {
-  // #region debug-point A:route-stage-log
-  try {
-    const envPath = path.join(process.cwd(), '.dbg', 'receipt-extract-500.env');
-    const envContents = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
-    const debugServerUrl = envContents.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || 'http://127.0.0.1:7777/event';
-    const debugSessionId = envContents.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || 'receipt-extract-500';
-    void fetch(debugServerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: debugSessionId,
-        runId: 'pre-fix',
-        hypothesisId: 'A',
-        location: 'src/app/api/transaction-documents/extract/route.ts',
-        msg: `[DEBUG] ${stage}`,
-        data: {
-          level,
-          ...meta,
-        },
-        ts: Date.now(),
-        traceId: typeof meta.extractRequestId === 'string' ? meta.extractRequestId : undefined,
-      }),
-    }).catch(() => undefined);
-  } catch {}
-  // #endregion
   const payload = {
     scope: 'transaction-document-extract',
     stage,

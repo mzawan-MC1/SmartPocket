@@ -2,8 +2,6 @@
 // Server-side only. Never import this from browser components.
 // All provider secrets are resolved from environment variables.
 
-import fs from 'fs';
-import path from 'path';
 import type { AIGatewayConfig, AIAssistantRequest, AIAssistantResponse, ParseRequest, ParsedFinancialInstruction, AudioInput, TranscriptResult, LanguageProvider, SpeechProvider, ProviderHealthResult, FinancialContext } from './ai-types';
 import {
   validateParsedInstruction,
@@ -12,6 +10,7 @@ import {
 } from './ai-types';
 import { createClientId } from './uuid';
 import {
+  classifyTransactionDocumentError,
   TRANSACTION_DOCUMENT_SYSTEM_PROMPT,
   validateTransactionDocumentExtraction,
   type TransactionDocumentErrorCode,
@@ -1473,7 +1472,6 @@ export async function processAIRequest(
 
   try {
     let transcript: string | undefined;
-    let sttProviderUsed: string | undefined;
     let sttFallbackUsed = false;
 
     // Step 1: Transcribe audio if voice request
@@ -1507,7 +1505,6 @@ export async function processAIRequest(
       );
 
       transcript = sttResult.transcript;
-      sttProviderUsed = sttResult.providerUsed;
       sttFallbackUsed = fallbackUsed;
     }
 
@@ -1625,7 +1622,25 @@ export async function processTransactionDocumentAIRequest(
       modelUsed: result.modelUsed || null,
       fallbackUsed,
     });
-    const validated = validateTransactionDocumentExtraction(result.parsed);
+    let validated;
+    try {
+      validated = validateTransactionDocumentExtraction(result.parsed);
+    } catch (error) {
+      throw new TransactionDocumentGatewayError(
+        classifyTransactionDocumentError(error) || 'invalid_extraction_response',
+        'document-ai.parse_response',
+        error instanceof Error ? error.message : 'Document extraction response could not be validated.',
+        {
+          providerUsed: result.providerUsed,
+          modelUsed: result.modelUsed || null,
+          rawOutput: result.rawOutput,
+          inputTokens: result.inputTokens ?? null,
+          outputTokens: result.outputTokens ?? null,
+          totalTokens: result.totalTokens ?? null,
+          estimatedCostUsd: result.estimatedCostUsd ?? null,
+        }
+      );
+    }
     logTransactionDocumentGateway('info', 'document-ai.parse_response.success', {
       requestId,
       providerUsed: result.providerUsed,
@@ -1692,7 +1707,7 @@ export async function processTransactionDocumentAIRequest(
   }
 }
 
-export async function runHealthChecks(config: AIGatewayConfig): Promise<ProviderHealthResult[]> {
+export async function runHealthChecks(_config: AIGatewayConfig): Promise<ProviderHealthResult[]> {
   const providers = [
     createLanguageProvider('openrouter', 5000),
     createLanguageProvider('vps_ai', 5000),
@@ -2399,31 +2414,6 @@ function logTransactionDocumentGateway(
   stage: string,
   meta: Record<string, unknown>
 ) {
-  // #region debug-point B:gateway-stage-log
-  try {
-    const envPath = path.join(process.cwd(), '.dbg', 'receipt-extract-500.env');
-    const envContents = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
-    const debugServerUrl = envContents.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || 'http://127.0.0.1:7777/event';
-    const debugSessionId = envContents.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || 'receipt-extract-500';
-    void fetch(debugServerUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId: debugSessionId,
-        runId: 'pre-fix',
-        hypothesisId: 'B',
-        location: 'src/lib/ai-gateway.ts',
-        msg: `[DEBUG] ${stage}`,
-        data: {
-          level,
-          ...meta,
-        },
-        ts: Date.now(),
-        traceId: typeof meta.requestId === 'string' ? meta.requestId : undefined,
-      }),
-    }).catch(() => undefined);
-  } catch {}
-  // #endregion
   const payload = {
     scope: 'transaction-document-ai',
     stage,
