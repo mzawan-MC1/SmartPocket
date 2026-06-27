@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
-import { createSpaceInvitation, getReceivedSpaceInvitations, toInvitationErrorResponse } from '@/lib/spaces-invitations-server';
+import { createSpaceInvitation, toInvitationErrorResponse } from '@/lib/spaces-invitations-server';
 import { requireSharedSpacesAccess } from '@/lib/subscription/server';
 
 export const runtime = 'nodejs';
@@ -23,39 +23,6 @@ async function requireUser() {
   }
 
   return { ok: true as const, supabase, cookieMutations, user };
-}
-
-export async function GET() {
-  const auth = await requireUser();
-  if (!auth.ok) {
-    return auth.response;
-  }
-
-  try {
-    const email = auth.user.email?.trim().toLowerCase();
-    if (!email) {
-      return applySupabaseCookies(
-        NextResponse.json({ invitations: [] }, { status: 200 }),
-        auth.cookieMutations
-      );
-    }
-
-    const invitations = await getReceivedSpaceInvitations({
-      userId: auth.user.id,
-      email,
-    });
-
-    return applySupabaseCookies(
-      NextResponse.json({ invitations }, { status: 200 }),
-      auth.cookieMutations
-    );
-  } catch (error) {
-    const { status, body } = toInvitationErrorResponse(error);
-    return applySupabaseCookies(
-      NextResponse.json(body, { status }),
-      auth.cookieMutations
-    );
-  }
 }
 
 export async function POST(request: Request) {
