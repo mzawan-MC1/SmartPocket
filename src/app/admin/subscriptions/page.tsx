@@ -79,6 +79,33 @@ interface AdminStats {
   estimated_cost_usd: number;
 }
 
+interface ResolvedAdminTarget {
+  userId: string;
+  email: string | null;
+  displayName: string | null;
+}
+
+interface PromotionalCreditsActionResult {
+  target: ResolvedAdminTarget;
+  balance?: {
+    currentBalance: number;
+    creditsAdded: number;
+    resultingBalance: number;
+  };
+}
+
+interface PlanSummary {
+  planCode: string;
+  planName: string | null;
+  billingInterval: 'monthly' | 'yearly' | null;
+}
+
+interface ChangePlanActionResult {
+  target: ResolvedAdminTarget;
+  currentPlan?: PlanSummary | null;
+  newPlan?: PlanSummary | null;
+}
+
 const PLAN_COLORS: Record<string, string> = {
   free_trial: 'bg-info-soft text-info',
   personal: 'bg-accent/10 text-accent',
@@ -107,6 +134,13 @@ function formatAdminDate(value: string | null, locale: string) {
     month: 'short',
     day: 'numeric',
   }).format(new Date(value));
+}
+
+function getAdminTargetLabel(target: ResolvedAdminTarget) {
+  if (target.email) {
+    return target.email;
+  }
+  return `…${target.userId.slice(-8)}`;
 }
 
 function getSubscriptionSource(user: UserSubRow) {
@@ -285,7 +319,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
 }
 
 export default function AdminSubscriptionsPage() {
-  const { user } = useAuth();
+  useAuth();
   const { language } = useLanguage();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [users, setUsers] = useState<UserSubRow[]>([]);
@@ -293,13 +327,15 @@ export default function AdminSubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [editingPlan, setEditingPlan] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'plans' | 'users' | 'stats' | 'topups' | 'topupOrders'>('plans');
-  const [promoUserId, setPromoUserId] = useState('');
+  const [promoUserIdentifier, setPromoUserIdentifier] = useState('');
   const [promoCredits, setPromoCredits] = useState(50);
   const [promoNotes, setPromoNotes] = useState('');
+  const [promoResult, setPromoResult] = useState<PromotionalCreditsActionResult | null>(null);
   const [grantingPromo, setGrantingPromo] = useState(false);
-  const [changePlanUserId, setChangePlanUserId] = useState('');
+  const [changePlanUserIdentifier, setChangePlanUserIdentifier] = useState('');
   const [changePlanCode, setChangePlanCode] = useState('personal');
   const [changePlanInterval, setChangePlanInterval] = useState<'monthly' | 'yearly'>('monthly');
+  const [changePlanResult, setChangePlanResult] = useState<ChangePlanActionResult | null>(null);
   const [changingPlan, setChangingPlan] = useState(false);
 
   const supabase = createClient();
@@ -427,6 +463,26 @@ export default function AdminSubscriptionsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const prefillAdminTarget = (identifier: string) => {
+    setPromoUserIdentifier(identifier);
+    setChangePlanUserIdentifier(identifier);
+    setPromoResult(null);
+    setChangePlanResult(null);
+  };
+
+  async function parseAdminActionResponse<T>(response: Response): Promise<T> {
+    const payload = await response.json().catch(() => ({})) as {
+      error?: { message?: string };
+      message?: string;
+    };
+
+    if (!response.ok) {
+      throw new Error(payload.error?.message || payload.message || 'Admin action failed.');
+    }
+
+    return payload as T;
+  }
+
   const handleSavePlan = async (plan: Plan) => {
     const { error } = await supabase
       .from('subscription_plans')
@@ -462,18 +518,38 @@ export default function AdminSubscriptionsPage() {
   };
 
   const handleGrantPromo = async () => {
-    if (!promoUserId.trim()) { toast.error('Enter a user ID'); return; }
+    if (!promoUserIdentifier.trim()) { toast.error('Enter a valid email address or user UUID.'); return; }
     setGrantingPromo(true);
     try {
-      const { error } = await supabase.rpc('admin_grant_promotional_credits', {
-        p_admin_id: user?.id,
-        p_user_id: promoUserId.trim(),
-        p_credits: promoCredits,
-        p_notes: promoNotes || 'Admin promotional grant',
+      const result = await parseAdminActionResponse<{
+        ok: true;
+        message: string;
+        target: ResolvedAdminTarget;
+        balance?: {
+          currentBalance: number;
+          creditsAdded: number;
+          resultingBalance: number;
+        };
+      }>(await fetch('/api/admin/subscriptions/promotional-credits', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifier: promoUserIdentifier,
+          credits: promoCredits,
+          notes: promoNotes || 'Admin promotional grant',
+        }),
+      }));
+
+      setPromoResult({
+        target: result.target,
+        balance: result.balance,
       });
-      if (error) throw error;
-      toast.success(`Granted ${promoCredits} credits`);
-      setPromoUserId(''); setPromoNotes('');
+      toast.success(result.message);
+      setPromoUserIdentifier('');
+      setPromoNotes('');
+      loadData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to grant credits');
     } finally {
@@ -482,18 +558,34 @@ export default function AdminSubscriptionsPage() {
   };
 
   const handleChangePlan = async () => {
-    if (!changePlanUserId.trim()) { toast.error('Enter a user ID'); return; }
+    if (!changePlanUserIdentifier.trim()) { toast.error('Enter a valid email address or user UUID.'); return; }
     setChangingPlan(true);
     try {
-      const { error } = await supabase.rpc('admin_change_user_plan', {
-        p_admin_id: user?.id,
-        p_user_id: changePlanUserId.trim(),
-        p_plan_code: changePlanCode,
-        p_billing_interval: changePlanInterval,
+      const result = await parseAdminActionResponse<{
+        ok: true;
+        message: string;
+        target: ResolvedAdminTarget;
+        currentPlan?: PlanSummary | null;
+        newPlan?: PlanSummary | null;
+      }>(await fetch('/api/admin/subscriptions/change-plan', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          identifier: changePlanUserIdentifier,
+          planCode: changePlanCode,
+          billingInterval: changePlanInterval,
+        }),
+      }));
+
+      setChangePlanResult({
+        target: result.target,
+        currentPlan: result.currentPlan,
+        newPlan: result.newPlan,
       });
-      if (error) throw error;
-      toast.success('Plan changed successfully');
-      setChangePlanUserId('');
+      toast.success(result.message);
+      setChangePlanUserIdentifier('');
       loadData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to change plan');
@@ -657,12 +749,15 @@ export default function AdminSubscriptionsPage() {
                   <h3 className="text-sm font-700 text-foreground mb-3 flex items-center gap-2">
                     <Gift size={15} className="text-accent" /> Grant Promotional Credits
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_140px_minmax(0,1fr)]">
                     <input
                       className="input-base text-sm"
-                      placeholder="User ID (UUID)"
-                      value={promoUserId}
-                      onChange={e => setPromoUserId(e.target.value)}
+                      placeholder="Enter user email or UUID"
+                      value={promoUserIdentifier}
+                      onChange={e => {
+                        setPromoUserIdentifier(e.target.value);
+                        setPromoResult(null);
+                      }}
                     />
                     <input
                       type="number"
@@ -679,6 +774,35 @@ export default function AdminSubscriptionsPage() {
                       onChange={e => setPromoNotes(e.target.value)}
                     />
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    User email or UUID
+                  </p>
+                  {promoResult ? (
+                    <div className="mt-3 rounded-2xl border border-accent/20 bg-accent/5 p-3">
+                      <p className="text-sm font-700 text-foreground">
+                        {promoResult.target.displayName || getAdminTargetLabel(promoResult.target)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {promoResult.target.email || 'No email available'} · User ID: …{promoResult.target.userId.slice(-8)}
+                      </p>
+                      {promoResult.balance ? (
+                        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                          <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                            <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">Current credit balance</p>
+                            <p className="mt-1 text-sm font-700 text-foreground">{promoResult.balance.currentBalance}</p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                            <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">Credits to add</p>
+                            <p className="mt-1 text-sm font-700 text-foreground">{promoResult.balance.creditsAdded}</p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                            <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">Resulting balance</p>
+                            <p className="mt-1 text-sm font-700 text-foreground">{promoResult.balance.resultingBalance}</p>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <button
                     onClick={handleGrantPromo}
                     disabled={grantingPromo}
@@ -694,12 +818,15 @@ export default function AdminSubscriptionsPage() {
                   <h3 className="text-sm font-700 text-foreground mb-3 flex items-center gap-2">
                     <UserCog size={15} className="text-accent" /> Change User Plan
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_160px]">
                     <input
                       className="input-base text-sm"
-                      placeholder="User ID (UUID)"
-                      value={changePlanUserId}
-                      onChange={e => setChangePlanUserId(e.target.value)}
+                      placeholder="Enter user email or UUID"
+                      value={changePlanUserIdentifier}
+                      onChange={e => {
+                        setChangePlanUserIdentifier(e.target.value);
+                        setChangePlanResult(null);
+                      }}
                     />
                     <select
                       className="input-base text-sm"
@@ -720,6 +847,39 @@ export default function AdminSubscriptionsPage() {
                       ))}
                     </select>
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    User email or UUID
+                  </p>
+                  {changePlanResult ? (
+                    <div className="mt-3 rounded-2xl border border-accent/20 bg-accent/5 p-3">
+                      <p className="text-sm font-700 text-foreground">
+                        {changePlanResult.target.displayName || getAdminTargetLabel(changePlanResult.target)}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {changePlanResult.target.email || 'No email available'} · User ID: …{changePlanResult.target.userId.slice(-8)}
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                          <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">Current plan</p>
+                          <p className="mt-1 text-sm font-700 text-foreground">
+                            {changePlanResult.currentPlan?.planName || changePlanResult.currentPlan?.planCode || '—'}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                          <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">New plan</p>
+                          <p className="mt-1 text-sm font-700 text-foreground">
+                            {changePlanResult.newPlan?.planName || changePlanResult.newPlan?.planCode || '—'}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-border bg-white/80 p-2.5">
+                          <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">Billing interval</p>
+                          <p className="mt-1 text-sm font-700 capitalize text-foreground">
+                            {changePlanResult.newPlan?.billingInterval || '—'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   <button
                     onClick={handleChangePlan}
                     disabled={changingPlan}
@@ -755,7 +915,36 @@ export default function AdminSubscriptionsPage() {
                             <tr key={u.user_id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
                               <td className="px-4 py-3">
                                 <p className="font-600 text-foreground text-xs">{u.full_name}</p>
-                                <p className="text-[11px] text-muted-foreground">{u.email}</p>
+                                <button
+                                  type="button"
+                                  onClick={() => prefillAdminTarget(u.email !== '—' ? u.email : u.user_id)}
+                                  className="text-left text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                                  title="Use this user in admin actions"
+                                >
+                                  {u.email}
+                                </button>
+                                <div className="mt-1 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setPromoUserIdentifier(u.email !== '—' ? u.email : u.user_id);
+                                      setPromoResult(null);
+                                    }}
+                                    className="text-[11px] font-600 text-accent hover:underline"
+                                  >
+                                    Grant Credits
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setChangePlanUserIdentifier(u.email !== '—' ? u.email : u.user_id);
+                                      setChangePlanResult(null);
+                                    }}
+                                    className="text-[11px] font-600 text-accent hover:underline"
+                                  >
+                                    Change Plan
+                                  </button>
+                                </div>
                               </td>
                               <td className="px-4 py-3">
                                 <div className="space-y-1">
