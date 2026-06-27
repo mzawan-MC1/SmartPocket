@@ -355,7 +355,7 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
       : [];
 
     if (!transactionDocumentLineItemsHaveValidTotals(lineItems)) {
-      throw new Error('Reviewed line item total does not match quantity x unit price.');
+      throw new Error('Reviewed line item total differs from quantity x unit price by more than the allowed tolerance.');
     }
 
     const totalSummary = getTransactionDocumentTotalSummary({

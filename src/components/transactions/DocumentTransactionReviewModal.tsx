@@ -809,7 +809,7 @@ export default function DocumentTransactionReviewModal({
           fields.push('total');
           totalMessage = t('transactions.documentReview.lineItemTotalMismatch', {
             ns: 'portal',
-            defaultValue: 'Line total must match quantity x unit price.',
+            defaultValue: 'Line total differs from quantity x unit price by more than the allowed tolerance.',
           });
         } else if (!lineItemValidation.hasValidTotal) {
           fields.push('total');

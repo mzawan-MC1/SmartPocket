@@ -6,6 +6,7 @@ export const TRANSACTION_DOCUMENT_MAX_SIZE_MB = Math.round(
 export const TRANSACTION_DOCUMENT_MAX_PDF_PAGES = 10;
 export const TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 30;
 export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.02;
+export const TRANSACTION_DOCUMENT_LINE_ITEM_TOTAL_TOLERANCE = 1;
 export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.02;
 export const TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
 export const TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL = 'JPG, PNG, WEBP, PDF';
@@ -597,7 +598,7 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     message === 'Each reviewed transaction must include a valid amount.'
     || message === 'Reviewed transaction amount must be greater than 0'
     || message === 'Each reviewed line item must have a valid total.'
-    || message === 'Reviewed line item total does not match quantity x unit price.'
+    || message === 'Reviewed line item total differs from quantity x unit price by more than the allowed tolerance.'
   ) {
     return 'invalid_amount';
   }
@@ -1141,12 +1142,11 @@ export function transactionDocumentLineItemsHaveValidTotals(lineItems: Array<{
       && typeof item.total === 'number'
       && Number.isFinite(item.total)
     ) {
-      return (
-        Math.abs(
-          roundTransactionDocumentMoney(item.quantity * item.unitPrice)
-          - roundTransactionDocumentMoney(item.total)
-        ) <= TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD
+      const difference = Math.abs(
+        roundTransactionDocumentMoney(item.quantity * item.unitPrice)
+        - roundTransactionDocumentMoney(item.total)
       );
+      return roundTransactionDocumentMoney(difference) < TRANSACTION_DOCUMENT_LINE_ITEM_TOTAL_TOLERANCE;
     }
     return typeof item.total !== 'number' || Number.isFinite(item.total);
   });
