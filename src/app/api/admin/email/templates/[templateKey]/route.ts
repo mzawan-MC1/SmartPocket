@@ -5,6 +5,7 @@ import { normalizePlatformSettings } from '@/lib/platform-settings';
 import { renderTransactionalEmail } from '@/lib/email/transactional-layout';
 import { buildCommonVariables, sendTransactionalEmail } from '@/lib/email/transactional';
 import { buildTransactionalAppUrl } from '@/lib/email/transactional-config';
+import { PLATFORM_BILLING_CURRENCY_CODE } from '@/lib/subscription/billing-currency';
 import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';
@@ -691,7 +692,7 @@ function buildSampleVars(
     customer_email: 'alex@example.com',
     plan_name: 'Personal',
     amount: '99',
-    currency: 'AED',
+    currency: PLATFORM_BILLING_CURRENCY_CODE,
     trial_start_date: now.toISOString().slice(0, 10),
     trial_end_date: trialEnd.toISOString().slice(0, 10),
     subscription_start_date: now.toISOString().slice(0, 10),

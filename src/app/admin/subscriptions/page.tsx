@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { CreditCard, Users, Save, Edit2, Loader2, RefreshCw, Gift, UserCog, BarChart3 } from 'lucide-react';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
+import { formatPlatformBillingAmount, PLATFORM_BILLING_CURRENCY_CODE } from '@/lib/subscription/billing-currency';
 import {
   calculateEquivalentMonthlyCost,
   calculateYearlyBilledPrice,
@@ -176,7 +177,17 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
   );
 }
 
-function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) => Promise<void>; onCancel: () => void }) {
+function PlanEditor({
+  plan,
+  locale,
+  onSave,
+  onCancel,
+}: {
+  plan: Plan;
+  locale: string;
+  onSave: (p: Plan) => Promise<void>;
+  onCancel: () => void;
+}) {
   const [form, setForm] = useState<Plan>({ ...plan });
   const [saving, setSaving] = useState(false);
 
@@ -217,7 +228,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
           <input className="input-base text-sm" value={form.plan_name} onChange={e => set('plan_name', e.target.value)} />
         </div>
         <div>
-          <label className="block text-xs font-600 text-foreground mb-1">Price (AED)</label>
+          <label className="block text-xs font-600 text-foreground mb-1">Price (USD)</label>
           <input type="number" min="0" step="1" className="input-base text-sm" value={form.price_amount} onChange={e => set('price_amount', parseInt(e.target.value, 10) || 0)} />
         </div>
         <div>
@@ -270,7 +281,7 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="rounded-xl border border-border bg-secondary/35 p-3">
             <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Monthly Price</p>
-            <p className="mt-1 text-sm font-700 text-foreground">AED {normalizedMonthlyPrice}</p>
+            <p className="mt-1 text-sm font-700 text-foreground">{formatPlatformBillingAmount(normalizedMonthlyPrice, { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
           </div>
           <div className="rounded-xl border border-border bg-secondary/35 p-3">
             <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Yearly Discount</p>
@@ -278,12 +289,12 @@ function PlanEditor({ plan, onSave, onCancel }: { plan: Plan; onSave: (p: Plan) 
           </div>
           <div className="rounded-xl border border-border bg-secondary/35 p-3">
             <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Calculated Yearly Price</p>
-            <p className="mt-1 text-sm font-700 text-foreground">AED {calculatedYearlyPrice}</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">AED {equivalentMonthlyPrice} equivalent / month</p>
+            <p className="mt-1 text-sm font-700 text-foreground">{formatPlatformBillingAmount(calculatedYearlyPrice, { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{formatPlatformBillingAmount(equivalentMonthlyPrice, { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })} equivalent / month</p>
           </div>
           <div className="rounded-xl border border-border bg-secondary/35 p-3">
             <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">Customer Saves</p>
-            <p className="mt-1 text-sm font-700 text-positive">AED {yearlySavingAmount} / year</p>
+            <p className="mt-1 text-sm font-700 text-positive">{formatPlatformBillingAmount(yearlySavingAmount, { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })} / year</p>
           </div>
         </div>
       ) : null}
@@ -652,7 +663,7 @@ export default function AdminSubscriptionsPage() {
                 {editablePlans.map(plan => (
                   <div key={plan.id}>
                     {editingPlan === plan.id ? (
-                      <PlanEditor plan={plan} onSave={handleSavePlan} onCancel={() => setEditingPlan(null)} />
+                      <PlanEditor plan={plan} locale={locale} onSave={handleSavePlan} onCancel={() => setEditingPlan(null)} />
                     ) : (
                       <div className="card-elevated p-5">
                         <div className="flex items-start justify-between gap-4">
@@ -668,8 +679,8 @@ export default function AdminSubscriptionsPage() {
                             <span className="text-sm font-700 text-foreground">
                               {plan.price_amount === 0
                                 ? 'Free'
-                                : `${formatCurrencyText(plan.price_amount, {
-                                    currencyCode: 'AED',
+                                : `${formatPlatformBillingAmount(plan.price_amount, {
+                                    currencyCode: PLATFORM_BILLING_CURRENCY_CODE,
                                     locale,
                                     minimumFractionDigits: 0,
                                     maximumFractionDigits: 0,
@@ -688,7 +699,7 @@ export default function AdminSubscriptionsPage() {
                           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <div className="bg-secondary/50 rounded-lg p-2.5">
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Price</p>
-                              <p className="text-sm font-700 text-foreground mt-0.5">AED {normalizeWholeMoneyAmount(plan.price_amount)}</p>
+                              <p className="text-sm font-700 text-foreground mt-0.5">{formatPlatformBillingAmount(normalizeWholeMoneyAmount(plan.price_amount), { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             </div>
                             <div className="bg-secondary/50 rounded-lg p-2.5">
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Yearly Discount</p>
@@ -696,11 +707,11 @@ export default function AdminSubscriptionsPage() {
                             </div>
                             <div className="bg-secondary/50 rounded-lg p-2.5">
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Calculated Yearly Price</p>
-                              <p className="text-sm font-700 text-foreground mt-0.5">AED {calculateYearlyBilledPrice(plan.price_amount, plan.yearly_discount_percent)}</p>
+                              <p className="text-sm font-700 text-foreground mt-0.5">{formatPlatformBillingAmount(calculateYearlyBilledPrice(plan.price_amount, plan.yearly_discount_percent), { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             </div>
                             <div className="bg-secondary/50 rounded-lg p-2.5">
                               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Customer Saves</p>
-                              <p className="text-sm font-700 text-positive mt-0.5">AED {calculateYearlySavingAmount(plan.price_amount, plan.yearly_discount_percent)}</p>
+                              <p className="text-sm font-700 text-positive mt-0.5">{formatPlatformBillingAmount(calculateYearlySavingAmount(plan.price_amount, plan.yearly_discount_percent), { locale, minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
                             </div>
                           </div>
                         ) : null}
@@ -956,8 +967,8 @@ export default function AdminSubscriptionsPage() {
                                   </p>
                                   {u.price_amount > 0 ? (
                                     <p className="text-[11px] font-700 text-foreground">
-                                      {formatCurrencyText(u.price_amount, {
-                                        currencyCode: 'AED',
+                                      {formatPlatformBillingAmount(u.price_amount, {
+                                        currencyCode: PLATFORM_BILLING_CURRENCY_CODE,
                                         locale,
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 0,

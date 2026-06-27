@@ -12,6 +12,7 @@ import {
   isDisallowedSocialPreviewAsset,
   type PlatformSettingsSnapshot,
 } from '@/lib/platform-settings';
+import { getPlatformBillingCurrencyCode } from '@/lib/subscription/billing-currency';
 import { loadActivePublicPlans } from '@/lib/subscription/server';
 
 const PRIVATE_PATH_PREFIXES = [
@@ -469,7 +470,7 @@ export async function buildSoftwareApplicationStructuredData(
       '@type': 'Offer',
       name: `${plan.planName} (${plan.billingInterval})`,
       price: plan.priceAmount,
-      priceCurrency: 'AED',
+      priceCurrency: getPlatformBillingCurrencyCode(plan.currencyCode),
       availability: 'https://schema.org/InStock',
       url: buildAbsoluteSiteUrl('/home#pricing', settings),
       category: plan.billingInterval,

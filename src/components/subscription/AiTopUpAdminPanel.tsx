@@ -5,9 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Plus, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import {
+  formatPlatformBillingAmount,
+  PLATFORM_BILLING_CURRENCY_CODE,
+} from '@/lib/subscription/billing-currency';
 import {
   createAdminAiTopUpAdjustment,
   fetchAdminAiTopUpCatalog,
@@ -34,7 +37,7 @@ function createEmptyProduct(): EditableProduct {
     unitQuantity: 100,
     unitLabel: 'credits',
     priceAmount: 5,
-    currencyCode: 'AED',
+    currencyCode: PLATFORM_BILLING_CURRENCY_CODE,
     minimumQuantity: 1,
     maximumQuantity: 20,
     quantityStep: 1,
@@ -73,7 +76,7 @@ export default function AiTopUpAdminPanel({
   const [adjusting, setAdjusting] = React.useState(false);
 
   const formatMoney = React.useCallback((amount: number, currencyCode: string) => {
-    return formatCurrencyText(amount, {
+    return formatPlatformBillingAmount(amount, {
       currencyCode,
       currencies,
       locale,
@@ -129,7 +132,7 @@ export default function AiTopUpAdminPanel({
         unitQuantity: Math.max(1, Number(editor.unitQuantity || 1)),
         unitLabel: editor.unitLabel?.trim() || null,
         priceAmount: Math.max(0, Number(editor.priceAmount || 0)),
-        currencyCode: (editor.currencyCode || 'AED').trim().toUpperCase(),
+        currencyCode: PLATFORM_BILLING_CURRENCY_CODE,
         minimumQuantity: Math.max(1, Number(editor.minimumQuantity || 1)),
         maximumQuantity: Math.max(1, Number(editor.maximumQuantity || 1)),
         quantityStep: Math.max(1, Number(editor.quantityStep || 1)),
@@ -329,8 +332,9 @@ export default function AiTopUpAdminPanel({
               <label className="mb-1 block text-xs font-700 text-foreground">{t('subscriptionTopUps.admin.fields.currencyCode', { ns: 'portal' })}</label>
               <input
                 className="input-base text-sm"
-                value={editor.currencyCode || 'AED'}
-                onChange={(event) => setEditor((current) => current ? { ...current, currencyCode: event.target.value.toUpperCase() } : current)}
+                value={PLATFORM_BILLING_CURRENCY_CODE}
+                disabled
+                readOnly
               />
             </div>
             <div>

@@ -6,9 +6,9 @@ import { Loader2, Minus, Plus, ShoppingCart, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import SectionCard from '@/components/ui/SectionCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import {
   createAiTopUpCheckout,
   fetchAiTopUpCatalog,
@@ -71,8 +71,8 @@ export default function AiTopUpPurchaseSection({
   }, [quantities]);
 
   const formatMoney = React.useCallback((amount: number, currencyCode?: string) => {
-    return formatCurrencyText(amount, {
-      currencyCode: currencyCode || catalog?.currencyCode || 'AED',
+    return formatPlatformBillingAmount(amount, {
+      currencyCode: currencyCode || catalog?.currencyCode,
       currencies,
       locale,
       minimumFractionDigits: 0,

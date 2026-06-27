@@ -16,7 +16,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import CountrySelector from '@/components/country/CountrySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
-import { formatCurrencyText } from '@/lib/currency-formatting';
+import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
 import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
@@ -422,8 +422,8 @@ export default function SettingsPage() {
   ];
 
   const subscriptionPriceText = typeof subscriptionSummary?.priceAmount === 'number' && subscriptionSummary.priceAmount > 0
-    ? formatCurrencyText(subscriptionSummary.priceAmount, {
-        currencyCode: 'AED',
+    ? formatPlatformBillingAmount(subscriptionSummary.priceAmount, {
+        currencyCode: subscriptionSummary.currencyCode,
         locale,
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,

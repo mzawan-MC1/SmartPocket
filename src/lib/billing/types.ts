@@ -8,6 +8,7 @@ export interface CreateCheckoutInput {
   planId: string;
   planCode: string;
   planName: string;
+  currencyCode: string;
   billingInterval: SupportedBillingInterval;
   priceAmount: number;
   successUrl: string;

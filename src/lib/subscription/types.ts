@@ -210,6 +210,7 @@ export interface PublicSubscriptionPlan {
   planCode: PlanCode;
   planName: string;
   description: string | null;
+  currencyCode: string;
   priceAmount: number;
   billingInterval: SupportedBillingInterval;
   monthlyBasePriceAmount: number;
@@ -245,6 +246,7 @@ export interface SubscriptionSummary {
   rawStatus?: string | null;
   billingStatus?: string | null;
   billingInterval?: SupportedBillingInterval;
+  currencyCode?: string;
   priceAmount?: number;
   monthlyBasePriceAmount?: number;
   yearlyDiscountPercent?: number;

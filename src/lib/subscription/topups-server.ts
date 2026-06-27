@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getBillingProvider } from '@/lib/billing/provider';
+import { getPlatformBillingCurrencyCode } from '@/lib/subscription/billing-currency';
 import type {
   AiTopUpAdminCatalogResponse,
   AiTopUpAdminOrdersResponse,
@@ -149,7 +150,7 @@ function buildCatalogFallback(): AiTopUpCatalogResponse {
       voiceSecond: emptyUsage(),
       receiptExtraction: emptyUsage(),
     },
-    currencyCode: 'AED',
+    currencyCode: getPlatformBillingCurrencyCode(),
     vatBasisPoints: 500,
     canPurchaseTopUps: false,
   };
@@ -166,7 +167,7 @@ function normalizeProduct(row: RawTopUpProductRow, eligibilityRows: RawEligibili
     unitQuantity: Math.max(1, row.unit_quantity ?? 1),
     unitLabel: row.unit_label ?? null,
     priceAmount: Math.max(0, row.price_amount ?? 0),
-    currencyCode: row.currency_code,
+    currencyCode: getPlatformBillingCurrencyCode(row.currency_code),
     minimumQuantity: Math.max(1, row.minimum_quantity ?? 1),
     maximumQuantity: Math.max(1, row.maximum_quantity ?? 1),
     quantityStep: Math.max(1, row.quantity_step ?? 1),
@@ -190,7 +191,7 @@ async function getAdminClientOrThrow(): Promise<AdminClient> {
 async function loadPricingConfig(admin: AdminClient) {
   const { data, error } = await admin
     .from('platform_settings')
-    .select('default_currency, vat_basis_points')
+    .select('vat_basis_points')
     .maybeSingle();
 
   if (error && error.code !== '42P01') {
@@ -198,9 +199,7 @@ async function loadPricingConfig(admin: AdminClient) {
   }
 
   return {
-    currencyCode: typeof (data as { default_currency?: string } | null)?.default_currency === 'string'
-      ? (data as { default_currency?: string }).default_currency!.trim().toUpperCase()
-      : 'AED',
+    currencyCode: getPlatformBillingCurrencyCode(),
     vatBasisPoints: typeof (data as { vat_basis_points?: number } | null)?.vat_basis_points === 'number'
       ? Math.max(0, (data as { vat_basis_points: number }).vat_basis_points)
       : 500,
@@ -753,7 +752,7 @@ function normalizeOrders(
     id: order.id,
     orderReference: order.order_reference,
     status: order.status,
-    currencyCode: order.currency_code,
+    currencyCode: getPlatformBillingCurrencyCode(order.currency_code),
     subtotalAmount: order.subtotal_amount,
     vatAmount: order.vat_amount,
     totalAmount: order.total_amount,
@@ -863,7 +862,7 @@ export async function saveAdminAiTopUpProduct(input: Partial<AiTopUpProduct>) {
     unit_quantity: Math.max(1, input.unitQuantity ?? 1),
     unit_label: input.unitLabel ?? null,
     price_amount: Math.max(0, input.priceAmount ?? 0),
-    currency_code: (input.currencyCode || 'AED').trim().toUpperCase(),
+    currency_code: getPlatformBillingCurrencyCode(input.currencyCode),
     minimum_quantity: Math.max(1, input.minimumQuantity ?? 1),
     maximum_quantity: Math.max(1, input.maximumQuantity ?? 1),
     quantity_step: Math.max(1, input.quantityStep ?? 1),

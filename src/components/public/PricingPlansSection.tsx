@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
-import { formatCurrencyText } from '@/lib/currency-formatting';
+import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import {
   getPlanForInterval,
   groupPlansByFamily,
@@ -17,13 +17,13 @@ import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { BillingAvailability, PublicSubscriptionPlan } from '@/lib/subscription/types';
 import { trackMarketingEvent } from '@/lib/analytics';
 
-function formatPublicPlanPrice(amount: number, locale: string) {
+function formatPublicPlanPrice(amount: number, currencyCode: string | null | undefined, locale: string) {
   if (amount <= 0) {
     return null;
   }
 
-  return formatCurrencyText(amount, {
-    currencyCode: 'AED',
+  return formatPlatformBillingAmount(amount, {
+    currencyCode,
     locale,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
@@ -215,12 +215,13 @@ export default function PricingPlansSection({
               ))
             : visiblePlans.map((plan) => {
                 const featureRows = getPublicPlanFeatureRows(plan, t);
-                const priceText = formatPublicPlanPrice(plan.priceAmount, locale);
+                const priceText = formatPublicPlanPrice(plan.priceAmount, plan.currencyCode, locale);
                 const equivalentMonthlyText = formatPublicPlanPrice(
                   plan.equivalentMonthlyPriceAmount,
+                  plan.currencyCode,
                   locale
                 );
-                const yearlySavingText = formatPublicPlanPrice(plan.yearlySavingAmount, locale);
+                const yearlySavingText = formatPublicPlanPrice(plan.yearlySavingAmount, plan.currencyCode, locale);
                 const ctaHref = getPublicPlanCtaHref(
                   plan.planCode,
                   plan.billingInterval,

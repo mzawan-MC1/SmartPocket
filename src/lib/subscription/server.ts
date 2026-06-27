@@ -9,6 +9,7 @@ import { processVerifiedTopUpBillingEvent } from '@/lib/subscription/topups-serv
 import {
   buildPlanPricingDetails,
 } from '@/lib/subscription/pricing';
+import { getPlatformBillingCurrencyCode } from '@/lib/subscription/billing-currency';
 import type {
   BillingProvider,
   VerifiedBillingEvent,
@@ -498,6 +499,7 @@ function normalizePlan(
     planCode: row.plan_code,
     planName: row.plan_name,
     description: row.description ?? null,
+    currencyCode: getPlatformBillingCurrencyCode(),
     priceAmount: pricing.billedPriceAmount,
     billingInterval: row.billing_interval,
     monthlyBasePriceAmount: pricing.monthlyBasePriceAmount,
@@ -829,6 +831,7 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     rawStatus: subscription.status,
     billingStatus: billingSubscription?.status ?? null,
     billingInterval: billingSubscription?.billing_interval || planRow.billing_interval,
+    currencyCode: getPlatformBillingCurrencyCode(),
     priceAmount: pricing.billedPriceAmount,
     monthlyBasePriceAmount: pricing.monthlyBasePriceAmount,
     yearlyDiscountPercent: pricing.yearlyDiscountPercent,
@@ -1151,7 +1154,8 @@ async function createCheckoutSessionRecord(
   admin: SupabaseClient,
   input: Pick<AuthenticatedCheckoutInput, 'userId' | 'billingInterval' | 'successUrl' | 'cancelUrl'>,
   planId: string,
-  providerName: string
+  providerName: string,
+  currencyCode: string
 ) {
   const { data, error } = await admin
     .from('billing_checkout_sessions')
@@ -1163,6 +1167,9 @@ async function createCheckoutSessionRecord(
       status: 'pending',
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
+      metadata: {
+        currency_code: getPlatformBillingCurrencyCode(currencyCode),
+      },
     })
     .select('id')
     .single();
@@ -1223,12 +1230,22 @@ export async function initiateCheckoutForUser(input: AuthenticatedCheckoutInput)
   }
 
   const provider = getBillingProvider();
-  const checkoutSessionId = await createCheckoutSessionRecord(admin, input, validation.plan.id, provider.name);
+  const currencyCode = getPlatformBillingCurrencyCode(validation.plan.currencyCode);
+  const checkoutSessionId = await createCheckoutSessionRecord(
+    admin,
+    input,
+    validation.plan.id,
+    provider.name,
+    currencyCode
+  );
 
   if (!provider.configured) {
     await updateCheckoutSessionRecord(admin, checkoutSessionId, {
       status: 'provider_unavailable',
-      metadata: { reason: 'billing_provider_unavailable' },
+      metadata: {
+        currency_code: currencyCode,
+        reason: 'billing_provider_unavailable',
+      },
     });
     return {
       ok: false,
@@ -1244,6 +1261,7 @@ export async function initiateCheckoutForUser(input: AuthenticatedCheckoutInput)
       planId: validation.plan.id,
       planCode: validation.plan.planCode,
       planName: validation.plan.planName,
+      currencyCode,
       billingInterval: input.billingInterval,
       priceAmount: validation.plan.priceAmount,
       successUrl: input.successUrl,
@@ -1255,6 +1273,7 @@ export async function initiateCheckoutForUser(input: AuthenticatedCheckoutInput)
       status: 'ready',
       provider_session_id: result.providerSessionId,
       metadata: {
+        currency_code: currencyCode,
         providerPriceId: result.providerPriceId ?? null,
       },
     });
@@ -1268,6 +1287,7 @@ export async function initiateCheckoutForUser(input: AuthenticatedCheckoutInput)
     await updateCheckoutSessionRecord(admin, checkoutSessionId, {
       status: 'failed',
       metadata: {
+        currency_code: currencyCode,
         reason: error instanceof Error ? error.message : 'checkout_creation_failed',
       },
     });
@@ -1569,7 +1589,9 @@ async function sendBillingEmails(args: {
   const renewalDate = periodEndAfter ? toIsoDate(periodEndAfter) : '';
 
   const amountNumber = readPayloadNumber(payload, ['amount', 'amount_total', 'amount_paid', 'total', 'price', 'unit_amount']);
-  const currency = toCurrencyCode(readPayloadString(payload, ['currency', 'currency_code']));
+  const currency = getPlatformBillingCurrencyCode(
+    toCurrencyCode(readPayloadString(payload, ['currency', 'currency_code']))
+  );
   const invoiceNumber = readPayloadString(payload, ['invoice_number', 'invoice', 'number']);
   const paymentReference = readPayloadString(payload, ['payment_reference', 'payment_intent', 'charge', 'id', 'reference']);
 

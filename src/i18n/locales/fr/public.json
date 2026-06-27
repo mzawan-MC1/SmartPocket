@@ -186,7 +186,7 @@
       "bestValue": "Meilleur rapport qualite-prix",
       "contactSupportYearlyPlan": "Contactez le support pour cette offre annuelle",
       "invalidDiscount": "Saisissez une remise annuelle valide entre 0% et 100%.",
-      "wholeNumberPriceRequirement": "Les prix doivent etre en AED entiers."
+      "wholeNumberPriceRequirement": "Les prix doivent etre en USD entiers."
     },
     "languages": {
       "ltr": "LTR",

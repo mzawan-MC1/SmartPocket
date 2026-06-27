@@ -22,8 +22,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import AiTopUpPurchaseSection from '@/components/subscription/AiTopUpPurchaseSection';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
-import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
+import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import {
   getPlanForInterval,
   groupPlansByFamily,
@@ -47,6 +47,7 @@ import type {
 
 function formatPlanPrice(
   amount: number,
+  currencyCode: string | null | undefined,
   locale: string,
   currencies: any[]
 ) {
@@ -54,8 +55,8 @@ function formatPlanPrice(
     return null;
   }
 
-  return formatCurrencyText(amount, {
-    currencyCode: 'AED',
+  return formatPlatformBillingAmount(amount, {
+    currencyCode,
     currencies,
     locale,
     minimumFractionDigits: 0,
@@ -459,7 +460,7 @@ export default function SubscriptionSettingsPage() {
                         </span>
                         {typeof summary?.priceAmount === 'number' && summary.priceAmount > 0 ? (
                           <span dir="ltr" className="text-sm font-800 text-foreground">
-                            {formatPlanPrice(summary.priceAmount, locale, currencies)}
+                            {formatPlanPrice(summary.priceAmount, summary.currencyCode, locale, currencies)}
                           </span>
                         ) : null}
                       </div>
@@ -671,10 +672,10 @@ export default function SubscriptionSettingsPage() {
                   const isCurrentPlan = summary?.planCode === plan.planCode && summary?.billingInterval === plan.billingInterval;
                   const comparisonPrice = summary?.monthlyBasePriceAmount ?? currentPlan?.monthlyBasePriceAmount ?? currentPlanPrice;
                   const isUpgrade = plan.monthlyBasePriceAmount >= comparisonPrice;
-                  const priceText = formatPlanPrice(plan.priceAmount, locale, currencies);
+                  const priceText = formatPlanPrice(plan.priceAmount, plan.currencyCode, locale, currencies);
                   const featureList = featureRows(plan, t);
-                  const equivalentMonthlyText = formatPlanPrice(plan.equivalentMonthlyPriceAmount, locale, currencies);
-                  const yearlySavingText = formatPlanPrice(plan.yearlySavingAmount, locale, currencies);
+                  const equivalentMonthlyText = formatPlanPrice(plan.equivalentMonthlyPriceAmount, plan.currencyCode, locale, currencies);
+                  const yearlySavingText = formatPlanPrice(plan.yearlySavingAmount, plan.currencyCode, locale, currencies);
 
                   return (
                     <div

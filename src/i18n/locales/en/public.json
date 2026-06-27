@@ -190,7 +190,7 @@
       "bestValue": "Best value",
       "contactSupportYearlyPlan": "Contact support for this yearly plan",
       "invalidDiscount": "Enter a valid yearly discount between 0% and 100%.",
-      "wholeNumberPriceRequirement": "Prices must be saved as whole AED amounts."
+      "wholeNumberPriceRequirement": "Prices must be saved as whole USD amounts."
     },
     "languages": {
       "ltr": "LTR",

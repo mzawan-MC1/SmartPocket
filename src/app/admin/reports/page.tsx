@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
+import { PLATFORM_BILLING_CURRENCY_CODE } from '@/lib/subscription/billing-currency';
 
 export default function AdminReportsPage() {
   const [saved, setSaved] = useState(false);
@@ -29,7 +30,7 @@ export default function AdminReportsPage() {
             pdf_include_logo: data.pdf_include_logo ?? s.pdf_include_logo,
             pdf_show_page_numbers: data.pdf_show_page_numbers ?? s.pdf_show_page_numbers,
             pdf_date_format: data.pdf_date_format || s.pdf_date_format,
-            pdf_currency: data.pdf_currency || data.default_currency || s.pdf_currency,
+            pdf_currency: data.pdf_currency || PLATFORM_BILLING_CURRENCY_CODE,
             pdf_paper_size: data.pdf_paper_size || s.pdf_paper_size,
             pdf_orientation: data.pdf_orientation || s.pdf_orientation,
           }));

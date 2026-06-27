@@ -185,7 +185,7 @@
       "bestValue": "Лучшая ценность",
       "contactSupportYearlyPlan": "Свяжитесь с поддержкой по этому годовому плану",
       "invalidDiscount": "Введите корректную годовую скидку от 0% до 100%.",
-      "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы AED."
+      "wholeNumberPriceRequirement": "Цены должны сохраняться как целые суммы USD."
     },
     "languages": {
       "ltr": "LTR",
