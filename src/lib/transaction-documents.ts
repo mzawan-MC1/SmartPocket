@@ -7,12 +7,13 @@ export const TRANSACTION_DOCUMENT_MAX_PDF_PAGES = 10;
 export const TRANSACTION_DOCUMENT_SIGNED_URL_TTL_SECONDS = 60 * 30;
 export const TRANSACTION_DOCUMENT_ROUNDING_MISMATCH_THRESHOLD = 0.05;
 export const TRANSACTION_DOCUMENT_MEANINGFUL_MISMATCH_THRESHOLD = 0.5;
-export const TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf';
-export const TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL = 'JPG, PNG, PDF';
+export const TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE = '.jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf';
+export const TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL = 'JPG, PNG, WEBP, PDF';
 
 export const TRANSACTION_DOCUMENT_ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
+  'image/webp',
   'application/pdf',
 ] as const;
 
@@ -20,6 +21,7 @@ export const TRANSACTION_DOCUMENT_ALLOWED_EXTENSIONS = [
   '.jpg',
   '.jpeg',
   '.png',
+  '.webp',
   '.pdf',
 ] as const;
 
@@ -42,7 +44,12 @@ export type TransactionDocumentErrorCode =
   | 'openrouter_not_configured'
   | 'unsupported_multimodal_model'
   | 'provider_http_error'
+  | 'provider_timeout'
+  | 'provider_rate_limited'
+  | 'provider_unavailable'
   | 'invalid_ai_json_response'
+  | 'invalid_extraction_response'
+  | 'unreadable_document'
   | 'signed_url_failure'
   | 'extract_failed'
   | 'job_required'
@@ -219,8 +226,32 @@ function normalizeCurrency(value: unknown): string | undefined {
 
 function normalizeAmount(value: unknown): number | null | undefined {
   if (value === null) return null;
-  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
-  return roundTransactionDocumentMoney(value);
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return roundTransactionDocumentMoney(value);
+  }
+  if (typeof value !== 'string') return undefined;
+
+  const normalized = value
+    .replace(/[A-Za-z\u0600-\u06FF]{2,}/g, ' ')
+    .replace(/[,،](?=\d{3}\b)/g, '')
+    .replace(/[\s]/g, '')
+    .replace(/[^\d.,+-]/g, '')
+    .trim();
+
+  if (!normalized) return undefined;
+
+  const commaCount = (normalized.match(/,/g) || []).length;
+  const dotCount = (normalized.match(/\./g) || []).length;
+  let numericText = normalized;
+
+  if (commaCount > 0 && dotCount === 0) {
+    numericText = normalized.replace(',', '.');
+  } else if (commaCount > 0 && dotCount > 0) {
+    numericText = normalized.replace(/,/g, '');
+  }
+
+  const parsed = Number(numericText);
+  return Number.isFinite(parsed) ? roundTransactionDocumentMoney(parsed) : undefined;
 }
 
 function normalizeText(value: unknown): string | undefined {
@@ -232,7 +263,35 @@ function normalizeText(value: unknown): string | undefined {
 function normalizeDate(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined;
   const normalized = value.trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : undefined;
+  if (!normalized) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized;
+
+  const separatorMatch = normalized.match(/^(\d{1,4})[\/.-](\d{1,2})[\/.-](\d{1,4})$/);
+  if (!separatorMatch) return undefined;
+
+  const first = Number(separatorMatch[1]);
+  const second = Number(separatorMatch[2]);
+  const third = Number(separatorMatch[3]);
+
+  let year = first;
+  let month = second;
+  let day = third;
+
+  if (separatorMatch[1].length !== 4) {
+    day = first;
+    month = second;
+    year = third < 100 ? 2000 + third : third;
+  }
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+    return undefined;
+  }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return undefined;
+  }
+
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 export function getTransactionDocumentExtension(fileName: string) {
@@ -329,7 +388,11 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   if (message === 'This file appears to be empty or unreadable.') {
     return 'empty_file';
   }
-  if (message === 'Only JPG, JPEG, PNG, and PDF files are supported.') {
+  if (
+    message === 'Only JPG, JPEG, PNG, and PDF files are supported.'
+    || message === 'Only JPG, JPEG, PNG, WEBP, and PDF files are supported.'
+    || /only .*pdf files are supported/i.test(message)
+  ) {
     return 'invalid_type';
   }
   if (
@@ -390,6 +453,30 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     return 'provider_http_error';
   }
   if (
+    /timeout/i.test(message)
+    || /abort/i.test(message)
+    || /timed out/i.test(message)
+  ) {
+    return 'provider_timeout';
+  }
+  if (
+    /429/i.test(message)
+    || /rate limit/i.test(message)
+    || /rate-limited/i.test(message)
+  ) {
+    return 'provider_rate_limited';
+  }
+  if (
+    /fetch failed/i.test(message)
+    || /network/i.test(message)
+    || /ECONNRESET/i.test(message)
+    || /ENOTFOUND/i.test(message)
+    || /EAI_AGAIN/i.test(message)
+    || /temporarily unavailable/i.test(message)
+  ) {
+    return 'provider_unavailable';
+  }
+  if (
     /Invalid JSON from OpenRouter/i.test(message)
     || /Invalid JSON from VPS AI/i.test(message)
     || /Document extraction response is not an object/i.test(message)
@@ -398,6 +485,18 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
     || /Document extraction contains an invalid transaction/i.test(message)
   ) {
     return 'invalid_ai_json_response';
+  }
+  if (
+    /Document extraction did not contain enough usable receipt data/i.test(message)
+    || /could not read enough information/i.test(message)
+  ) {
+    return 'unreadable_document';
+  }
+  if (
+    /response could not be validated/i.test(message)
+    || /invalid extraction response/i.test(message)
+  ) {
+    return 'invalid_extraction_response';
   }
   if (message === 'Failed to create signed preview URL') {
     return 'signed_url_failure';
@@ -503,7 +602,7 @@ export async function validateTransactionDocumentFile(file: File) {
   }
 
   if (!isAllowedTransactionDocumentFile({ mimeType: file.type, fileName: file.name })) {
-    throw new Error('Only JPG, JPEG, PNG, and PDF files are supported.');
+    throw new Error('Only JPG, JPEG, PNG, WEBP, and PDF files are supported.');
   }
 
   if (file.size > TRANSACTION_DOCUMENT_MAX_SIZE_BYTES) {
@@ -606,6 +705,18 @@ export function validateTransactionDocumentExtraction(raw: unknown): Transaction
     } satisfies TransactionDocumentDraftTransaction;
   });
 
+  const hasUsableTransaction = transactions.some((transaction) => {
+    const hasSource = Boolean(transaction.merchant || transaction.description);
+    const hasReference = Boolean(transaction.date || transaction.receiptNumber);
+    const hasAmount = typeof transaction.total === 'number' && Number.isFinite(transaction.total) && transaction.total > 0;
+    const hasDescription = Boolean(transaction.description || transaction.lineItems.length > 0);
+    return hasSource && hasReference && hasAmount && hasDescription;
+  });
+
+  if (transactions.length > 0 && !hasUsableTransaction) {
+    throw new Error('Document extraction did not contain enough usable receipt data.');
+  }
+
   return {
     requestId: raw.requestId,
     language: raw.language,
@@ -684,11 +795,15 @@ Rules:
 - Extract line items only as linked items, not separate account transactions
 - itemKind should be regular unless the document clearly shows a discount, tax, or fee line
 - Use ISO currency codes
+- Handle mixed Arabic and English receipts, including UAE VAT receipts and long thermal receipts
+- Normalize dates to YYYY-MM-DD when possible, including common receipt formats like DD/MM/YY
+- Convert visible numeric strings to numbers where reliable; do not fail because optional fields are missing
 - Validate arithmetic when possible: total should reflect the likely payable amount, tax should be separate when visible
 - If the document looks handwritten or incomplete, keep needsReview true
 - If the file is a payment received slip or income proof, transactionType may be income
 - Do not invent account ids or category ids
 - categorySuggestion must be a plain category label only
+- Use notes for useful receipt metadata such as merchant address, VAT/TRN, payment method, cash received, change, or reference numbers when visible
 - If there are no reliable transactions, return an empty transactions array with warnings`;
 
 export function roundTransactionDocumentMoney(value: number) {

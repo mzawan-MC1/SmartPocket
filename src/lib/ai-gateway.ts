@@ -2,6 +2,8 @@
 // Server-side only. Never import this from browser components.
 // All provider secrets are resolved from environment variables.
 
+import fs from 'fs';
+import path from 'path';
 import type { AIGatewayConfig, AIAssistantRequest, AIAssistantResponse, ParseRequest, ParsedFinancialInstruction, AudioInput, TranscriptResult, LanguageProvider, SpeechProvider, ProviderHealthResult, FinancialContext } from './ai-types';
 import {
   validateParsedInstruction,
@@ -45,11 +47,25 @@ export interface TransactionDocumentAIResponse {
   estimatedCostUsd?: number | null;
 }
 
+type ProviderContentBlock = {
+  type?: string;
+  text?: string;
+};
+
+type ProviderChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string | ProviderContentBlock[] | null;
+    };
+  }>;
+};
+
 class TransactionDocumentGatewayError extends Error {
   code: TransactionDocumentErrorCode;
   stage: string;
   providerUsed?: string;
   modelUsed?: string | null;
+  providerStatus?: number | null;
   rawOutput?: unknown;
   inputTokens?: number | null;
   outputTokens?: number | null;
@@ -63,6 +79,7 @@ class TransactionDocumentGatewayError extends Error {
     details?: {
       providerUsed?: string;
       modelUsed?: string | null;
+      providerStatus?: number | null;
       rawOutput?: unknown;
       inputTokens?: number | null;
       outputTokens?: number | null;
@@ -76,12 +93,18 @@ class TransactionDocumentGatewayError extends Error {
     this.stage = stage;
     this.providerUsed = details?.providerUsed;
     this.modelUsed = details?.modelUsed;
+    this.providerStatus = details?.providerStatus ?? null;
     this.rawOutput = details?.rawOutput;
     this.inputTokens = details?.inputTokens ?? null;
     this.outputTokens = details?.outputTokens ?? null;
     this.totalTokens = details?.totalTokens ?? null;
     this.estimatedCostUsd = details?.estimatedCostUsd ?? null;
   }
+}
+
+function getTransactionDocumentTimeoutMs() {
+  const parsed = Number.parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '45000', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 45000;
 }
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
@@ -1764,52 +1787,78 @@ async function parseTransactionDocumentWithOpenRouter(
 
   const baseUrl = process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
   const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  const timeoutMs = getTransactionDocumentTimeoutMs();
   logTransactionDocumentGateway('info', 'openrouter.request.start', {
     requestId: input.requestId || null,
     model,
     fileMimeType: input.fileMimeType,
     pageCount: input.pageCount ?? null,
+    timeoutMs,
   });
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
-      'X-Title': 'Smart Pocket AI',
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: buildTransactionDocumentUserContent(input),
-        },
-      ],
-      plugins:
-        input.fileMimeType === 'application/pdf'
-          ? [
-              {
-                id: 'file-parser',
-                pdf: {
-                  engine: 'mistral-ocr',
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || 'https://1smartpocket.com',
+        'X-Title': 'Smart Pocket AI',
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: buildTransactionDocumentUserContent(input),
+          },
+        ],
+        plugins:
+          input.fileMimeType === 'application/pdf'
+            ? [
+                {
+                  id: 'file-parser',
+                  pdf: {
+                    engine: 'mistral-ocr',
+                  },
                 },
-              },
-            ]
-          : undefined,
-      temperature: 0.1,
-      max_tokens: 2500,
-      response_format: { type: 'json_object' },
-    }),
-  });
+              ]
+            : undefined,
+        temperature: 0.1,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' },
+      }),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error || '');
+    const isTimeout = errorMessage.toLowerCase().includes('abort') || errorMessage.toLowerCase().includes('timeout');
+    throw new TransactionDocumentGatewayError(
+      isTimeout ? 'provider_timeout' : 'provider_unavailable',
+      'openrouter.request',
+      isTimeout ? 'OpenRouter request timed out' : `OpenRouter request failed: ${sanitizeError(errorMessage)}`,
+      {
+        providerUsed: 'openrouter',
+        modelUsed: model,
+      }
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
     const sanitizedError = sanitizeError(errText);
-    const code = isUnsupportedMultimodalMessage(sanitizedError)
-      ? 'unsupported_multimodal_model'
-      : 'provider_http_error';
+    const code = response.status === 429
+      ? 'provider_rate_limited'
+      : response.status >= 500
+        ? 'provider_unavailable'
+        : isUnsupportedMultimodalMessage(sanitizedError)
+          ? 'unsupported_multimodal_model'
+          : 'provider_http_error';
     logTransactionDocumentGateway('error', 'openrouter.request.failed', {
       requestId: input.requestId || null,
       model,
@@ -1824,18 +1873,32 @@ async function parseTransactionDocumentWithOpenRouter(
       {
         providerUsed: 'openrouter',
         modelUsed: model,
+        providerStatus: response.status,
       }
     );
   }
-
-  const rawOutput = await response.json();
+  let rawOutput: unknown;
+  try {
+    rawOutput = await response.json();
+  } catch (error) {
+    throw new TransactionDocumentGatewayError(
+      'invalid_extraction_response',
+      'openrouter.response',
+      `OpenRouter returned a non-JSON response: ${sanitizeError(error instanceof Error ? error.message : String(error || 'Unknown error'))}`,
+      {
+        providerUsed: 'openrouter',
+        modelUsed: model,
+        providerStatus: response.status,
+      }
+    );
+  }
   const usageDetails = extractProviderUsageDetails(rawOutput);
   logTransactionDocumentGateway('info', 'openrouter.request.success', {
     requestId: input.requestId || null,
     model,
   });
-  const content = rawOutput?.choices?.[0]?.message?.content;
-  const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
+  const content = getProviderChatCompletionContent(rawOutput);
+  const parsed = safeParseJSON(extractTransactionDocumentContentText(content));
   if (!parsed) {
     logTransactionDocumentGateway('error', 'openrouter.parse.failed', {
       requestId: input.requestId || null,
@@ -1885,6 +1948,7 @@ async function parseTransactionDocumentWithVps(
 
   const model = process.env.LOCAL_AI_MODEL || 'llama3';
   const authToken = process.env.LOCAL_AI_AUTH_TOKEN || '';
+  const timeoutMs = getTransactionDocumentTimeoutMs();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -1897,31 +1961,56 @@ async function parseTransactionDocumentWithVps(
     model,
     fileMimeType: input.fileMimeType,
     pageCount: input.pageCount ?? null,
+    timeoutMs,
   });
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: buildTransactionDocumentUserContent(input),
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 2500,
-      response_format: { type: 'json_object' },
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: TRANSACTION_DOCUMENT_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: buildTransactionDocumentUserContent(input),
+          },
+        ],
+        temperature: 0.1,
+        max_tokens: 4000,
+        response_format: { type: 'json_object' },
+      }),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error || '');
+    const isTimeout = errorMessage.toLowerCase().includes('abort') || errorMessage.toLowerCase().includes('timeout');
+    throw new TransactionDocumentGatewayError(
+      isTimeout ? 'provider_timeout' : 'provider_unavailable',
+      'vps_ai.request',
+      isTimeout ? 'VPS AI request timed out' : `VPS AI request failed: ${sanitizeError(errorMessage)}`,
+      {
+        providerUsed: 'vps_ai',
+        modelUsed: model,
+      }
+    );
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!response.ok) {
     const errText = await response.text().catch(() => '');
     const sanitizedError = sanitizeError(errText);
-    const code = isUnsupportedMultimodalMessage(sanitizedError)
-      ? 'unsupported_multimodal_model'
-      : 'provider_http_error';
+    const code = response.status === 429
+      ? 'provider_rate_limited'
+      : response.status >= 500
+        ? 'provider_unavailable'
+        : isUnsupportedMultimodalMessage(sanitizedError)
+          ? 'unsupported_multimodal_model'
+          : 'provider_http_error';
     logTransactionDocumentGateway('error', 'vps_ai.request.failed', {
       requestId: input.requestId || null,
       model,
@@ -1936,18 +2025,33 @@ async function parseTransactionDocumentWithVps(
       {
         providerUsed: 'vps_ai',
         modelUsed: model,
+        providerStatus: response.status,
       }
     );
   }
 
-  const rawOutput = await response.json();
+  let rawOutput: unknown;
+  try {
+    rawOutput = await response.json();
+  } catch (error) {
+    throw new TransactionDocumentGatewayError(
+      'invalid_extraction_response',
+      'vps_ai.response',
+      `VPS AI returned a non-JSON response: ${sanitizeError(error instanceof Error ? error.message : String(error || 'Unknown error'))}`,
+      {
+        providerUsed: 'vps_ai',
+        modelUsed: model,
+        providerStatus: response.status,
+      }
+    );
+  }
   const usageDetails = extractProviderUsageDetails(rawOutput);
   logTransactionDocumentGateway('info', 'vps_ai.request.success', {
     requestId: input.requestId || null,
     model,
   });
-  const content = rawOutput?.choices?.[0]?.message?.content;
-  const parsed = typeof content === 'string' ? safeParseJSON(content) : safeParseJSON(JSON.stringify(content));
+  const content = getProviderChatCompletionContent(rawOutput);
+  const parsed = safeParseJSON(extractTransactionDocumentContentText(content));
   if (!parsed) {
     logTransactionDocumentGateway('error', 'vps_ai.parse.failed', {
       requestId: input.requestId || null,
@@ -2156,6 +2260,35 @@ function extractProviderUsageDetails(rawOutput: unknown) {
   };
 }
 
+function extractTransactionDocumentContentText(content: unknown): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    const textParts = content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (!part || typeof part !== 'object') return '';
+        const record = part as Record<string, unknown>;
+        if (typeof record.text === 'string') return record.text;
+        if (typeof record.content === 'string') return record.content;
+        return '';
+      })
+      .filter(Boolean);
+    return textParts.join('\n');
+  }
+  if (content && typeof content === 'object') {
+    const record = content as Record<string, unknown>;
+    if (typeof record.text === 'string') return record.text;
+  }
+  return JSON.stringify(content ?? '');
+}
+
+function getProviderChatCompletionContent(rawOutput: unknown): string | ProviderContentBlock[] | null | undefined {
+  const providerResponse = rawOutput as ProviderChatCompletionResponse;
+  return providerResponse.choices?.[0]?.message?.content;
+}
+
 function sanitizeError(msg: string): string {
   // Remove any potential secret leakage from error messages
   return msg
@@ -2206,7 +2339,25 @@ function getTransactionDocumentGatewayErrorCode(
   ) {
     return isUnsupportedMultimodalMessage(message)
       ? 'unsupported_multimodal_model'
-      : 'provider_http_error';
+      : /429/i.test(message)
+        ? 'provider_rate_limited'
+        : /50\d/i.test(message)
+          ? 'provider_unavailable'
+          : 'provider_http_error';
+  }
+  if (
+    /timed out/i.test(message)
+    || /timeout/i.test(message)
+    || /abort/i.test(message)
+  ) {
+    return 'provider_timeout';
+  }
+  if (
+    /fetch failed/i.test(message)
+    || /network/i.test(message)
+    || /temporarily unavailable/i.test(message)
+  ) {
+    return 'provider_unavailable';
   }
   return 'extract_failed';
 }
@@ -2224,8 +2375,18 @@ function getTransactionDocumentGatewaySafeMessage(
         : 'Document extraction is temporarily unavailable for this image. Please try again.';
     case 'provider_http_error':
       return 'Document extraction is temporarily unavailable. Please try again.';
+    case 'provider_timeout':
+      return 'Receipt extraction is taking longer than expected. Please try again.';
+    case 'provider_rate_limited':
+      return 'Receipt extraction is temporarily rate limited. Please try again shortly.';
+    case 'provider_unavailable':
+      return 'Receipt extraction is temporarily unavailable. Please try again.';
     case 'invalid_ai_json_response':
-      return 'The document could not be read reliably. Please review the file and try again.';
+      return 'The receipt was processed, but the extracted data could not be validated.';
+    case 'invalid_extraction_response':
+      return 'The receipt was processed, but the extracted data could not be validated.';
+    case 'unreadable_document':
+      return 'We could not read enough information from this document. Try a clearer photo.';
     case 'pdf_extraction_unavailable':
       return 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.';
     default:
@@ -2238,6 +2399,31 @@ function logTransactionDocumentGateway(
   stage: string,
   meta: Record<string, unknown>
 ) {
+  // #region debug-point B:gateway-stage-log
+  try {
+    const envPath = path.join(process.cwd(), '.dbg', 'receipt-extract-500.env');
+    const envContents = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+    const debugServerUrl = envContents.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || 'http://127.0.0.1:7777/event';
+    const debugSessionId = envContents.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || 'receipt-extract-500';
+    void fetch(debugServerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: debugSessionId,
+        runId: 'pre-fix',
+        hypothesisId: 'B',
+        location: 'src/lib/ai-gateway.ts',
+        msg: `[DEBUG] ${stage}`,
+        data: {
+          level,
+          ...meta,
+        },
+        ts: Date.now(),
+        traceId: typeof meta.requestId === 'string' ? meta.requestId : undefined,
+      }),
+    }).catch(() => undefined);
+  } catch {}
+  // #endregion
   const payload = {
     scope: 'transaction-document-ai',
     stage,

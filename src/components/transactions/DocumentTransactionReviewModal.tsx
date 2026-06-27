@@ -110,10 +110,15 @@ type ReceiptAllowanceSummary = {
 
 function createTransactionDocumentUiError(
   code: TransactionDocumentErrorCode | null,
-  message: string
+  message: string,
+  referenceId?: string | null
 ) {
-  const error = new Error(message) as Error & { code: TransactionDocumentErrorCode | null };
+  const error = new Error(message) as Error & {
+    code: TransactionDocumentErrorCode | null;
+    referenceId?: string | null;
+  };
   error.code = code;
+  error.referenceId = referenceId;
   return error;
 }
 
@@ -177,8 +182,33 @@ function getLocalizedTransactionDocumentError(args: {
       return args.t('transactions.documentReview.errors.unsupportedMultimodalModel', { ns: 'portal' });
     case 'provider_http_error':
       return args.t('transactions.documentReview.errors.providerHttpError', { ns: 'portal' });
+    case 'provider_timeout':
+      return args.t('transactions.documentReview.errors.providerTimeout', {
+        ns: 'portal',
+        defaultValue: 'Receipt extraction is taking longer than expected. Please try again.',
+      });
+    case 'provider_rate_limited':
+      return args.t('transactions.documentReview.errors.providerRateLimited', {
+        ns: 'portal',
+        defaultValue: 'Receipt extraction is temporarily rate limited. Please try again shortly.',
+      });
+    case 'provider_unavailable':
+      return args.t('transactions.documentReview.errors.providerUnavailable', {
+        ns: 'portal',
+        defaultValue: 'Receipt extraction is temporarily unavailable. Please try again.',
+      });
     case 'invalid_ai_json_response':
       return args.t('transactions.documentReview.errors.invalidAiJsonResponse', { ns: 'portal' });
+    case 'invalid_extraction_response':
+      return args.t('transactions.documentReview.errors.invalidExtractionResponse', {
+        ns: 'portal',
+        defaultValue: 'The receipt was processed, but the extracted data could not be validated.',
+      });
+    case 'unreadable_document':
+      return args.t('transactions.documentReview.errors.unreadableDocument', {
+        ns: 'portal',
+        defaultValue: 'We could not read enough information from this document. Try a clearer photo.',
+      });
     case 'signed_url_failure':
       return args.t('transactions.documentReview.errors.signedUrlFailure', { ns: 'portal' });
     case 'receipt_feature_unavailable':
@@ -240,11 +270,12 @@ export default function DocumentTransactionReviewModal({
   onClose: () => void;
   onSaved?: (result: TransactionDocumentSaveResponse) => void | Promise<void>;
 }) {
-  const { t } = useTranslation(['portal', 'common']);
+  const { t, i18n } = useTranslation(['portal', 'common']);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [extractError, setExtractError] = useState('');
   const [extractErrorCode, setExtractErrorCode] = useState<TransactionDocumentErrorCode | null>(null);
+  const [extractReferenceId, setExtractReferenceId] = useState('');
   const [jobId, setJobId] = useState('');
   const [documentId, setDocumentId] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
@@ -321,6 +352,7 @@ export default function DocumentTransactionReviewModal({
       setIsSaving(false);
       setExtractError('');
       setExtractErrorCode(null);
+      setExtractReferenceId('');
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -343,6 +375,7 @@ export default function DocumentTransactionReviewModal({
       setIsExtracting(true);
       setExtractError('');
       setExtractErrorCode(null);
+      setExtractReferenceId('');
       setJobId('');
       setDocumentId('');
       setPreviewUrl('');
@@ -416,7 +449,7 @@ export default function DocumentTransactionReviewModal({
         const formData = new FormData();
         formData.set('file', preparedUpload.file);
         formData.set('sourceSurface', sourceSurface);
-        formData.set('language', 'en');
+        formData.set('language', i18n.resolvedLanguage || i18n.language || 'en');
         formData.set('idempotencyKey', createClientId());
 
         const response = await fetch('/api/transaction-documents/extract', {
@@ -437,12 +470,18 @@ export default function DocumentTransactionReviewModal({
           const errorCode = typeof result?.errorCode === 'string'
             ? result.errorCode as TransactionDocumentErrorCode
             : classifyTransactionDocumentError(result?.errorMessage);
-          throw createTransactionDocumentUiError(errorCode, getLocalizedTransactionDocumentError({
+          const referenceId = typeof result?.referenceId === 'string' ? result.referenceId : '';
+          const safeMessage = typeof result?.message === 'string'
+            ? result.message
+            : typeof result?.errorMessage === 'string'
+              ? result.errorMessage
+              : '';
+          throw createTransactionDocumentUiError(errorCode, safeMessage || getLocalizedTransactionDocumentError({
             t,
             errorCode,
-            errorMessage: result?.errorMessage,
+            errorMessage: safeMessage || result?.errorMessage,
             fallbackKey: 'extractFailed',
-          }));
+          }), referenceId);
         }
 
         if (cancelled) return;
@@ -511,8 +550,15 @@ export default function DocumentTransactionReviewModal({
         const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string'
           ? (error as { code: TransactionDocumentErrorCode }).code
           : classifyTransactionDocumentError(error);
+        const referenceId = typeof error === 'object'
+          && error !== null
+          && 'referenceId' in error
+          && typeof (error as { referenceId?: unknown }).referenceId === 'string'
+            ? (error as { referenceId: string }).referenceId
+            : '';
         setExtractError(error instanceof Error ? error.message : 'Failed to extract the uploaded document.');
         setExtractErrorCode(errorCode);
+        setExtractReferenceId(referenceId);
         setJobId('');
         setDocumentId('');
         setPreviewUrl('');
@@ -543,6 +589,20 @@ export default function DocumentTransactionReviewModal({
   const isSelectionError = extractErrorCode === 'document_too_large'
     || extractErrorCode === 'invalid_type'
     || extractErrorCode === 'empty_file';
+  const shouldShowReferenceId = Boolean(extractReferenceId) && (
+    extractErrorCode === 'provider_http_error'
+    || extractErrorCode === 'provider_timeout'
+    || extractErrorCode === 'provider_rate_limited'
+    || extractErrorCode === 'provider_unavailable'
+    || extractErrorCode === 'invalid_ai_json_response'
+    || extractErrorCode === 'invalid_extraction_response'
+    || extractErrorCode === 'extract_failed'
+    || extractErrorCode === 'openrouter_not_configured'
+    || extractErrorCode === 'unsupported_multimodal_model'
+    || extractErrorCode === 'migration_missing'
+    || extractErrorCode === 'storage_bucket_failure'
+    || extractErrorCode === 'signed_url_failure'
+  );
   const canRetry = !!activeFile
     && !isExtracting
     && !isSaving
@@ -913,6 +973,15 @@ export default function DocumentTransactionReviewModal({
                   <p className="mt-1 text-sm text-negative">{extractError}</p>
                   {receiptLimitHint ? (
                     <p className="mt-2 text-xs font-600 text-negative/80">{receiptLimitHint}</p>
+                  ) : null}
+                  {shouldShowReferenceId ? (
+                    <p className="mt-2 text-xs font-600 text-negative/80">
+                      {t('transactions.documentReview.referenceId', {
+                        ns: 'portal',
+                        defaultValue: 'Reference: {{referenceId}}',
+                        referenceId: extractReferenceId,
+                      })}
+                    </p>
                   ) : null}
                 </div>
               </div>

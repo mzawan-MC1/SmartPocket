@@ -9,8 +9,10 @@ import {
 } from '@/lib/transaction-documents';
 
 const TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES = 4 * 1024 * 1024;
-const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 2600;
-const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.92;
+const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 3200;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE = 4200;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH = 1100;
+const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.94;
 
 export type PreparedTransactionDocumentUpload =
   | {
@@ -33,7 +35,7 @@ function renameWithExtension(fileName: string, nextExtension: string) {
 }
 
 function isOptimizableImage(file: File) {
-  return file.type === 'image/jpeg' || file.type === 'image/png';
+  return file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp';
 }
 
 async function loadImageElement(file: File) {
@@ -53,19 +55,60 @@ async function loadImageElement(file: File) {
   }
 }
 
-async function optimizeImageForUpload(file: File) {
+async function loadImageSource(file: File): Promise<{
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  cleanup: () => void;
+}> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(file, {
+        imageOrientation: 'from-image',
+      });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        cleanup: () => bitmap.close(),
+      };
+    } catch {
+      // Fall back to HTML image decoding below.
+    }
+  }
+
   const image = await loadImageElement(file);
-  const originalWidth = image.naturalWidth || image.width;
-  const originalHeight = image.naturalHeight || image.height;
+  return {
+    source: image,
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+    cleanup: () => undefined,
+  };
+}
+
+async function optimizeImageForUpload(file: File) {
+  const loaded = await loadImageSource(file);
+  const originalWidth = loaded.width;
+  const originalHeight = loaded.height;
 
   if (originalWidth <= 0 || originalHeight <= 0) {
+    loaded.cleanup();
     throw new Error('This file appears to be empty or unreadable.');
   }
 
+  const aspectRatio = Math.max(originalWidth, originalHeight) / Math.max(1, Math.min(originalWidth, originalHeight));
+  const isTallReceipt = originalHeight > originalWidth && aspectRatio >= 2.4;
+  const targetLongEdge = isTallReceipt
+    ? TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE
+    : TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE;
   const longestEdge = Math.max(originalWidth, originalHeight);
-  const scale = longestEdge > TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE
-    ? TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE / longestEdge
+  const scaledByLongEdge = longestEdge > targetLongEdge
+    ? targetLongEdge / longestEdge
     : 1;
+  const widthFloorScale = isTallReceipt && originalWidth > TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH
+    ? TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH / originalWidth
+    : 0;
+  const scale = Math.min(1, Math.max(scaledByLongEdge, widthFloorScale));
 
   const targetWidth = Math.max(1, Math.round(originalWidth * scale));
   const targetHeight = Math.max(1, Math.round(originalHeight * scale));
@@ -74,6 +117,7 @@ async function optimizeImageForUpload(file: File) {
     || file.type === 'image/png';
 
   if (!shouldAttemptOptimization) {
+    loaded.cleanup();
     return {
       file,
       optimized: false,
@@ -86,6 +130,7 @@ async function optimizeImageForUpload(file: File) {
 
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) {
+    loaded.cleanup();
     return {
       file,
       optimized: false,
@@ -96,7 +141,8 @@ async function optimizeImageForUpload(file: File) {
   context.fillRect(0, 0, targetWidth, targetHeight);
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
-  context.drawImage(image, 0, 0, targetWidth, targetHeight);
+  context.drawImage(loaded.source, 0, 0, targetWidth, targetHeight);
+  loaded.cleanup();
 
   const blob = await new Promise<Blob | null>((resolve) => {
     canvas.toBlob(resolve, 'image/jpeg', TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY);

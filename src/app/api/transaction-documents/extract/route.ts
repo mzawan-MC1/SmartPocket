@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { loadAIConfig, processTransactionDocumentAIRequest } from '@/lib/ai-gateway';
 import { loadExecutionContextServer } from '@/lib/ai-execution-server';
@@ -35,6 +37,10 @@ function jsonWithCookies(
   return applySupabaseCookies(NextResponse.json(nextBody, { status }), cookieMutations);
 }
 
+function buildExtractReferenceId(extractRequestId: string) {
+  return `RX-${extractRequestId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
+}
+
 function normalizeSurface(value: FormDataEntryValue | null): TransactionDocumentSourceSurface {
   return value === 'smart_entry' ? 'smart_entry' : 'add_transaction';
 }
@@ -51,6 +57,31 @@ function logExtractionStage(
   stage: string,
   meta: Record<string, unknown>
 ) {
+  // #region debug-point A:route-stage-log
+  try {
+    const envPath = path.join(process.cwd(), '.dbg', 'receipt-extract-500.env');
+    const envContents = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+    const debugServerUrl = envContents.match(/DEBUG_SERVER_URL=(.+)/)?.[1]?.trim() || 'http://127.0.0.1:7777/event';
+    const debugSessionId = envContents.match(/DEBUG_SESSION_ID=(.+)/)?.[1]?.trim() || 'receipt-extract-500';
+    void fetch(debugServerUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: debugSessionId,
+        runId: 'pre-fix',
+        hypothesisId: 'A',
+        location: 'src/app/api/transaction-documents/extract/route.ts',
+        msg: `[DEBUG] ${stage}`,
+        data: {
+          level,
+          ...meta,
+        },
+        ts: Date.now(),
+        traceId: typeof meta.extractRequestId === 'string' ? meta.extractRequestId : undefined,
+      }),
+    }).catch(() => undefined);
+  } catch {}
+  // #endregion
   const payload = {
     scope: 'transaction-document-extract',
     stage,
@@ -87,17 +118,24 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
       return 400;
     case 'document_too_large':
       return 413;
+    case 'provider_http_error':
+      return 502;
     case 'migration_missing':
     case 'storage_bucket_failure':
     case 'signed_url_failure':
       return 500;
     case 'openrouter_not_configured':
     case 'unsupported_multimodal_model':
+    case 'provider_timeout':
+    case 'provider_unavailable':
       return 503;
-    case 'provider_http_error':
     case 'invalid_ai_json_response':
+    case 'invalid_extraction_response':
     case 'pdf_extraction_unavailable':
+    case 'unreadable_document':
       return 422;
+    case 'provider_rate_limited':
+      return 429;
     case 'receipt_feature_unavailable':
     case 'receipt_no_documents_included':
       return 403;
@@ -112,10 +150,25 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
 
 function getErrorMessage(errorCode: TransactionDocumentErrorCode): string | undefined {
   switch (errorCode) {
+    case 'invalid_type':
+      return 'This file type is not supported.';
     case 'document_too_large':
       return `This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`;
     case 'empty_file':
       return 'This file appears to be empty or unreadable.';
+    case 'provider_http_error':
+      return 'Receipt extraction is temporarily unavailable. Please try again.';
+    case 'provider_timeout':
+      return 'Receipt extraction is taking longer than expected. Please try again.';
+    case 'provider_rate_limited':
+      return 'Receipt extraction is temporarily rate limited. Please try again shortly.';
+    case 'provider_unavailable':
+      return 'Receipt extraction is temporarily unavailable. Please try again.';
+    case 'invalid_ai_json_response':
+    case 'invalid_extraction_response':
+      return 'The receipt was processed, but the extracted data could not be validated.';
+    case 'unreadable_document':
+      return 'We could not read enough information from this document. Try a clearer photo.';
     default:
       return undefined;
   }
@@ -273,6 +326,7 @@ async function incrementReceiptDailyUsage(args: {
 export async function POST(request: NextRequest) {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
   const extractRequestId = crypto.randomUUID();
+  const referenceId = buildExtractReferenceId(extractRequestId);
   let admin: ReturnType<typeof requireAdminClient> | null = null;
   let storagePath = '';
   let documentId = '';
@@ -318,6 +372,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: 'unauthorized',
+        referenceId,
       }, 401, cookieMutations);
     }
     logExtractionStage('info', 'authentication.success', {
@@ -337,6 +392,7 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: 'file_required',
+        referenceId,
       }, 400, cookieMutations);
     }
 
@@ -456,9 +512,17 @@ export async function POST(request: NextRequest) {
         success: false,
         errorCode: accessErrorCode,
         errorMessage: getErrorMessage(accessErrorCode),
+        referenceId,
       }, accessErrorCode === 'receipt_allowance_exhausted' ? 429 : 403, cookieMutations);
     }
 
+    logExtractionStage('info', 'receipt_allowance.reserve.start', {
+      extractRequestId,
+      userId: user.id,
+      documentId,
+      jobId,
+      idempotencyKey,
+    });
     const { data: reserveData, error: reserveError } = await admin.rpc('reserve_ai_credits', {
       p_user_id: user.id,
       p_request_type: 'receipt_extraction',
@@ -479,6 +543,7 @@ export async function POST(request: NextRequest) {
         success: false,
         errorCode: reserveErrorCode,
         errorMessage: getErrorMessage(reserveErrorCode),
+        referenceId,
       }, getSafeExtractStatusCode(reserveErrorCode), cookieMutations);
     }
 
@@ -490,12 +555,22 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode: 'duplicate_request_in_progress',
+        referenceId,
       }, 409, cookieMutations);
     }
 
     creditCycleId = String(reserveResult.cycle_id || '');
     creditLedgerId = String(reserveResult.ledger_id || '');
     usageReserved = Boolean(creditCycleId && creditLedgerId);
+    logExtractionStage('info', 'receipt_allowance.reserve.success', {
+      extractRequestId,
+      userId: user.id,
+      documentId,
+      jobId,
+      ledgerId: creditLedgerId || null,
+      cycleId: creditCycleId || null,
+      duplicate: reserveResult.duplicate || false,
+    });
 
     const { error: documentInsertError } = await admin.from('transaction_documents').insert({
       id: documentId,
@@ -605,6 +680,17 @@ export async function POST(request: NextRequest) {
     extractDurationMs = extractionResponse.durationMs || 0;
     fallbackUsed = extractionResponse.fallbackUsed || false;
     parsedResult = extractionResponse.parsed || null;
+    logExtractionStage('info', 'ai.response.received', {
+      extractRequestId,
+      userId: user.id,
+      documentId,
+      jobId,
+      status: extractionResponse.status,
+      providerUsed: extractionResponse.providerUsed || null,
+      modelUsed: extractionResponse.modelUsed || null,
+      errorCode: extractionResponse.errorCode || null,
+      durationMs: extractionResponse.durationMs || 0,
+    });
 
     if (usageReserved && creditLedgerId) {
       await updateReceiptLedgerMetadata(admin, creditLedgerId, {
@@ -660,6 +746,15 @@ export async function POST(request: NextRequest) {
           p_ledger_id: creditLedgerId,
           p_reason: extractionResponse.errorCode || 'provider_failure',
         });
+        logExtractionStage('info', 'receipt_allowance.refund.success', {
+          extractRequestId,
+          userId: user.id,
+          documentId,
+          jobId,
+          ledgerId: creditLedgerId,
+          cycleId: creditCycleId,
+          reason: extractionResponse.errorCode || 'provider_failure',
+        });
         usageReserved = false;
       }
 
@@ -678,7 +773,8 @@ export async function POST(request: NextRequest) {
       return jsonWithCookies({
         success: false,
         errorCode,
-        errorMessage: getErrorMessage(errorCode),
+        errorMessage: extractionResponse.errorMessage || getErrorMessage(errorCode),
+        referenceId,
       }, getSafeExtractStatusCode(errorCode), cookieMutations);
     }
 
@@ -776,6 +872,14 @@ export async function POST(request: NextRequest) {
     });
 
     if (usageReserved && creditCycleId && creditLedgerId) {
+      logExtractionStage('info', 'receipt_allowance.finalise.start', {
+        extractRequestId,
+        userId: user.id,
+        documentId,
+        jobId,
+        ledgerId: creditLedgerId,
+        cycleId: creditCycleId,
+      });
       const { error: finaliseError } = await admin.rpc('finalise_ai_credits', {
         p_user_id: user.id,
         p_cycle_id: creditCycleId,
@@ -793,6 +897,14 @@ export async function POST(request: NextRequest) {
       if (finaliseError) {
         throw finaliseError;
       }
+      logExtractionStage('info', 'receipt_allowance.finalise.success', {
+        extractRequestId,
+        userId: user.id,
+        documentId,
+        jobId,
+        ledgerId: creditLedgerId,
+        cycleId: creditCycleId,
+      });
       usageReserved = false;
     }
 
@@ -865,6 +977,17 @@ export async function POST(request: NextRequest) {
             internalError: refundError.message,
           });
         }
+        if (!refundError) {
+          logExtractionStage('info', 'receipt_allowance.refund.success', {
+            extractRequestId,
+            userId: currentUserId,
+            documentId: documentId || null,
+            jobId: jobId || null,
+            ledgerId: creditLedgerId,
+            cycleId: creditCycleId,
+            reason: errorCode,
+          });
+        }
         usageReserved = false;
       }
 
@@ -908,7 +1031,10 @@ export async function POST(request: NextRequest) {
     return jsonWithCookies({
       success: false,
       errorCode,
-      errorMessage: getErrorMessage(errorCode),
+      errorMessage: getErrorMessage(errorCode) || (errorCode === 'extract_failed'
+        ? 'Receipt extraction failed unexpectedly. Please try again.'
+        : undefined),
+      referenceId,
     }, getSafeExtractStatusCode(errorCode), cookieMutations);
   }
 }
