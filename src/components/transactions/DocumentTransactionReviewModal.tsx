@@ -1092,7 +1092,7 @@ export default function DocumentTransactionReviewModal({
       })}
       size="xl"
       mobileLayout="fullscreen"
-      contentClassName="sm:h-[min(900px,calc(100dvh-24px))] sm:max-h-[calc(100dvh-24px)] sm:w-[calc(100vw-24px)] sm:max-w-[1480px]"
+      contentClassName="sm:w-[92vw] sm:max-w-[1160px] sm:max-h-[90vh]"
       bodyClassName="flex min-h-0 flex-col overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col">
@@ -1110,7 +1110,7 @@ export default function DocumentTransactionReviewModal({
             event.currentTarget.value = '';
           }}
         />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 pb-28 ltr:pr-3 rtl:pl-3 sm:px-5 sm:py-4 sm:pb-32 sm:ltr:pr-4 sm:rtl:pl-4 lg:px-6 lg:ltr:pr-5 lg:rtl:pl-5">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3 pb-24 sm:px-5 sm:py-4 sm:pb-28 lg:px-6">
           {receiptAllowance ? (
             <div className={`mb-4 rounded-2xl border p-3 ${
               !receiptAllowance.enabled
@@ -1236,9 +1236,8 @@ export default function DocumentTransactionReviewModal({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(360px,0.58fr)_minmax(0,1fr)] 2xl:gap-5">
-              <div className="min-w-0 space-y-4">
-                <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+            <div className="space-y-4">
+              <section className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
                   <div className="border-b border-slate-200 px-4 py-2.5 sm:px-5">
                     <div className="flex items-center gap-2">
                     {activeFile?.type === 'application/pdf' ? (
@@ -1260,13 +1259,13 @@ export default function DocumentTransactionReviewModal({
                       <iframe
                         src={previewUrl}
                         title={activeFile?.name || 'document-preview'}
-                        className="h-[18rem] w-full bg-white lg:h-[20rem] xl:h-[21rem]"
+                        className="h-[18rem] w-full bg-white sm:h-[20rem] lg:h-[22rem]"
                       />
                     ) : (
                       <img
                         src={previewUrl}
                         alt={activeFile?.name || 'document-preview'}
-                        className="h-[18rem] w-full bg-white object-contain lg:h-[20rem] xl:h-[21rem]"
+                        className="h-[18rem] w-full bg-white object-contain sm:h-[20rem] lg:h-[22rem]"
                       />
                     )}
                   </div>
@@ -1277,119 +1276,117 @@ export default function DocumentTransactionReviewModal({
                     </div>
                   ) : null}
                   </div>
-                </section>
+              </section>
 
-                {reviewValidation.duplicateBlocking ? (
-                  <section
-                    id="document-review-duplicate-warning"
-                    className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5"
-                  >
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle size={18} className="mt-0.5 text-amber-700" />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-700 text-amber-900">
-                          {t('transactions.documentReview.duplicateTitle', {
-                            ns: 'portal',
-                            defaultValue: 'Possible duplicate',
-                          })}
-                        </h3>
-                        <p className="mt-1 text-sm leading-5 text-amber-900/85">
-                          {t('transactions.documentReview.duplicateDescription', {
-                            ns: 'portal',
-                            defaultValue: 'This receipt looks similar to one you already saved. Check the existing transaction before continuing.',
-                          })}
-                        </p>
-                        <p className="mt-1.5 text-xs font-600 leading-4 text-amber-800/90">
-                          {t('transactions.documentReview.duplicateGuidance', {
-                            ns: 'portal',
-                            defaultValue: 'Click "Save Anyway" only if you are sure this is a different transaction.',
-                          })}
-                        </p>
-                        <div className="mt-2.5 space-y-2">
-                          {duplicates.map((duplicate) => (
-                            <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-2xl border border-amber-200/80 bg-white/90 p-2.5 text-xs text-foreground">
-                              <p className="break-words text-sm font-600 leading-5 text-foreground">
-                                {getTransactionDocumentDisplayTitle({
-                                  merchant: duplicate.merchant,
-                                  description: duplicate.description,
-                                  hasDocument: true,
-                                  fallbackLabel: t('transactions.documentReview.duplicateUnknownMerchant', {
-                                    ns: 'portal',
-                                    defaultValue: 'Existing document',
-                                  }),
-                                })}
-                              </p>
-                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                <span className="whitespace-nowrap">{duplicate.date || '—'}</span>
-                                <span aria-hidden="true">·</span>
-                                <span className="whitespace-nowrap">
-                                  {typeof duplicate.total === 'number'
-                                    ? formatCurrencyText(duplicate.total, {
-                                        currencyCode: duplicate.currency || undefined,
-                                        fallbackCurrencyCode: duplicate.currency || 'USD',
-                                        textOnly: true,
-                                      })
-                                    : '—'}
-                                </span>
-                              </div>
-                              {duplicate.transactionId ? (
-                                <div className="mt-2 flex justify-end">
-                                  <button
-                                    type="button"
-                                    onClick={() => setDuplicateViewTransactionId(duplicate.transactionId || null)}
-                                    className="btn-secondary h-11 px-3 text-xs"
-                                  >
-                                    {t('transactions.documentReview.viewExistingTransaction', {
-                                      ns: 'portal',
-                                      defaultValue: 'View Existing Transaction',
-                                    })}
-                                  </button>
-                                </div>
-                              ) : null}
+              {reviewValidation.duplicateBlocking ? (
+                <section
+                  id="document-review-duplicate-warning"
+                  className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-3 sm:px-5"
+                >
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle size={18} className="mt-0.5 text-amber-700" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-700 text-amber-900">
+                        {t('transactions.documentReview.duplicateTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Possible duplicate',
+                        })}
+                      </h3>
+                      <p className="mt-1 text-sm leading-5 text-amber-900/85">
+                        {t('transactions.documentReview.duplicateDescription', {
+                          ns: 'portal',
+                          defaultValue: 'This receipt looks similar to one you already saved. Check the existing transaction before continuing.',
+                        })}
+                      </p>
+                      <p className="mt-1.5 text-xs font-600 leading-4 text-amber-800/90">
+                        {t('transactions.documentReview.duplicateGuidance', {
+                          ns: 'portal',
+                          defaultValue: 'Click "Save Anyway" only if you are sure this is a different transaction.',
+                        })}
+                      </p>
+                      <div className="mt-2.5 max-h-64 space-y-2 overflow-y-auto pr-1">
+                        {duplicates.map((duplicate) => (
+                          <div key={`${duplicate.documentId}-${duplicate.reason}-${duplicate.transactionId || ''}`} className="rounded-2xl border border-amber-200/80 bg-white/90 p-2.5 text-xs text-foreground">
+                            <p className="break-words text-sm font-600 leading-5 text-foreground">
+                              {getTransactionDocumentDisplayTitle({
+                                merchant: duplicate.merchant,
+                                description: duplicate.description,
+                                hasDocument: true,
+                                fallbackLabel: t('transactions.documentReview.duplicateUnknownMerchant', {
+                                  ns: 'portal',
+                                  defaultValue: 'Existing document',
+                                }),
+                              })}
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                              <span className="whitespace-nowrap">{duplicate.date || '—'}</span>
+                              <span aria-hidden="true">·</span>
+                              <span className="whitespace-nowrap">
+                                {typeof duplicate.total === 'number'
+                                  ? formatCurrencyText(duplicate.total, {
+                                      currencyCode: duplicate.currency || undefined,
+                                      fallbackCurrencyCode: duplicate.currency || 'USD',
+                                      textOnly: true,
+                                    })
+                                  : '—'}
+                              </span>
                             </div>
-                          ))}
-                        </div>
-                        <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                          <button
-                            type="button"
-                            onClick={() => setDuplicateConfirmed(true)}
-                            className="btn-secondary h-10 w-full justify-center border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100 sm:w-auto"
-                          >
-                            {t('transactions.documentReview.saveAnyway', {
-                              ns: 'portal',
-                              defaultValue: 'Save Anyway',
-                            })}
-                          </button>
-                        </div>
+                            {duplicate.transactionId ? (
+                              <div className="mt-2 flex justify-end">
+                                <button
+                                  type="button"
+                                  onClick={() => setDuplicateViewTransactionId(duplicate.transactionId || null)}
+                                  className="btn-secondary h-11 px-3 text-xs"
+                                >
+                                  {t('transactions.documentReview.viewExistingTransaction', {
+                                    ns: 'portal',
+                                    defaultValue: 'View Existing Transaction',
+                                  })}
+                                </button>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="mt-2.5 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => setDuplicateConfirmed(true)}
+                          className="btn-secondary h-10 w-full justify-center border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100 sm:w-auto"
+                        >
+                          {t('transactions.documentReview.saveAnyway', {
+                            ns: 'portal',
+                            defaultValue: 'Save Anyway',
+                          })}
+                        </button>
                       </div>
                     </div>
-                  </section>
-                ) : reviewValidation.duplicateActive ? (
-                  <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:px-5">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 h-4 w-4 rounded-full bg-emerald-500/80" aria-hidden="true" />
-                      <div className="min-w-0 flex-1">
-                        <h3 className="text-sm font-700 text-emerald-900">
-                          {t('transactions.documentReview.duplicateConfirmedLabel', {
-                            ns: 'portal',
-                            defaultValue: 'Duplicate warning confirmed. You can save when the rest of the review is ready.',
-                          })}
-                        </h3>
-                        <p className="mt-1 text-sm text-emerald-900/80">
-                          {t('transactions.documentReview.duplicateConfirmedSummary', {
-                            ns: 'portal',
-                            count: duplicates.length,
-                            defaultValue: '{{count}} possible matches remain visible in this review session, but they no longer block saving.',
-                          })}
-                        </p>
-                      </div>
+                  </div>
+                </section>
+              ) : reviewValidation.duplicateActive ? (
+                <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 sm:px-5">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 h-4 w-4 rounded-full bg-emerald-500/80" aria-hidden="true" />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-700 text-emerald-900">
+                        {t('transactions.documentReview.duplicateConfirmedLabel', {
+                          ns: 'portal',
+                          defaultValue: 'Duplicate warning confirmed. You can save when the rest of the review is ready.',
+                        })}
+                      </h3>
+                      <p className="mt-1 text-sm text-emerald-900/80">
+                        {t('transactions.documentReview.duplicateConfirmedSummary', {
+                          ns: 'portal',
+                          count: duplicates.length,
+                          defaultValue: '{{count}} possible matches remain visible in this review session, but they no longer block saving.',
+                        })}
+                      </p>
                     </div>
-                  </section>
-                ) : null}
-              </div>
+                  </div>
+                </section>
+              ) : null}
 
-              <div className="min-w-0 space-y-4">
-                {reviewTransactions.map((transaction, index) => {
+              {reviewTransactions.map((transaction, index) => {
                   const lineItemCategories = transaction.transactionType === 'income'
                     ? filteredCategoriesByType.income
                     : filteredCategoriesByType.expense;
@@ -1454,7 +1451,7 @@ export default function DocumentTransactionReviewModal({
                       </div>
                       </div>
 
-                      <div className="space-y-2 px-4 py-3 sm:px-5">
+                      <div className="space-y-4 px-4 py-3 sm:px-5">
                       <div className="grid grid-cols-2 gap-2 sm:max-w-[16rem]">
                         {(['expense', 'income'] as const).map((type) => (
                           <button
@@ -1487,7 +1484,7 @@ export default function DocumentTransactionReviewModal({
                         ))}
                       </div>
 
-                      <div className="grid grid-cols-1 gap-x-3 gap-y-2.5 md:grid-cols-2">
+                      <div className="grid grid-cols-1 gap-x-3 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
                         <div className="min-w-0">
                           <label className="mb-0.5 block text-xs font-600 text-foreground">
                             {t('transactions.merchantSource', { ns: 'portal' })}
@@ -1741,8 +1738,8 @@ export default function DocumentTransactionReviewModal({
                           </p>
                         ) : (
                           <>
-                            <div className="mt-2 hidden 2xl:block">
-                              <div className="grid items-end gap-2 border-b border-slate-200/70 px-2.5 py-2 text-[11px] font-700 uppercase tracking-wide text-muted-foreground 2xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
+                        <div className="mt-3 hidden xl:block">
+                              <div className="grid items-end gap-2 border-b border-slate-200/70 px-2.5 py-2 text-[11px] font-700 uppercase tracking-wide text-muted-foreground xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
                                 <div>{t('transactions.documentReview.itemName', { ns: 'portal', defaultValue: 'Item name' })}</div>
                                 <div>{t('transactions.documentReview.quantity', { ns: 'portal', defaultValue: 'Quantity' })}</div>
                                 <div>{t('transactions.documentReview.unitPrice', { ns: 'portal', defaultValue: 'Unit price' })}</div>
@@ -1760,7 +1757,7 @@ export default function DocumentTransactionReviewModal({
                                   const hasTotalError = itemError?.fields.includes('total') ?? false;
 
                                   return (
-                                    <div key={`${transaction.id}-line-${itemIndex}`} className="grid items-end gap-2 px-2.5 py-2 2xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
+                                    <div key={`${transaction.id}-line-${itemIndex}`} className="grid items-end gap-2 px-2.5 py-2 xl:grid-cols-[minmax(220px,2fr)_80px_110px_minmax(150px,1fr)_110px_130px_auto]">
                                       <div className="min-w-0">
                                         <input
                                           id={getLineItemFieldElementId(transaction.id, itemIndex, 'name')}
@@ -1875,7 +1872,7 @@ export default function DocumentTransactionReviewModal({
                               </div>
                             </div>
 
-                            <div className="mt-2 space-y-1.5 2xl:hidden">
+                            <div className="mt-3 space-y-3 xl:hidden">
                               {transaction.lineItems.map((item, itemIndex) => {
                                 const itemTotal = getTransactionDocumentLineItemTotal(item);
                                 const lineItemValidation = getTransactionDocumentLineItemValidation(item);
@@ -1886,12 +1883,12 @@ export default function DocumentTransactionReviewModal({
                                 return (
                                   <div
                                     key={`${transaction.id}-line-${itemIndex}`}
-                                    className={`rounded-2xl border bg-white p-2 ${
+                                    className={`rounded-2xl border bg-white p-3 ${
                                       hasNameError || hasTotalError ? 'border-negative/40' : 'border-slate-200'
                                     }`}
                                   >
-                                    <div className="space-y-1.5">
-                                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,0.7fr))]">
+                                    <div className="space-y-3">
+                                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,0.7fr))]">
                                         <div className="min-w-0">
                                           <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
                                             {t('transactions.documentReview.itemName', { ns: 'portal', defaultValue: 'Item name' })}
@@ -1964,7 +1961,7 @@ export default function DocumentTransactionReviewModal({
                                         </div>
                                       </div>
 
-                                      <div className="grid grid-cols-1 items-end gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto]">
+                                      <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_auto]">
                                         <div className="min-w-0">
                                           <label className="mb-0.5 block text-[10px] font-700 uppercase leading-3 text-muted-foreground">
                                             {t('transactions.documentReview.itemCategory', { ns: 'portal', defaultValue: 'Item category' })}
@@ -2070,7 +2067,7 @@ export default function DocumentTransactionReviewModal({
                             ) : null}
                           </div>
                           <div className="mt-2.5 rounded-2xl border border-amber-200/70 bg-white/60 p-3">
-                          <div className="grid gap-3 md:grid-cols-3 2xl:grid-cols-6">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                             {[
                               ['subtotal', totalSummary.subtotal],
                               ['tax', totalSummary.tax],
@@ -2141,7 +2138,6 @@ export default function DocumentTransactionReviewModal({
                     </section>
                   );
                 })}
-              </div>
             </div>
           )}
         </div>
