@@ -63,11 +63,23 @@ type InvitationErrorCode =
 class InvitationServiceError extends Error {
   code: InvitationErrorCode;
   status: number;
+  referenceId?: string | null;
+  alreadyLogged: boolean;
 
-  constructor(code: InvitationErrorCode, message: string, status = 400) {
+  constructor(
+    code: InvitationErrorCode,
+    message: string,
+    status = 400,
+    options: {
+      referenceId?: string | null;
+      alreadyLogged?: boolean;
+    } = {}
+  ) {
     super(message);
     this.code = code;
     this.status = status;
+    this.referenceId = options.referenceId ?? null;
+    this.alreadyLogged = options.alreadyLogged ?? false;
   }
 }
 
@@ -108,6 +120,59 @@ function mapInvitationError(error: unknown) {
     'We could not complete the invitation request. Please try again.',
     500
   );
+}
+
+function extractErrorDetails(error: unknown) {
+  if (!error || typeof error !== 'object') {
+    return {
+      name: null,
+      message: typeof error === 'string' ? error : null,
+      code: null,
+      details: null,
+      hint: null,
+    };
+  }
+
+  const candidate = error as {
+    name?: unknown;
+    message?: unknown;
+    code?: unknown;
+    details?: unknown;
+    hint?: unknown;
+  };
+
+  return {
+    name: typeof candidate.name === 'string' ? candidate.name : null,
+    message: typeof candidate.message === 'string' ? candidate.message : null,
+    code: typeof candidate.code === 'string' ? candidate.code : null,
+    details: typeof candidate.details === 'string' ? candidate.details : null,
+    hint: typeof candidate.hint === 'string' ? candidate.hint : null,
+  };
+}
+
+function logInvitationFailure(args: {
+  stage: string;
+  referenceId: string;
+  error: unknown;
+  rpcName?: string;
+  invitationId?: string | null;
+  tokenPresent?: boolean;
+  response?: string;
+}) {
+  const details = extractErrorDetails(args.error);
+  console.error('[space-invitations:unexpected]', {
+    referenceId: args.referenceId,
+    stage: args.stage,
+    rpcName: args.rpcName || null,
+    invitationId: args.invitationId || null,
+    tokenPresent: Boolean(args.tokenPresent),
+    response: args.response || null,
+    name: details.name,
+    message: details.message,
+    code: details.code,
+    details: details.details,
+    hint: details.hint,
+  });
 }
 
 function mapRowToInvitation(args: {
@@ -639,8 +704,9 @@ export async function respondToSpaceInvitation(args: {
   token?: string | null;
   response: 'accepted' | 'declined';
 }): Promise<SpaceInvitationRespondResult> {
+  const rpcName = 'rpc_respond_to_space_invitation';
   try {
-    const { data, error } = await args.userSupabase.rpc('rpc_respond_to_space_invitation', {
+    const { data, error } = await args.userSupabase.rpc(rpcName, {
       p_invitation_id: args.invitationId || null,
       p_token: args.token || null,
       p_response: args.response,
@@ -663,14 +729,17 @@ export async function respondToSpaceInvitation(args: {
       alreadyMember: Boolean(result.already_member),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : '';
+    const details = extractErrorDetails(error);
+    const message = details.message || (error instanceof Error ? error.message : '');
     switch (message) {
+      case 'UNAUTHORIZED':
+        throw new InvitationServiceError('UNAUTHORIZED', 'Unauthorized', 401);
       case 'INVITATION_NOT_FOUND':
         throw new InvitationServiceError('INVITATION_NOT_FOUND', 'Invitation not found.', 404);
       case 'INVITATION_EMAIL_MISMATCH':
         throw new InvitationServiceError('INVITATION_EMAIL_MISMATCH', 'Sign in with the email address that received this invitation.', 403);
       case 'INVITATION_EXPIRED':
-        throw new InvitationServiceError('INVITATION_EXPIRED', 'This invitation has expired.', 409);
+        throw new InvitationServiceError('INVITATION_EXPIRED', 'This invitation has expired.', 410);
       case 'INVITATION_REVOKED':
         throw new InvitationServiceError('INVITATION_REVOKED', 'This invitation was revoked.', 409);
       case 'INVITATION_ALREADY_RESPONDED':
@@ -678,7 +747,27 @@ export async function respondToSpaceInvitation(args: {
       case 'SPACE_NOT_FOUND':
         throw new InvitationServiceError('SPACE_NOT_FOUND', 'This space is no longer available.', 404);
       default:
-        throw mapInvitationError(error);
+        {
+          const referenceId = buildInvitationReferenceId();
+          logInvitationFailure({
+            stage: 'respond.rpc',
+            referenceId,
+            error,
+            rpcName,
+            invitationId: args.invitationId || null,
+            tokenPresent: Boolean(args.token),
+            response: args.response,
+          });
+          throw new InvitationServiceError(
+            'SYSTEM_UNAVAILABLE',
+            'We could not complete the invitation request. Please try again.',
+            500,
+            {
+              referenceId,
+              alreadyLogged: true,
+            }
+          );
+        }
     }
   }
 }
@@ -745,13 +834,15 @@ export async function revokeSpaceInvitation(args: {
 
 export function toInvitationErrorResponse(error: unknown) {
   const mapped = mapInvitationError(error);
-  const referenceId = mapped.status >= 500 ? buildInvitationReferenceId() : null;
+  const referenceId = mapped.status >= 500
+    ? mapped.referenceId || buildInvitationReferenceId()
+    : null;
 
-  if (mapped.status >= 500) {
-    console.error('[space-invitations:unexpected]', {
-      referenceId,
-      code: mapped.code,
-      message: mapped.message,
+  if (mapped.status >= 500 && !mapped.alreadyLogged) {
+    logInvitationFailure({
+      stage: 'response',
+      referenceId: referenceId || buildInvitationReferenceId(),
+      error,
     });
   }
 

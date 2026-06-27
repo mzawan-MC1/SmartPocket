@@ -40,7 +40,10 @@ export async function POST(request: Request) {
     });
 
     return applySupabaseCookies(
-      NextResponse.json(result, { status: 200 }),
+      NextResponse.json({
+        success: true,
+        ...result,
+      }, { status: 200 }),
       auth.cookieMutations
     );
   } catch (error) {
