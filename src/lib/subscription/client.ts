@@ -16,6 +16,10 @@ import type {
   SupportedBillingInterval,
 } from '@/lib/subscription/types';
 
+type SubscriptionClientRequestOptions = {
+  signal?: AbortSignal;
+};
+
 async function parseJsonResponse<T>(response: Response) {
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('application/json')) {
@@ -37,9 +41,10 @@ export async function fetchSubscriptionPlans() {
   return parseJsonResponse<SubscriptionPlansResponse>(response);
 }
 
-export async function fetchSubscriptionSummary() {
+export async function fetchSubscriptionSummary(options: SubscriptionClientRequestOptions = {}) {
   const response = await fetch('/api/subscription/summary', {
     cache: 'no-store',
+    signal: options.signal,
   });
 
   if (response.status === 401) {

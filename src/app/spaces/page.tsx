@@ -9,6 +9,7 @@ import {
   getMySpaceMemberships, getSpaces, createSpace, updateSpace, archiveSpace,
   getMyPendingInvitations, getSpaceMembers, getSpaceInvitations, inviteToSpaceDetailed, revokeInvitation,
   respondToInvitation, updateSpaceMemberRole, removeSpaceMember,
+  SPACE_MEMBER_ASSIGNABLE_ROLES, canManageSpaceMemberRole, canRemoveSpaceMember,
   type Space, type SpaceMember, type SpaceInvitation, type SpaceRole
 } from '@/lib/spaces';
 import {
@@ -191,7 +192,12 @@ export default function SpacesPage() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { summary, loading: subscriptionLoading, error: subscriptionError } = useSubscriptionSummary();
+  const {
+    summary,
+    loading: subscriptionLoading,
+    error: subscriptionError,
+    refresh: refreshSubscriptionSummary,
+  } = useSubscriptionSummary();
   const hasSharedSpacesFeature = hasSubscriptionFeature(summary, 'shared_spaces');
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [receivedInvitations, setReceivedInvitations] = useState<SpaceInvitation[]>([]);
@@ -559,9 +565,16 @@ export default function SpacesPage() {
     }
   };
 
+  const handleSubscriptionRetry = useCallback(() => {
+    void refreshSubscriptionSummary();
+  }, [refreshSubscriptionSummary]);
+
   const handleRoleChange = async (memberId: string, newRole: SpaceRole) => {
+    if (!activeSpaceId) {
+      return;
+    }
     try {
-      await updateSpaceMemberRole(memberId, newRole);
+      await updateSpaceMemberRole(activeSpaceId, memberId, newRole);
       toast.success(t('spaces.roleUpdated', { ns: 'portal' }));
       if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch (e: unknown) {
@@ -570,9 +583,12 @@ export default function SpacesPage() {
   };
 
   const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!activeSpaceId) {
+      return;
+    }
     if (!confirm(t('spaces.removeMemberConfirm', { ns: 'portal', name: memberName }))) return;
     try {
-      await removeSpaceMember(memberId);
+      await removeSpaceMember(activeSpaceId, memberId);
       toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
       if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch (e: unknown) {
@@ -637,8 +653,16 @@ export default function SpacesPage() {
         />
 
         {subscriptionError ? (
-          <div className="mb-5 rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning">
-            {subscriptionError}
+          <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning sm:flex-row sm:items-center sm:justify-between">
+            <p>{subscriptionError}</p>
+            <button
+              type="button"
+              onClick={handleSubscriptionRetry}
+              disabled={subscriptionLoading}
+              className="btn-secondary w-full sm:w-auto"
+            >
+              <span>{t('actions.retry', { ns: 'common', defaultValue: 'Retry' })}</span>
+            </button>
           </div>
         ) : null}
 
@@ -1159,6 +1183,16 @@ export default function SpacesPage() {
                           <div className="space-y-3">
                             {members.map((member) => {
                               const RoleIcon = ROLE_ICONS[member.role] || Users;
+                              const canEditMemberRole = canManageSpaceMemberRole({
+                                actorRole: activeSpaceRole,
+                                actorUserId: user?.id || null,
+                                targetMember: member,
+                              });
+                              const canRemoveMemberEntry = canRemoveSpaceMember({
+                                actorRole: activeSpaceRole,
+                                actorUserId: user?.id || null,
+                                targetMember: member,
+                              });
                               return (
                                 <div key={member.id} className="flex items-center gap-3">
                                   <div className="w-9 h-9 rounded-full gradient-teal flex items-center justify-center text-white text-sm font-700 flex-shrink-0">
@@ -1173,13 +1207,13 @@ export default function SpacesPage() {
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    {member.role !== 'owner' ? (
+                                    {canEditMemberRole ? (
                                       <select
                                         value={member.role}
                                         onChange={(e) => handleRoleChange(member.id, e.target.value as SpaceRole)}
                                         className="text-xs px-2 py-1 rounded-lg border border-border bg-card focus:outline-none focus:ring-1 focus:ring-accent/30"
                                       >
-                                        {(['manager', 'contributor', 'viewer', 'dependent'] as SpaceRole[]).map((r) => (
+                                        {SPACE_MEMBER_ASSIGNABLE_ROLES.map((r) => (
                                           <option key={r} value={r}>
                                             {getRoleLabel(r, (key, options) => t(key, { ns: 'portal', ...options }))}
                                           </option>
@@ -1190,7 +1224,7 @@ export default function SpacesPage() {
                                         <RoleIcon size={11} /> {getRoleLabel(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
                                       </span>
                                     )}
-                                    {member.role !== 'owner' && (
+                                    {canRemoveMemberEntry && (
                                       <button
                                         onClick={() => handleRemoveMember(member.id, member.user_profile?.full_name || 'member')}
                                         className="p-1 rounded text-muted-foreground hover:text-negative transition-colors"

@@ -21,6 +21,38 @@ export type {
   SpaceRole,
 } from '@/lib/spaces-shared';
 
+export const SPACE_MEMBER_ASSIGNABLE_ROLES: readonly SpaceRole[] = ['manager', 'contributor', 'viewer', 'dependent'];
+
+type SpaceMemberPermissionArgs = {
+  actorRole: SpaceRole | null;
+  actorUserId: string | null;
+  targetMember: Pick<SpaceMember, 'role' | 'user_id'> | null | undefined;
+};
+
+function canManageTargetSpaceMember({ actorRole, actorUserId, targetMember }: SpaceMemberPermissionArgs) {
+  if (!actorRole || !actorUserId || !targetMember) {
+    return false;
+  }
+
+  if (targetMember.user_id === actorUserId) {
+    return false;
+  }
+
+  if (targetMember.role === 'owner') {
+    return false;
+  }
+
+  return actorRole === 'owner';
+}
+
+export function canManageSpaceMemberRole(args: SpaceMemberPermissionArgs) {
+  return canManageTargetSpaceMember(args);
+}
+
+export function canRemoveSpaceMember(args: SpaceMemberPermissionArgs) {
+  return canManageTargetSpaceMember(args);
+}
+
 async function logSpaceActivity(
   userId: string,
   action: string,
@@ -171,21 +203,60 @@ export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
   }));
 }
 
-export async function updateSpaceMemberRole(memberId: string, role: SpaceRole): Promise<void> {
+export async function updateSpaceMemberRole(spaceId: string, memberId: string, role: SpaceRole): Promise<void> {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  if (!SPACE_MEMBER_ASSIGNABLE_ROLES.includes(role)) {
+    throw new Error('Invalid member role.');
+  }
+
+  const members = await getSpaceMembers(spaceId);
+  const actorMember = members.find((member) => member.user_id === user.id);
+  const targetMember = members.find((member) => member.id === memberId);
+  if (!targetMember) {
+    throw new Error('Member not found.');
+  }
+  if (!canManageSpaceMemberRole({
+    actorRole: actorMember?.role || null,
+    actorUserId: user.id,
+    targetMember,
+  })) {
+    throw new Error('You are not allowed to update this member role.');
+  }
+
   const { error } = await supabase
     .from('space_members')
     .update({ role })
-    .eq('id', memberId);
+    .eq('id', memberId)
+    .eq('space_id', spaceId);
   if (error) throw error;
 }
 
-export async function removeSpaceMember(memberId: string): Promise<void> {
+export async function removeSpaceMember(spaceId: string, memberId: string): Promise<void> {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const members = await getSpaceMembers(spaceId);
+  const actorMember = members.find((member) => member.user_id === user.id);
+  const targetMember = members.find((member) => member.id === memberId);
+  if (!targetMember) {
+    throw new Error('Member not found.');
+  }
+  if (!canRemoveSpaceMember({
+    actorRole: actorMember?.role || null,
+    actorUserId: user.id,
+    targetMember,
+  })) {
+    throw new Error('You are not allowed to remove this member.');
+  }
+
   const { error } = await supabase
     .from('space_members')
     .delete()
-    .eq('id', memberId);
+    .eq('id', memberId)
+    .eq('space_id', spaceId);
   if (error) throw error;
 }
 

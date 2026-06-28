@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchSubscriptionSummary } from '@/lib/subscription/client';
 import type { BillingAvailability, SubscriptionSummary } from '@/lib/subscription/types';
@@ -31,28 +31,61 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
   const [billing, setBilling] = useState<BillingAvailability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const refreshRequestIdRef = useRef(0);
+  const activeRefreshControllerRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
+    refreshRequestIdRef.current += 1;
+    const requestId = refreshRequestIdRef.current;
+    activeRefreshControllerRef.current?.abort();
+
     if (!user) {
       setSummary(null);
       setBilling(null);
       setLoading(false);
       setError(null);
+      activeRefreshControllerRef.current = null;
       return;
     }
+
+    const controller = new AbortController();
+    activeRefreshControllerRef.current = controller;
+    let didTimeout = false;
+    const timeoutId = window.setTimeout(() => {
+      didTimeout = true;
+      controller.abort();
+    }, 15000);
 
     setLoading(true);
     setError(null);
     try {
-      const payload = await fetchSubscriptionSummary();
+      const payload = await fetchSubscriptionSummary({ signal: controller.signal });
+      if (requestId !== refreshRequestIdRef.current) {
+        return;
+      }
       setSummary(payload?.summary || null);
       setBilling(payload?.billing || null);
-    } catch {
+    } catch (refreshError) {
+      if (requestId !== refreshRequestIdRef.current) {
+        return;
+      }
+
+      const isAbortError = refreshError instanceof DOMException && refreshError.name === 'AbortError';
+      if (isAbortError && !didTimeout) {
+        return;
+      }
+
       setSummary(null);
       setBilling(null);
       setError('Failed to load subscription details.');
     } finally {
-      setLoading(false);
+      window.clearTimeout(timeoutId);
+      if (activeRefreshControllerRef.current === controller) {
+        activeRefreshControllerRef.current = null;
+      }
+      if (requestId === refreshRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [user]);
 
@@ -63,6 +96,14 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
 
     void refresh();
   }, [authLoading, refresh]);
+
+  useEffect(() => {
+    return () => {
+      refreshRequestIdRef.current += 1;
+      activeRefreshControllerRef.current?.abort();
+      activeRefreshControllerRef.current = null;
+    };
+  }, []);
 
   const value = useMemo<SubscriptionSummaryContextValue>(() => ({
     summary,
