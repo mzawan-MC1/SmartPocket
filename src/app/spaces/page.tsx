@@ -138,6 +138,51 @@ interface SpaceFormData {
   icon: string;
 }
 
+interface SpaceFinanceLoadError {
+  loader: string;
+  request: string;
+  message: string;
+  code: string | null;
+  details: string | null;
+  hint: string | null;
+}
+
+function normalizeSpaceFinanceLoadError(
+  loader: string,
+  request: string,
+  error: unknown
+): SpaceFinanceLoadError {
+  if (typeof error === 'object' && error !== null) {
+    const candidate = error as {
+      message?: unknown;
+      code?: unknown;
+      details?: unknown;
+      hint?: unknown;
+    };
+    return {
+      loader,
+      request,
+      message: typeof candidate.message === 'string' && candidate.message
+        ? candidate.message
+        : error instanceof Error
+          ? error.message
+          : String(error),
+      code: typeof candidate.code === 'string' ? candidate.code : null,
+      details: typeof candidate.details === 'string' ? candidate.details : null,
+      hint: typeof candidate.hint === 'string' ? candidate.hint : null,
+    };
+  }
+
+  return {
+    loader,
+    request,
+    message: error instanceof Error ? error.message : String(error),
+    code: null,
+    details: null,
+    hint: null,
+  };
+}
+
 const DEFAULT_FORM: SpaceFormData = {
   name: '', space_type: 'personal', description: '', color: '#0f3460', icon: 'Home',
 };
@@ -146,7 +191,7 @@ export default function SpacesPage() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const { user } = useAuth();
-  const { summary } = useSubscriptionSummary();
+  const { summary, loading: subscriptionLoading, error: subscriptionError } = useSubscriptionSummary();
   const hasSharedSpacesFeature = hasSubscriptionFeature(summary, 'shared_spaces');
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [receivedInvitations, setReceivedInvitations] = useState<SpaceInvitation[]>([]);
@@ -180,6 +225,7 @@ export default function SpacesPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [respondingInvitationId, setRespondingInvitationId] = useState<string | null>(null);
   const [spaceFormError, setSpaceFormError] = useState<string | null>(null);
+  const [spaceFinanceError, setSpaceFinanceError] = useState<SpaceFinanceLoadError | null>(null);
 
   const loadSpaces = useCallback(async () => {
     setLoading(true);
@@ -237,14 +283,27 @@ export default function SpacesPage() {
 
   const loadSpaceFinance = useCallback(async (spaceId: string) => {
     setLoadingFinance(true);
+    setSpaceFinanceError(null);
     try {
       const { startDate, endDate } = getCurrentMonthRange();
       const [accountsData, transactionData, reportData, contributionsData, reimbursementsData, settlementsData, budgetOverview] = await Promise.all([
-        getAccounts(),
+        getAccounts().catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getAccounts',
+            "getAccounts()",
+            error
+          );
+        }),
         getTransactions({
           spaceId,
           context: 'space',
           limit: 8,
+        }).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getTransactions',
+            `getTransactions({ spaceId: "${spaceId}", context: "space", limit: 8 })`,
+            error
+          );
         }),
         getReportViewData({
           startDate,
@@ -252,17 +311,48 @@ export default function SpacesPage() {
           scopeType: 'space',
           spaceId,
           locale: language,
+        }).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getReportViewData',
+            `getReportViewData({ startDate: "${startDate}", endDate: "${endDate}", scopeType: "space", spaceId: "${spaceId}", locale: "${language}" })`,
+            error
+          );
         }),
-        getSpaceContributions(spaceId),
-        getSpaceReimbursements(spaceId),
-        getSpaceSettlements(spaceId),
+        getSpaceContributions(spaceId).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getSpaceContributions',
+            `from("space_contributions").select("*").eq("space_id", "${spaceId}")`,
+            error
+          );
+        }),
+        getSpaceReimbursements(spaceId).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getSpaceReimbursements',
+            `from("reimbursements").select(...).eq("space_id", "${spaceId}")`,
+            error
+          );
+        }),
+        getSpaceSettlements(spaceId).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getSpaceSettlements',
+            `from("settlements").select(...).eq("space_id", "${spaceId}")`,
+            error
+          );
+        }),
         getBudgetTrackingOverview({
           referenceDate: endDate,
           scopeType: 'space',
           spaceId,
           locale: language,
+        }).catch((error) => {
+          throw normalizeSpaceFinanceLoadError(
+            'getBudgetTrackingOverview',
+            `getBudgetTrackingOverview({ referenceDate: "${endDate}", scopeType: "space", spaceId: "${spaceId}", locale: "${language}" })`,
+            error
+          );
         }),
       ]);
+
       setFinanceAccounts(accountsData);
       setSpaceTransactions(transactionData);
       setSpaceReportData(reportData);
@@ -270,15 +360,16 @@ export default function SpacesPage() {
       setSpaceReimbursements(reimbursementsData);
       setSpaceSettlements(settlementsData);
       setSpaceBudgetOverview(budgetOverview);
-    } catch {
-      toast.error(t('spaces.finance.loadFailed', {
-        ns: 'portal',
-        defaultValue: 'Failed to load shared finance details.',
-      }));
+    } catch (error) {
+      setSpaceFinanceError(normalizeSpaceFinanceLoadError(
+        'unknown',
+        `loadSpaceFinance("${spaceId}")`,
+        error
+      ));
     } finally {
       setLoadingFinance(false);
     }
-  }, [t]);
+  }, [language]);
 
   useEffect(() => { loadSpaces(); }, [loadSpaces]);
   useEffect(() => { loadReceivedInvitations(); }, [loadReceivedInvitations]);
@@ -503,7 +594,7 @@ export default function SpacesPage() {
   };
 
   const pendingInvitations = invitations.filter((i) => i.status === 'pending');
-  const canCreateNewSpace = hasSharedSpacesFeature;
+  const canCreateNewSpace = !subscriptionLoading && hasSharedSpacesFeature;
 
   const openCreateSpaceModal = () => {
     setEditingSpace(null);
@@ -526,7 +617,14 @@ export default function SpacesPage() {
           description={t('spaces.description', { ns: 'portal' })}
           badge={<StatusBadge status="info" label={t('spaces.badge', { ns: 'portal' })} />}
           actions={
-            canCreateNewSpace ? (
+            subscriptionLoading ? (
+              <button
+                disabled
+                className="btn-secondary w-full cursor-wait opacity-70 sm:w-auto"
+              >
+                <span>{t('common.loading', { defaultValue: 'Loading...' })}</span>
+              </button>
+            ) : canCreateNewSpace ? (
               <button
                 onClick={openCreateSpaceModal}
                 className="btn-primary w-full sm:w-auto"
@@ -537,6 +635,12 @@ export default function SpacesPage() {
             ) : null
           }
         />
+
+        {subscriptionError ? (
+          <div className="mb-5 rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning">
+            {subscriptionError}
+          </div>
+        ) : null}
 
         {loadingInvitations && !receivedInvitations.length ? (
           <div className="card p-4 mb-5 animate-pulse h-28 bg-muted" />
@@ -617,7 +721,11 @@ export default function SpacesPage() {
             <Home size={48} className="mx-auto text-muted-foreground/40 mb-4" />
             <h3 className="text-lg font-600 text-foreground mb-2">{t('spaces.emptyTitle', { ns: 'portal' })}</h3>
             <p className="text-sm text-muted-foreground mb-6">{t('spaces.emptyDescription', { ns: 'portal' })}</p>
-            {canCreateNewSpace ? (
+            {subscriptionLoading ? (
+              <div className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-600 text-muted-foreground opacity-70">
+                {t('common.loading', { defaultValue: 'Loading...' })}
+              </div>
+            ) : canCreateNewSpace ? (
               <button
                 onClick={openCreateSpaceModal}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
@@ -781,6 +889,24 @@ export default function SpacesPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
+                        {spaceFinanceError ? (
+                          <div className="rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning">
+                            <p className="font-700 text-foreground">
+                              {t('spaces.finance.loadFailed', {
+                                ns: 'portal',
+                                defaultValue: 'Failed to load shared finance details.',
+                              })}
+                            </p>
+                            <div className="mt-2 space-y-1 font-mono text-xs break-words">
+                              <p><span className="font-700">loader:</span> {spaceFinanceError.loader}</p>
+                              <p><span className="font-700">request:</span> {spaceFinanceError.request}</p>
+                              <p><span className="font-700">message:</span> {spaceFinanceError.message}</p>
+                              <p><span className="font-700">code:</span> {spaceFinanceError.code || 'null'}</p>
+                              <p><span className="font-700">details:</span> {spaceFinanceError.details || 'null'}</p>
+                              <p><span className="font-700">hint:</span> {spaceFinanceError.hint || 'null'}</p>
+                            </div>
+                          </div>
+                        ) : null}
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
                           <div className="rounded-2xl border border-border p-4">
                             <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">

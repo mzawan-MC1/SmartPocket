@@ -9,6 +9,7 @@ type SubscriptionSummaryContextValue = {
   summary: SubscriptionSummary | null;
   billing: BillingAvailability | null;
   loading: boolean;
+  error: string | null;
   refresh: () => Promise<void>;
 };
 
@@ -16,6 +17,7 @@ const SubscriptionSummaryContext = createContext<SubscriptionSummaryContextValue
   summary: null,
   billing: null,
   loading: true,
+  error: null,
   refresh: async () => {},
 });
 
@@ -28,16 +30,19 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [billing, setBilling] = useState<BillingAvailability | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setSummary(null);
       setBilling(null);
       setLoading(false);
+      setError(null);
       return;
     }
 
     setLoading(true);
+    setError(null);
     try {
       const payload = await fetchSubscriptionSummary();
       setSummary(payload?.summary || null);
@@ -45,6 +50,7 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
     } catch {
       setSummary(null);
       setBilling(null);
+      setError('Failed to load subscription details.');
     } finally {
       setLoading(false);
     }
@@ -62,8 +68,9 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
     summary,
     billing,
     loading,
+    error,
     refresh,
-  }), [billing, loading, refresh, summary]);
+  }), [billing, error, loading, refresh, summary]);
 
   return (
     <SubscriptionSummaryContext.Provider value={value}>

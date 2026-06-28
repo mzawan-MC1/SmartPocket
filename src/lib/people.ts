@@ -131,6 +131,9 @@ export interface Reimbursement {
   updated_at: string;
   // joined
   person?: { full_name: string; relationship: RelationshipType };
+  legacy_person?: { full_name: string; relationship: RelationshipType };
+  payer_person?: { full_name: string; relationship: RelationshipType };
+  beneficiary_person?: { full_name: string; relationship: RelationshipType };
   transaction?: {
     id: string;
     description: string;
@@ -188,6 +191,9 @@ export interface Settlement {
   updated_at: string;
   // joined
   person?: { full_name: string; relationship: RelationshipType };
+  legacy_person?: { full_name: string; relationship: RelationshipType };
+  payer_person?: { full_name: string; relationship: RelationshipType };
+  receiver_person?: { full_name: string; relationship: RelationshipType };
   receiving_account?: { name: string };
 }
 
@@ -657,7 +663,9 @@ export async function getReimbursements(filters?: {
     .from('reimbursements')
     .select(`
       *,
-      person:managed_people(full_name, relationship),
+      legacy_person:managed_people!reimbursements_person_id_fkey(full_name, relationship),
+      payer_person:managed_people!reimbursements_payer_person_id_fkey(full_name, relationship),
+      beneficiary_person:managed_people!reimbursements_beneficiary_person_id_fkey(full_name, relationship),
       transaction:transactions!reimbursements_transaction_id_fkey(id, description, transaction_date),
       allocation:transaction_allocations!reimbursements_transaction_allocation_id_fkey(
         id,
@@ -676,7 +684,10 @@ export async function getReimbursements(filters?: {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as Reimbursement[];
+  return ((data || []) as Reimbursement[]).map((row) => ({
+    ...row,
+    person: row.legacy_person || row.person,
+  }));
 }
 
 export async function getSpaceReimbursements(spaceId: string): Promise<Reimbursement[]> {
@@ -828,7 +839,9 @@ export async function getSettlements(
     .from('settlements')
     .select(`
       *,
-      person:managed_people(full_name, relationship),
+      legacy_person:managed_people!settlements_person_id_fkey(full_name, relationship),
+      payer_person:managed_people!settlements_payer_person_id_fkey(full_name, relationship),
+      receiver_person:managed_people!settlements_receiver_person_id_fkey(full_name, relationship),
       receiving_account:financial_accounts(name)
     `)
     .eq('is_deleted', false)
@@ -838,7 +851,10 @@ export async function getSettlements(
 
   const { data, error } = await query;
   if (error) throw error;
-  const settlements = (data || []) as Settlement[];
+  const settlements = ((data || []) as Settlement[]).map((row) => ({
+    ...row,
+    person: row.legacy_person || row.person,
+  }));
   return options?.includeReversed
     ? settlements
     : settlements.filter((settlement) => settlement.correction_status !== 'reversed');
@@ -853,14 +869,19 @@ export async function getSpaceSettlements(
     .from('settlements')
     .select(`
       *,
-      person:managed_people(full_name, relationship),
+      legacy_person:managed_people!settlements_person_id_fkey(full_name, relationship),
+      payer_person:managed_people!settlements_payer_person_id_fkey(full_name, relationship),
+      receiver_person:managed_people!settlements_receiver_person_id_fkey(full_name, relationship),
       receiving_account:financial_accounts(name)
     `)
     .eq('is_deleted', false)
     .eq('space_id', spaceId)
     .order('settlement_date', { ascending: false });
   if (error) throw error;
-  const settlements = (data || []) as Settlement[];
+  const settlements = ((data || []) as Settlement[]).map((row) => ({
+    ...row,
+    person: row.legacy_person || row.person,
+  }));
   return options?.includeReversed
     ? settlements
     : settlements.filter((settlement) => settlement.correction_status !== 'reversed');
