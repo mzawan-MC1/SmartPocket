@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import CurrencySelector from '@/components/CurrencySelector';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import {
   createSpaceTransaction,
   createTransactionsBatch,
@@ -44,6 +44,7 @@ import {
   type PersonalSubscription,
 } from '@/lib/personal-subscriptions-shared';
 import { useAuth } from '@/contexts/AuthContext';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import {
@@ -473,6 +474,8 @@ export default function AddTransactionModal({
   const [saveProgress, setSaveProgress] = useState<{ completed: number; total: number } | null>(null);
   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
   const firstAmountFieldRef = useRef<HTMLInputElement | null>(null);
+  const createModeDefaultCurrencyRef = useRef('');
+  const createModeAutoCurrencyRef = useRef('');
 
   const accounts = providedAccounts ?? internalAccounts;
   const categories = providedCategories ?? internalCategories;
@@ -557,7 +560,7 @@ export default function AddTransactionModal({
       entry_kind: spaceId ? 'standard' : initialEntryKind,
       transaction_type: spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType),
       account_id: defaultAccount?.id || base.account_id,
-      currency: defaultAccount?.currency || referenceData?.platformDefaultCurrency || base.currency,
+      currency: defaultAccount?.currency || createModeDefaultCurrencyRef.current || base.currency,
       person_id: preselectedPersonId || '',
       receiptFile: null,
       showMoreOptions: spaceId ? true : initialEntryKind === 'loan_repayment',
@@ -570,12 +573,56 @@ export default function AddTransactionModal({
     initialEntryKind,
     initialTransactionType,
     preselectedPersonId,
-    referenceData?.platformDefaultCurrency,
     selectorAccounts,
     spaceId,
     spaceParticipants,
     user?.id,
   ]);
+
+  const refreshCreateModeDefaultCurrency = useCallback(async () => {
+    const currencyCode = await resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+    });
+
+    const previousAutoCurrency = createModeAutoCurrencyRef.current;
+    createModeDefaultCurrencyRef.current = currencyCode;
+    createModeAutoCurrencyRef.current = currencyCode;
+
+    if (!isOpen || editingTransaction) {
+      return;
+    }
+
+    setDraftRows((rows) => rows.map((row) => {
+      const accountCurrency = accountMap.get(row.account_id)?.currency || null;
+      if (accountCurrency) {
+        return row.currency === accountCurrency ? row : { ...row, currency: accountCurrency };
+      }
+
+      if (row.currency && row.currency !== previousAutoCurrency) {
+        return row;
+      }
+
+      return row.currency === currencyCode ? row : { ...row, currency: currencyCode };
+    }));
+  }, [accountMap, editingTransaction, isOpen, referenceData?.platformDefaultCurrency]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void refreshCreateModeDefaultCurrency().catch(() => {
+      if (!cancelled) {
+        createModeDefaultCurrencyRef.current = '';
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshCreateModeDefaultCurrency]);
+
+  useSmartPocketDataChanged(['profile'], 'AddTransactionModalCurrency', async () => {
+    await refreshCreateModeDefaultCurrency();
+  });
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
 

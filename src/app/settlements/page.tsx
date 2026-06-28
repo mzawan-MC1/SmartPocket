@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { DollarSign, Plus, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -9,6 +9,11 @@ import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import {
+  normalizeCurrencyCode,
+  resolveCurrencyPreference,
+  resolveUserDefaultCurrency,
+} from '@/lib/currency-totals';
 import {
   getFinancialAccountDisplayLabel,
 } from '@/lib/financial-account-utils';
@@ -86,10 +91,9 @@ function NewSettlementModal({
 }: NewSettlementModalProps) {
   const { t } = useTranslation('portal');
   const { data: referenceData } = useClientReferenceData();
-  const initialCurrency = referenceData?.platformDefaultCurrency || '';
   const [personId, setPersonId] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState(initialCurrency);
+  const [currency, setCurrency] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState('cash');
   const [accountId, setAccountId] = useState('');
@@ -103,11 +107,7 @@ function NewSettlementModal({
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const secureSettlementAccountMovementAvailable = false;
-
-  useEffect(() => {
-    if (!initialCurrency || currency) return;
-    setCurrency(initialCurrency);
-  }, [currency, initialCurrency]);
+  const autoResolvedCurrencyRef = useRef('');
 
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person])),
@@ -238,6 +238,68 @@ function NewSettlementModal({
     () => selectedSpaceAllocations.reduce((sum, allocation) => sum + allocation.amount, 0),
     [selectedSpaceAllocations]
   );
+  const selectedReceivingAccountCurrency = useMemo(
+    () => accounts.find((account) => account.id === accountId)?.currency || null,
+    [accountId, accounts]
+  );
+  const selectedSpaceCurrency = useMemo(() => {
+    if (mode !== 'space') {
+      return null;
+    }
+
+    const reimbursementsById = new Map(
+      eligibleSpaceReimbursements.map((reimbursement) => [reimbursement.id, reimbursement])
+    );
+
+    return selectedSpaceAllocations
+      .map((allocation) => reimbursementsById.get(allocation.reimbursement_id)?.currency || null)
+      .find((value) => normalizeCurrencyCode(value))
+      || eligibleSpaceReimbursements
+        .map((reimbursement) => reimbursement.currency)
+        .find((value) => normalizeCurrencyCode(value))
+      || null;
+  }, [eligibleSpaceReimbursements, mode, selectedSpaceAllocations]);
+  const requiredCurrency = mode === 'space' ? selectedSpaceCurrency : selectedReceivingAccountCurrency;
+
+  const refreshResolvedCurrency = useCallback(async () => {
+    const currencyCode = await resolveCurrencyPreference({
+      accountCurrency: requiredCurrency,
+      platformCurrency: referenceData?.platformDefaultCurrency,
+    });
+
+    const previousAutoCurrency = autoResolvedCurrencyRef.current;
+    autoResolvedCurrencyRef.current = currencyCode;
+
+    setCurrency((current) => {
+      if (requiredCurrency) {
+        return current === currencyCode ? current : currencyCode;
+      }
+
+      if (current && current !== previousAutoCurrency) {
+        return current;
+      }
+
+      return current === currencyCode ? current : currencyCode;
+    });
+  }, [referenceData?.platformDefaultCurrency, requiredCurrency]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void refreshResolvedCurrency().catch(() => {
+      if (!cancelled) {
+        autoResolvedCurrencyRef.current = '';
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshResolvedCurrency]);
+
+  useSmartPocketDataChanged(['profile'], 'NewSettlementModalCurrency', async () => {
+    await refreshResolvedCurrency();
+  });
 
   const parsedPayer = parseParticipantKey(payerKey);
   const parsedReceiver = parseParticipantKey(receiverKey);
@@ -424,7 +486,7 @@ function NewSettlementModal({
                     </p>
                     <FormattedCurrencyAmount
                       amount={selectedSpaceTotal}
-                      currencyCode={currency || 'USD'}
+                      currencyCode={currency || requiredCurrency || ''}
                       className="text-sm font-700 text-foreground"
                       showCode
                     />
@@ -521,7 +583,7 @@ function NewSettlementModal({
                 <div className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-sm font-600 text-foreground">
                   <FormattedCurrencyAmount
                     amount={selectedSpaceTotal}
-                    currencyCode={currency || 'USD'}
+                    currencyCode={currency || requiredCurrency || ''}
                     className="text-sm font-600 text-foreground"
                     showCode
                   />
@@ -692,6 +754,7 @@ export default function SettlementsPage() {
   const [spaceMembers, setSpaceMembers] = useState<SpaceMember[]>([]);
   const [spaceRoles, setSpaceRoles] = useState<Record<string, SpaceRole>>({});
   const [loading, setLoading] = useState(true);
+  const [fallbackCurrency, setFallbackCurrency] = useState('');
   const [search, setSearch] = useState('');
   const [scope, setScope] = useState<'personal' | 'space'>('personal');
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
@@ -722,6 +785,20 @@ export default function SettlementsPage() {
   }, [loadData]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void resolveUserDefaultCurrency().then((currencyCode) => {
+      if (!cancelled) {
+        setFallbackCurrency(currencyCode);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (scope === 'space' && !selectedSpaceId && spaces.length > 0) {
       setSelectedSpaceId(spaces[0].id);
     }
@@ -750,7 +827,8 @@ export default function SettlementsPage() {
     };
   }, [scope, selectedSpaceId, t]);
 
-  useSmartPocketDataChanged(['settlements', 'reimbursements', 'people', 'financial_accounts'], 'SettlementsPage', async () => {
+  useSmartPocketDataChanged(['settlements', 'reimbursements', 'people', 'financial_accounts', 'profile'], 'SettlementsPage', async () => {
+    setFallbackCurrency(await resolveUserDefaultCurrency());
     await loadData();
   });
 
@@ -807,8 +885,10 @@ export default function SettlementsPage() {
 
   const totalSettledByCurrency = Array.from(
     scopedSettlements.reduce((map, settlement) => {
-      const normalized = typeof settlement.currency === 'string' ? settlement.currency.trim().toUpperCase() : '';
-      const currency = normalized.length === 3 ? normalized : 'USD';
+      const currency = normalizeCurrencyCode(settlement.currency) || fallbackCurrency;
+      if (!currency) {
+        return map;
+      }
       map.set(currency, (map.get(currency) || 0) + Number(settlement.amount || 0));
       return map;
     }, new Map<string, number>())

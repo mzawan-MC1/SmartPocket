@@ -8,6 +8,7 @@ import AppLayout from '@/components/AppLayout';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { normalizeCurrencyCode, resolveUserDefaultCurrency } from '@/lib/currency-totals';
 import {
   getManagedPeople,
   getReimbursements,
@@ -41,11 +42,6 @@ const STATUSES: ReimbursementStatus[] = [
   'waived',
   'cancelled',
 ];
-
-function normalizeCurrencyCode(value: string | null | undefined) {
-  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
-  return normalized.length === 3 ? normalized : 'USD';
-}
 
 interface PaymentModalProps {
   reimbursement: Reimbursement;
@@ -147,6 +143,7 @@ export default function ReimbursementsPage() {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [spaceMembers, setSpaceMembers] = useState<SpaceMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fallbackCurrency, setFallbackCurrency] = useState('');
   const [scope, setScope] = useState<'personal' | 'space'>('personal');
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
@@ -178,6 +175,20 @@ export default function ReimbursementsPage() {
   }, [scope, selectedSpaceId, spaces]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void resolveUserDefaultCurrency().then((currencyCode) => {
+      if (!cancelled) {
+        setFallbackCurrency(currencyCode);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (scope !== 'space' || !selectedSpaceId) {
       setSpaceMembers([]);
       return;
@@ -200,7 +211,8 @@ export default function ReimbursementsPage() {
     };
   }, [scope, selectedSpaceId, t]);
 
-  useSmartPocketDataChanged(['reimbursements', 'people', 'settlements'], 'ReimbursementsPage', async () => {
+  useSmartPocketDataChanged(['reimbursements', 'people', 'settlements', 'profile'], 'ReimbursementsPage', async () => {
+    setFallbackCurrency(await resolveUserDefaultCurrency());
     await loadData();
   });
 
@@ -269,7 +281,10 @@ export default function ReimbursementsPage() {
     scopedReimbursements
       .filter((r) => r.status === 'pending' || r.status === 'partially_paid')
       .reduce((map, reimbursement) => {
-        const currency = normalizeCurrencyCode(reimbursement.currency);
+        const currency = normalizeCurrencyCode(reimbursement.currency) || fallbackCurrency;
+        if (!currency) {
+          return map;
+        }
         map.set(currency, (map.get(currency) || 0) + (Number(reimbursement.amount) - Number(reimbursement.amount_paid)));
         return map;
       }, new Map<string, number>())

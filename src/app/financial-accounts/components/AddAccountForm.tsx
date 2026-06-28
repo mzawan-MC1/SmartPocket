@@ -1,8 +1,10 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 
 interface AddAccountFormData {
   name: string;
@@ -22,15 +24,35 @@ const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'INR'];
 
 export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormProps) {
   const { t } = useTranslation(['portal', 'common']);
+  const { data: referenceData } = useClientReferenceData();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<AddAccountFormData>({
-    defaultValues: { currency: 'USD', type: 'bank', openingBalance: '0.00' },
+    defaultValues: { currency: '', type: 'bank', openingBalance: '0.00' },
   });
+  const selectedCurrency = watch('currency');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+    }).then((currencyCode) => {
+      if (!cancelled && !selectedCurrency) {
+        setValue('currency', currencyCode, { shouldDirty: false });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [referenceData?.platformDefaultCurrency, selectedCurrency, setValue]);
 
   // Backend integration point: POST /api/accounts
   const onSubmit = async (data: AddAccountFormData) => {

@@ -1113,7 +1113,11 @@ export async function createLoanRepayment(payload: {
   ]);
 
   const personName = personData?.full_name || 'selected person';
-  const effectiveCurrency = transactionData?.currency || ledgerData?.currency || settlementData?.currency || requestedCurrency || 'AED';
+  const effectiveCurrency = transactionData?.currency
+    || ledgerData?.currency
+    || settlementData?.currency
+    || requestedCurrency
+    || await resolveUserDefaultCurrency();
   const effectiveDescription = transactionData?.description || ledgerData?.description || settlementData?.description || trimmedDescription || `Loan repayment to ${personName}`;
   const transaction =
     (transactionData as Transaction | null) ??

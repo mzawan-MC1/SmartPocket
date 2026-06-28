@@ -13,6 +13,17 @@ export function normalizeCurrencyCode(value: string | null | undefined) {
   return normalized.length === 3 ? normalized : null;
 }
 
+export function pickFirstCurrencyCode(...values: Array<string | null | undefined>) {
+  for (const value of values) {
+    const normalized = normalizeCurrencyCode(value);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return null;
+}
+
 export function sortCurrencyTotals(left: { currency: string }, right: { currency: string }) {
   return left.currency.localeCompare(right.currency, 'en', { sensitivity: 'base' });
 }
@@ -123,4 +134,23 @@ export async function resolveUserDefaultCurrency(preferredCurrency?: string | nu
   });
 
   return inFlightResolvedUserDefaultCurrency;
+}
+
+export async function resolveCurrencyPreference(options: {
+  existingCurrency?: string | null;
+  accountCurrency?: string | null;
+  userCurrency?: string | null;
+  platformCurrency?: string | null;
+} = {}) {
+  const prioritizedCurrency = pickFirstCurrencyCode(
+    options.existingCurrency,
+    options.accountCurrency,
+    options.userCurrency
+  );
+
+  if (prioritizedCurrency) {
+    return prioritizedCurrency;
+  }
+
+  return resolveUserDefaultCurrency(options.platformCurrency);
 }

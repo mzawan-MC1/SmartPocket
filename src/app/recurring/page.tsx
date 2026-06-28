@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { normalizeCurrencyCode, resolveUserDefaultCurrency } from '@/lib/currency-totals';
 import {
   canAutoAdvanceRecurringTransaction,
   formatRecurringFrequencyLabel,
@@ -19,11 +20,6 @@ import {
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import RecurringTransactionForm from './components/RecurringTransactionForm';
 
-function normalizeCurrencyCode(value: string | null | undefined) {
-  const normalized = typeof value === 'string' ? value.trim().toUpperCase() : '';
-  return normalized.length === 3 ? normalized : 'USD';
-}
-
 export default function RecurringPage() {
   const { t } = useTranslation('portal');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -31,6 +27,7 @@ export default function RecurringPage() {
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fallbackCurrency, setFallbackCurrency] = useState('');
   const [markingId, setMarkingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -47,7 +44,22 @@ export default function RecurringPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    void resolveUserDefaultCurrency().then((currencyCode) => {
+      if (!cancelled) {
+        setFallbackCurrency(currencyCode);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useSmartPocketDataChanged(['recurring_transactions', 'financial_accounts', 'profile'], 'RecurringPage', async () => {
+    setFallbackCurrency(await resolveUserDefaultCurrency());
     load();
   });
 
@@ -90,7 +102,10 @@ export default function RecurringPage() {
   const groupByCurrency = (items: RecurringTransaction[]) =>
     Array.from(
       items.reduce((map, item) => {
-        const currency = normalizeCurrencyCode(item.currency);
+        const currency = normalizeCurrencyCode(item.currency) || fallbackCurrency;
+        if (!currency) {
+          return map;
+        }
         map.set(currency, (map.get(currency) || 0) + Number(item.amount || 0));
         return map;
       }, new Map<string, number>())
