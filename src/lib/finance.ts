@@ -301,6 +301,7 @@ export interface ReceiptAttachment {
 export interface Budget {
   id: string;
   user_id: string;
+  space_id?: string | null;
   category_id: string | null;
   name: string;
   amount: number;
@@ -379,15 +380,50 @@ export interface RecurringTransaction {
   is_active: boolean;
   auto_create: boolean;
   tags: string[];
+  space_id?: string | null;
+  created_by_user_id?: string | null;
+  paid_by_user_id?: string | null;
+  paid_by_person_id?: string | null;
+  split_method?: SpaceTransactionSplitMethod | null;
+  allocation_template?: TransactionAllocation[] | null;
+  execution_permissions?: 'owner_only' | 'owner_manager' | 'owner_manager_contributor' | null;
   created_at: string;
   // joined
   account?: { name: string };
   category?: { name: string; color: string | null };
 }
 
+export type FinanceScopeType = 'personal' | 'space';
+
+export type TransferScopeType = 'personal' | 'space';
+export type TransferPurpose =
+  | 'normal_transfer'
+  | 'member_contribution'
+  | 'reimbursement_payout'
+  | 'settlement';
+
+export interface SpaceContribution {
+  id: string;
+  space_id: string;
+  contributor_user_id?: string | null;
+  contributor_managed_person_id?: string | null;
+  source_account_id?: string | null;
+  destination_account_id?: string | null;
+  transfer_id?: string | null;
+  manual_transaction_id?: string | null;
+  amount: number;
+  currency: string;
+  contributed_at: string;
+  notes?: string | null;
+  created_by_user_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Transfer {
   id: string;
   user_id: string;
+  created_by_user_id?: string | null;
   from_account_id: string;
   to_account_id: string;
   from_transaction_id: string | null;
@@ -406,6 +442,13 @@ export interface Transfer {
   description: string | null;
   transfer_date: string;
   notes: string | null;
+  source_scope_type?: TransferScopeType | null;
+  destination_scope_type?: TransferScopeType | null;
+  source_space_id?: string | null;
+  destination_space_id?: string | null;
+  transfer_purpose?: TransferPurpose | null;
+  reimbursement_id?: string | null;
+  settlement_id?: string | null;
   created_at: string;
   // joined
   from_account?: { name: string };
@@ -786,6 +829,43 @@ export function shouldIncludeInBudgetSpending(
   accountInclusionById: Map<string, boolean>
 ) {
   return isPersonalExpenseTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
+}
+
+export function isSpaceScopedTransaction(
+  row: Pick<TransactionMetricRow, 'space_id' | 'transaction_context'>,
+  spaceId?: string | null
+) {
+  const matchesScope = row.transaction_context === 'space' || !!row.space_id;
+  if (!matchesScope) return false;
+  if (!spaceId) return true;
+  return row.space_id === spaceId;
+}
+
+export function shouldIncludeInSpaceReports(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  _ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  _accountInclusionById: Map<string, boolean>,
+  spaceId?: string | null
+) {
+  return isSpaceScopedTransaction(row, spaceId) && row.transaction_type !== 'transfer';
+}
+
+export function shouldIncludeInSpaceCashFlow(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  accountInclusionById: Map<string, boolean>,
+  spaceId?: string | null
+) {
+  return shouldIncludeInSpaceReports(row, ledgerSummaryByTransactionId, accountInclusionById, spaceId);
+}
+
+export function shouldIncludeInSpaceBudgetSpending(
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  _ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
+  _accountInclusionById: Map<string, boolean>,
+  spaceId?: string | null
+) {
+  return isSpaceScopedTransaction(row, spaceId) && row.transaction_type === 'expense';
 }
 
 function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>>(
@@ -1896,9 +1976,14 @@ export async function deleteTransaction(id: string, accountId: string): Promise<
 
 // ─── Transfers ────────────────────────────────────────────────────────────────
 
-export async function getTransfers(): Promise<Transfer[]> {
+export async function getTransfers(filters?: {
+  spaceId?: string;
+  purpose?: TransferPurpose | 'all';
+  scopeType?: FinanceScopeType | 'all';
+  limit?: number;
+}): Promise<Transfer[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('transfers')
     .select(`
       *,
@@ -1907,8 +1992,40 @@ export async function getTransfers(): Promise<Transfer[]> {
     `)
     .order('transfer_date', { ascending: false })
     .order('created_at', { ascending: false });
+
+  if (filters?.spaceId) {
+    query = query.or(`source_space_id.eq.${filters.spaceId},destination_space_id.eq.${filters.spaceId}`);
+  }
+  if (filters?.purpose && filters.purpose !== 'all') {
+    query = query.eq('transfer_purpose', filters.purpose);
+  }
+  if (filters?.scopeType === 'personal') {
+    query = query.is('source_space_id', null).is('destination_space_id', null);
+  } else if (filters?.scopeType === 'space') {
+    query = query.or('source_space_id.not.is.null,destination_space_id.not.is.null');
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []) as Transfer[];
+}
+
+async function getTransferById(id: string): Promise<Transfer> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('transfers')
+    .select(`
+      *,
+      from_account:financial_accounts!transfers_from_account_id_fkey(name),
+      to_account:financial_accounts!transfers_to_account_id_fkey(name)
+    `)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return data as Transfer;
 }
 
 export async function createTransfer(payload: {
@@ -1928,11 +2045,12 @@ export async function createTransfer(payload: {
   description?: string;
   transfer_date: string;
   notes?: string;
+  transfer_purpose?: TransferPurpose;
+  recipient_user_id?: string | null;
+  reimbursement_id?: string | null;
+  settlement_id?: string | null;
 }): Promise<Transfer> {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
-
   if (payload.from_account_id === payload.to_account_id) {
     throw new Error('Source and destination accounts must be different');
   }
@@ -1949,94 +2067,38 @@ export async function createTransfer(payload: {
     throw new Error('Destination transfer amount must be greater than 0');
   }
 
-  let fromTxnId: string | null = null;
-  let toTxnId: string | null = null;
-
-  try {
-    const { data: fromTxn, error: fromErr } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        account_id: payload.from_account_id,
-        transaction_type: 'transfer',
-        amount: sourceAmount,
-        currency: sourceCurrency,
-        description: payload.description || 'Transfer out',
-        transaction_date: payload.transfer_date,
-      })
-      .select()
-      .single();
-    if (fromErr) throw fromErr;
-    fromTxnId = fromTxn.id;
-
-    const { data: toTxn, error: toErr } = await supabase
-      .from('transactions')
-      .insert({
-        user_id: user.id,
-        account_id: payload.to_account_id,
-        transaction_type: 'transfer',
-        amount: destinationAmount,
-        currency: destinationCurrency,
-        description: payload.description || 'Transfer in',
-        transaction_date: payload.transfer_date,
-        transfer_pair_id: fromTxn.id,
-      })
-      .select()
-      .single();
-    if (toErr) throw toErr;
-    toTxnId = toTxn.id;
-
-    await supabase
-      .from('transactions')
-      .update({ transfer_pair_id: toTxn.id })
-      .eq('id', fromTxn.id);
-
-    const { data: transfer, error: transferErr } = await supabase
-      .from('transfers')
-      .insert({
-        user_id: user.id,
-        from_account_id: payload.from_account_id,
-        to_account_id: payload.to_account_id,
-        from_transaction_id: fromTxn.id,
-        to_transaction_id: toTxn.id,
-        amount: sourceAmount,
-        currency: sourceCurrency,
-        source_amount: sourceAmount,
-        source_currency: sourceCurrency,
-        destination_amount: destinationAmount,
-        destination_currency: destinationCurrency,
-        exchange_rate: payload.exchange_rate ?? null,
-        exchange_rate_provider: payload.exchange_rate_provider ?? null,
-        exchange_rate_snapshot_id: payload.exchange_rate_snapshot_id ?? null,
-        exchange_rate_date: payload.exchange_rate_date ?? null,
-        exchange_rate_timestamp: payload.exchange_rate_timestamp ?? null,
-        description: payload.description || '',
-        transfer_date: payload.transfer_date,
-        notes: payload.notes || null,
-      })
-      .select()
-      .single();
-    if (transferErr) throw transferErr;
-
-    await recalculateAccountBalance(payload.from_account_id);
-    await recalculateAccountBalance(payload.to_account_id);
-
-    return transfer;
-  } catch (error) {
-    if (toTxnId) {
-      await deleteTransactionWithDocumentCleanup({
-        supabase,
-        transactionId: toTxnId,
-      });
-    }
-    if (fromTxnId) {
-      await deleteTransactionWithDocumentCleanup({
-        supabase,
-        transactionId: fromTxnId,
-      });
-    }
+  const { data, error } = await supabase.rpc('rpc_create_scoped_transfer', {
+    p_from_account_id: payload.from_account_id,
+    p_to_account_id: payload.to_account_id,
+    p_amount: payload.amount,
+    p_currency: payload.currency,
+    p_source_amount: sourceAmount,
+    p_source_currency: sourceCurrency,
+    p_destination_amount: destinationAmount,
+    p_destination_currency: destinationCurrency,
+    p_exchange_rate: payload.exchange_rate ?? null,
+    p_exchange_rate_provider: payload.exchange_rate_provider ?? null,
+    p_exchange_rate_snapshot_id: payload.exchange_rate_snapshot_id ?? null,
+    p_exchange_rate_date: payload.exchange_rate_date ?? null,
+    p_exchange_rate_timestamp: payload.exchange_rate_timestamp ?? null,
+    p_description: payload.description || null,
+    p_transfer_date: payload.transfer_date,
+    p_notes: payload.notes || null,
+    p_transfer_purpose: payload.transfer_purpose || 'normal_transfer',
+    p_recipient_user_id: payload.recipient_user_id || null,
+    p_reimbursement_id: payload.reimbursement_id || null,
+    p_settlement_id: payload.settlement_id || null,
+  });
+  if (error) {
     throw error;
   }
+
+  const row = (Array.isArray(data) ? data[0] : data) as { transfer_id?: string | null } | null;
+  if (!row?.transfer_id) {
+    throw new Error('Scoped transfer RPC did not return a transfer id');
+  }
+
+  return getTransferById(row.transfer_id);
 }
 
 // ─── Budgets ──────────────────────────────────────────────────────────────────
@@ -2054,6 +2116,7 @@ type BudgetExpenseRow = TransactionMetricRow & {
 function normalizeBudgetRecord(row: Budget): Budget {
   return {
     ...row,
+    space_id: row.space_id || null,
     budget_period: normalizeBudgetPeriodValue(row),
     period_anchor_date: row.period_anchor_date || null,
     custom_period_days: row.custom_period_days ?? null,
@@ -2154,6 +2217,8 @@ async function buildReportBudgetPerformanceData(args: {
   expenseTransactions: Transaction[];
   reportingCurrency: string;
   snapshots: ExchangeRateSnapshotRecord[];
+  scopeType?: FinanceScopeType;
+  spaceId?: string | null;
   locale?: string;
 }): Promise<ReportBudgetPerformanceData> {
   type ApplicableReportBudgetEntry = {
@@ -2165,7 +2230,10 @@ async function buildReportBudgetPerformanceData(args: {
 
   const [periodContext, budgets] = await Promise.all([
     loadUserFinancialPeriodContext(),
-    loadActiveBudgetRecords(),
+    loadActiveBudgetRecords({
+      scopeType: args.scopeType,
+      spaceId: args.spaceId,
+    }),
   ]);
 
   const selectedRange = {
@@ -2321,13 +2389,27 @@ function buildBudgetTrackingItem(args: {
   };
 }
 
-async function loadActiveBudgetRecords() {
+async function loadActiveBudgetRecords(args?: {
+  scopeType?: FinanceScopeType;
+  spaceId?: string | null;
+}) {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('budgets')
     .select('*, category:categories(name, color, icon)')
     .eq('is_active', true)
     .order('created_at', { ascending: true });
+
+  if (args?.scopeType === 'space') {
+    if (!args.spaceId) {
+      return [] as Budget[];
+    }
+    query = query.eq('space_id', args.spaceId);
+  } else {
+    query = query.is('space_id', null);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
   return ((data || []) as Budget[]).map(normalizeBudgetRecord);
@@ -2336,12 +2418,17 @@ async function loadActiveBudgetRecords() {
 export async function getBudgetTrackingOverview(args?: {
   referenceDate?: string;
   periodFilter?: BudgetPeriod | 'all';
+  scopeType?: FinanceScopeType;
+  spaceId?: string | null;
   locale?: string;
 }): Promise<BudgetTrackingOverview> {
   const supabase = createClient();
   const [periodContext, budgets] = await Promise.all([
     loadUserFinancialPeriodContext(),
-    loadActiveBudgetRecords(),
+    loadActiveBudgetRecords({
+      scopeType: args?.scopeType,
+      spaceId: args?.spaceId,
+    }),
   ]);
   const referenceDate = args?.referenceDate || periodContext.currentBusinessDate;
   const filteredBudgets = (args?.periodFilter && args.periodFilter !== 'all')
@@ -2380,12 +2467,20 @@ export async function getBudgetTrackingOverview(args?: {
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
     earliestStart && latestEnd
-      ? supabase
-        .from('transactions')
-        .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
-        .eq('transaction_type', 'expense')
-        .gte('transaction_date', earliestStart)
-        .lte('transaction_date', latestEnd)
+      ? (() => {
+          let query = supabase
+            .from('transactions')
+            .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, space_id, transaction_context, expense_owner, paid_by, paid_from, use_held_balance')
+            .eq('transaction_type', 'expense')
+            .gte('transaction_date', earliestStart)
+            .lte('transaction_date', latestEnd);
+
+          if (args?.scopeType === 'space' && args.spaceId) {
+            query = query.eq('space_id', args.spaceId).eq('transaction_context', 'space');
+          }
+
+          return query;
+        })()
       : Promise.resolve({ data: [], error: null }),
     getHistoricalReportContext(validPeriods.flatMap((entry) => [{ transaction_date: entry.period.endDate }])).catch(async () => ({
       reportingCurrency: await resolveUserDefaultCurrency(),
@@ -2399,7 +2494,11 @@ export async function getBudgetTrackingOverview(args?: {
     (expenseTransactionsResult.data || []) as BudgetExpenseRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
-    shouldIncludeInBudgetSpending
+    (row, ledgerMap, accountMap) => (
+      args?.scopeType === 'space'
+        ? shouldIncludeInSpaceBudgetSpending(row, ledgerMap, accountMap, args.spaceId)
+        : shouldIncludeInBudgetSpending(row, ledgerMap, accountMap)
+    )
   ) as BudgetExpenseRow[];
 
   const items = resolved.map((entry) => {
@@ -2479,17 +2578,27 @@ export async function getBudgetDetailSnapshot(args: {
   const period = getCurrentBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
   const previousPeriod = getPreviousBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
   const nextPeriod = getNextBudgetPeriod(budget, periodContext.effectiveConfig, referenceDate, args.locale);
+  const budgetScopeType: FinanceScopeType = budget.space_id ? 'space' : 'personal';
 
   const [ledgerSummaryByTransactionId, accountInclusionById, transactionsResult, reportingContext] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
-    supabase
-      .from('transactions')
-      .select('*, account:financial_accounts(name, currency), category:categories(name, color, icon)')
-      .eq('transaction_type', 'expense')
-      .gte('transaction_date', period.startDate)
-      .lte('transaction_date', period.endDate)
-      .order('transaction_date', { ascending: false }),
+    (() => {
+      let query = supabase
+        .from('transactions')
+        .select('*, account:financial_accounts(name, currency), category:categories(name, color, icon)')
+        .eq('transaction_type', 'expense')
+        .gte('transaction_date', period.startDate)
+        .lte('transaction_date', period.endDate);
+
+      if (budgetScopeType === 'space' && budget.space_id) {
+        query = query.eq('space_id', budget.space_id).eq('transaction_context', 'space');
+      } else {
+        query = query.is('space_id', null);
+      }
+
+      return query.order('transaction_date', { ascending: false });
+    })(),
     getHistoricalReportContext([{ transaction_date: period.endDate }], budget.currency),
   ]);
 
@@ -2498,7 +2607,11 @@ export async function getBudgetDetailSnapshot(args: {
     (transactionsResult.data || []) as BudgetExpenseRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
-    shouldIncludeInBudgetSpending
+    (row, ledgerMap, accountMap) => (
+      budgetScopeType === 'space'
+        ? shouldIncludeInSpaceBudgetSpending(row, ledgerMap, accountMap, budget.space_id)
+        : shouldIncludeInBudgetSpending(row, ledgerMap, accountMap)
+    )
   ) as BudgetExpenseRow[];
 
   const transactions = getBudgetTransactionsForPeriod(budget, period, eligibleExpenses);
@@ -2521,6 +2634,8 @@ export async function getDashboardBudgetSummary(args: {
   startDate: string;
   endDate: string;
   mode: DashboardPeriodPreference;
+  scopeType?: FinanceScopeType;
+  spaceId?: string | null;
   locale?: string;
 }): Promise<DashboardBudgetSummary> {
   type ApplicableDashboardBudget = {
@@ -2533,7 +2648,10 @@ export async function getDashboardBudgetSummary(args: {
   const supabase = createClient();
   const [periodContext, budgets] = await Promise.all([
     loadUserFinancialPeriodContext(),
-    loadActiveBudgetRecords(),
+    loadActiveBudgetRecords({
+      scopeType: args.scopeType,
+      spaceId: args.spaceId,
+    }),
   ]);
 
   const selectedRange = {
@@ -2592,12 +2710,20 @@ export async function getDashboardBudgetSummary(args: {
   const [ledgerSummaryByTransactionId, accountInclusionById, expenseTransactionsResult, reportingContext] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
-    supabase
-      .from('transactions')
-      .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, expense_owner, paid_by, paid_from, use_held_balance')
-      .eq('transaction_type', 'expense')
-      .gte('transaction_date', selectedRange.startDate)
-      .lte('transaction_date', selectedRange.endDate),
+    (() => {
+      let query = supabase
+        .from('transactions')
+        .select('id, account_id, category_id, amount, currency, transaction_type, transaction_date, space_id, transaction_context, expense_owner, paid_by, paid_from, use_held_balance')
+        .eq('transaction_type', 'expense')
+        .gte('transaction_date', selectedRange.startDate)
+        .lte('transaction_date', selectedRange.endDate);
+
+      if (args.scopeType === 'space' && args.spaceId) {
+        query = query.eq('space_id', args.spaceId).eq('transaction_context', 'space');
+      }
+
+      return query;
+    })(),
     getHistoricalReportContext([{ transaction_date: selectedRange.endDate }]).catch(async () => ({
       reportingCurrency: await resolveUserDefaultCurrency(),
       snapshots: [],
@@ -2610,7 +2736,11 @@ export async function getDashboardBudgetSummary(args: {
     (expenseTransactionsResult.data || []) as BudgetExpenseRow[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
-    shouldIncludeInBudgetSpending
+    (row, ledgerMap, accountMap) => (
+      args.scopeType === 'space'
+        ? shouldIncludeInSpaceBudgetSpending(row, ledgerMap, accountMap, args.spaceId)
+        : shouldIncludeInBudgetSpending(row, ledgerMap, accountMap)
+    )
   ) as BudgetExpenseRow[];
 
   const totalBudgetByCurrency = new Map<string, number>();
@@ -2662,8 +2792,18 @@ export async function getDashboardBudgetSummary(args: {
   };
 }
 
-export async function getBudgets(periodStart?: string): Promise<Budget[]> {
-  const overview = await getBudgetTrackingOverview({ referenceDate: periodStart });
+export async function getBudgets(
+  periodStart?: string,
+  options?: {
+    scopeType?: FinanceScopeType;
+    spaceId?: string | null;
+  }
+): Promise<Budget[]> {
+  const overview = await getBudgetTrackingOverview({
+    referenceDate: periodStart,
+    scopeType: options?.scopeType,
+    spaceId: options?.spaceId,
+  });
   return overview.items.map((item) => ({
     ...item.budget,
     period_start: item.period.startDate,
@@ -2734,13 +2874,30 @@ export async function getRecurringTransactions(): Promise<RecurringTransaction[]
   return (data || []) as RecurringTransaction[];
 }
 
+export async function getSpaceContributions(spaceId: string): Promise<SpaceContribution[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('space_contributions')
+    .select('*')
+    .eq('space_id', spaceId)
+    .order('contributed_at', { ascending: false })
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as SpaceContribution[];
+}
+
 export async function createRecurringTransaction(payload: Partial<RecurringTransaction>): Promise<RecurringTransaction> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
   const { data, error } = await supabase
     .from('recurring_transactions')
-    .insert({ ...payload, user_id: user.id })
+    .insert({
+      ...payload,
+      user_id: user.id,
+      created_by_user_id: payload.created_by_user_id || user.id,
+      allocation_template: payload.allocation_template || [],
+    })
     .select()
     .single();
   if (error) throw error;
@@ -2761,9 +2918,28 @@ export async function updateRecurringTransaction(id: string, payload: Partial<Re
 
 export async function markRecurringAsPaid(recurring: RecurringTransaction): Promise<void> {
   const supabase = createClient();
+  const { currentBusinessDate } = await loadUserFinancialPeriodContext();
+
+  if (recurring.space_id) {
+    const { data, error } = await supabase.rpc('rpc_execute_space_recurring_transaction', {
+      p_recurring_id: recurring.id,
+    });
+    if (error) throw error;
+
+    const row = (Array.isArray(data) ? data[0] : data) as {
+      transaction_id?: string | null;
+      next_due_date?: string | null;
+    } | null;
+    if (!row?.transaction_id) {
+      throw new Error('Space recurring execution RPC did not return a transaction id');
+    }
+
+    await recalculateAccountBalance(recurring.account_id);
+    return;
+  }
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
-  const { currentBusinessDate } = await loadUserFinancialPeriodContext();
 
   // Create a real transaction
   const { error: txnErr } = await supabase
@@ -3030,8 +3206,17 @@ export async function getDashboardMetrics(args?: {
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
-export async function getReportDataWithContext(dateFrom: string, dateTo: string, accountId?: string) {
+export async function getReportDataWithContext(
+  dateFrom: string,
+  dateTo: string,
+  accountId?: string,
+  options?: {
+    scopeType?: FinanceScopeType;
+    spaceId?: string | null;
+  }
+) {
   const supabase = createClient();
+  const scopeType = options?.scopeType || 'personal';
   let query = supabase
     .from('transactions')
     .select(`
@@ -3046,6 +3231,16 @@ export async function getReportDataWithContext(dateFrom: string, dateTo: string,
   if (accountId && accountId !== 'all') {
     query = query.eq('account_id', accountId);
   }
+  if (scopeType === 'space') {
+    if (!options?.spaceId) {
+      return {
+        transactions: [] as Transaction[],
+        ledgerSummaryByTransactionId: new Map<string, TransactionLedgerSummary>(),
+        accountInclusionById: new Map<string, boolean>(),
+      };
+    }
+    query = query.eq('space_id', options.spaceId).eq('transaction_context', 'space');
+  }
 
   const [ledgerSummaryByTransactionId, accountInclusionById, queryResult] = await Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
@@ -3058,7 +3253,11 @@ export async function getReportDataWithContext(dateFrom: string, dateTo: string,
     (queryResult.data || []) as Transaction[],
     ledgerSummaryByTransactionId,
     accountInclusionById,
-    shouldIncludeInPersonalReports
+    (row, ledgerMap, accountMap) => (
+      scopeType === 'space'
+        ? shouldIncludeInSpaceReports(row, ledgerMap, accountMap, options?.spaceId)
+        : shouldIncludeInPersonalReports(row, ledgerMap, accountMap)
+    )
   );
 
   return {
@@ -3068,29 +3267,49 @@ export async function getReportDataWithContext(dateFrom: string, dateTo: string,
   };
 }
 
-export async function getReportData(dateFrom: string, dateTo: string, accountId?: string) {
-  return (await getReportDataWithContext(dateFrom, dateTo, accountId)).transactions;
+export async function getReportData(
+  dateFrom: string,
+  dateTo: string,
+  accountId?: string,
+  options?: {
+    scopeType?: FinanceScopeType;
+    spaceId?: string | null;
+  }
+) {
+  return (await getReportDataWithContext(dateFrom, dateTo, accountId, options)).transactions;
 }
 
 export async function getReportViewData(args: {
   startDate: string;
   endDate: string;
   accountId?: string;
+  scopeType?: FinanceScopeType;
+  spaceId?: string | null;
   locale?: string;
 }): Promise<ReportViewData> {
+  const scopeType = args.scopeType || 'personal';
   const [reportData, accounts] = await Promise.all([
-    getReportDataWithContext(args.startDate, args.endDate, args.accountId),
+    getReportDataWithContext(args.startDate, args.endDate, args.accountId, {
+      scopeType,
+      spaceId: args.spaceId,
+    }),
     getAccounts(),
   ]);
   const transactions = reportData.transactions;
   const incomeTransactions = transactions.filter((transaction) =>
-    isPersonalIncomeTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+    scopeType === 'space'
+      ? isSpaceScopedTransaction(transaction, args.spaceId) && transaction.transaction_type === 'income'
+      : isPersonalIncomeTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
   );
   const expenseTransactions = transactions.filter((transaction) =>
-    isPersonalExpenseTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+    scopeType === 'space'
+      ? isSpaceScopedTransaction(transaction, args.spaceId) && transaction.transaction_type === 'expense'
+      : isPersonalExpenseTransaction(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
   );
   const cashFlowTransactions = transactions.filter((transaction) =>
-    shouldIncludeInPersonalCashFlow(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
+    scopeType === 'space'
+      ? shouldIncludeInSpaceCashFlow(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById, args.spaceId)
+      : shouldIncludeInPersonalCashFlow(transaction, reportData.ledgerSummaryByTransactionId, reportData.accountInclusionById)
   );
   const reportContext = await getHistoricalReportContext(transactions);
   const [incomeMetric, expensesMetric, netMetric, budgetPerformance] = await Promise.all([
@@ -3125,6 +3344,8 @@ export async function getReportViewData(args: {
       expenseTransactions,
       reportingCurrency: reportContext.reportingCurrency,
       snapshots: reportContext.snapshots,
+      scopeType,
+      spaceId: args.spaceId,
       locale: args.locale,
     }),
   ]);
@@ -3132,7 +3353,12 @@ export async function getReportViewData(args: {
   return {
     transactions,
     accounts: accounts.filter((account) =>
-      account.is_active && getFinancialAccountScopeType(account) === 'personal'
+      account.is_active
+      && (
+        scopeType === 'space'
+          ? getFinancialAccountScopeType(account) === 'space' && account.space_id === args.spaceId
+          : getFinancialAccountScopeType(account) === 'personal'
+      )
     ),
     reportingCurrency: reportContext.reportingCurrency,
     snapshots: reportContext.snapshots,

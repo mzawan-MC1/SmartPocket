@@ -18,6 +18,8 @@ interface AddBudgetFormProps {
   budget?: Budget | null;
   onSuccess: () => void;
   onCancel: () => void;
+  spaceId?: string | null;
+  spaceName?: string | null;
 }
 
 type BudgetFormState = {
@@ -150,7 +152,13 @@ function getLegacyPeriodValue(budgetPeriod: BudgetPeriod): Budget['period'] {
   return 'custom';
 }
 
-export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: AddBudgetFormProps) {
+export default function AddBudgetForm({
+  budget = null,
+  onSuccess,
+  onCancel,
+  spaceId = null,
+  spaceName = null,
+}: AddBudgetFormProps) {
   const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const [isLoading, setIsLoading] = useState(false);
@@ -257,6 +265,7 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
       }, periodContext.effectiveConfig, periodContext.currentBusinessDate);
       const payload: Partial<Budget> = {
         name: budgetName,
+        space_id: spaceId ?? budget?.space_id ?? null,
         category_id: form.category_id || null,
         amount: parseFloat(form.amount),
         currency: form.currency,
@@ -277,7 +286,7 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
       }
       dispatchSmartPocketDataChanged({
         source: 'budget-form',
-        entities: ['dashboard', 'budgets'],
+        entities: spaceId ? ['dashboard', 'budgets', 'spaces'] : ['dashboard', 'budgets'],
       });
       onSuccess();
     } catch (e: unknown) {
@@ -289,6 +298,15 @@ export default function AddBudgetForm({ budget = null, onSuccess, onCancel }: Ad
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {spaceId ? (
+        <div className="rounded-2xl border border-info/20 bg-info-soft/40 px-4 py-3 text-sm text-info">
+          {t('budgets.form.spaceBudgetNotice', {
+            ns: 'portal',
+            defaultValue: `This budget will track Space spending for ${spaceName || 'the selected Space'}.`,
+            space: spaceName || 'the selected Space',
+          })}
+        </div>
+      ) : null}
       <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
         {t('budgets.form.periodIsolationNotice', { ns: 'portal' })}
       </div>

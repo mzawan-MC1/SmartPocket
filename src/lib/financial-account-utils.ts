@@ -27,6 +27,12 @@ export type FinancialAccountCapabilities = {
   isSharedWithSpace: boolean;
 };
 
+export type FinancialTransferCapabilities = FinancialAccountCapabilities & {
+  canUseForTransfer: boolean;
+  canUseAsTransferSource: boolean;
+  canUseAsTransferDestination: boolean;
+};
+
 export type FinancialAccountLike = {
   id: string;
   name: string;
@@ -170,6 +176,31 @@ export function getAccountCapabilities<T extends FinancialAccountLike>(
   };
 }
 
+export function getAccountTransferCapabilities<T extends FinancialAccountLike>(
+  account: T,
+  options?: {
+    selectedSpaceId?: string | null;
+  }
+): FinancialTransferCapabilities {
+  const capabilities = getAccountCapabilities(account, options);
+
+  if (capabilities.scope === 'space') {
+    return {
+      ...capabilities,
+      canUseForTransfer: capabilities.canEdit,
+      canUseAsTransferSource: capabilities.canEdit,
+      canUseAsTransferDestination: capabilities.canView,
+    };
+  }
+
+  return {
+    ...capabilities,
+    canUseForTransfer: capabilities.canView,
+    canUseAsTransferSource: capabilities.canView,
+    canUseAsTransferDestination: capabilities.canView,
+  };
+}
+
 export function getAccountsSharedWithSpaces<T extends FinancialAccountLike>(accounts: T[]) {
   return sortFinancialAccounts(
     accounts.filter((account) => account.is_active && getFinancialAccountScopeType(account) === 'personal' && isSharedWithAnySpace(account))
@@ -206,6 +237,15 @@ export function getSpaceTransactionEligibleAccounts<T extends FinancialAccountLi
 export function getActivePersonalFinancialAccounts<T extends FinancialAccountLike>(accounts: T[]) {
   return sortFinancialAccounts(
     accounts.filter((account) => account.is_active && isPersonalFinancialAccount(account))
+  );
+}
+
+export function getTransferEligibleAccounts<T extends FinancialAccountLike>(accounts: T[]) {
+  return sortFinancialAccounts(
+    accounts.filter((account) => {
+      const capabilities = getAccountTransferCapabilities(account);
+      return account.is_active && capabilities.canView && capabilities.canUseForTransfer;
+    })
   );
 }
 

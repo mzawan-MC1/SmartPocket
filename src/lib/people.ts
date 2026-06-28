@@ -105,7 +105,7 @@ export interface PersonLedgerEntry {
 export interface Reimbursement {
   id: string;
   owner_id: string;
-  person_id: string;
+  person_id: string | null;
   transaction_id: string | null;
   ledger_entry_id: string | null;
   amount: number;
@@ -118,10 +118,31 @@ export interface Reimbursement {
   notes: string | null;
   amount_paid: number;
   is_deleted: boolean;
+  space_id?: string | null;
+  transaction_allocation_id?: string | null;
+  payer_user_id?: string | null;
+  payer_person_id?: string | null;
+  beneficiary_user_id?: string | null;
+  beneficiary_person_id?: string | null;
+  original_amount?: number | null;
+  generated_from?: string | null;
+  created_by_user_id?: string | null;
   created_at: string;
   updated_at: string;
   // joined
   person?: { full_name: string; relationship: RelationshipType };
+  transaction?: {
+    id: string;
+    description: string;
+    transaction_date: string;
+  } | null;
+  allocation?: {
+    id: string;
+    allocated_amount: number;
+    percentage: number | null;
+    shares: number | null;
+    reimbursement_required: boolean;
+  } | null;
 }
 
 export interface ReimbursementPayment {
@@ -133,13 +154,16 @@ export interface ReimbursementPayment {
   payment_date: string;
   payment_method: string;
   notes: string | null;
+  settlement_id?: string | null;
+  transfer_id?: string | null;
+  created_by_user_id?: string | null;
   created_at: string;
 }
 
 export interface Settlement {
   id: string;
   owner_id: string;
-  person_id: string;
+  person_id: string | null;
   amount: number;
   currency: string;
   settlement_date: string;
@@ -149,11 +173,27 @@ export interface Settlement {
   notes: string | null;
   attachment_url: string | null;
   is_deleted: boolean;
+  space_id?: string | null;
+  payer_user_id?: string | null;
+  payer_person_id?: string | null;
+  receiver_user_id?: string | null;
+  receiver_person_id?: string | null;
+  transfer_id?: string | null;
+  created_by_user_id?: string | null;
+  correction_status?: string | null;
+  reversed_at?: string | null;
+  reversed_by_user_id?: string | null;
+  reversal_notes?: string | null;
   created_at: string;
   updated_at: string;
   // joined
   person?: { full_name: string; relationship: RelationshipType };
   receiving_account?: { name: string };
+}
+
+export interface SpaceSettlementAllocationInput {
+  reimbursement_id: string;
+  amount: number;
 }
 
 export interface PersonBalance {
@@ -610,20 +650,37 @@ export async function addLedgerEntry(payload: {
 export async function getReimbursements(filters?: {
   personId?: string;
   status?: ReimbursementStatus;
+  spaceId?: string;
 }): Promise<Reimbursement[]> {
   const supabase = createClient();
   let query = supabase
     .from('reimbursements')
-    .select(`*, person:managed_people(full_name, relationship)`)
+    .select(`
+      *,
+      person:managed_people(full_name, relationship),
+      transaction:transactions!reimbursements_transaction_id_fkey(id, description, transaction_date),
+      allocation:transaction_allocations!reimbursements_transaction_allocation_id_fkey(
+        id,
+        allocated_amount,
+        percentage,
+        shares,
+        reimbursement_required
+      )
+    `)
     .eq('is_deleted', false)
     .order('created_at', { ascending: false });
 
   if (filters?.personId) query = query.eq('person_id', filters.personId);
   if (filters?.status) query = query.eq('status', filters.status);
+  if (filters?.spaceId) query = query.eq('space_id', filters.spaceId);
 
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as Reimbursement[];
+}
+
+export async function getSpaceReimbursements(spaceId: string): Promise<Reimbursement[]> {
+  return getReimbursements({ spaceId });
 }
 
 export async function createReimbursement(payload: {
@@ -762,7 +819,10 @@ export async function updateReimbursementStatus(id: string, status: Reimbursemen
 
 // ─── Settlements ──────────────────────────────────────────────────────────────
 
-export async function getSettlements(personId?: string): Promise<Settlement[]> {
+export async function getSettlements(
+  personId?: string,
+  options?: { includeReversed?: boolean }
+): Promise<Settlement[]> {
   const supabase = createClient();
   let query = supabase
     .from('settlements')
@@ -778,7 +838,32 @@ export async function getSettlements(personId?: string): Promise<Settlement[]> {
 
   const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as Settlement[];
+  const settlements = (data || []) as Settlement[];
+  return options?.includeReversed
+    ? settlements
+    : settlements.filter((settlement) => settlement.correction_status !== 'reversed');
+}
+
+export async function getSpaceSettlements(
+  spaceId: string,
+  options?: { includeReversed?: boolean }
+): Promise<Settlement[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('settlements')
+    .select(`
+      *,
+      person:managed_people(full_name, relationship),
+      receiving_account:financial_accounts(name)
+    `)
+    .eq('is_deleted', false)
+    .eq('space_id', spaceId)
+    .order('settlement_date', { ascending: false });
+  if (error) throw error;
+  const settlements = (data || []) as Settlement[];
+  return options?.includeReversed
+    ? settlements
+    : settlements.filter((settlement) => settlement.correction_status !== 'reversed');
 }
 
 export async function createSettlement(payload: {
@@ -870,6 +955,71 @@ export async function createSettlement(payload: {
   });
 
   return data as Settlement;
+}
+
+export async function applySpaceSettlement(payload: {
+  space_id: string;
+  payer_user_id?: string | null;
+  payer_person_id?: string | null;
+  receiver_user_id?: string | null;
+  receiver_person_id?: string | null;
+  amount: number;
+  currency: string;
+  settlement_date: string;
+  description: string;
+  notes?: string;
+  from_account_id?: string | null;
+  to_account_id?: string | null;
+  allocations: SpaceSettlementAllocationInput[];
+}): Promise<Settlement> {
+  const supabase = createClient();
+  const normalizedAllocations = payload.allocations.map((allocation) => ({
+    reimbursement_id: allocation.reimbursement_id,
+    amount: allocation.amount,
+  }));
+
+  const { data, error } = await supabase.rpc('rpc_apply_space_settlement', {
+    p_space_id: payload.space_id,
+    p_payer_user_id: payload.payer_user_id || null,
+    p_payer_person_id: payload.payer_person_id || null,
+    p_receiver_user_id: payload.receiver_user_id || null,
+    p_receiver_person_id: payload.receiver_person_id || null,
+    p_amount: payload.amount,
+    p_currency: payload.currency,
+    p_settlement_date: payload.settlement_date,
+    p_description: payload.description,
+    p_notes: payload.notes || null,
+    p_from_account_id: payload.from_account_id || null,
+    p_to_account_id: payload.to_account_id || null,
+    p_allocations: normalizedAllocations,
+  });
+  if (error) throw error;
+
+  const row = (Array.isArray(data) ? data[0] : data) as { settlement_id?: string | null } | null;
+  if (!row?.settlement_id) {
+    throw new Error('Space settlement RPC did not return a settlement id');
+  }
+
+  const { data: settlementData, error: settlementError } = await supabase
+    .from('settlements')
+    .select(`
+      *,
+      person:managed_people(full_name, relationship),
+      receiving_account:financial_accounts(name)
+    `)
+    .eq('id', row.settlement_id)
+    .single();
+  if (settlementError) throw settlementError;
+  return settlementData as Settlement;
+}
+
+export async function reverseSpaceSettlement(settlementId: string, notes?: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('rpc_reverse_space_settlement', {
+    p_settlement_id: settlementId,
+    p_notes: notes || null,
+  });
+  if (error) throw error;
 }
 
 export async function createLoanRepayment(payload: {

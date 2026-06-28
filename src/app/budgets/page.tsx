@@ -26,6 +26,7 @@ import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { getMySpaceMemberships, type Space } from '@/lib/spaces';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
 
@@ -118,6 +119,9 @@ export default function BudgetsPage() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
+  const [scopeType, setScopeType] = useState<'personal' | 'space'>('personal');
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [overview, setOverview] = useState<BudgetTrackingOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -132,15 +136,41 @@ export default function BudgetsPage() {
     setLoading(true);
     getBudgetTrackingOverview({
       periodFilter,
+      scopeType,
+      spaceId: scopeType === 'space' ? selectedSpaceId || null : null,
       locale,
     })
       .then(setOverview)
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
-  }, [locale, periodFilter]);
+  }, [locale, periodFilter, scopeType, selectedSpaceId]);
 
   useEffect(() => { load(); }, [load]);
-  useSmartPocketDataChanged(['budgets', 'transactions', 'profile'], 'BudgetsPage', async () => {
+  useEffect(() => {
+    let cancelled = false;
+    void getMySpaceMemberships()
+      .then((memberships) => {
+        if (cancelled) return;
+        const nextSpaces = memberships.map((membership) => membership.space);
+        setSpaces(nextSpaces);
+        setSelectedSpaceId((current) => current || nextSpaces[0]?.id || '');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSpaces([]);
+          setSelectedSpaceId('');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  useEffect(() => {
+    if (scopeType === 'space' && spaces.length === 0) {
+      setScopeType('personal');
+    }
+  }, [scopeType, spaces]);
+  useSmartPocketDataChanged(['budgets', 'transactions', 'profile', 'spaces'], 'BudgetsPage', async () => {
     load();
   });
 
@@ -199,6 +229,31 @@ export default function BudgetsPage() {
           }
         />
         <div className="flex flex-wrap gap-2 max-[480px]:gap-1.5">
+          <button
+            type="button"
+            aria-pressed={scopeType === 'personal'}
+            onClick={() => setScopeType('personal')}
+            className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+              scopeType === 'personal'
+                ? 'border-accent bg-accent text-accent-foreground'
+                : 'border-border bg-card text-foreground hover:border-accent/40'
+            }`}
+          >
+            {t('budgets.personalScope', { defaultValue: 'Personal' })}
+          </button>
+          <button
+            type="button"
+            aria-pressed={scopeType === 'space'}
+            onClick={() => setScopeType('space')}
+            disabled={spaces.length === 0}
+            className={`rounded-xl border px-3 py-2 text-xs font-600 disabled:opacity-50 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+              scopeType === 'space'
+                ? 'border-accent bg-accent text-accent-foreground'
+                : 'border-border bg-card text-foreground hover:border-accent/40'
+            }`}
+          >
+            {t('budgets.spaceScope', { defaultValue: 'Space' })}
+          </button>
           {PERIOD_FILTERS.map((filterValue) => {
             const selected = periodFilter === filterValue;
             return (
@@ -214,6 +269,24 @@ export default function BudgetsPage() {
             );
           })}
         </div>
+        {scopeType === 'space' ? (
+          <div className="max-w-sm">
+            <label className="mb-1.5 block text-xs font-600 uppercase tracking-wider text-muted-foreground">
+              {t('spaces.title', { ns: 'portal', defaultValue: 'Spaces' })}
+            </label>
+            <select
+              value={selectedSpaceId}
+              onChange={(event) => setSelectedSpaceId(event.target.value)}
+              className="input-base"
+            >
+              {spaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         {/* Overview Card */}
         {loading ? (
@@ -554,6 +627,10 @@ export default function BudgetsPage() {
         size="md"
       >
         <AddBudgetForm
+          spaceId={scopeType === 'space' ? selectedSpaceId || null : null}
+          spaceName={scopeType === 'space'
+            ? spaces.find((space) => space.id === selectedSpaceId)?.name || null
+            : null}
           onSuccess={() => { setShowAddModal(false); setEditingBudget(null); toast.success(t('budgets.saved')); load(); }}
           onCancel={() => {
             setShowAddModal(false);
@@ -576,6 +653,10 @@ export default function BudgetsPage() {
         {editingBudget ? (
           <AddBudgetForm
             budget={editingBudget}
+            spaceId={editingBudget.space_id || null}
+            spaceName={editingBudget.space_id
+              ? spaces.find((space) => space.id === editingBudget.space_id)?.name || null
+              : null}
             onSuccess={() => { setEditingBudget(null); toast.success(t('budgets.updated')); load(); }}
             onCancel={() => setEditingBudget(null)}
           />

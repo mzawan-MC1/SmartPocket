@@ -38,6 +38,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
+import { getMySpaceMemberships, type Space } from '@/lib/spaces';
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
@@ -666,6 +667,9 @@ export default function ReportsScreen() {
   const [customDateFrom, setCustomDateFrom] = useState('');
   const [customDateTo, setCustomDateTo] = useState('');
   const [activeReport, setActiveReport] = useState<ReportType>('income-expense');
+  const [scopeType, setScopeType] = useState<'personal' | 'space'>('personal');
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -697,9 +701,39 @@ export default function ReportsScreen() {
     void loadPeriodContext();
   }, [loadPeriodContext]);
 
+  useEffect(() => {
+    let cancelled = false;
+    void getMySpaceMemberships()
+      .then((memberships) => {
+        if (cancelled) return;
+        const nextSpaces = memberships.map((membership) => membership.space);
+        setSpaces(nextSpaces);
+        setSelectedSpaceId((current) => current || nextSpaces[0]?.id || '');
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSpaces([]);
+          setSelectedSpaceId('');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useSmartPocketDataChanged(['profile'], 'ReportsScreenPeriodContext', async () => {
     await loadPeriodContext();
   });
+
+  useEffect(() => {
+    if (scopeType === 'space' && spaces.length === 0) {
+      setScopeType('personal');
+    }
+  }, [scopeType, spaces]);
+
+  useEffect(() => {
+    setSelectedAccount('all');
+  }, [scopeType, selectedSpaceId]);
 
   const activeRange = useMemo<ReportPeriodRange | null>(() => {
     if (!periodContext) return null;
@@ -725,6 +759,8 @@ export default function ReportsScreen() {
         startDate: activeRange.startDate,
         endDate: activeRange.endDate,
         accountId: selectedAccount,
+        scopeType,
+        spaceId: scopeType === 'space' ? selectedSpaceId || null : null,
         locale,
       });
       setReportData(data);
@@ -733,13 +769,13 @@ export default function ReportsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [activeRange, locale, selectedAccount, t]);
+  }, [activeRange, locale, scopeType, selectedAccount, selectedSpaceId, t]);
 
   useEffect(() => {
     void loadReportData();
   }, [loadReportData]);
 
-  useSmartPocketDataChanged(['transactions', 'financial_accounts', 'budgets', 'profile'], 'ReportsScreen', async () => {
+  useSmartPocketDataChanged(['transactions', 'financial_accounts', 'budgets', 'profile', 'spaces'], 'ReportsScreen', async () => {
     await loadReportData();
   });
 
@@ -1073,6 +1109,42 @@ export default function ReportsScreen() {
                 <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
                   <Filter size={13} className="hidden text-muted-foreground sm:block" />
                   <div className="min-w-0 flex-1">
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.scopeLabel', { defaultValue: 'Scope' })}</span>
+                    <select
+                      value={scopeType}
+                      onChange={(event) => setScopeType(event.target.value as 'personal' | 'space')}
+                      className="input-base h-9 min-w-[140px] max-w-full w-full px-3 text-sm"
+                    >
+                      <option value="personal">{t('reports.personalScope', { defaultValue: 'Personal' })}</option>
+                      <option value="space" disabled={spaces.length === 0}>
+                        {t('reports.spaceScope', { defaultValue: 'Space' })}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                {scopeType === 'space' ? (
+                  <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
+                    <div className="min-w-0 flex-1">
+                      <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('spaces.title', { ns: 'portal', defaultValue: 'Spaces' })}</span>
+                      <select
+                        value={selectedSpaceId}
+                        onChange={(event) => setSelectedSpaceId(event.target.value)}
+                        className="input-base h-9 min-w-[180px] max-w-full w-full px-3 text-sm lg:max-w-[210px]"
+                      >
+                        {spaces.map((space) => (
+                          <option key={space.id} value={space.id}>
+                            {space.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
+                  <Filter size={13} className="hidden text-muted-foreground sm:block" />
+                  <div className="min-w-0 flex-1">
                     <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.account')}</span>
                     <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
                     <select
@@ -1129,6 +1201,14 @@ export default function ReportsScreen() {
               <p className="min-w-0 truncate text-xs text-muted-foreground">
                 <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
                 {' · '}
+                {scopeType === 'space'
+                  ? (
+                    <>
+                      {spaces.find((space) => space.id === selectedSpaceId)?.name || t('reports.spaceScope', { defaultValue: 'Space' })}
+                      {' · '}
+                    </>
+                  )
+                  : null}
                 {activeRange?.comparisonLabel
                   ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
                   : activePreset === 'custom'
