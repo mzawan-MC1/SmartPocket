@@ -10,8 +10,9 @@ import Link from 'next/link';
 import SearchField from '@/components/ui/SearchField';
 import NotificationBell from '@/components/NotificationBell';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
-import { fetchSubscriptionPlans, fetchSubscriptionSummary } from '@/lib/subscription/client';
+import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { PlanCode, PublicSubscriptionPlan, SubscriptionSummary } from '@/lib/subscription/types';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -21,9 +22,9 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const { t } = useTranslation(['portal', 'common']);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
   const [activePlans, setActivePlans] = useState<PublicSubscriptionPlan[]>([]);
   const { user, signOut } = useAuth();
+  const { summary: subscriptionSummary } = useSubscriptionSummary();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const quickActions = useQuickActions();
@@ -46,23 +47,17 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
     let cancelled = false;
 
     if (!user) {
-      setSubscriptionSummary(null);
       setActivePlans([]);
       return;
     }
 
-    Promise.all([
-      fetchSubscriptionSummary(),
-      fetchSubscriptionPlans(),
-    ])
-      .then(([summaryPayload, plansPayload]) => {
+    fetchSubscriptionPlans()
+      .then((plansPayload) => {
         if (cancelled) return;
-        setSubscriptionSummary(summaryPayload?.summary || null);
         setActivePlans(plansPayload.plans.filter((plan) => plan.isActive));
       })
       .catch(() => {
         if (cancelled) return;
-        setSubscriptionSummary(null);
         setActivePlans([]);
       });
 

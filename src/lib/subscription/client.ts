@@ -18,10 +18,7 @@ import type {
 
 type SubscriptionClientRequestOptions = {
   signal?: AbortSignal;
-  timeoutMs?: number;
 };
-
-const DEFAULT_SUBSCRIPTION_SUMMARY_TIMEOUT_MS = 10000;
 
 async function parseJsonResponse<T>(response: Response) {
   const contentType = response.headers.get('content-type') || '';
@@ -45,49 +42,20 @@ export async function fetchSubscriptionPlans() {
 }
 
 export async function fetchSubscriptionSummary(options: SubscriptionClientRequestOptions = {}) {
-  const controller = new AbortController();
-  const timeoutMs = options.timeoutMs ?? DEFAULT_SUBSCRIPTION_SUMMARY_TIMEOUT_MS;
-  let didTimeout = false;
+  const response = await fetch('/api/subscription/summary', {
+    cache: 'no-store',
+    signal: options.signal,
+  });
 
-  const handleExternalAbort = () => {
-    controller.abort();
-  };
-
-  if (options.signal?.aborted) {
-    controller.abort();
-  } else {
-    options.signal?.addEventListener('abort', handleExternalAbort, { once: true });
+  if (response.status === 401) {
+    return null;
   }
 
-  const timeoutId = window.setTimeout(() => {
-    didTimeout = true;
-    controller.abort();
-  }, timeoutMs);
-
-  try {
-    const response = await fetch('/api/subscription/summary', {
-      cache: 'no-store',
-      signal: controller.signal,
-    });
-
-    if (response.status === 401) {
-      return null;
-    }
-
-    if (!response.ok) {
-      throw new Error('summary_load_failed');
-    }
-
-    return parseJsonResponse<SubscriptionSummaryResponse>(response);
-  } catch (error) {
-    if (didTimeout) {
-      throw new Error('summary_load_timeout');
-    }
-    throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
-    options.signal?.removeEventListener('abort', handleExternalAbort);
+  if (!response.ok) {
+    throw new Error('summary_load_failed');
   }
+
+  return parseJsonResponse<SubscriptionSummaryResponse>(response);
 }
 
 export async function createBillingCheckoutSession(planCode: string, billingInterval: SupportedBillingInterval) {

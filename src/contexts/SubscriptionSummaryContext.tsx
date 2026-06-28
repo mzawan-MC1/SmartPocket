@@ -21,6 +21,14 @@ const SubscriptionSummaryContext = createContext<SubscriptionSummaryContextValue
   refresh: async () => {},
 });
 
+function isAbortLikeError(error: unknown) {
+  if (error instanceof DOMException && error.name === 'AbortError') {
+    return true;
+  }
+
+  return error instanceof Error && error.message === 'signal is aborted without reason';
+}
+
 export function useSubscriptionSummary() {
   return useContext(SubscriptionSummaryContext);
 }
@@ -65,7 +73,7 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
         return;
       }
 
-      const isAbortError = refreshError instanceof DOMException && refreshError.name === 'AbortError';
+      const isAbortError = isAbortLikeError(refreshError);
       if (isAbortError) {
         return;
       }

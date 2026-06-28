@@ -188,7 +188,7 @@ const DEFAULT_FORM: SpaceFormData = {
   name: '', space_type: 'personal', description: '', color: '#0f3460', icon: 'Home',
 };
 
-export default function SpacesPage() {
+function SpacesPageContent() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const { user } = useAuth();
@@ -628,7 +628,7 @@ export default function SpacesPage() {
   };
 
   return (
-    <AppLayout activeRoute="/spaces">
+    <>
       <div className="page-section pb-6">
         <PageHeader
           title={t('spaces.title', { ns: 'portal' })}
@@ -1536,6 +1536,14 @@ export default function SpacesPage() {
           />
         ) : null}
       </Modal>
+    </>
+  );
+}
+
+export default function SpacesPage() {
+  return (
+    <AppLayout activeRoute="/spaces">
+      <SpacesPageContent />
     </AppLayout>
   );
 }
