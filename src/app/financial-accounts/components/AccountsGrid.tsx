@@ -21,7 +21,10 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import FinancialAccountForm from './FinancialAccountForm';
 import AccountsHeader from './AccountsHeader';
 import {
+  getAccountsSharedWithSpaces,
+  getFinancialAccountScopeType,
   getFinancialAccountOwnershipType,
+  getSpaceOwnedFinancialAccounts,
   isDefaultBankAccount,
   isDefaultCashAccount,
 } from '@/lib/financial-account-utils';
@@ -68,6 +71,11 @@ function getAccountTypeLabel(type: string, t: (key: string) => string) {
 }
 
 function getOwnershipLabel(account: FinancialAccount, t: (key: string, options?: Record<string, unknown>) => string) {
+  if (getFinancialAccountScopeType(account) === 'space') {
+    return t('accounts.spaceAccountBadge', {
+      defaultValue: 'Space account',
+    });
+  }
   const ownershipType = getFinancialAccountOwnershipType(account);
   switch (ownershipType) {
     case 'shared':
@@ -81,9 +89,20 @@ function getOwnershipLabel(account: FinancialAccount, t: (key: string, options?:
   }
 }
 
+function getSharedSpaceNames(account: FinancialAccount) {
+  return (account.space_account_permissions || [])
+    .map((permission) => permission.space?.name || '')
+    .filter(Boolean);
+}
+
 function getSectionedAccounts(accounts: FinancialAccount[]) {
-  const personalAccounts = accounts.filter((account) => getFinancialAccountOwnershipType(account) === 'personal');
-  const otherAccounts = accounts.filter((account) => getFinancialAccountOwnershipType(account) !== 'personal');
+  const personalAccounts = accounts.filter((account) =>
+    getFinancialAccountScopeType(account) === 'personal'
+    && getFinancialAccountOwnershipType(account) === 'personal'
+    && getSharedSpaceNames(account).length === 0
+  );
+  const sharedWithSpacesAccounts = getAccountsSharedWithSpaces(accounts);
+  const spaceAccounts = getSpaceOwnedFinancialAccounts(accounts);
 
   return {
     personalSections: [
@@ -118,23 +137,8 @@ function getSectionedAccounts(accounts: FinancialAccount[]) {
         ),
       },
     ],
-    otherSections: [
-      {
-        id: 'shared',
-        title: 'Shared',
-        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'shared'),
-      },
-      {
-        id: 'business',
-        title: 'Business',
-        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'business'),
-      },
-      {
-        id: 'other',
-        title: 'Other',
-        accounts: otherAccounts.filter((account) => getFinancialAccountOwnershipType(account) === 'other'),
-      },
-    ],
+    sharedWithSpacesAccounts,
+    spaceAccounts,
   };
 }
 
@@ -214,7 +218,7 @@ export default function AccountsGrid() {
 
   const activeAccounts = accounts.filter((a) => a.is_active);
   const archivedAccounts = accounts.filter((a) => !a.is_active);
-  const { personalSections, otherSections } = getSectionedAccounts(activeAccounts);
+  const { personalSections, sharedWithSpacesAccounts, spaceAccounts } = getSectionedAccounts(activeAccounts);
   const personalAccounts = personalSections.flatMap((section) => section.accounts);
   const summaryCards = [
     { id: 'sum-total', label: t('accounts.summary.totalNetWorth'), field: 'totalNetWorth' as const },
@@ -263,6 +267,11 @@ export default function AccountsGrid() {
                 <Badge variant="default" className="bg-white/15 text-white border-white/20">
                   {getOwnershipLabel(acct, t)}
                 </Badge>
+                {getFinancialAccountScopeType(acct) === 'space' && acct.space?.name ? (
+                  <Badge variant="default" className="bg-white/15 text-white border-white/20">
+                    {acct.space.name}
+                  </Badge>
+                ) : null}
                 {isDefaultCashAccount(acct) ? (
                   <Badge variant="warning" className="bg-white text-warning border-white">
                     {t('accounts.defaultCashBadge', { defaultValue: 'Default Cash' })}
@@ -490,21 +499,66 @@ export default function AccountsGrid() {
               ) : null}
             </div>
 
-            {otherSections.some((section) => section.accounts.length > 0) ? (
+            {sharedWithSpacesAccounts.length > 0 ? (
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-700 text-foreground">
-                    {t('accounts.otherAccountTypesSection', { defaultValue: 'Other Account Types' })}
+                    {t('accounts.sharedWithSpacesSection', { defaultValue: 'Shared With Spaces' })}
                   </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('accounts.sharedWithSpacesHelper', {
+                      defaultValue: 'These personal accounts stay private by default and can fund Space-linked transactions where you enabled sharing.',
+                    })}
+                  </p>
                 </div>
-                {otherSections
-                  .filter((section) => section.accounts.length > 0)
-                  .map((section) => (
-                    <div key={section.id} className="space-y-3">
-                      <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">{section.title}</p>
-                      {renderAccountCards(section.accounts)}
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {sharedWithSpacesAccounts.map((acct) => {
+                    const sharedSpaceNames = getSharedSpaceNames(acct);
+                    return (
+                      <div key={acct.id} className="rounded-2xl border border-border bg-card p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-700 text-foreground">{acct.name}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {sharedSpaceNames.join(', ')}
+                            </p>
+                          </div>
+                          <Badge variant="default">
+                            {t('accounts.sharedOwnershipLabel', { defaultValue: 'Shared' })}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 space-y-2">
+                          <FormattedCurrencyAmount
+                            amount={acct.current_balance}
+                            currencyCode={acct.currency}
+                            className="text-base font-700 text-foreground"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {t('accounts.sharedWithSpacesPrivacyHint', {
+                              defaultValue: 'Balance and full history stay private unless you grant extra visibility.',
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {spaceAccounts.length > 0 ? (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-700 text-foreground">
+                    {t('accounts.spaceAccountsSection', { defaultValue: 'Space Accounts' })}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('accounts.spaceAccountsHelper', {
+                      defaultValue: 'Shared space-owned balances live in the same finance engine and remain outside personal totals.',
+                    })}
+                  </p>
+                </div>
+                {renderAccountCards(spaceAccounts)}
               </div>
             ) : null}
 

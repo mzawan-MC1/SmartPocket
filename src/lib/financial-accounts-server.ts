@@ -8,6 +8,14 @@ type EnsureDefaultPersonalAccountsRow = {
   created_bank: boolean | null;
 };
 
+export type SanitizedSpaceAccountSharing = {
+  space_id: string;
+  can_view_space_transactions: boolean;
+  can_add_space_transactions: boolean;
+  can_view_balance: boolean;
+  can_view_full_history: boolean;
+};
+
 function getPlatformFallbackCurrency() {
   return (process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'AED').trim().toUpperCase();
 }
@@ -41,6 +49,8 @@ export function sanitizeFinancialAccountPayload(payload: Record<string, unknown>
   const currency = normalizeOptionalText(payload.currency, { uppercase: true, maxLength: 3 });
   const ownershipType = normalizeOptionalText(payload.ownership_type)?.toLowerCase();
   const bankAccountType = normalizeOptionalText(payload.bank_account_type)?.toLowerCase();
+  const scopeType = normalizeOptionalText(payload.scope_type)?.toLowerCase();
+  const spaceId = normalizeOptionalText(payload.space_id, { maxLength: 64 });
   const parsedOpeningBalance = Number(payload.opening_balance ?? 0);
 
   return {
@@ -57,6 +67,8 @@ export function sanitizeFinancialAccountPayload(payload: Record<string, unknown>
       || ownershipType === 'personal'
       ? ownershipType
       : 'personal',
+    scope_type: scopeType === 'space' ? 'space' : 'personal',
+    space_id: scopeType === 'space' ? spaceId : null,
     bank_name: accountType === 'bank' ? normalizeOptionalText(payload.bank_name, { maxLength: 120 }) : null,
     account_holder_name: accountType === 'bank'
       ? normalizeOptionalText(payload.account_holder_name, { maxLength: 120 })
@@ -77,6 +89,31 @@ export function sanitizeFinancialAccountPayload(payload: Record<string, unknown>
   };
 }
 
+export function sanitizeSpaceAccountSharingPayload(payload: unknown): SanitizedSpaceAccountSharing[] {
+  if (!Array.isArray(payload)) return [];
+
+  const seen = new Set<string>();
+  const sanitized: SanitizedSpaceAccountSharing[] = [];
+
+  for (const entry of payload) {
+    if (!entry || typeof entry !== 'object') continue;
+    const row = entry as Record<string, unknown>;
+    const spaceId = normalizeOptionalText(row.space_id, { maxLength: 64 });
+    if (!spaceId || seen.has(spaceId)) continue;
+
+    sanitized.push({
+      space_id: spaceId,
+      can_view_space_transactions: row.can_view_space_transactions !== false,
+      can_add_space_transactions: row.can_add_space_transactions === true,
+      can_view_balance: row.can_view_balance === true,
+      can_view_full_history: row.can_view_full_history === true,
+    });
+    seen.add(spaceId);
+  }
+
+  return sanitized;
+}
+
 export function validateFinancialAccountInput(input: ReturnType<typeof sanitizeFinancialAccountPayload>) {
   if (!input.name) {
     return 'Account name is required';
@@ -92,6 +129,15 @@ export function validateFinancialAccountInput(input: ReturnType<typeof sanitizeF
   }
   if (!['personal', 'shared', 'business', 'other'].includes(input.ownership_type)) {
     return 'Unsupported ownership type';
+  }
+  if (!['personal', 'space'].includes(input.scope_type)) {
+    return 'Unsupported account scope';
+  }
+  if (input.scope_type === 'space' && !input.space_id) {
+    return 'A Space is required for Space accounts';
+  }
+  if (input.scope_type === 'personal' && input.space_id) {
+    return 'Personal accounts cannot be assigned directly to a Space';
   }
   if (input.iban && (input.iban.length < 5 || input.iban.length > 34)) {
     return 'IBAN must be between 5 and 34 characters';

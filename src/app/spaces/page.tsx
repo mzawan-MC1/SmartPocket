@@ -4,12 +4,14 @@ import AppLayout from '@/components/AppLayout';
 import { useTranslation } from 'react-i18next';
 
 import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
 import {
-  getSpaces, createSpace, updateSpace, archiveSpace,
+  getMySpaceMemberships, getSpaces, createSpace, updateSpace, archiveSpace,
   getMyPendingInvitations, getSpaceMembers, getSpaceInvitations, inviteToSpaceDetailed, revokeInvitation,
   respondToInvitation, updateSpaceMemberRole, removeSpaceMember,
   type Space, type SpaceMember, type SpaceInvitation, type SpaceRole
 } from '@/lib/spaces';
+import { getAccounts, getTransactions, type FinancialAccount, type Transaction } from '@/lib/finance';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -17,7 +19,12 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
+import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
 import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
+import { getSpaceOwnedFinancialAccounts } from '@/lib/financial-account-utils';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 const ROLE_COLORS: Record<SpaceRole, string> = {
   owner: 'bg-accent/10 text-accent',
@@ -96,14 +103,20 @@ export default function SpacesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingInvitations, setLoadingInvitations] = useState(true);
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
+  const [spaceRolesById, setSpaceRolesById] = useState<Record<string, SpaceRole>>({});
   const [members, setMembers] = useState<SpaceMember[]>([]);
   const [invitations, setInvitations] = useState<SpaceInvitation[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [loadingFinance, setLoadingFinance] = useState(false);
+  const [financeAccounts, setFinanceAccounts] = useState<FinancialAccount[]>([]);
+  const [spaceTransactions, setSpaceTransactions] = useState<Transaction[]>([]);
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingSpace, setEditingSpace] = useState<Space | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSpaceAccountModal, setShowSpaceAccountModal] = useState(false);
+  const [showSpaceTransactionModal, setShowSpaceTransactionModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<SpaceRole>('viewer');
   const [form, setForm] = useState<SpaceFormData>(DEFAULT_FORM);
@@ -114,8 +127,17 @@ export default function SpacesPage() {
   const loadSpaces = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getSpaces();
+      const [data, memberships] = await Promise.all([
+        getSpaces(),
+        getMySpaceMemberships(),
+      ]);
       setSpaces(data);
+      setSpaceRolesById(
+        memberships.reduce<Record<string, SpaceRole>>((acc, membership) => {
+          acc[membership.space.id] = membership.role;
+          return acc;
+        }, {})
+      );
       if (data.length === 0) {
         setActiveSpaceId(null);
       } else if (!activeSpaceId || !data.some((space) => space.id === activeSpaceId)) {
@@ -140,19 +162,12 @@ export default function SpacesPage() {
     }
   }, [t]);
 
-  const loadSpaceDetails = useCallback(async (spaceId: string, isOwner: boolean) => {
-    if (!isOwner) {
-      setMembers([]);
-      setInvitations([]);
-      setLoadingDetails(false);
-      return;
-    }
-
+  const loadSpaceDetails = useCallback(async (spaceId: string, canManageInvitations: boolean) => {
     setLoadingDetails(true);
     try {
       const [m, inv] = await Promise.all([
         getSpaceMembers(spaceId),
-        getSpaceInvitations(spaceId),
+        canManageInvitations ? getSpaceInvitations(spaceId) : Promise.resolve([]),
       ]);
       setMembers(m);
       setInvitations(inv);
@@ -163,16 +178,57 @@ export default function SpacesPage() {
     }
   }, [t]);
 
+  const loadSpaceFinance = useCallback(async (spaceId: string) => {
+    setLoadingFinance(true);
+    try {
+      const [accountsData, transactionData] = await Promise.all([
+        getAccounts(),
+        getTransactions({
+          spaceId,
+          context: 'space',
+          limit: 8,
+        }),
+      ]);
+      setFinanceAccounts(accountsData);
+      setSpaceTransactions(transactionData);
+    } catch {
+      toast.error(t('spaces.finance.loadFailed', {
+        ns: 'portal',
+        defaultValue: 'Failed to load shared finance details.',
+      }));
+    } finally {
+      setLoadingFinance(false);
+    }
+  }, [t]);
+
   useEffect(() => { loadSpaces(); }, [loadSpaces]);
   useEffect(() => { loadReceivedInvitations(); }, [loadReceivedInvitations]);
 
   const activeSpace = spaces.find((s) => s.id === activeSpaceId) || null;
-  const isActiveSpaceOwner = Boolean(activeSpace && user?.id && activeSpace.owner_id === user.id);
+  const activeSpaceRole: SpaceRole | null = activeSpace
+    ? (user?.id && activeSpace.owner_id === user.id ? 'owner' : spaceRolesById[activeSpace.id] || null)
+    : null;
+  const isActiveSpaceOwner = activeSpaceRole === 'owner';
+  const canManageSpaceFinance = activeSpaceRole === 'owner' || activeSpaceRole === 'manager';
+  const canAddSpaceTransactions = canManageSpaceFinance || activeSpaceRole === 'contributor';
+  const canManageInvitations = isActiveSpaceOwner;
+  const activeSpaceAccounts = activeSpace
+    ? getSpaceOwnedFinancialAccounts(financeAccounts, activeSpace.id)
+    : [];
+
   useEffect(() => {
     if (activeSpaceId && activeSpace) {
-      void loadSpaceDetails(activeSpaceId, Boolean(user?.id && activeSpace.owner_id === user.id));
+      void Promise.all([
+        loadSpaceDetails(activeSpaceId, canManageInvitations),
+        loadSpaceFinance(activeSpaceId),
+      ]);
+    } else {
+      setMembers([]);
+      setInvitations([]);
+      setFinanceAccounts([]);
+      setSpaceTransactions([]);
     }
-  }, [activeSpace, activeSpaceId, loadSpaceDetails, user?.id]);
+  }, [activeSpace, activeSpaceId, canManageInvitations, loadSpaceDetails, loadSpaceFinance]);
 
   const handleCreate = async () => {
     if (!form.name.trim()) { toast.error(t('spaces.nameRequired', { ns: 'portal' })); return; }
@@ -250,7 +306,7 @@ export default function SpacesPage() {
         entities: ['notifications'],
       });
       void loadReceivedInvitations();
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch {
       toast.error(t('spaces.revokeFailed', { ns: 'portal' }));
     }
@@ -280,7 +336,7 @@ export default function SpacesPage() {
         loadSpaces(),
       ]);
       if (activeSpaceId && activeSpace) {
-        await loadSpaceDetails(activeSpaceId, Boolean(user?.id && activeSpace.owner_id === user.id));
+        await loadSpaceDetails(activeSpaceId, canManageInvitations);
       }
     } catch (error: unknown) {
       toast.error((error as Error).message || t('spaces.received.respondFailed', { ns: 'portal' }));
@@ -293,7 +349,7 @@ export default function SpacesPage() {
     try {
       await updateSpaceMemberRole(memberId, newRole);
       toast.success(t('spaces.roleUpdated', { ns: 'portal' }));
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch (e: unknown) {
       toast.error((e as Error).message || t('spaces.roleUpdateFailed', { ns: 'portal' }));
     }
@@ -304,7 +360,7 @@ export default function SpacesPage() {
     try {
       await removeSpaceMember(memberId);
       toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
-      if (activeSpaceId) loadSpaceDetails(activeSpaceId, isActiveSpaceOwner);
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch (e: unknown) {
       toast.error((e as Error).message || t('spaces.memberRemoveFailed', { ns: 'portal' }));
     }
@@ -524,9 +580,163 @@ export default function SpacesPage() {
                     </div>
                   </div>
 
+                  <div className="card p-5">
+                    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <h3 className="text-sm font-700 text-foreground">
+                          {t('spaces.finance.title', {
+                            ns: 'portal',
+                            defaultValue: 'Shared Finance',
+                          })}
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t('spaces.finance.helper', {
+                            ns: 'portal',
+                            defaultValue: 'Space-owned accounts and Space-linked transactions reuse the same finance engine as personal finance.',
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {canManageSpaceFinance ? (
+                          <button
+                            onClick={() => setShowSpaceAccountModal(true)}
+                            className="btn-secondary"
+                          >
+                            <Plus size={15} />
+                            <span>{t('spaces.finance.addAccount', {
+                              ns: 'portal',
+                              defaultValue: 'Add Space Account',
+                            })}</span>
+                          </button>
+                        ) : null}
+                        {canAddSpaceTransactions ? (
+                          <button
+                            onClick={() => setShowSpaceTransactionModal(true)}
+                            className="btn-primary"
+                          >
+                            <Plus size={15} />
+                            <span>{t('spaces.finance.addTransaction', {
+                              ns: 'portal',
+                              defaultValue: 'Add Space Transaction',
+                            })}</span>
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {loadingFinance ? (
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="h-40 animate-pulse rounded-2xl bg-muted" />
+                        <div className="h-40 animate-pulse rounded-2xl bg-muted" />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div className="rounded-2xl border border-border p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h4 className="text-sm font-700 text-foreground">
+                              {t('spaces.finance.accountsTitle', {
+                                ns: 'portal',
+                                defaultValue: 'Space Accounts',
+                              })}
+                            </h4>
+                            <span className="text-xs text-muted-foreground">{activeSpaceAccounts.length}</span>
+                          </div>
+                          {activeSpaceAccounts.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t('spaces.finance.accountsEmpty', {
+                                ns: 'portal',
+                                defaultValue: 'No Space-owned accounts yet.',
+                              })}
+                            </p>
+                          ) : (
+                            <div className="space-y-3">
+                              {activeSpaceAccounts.map((account) => (
+                                <div key={account.id} className="rounded-xl border border-border bg-muted/10 p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-700 text-foreground">{account.name}</p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        {t(`accounts.types.${account.account_type}`, {
+                                          ns: 'portal',
+                                          defaultValue: account.account_type,
+                                        })}
+                                      </p>
+                                    </div>
+                                    <FormattedCurrencyAmount
+                                      amount={account.current_balance}
+                                      currencyCode={account.currency}
+                                      className="text-sm font-700 text-foreground"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-2xl border border-border p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h4 className="text-sm font-700 text-foreground">
+                              {t('spaces.finance.transactionsTitle', {
+                                ns: 'portal',
+                                defaultValue: 'Recent Space Transactions',
+                              })}
+                            </h4>
+                            <span className="text-xs text-muted-foreground">{spaceTransactions.length}</span>
+                          </div>
+                          {spaceTransactions.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t('spaces.finance.transactionsEmpty', {
+                                ns: 'portal',
+                                defaultValue: 'No Space-linked transactions yet.',
+                              })}
+                            </p>
+                          ) : (
+                            <div className="space-y-3">
+                              {spaceTransactions.map((transaction) => (
+                                <div key={transaction.id} className="rounded-xl border border-border bg-muted/10 p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-700 text-foreground">
+                                        {transaction.description || transaction.merchant || t('spaces.finance.transactionFallback', {
+                                          ns: 'portal',
+                                          defaultValue: 'Space transaction',
+                                        })}
+                                      </p>
+                                      <p className="mt-1 text-xs text-muted-foreground">
+                                        {transaction.category?.name
+                                          ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+                                              t(key, { ...(options || {}), ns: 'common' })
+                                            )
+                                          : t('transactions.noCategory', { ns: 'portal' })}
+                                        {' · '}
+                                        {transaction.account?.name || t('transactions.noAccount', { ns: 'portal' })}
+                                        {' · '}
+                                        {new Date(transaction.transaction_date).toLocaleDateString(language)}
+                                      </p>
+                                    </div>
+                                    <FormattedCurrencyAmount
+                                      amount={transaction.transaction_type === 'expense'
+                                        ? -Math.abs(Number(transaction.amount || 0))
+                                        : Number(transaction.amount || 0)}
+                                      currencyCode={transaction.currency}
+                                      className={transaction.transaction_type === 'expense'
+                                        ? 'text-sm font-700 text-foreground'
+                                        : 'text-sm font-700 text-positive'}
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {loadingDetails ? (
                     <div className="card p-6 animate-pulse h-32 bg-muted" />
-                  ) : isActiveSpaceOwner ? (
+                  ) : activeSpaceRole ? (
                     <>
                       {/* Members */}
                       <div className="card p-5">
@@ -591,55 +801,57 @@ export default function SpacesPage() {
                       </div>
 
                       {/* Invitations */}
-                      <div className="card p-5">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
-                            <Mail size={16} className="text-accent" />
-                            {t('spaces.invitationsTitle', { ns: 'portal', count: pendingInvitations.length })}
-                          </h3>
-                        </div>
-                        {pendingInvitations.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">{t('spaces.invitationsEmpty', { ns: 'portal' })}</p>
-                        ) : (
-                          <div className="space-y-3">
-                            {pendingInvitations.map((inv) => (
-                              <div key={inv.id} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                                  <Mail size={15} className="text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-600 text-foreground truncate">{inv.email}</p>
-                                  <div className="flex items-center gap-2 mt-0.5">
-                                    <span className={`text-xs px-1.5 py-0.5 rounded-full font-500 ${STATUS_COLORS[inv.status] || 'bg-muted text-muted-foreground'}`}>
-                                      {getInvitationStatusLabel(inv.status, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground capitalize">
-                                      {getRoleLabel(inv.role, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                    </span>
-                                    {inv.expires_at && (
-                                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                        <Clock size={10} />
-                                        {new Date(inv.expires_at) < new Date()
-                                          ? t('spaces.expired', { ns: 'portal' })
-                                          : t('spaces.expiresOn', {
-                                              ns: 'portal',
-                                              date: new Date(inv.expires_at).toLocaleDateString(language),
-                                            })}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                                <button
-                                  onClick={() => handleRevoke(inv.id)}
-                                  className="text-xs text-negative font-600 hover:underline flex items-center gap-1"
-                                >
-                                  <XCircle size={13} /> {t('spaces.revokeAction', { ns: 'portal' })}
-                                </button>
-                              </div>
-                            ))}
+                      {canManageInvitations ? (
+                        <div className="card p-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
+                              <Mail size={16} className="text-accent" />
+                              {t('spaces.invitationsTitle', { ns: 'portal', count: pendingInvitations.length })}
+                            </h3>
                           </div>
-                        )}
-                      </div>
+                          {pendingInvitations.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">{t('spaces.invitationsEmpty', { ns: 'portal' })}</p>
+                          ) : (
+                            <div className="space-y-3">
+                              {pendingInvitations.map((inv) => (
+                                <div key={inv.id} className="flex items-center gap-3">
+                                  <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                                    <Mail size={15} className="text-muted-foreground" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-600 text-foreground truncate">{inv.email}</p>
+                                    <div className="flex items-center gap-2 mt-0.5">
+                                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-500 ${STATUS_COLORS[inv.status] || 'bg-muted text-muted-foreground'}`}>
+                                        {getInvitationStatusLabel(inv.status, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground capitalize">
+                                        {getRoleLabel(inv.role, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                      </span>
+                                      {inv.expires_at && (
+                                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                          <Clock size={10} />
+                                          {new Date(inv.expires_at) < new Date()
+                                            ? t('spaces.expired', { ns: 'portal' })
+                                            : t('spaces.expiresOn', {
+                                                ns: 'portal',
+                                                date: new Date(inv.expires_at).toLocaleDateString(language),
+                                              })}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => handleRevoke(inv.id)}
+                                    className="text-xs text-negative font-600 hover:underline flex items-center gap-1"
+                                  >
+                                    <XCircle size={13} /> {t('spaces.revokeAction', { ns: 'portal' })}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                 </>
@@ -798,6 +1010,46 @@ export default function SpacesPage() {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={showSpaceAccountModal && !!activeSpace}
+        onClose={() => setShowSpaceAccountModal(false)}
+        title={t('spaces.finance.addAccount', {
+          ns: 'portal',
+          defaultValue: 'Add Space Account',
+        })}
+        size="md"
+      >
+        {activeSpace ? (
+          <FinancialAccountForm
+            onSuccess={() => {
+              setShowSpaceAccountModal(false);
+              void Promise.all([
+                loadSpaces(),
+                loadSpaceFinance(activeSpace.id),
+              ]);
+            }}
+            onCancel={() => setShowSpaceAccountModal(false)}
+            allowedSpaces={[activeSpace]}
+            initialScopeType="space"
+            initialSpaceId={activeSpace.id}
+            hideScopeControls
+          />
+        ) : null}
+      </Modal>
+
+      <AddTransactionModal
+        isOpen={showSpaceTransactionModal && !!activeSpace}
+        onClose={() => setShowSpaceTransactionModal(false)}
+        spaceId={activeSpace?.id || null}
+        spaceName={activeSpace?.name || null}
+        spaceMembers={members}
+        onSaved={async () => {
+          if (!activeSpace) return;
+          setShowSpaceTransactionModal(false);
+          await loadSpaceFinance(activeSpace.id);
+        }}
+      />
     </AppLayout>
   );
 }

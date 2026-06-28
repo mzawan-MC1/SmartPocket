@@ -23,13 +23,17 @@ import CurrencySelector from '@/components/CurrencySelector';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
+  createSpaceTransaction,
   createTransactionsBatch,
   getAccounts,
   getCategories,
   type Category,
   type CreateTransactionInput,
   type FinancialAccount,
+  type SpaceTransactionInput,
   type Transaction,
+  type TransactionAllocation,
+  updateSpaceTransaction,
   updateTransaction,
   uploadReceipt,
 } from '@/lib/finance';
@@ -50,13 +54,40 @@ import {
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
 import {
-  getActivePersonalFinancialAccounts,
+  getFinancialAccountScopeType,
   getFinancialAccountDisplayLabel,
   getPreferredTransactionAccount,
+  getSpaceTransactionEligibleAccounts,
 } from '@/lib/financial-account-utils';
+import type { SpaceMember } from '@/lib/spaces';
 
 type TransactionModalMode = 'single' | 'multiple';
 type TransactionEntryKind = 'standard' | 'personal_subscription_payment' | 'loan_repayment';
+type SpaceSplitMethod = 'none' | 'equal' | 'exact' | 'percentage' | 'shares';
+type SpaceParticipantType = 'member' | 'managed_person';
+
+interface SpaceParticipantOption {
+  key: string;
+  participant_type: SpaceParticipantType;
+  member_user_id: string | null;
+  managed_person_id: string | null;
+  label: string;
+  subtitle: string | null;
+}
+
+interface SpaceAllocationDraft {
+  participant_key: string;
+  participant_type: SpaceParticipantType;
+  member_user_id: string | null;
+  managed_person_id: string | null;
+  label: string;
+  subtitle: string | null;
+  selected: boolean;
+  allocated_amount: string;
+  percentage: string;
+  shares: string;
+  reimbursement_required: boolean;
+}
 
 interface TxnFormData {
   account_id: string;
@@ -79,6 +110,10 @@ interface TxnFormData {
   use_held_balance: boolean;
   reimbursement_required: boolean;
   reimbursement_status: string;
+  paid_by_user_id: string;
+  paid_by_person_id: string;
+  split_method: SpaceSplitMethod;
+  space_allocations: SpaceAllocationDraft[];
 }
 
 interface TransactionDraftRow extends TxnFormData {
@@ -116,7 +151,93 @@ function buildBaseForm(): TxnFormData {
     use_held_balance: false,
     reimbursement_required: false,
     reimbursement_status: '',
+    paid_by_user_id: '',
+    paid_by_person_id: '',
+    split_method: 'none',
+    space_allocations: [],
   };
+}
+
+function buildSpaceParticipantKey(participant: Pick<SpaceParticipantOption, 'participant_type' | 'member_user_id' | 'managed_person_id'>) {
+  return participant.participant_type === 'member'
+    ? `member:${participant.member_user_id}`
+    : `person:${participant.managed_person_id}`;
+}
+
+function buildDefaultSpaceAllocations(
+  participants: SpaceParticipantOption[],
+  currentUserId?: string | null
+): SpaceAllocationDraft[] {
+  const preferredKey = participants.find((participant) => participant.member_user_id === currentUserId)?.key
+    || participants[0]?.key
+    || null;
+
+  return participants.map((participant) => ({
+    participant_key: participant.key,
+    participant_type: participant.participant_type,
+    member_user_id: participant.member_user_id,
+    managed_person_id: participant.managed_person_id,
+    label: participant.label,
+    subtitle: participant.subtitle,
+    selected: participant.key === preferredKey,
+    allocated_amount: '',
+    percentage: '',
+    shares: '',
+    reimbursement_required: false,
+  }));
+}
+
+function getPreferredSpacePayer(
+  participants: SpaceParticipantOption[],
+  currentUserId?: string | null
+) {
+  return participants.find((participant) => participant.member_user_id === currentUserId)
+    || participants.find((participant) => participant.participant_type === 'member')
+    || participants[0]
+    || null;
+}
+
+function syncSpaceAllocations(
+  current: SpaceAllocationDraft[],
+  participants: SpaceParticipantOption[],
+  currentUserId?: string | null
+) {
+  if (participants.length === 0) {
+    return [];
+  }
+
+  const currentByKey = new Map(current.map((allocation) => [allocation.participant_key, allocation]));
+  const merged = participants.map((participant) => {
+    const existing = currentByKey.get(participant.key);
+    return existing
+      ? {
+        ...existing,
+        participant_type: participant.participant_type,
+        member_user_id: participant.member_user_id,
+        managed_person_id: participant.managed_person_id,
+        label: participant.label,
+        subtitle: participant.subtitle,
+      }
+      : {
+        participant_key: participant.key,
+        participant_type: participant.participant_type,
+        member_user_id: participant.member_user_id,
+        managed_person_id: participant.managed_person_id,
+        label: participant.label,
+        subtitle: participant.subtitle,
+        selected: false,
+        allocated_amount: '',
+        percentage: '',
+        shares: '',
+        reimbursement_required: false,
+      };
+  });
+
+  if (merged.some((allocation) => allocation.selected)) {
+    return merged;
+  }
+
+  return buildDefaultSpaceAllocations(participants, currentUserId);
 }
 
 function createDraftId() {
@@ -194,6 +315,25 @@ function applyPersonalSubscriptionToDraft(
 }
 
 function buildDraftFromTransaction(txn: Transaction): TransactionDraftRow {
+  const existingAllocations = (txn.transaction_allocations || []).map((allocation) => {
+    const participantType: SpaceParticipantType = allocation.member_user_id ? 'member' : 'managed_person';
+    return {
+      participant_key: participantType === 'member'
+        ? `member:${allocation.member_user_id}`
+        : `person:${allocation.managed_person_id}`,
+      participant_type: participantType,
+      member_user_id: allocation.member_user_id || null,
+      managed_person_id: allocation.managed_person_id || null,
+      label: '',
+      subtitle: null,
+      selected: true,
+      allocated_amount: allocation.allocated_amount != null ? String(allocation.allocated_amount) : '',
+      percentage: allocation.percentage != null ? String(allocation.percentage) : '',
+      shares: allocation.shares != null ? String(allocation.shares) : '',
+      reimbursement_required: allocation.reimbursement_required === true,
+    } satisfies SpaceAllocationDraft;
+  });
+
   return {
     id: createDraftId(),
     account_id: txn.account_id,
@@ -216,6 +356,10 @@ function buildDraftFromTransaction(txn: Transaction): TransactionDraftRow {
     use_held_balance: Boolean((txn as any).use_held_balance),
     reimbursement_required: Boolean((txn as any).reimbursement_required),
     reimbursement_status: (txn as any).reimbursement_status || '',
+    paid_by_user_id: txn.paid_by_user_id || '',
+    paid_by_person_id: txn.paid_by_person_id || '',
+    split_method: txn.split_method || 'none',
+    space_allocations: existingAllocations,
     receiptFile: null,
     showMoreOptions: Boolean(txn.notes || (txn.tags || []).length || txn.is_recurring || (txn as any).person_id),
     showManagedPerson: Boolean((txn as any).person_id),
@@ -250,6 +394,39 @@ function buildTransactionPayload(row: TransactionDraftRow): CreateTransactionInp
   return payload;
 }
 
+function buildSpaceTransactionPayload(
+  row: TransactionDraftRow,
+  spaceId: string
+): SpaceTransactionInput {
+  const selectedAllocations = row.space_allocations.filter((allocation) => allocation.selected);
+
+  return {
+    space_id: spaceId,
+    account_id: row.account_id,
+    category_id: row.category_id || null,
+    transaction_type: row.transaction_type,
+    amount: Number(row.amount),
+    currency: row.currency,
+    description: row.description.trim() || row.merchant.trim(),
+    merchant: row.merchant.trim() || null,
+    notes: row.notes.trim() || null,
+    transaction_date: row.transaction_date,
+    tags: row.tags ? row.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
+    is_recurring: row.is_recurring,
+    paid_by_user_id: row.paid_by_user_id || null,
+    paid_by_person_id: row.paid_by_person_id || null,
+    split_method: row.split_method,
+    allocations: selectedAllocations.map((allocation) => ({
+      member_user_id: allocation.member_user_id || null,
+      managed_person_id: allocation.managed_person_id || null,
+      allocated_amount: allocation.allocated_amount ? Number(allocation.allocated_amount) : null,
+      percentage: allocation.percentage ? Number(allocation.percentage) : null,
+      shares: allocation.shares ? Number(allocation.shares) : null,
+      reimbursement_required: allocation.reimbursement_required,
+    })),
+  };
+}
+
 export default function AddTransactionModal({
   isOpen,
   onClose,
@@ -261,6 +438,9 @@ export default function AddTransactionModal({
   accounts: providedAccounts,
   categories: providedCategories,
   people: providedPeople,
+  spaceId,
+  spaceName,
+  spaceMembers = [],
   onSaved,
 }: {
   isOpen: boolean;
@@ -273,6 +453,9 @@ export default function AddTransactionModal({
   accounts?: FinancialAccount[];
   categories?: Category[];
   people?: ManagedPerson[];
+  spaceId?: string | null;
+  spaceName?: string | null;
+  spaceMembers?: SpaceMember[];
   onSaved?: () => void | Promise<void>;
 }) {
   const { t } = useTranslation(['portal', 'common']);
@@ -294,9 +477,52 @@ export default function AddTransactionModal({
   const accounts = providedAccounts ?? internalAccounts;
   const categories = providedCategories ?? internalCategories;
   const people = providedPeople ?? internalPeople;
+  const filteredManagedPeople = useMemo(
+    () => spaceId
+      ? people.filter((person) => person.space_id === spaceId && person.linked_user_id === null)
+      : people,
+    [people, spaceId]
+  );
+  const spaceParticipants = useMemo<SpaceParticipantOption[]>(() => {
+    if (!spaceId) return [];
+
+    const memberParticipants = spaceMembers.map((member) => ({
+      key: buildSpaceParticipantKey({
+        participant_type: 'member',
+        member_user_id: member.user_id,
+        managed_person_id: null,
+      }),
+      participant_type: 'member' as const,
+      member_user_id: member.user_id,
+      managed_person_id: null,
+      label: member.user_profile?.full_name || member.user_profile?.email || t('spaces.unknownUser', { ns: 'portal' }),
+      subtitle: member.user_profile?.email || getFinancialAccountDisplayLabel({
+        name: t(`spaces.roles.${member.role}`, { ns: 'portal', defaultValue: member.role }),
+        currency: '',
+        is_system_default: false,
+        system_default_type: null,
+      }),
+    }));
+    const managedParticipants = filteredManagedPeople.map((person) => ({
+      key: buildSpaceParticipantKey({
+        participant_type: 'managed_person',
+        member_user_id: null,
+        managed_person_id: person.id,
+      }),
+      participant_type: 'managed_person' as const,
+      member_user_id: null,
+      managed_person_id: person.id,
+      label: person.full_name,
+      subtitle: t('transactions.form.managedPerson', { ns: 'portal' }),
+    }));
+
+    return [...memberParticipants, ...managedParticipants];
+  }, [filteredManagedPeople, spaceId, spaceMembers, t]);
   const selectorAccounts = useMemo(
-    () => getActivePersonalFinancialAccounts(accounts),
-    [accounts]
+    () => spaceId
+      ? getSpaceTransactionEligibleAccounts(accounts, spaceId)
+      : accounts.filter((account) => getFinancialAccountScopeType(account) === 'personal' && account.is_active),
+    [accounts, spaceId]
   );
   const accountMap = useMemo(
     () => new Map(accounts.map((account) => [account.id, account])),
@@ -322,23 +548,34 @@ export default function AddTransactionModal({
   const buildEmptyDraft = useCallback((overrides: Partial<TransactionDraftRow> = {}): TransactionDraftRow => {
     const defaultAccount = getPreferredTransactionAccount(
       selectorAccounts,
-      initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType
-    );
+      spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType)
+    ) || selectorAccounts[0] || null;
     const base = buildBaseForm();
     return {
       id: createDraftId(),
       ...base,
-      entry_kind: initialEntryKind,
-      transaction_type: initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType,
+      entry_kind: spaceId ? 'standard' : initialEntryKind,
+      transaction_type: spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType),
       account_id: defaultAccount?.id || base.account_id,
       currency: defaultAccount?.currency || referenceData?.platformDefaultCurrency || base.currency,
       person_id: preselectedPersonId || '',
       receiptFile: null,
-      showMoreOptions: initialEntryKind === 'loan_repayment',
+      showMoreOptions: spaceId ? true : initialEntryKind === 'loan_repayment',
       showManagedPerson: false,
+      split_method: spaceId ? 'equal' : base.split_method,
+      space_allocations: spaceId ? buildDefaultSpaceAllocations(spaceParticipants, user?.id) : [],
       ...overrides,
     };
-  }, [initialEntryKind, initialTransactionType, preselectedPersonId, referenceData?.platformDefaultCurrency, selectorAccounts]);
+  }, [
+    initialEntryKind,
+    initialTransactionType,
+    preselectedPersonId,
+    referenceData?.platformDefaultCurrency,
+    selectorAccounts,
+    spaceId,
+    spaceParticipants,
+    user?.id,
+  ]);
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
 
@@ -368,11 +605,11 @@ export default function AddTransactionModal({
       setTransactionMode('single');
       setDraftRows([buildDraftFromTransaction(editingTransaction)]);
     } else {
-      setTransactionMode(initialEntryKind === 'loan_repayment' ? 'single' : initialMode);
+      setTransactionMode(spaceId || initialEntryKind === 'loan_repayment' ? 'single' : initialMode);
       setDraftRows([
         buildEmptyDraft({
-          entry_kind: initialEntryKind,
-          transaction_type: initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType,
+          entry_kind: spaceId ? 'standard' : initialEntryKind,
+          transaction_type: spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType),
           person_id: preselectedPersonId || '',
         }),
       ]);
@@ -381,7 +618,44 @@ export default function AddTransactionModal({
     setSaveProgress(null);
     setIsSaving(false);
     setDocumentReviewFile(null);
-  }, [buildEmptyDraft, editingTransaction, initialEntryKind, initialMode, initialTransactionType, isOpen, preselectedPersonId]);
+  }, [buildEmptyDraft, editingTransaction, initialEntryKind, initialMode, initialTransactionType, isOpen, preselectedPersonId, spaceId]);
+
+  useEffect(() => {
+    if (!isOpen || !spaceId) return;
+
+    setDraftRows((rows) => rows.map((row) => ({
+      ...row,
+      entry_kind: 'standard',
+      showManagedPerson: false,
+      showMoreOptions: true,
+      split_method: row.split_method || 'equal',
+      space_allocations: syncSpaceAllocations(row.space_allocations, spaceParticipants, user?.id),
+    })));
+  }, [isOpen, spaceId, spaceParticipants, user?.id]);
+
+  useEffect(() => {
+    if (!isOpen || !spaceId || spaceParticipants.length === 0) return;
+
+    const preferredPayer = getPreferredSpacePayer(spaceParticipants, user?.id);
+    if (!preferredPayer) return;
+
+    setDraftRows((rows) => rows.map((row) => {
+      const account = accountMap.get(row.account_id);
+      const usesSharedPersonalAccount = account
+        ? getFinancialAccountScopeType(account) === 'personal'
+        : false;
+
+      if (!usesSharedPersonalAccount || row.paid_by_user_id || row.paid_by_person_id) {
+        return row;
+      }
+
+      return {
+        ...row,
+        paid_by_user_id: preferredPayer.member_user_id || '',
+        paid_by_person_id: preferredPayer.managed_person_id || '',
+      };
+    }));
+  }, [accountMap, isOpen, spaceId, spaceParticipants, user?.id]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -404,6 +678,7 @@ export default function AddTransactionModal({
   const validateDraftRow = useCallback((row: TransactionDraftRow, rowIndex: number) => {
     const errors: string[] = [];
     const account = accountMap.get(row.account_id);
+    const amount = Number(row.amount);
 
     if (row.entry_kind === 'personal_subscription_payment') {
       if (!row.personal_subscription_id) {
@@ -421,7 +696,6 @@ export default function AddTransactionModal({
       errors.push(t('transactions.form.rowCurrencyMismatch', { ns: 'portal', index: rowIndex + 1, currency: account.currency }));
     }
 
-    const amount = Number(row.amount);
     if (!row.amount || !Number.isFinite(amount) || amount <= 0) {
       errors.push(t('transactions.form.rowValidAmount', { ns: 'portal', index: rowIndex + 1 }));
     }
@@ -447,8 +721,65 @@ export default function AddTransactionModal({
       errors.push(t('transactions.form.rowChooseManagedPerson', { ns: 'portal', index: rowIndex + 1 }));
     }
 
+    if (spaceId) {
+      const selectedAllocations = row.space_allocations.filter((allocation) => allocation.selected);
+      if (selectedAllocations.length === 0) {
+        errors.push(t('transactions.form.rowSelectSpaceParticipants', {
+          ns: 'portal',
+          index: rowIndex + 1,
+          defaultValue: 'Transaction {{index}}: choose at least one Space participant',
+        }));
+      }
+      if (row.split_method === 'none' && selectedAllocations.length !== 1) {
+        errors.push(t('transactions.form.rowSingleSpaceParticipant', {
+          ns: 'portal',
+          index: rowIndex + 1,
+          defaultValue: 'Transaction {{index}}: single-beneficiary splits require exactly one participant',
+        }));
+      }
+      if (getFinancialAccountScopeType(account || { scope_type: 'personal', space_id: null }) === 'personal'
+        && !row.paid_by_user_id
+        && !row.paid_by_person_id) {
+        errors.push(t('transactions.form.rowSelectPayer', {
+          ns: 'portal',
+          index: rowIndex + 1,
+          defaultValue: 'Transaction {{index}}: choose who paid when using a shared personal account',
+        }));
+      }
+      if (row.split_method === 'exact') {
+        const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.allocated_amount || 0), 0);
+        if (Math.abs(total - amount) > 0.01) {
+          errors.push(t('transactions.form.rowExactSplitTotal', {
+            ns: 'portal',
+            index: rowIndex + 1,
+            defaultValue: 'Transaction {{index}}: exact split amounts must equal the transaction amount',
+          }));
+        }
+      }
+      if (row.split_method === 'percentage') {
+        const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.percentage || 0), 0);
+        if (Math.abs(total - 100) > 0.001) {
+          errors.push(t('transactions.form.rowPercentageSplitTotal', {
+            ns: 'portal',
+            index: rowIndex + 1,
+            defaultValue: 'Transaction {{index}}: percentages must total 100',
+          }));
+        }
+      }
+      if (row.split_method === 'shares') {
+        const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.shares || 0), 0);
+        if (total <= 0) {
+          errors.push(t('transactions.form.rowSharesSplitTotal', {
+            ns: 'portal',
+            index: rowIndex + 1,
+            defaultValue: 'Transaction {{index}}: enter shares greater than 0',
+          }));
+        }
+      }
+    }
+
     return errors;
-  }, [accountMap, eligiblePersonalSubscriptionMap, t]);
+  }, [accountMap, eligiblePersonalSubscriptionMap, spaceId, t]);
 
   const closeModalAndReset = useCallback(() => {
     setRowErrors({});
@@ -474,6 +805,13 @@ export default function AddTransactionModal({
 
   const handleModeChange = (mode: TransactionModalMode) => {
     if (editingTransaction || mode === transactionMode) return;
+    if (spaceId && mode === 'multiple') {
+      toast.error(t('transactions.form.spaceTransactionsSingleOnly', {
+        ns: 'portal',
+        defaultValue: 'Space transactions are available in Single mode only.',
+      }));
+      return;
+    }
     if (mode === 'multiple' && activeDraftRows[0]?.entry_kind === 'loan_repayment') {
       toast.error(t('transactions.form.loanRepaymentSingleOnly', {
         ns: 'portal',
@@ -550,7 +888,9 @@ export default function AddTransactionModal({
     try {
       if (editingTransaction) {
         const row = rowsToSave[0];
-        const savedTxn = await updateTransaction(editingTransaction.id, buildTransactionPayload(row) as Parameters<typeof updateTransaction>[1]);
+        const savedTxn = spaceId
+          ? await updateSpaceTransaction(editingTransaction.id, buildSpaceTransactionPayload(row, spaceId))
+          : await updateTransaction(editingTransaction.id, buildTransactionPayload(row) as Parameters<typeof updateTransaction>[1]);
         if (row.receiptFile && user?.id) {
           try {
             await uploadReceipt(savedTxn.id, row.receiptFile, user.id);
@@ -560,11 +900,37 @@ export default function AddTransactionModal({
         }
 
         dispatchSmartPocketDataChanged({
-          source: 'transactions-modal',
-          entities: ['transactions', 'financial_accounts', 'dashboard'],
+          source: spaceId ? 'space-transactions-modal' : 'transactions-modal',
+          entities: spaceId
+            ? ['transactions', 'financial_accounts', 'dashboard', 'spaces']
+            : ['transactions', 'financial_accounts', 'dashboard'],
         });
         await onSaved?.();
         toast.success(t('transactions.form.updatedSuccessfully', { ns: 'portal' }));
+        closeModalAndReset();
+        return;
+      }
+
+      if (spaceId) {
+        const row = rowsToSave[0];
+        const createdTransaction = await createSpaceTransaction(buildSpaceTransactionPayload(row, spaceId));
+        if (row.receiptFile && user?.id) {
+          try {
+            await uploadReceipt(createdTransaction.id, row.receiptFile, user.id);
+          } catch {
+            toast.error(t('transactions.form.updatedReceiptFailed', { ns: 'portal' }));
+          }
+        }
+
+        dispatchSmartPocketDataChanged({
+          source: 'space-transactions-modal',
+          entities: ['transactions', 'financial_accounts', 'dashboard', 'spaces'],
+        });
+        await onSaved?.();
+        toast.success(t('transactions.form.spaceTransactionSaved', {
+          ns: 'portal',
+          defaultValue: 'Space transaction saved.',
+        }));
         closeModalAndReset();
         return;
       }
@@ -690,7 +1056,7 @@ export default function AddTransactionModal({
       setIsSaving(false);
       setSaveProgress(null);
     }
-  }, [activeDraftRows, closeModalAndReset, editingTransaction, eligiblePersonalSubscriptionMap, onSaved, t, transactionMode, user?.id, validateDraftRow]);
+  }, [activeDraftRows, closeModalAndReset, editingTransaction, eligiblePersonalSubscriptionMap, onSaved, spaceId, t, transactionMode, user?.id, validateDraftRow]);
 
   const handleOpenDocumentReview = useCallback((file: File | null | undefined) => {
     if (!file) return;
@@ -702,6 +1068,11 @@ export default function AddTransactionModal({
   const isSubscriptionPaymentMode = activeDraftRows[0]?.entry_kind === 'personal_subscription_payment';
   const addActionLabel = editingTransaction
     ? t('transactions.form.updateAction', { ns: 'portal' })
+    : spaceId
+      ? t('transactions.form.spaceTransactionAction', {
+        ns: 'portal',
+        defaultValue: 'Save Space Transaction',
+      })
     : isSubscriptionPaymentMode
       ? t('transactions.form.subscriptionPaymentAction', {
         ns: 'portal',
@@ -717,6 +1088,11 @@ export default function AddTransactionModal({
       : t('transactions.form.addManyAction', { ns: 'portal', count: visibleRowCount });
   const savingActionLabel = editingTransaction
     ? t('transactions.form.savingOne', { ns: 'portal' })
+    : spaceId
+      ? t('transactions.form.spaceTransactionSaving', {
+        ns: 'portal',
+        defaultValue: 'Saving Space transaction...',
+      })
     : isSubscriptionPaymentMode
       ? t('transactions.form.subscriptionPaymentSaving', {
         ns: 'portal',
@@ -801,16 +1177,23 @@ export default function AddTransactionModal({
             {transactionMode === 'single' ? (
               <div className="flex flex-wrap items-stretch gap-2.5">
                 <div
-                  className="grid w-full min-w-0 basis-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:grid-cols-4 md:basis-auto md:flex-[1_1_32rem]"
+                  className={`grid w-full min-w-0 basis-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 ${
+                    spaceId ? 'sm:grid-cols-2' : 'sm:grid-cols-4'
+                  } md:basis-auto md:flex-[1_1_32rem]`}
                   role="group"
                   aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
                 >
-                  {([
-                    { kind: 'standard' as const, type: 'expense' as const },
-                    { kind: 'standard' as const, type: 'income' as const },
-                    { kind: 'personal_subscription_payment' as const, type: 'expense' as const },
-                    { kind: 'loan_repayment' as const, type: 'expense' as const },
-                  ]).map((option) => {
+                  {(spaceId
+                    ? [
+                      { kind: 'standard' as const, type: 'expense' as const },
+                      { kind: 'standard' as const, type: 'income' as const },
+                    ]
+                    : [
+                      { kind: 'standard' as const, type: 'expense' as const },
+                      { kind: 'standard' as const, type: 'income' as const },
+                      { kind: 'personal_subscription_payment' as const, type: 'expense' as const },
+                      { kind: 'loan_repayment' as const, type: 'expense' as const },
+                    ]).map((option) => {
                     const primaryRow = activeDraftRows[0];
                     const isLoanRepaymentOption = option.kind === 'loan_repayment';
                     const isSubscriptionPaymentOption = option.kind === 'personal_subscription_payment';
@@ -873,27 +1256,36 @@ export default function AddTransactionModal({
                   })}
                 </div>
                 <div className="flex w-full basis-full flex-col gap-2 sm:flex-row sm:items-stretch sm:justify-between md:w-auto md:basis-auto md:flex-[0_0_22rem]">
-                  <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:w-auto sm:flex-[0_0_13rem]">
-                    {(['single', 'multiple'] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        aria-pressed={transactionMode === mode}
-                        aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
-                        onClick={() => handleModeChange(mode)}
-                        disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
-                        className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
-                          transactionMode === mode
-                            ? 'border-border bg-card text-foreground shadow-sm'
-                            : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
-                        } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
-                      >
-                        <span className="block whitespace-normal break-words">
-                          {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                  {!spaceId ? (
+                    <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:w-auto sm:flex-[0_0_13rem]">
+                      {(['single', 'multiple'] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          aria-pressed={transactionMode === mode}
+                          aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
+                          onClick={() => handleModeChange(mode)}
+                          disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
+                          className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
+                            transactionMode === mode
+                              ? 'border-border bg-card text-foreground shadow-sm'
+                              : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
+                          } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                        >
+                          <span className="block whitespace-normal break-words">
+                            {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                      {t('transactions.form.spaceTransactionsSingleOnly', {
+                        ns: 'portal',
+                        defaultValue: 'Space transactions are available in Single mode only.',
+                      })}
+                    </div>
+                  )}
 
                   {isSubscriptionPaymentMode ? (
                     <Link
@@ -912,7 +1304,7 @@ export default function AddTransactionModal({
                 <span className="font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
               </div>
             )}
-            {transactionMode === 'single' ? null : (
+            {transactionMode === 'single' || spaceId ? null : (
             <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/20 p-1">
               {(['single', 'multiple'] as const).map((mode) => (
                 <button
@@ -946,6 +1338,14 @@ export default function AddTransactionModal({
                 const isSubscriptionPaymentRow = row.entry_kind === 'personal_subscription_payment';
                 const selectedSubscription = eligiblePersonalSubscriptionMap.get(row.personal_subscription_id) || null;
                 const filteredCategories = categories.filter((category) => category.category_type === row.transaction_type || category.category_type === 'transfer');
+                const selectedAllocations = row.space_allocations.filter((allocation) => allocation.selected);
+                const selectedPayerKey = row.paid_by_user_id
+                  ? `member:${row.paid_by_user_id}`
+                  : row.paid_by_person_id
+                    ? `person:${row.paid_by_person_id}`
+                    : '';
+                const requiresSpacePayer = spaceId
+                  && getFinancialAccountScopeType(account || { scope_type: 'personal', space_id: null }) === 'personal';
                 const rowHasErrors = rowErrors[row.id] || [];
                 const rowLabel = transactionMode === 'multiple' && !editingTransaction
                   ? t('transactions.form.transactionNumber', { ns: 'portal', index: index + 1 })
@@ -1308,7 +1708,273 @@ export default function AddTransactionModal({
                               </div>
                             ) : null}
 
-                            {!isLoanRepaymentRow ? (
+                            {spaceId ? (
+                              <div className="space-y-3 rounded-xl border border-border/70 bg-card/70 p-3">
+                                <div>
+                                  <p className="text-sm font-700 text-foreground">
+                                    {spaceName
+                                      ? t('transactions.form.spaceDetailsTitle', {
+                                        ns: 'portal',
+                                        defaultValue: 'Space details for {{space}}',
+                                        space: spaceName,
+                                      })
+                                      : t('transactions.form.spaceDetailsTitleGeneric', {
+                                        ns: 'portal',
+                                        defaultValue: 'Space details',
+                                      })}
+                                  </p>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {requiresSpacePayer
+                                      ? t('transactions.form.spacePayerRequiredHelper', {
+                                        ns: 'portal',
+                                        defaultValue: 'Shared personal accounts require a payer so reimbursements and balances stay correct.',
+                                      })
+                                      : t('transactions.form.spacePayerOptionalHelper', {
+                                        ns: 'portal',
+                                        defaultValue: 'Choose who paid for this Space transaction when relevant.',
+                                      })}
+                                  </p>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                  <div>
+                                    <label className="mb-1 block text-sm font-600 text-foreground">
+                                      {t('transactions.form.spacePayerLabel', {
+                                        ns: 'portal',
+                                        defaultValue: 'Paid by',
+                                      })}
+                                      {requiresSpacePayer ? ' *' : ''}
+                                    </label>
+                                    <select
+                                      className="input-base h-9 text-sm"
+                                      value={selectedPayerKey}
+                                      onChange={(event) => {
+                                        const participant = spaceParticipants.find((option) => option.key === event.target.value) || null;
+                                        updateDraftRow(row.id, (draft) => ({
+                                          ...draft,
+                                          paid_by_user_id: participant?.member_user_id || '',
+                                          paid_by_person_id: participant?.managed_person_id || '',
+                                        }));
+                                      }}
+                                    >
+                                      <option value="">
+                                        {requiresSpacePayer
+                                          ? t('transactions.form.selectSpacePayer', {
+                                            ns: 'portal',
+                                            defaultValue: 'Select who paid',
+                                          })
+                                          : t('transactions.form.noSpacePayerSelected', {
+                                            ns: 'portal',
+                                            defaultValue: 'No payer selected',
+                                          })}
+                                      </option>
+                                      {spaceParticipants.map((participant) => (
+                                        <option key={`${row.id}-payer-${participant.key}`} value={participant.key}>
+                                          {participant.subtitle
+                                            ? `${participant.label} - ${participant.subtitle}`
+                                            : participant.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="mb-1 block text-sm font-600 text-foreground">
+                                      {t('transactions.form.spaceSplitMethodLabel', {
+                                        ns: 'portal',
+                                        defaultValue: 'Split method',
+                                      })}
+                                    </label>
+                                    <select
+                                      className="input-base h-9 text-sm"
+                                      value={row.split_method}
+                                      onChange={(event) => {
+                                        const nextSplitMethod = event.target.value as SpaceSplitMethod;
+                                        updateDraftRow(row.id, (draft) => ({
+                                          ...draft,
+                                          split_method: nextSplitMethod,
+                                          space_allocations: draft.space_allocations.map((allocation, allocationIndex) => ({
+                                            ...allocation,
+                                            selected: nextSplitMethod === 'none'
+                                              ? allocationIndex === 0
+                                              : allocation.selected,
+                                          })),
+                                        }));
+                                      }}
+                                    >
+                                      <option value="none">{t('transactions.form.splitMethodNone', { ns: 'portal', defaultValue: 'Single beneficiary' })}</option>
+                                      <option value="equal">{t('transactions.form.splitMethodEqual', { ns: 'portal', defaultValue: 'Equal split' })}</option>
+                                      <option value="exact">{t('transactions.form.splitMethodExact', { ns: 'portal', defaultValue: 'Exact amounts' })}</option>
+                                      <option value="percentage">{t('transactions.form.splitMethodPercentage', { ns: 'portal', defaultValue: 'Percentages' })}</option>
+                                      <option value="shares">{t('transactions.form.splitMethodShares', { ns: 'portal', defaultValue: 'Shares' })}</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-600 text-foreground">
+                                      {t('transactions.form.spaceBeneficiariesLabel', {
+                                        ns: 'portal',
+                                        defaultValue: 'Beneficiaries',
+                                      })}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {t('transactions.form.spaceBeneficiariesSummary', {
+                                        ns: 'portal',
+                                        count: selectedAllocations.length,
+                                        defaultValue: '{{count}} selected',
+                                      })}
+                                    </p>
+                                  </div>
+                                  {row.space_allocations.length === 0 ? (
+                                    <p className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                      {t('transactions.form.noSpaceParticipants', {
+                                        ns: 'portal',
+                                        defaultValue: 'No eligible Space participants are available yet.',
+                                      })}
+                                    </p>
+                                  ) : (
+                                    row.space_allocations.map((allocation) => (
+                                      <div key={`${row.id}-allocation-${allocation.participant_key}`} className="rounded-xl border border-border bg-muted/10 p-3">
+                                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                          <label className="flex min-w-0 items-start gap-3">
+                                            <input
+                                              type="checkbox"
+                                              className="mt-1 h-4 w-4 rounded border-border accent-accent"
+                                              checked={allocation.selected}
+                                              onChange={(event) => {
+                                                const checked = event.target.checked;
+                                                updateDraftRow(row.id, (draft) => ({
+                                                  ...draft,
+                                                  space_allocations: draft.space_allocations.map((item) => {
+                                                    if (draft.split_method === 'none') {
+                                                      return {
+                                                        ...item,
+                                                        selected: item.participant_key === allocation.participant_key ? checked : false,
+                                                      };
+                                                    }
+                                                    return item.participant_key === allocation.participant_key
+                                                      ? { ...item, selected: checked }
+                                                      : item;
+                                                  }),
+                                                }));
+                                              }}
+                                            />
+                                            <span className="min-w-0">
+                                              <span className="block text-sm font-600 text-foreground">{allocation.label}</span>
+                                              {allocation.subtitle ? (
+                                                <span className="mt-1 block text-xs text-muted-foreground">{allocation.subtitle}</span>
+                                              ) : null}
+                                            </span>
+                                          </label>
+                                          {allocation.selected ? (
+                                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                              <input
+                                                type="checkbox"
+                                                className="h-4 w-4 rounded border-border accent-accent"
+                                                checked={allocation.reimbursement_required}
+                                                onChange={(event) => {
+                                                  updateDraftRow(row.id, (draft) => ({
+                                                    ...draft,
+                                                    space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                      ? { ...item, reimbursement_required: event.target.checked }
+                                                      : item),
+                                                  }));
+                                                }}
+                                              />
+                                              {t('transactions.form.spaceReimbursementRequired', {
+                                                ns: 'portal',
+                                                defaultValue: 'Needs reimbursement',
+                                              })}
+                                            </label>
+                                          ) : null}
+                                        </div>
+
+                                        {allocation.selected && row.split_method !== 'equal' && row.split_method !== 'none' ? (
+                                          <div className="mt-3">
+                                            {row.split_method === 'exact' ? (
+                                              <div>
+                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                  {t('transactions.form.allocatedAmountLabel', {
+                                                    ns: 'portal',
+                                                    defaultValue: 'Allocated amount',
+                                                  })}
+                                                </label>
+                                                <input
+                                                  type="number"
+                                                  step="0.01"
+                                                  min="0"
+                                                  className="input-base h-9 text-sm"
+                                                  value={allocation.allocated_amount}
+                                                  onChange={(event) => {
+                                                    updateDraftRow(row.id, (draft) => ({
+                                                      ...draft,
+                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                        ? { ...item, allocated_amount: event.target.value }
+                                                        : item),
+                                                    }));
+                                                  }}
+                                                />
+                                              </div>
+                                            ) : null}
+                                            {row.split_method === 'percentage' ? (
+                                              <div>
+                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                  {t('transactions.form.allocationPercentageLabel', {
+                                                    ns: 'portal',
+                                                    defaultValue: 'Percentage',
+                                                  })}
+                                                </label>
+                                                <input
+                                                  type="number"
+                                                  step="0.01"
+                                                  min="0"
+                                                  className="input-base h-9 text-sm"
+                                                  value={allocation.percentage}
+                                                  onChange={(event) => {
+                                                    updateDraftRow(row.id, (draft) => ({
+                                                      ...draft,
+                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                        ? { ...item, percentage: event.target.value }
+                                                        : item),
+                                                    }));
+                                                  }}
+                                                />
+                                              </div>
+                                            ) : null}
+                                            {row.split_method === 'shares' ? (
+                                              <div>
+                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                  {t('transactions.form.allocationSharesLabel', {
+                                                    ns: 'portal',
+                                                    defaultValue: 'Shares',
+                                                  })}
+                                                </label>
+                                                <input
+                                                  type="number"
+                                                  step="0.01"
+                                                  min="0.01"
+                                                  className="input-base h-9 text-sm"
+                                                  value={allocation.shares}
+                                                  onChange={(event) => {
+                                                    updateDraftRow(row.id, (draft) => ({
+                                                      ...draft,
+                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                        ? { ...item, shares: event.target.value }
+                                                        : item),
+                                                    }));
+                                                  }}
+                                                />
+                                              </div>
+                                            ) : null}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            ) : !isLoanRepaymentRow ? (
                               <div className="rounded-xl border border-border/70 overflow-hidden">
                               <button
                                 type="button"

@@ -2,11 +2,14 @@
 import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import {
+  getFinancialAccountScopeType,
   getFinancialAccountOwnershipType,
   sortFinancialAccounts,
   type FinancialAccountOwnershipType,
+  type FinancialAccountScopeType,
   type FinancialAccountSystemDefaultType,
   type FinancialBankAccountType,
+  type SpaceAccountPermissionLike,
 } from '@/lib/financial-account-utils';
 import {
   addCurrencyAmount,
@@ -71,6 +74,8 @@ type TransactionMetricRow = {
   transaction_type: 'income' | 'expense' | 'transfer';
   amount: number | string;
   currency?: string | null;
+  space_id?: string | null;
+  transaction_context?: 'personal' | 'space' | null;
   expense_owner?: string | null;
   paid_by?: string | null;
   paid_from?: string | null;
@@ -130,9 +135,12 @@ export type TransactionClassification =
 export interface FinancialAccount {
   id: string;
   user_id: string;
+  created_by_user_id?: string | null;
   name: string;
   account_type: 'bank' | 'credit_card' | 'cash' | 'savings' | 'digital_wallet' | 'investment' | 'other';
   ownership_type: FinancialAccountOwnershipType;
+  scope_type?: FinancialAccountScopeType;
+  space_id?: string | null;
   system_default_type: FinancialAccountSystemDefaultType | null;
   is_system_default: boolean;
   currency: string;
@@ -151,8 +159,19 @@ export interface FinancialAccount {
   is_active: boolean;
   include_in_total: boolean;
   sort_order: number;
+  space?: {
+    id?: string;
+    name?: string | null;
+    color?: string | null;
+  } | null;
+  space_account_permissions?: SpaceAccountPermission[];
+  shared_with_spaces?: SpaceAccountPermission[];
   created_at: string;
   updated_at: string;
+}
+
+export interface SpaceAccountPermission extends SpaceAccountPermissionLike {
+  id: string;
 }
 
 export interface Category {
@@ -182,6 +201,12 @@ export interface Transaction {
   is_recurring: boolean;
   recurring_id: string | null;
   transfer_pair_id: string | null;
+  space_id?: string | null;
+  created_by_user_id?: string | null;
+  paid_by_user_id?: string | null;
+  paid_by_person_id?: string | null;
+  transaction_context?: 'personal' | 'space';
+  split_method?: SpaceTransactionSplitMethod;
   expense_owner?: string | null;
   paid_by?: string | null;
   paid_from?: string | null;
@@ -192,6 +217,41 @@ export interface Transaction {
   account?: { name: string; currency: string };
   category?: { name: string; color: string | null; icon: string | null };
   receipt_attachments?: ReceiptAttachment[];
+  transaction_allocations?: TransactionAllocation[];
+}
+
+export type SpaceTransactionSplitMethod = 'none' | 'equal' | 'exact' | 'percentage' | 'shares';
+
+export interface TransactionAllocation {
+  id?: string;
+  transaction_id?: string;
+  space_id?: string;
+  member_user_id?: string | null;
+  managed_person_id?: string | null;
+  allocated_amount?: number | null;
+  percentage?: number | null;
+  shares?: number | null;
+  reimbursement_required?: boolean;
+}
+
+export interface SpaceTransactionInput {
+  space_id: string;
+  account_id: string;
+  category_id?: string | null;
+  transaction_type: 'income' | 'expense';
+  amount: number;
+  currency: string;
+  description: string;
+  merchant?: string | null;
+  notes?: string | null;
+  transaction_date: string;
+  tags?: string[];
+  is_recurring?: boolean;
+  recurring_id?: string | null;
+  paid_by_user_id?: string | null;
+  paid_by_person_id?: string | null;
+  split_method: SpaceTransactionSplitMethod;
+  allocations: TransactionAllocation[];
 }
 
 export interface CreateTransactionInput {
@@ -607,10 +667,13 @@ function isManagedAccountTransaction(
 }
 
 export function classifyTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ): TransactionClassification {
+  if (row.transaction_context === 'space' || row.space_id) {
+    return 'other';
+  }
   const summary = ledgerSummaryByTransactionId.get(row.id);
   const isManagedAccount = isManagedAccountTransaction(row, accountInclusionById);
 
@@ -647,7 +710,7 @@ export function classifyTransaction(
 }
 
 export function isLoanProceedsTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -655,7 +718,7 @@ export function isLoanProceedsTransaction(
 }
 
 export function isLoanRepaymentTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -663,7 +726,7 @@ export function isLoanRepaymentTransaction(
 }
 
 export function isManagedMoneyTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -672,7 +735,7 @@ export function isManagedMoneyTransaction(
 }
 
 export function isPersonalIncomeTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -680,7 +743,7 @@ export function isPersonalIncomeTransaction(
 }
 
 export function isPersonalExpenseTransaction(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -688,10 +751,13 @@ export function isPersonalExpenseTransaction(
 }
 
 export function shouldIncludeInPersonalCashFlow(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
+  if (row.transaction_context === 'space' || row.space_id) {
+    return false;
+  }
   const classification = classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
   return classification !== 'transfer' &&
     classification !== 'managed_receipt' &&
@@ -700,10 +766,13 @@ export function shouldIncludeInPersonalCashFlow(
 }
 
 export function shouldIncludeInPersonalReports(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
+  if (row.transaction_context === 'space' || row.space_id) {
+    return false;
+  }
   const classification = classifyTransaction(row, ledgerSummaryByTransactionId, accountInclusionById);
   return classification !== 'transfer' &&
     classification !== 'managed_receipt' &&
@@ -712,7 +781,7 @@ export function shouldIncludeInPersonalReports(
 }
 
 export function shouldIncludeInBudgetSpending(
-  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+  row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>
 ) {
@@ -724,7 +793,7 @@ function filterTransactionsByRule<T extends Pick<TransactionMetricRow, 'id' | 'a
   ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
   accountInclusionById: Map<string, boolean>,
   predicate: (
-    row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
+    row: Pick<TransactionMetricRow, 'id' | 'account_id' | 'transaction_type' | 'space_id' | 'transaction_context' | 'expense_owner' | 'paid_by' | 'paid_from' | 'use_held_balance'>,
     ledgerSummaryByTransactionId: Map<string, TransactionLedgerSummary>,
     accountInclusionById: Map<string, boolean>
   ) => boolean
@@ -1334,6 +1403,7 @@ export async function getAccounts(): Promise<FinancialAccount[]> {
   return sortFinancialAccounts(((body.accounts as FinancialAccount[]) || []).map((account) => ({
     ...account,
     ownership_type: getFinancialAccountOwnershipType(account),
+    scope_type: getFinancialAccountScopeType(account),
   })));
 }
 
@@ -1345,7 +1415,9 @@ export async function getFinancialAccountsSummary(
   const supabase = createClient();
   const { defaultCurrency, latestSnapshot } = reportingContext || await getLatestReportingContext(supabase);
   const activeAccounts = accounts.filter((account) => account.is_active);
-  const personalAccounts = activeAccounts.filter((account) => account.include_in_total);
+  const personalAccounts = activeAccounts.filter((account) =>
+    account.include_in_total && getFinancialAccountScopeType(account) === 'personal'
+  );
 
   const netByCurrency = new Map<string, number>();
   const assetsByCurrency = new Map<string, number>();
@@ -1502,6 +1574,8 @@ export async function getCategories(type?: 'income' | 'expense' | 'transfer'): P
 
 export async function getTransactions(filters?: {
   accountId?: string;
+  spaceId?: string;
+  context?: 'personal' | 'space';
   type?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -1515,12 +1589,17 @@ export async function getTransactions(filters?: {
       *,
       account:financial_accounts(name, currency),
       category:categories(name, color, icon),
-      receipt_attachments(*)
+      receipt_attachments(*),
+      transaction_allocations(*)
     `)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false });
 
   if (filters?.accountId) query = query.eq('account_id', filters.accountId);
+  if (filters?.spaceId) query = query.eq('space_id', filters.spaceId);
+  if (filters?.context) {
+    query = query.eq('transaction_context', filters.context);
+  }
   if (filters?.type && filters.type !== 'all') query = query.eq('transaction_type', filters.type);
   if (filters?.dateFrom) query = query.gte('transaction_date', filters.dateFrom);
   if (filters?.dateTo) query = query.lte('transaction_date', filters.dateTo);
@@ -1529,6 +1608,23 @@ export async function getTransactions(filters?: {
   const { data, error } = await query;
   if (error) throw error;
   return (data || []) as Transaction[];
+}
+
+export async function getTransactionById(id: string): Promise<Transaction> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      account:financial_accounts(name, currency),
+      category:categories(name, color, icon),
+      receipt_attachments(*),
+      transaction_allocations(*)
+    `)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return data as Transaction;
 }
 
 export async function getLatestTransactionReportingPreviews(
@@ -1644,6 +1740,67 @@ async function insertTransactionRecord(
   return data as Transaction;
 }
 
+function buildSpaceTransactionRpcArgs(
+  payload: SpaceTransactionInput,
+  transactionId: string | null
+) {
+  return {
+    p_transaction_id: transactionId,
+    p_space_id: payload.space_id,
+    p_account_id: payload.account_id,
+    p_category_id: payload.category_id || null,
+    p_transaction_type: payload.transaction_type,
+    p_amount: payload.amount,
+    p_currency: payload.currency,
+    p_description: payload.description,
+    p_merchant: payload.merchant || null,
+    p_notes: payload.notes || null,
+    p_transaction_date: payload.transaction_date,
+    p_tags: payload.tags || [],
+    p_is_recurring: payload.is_recurring === true,
+    p_recurring_id: payload.recurring_id || null,
+    p_paid_by_user_id: payload.paid_by_user_id || null,
+    p_paid_by_person_id: payload.paid_by_person_id || null,
+    p_split_method: payload.split_method,
+    p_allocations: payload.allocations || [],
+  };
+}
+
+async function upsertSpaceTransaction(
+  payload: SpaceTransactionInput,
+  transactionId: string | null
+): Promise<Transaction> {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc(
+    'rpc_upsert_space_transaction',
+    buildSpaceTransactionRpcArgs(payload, transactionId)
+  );
+  if (error) throw error;
+
+  const row = (Array.isArray(data) ? data[0] : data) as { transaction_id?: string | null } | null;
+  if (!row?.transaction_id) {
+    throw new Error('Space transaction RPC did not return a transaction id');
+  }
+
+  return getTransactionById(row.transaction_id);
+}
+
+export async function createSpaceTransaction(payload: SpaceTransactionInput): Promise<Transaction> {
+  return upsertSpaceTransaction(payload, null);
+}
+
+export async function updateSpaceTransaction(id: string, payload: SpaceTransactionInput): Promise<Transaction> {
+  return upsertSpaceTransaction(payload, id);
+}
+
+export async function deleteSpaceTransaction(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.rpc('rpc_delete_space_transaction', {
+    p_transaction_id: id,
+  });
+  if (error) throw error;
+}
+
 export async function createTransactionsBatch(
   payloads: CreateTransactionInput[],
   options?: {
@@ -1692,10 +1849,14 @@ export async function updateTransaction(id: string, payload: Partial<Transaction
   const supabase = createClient();
   const { data: existing, error: existingError } = await supabase
     .from('transactions')
-    .select('account_id')
+    .select('account_id, transaction_context')
     .eq('id', id)
     .single();
   if (existingError) throw existingError;
+
+  if (existing.transaction_context === 'space') {
+    throw new Error('Use the Space transaction service to update Space-linked transactions');
+  }
 
   const { data, error } = await supabase
     .from('transactions')
@@ -1714,6 +1875,18 @@ export async function updateTransaction(id: string, payload: Partial<Transaction
 
 export async function deleteTransaction(id: string, accountId: string): Promise<void> {
   const supabase = createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from('transactions')
+    .select('transaction_context')
+    .eq('id', id)
+    .single();
+  if (existingError) throw existingError;
+
+  if (existing.transaction_context === 'space') {
+    await deleteSpaceTransaction(id);
+    return;
+  }
+
   await deleteTransactionWithDocumentCleanup({
     supabase,
     transactionId: id,
@@ -2958,7 +3131,9 @@ export async function getReportViewData(args: {
 
   return {
     transactions,
-    accounts: accounts.filter((account) => account.is_active),
+    accounts: accounts.filter((account) =>
+      account.is_active && getFinancialAccountScopeType(account) === 'personal'
+    ),
     reportingCurrency: reportContext.reportingCurrency,
     snapshots: reportContext.snapshots,
     incomeTransactions,

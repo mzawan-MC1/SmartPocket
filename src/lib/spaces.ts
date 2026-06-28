@@ -70,6 +70,25 @@ export async function getSpaces(): Promise<Space[]> {
   return (data || []) as Space[];
 }
 
+export async function getMySpaceMemberships(): Promise<Array<{ space: Space; role: SpaceRole }>> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('space_members')
+    .select(`
+      role,
+      space:spaces(*)
+    `)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  return ((data || []) as Array<{ role: SpaceRole; space: Space | null }>)
+    .filter((row) => !!row.space)
+    .map((row) => ({
+      role: row.role,
+      space: row.space as Space,
+    }));
+}
+
 export async function createSpace(payload: Partial<Space>): Promise<Space> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -129,15 +148,27 @@ export async function archiveSpace(id: string): Promise<void> {
 export async function getSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
   const supabase = createClient();
   const { data, error } = await supabase
-    .from('space_members')
-    .select(`
-      *,
-      user_profile:user_profiles(full_name, email, avatar_url)
-    `)
-    .eq('space_id', spaceId)
-    .order('created_at', { ascending: true });
+    .rpc('rpc_get_space_members_with_profiles', {
+      p_space_id: spaceId,
+    });
   if (error) throw error;
-  return (data || []) as SpaceMember[];
+  return ((data || []) as Array<SpaceMember & {
+    full_name?: string | null;
+    email?: string | null;
+    avatar_url?: string | null;
+  }>).map((member) => ({
+    id: member.id,
+    space_id: member.space_id,
+    user_id: member.user_id,
+    role: member.role,
+    joined_at: member.joined_at,
+    created_at: member.created_at,
+    user_profile: {
+      full_name: member.full_name || '',
+      email: member.email || '',
+      avatar_url: member.avatar_url || null,
+    },
+  }));
 }
 
 export async function updateSpaceMemberRole(memberId: string, role: SpaceRole): Promise<void> {

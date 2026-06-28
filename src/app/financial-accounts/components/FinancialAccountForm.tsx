@@ -9,12 +9,33 @@ import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finan
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
-import type { FinancialBankAccountType } from '@/lib/financial-account-utils';
+import {
+  getFinancialAccountScopeType,
+  type FinancialBankAccountType,
+  type FinancialAccountScopeType,
+} from '@/lib/financial-account-utils';
+import { getMySpaceMemberships, type Space } from '@/lib/spaces';
+
+interface SharingFormEntry {
+  space_id: string;
+  space_name: string;
+  enabled: boolean;
+  can_add_space_transactions: boolean;
+  can_view_balance: boolean;
+  can_view_full_history: boolean;
+}
+
+interface FormSpaceOption {
+  id: string;
+  name: string;
+}
 
 interface AccountFormData {
   name: string;
   account_type: string;
   ownership_type: string;
+  scope_type: FinancialAccountScopeType;
+  space_id: string;
   currency: string;
   opening_balance: string;
   notes: string;
@@ -27,44 +48,98 @@ interface AccountFormData {
   swift_bic: string;
   branch_name: string;
   bank_account_type: string;
+  space_sharing: SharingFormEntry[];
+}
+
+const EMPTY_FORM: AccountFormData = {
+  name: '',
+  account_type: 'bank',
+  ownership_type: 'personal',
+  scope_type: 'personal',
+  space_id: '',
+  currency: '',
+  opening_balance: '0.00',
+  notes: '',
+  include_in_total: true,
+  is_active: true,
+  bank_name: '',
+  account_holder_name: '',
+  account_number_masked: '',
+  iban: '',
+  swift_bic: '',
+  branch_name: '',
+  bank_account_type: 'current',
+  space_sharing: [],
+};
+
+function mergeSpaceSharing(
+  spaces: FormSpaceOption[],
+  account?: FinancialAccount | null
+): SharingFormEntry[] {
+  const existing = new Map(
+    ((account?.space_account_permissions || []).map((permission) => [
+      permission.space_id,
+      permission,
+    ]))
+  );
+
+  return spaces.map((space) => {
+    const permission = existing.get(space.id);
+    return {
+      space_id: space.id,
+      space_name: space.name,
+      enabled: Boolean(permission),
+      can_add_space_transactions: permission?.can_add_space_transactions === true,
+      can_view_balance: permission?.can_view_balance === true,
+      can_view_full_history: permission?.can_view_full_history === true,
+    };
+  });
 }
 
 export default function FinancialAccountForm({
   account,
   onSuccess,
   onCancel,
+  allowedSpaces,
+  initialScopeType,
+  initialSpaceId,
+  hideScopeControls = false,
 }: {
   account?: FinancialAccount | null;
   onSuccess: () => void;
   onCancel: () => void;
+  allowedSpaces?: Array<Pick<Space, 'id' | 'name'>>;
+  initialScopeType?: FinancialAccountScopeType;
+  initialSpaceId?: string | null;
+  hideScopeControls?: boolean;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
   const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [form, setForm] = useState<AccountFormData>({
-    name: '',
-    account_type: 'bank',
-    ownership_type: 'personal',
-    currency: '',
-    opening_balance: '0.00',
-    notes: '',
-    include_in_total: true,
-    is_active: true,
-    bank_name: '',
-    account_holder_name: '',
-    account_number_masked: '',
-    iban: '',
-    swift_bic: '',
-    branch_name: '',
-    bank_account_type: 'current',
-  });
+  const [loadedSpaces, setLoadedSpaces] = useState<FormSpaceOption[]>([]);
+  const [form, setForm] = useState<AccountFormData>(EMPTY_FORM);
 
   const defaultCurrency = useMemo(
     () => userDefaultCurrency || platformDefaultCurrency,
     [platformDefaultCurrency, userDefaultCurrency]
   );
+  const availableSpaces = useMemo<FormSpaceOption[]>(
+    () => (allowedSpaces || loadedSpaces).map((space) => ({ id: space.id, name: space.name })),
+    [allowedSpaces, loadedSpaces]
+  );
+  const scopeLockedToSpace = hideScopeControls && initialScopeType === 'space' && !!initialSpaceId;
+  const selectedScopeSpace = useMemo(
+    () => availableSpaces.find((space) => space.id === form.space_id) || null,
+    [availableSpaces, form.space_id]
+  );
+  const sharingTargets = useMemo(() => {
+    if (scopeLockedToSpace && initialSpaceId) {
+      return availableSpaces.filter((space) => space.id === initialSpaceId);
+    }
+    return availableSpaces;
+  }, [availableSpaces, initialSpaceId, scopeLockedToSpace]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,15 +152,48 @@ export default function FinancialAccountForm({
   }, [platformDefaultCurrency]);
 
   useEffect(() => {
+    if (allowedSpaces) {
+      return;
+    }
+
+    let cancelled = false;
+    void getMySpaceMemberships()
+      .then((memberships) => {
+        if (cancelled) return;
+        const uniqueSpaces = Array.from(
+          new Map(
+            memberships.map((membership) => [
+              membership.space.id,
+              { id: membership.space.id, name: membership.space.name },
+            ])
+          ).values()
+        );
+        setLoadedSpaces(uniqueSpaces);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadedSpaces([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allowedSpaces]);
+
+  useEffect(() => {
     if (account) {
+      const scopeType = getFinancialAccountScopeType(account);
       setForm({
         name: account.name,
         account_type: account.account_type,
-        ownership_type: account.ownership_type || 'personal',
+        ownership_type: scopeType === 'space' ? 'shared' : (account.ownership_type || 'personal'),
+        scope_type: scopeType,
+        space_id: account.space_id || initialSpaceId || '',
         currency: account.currency,
         opening_balance: String(account.opening_balance),
         notes: account.notes || '',
-        include_in_total: account.include_in_total,
+        include_in_total: scopeType === 'space' ? false : account.include_in_total,
         is_active: account.is_active,
         bank_name: account.bank_name || '',
         account_holder_name: account.account_holder_name || '',
@@ -94,28 +202,40 @@ export default function FinancialAccountForm({
         swift_bic: account.swift_bic || '',
         branch_name: account.branch_name || '',
         bank_account_type: account.bank_account_type || 'current',
+        space_sharing: mergeSpaceSharing(sharingTargets, account),
       });
       return;
     }
 
     setForm({
-      name: '',
-      account_type: 'bank',
+      ...EMPTY_FORM,
       ownership_type: 'personal',
+      scope_type: scopeLockedToSpace || initialScopeType === 'space' ? 'space' : 'personal',
+      space_id: initialScopeType === 'space' ? (initialSpaceId || '') : '',
       currency: defaultCurrency,
-      opening_balance: '0.00',
-      notes: '',
-      include_in_total: true,
-      is_active: true,
-      bank_name: '',
-      account_holder_name: '',
-      account_number_masked: '',
-      iban: '',
-      swift_bic: '',
-      branch_name: '',
-      bank_account_type: 'current',
+      include_in_total: initialScopeType === 'space' ? false : true,
+      space_sharing: mergeSpaceSharing(sharingTargets, null),
     });
-  }, [account, defaultCurrency]);
+  }, [
+    account,
+    defaultCurrency,
+    initialScopeType,
+    initialSpaceId,
+    scopeLockedToSpace,
+    sharingTargets,
+  ]);
+
+  useEffect(() => {
+    setForm((current) => ({
+      ...current,
+      space_sharing: mergeSpaceSharing(sharingTargets, account).map((entry) => {
+        const existingEntry = current.space_sharing.find((item) => item.space_id === entry.space_id);
+        return existingEntry
+          ? { ...entry, ...existingEntry, space_name: entry.space_name }
+          : entry;
+      }),
+    }));
+  }, [account, sharingTargets]);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
@@ -126,17 +246,30 @@ export default function FinancialAccountForm({
       toast.error(t('accounts.form.currencyRequired', { ns: 'portal' }));
       return;
     }
+    if (form.scope_type === 'space' && !form.space_id) {
+      toast.error(t('accounts.form.spaceRequired', {
+        ns: 'portal',
+        defaultValue: 'Select a Space for this account.',
+      }));
+      return;
+    }
 
     setIsSaving(true);
     try {
       const payload = {
         name: form.name.trim(),
         account_type: form.account_type as FinancialAccount['account_type'],
-        ownership_type: form.ownership_type as FinancialAccount['ownership_type'],
+        ownership_type: (
+          form.scope_type === 'space'
+            ? 'shared'
+            : form.ownership_type
+        ) as FinancialAccount['ownership_type'],
+        scope_type: form.scope_type,
+        space_id: form.scope_type === 'space' ? form.space_id : null,
         currency: form.currency,
         opening_balance: parseFloat(form.opening_balance) || 0,
         notes: form.notes || null,
-        include_in_total: form.include_in_total,
+        include_in_total: form.scope_type === 'space' ? false : form.include_in_total,
         is_active: form.is_active,
         bank_name: form.account_type === 'bank' ? form.bank_name || null : null,
         account_holder_name: form.account_type === 'bank' ? form.account_holder_name || null : null,
@@ -147,6 +280,17 @@ export default function FinancialAccountForm({
         bank_account_type: form.account_type === 'bank'
           ? (form.bank_account_type || null) as FinancialBankAccountType | null
           : null,
+        space_sharing: form.scope_type === 'personal'
+          ? form.space_sharing
+            .filter((entry) => entry.enabled)
+            .map((entry) => ({
+              space_id: entry.space_id,
+              can_view_space_transactions: true,
+              can_add_space_transactions: entry.can_add_space_transactions,
+              can_view_balance: entry.can_view_balance,
+              can_view_full_history: entry.can_view_full_history,
+            }))
+          : [],
       };
 
       if (account) {
@@ -185,6 +329,16 @@ export default function FinancialAccountForm({
     { value: 'business', label: t('accounts.businessOwnershipLabel', { ns: 'portal', defaultValue: 'Business' }) },
     { value: 'other', label: t('accounts.otherOwnershipLabel', { ns: 'portal', defaultValue: 'Other' }) },
   ];
+  const scopeTypeOptions = [
+    {
+      value: 'personal',
+      label: t('accounts.form.scopePersonal', { ns: 'portal', defaultValue: 'Personal account' }),
+    },
+    {
+      value: 'space',
+      label: t('accounts.form.scopeSpace', { ns: 'portal', defaultValue: 'Space account' }),
+    },
+  ];
 
   const bankAccountTypeOptions = [
     { value: 'current', label: t('accounts.bankAccountTypes.current', { ns: 'portal', defaultValue: 'Current' }) },
@@ -195,6 +349,8 @@ export default function FinancialAccountForm({
   ];
 
   const isBankAccount = form.account_type === 'bank';
+  const isSpaceAccount = form.scope_type === 'space';
+  const showSharingSection = !isSpaceAccount && sharingTargets.length > 0;
 
   return (
     <div className="space-y-4">
@@ -208,6 +364,73 @@ export default function FinancialAccountForm({
           onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
         />
       </div>
+      {hideScopeControls ? (
+        isSpaceAccount && selectedScopeSpace ? (
+          <div className="rounded-2xl border border-border bg-muted/20 p-3">
+            <p className="text-sm font-600 text-foreground">
+              {t('accounts.form.spaceAccountFor', {
+                ns: 'portal',
+                defaultValue: 'Space account for {{space}}',
+                space: selectedScopeSpace.name,
+              })}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('accounts.form.spaceAccountHelper', {
+                ns: 'portal',
+                defaultValue: 'This account belongs to the selected Space and is visible to its members.',
+              })}
+            </p>
+          </div>
+        ) : null
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-sm font-600 text-foreground mb-1.5">
+              {t('accounts.form.scopeLabel', { ns: 'portal', defaultValue: 'Account scope' })}
+            </label>
+            <select
+              className="input-base"
+              value={form.scope_type}
+              onChange={(event) => {
+                const nextScope = event.target.value as FinancialAccountScopeType;
+                setForm((current) => ({
+                  ...current,
+                  scope_type: nextScope,
+                  space_id: nextScope === 'space'
+                    ? current.space_id || initialSpaceId || availableSpaces[0]?.id || ''
+                    : '',
+                  ownership_type: nextScope === 'space' ? 'shared' : current.ownership_type,
+                  include_in_total: nextScope === 'space' ? false : current.include_in_total,
+                }));
+              }}
+            >
+              {scopeTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </div>
+          {isSpaceAccount ? (
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">
+                {t('spaces.title', { ns: 'portal' })} *
+              </label>
+              <select
+                className="input-base"
+                value={form.space_id}
+                onChange={(event) => setForm((current) => ({ ...current, space_id: event.target.value }))}
+              >
+                <option value="">{t('accounts.form.selectSpace', {
+                  ns: 'portal',
+                  defaultValue: 'Select a Space',
+                })}</option>
+                {availableSpaces.map((space) => (
+                  <option key={space.id} value={space.id}>{space.name}</option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
+      )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.form.type', { ns: 'portal' })} *</label>
@@ -215,18 +438,29 @@ export default function FinancialAccountForm({
             {accountTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">
-            {t('accounts.form.ownershipType', { ns: 'portal', defaultValue: 'Ownership type' })} *
-          </label>
-          <select
-            className="input-base"
-            value={form.ownership_type}
-            onChange={(event) => setForm((current) => ({ ...current, ownership_type: event.target.value }))}
-          >
-            {ownershipTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-        </div>
+        {!isSpaceAccount ? (
+          <div>
+            <label className="block text-sm font-600 text-foreground mb-1.5">
+              {t('accounts.form.ownershipType', { ns: 'portal', defaultValue: 'Ownership type' })} *
+            </label>
+            <select
+              className="input-base"
+              value={form.ownership_type}
+              onChange={(event) => setForm((current) => ({ ...current, ownership_type: event.target.value }))}
+            >
+              {ownershipTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-muted/40 p-3 sm:mt-7">
+            <p className="text-sm font-500 text-foreground">
+              {t('accounts.form.spaceOwnershipSummary', {
+                ns: 'portal',
+                defaultValue: 'Space accounts are treated as shared space-owned funding sources.',
+              })}
+            </p>
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -252,7 +486,14 @@ export default function FinancialAccountForm({
       </div>
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.openingBalance', { ns: 'portal' })}</label>
-        <p className="text-xs text-muted-foreground mb-1.5">{t('accounts.form.openingBalanceHelper', { ns: 'portal' })}</p>
+        <p className="text-xs text-muted-foreground mb-1.5">
+          {isSpaceAccount
+            ? t('accounts.form.spaceOpeningBalanceHelper', {
+              ns: 'portal',
+              defaultValue: 'This opening balance seeds the Space-owned account.',
+            })
+            : t('accounts.form.openingBalanceHelper', { ns: 'portal' })}
+        </p>
         <input
           type="number"
           step="0.01"
@@ -262,6 +503,122 @@ export default function FinancialAccountForm({
           onChange={(event) => setForm((current) => ({ ...current, opening_balance: event.target.value }))}
         />
       </div>
+      {showSharingSection ? (
+        <div className="space-y-3 rounded-2xl border border-border bg-muted/20 p-4">
+          <div>
+            <p className="text-sm font-700 text-foreground">
+              {t('accounts.form.spaceSharingTitle', {
+                ns: 'portal',
+                defaultValue: 'Share with Spaces',
+              })}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('accounts.form.spaceSharingHelper', {
+                ns: 'portal',
+                defaultValue: 'Shared personal accounts keep balances and full history private by default. Space members only see Space-linked transactions unless you grant more access.',
+              })}
+            </p>
+          </div>
+          <div className="space-y-3">
+            {form.space_sharing.map((entry) => (
+              <div key={entry.space_id} className="rounded-xl border border-border bg-card p-3">
+                <label className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-border accent-accent"
+                    checked={entry.enabled}
+                    onChange={(event) => {
+                      const enabled = event.target.checked;
+                      setForm((current) => ({
+                        ...current,
+                        space_sharing: current.space_sharing.map((item) => item.space_id === entry.space_id
+                          ? {
+                            ...item,
+                            enabled,
+                            can_add_space_transactions: enabled ? item.can_add_space_transactions : false,
+                            can_view_balance: enabled ? item.can_view_balance : false,
+                            can_view_full_history: enabled ? item.can_view_full_history : false,
+                          }
+                          : item),
+                      }));
+                    }}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-600 text-foreground">{entry.space_name}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t('accounts.form.spaceSharingTransactionsOnly', {
+                        ns: 'portal',
+                        defaultValue: 'Enables this Space to use the account for linked Space transactions only.',
+                      })}
+                    </p>
+                  </div>
+                </label>
+                {entry.enabled ? (
+                  <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border accent-accent"
+                        checked={entry.can_add_space_transactions}
+                        onChange={(event) => {
+                          setForm((current) => ({
+                            ...current,
+                            space_sharing: current.space_sharing.map((item) => item.space_id === entry.space_id
+                              ? { ...item, can_add_space_transactions: event.target.checked }
+                              : item),
+                          }));
+                        }}
+                      />
+                      {t('accounts.form.allowSpaceTransactions', {
+                        ns: 'portal',
+                        defaultValue: 'Allow new Space transactions',
+                      })}
+                    </label>
+                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border accent-accent"
+                        checked={entry.can_view_balance}
+                        onChange={(event) => {
+                          setForm((current) => ({
+                            ...current,
+                            space_sharing: current.space_sharing.map((item) => item.space_id === entry.space_id
+                              ? { ...item, can_view_balance: event.target.checked }
+                              : item),
+                          }));
+                        }}
+                      />
+                      {t('accounts.form.allowBalanceVisibility', {
+                        ns: 'portal',
+                        defaultValue: 'Allow balance visibility',
+                      })}
+                    </label>
+                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border accent-accent"
+                        checked={entry.can_view_full_history}
+                        onChange={(event) => {
+                          setForm((current) => ({
+                            ...current,
+                            space_sharing: current.space_sharing.map((item) => item.space_id === entry.space_id
+                              ? { ...item, can_view_full_history: event.target.checked }
+                              : item),
+                          }));
+                        }}
+                      />
+                      {t('accounts.form.allowFullHistoryVisibility', {
+                        ns: 'portal',
+                        defaultValue: 'Allow full history visibility',
+                      })}
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {isBankAccount ? (
         <div className="space-y-4 rounded-2xl border border-border bg-muted/20 p-4">
           <div>
@@ -368,10 +725,16 @@ export default function FinancialAccountForm({
           type="checkbox"
           className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
           checked={form.include_in_total}
+          disabled={isSpaceAccount}
           onChange={(event) => setForm((current) => ({ ...current, include_in_total: event.target.checked }))}
         />
         <label htmlFor="include-in-total-shared" className="text-sm font-500 text-foreground cursor-pointer">
-          {t('accounts.form.includeInTotal', { ns: 'portal' })}
+          {isSpaceAccount
+            ? t('accounts.form.excludeSpaceAccountsFromPersonalTotals', {
+              ns: 'portal',
+              defaultValue: 'Space accounts stay out of personal net worth totals',
+            })
+            : t('accounts.form.includeInTotal', { ns: 'portal' })}
         </label>
       </div>
       <div className="flex gap-2 justify-end pt-2 border-t border-border">

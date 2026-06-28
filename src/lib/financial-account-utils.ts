@@ -1,6 +1,31 @@
 export type FinancialAccountOwnershipType = 'personal' | 'shared' | 'business' | 'other';
 export type FinancialAccountSystemDefaultType = 'personal_cash' | 'personal_bank';
 export type FinancialBankAccountType = 'current' | 'savings' | 'credit_card' | 'wallet' | 'other';
+export type FinancialAccountScopeType = 'personal' | 'space';
+
+export type SpaceAccountPermissionLike = {
+  id?: string;
+  space_id: string;
+  can_view_space_transactions?: boolean | null;
+  can_add_space_transactions?: boolean | null;
+  can_view_balance?: boolean | null;
+  can_view_full_history?: boolean | null;
+  space?: {
+    id?: string;
+    name?: string | null;
+    color?: string | null;
+  } | null;
+};
+
+export type FinancialAccountCapabilities = {
+  canView: boolean;
+  canUseForTransaction: boolean;
+  canViewBalance: boolean;
+  canEdit: boolean;
+  scope: FinancialAccountScopeType;
+  spaceId: string | null;
+  isSharedWithSpace: boolean;
+};
 
 export type FinancialAccountLike = {
   id: string;
@@ -14,6 +39,12 @@ export type FinancialAccountLike = {
   system_default_type?: string | null;
   sort_order?: number | null;
   created_at?: string | null;
+  user_id?: string | null;
+  scope_type?: string | null;
+  space_id?: string | null;
+  current_balance?: number | null;
+  shared_with_spaces?: SpaceAccountPermissionLike[] | null;
+  space_account_permissions?: SpaceAccountPermissionLike[] | null;
 };
 
 const DEFAULT_PRIORITY: Record<string, number> = {
@@ -66,9 +97,110 @@ export function isDefaultBankAccount(
 }
 
 export function isPersonalFinancialAccount(
-  account: Pick<FinancialAccountLike, 'ownership_type' | 'include_in_total'>
+  account: Pick<FinancialAccountLike, 'ownership_type' | 'include_in_total' | 'scope_type'>
 ) {
+  if (getFinancialAccountScopeType(account) !== 'personal') {
+    return false;
+  }
   return getFinancialAccountOwnershipType(account) === 'personal';
+}
+
+export function getFinancialAccountScopeType(
+  account: Pick<FinancialAccountLike, 'scope_type' | 'space_id'>
+): FinancialAccountScopeType {
+  if (account.scope_type === 'space' || (!!account.space_id && account.scope_type !== 'personal')) {
+    return 'space';
+  }
+  return 'personal';
+}
+
+export function isSpaceFinancialAccount(
+  account: Pick<FinancialAccountLike, 'scope_type' | 'space_id'>
+) {
+  return getFinancialAccountScopeType(account) === 'space';
+}
+
+export function getSpaceAccountPermissions<T extends FinancialAccountLike>(account: T): SpaceAccountPermissionLike[] {
+  return [...(account.shared_with_spaces || []), ...(account.space_account_permissions || [])];
+}
+
+export function isSharedWithAnySpace<T extends FinancialAccountLike>(account: T) {
+  return getSpaceAccountPermissions(account).length > 0;
+}
+
+export function isSharedWithSpace<T extends FinancialAccountLike>(account: T, spaceId: string) {
+  return getSpaceAccountPermissions(account).some((permission) => permission.space_id === spaceId);
+}
+
+export function getAccountCapabilities<T extends FinancialAccountLike>(
+  account: T,
+  options?: {
+    selectedSpaceId?: string | null;
+  }
+): FinancialAccountCapabilities {
+  const scope = getFinancialAccountScopeType(account);
+  const selectedSpaceId = options?.selectedSpaceId || null;
+  const permissions = getSpaceAccountPermissions(account);
+  const matchingPermission = selectedSpaceId
+    ? permissions.find((permission) => permission.space_id === selectedSpaceId) || null
+    : null;
+
+  if (scope === 'space') {
+    return {
+      canView: true,
+      canUseForTransaction: true,
+      canViewBalance: true,
+      canEdit: true,
+      scope,
+      spaceId: account.space_id || null,
+      isSharedWithSpace: false,
+    };
+  }
+
+  return {
+    canView: true,
+    canUseForTransaction: matchingPermission?.can_add_space_transactions === true,
+    canViewBalance: matchingPermission
+      ? matchingPermission.can_view_balance === true
+      : true,
+    canEdit: true,
+    scope,
+    spaceId: null,
+    isSharedWithSpace: permissions.length > 0,
+  };
+}
+
+export function getAccountsSharedWithSpaces<T extends FinancialAccountLike>(accounts: T[]) {
+  return sortFinancialAccounts(
+    accounts.filter((account) => account.is_active && getFinancialAccountScopeType(account) === 'personal' && isSharedWithAnySpace(account))
+  );
+}
+
+export function getSpaceOwnedFinancialAccounts<T extends FinancialAccountLike>(accounts: T[], spaceId?: string | null) {
+  return sortFinancialAccounts(
+    accounts.filter((account) => {
+      if (!account.is_active || getFinancialAccountScopeType(account) !== 'space') {
+        return false;
+      }
+      if (!spaceId) return true;
+      return account.space_id === spaceId;
+    })
+  );
+}
+
+export function getSpaceTransactionEligibleAccounts<T extends FinancialAccountLike>(accounts: T[], spaceId: string) {
+  return sortFinancialAccounts(
+    accounts.filter((account) => {
+      const capabilities = getAccountCapabilities(account, { selectedSpaceId: spaceId });
+      if (!account.is_active || !capabilities.canView) {
+        return false;
+      }
+      if (capabilities.scope === 'space') {
+        return capabilities.spaceId === spaceId;
+      }
+      return capabilities.canUseForTransaction;
+    })
+  );
 }
 
 export function getActivePersonalFinancialAccounts<T extends FinancialAccountLike>(accounts: T[]) {

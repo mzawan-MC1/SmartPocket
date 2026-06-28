@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import {
   ensureDefaultPersonalAccounts,
+  logFinancialAccountsServerError,
   sanitizeFinancialAccountPayload,
+  sanitizeSpaceAccountSharingPayload,
   validateFinancialAccountInput,
 } from '@/lib/financial-accounts-server';
 
@@ -28,6 +30,20 @@ async function requireUser() {
   return { ok: true as const, supabase, cookieMutations, user };
 }
 
+const ACCOUNT_SELECT = `
+  *,
+  space:spaces(id, name, color),
+  space_account_permissions(
+    id,
+    space_id,
+    can_view_space_transactions,
+    can_add_space_transactions,
+    can_view_balance,
+    can_view_full_history,
+    space:spaces(id, name, color)
+  )
+`;
+
 export async function GET() {
   const auth = await requireUser();
   if (!auth.ok) {
@@ -40,7 +56,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from('financial_accounts')
-    .select('*')
+    .select(ACCOUNT_SELECT)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
 
@@ -68,6 +84,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const payload = sanitizeFinancialAccountPayload(body || {});
+    const sharingPayload = sanitizeSpaceAccountSharingPayload((body || {}).space_sharing);
     const validationError = validateFinancialAccountInput(payload);
     if (validationError) {
       return applySupabaseCookies(
@@ -81,9 +98,13 @@ export async function POST(request: Request) {
       .insert({
         user_id: user.id,
         ...payload,
+        scope_type: payload.scope_type,
+        space_id: payload.space_id,
+        created_by_user_id: user.id,
+        include_in_total: payload.scope_type === 'space' ? false : payload.include_in_total,
         current_balance: payload.opening_balance,
       })
-      .select('*')
+      .select(ACCOUNT_SELECT)
       .single();
 
     if (error) {
@@ -93,11 +114,50 @@ export async function POST(request: Request) {
       );
     }
 
+    if (payload.scope_type === 'personal' && sharingPayload.length > 0 && data?.id) {
+      const { error: sharingError } = await supabase
+        .from('space_account_permissions')
+        .upsert(
+          sharingPayload.map((entry) => ({
+            account_id: data.id,
+            granted_by_user_id: user.id,
+            ...entry,
+          })),
+          { onConflict: 'space_id,account_id' }
+        );
+
+      if (sharingError) {
+        return applySupabaseCookies(
+          NextResponse.json({ error: sharingError.message || 'Failed to save sharing settings' }, { status: 500 }),
+          cookieMutations
+        );
+      }
+
+      const { data: refreshedAccount, error: refreshedError } = await supabase
+        .from('financial_accounts')
+        .select(ACCOUNT_SELECT)
+        .eq('id', data.id)
+        .single();
+
+      if (refreshedError) {
+        return applySupabaseCookies(
+          NextResponse.json({ error: refreshedError.message || 'Failed to refresh account' }, { status: 500 }),
+          cookieMutations
+        );
+      }
+
+      return applySupabaseCookies(
+        NextResponse.json({ account: refreshedAccount }, { status: 200 }),
+        cookieMutations
+      );
+    }
+
     return applySupabaseCookies(
       NextResponse.json({ account: data }, { status: 200 }),
       cookieMutations
     );
-  } catch {
+  } catch (error) {
+    logFinancialAccountsServerError('create-account-route', error, { userId: user.id });
     return applySupabaseCookies(
       NextResponse.json({ error: 'Failed to create account' }, { status: 500 }),
       cookieMutations
