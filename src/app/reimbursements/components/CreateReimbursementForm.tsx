@@ -5,8 +5,8 @@ import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
-import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
+import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import { createReimbursement } from '@/lib/people';
 import { useClientReferenceData } from '@/lib/reference-data/client';
@@ -34,11 +34,23 @@ export default function CreateReimbursementForm({
     due_date: '',
   });
 
+  const refreshCreateCurrency = async () => {
+    const currencyCode = await resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
+    });
+
+    setForm((current) => (current.currency ? current : { ...current, currency: currencyCode }));
+  };
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       getManagedPeople(),
-      resolveUserDefaultCurrency(referenceData?.platformDefaultCurrency),
+      resolveCurrencyPreference({
+        platformCurrency: referenceData?.platformDefaultCurrency,
+        forceRefreshUserDefault: true,
+      }),
     ])
       .then(([nextPeople, currencyCode]) => {
         if (cancelled) return;
@@ -54,6 +66,10 @@ export default function CreateReimbursementForm({
       cancelled = true;
     };
   }, [referenceData?.platformDefaultCurrency]);
+
+  useSmartPocketDataChanged(['profile'], 'CreateReimbursementFormCurrency', async () => {
+    await refreshCreateCurrency();
+  });
 
   const handleSave = async () => {
     if (!form.person_id) {

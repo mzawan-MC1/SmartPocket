@@ -1,14 +1,14 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finance';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { useClientReferenceData } from '@/lib/reference-data/client';
-import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import {
   getFinancialAccountScopeType,
   type FinancialBankAccountType,
@@ -116,15 +116,10 @@ export default function FinancialAccountForm({
   const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
-  const [userDefaultCurrency, setUserDefaultCurrency] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [loadedSpaces, setLoadedSpaces] = useState<FormSpaceOption[]>([]);
   const [form, setForm] = useState<AccountFormData>(EMPTY_FORM);
-
-  const defaultCurrency = useMemo(
-    () => userDefaultCurrency || platformDefaultCurrency,
-    [platformDefaultCurrency, userDefaultCurrency]
-  );
+  const autoAppliedCurrencyRef = useRef('');
   const availableSpaces = useMemo<FormSpaceOption[]>(
     () => (allowedSpaces || loadedSpaces).map((space) => ({ id: space.id, name: space.name })),
     [allowedSpaces, loadedSpaces]
@@ -141,15 +136,29 @@ export default function FinancialAccountForm({
     return availableSpaces;
   }, [availableSpaces, initialSpaceId, scopeLockedToSpace]);
 
-  useEffect(() => {
-    let cancelled = false;
-    void resolveUserDefaultCurrency(platformDefaultCurrency).then((currencyCode) => {
-      if (!cancelled) setUserDefaultCurrency(currencyCode);
+  const refreshCreateModeCurrency = useCallback(async () => {
+    if (account) {
+      autoAppliedCurrencyRef.current = '';
+      return;
+    }
+
+    const currencyCode = await resolveCurrencyPreference({
+      platformCurrency: platformDefaultCurrency,
+      forceRefreshUserDefault: true,
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [platformDefaultCurrency]);
+    const previousAutoCurrency = autoAppliedCurrencyRef.current;
+    autoAppliedCurrencyRef.current = currencyCode;
+
+    setForm((current) => {
+      if (current.currency && current.currency !== previousAutoCurrency) {
+        return current;
+      }
+
+      return current.currency === currencyCode
+        ? current
+        : { ...current, currency: currencyCode };
+    });
+  }, [account, platformDefaultCurrency]);
 
   useEffect(() => {
     if (allowedSpaces) {
@@ -212,18 +221,35 @@ export default function FinancialAccountForm({
       ownership_type: 'personal',
       scope_type: scopeLockedToSpace || initialScopeType === 'space' ? 'space' : 'personal',
       space_id: initialScopeType === 'space' ? (initialSpaceId || '') : '',
-      currency: defaultCurrency,
+      currency: '',
       include_in_total: initialScopeType === 'space' ? false : true,
       space_sharing: mergeSpaceSharing(sharingTargets, null),
     });
   }, [
     account,
-    defaultCurrency,
     initialScopeType,
     initialSpaceId,
     scopeLockedToSpace,
     sharingTargets,
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void refreshCreateModeCurrency().catch(() => {
+      if (!cancelled) {
+        autoAppliedCurrencyRef.current = '';
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshCreateModeCurrency]);
+
+  useSmartPocketDataChanged(['profile'], 'FinancialAccountFormCurrency', async () => {
+    await refreshCreateModeCurrency();
+  });
 
   useEffect(() => {
     setForm((current) => ({

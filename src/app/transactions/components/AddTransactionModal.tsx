@@ -582,6 +582,7 @@ export default function AddTransactionModal({
   const refreshCreateModeDefaultCurrency = useCallback(async () => {
     const currencyCode = await resolveCurrencyPreference({
       platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: isOpen && !editingTransaction,
     });
 
     const previousAutoCurrency = createModeAutoCurrencyRef.current;

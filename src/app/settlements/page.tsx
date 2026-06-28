@@ -265,6 +265,7 @@ function NewSettlementModal({
     const currencyCode = await resolveCurrencyPreference({
       accountCurrency: requiredCurrency,
       platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
     });
 
     const previousAutoCurrency = autoResolvedCurrencyRef.current;

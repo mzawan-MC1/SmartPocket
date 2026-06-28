@@ -43,6 +43,7 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
 
     void resolveCurrencyPreference({
       platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
     }).then((currencyCode) => {
       if (!cancelled && !selectedCurrency) {
         setValue('currency', currencyCode, { shouldDirty: false });

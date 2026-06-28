@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
@@ -8,8 +8,8 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
-import { resolveUserDefaultCurrency } from '@/lib/currency-totals';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
+import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { getBudgetPeriodTypeLabel, getCurrentBudgetPeriod, getDefaultBudgetAnchorDate, normalizeBudgetPeriodValue, validateBudgetPeriodConfig } from '@/lib/financial-periods/budgets';
 import type { BudgetPeriod } from '@/lib/financial-periods';
@@ -167,11 +167,36 @@ export default function AddBudgetForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<BudgetFormState>(() => buildInitialFormState(budget));
   const [hasAppliedProfileDefault, setHasAppliedProfileDefault] = useState(Boolean(budget));
+  const autoAppliedCurrencyRef = useRef('');
 
   useEffect(() => {
     setForm(buildInitialFormState(budget));
     setHasAppliedProfileDefault(Boolean(budget));
   }, [budget]);
+
+  const refreshCreateModeCurrency = useCallback(async () => {
+    if (budget) {
+      autoAppliedCurrencyRef.current = '';
+      return;
+    }
+
+    const currencyCode = await resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
+    });
+    const previousAutoCurrency = autoAppliedCurrencyRef.current;
+    autoAppliedCurrencyRef.current = currencyCode;
+
+    setForm((current) => {
+      if (current.currency && current.currency !== previousAutoCurrency) {
+        return current;
+      }
+
+      return current.currency === currencyCode
+        ? current
+        : { ...current, currency: currencyCode };
+    });
+  }, [budget, referenceData?.platformDefaultCurrency]);
 
   useEffect(() => {
     getCategories('expense').then(setCategories).catch(console.error);
@@ -210,15 +235,19 @@ export default function AddBudgetForm({
 
   useEffect(() => {
     let cancelled = false;
-    void resolveUserDefaultCurrency(referenceData?.platformDefaultCurrency).then((currencyCode) => {
+    void refreshCreateModeCurrency().catch(() => {
       if (!cancelled) {
-        setForm((current) => (current.currency ? current : { ...current, currency: currencyCode }));
+        autoAppliedCurrencyRef.current = '';
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [referenceData?.platformDefaultCurrency]);
+  }, [refreshCreateModeCurrency]);
+
+  useSmartPocketDataChanged(['profile'], 'AddBudgetFormCurrency', async () => {
+    await refreshCreateModeCurrency();
+  });
 
   const scheduleLabel = useMemo(() => formatSemimonthlySchedule(periodContext, t), [periodContext, t]);
   const budgetValidation = useMemo(() => {

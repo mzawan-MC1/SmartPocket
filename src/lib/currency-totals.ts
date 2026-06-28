@@ -59,15 +59,88 @@ export function addCurrencyAmount(
 let cachedResolvedUserDefaultCurrency: string | null = null;
 let inFlightResolvedUserDefaultCurrency: Promise<string> | null = null;
 
+type ResolveUserDefaultCurrencyOptions = {
+  platformCurrency?: string | null;
+  forceRefresh?: boolean;
+};
+
 export function clearResolvedUserDefaultCurrencyCache() {
   cachedResolvedUserDefaultCurrency = null;
   inFlightResolvedUserDefaultCurrency = null;
 }
 
-export async function resolveUserDefaultCurrency(preferredCurrency?: string | null) {
+async function loadResolvedUserDefaultCurrency(
+  options: ResolveUserDefaultCurrencyOptions = {}
+) {
+  const supabase = createClient();
+
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+    if (userId) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('default_currency')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const userCurrency = normalizeCurrencyCode(profile?.default_currency);
+      if (userCurrency) {
+        cachedResolvedUserDefaultCurrency = userCurrency;
+        return userCurrency;
+      }
+    }
+  } catch {
+    // Keep display helpers resilient if profile lookup fails.
+  }
+
+  const normalizedPlatformCurrency = normalizeCurrencyCode(options.platformCurrency);
+  if (normalizedPlatformCurrency) {
+    cachedResolvedUserDefaultCurrency = normalizedPlatformCurrency;
+    return normalizedPlatformCurrency;
+  }
+
+  try {
+    const referenceData = await getClientReferenceData();
+    const platformCurrency = normalizeCurrencyCode(referenceData.platformDefaultCurrency);
+    if (platformCurrency) {
+      cachedResolvedUserDefaultCurrency = platformCurrency;
+      return platformCurrency;
+    }
+  } catch {
+    // Fall through to the direct platform settings lookup.
+  }
+
+  try {
+    const { data: platformSettings } = await supabase
+      .from('platform_settings')
+      .select('default_currency')
+      .maybeSingle();
+
+    const platformCurrency = normalizeCurrencyCode(platformSettings?.default_currency);
+    if (platformCurrency) {
+      cachedResolvedUserDefaultCurrency = platformCurrency;
+      return platformCurrency;
+    }
+  } catch {
+    // Final fallback below keeps zero states renderable.
+  }
+
+  cachedResolvedUserDefaultCurrency = 'USD';
+  return 'USD';
+}
+
+export async function resolveUserDefaultCurrency(
+  preferredCurrency?: string | null,
+  options: ResolveUserDefaultCurrencyOptions = {}
+) {
   const normalizedPreferred = normalizeCurrencyCode(preferredCurrency);
   if (normalizedPreferred) {
     return normalizedPreferred;
+  }
+
+  if (options.forceRefresh) {
+    return loadResolvedUserDefaultCurrency(options);
   }
 
   if (cachedResolvedUserDefaultCurrency) {
@@ -78,58 +151,7 @@ export async function resolveUserDefaultCurrency(preferredCurrency?: string | nu
     return inFlightResolvedUserDefaultCurrency;
   }
 
-  inFlightResolvedUserDefaultCurrency = (async () => {
-    const supabase = createClient();
-
-    try {
-      const { data: authData } = await supabase.auth.getUser();
-      const userId = authData.user?.id;
-      if (userId) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('default_currency')
-          .eq('id', userId)
-          .maybeSingle();
-
-        const userCurrency = normalizeCurrencyCode(profile?.default_currency);
-        if (userCurrency) {
-          cachedResolvedUserDefaultCurrency = userCurrency;
-          return userCurrency;
-        }
-      }
-    } catch {
-      // Keep display helpers resilient if profile lookup fails.
-    }
-
-    try {
-      const referenceData = await getClientReferenceData();
-      const platformCurrency = normalizeCurrencyCode(referenceData.platformDefaultCurrency);
-      if (platformCurrency) {
-        cachedResolvedUserDefaultCurrency = platformCurrency;
-        return platformCurrency;
-      }
-    } catch {
-      // Fall through to the direct platform settings lookup.
-    }
-
-    try {
-      const { data: platformSettings } = await supabase
-        .from('platform_settings')
-        .select('default_currency')
-        .maybeSingle();
-
-      const platformCurrency = normalizeCurrencyCode(platformSettings?.default_currency);
-      if (platformCurrency) {
-        cachedResolvedUserDefaultCurrency = platformCurrency;
-        return platformCurrency;
-      }
-    } catch {
-      // Final fallback below keeps zero states renderable.
-    }
-
-    cachedResolvedUserDefaultCurrency = 'USD';
-    return 'USD';
-  })().finally(() => {
+  inFlightResolvedUserDefaultCurrency = loadResolvedUserDefaultCurrency(options).finally(() => {
     inFlightResolvedUserDefaultCurrency = null;
   });
 
@@ -141,6 +163,7 @@ export async function resolveCurrencyPreference(options: {
   accountCurrency?: string | null;
   userCurrency?: string | null;
   platformCurrency?: string | null;
+  forceRefreshUserDefault?: boolean;
 } = {}) {
   const prioritizedCurrency = pickFirstCurrencyCode(
     options.existingCurrency,
@@ -152,5 +175,8 @@ export async function resolveCurrencyPreference(options: {
     return prioritizedCurrency;
   }
 
-  return resolveUserDefaultCurrency(options.platformCurrency);
+  return resolveUserDefaultCurrency(undefined, {
+    platformCurrency: options.platformCurrency,
+    forceRefresh: options.forceRefreshUserDefault,
+  });
 }

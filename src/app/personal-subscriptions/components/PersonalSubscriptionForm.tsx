@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
+import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
+import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import { getAccounts, getCategories, type Category, type FinancialAccount } from '@/lib/finance';
 import {
   getFieldErrorTextClassName,
@@ -38,6 +39,7 @@ import {
   type PersonalSubscriptionPaymentMethod,
   type PersonalSubscriptionStatus,
 } from '@/lib/personal-subscriptions-shared';
+import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 interface PersonalSubscriptionFormValues {
@@ -114,10 +116,12 @@ export default function PersonalSubscriptionForm({
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { isRTL } = useLanguage();
+  const { data: referenceData } = useClientReferenceData();
   const [accounts, setAccounts] = useState<FinancialAccount[]>(providedAccounts || []);
   const [categories, setCategories] = useState<Category[]>(providedCategories || []);
   const [loadingSupportingData, setLoadingSupportingData] = useState(!providedAccounts || !providedCategories);
   const [saving, setSaving] = useState(false);
+  const autoAppliedCurrencyRef = useRef('');
   const {
     register,
     handleSubmit,
@@ -132,6 +136,7 @@ export default function PersonalSubscriptionForm({
   const frequency = watch('billing_frequency');
   const selectedAccountId = watch('financial_account_id');
   const linkedRecurringToggle = watch('create_linked_recurring_expense');
+  const selectedCurrencyCode = watch('currency_code');
   const accountOptions = useMemo(
     () => getActivePersonalFinancialAccounts(accounts),
     [accounts]
@@ -150,6 +155,7 @@ export default function PersonalSubscriptionForm({
 
   useEffect(() => {
     reset(mapSubscriptionToFormValues(subscription));
+    autoAppliedCurrencyRef.current = subscription?.currency_code || '';
   }, [subscription, reset]);
 
   useEffect(() => {
@@ -195,6 +201,57 @@ export default function PersonalSubscriptionForm({
     if (!selectedAccount?.currency) return;
     setValue('currency_code', selectedAccount.currency, { shouldDirty: true });
   }, [selectedAccount?.currency, setValue]);
+
+  useEffect(() => {
+    if (subscription || selectedAccount?.currency) return;
+
+    let cancelled = false;
+
+    void resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
+    }).then((currencyCode) => {
+      if (cancelled) return;
+
+      const previousAutoCurrency = autoAppliedCurrencyRef.current;
+      autoAppliedCurrencyRef.current = currencyCode;
+
+      if (selectedCurrencyCode && selectedCurrencyCode !== previousAutoCurrency) {
+        return;
+      }
+
+      setValue('currency_code', currencyCode, { shouldDirty: false });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    referenceData?.platformDefaultCurrency,
+    selectedAccount?.currency,
+    selectedCurrencyCode,
+    setValue,
+    subscription,
+  ]);
+
+  useSmartPocketDataChanged(['profile'], 'PersonalSubscriptionFormCurrency', async () => {
+    if (subscription || selectedAccount?.currency) {
+      return;
+    }
+
+    const currencyCode = await resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
+    });
+    const previousAutoCurrency = autoAppliedCurrencyRef.current;
+    autoAppliedCurrencyRef.current = currencyCode;
+
+    if (selectedCurrencyCode && selectedCurrencyCode !== previousAutoCurrency) {
+      return;
+    }
+
+    setValue('currency_code', currencyCode, { shouldDirty: false });
+  });
 
   useEffect(() => {
     if (!linkedRecurringSupported) {
