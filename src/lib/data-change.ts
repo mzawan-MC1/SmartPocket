@@ -8,6 +8,7 @@ export type SmartPocketDataEntity =
   | 'profile'
   | 'budgets'
   | 'dashboard'
+  | 'spaces'
   | 'transactions'
   | 'transaction_documents'
   | 'transfers'

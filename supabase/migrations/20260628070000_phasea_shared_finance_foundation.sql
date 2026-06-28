@@ -743,7 +743,7 @@ BEGIN
     SET
       account_id = p_account_id,
       category_id = p_category_id,
-      transaction_type = p_transaction_type,
+      transaction_type = p_transaction_type::public.transaction_type,
       amount = v_total_amount,
       currency = UPPER(TRIM(p_currency)),
       description = TRIM(p_description),
@@ -790,7 +790,7 @@ BEGIN
       v_user_id,
       p_account_id,
       p_category_id,
-      p_transaction_type,
+      p_transaction_type::public.transaction_type,
       v_total_amount,
       UPPER(TRIM(p_currency)),
       TRIM(p_description),
