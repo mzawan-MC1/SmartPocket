@@ -41,6 +41,8 @@ import {
 import PageHeader from '@/components/ui/PageHeader';
 import SearchField from '@/components/ui/SearchField';
 import StatusBadge from '@/components/ui/StatusBadge';
+import Modal from '@/components/ui/Modal';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 interface NewSettlementModalProps {
   mode: 'personal' | 'space';
@@ -108,6 +110,7 @@ function NewSettlementModal({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const secureSettlementAccountMovementAvailable = false;
   const autoResolvedCurrencyRef = useRef('');
+  const formId = `new-settlement-form-${mode}`;
 
   const peopleById = useMemo(
     () => new Map(people.map((person) => [person.id, person])),
@@ -395,14 +398,40 @@ function NewSettlementModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
-      <div className="bg-card rounded-2xl shadow-card-md w-full max-w-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-700 text-foreground">{t('settlements.newSettlement')}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
+    <Modal
+      isOpen
+      onClose={() => {
+        if (!saving) {
+          onClose();
+        }
+      }}
+      title={t('settlements.newSettlement')}
+      size="xl"
+      mobileLayout="fullscreen"
+      contentClassName="sm:w-[92vw] sm:max-w-3xl"
+      footerClassName="px-4 py-4 sm:px-6"
+      footer={(
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="btn-secondary min-h-11 w-full sm:w-auto"
+          >
+            {t('settlements.cancel')}
+          </button>
+          <button
+            type="submit"
+            form={formId}
+            disabled={saving}
+            className="btn-primary min-h-11 w-full justify-center sm:w-auto"
+          >
+            {saving ? t('settlements.saving') : t('settlements.recordSettlement')}
+          </button>
         </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      )}
+    >
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
           {mode === 'space' ? (
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -730,17 +759,8 @@ function NewSettlementModal({
             </div>
           ) : null}
 
-          <div className="flex gap-3 pt-1">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">{t('settlements.cancel')}</button>
-            <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
-              {saving ? t('settlements.saving') : t('settlements.recordSettlement')}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -761,6 +781,9 @@ export default function SettlementsPage() {
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [filterPerson, setFilterPerson] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [reversingSettlement, setReversingSettlement] = useState<Settlement | null>(null);
+  const [reversalNotes, setReversalNotes] = useState('');
+  const [reversing, setReversing] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -897,32 +920,28 @@ export default function SettlementsPage() {
 
   const selectedSpaceRole = selectedSpaceId ? spaceRoles[selectedSpaceId] : null;
 
-  const handleReverseSettlement = useCallback(async (settlement: Settlement) => {
-    const notes = window.prompt(
-      t('settlements.reversalNotesPrompt', {
-        defaultValue: 'Optional reversal notes:',
-      }),
-      settlement.reversal_notes || ''
-    );
-    if (notes === null) return;
+  const handleReverseSettlement = useCallback((settlement: Settlement) => {
+    setReversalNotes(settlement.reversal_notes || '');
+    setReversingSettlement(settlement);
+  }, []);
 
-    const confirmed = window.confirm(
-      t('settlements.reverseConfirm', {
-        defaultValue: 'Reverse this settlement? This keeps the audit trail and marks the settlement as reversed.',
-      })
-    );
-    if (!confirmed) return;
-
+  const confirmReverseSettlement = useCallback(async () => {
+    if (!reversingSettlement) return;
+    setReversing(true);
     try {
-      await reverseSpaceSettlement(settlement.id, notes || undefined);
+      await reverseSpaceSettlement(reversingSettlement.id, reversalNotes || undefined);
       toast.success(t('settlements.reversed', { defaultValue: 'Settlement reversed.' }));
+      setReversingSettlement(null);
+      setReversalNotes('');
       await loadData();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('settlements.reverseFailed', {
         defaultValue: 'Failed to reverse settlement.',
       }));
+    } finally {
+      setReversing(false);
     }
-  }, [loadData, t]);
+  }, [loadData, reversalNotes, reversingSettlement, t]);
 
   return (
     <AppLayout activeRoute="/settlements">
@@ -969,12 +988,12 @@ export default function SettlementsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="inline-flex rounded-xl border border-border bg-card p-1">
             <button
               type="button"
               onClick={() => setScope('personal')}
-              className={`rounded-lg px-3 py-2 text-sm font-600 transition-colors ${
+              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-700 transition-colors ${
                 scope === 'personal' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
@@ -983,7 +1002,7 @@ export default function SettlementsPage() {
             <button
               type="button"
               onClick={() => setScope('space')}
-              className={`rounded-lg px-3 py-2 text-sm font-600 transition-colors ${
+              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-700 transition-colors ${
                 scope === 'space' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
@@ -1112,9 +1131,9 @@ export default function SettlementsPage() {
                         <button
                           type="button"
                           onClick={() => void handleReverseSettlement(settlement)}
-                          className="mt-2 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-600 text-foreground hover:bg-muted"
+                          className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-700 text-foreground hover:bg-muted"
                         >
-                          <Undo2 size={12} />
+                          <Undo2 size={16} />
                           {t('settlements.reverseAction', { defaultValue: 'Reverse' })}
                         </button>
                       ) : null}
@@ -1142,6 +1161,42 @@ export default function SettlementsPage() {
           onSuccess={loadData}
         />
       )}
+
+      <ConfirmationModal
+        open={Boolean(reversingSettlement)}
+        title={t('settlements.reverseAction', { defaultValue: 'Reverse' })}
+        description={t('settlements.reverseConfirm', {
+          defaultValue: 'Reverse this settlement? This keeps the audit trail and marks the settlement as reversed.',
+        })}
+        confirmLabel={t('settlements.reverseAction', { defaultValue: 'Reverse' })}
+        onConfirm={() => void confirmReverseSettlement()}
+        onClose={() => {
+          if (!reversing) {
+            setReversingSettlement(null);
+            setReversalNotes('');
+          }
+        }}
+        pending={reversing}
+        confirmTone="warning"
+      >
+        <div className="space-y-2">
+          <label className="block text-sm font-600 text-foreground" htmlFor="settlement-reversal-notes">
+            {t('settlements.reversalNotesPrompt', {
+              defaultValue: 'Optional reversal notes:',
+            })}
+          </label>
+          <textarea
+            id="settlement-reversal-notes"
+            value={reversalNotes}
+            onChange={(event) => setReversalNotes(event.target.value)}
+            rows={4}
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            placeholder={t('settlements.reversalNotes', {
+              defaultValue: 'Add a note for the audit trail',
+            })}
+          />
+        </div>
+      </ConfirmationModal>
     </AppLayout>
   );
 }

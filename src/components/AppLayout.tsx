@@ -72,10 +72,10 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
                 style={{ background: 'var(--background)' }}
               >
                 <div className="flex min-h-full flex-col">
-                  <div className="page-shell flex-1 pt-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pt-3 max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pt-5 sm:pb-9 lg:pt-5 lg:pb-9">
+                  <div className="page-shell flex-1 pt-4 pb-[calc(var(--bottom-nav-height)+1.25rem+env(safe-area-inset-bottom))] max-[480px]:pt-3 max-[480px]:pb-[calc(var(--bottom-nav-height)+1.5rem+env(safe-area-inset-bottom))] sm:pt-5 sm:pb-9 lg:pt-5 lg:pb-9">
                     {children}
                   </div>
-                  <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+                  <div className="pb-[calc(var(--bottom-nav-height)+0.5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(var(--bottom-nav-height)+0.75rem+env(safe-area-inset-bottom))] lg:pb-0">
                     <PortalFooter />
                   </div>
                 </div>

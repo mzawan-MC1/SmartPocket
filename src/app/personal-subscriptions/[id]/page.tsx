@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
@@ -162,6 +163,7 @@ export default function PersonalSubscriptionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showCancellationModal, setShowCancellationModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'delete' | 'cancel' | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -244,15 +246,12 @@ export default function PersonalSubscriptionDetailPage() {
 
   const handleMarkCancelled = async () => {
     if (!subscription) return;
-    if (!window.confirm(t('personalSubscriptions.actions.confirmMarkCancelled', { ns: 'portal', name: subscription.name }))) {
-      return;
-    }
-
     setProcessingId(subscription.id);
     try {
       await markPersonalSubscriptionCancelled(subscription.id);
       notifyChange(['personal_subscriptions', 'dashboard', 'recurring_transactions', 'notifications']);
       toast.success(t('personalSubscriptions.actions.cancelledSuccess', { ns: 'portal', name: subscription.name }));
+      setPendingAction(null);
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('personalSubscriptions.actions.cancelFailed', { ns: 'portal' }));
@@ -263,15 +262,12 @@ export default function PersonalSubscriptionDetailPage() {
 
   const handleDelete = async () => {
     if (!subscription) return;
-    if (!window.confirm(t('personalSubscriptions.actions.confirmDelete', { ns: 'portal', name: subscription.name }))) {
-      return;
-    }
-
     setProcessingId(subscription.id);
     try {
       await deletePersonalSubscription(subscription.id);
       notifyChange(['personal_subscriptions', 'dashboard', 'recurring_transactions', 'notifications']);
       toast.success(t('personalSubscriptions.actions.deletedSuccess', { ns: 'portal', name: subscription.name }));
+      setPendingAction(null);
       router.push('/personal-subscriptions');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('personalSubscriptions.actions.deleteFailed', { ns: 'portal' }));
@@ -395,7 +391,7 @@ export default function PersonalSubscriptionDetailPage() {
             {canMarkPersonalSubscriptionCancelled(subscription.status) ? (
               <button
                 type="button"
-                onClick={() => void handleMarkCancelled()}
+                onClick={() => setPendingAction('cancel')}
                 disabled={processingId === subscription.id}
                 className="btn-secondary"
               >
@@ -405,7 +401,7 @@ export default function PersonalSubscriptionDetailPage() {
             ) : null}
             <button
               type="button"
-              onClick={() => void handleDelete()}
+              onClick={() => setPendingAction('delete')}
               disabled={processingId === subscription.id}
               className="btn-secondary text-negative"
             >
@@ -719,6 +715,35 @@ export default function PersonalSubscriptionDetailPage() {
             setProcessingId(null);
           }
         }}
+      />
+      <ConfirmationModal
+        open={Boolean(pendingAction)}
+        title={pendingAction === 'delete'
+          ? t('actions.delete', { ns: 'common' })
+          : t('personalSubscriptions.actions.markCancelled', { ns: 'portal' })}
+        description={pendingAction
+          ? pendingAction === 'delete'
+            ? t('personalSubscriptions.actions.confirmDelete', { ns: 'portal', name: subscription.name })
+            : t('personalSubscriptions.actions.confirmMarkCancelled', { ns: 'portal', name: subscription.name })
+          : undefined}
+        confirmLabel={pendingAction === 'delete'
+          ? t('actions.delete', { ns: 'common' })
+          : t('personalSubscriptions.actions.markCancelled', { ns: 'portal' })}
+        cancelLabel={t('actions.keep', { ns: 'common', defaultValue: 'Keep' })}
+        onConfirm={() => {
+          if (pendingAction === 'delete') {
+            void handleDelete();
+            return;
+          }
+          void handleMarkCancelled();
+        }}
+        onClose={() => {
+          if (!processingId) {
+            setPendingAction(null);
+          }
+        }}
+        pending={Boolean(subscription && processingId === subscription.id)}
+        confirmTone={pendingAction === 'delete' ? 'danger' : 'warning'}
       />
     </AppLayout>
   );

@@ -44,8 +44,8 @@ export default function Modal({
   const { t } = useTranslation('common');
   const isVisible = open || isOpen || false;
   const mobileContentClassName = mobileLayout === 'fullscreen'
-    ? 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[24px]'
-    : 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[22px]';
+    ? 'max-[480px]:max-h-[calc(100dvh-1rem)] max-[480px]:rounded-[24px]'
+    : 'max-[480px]:max-h-[calc(100dvh-1rem)] max-[480px]:rounded-[22px]';
 
   useEffect(() => {
     if (isVisible) {
@@ -72,13 +72,13 @@ export default function Modal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-2 py-2 sm:items-center sm:p-5">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative box-border flex w-full max-h-[calc(100dvh-1rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:max-h-[calc(100dvh-2rem)] sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
         <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4 ${headerClassName}`}>
           <div>
@@ -87,7 +87,7 @@ export default function Modal({
           </div>
           <button
             onClick={onClose}
-            className="btn-ghost p-1.5 -mr-1 -mt-1 rounded-lg"
+            className="btn-ghost -mr-2 -mt-2 h-11 w-11 rounded-xl p-0"
             aria-label={t('actions.close')}
           >
             <X size={18} />

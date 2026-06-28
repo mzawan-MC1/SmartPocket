@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { Repeat, Plus, Play, Pause, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { toast } from 'sonner';
 import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
@@ -29,6 +30,8 @@ export default function RecurringPage() {
   const [loading, setLoading] = useState(true);
   const [fallbackCurrency, setFallbackCurrency] = useState('');
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [deletingItem, setDeletingItem] = useState<RecurringTransaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -86,14 +89,18 @@ export default function RecurringPage() {
     }
   };
 
-  const handleDelete = async (item: RecurringTransaction) => {
-    if (!confirm(`Delete "${item.description}"?`)) return;
+  const handleDelete = async () => {
+    if (!deletingItem) return;
+    setDeleting(true);
     try {
-      await updateRecurringTransaction(item.id, { is_active: false });
+      await updateRecurringTransaction(deletingItem.id, { is_active: false });
       toast.success(t('recurring.removed'));
+      setDeletingItem(null);
       load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t('recurring.deleteFailed'));
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -235,21 +242,21 @@ export default function RecurringPage() {
                         showCode
                       />
                     </p>
-                    <div className="flex items-center gap-1 mt-1 justify-end">
+                    <div className="mt-2 flex flex-wrap items-center justify-end gap-1.5">
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id || !canMarkPaid}
-                        className="flex items-center gap-0.5 text-[10px] font-600 text-accent hover:text-teal-600 transition-colors disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-accent/15 px-3 text-xs font-700 text-accent transition-colors hover:bg-accent/5 hover:text-teal-600 disabled:opacity-50"
                         aria-label={t('recurring.markAsPaid')}
                       >
-                        {markingId === item.id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+                        {markingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                         {t('recurring.paid')}
                       </button>
-                      <button onClick={() => handleTogglePause(item)} className="w-6 h-6 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.pause')}>
-                        <Pause size={12} className="text-warning" />
+                      <button onClick={() => handleTogglePause(item)} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted" aria-label={t('recurring.pause')}>
+                        <Pause size={16} className="text-warning" />
                       </button>
-                      <button onClick={() => handleDelete(item)} className="w-6 h-6 rounded hover:bg-negative-soft flex items-center justify-center" aria-label={t('common:actions.delete')}>
-                        <Trash2 size={12} className="text-negative" />
+                      <button onClick={() => setDeletingItem(item)} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-negative-soft" aria-label={t('common:actions.delete')}>
+                        <Trash2 size={16} className="text-negative" />
                       </button>
                     </div>
                   </div>
@@ -276,8 +283,8 @@ export default function RecurringPage() {
                     <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.paused')}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.resume')}>
-                      <Play size={13} className="text-positive" />
+                    <button onClick={() => handleTogglePause(item)} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted" aria-label={t('recurring.resume')}>
+                      <Play size={16} className="text-positive" />
                     </button>
                   </div>
                 </div>
@@ -299,6 +306,26 @@ export default function RecurringPage() {
           onCancel={() => { setShowAddModal(false); }}
         />
       </Modal>
+
+      <ConfirmationModal
+        open={Boolean(deletingItem)}
+        title={t('recurring.deleteConfirmTitle', {
+          defaultValue: 'Delete recurring item?',
+        })}
+        description={deletingItem ? t('recurring.deleteConfirmDescription', {
+          defaultValue: '"{{name}}" will stop appearing in your active recurring list. This does not change past records.',
+          name: deletingItem.description,
+        }) : undefined}
+        confirmLabel={t('common:actions.delete')}
+        onConfirm={() => void handleDelete()}
+        onClose={() => {
+          if (!deleting) {
+            setDeletingItem(null);
+          }
+        }}
+        pending={deleting}
+        confirmTone="danger"
+      />
     </AppLayout>
   );
 }

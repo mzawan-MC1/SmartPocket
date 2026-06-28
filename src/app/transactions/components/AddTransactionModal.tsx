@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import CurrencySelector from '@/components/CurrencySelector';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
@@ -473,6 +474,14 @@ export default function AddTransactionModal({
   const [isSaving, setIsSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<{ completed: number; total: number } | null>(null);
   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{
+    title: string;
+    description: string;
+    confirmLabel: string;
+    cancelLabel?: string;
+    confirmTone?: 'default' | 'warning' | 'danger';
+    onConfirm: () => void;
+  } | null>(null);
   const firstAmountFieldRef = useRef<HTMLInputElement | null>(null);
   const createModeDefaultCurrencyRef = useRef('');
   const createModeAutoCurrencyRef = useRef('');
@@ -841,11 +850,37 @@ export default function AddTransactionModal({
 
     const populatedRows = activeDraftRows.filter(isDraftRowPopulated);
     if (populatedRows.length > 1) {
-      const confirmed = window.confirm(t('transactions.form.discardBatchConfirm', { ns: 'portal' }));
-      if (!confirmed) return;
+      setPendingConfirmation({
+        title: t('transactions.form.discardChangesTitle', {
+          ns: 'portal',
+          defaultValue: 'Discard changes?',
+        }),
+        description: t('transactions.form.discardBatchConfirm', { ns: 'portal' }),
+        confirmLabel: t('transactions.form.discardAction', {
+          ns: 'portal',
+          defaultValue: 'Discard',
+        }),
+        cancelLabel: t('actions.keep', { ns: 'common', defaultValue: 'Keep' }),
+        confirmTone: 'warning',
+        onConfirm: closeModalAndReset,
+      });
+      return;
     } else if (editingTransaction || populatedRows.length === 1) {
-      const confirmed = window.confirm(t('transactions.form.discardChangesConfirm', { ns: 'portal' }));
-      if (!confirmed) return;
+      setPendingConfirmation({
+        title: t('transactions.form.discardChangesTitle', {
+          ns: 'portal',
+          defaultValue: 'Discard changes?',
+        }),
+        description: t('transactions.form.discardChangesConfirm', { ns: 'portal' }),
+        confirmLabel: t('transactions.form.discardAction', {
+          ns: 'portal',
+          defaultValue: 'Discard',
+        }),
+        cancelLabel: t('actions.keep', { ns: 'common', defaultValue: 'Keep' }),
+        confirmTone: 'warning',
+        onConfirm: closeModalAndReset,
+      });
+      return;
     }
 
     closeModalAndReset();
@@ -878,8 +913,22 @@ export default function AddTransactionModal({
     if (mode === 'single') {
       const dirtyRowsBeyondFirst = activeDraftRows.slice(1).filter(isDraftRowPopulated);
       if (dirtyRowsBeyondFirst.length > 0) {
-        const confirmed = window.confirm(t('transactions.form.switchToSingleConfirm', { ns: 'portal' }));
-        if (!confirmed) return;
+        setPendingConfirmation({
+          title: t('transactions.form.switchToSingleTitle', {
+            ns: 'portal',
+            defaultValue: 'Switch to single?',
+          }),
+          description: t('transactions.form.switchToSingleConfirm', { ns: 'portal' }),
+          confirmLabel: t('actions.confirm', { ns: 'common', defaultValue: 'Confirm' }),
+          cancelLabel: t('actions.keep', { ns: 'common', defaultValue: 'Keep' }),
+          confirmTone: 'warning',
+          onConfirm: () => {
+            setDraftRows((rows) => rows.length > 0 ? [rows[0]] : [buildEmptyDraft()]);
+            setTransactionMode(mode);
+            setRowErrors({});
+          },
+        });
+        return;
       }
       setDraftRows((rows) => rows.length > 0 ? [rows[0]] : [buildEmptyDraft()]);
     } else if (draftRows.length === 0) {
@@ -899,8 +948,26 @@ export default function AddTransactionModal({
     if (draftRows.length === 1) return;
     const row = draftRows.find((draft) => draft.id === rowId);
     if (row && isDraftRowPopulated(row)) {
-      const confirmed = window.confirm(t('transactions.form.removeRowConfirm', { ns: 'portal', index: rowIndex + 1 }));
-      if (!confirmed) return;
+      setPendingConfirmation({
+        title: t('transactions.form.removeRowTitle', {
+          ns: 'portal',
+          defaultValue: 'Delete row?',
+        }),
+        description: t('transactions.form.removeRowConfirm', { ns: 'portal', index: rowIndex + 1 }),
+        confirmLabel: t('actions.delete', { ns: 'common' }),
+        cancelLabel: t('actions.keep', { ns: 'common', defaultValue: 'Keep' }),
+        confirmTone: 'danger',
+        onConfirm: () => {
+          setDraftRows((rows) => rows.filter((draft) => draft.id !== rowId));
+          setRowErrors((prev) => {
+            if (!prev[rowId]) return prev;
+            const next = { ...prev };
+            delete next[rowId];
+            return next;
+          });
+        },
+      });
+      return;
     }
 
     setDraftRows((rows) => rows.filter((draft) => draft.id !== rowId));
@@ -1156,6 +1223,7 @@ export default function AddTransactionModal({
       : t('transactions.form.addingMany', { ns: 'portal', count: visibleRowCount });
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={handleRequestClose}
@@ -2252,5 +2320,22 @@ export default function AddTransactionModal({
         }}
       />
     </Modal>
+      <ConfirmationModal
+        open={Boolean(pendingConfirmation)}
+        title={pendingConfirmation?.title || t('actions.confirm', { ns: 'common', defaultValue: 'Confirm' })}
+        description={pendingConfirmation?.description}
+        confirmLabel={pendingConfirmation?.confirmLabel}
+        cancelLabel={pendingConfirmation?.cancelLabel}
+        onConfirm={() => {
+          if (!pendingConfirmation) {
+            return;
+          }
+          pendingConfirmation.onConfirm();
+          setPendingConfirmation(null);
+        }}
+        onClose={() => setPendingConfirmation(null)}
+        confirmTone={pendingConfirmation?.confirmTone}
+      />
+    </>
   );
 }

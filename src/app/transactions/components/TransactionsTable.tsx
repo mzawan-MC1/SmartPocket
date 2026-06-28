@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Edit2, Loader2, ArrowUpDown, Users, CalendarRange } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Badge from '@/components/ui/Badge';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import EmptyState from '@/components/ui/EmptyState';
 import { toast } from 'sonner';
 import {
@@ -100,6 +101,7 @@ export default function TransactionsTable({
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Transaction | null>(null);
   const hasInitializedDateFilter = React.useRef(false);
 
   useEffect(() => {
@@ -250,7 +252,6 @@ export default function TransactionsTable({
   }, [onOpenAddTransaction]);
 
   const handleDelete = async (txn: Transaction) => {
-    if (!confirm(t('transactions.deleteConfirm', { ns: 'portal' }))) return;
     setDeletingId(txn.id);
     try {
       await deleteTransaction(txn.id, txn.account_id);
@@ -263,6 +264,7 @@ export default function TransactionsTable({
       toast.error(e instanceof Error ? e.message : t('transactions.deleteFailed', { ns: 'portal' }));
     } finally {
       setDeletingId(null);
+      setDeleteTarget(null);
     }
   };
 
@@ -751,16 +753,16 @@ export default function TransactionsTable({
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => openEdit(txn)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('actions.edit', { ns: 'common' })}>
-                              <Edit2 size={13} className="text-muted-foreground" />
+                            <button onClick={() => openEdit(txn)} className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-muted" aria-label={t('actions.edit', { ns: 'common' })}>
+                              <Edit2 size={16} className="text-muted-foreground" />
                             </button>
                             <button
-                              onClick={() => handleDelete(txn)}
+                              onClick={() => setDeleteTarget(txn)}
                               disabled={deletingId === txn.id}
-                              className="w-7 h-7 rounded hover:bg-negative-soft flex items-center justify-center"
+                              className="flex h-11 w-11 items-center justify-center rounded-xl hover:bg-negative-soft"
                               aria-label={t('actions.delete', { ns: 'common' })}
                             >
-                              {deletingId === txn.id ? <Loader2 size={13} className="animate-spin text-negative" /> : <Trash2 size={13} className="text-negative" />}
+                              {deletingId === txn.id ? <Loader2 size={16} className="animate-spin text-negative" /> : <Trash2 size={16} className="text-negative" />}
                             </button>
                           </div>
                         </td>
@@ -819,6 +821,25 @@ export default function TransactionsTable({
         isOpen={!!detailsTransactionId}
         transactionId={detailsTransactionId}
         onClose={() => setDetailsTransactionId(null)}
+      />
+      <ConfirmationModal
+        open={Boolean(deleteTarget)}
+        title={t('actions.delete', { ns: 'common' })}
+        description={t('transactions.deleteConfirm', { ns: 'portal' })}
+        confirmLabel={t('actions.delete', { ns: 'common' })}
+        cancelLabel={t('actions.keep', { ns: 'common', defaultValue: 'Keep' })}
+        onConfirm={() => {
+          if (deleteTarget) {
+            void handleDelete(deleteTarget);
+          }
+        }}
+        onClose={() => {
+          if (!deletingId) {
+            setDeleteTarget(null);
+          }
+        }}
+        pending={Boolean(deleteTarget && deletingId === deleteTarget.id)}
+        confirmTone="danger"
       />
     </div>
   );
