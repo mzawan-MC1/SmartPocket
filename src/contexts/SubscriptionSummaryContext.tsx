@@ -50,11 +50,6 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
 
     const controller = new AbortController();
     activeRefreshControllerRef.current = controller;
-    let didTimeout = false;
-    const timeoutId = window.setTimeout(() => {
-      didTimeout = true;
-      controller.abort();
-    }, 15000);
 
     setLoading(true);
     setError(null);
@@ -71,7 +66,7 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
       }
 
       const isAbortError = refreshError instanceof DOMException && refreshError.name === 'AbortError';
-      if (isAbortError && !didTimeout) {
+      if (isAbortError) {
         return;
       }
 
@@ -79,7 +74,6 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
       setBilling(null);
       setError('Failed to load subscription details.');
     } finally {
-      window.clearTimeout(timeoutId);
       if (activeRefreshControllerRef.current === controller) {
         activeRefreshControllerRef.current = null;
       }

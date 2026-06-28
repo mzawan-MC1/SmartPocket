@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useTranslation } from 'react-i18next';
 
-import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2, CheckCircle2 } from 'lucide-react';
+import { Home, Plus, Users, Mail, MoreVertical, Archive, Edit2, Crown, Shield, Eye, UserPlus, Clock, XCircle, Trash2, CheckCircle2, ChevronDown, Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import {
   getMySpaceMemberships, getSpaces, createSpace, updateSpace, archiveSpace,
@@ -611,6 +611,8 @@ export default function SpacesPage() {
 
   const pendingInvitations = invitations.filter((i) => i.status === 'pending');
   const canCreateNewSpace = !subscriptionLoading && hasSharedSpacesFeature;
+  const canManageActiveSpaceSettings = Boolean(activeSpace && hasSharedSpacesFeature && user?.id === activeSpace.owner_id);
+  const shouldShowSpaceSelector = spaces.length > 1;
 
   const openCreateSpaceModal = () => {
     setEditingSpace(null);
@@ -634,12 +636,14 @@ export default function SpacesPage() {
           badge={<StatusBadge status="info" label={t('spaces.badge', { ns: 'portal' })} />}
           actions={
             subscriptionLoading ? (
-              <button
-                disabled
-                className="btn-secondary w-full cursor-wait opacity-70 sm:w-auto"
+              <div
+                role="status"
+                aria-live="polite"
+                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 px-4 text-sm text-muted-foreground sm:w-[180px]"
               >
+                <Loader2 size={15} className="animate-spin" />
                 <span>{t('common.loading', { defaultValue: 'Loading...' })}</span>
-              </button>
+              </div>
             ) : canCreateNewSpace ? (
               <button
                 onClick={openCreateSpaceModal}
@@ -759,98 +763,99 @@ export default function SpacesPage() {
             ) : null}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Space List */}
-            <div className="space-y-2">
-              <p className="text-xs font-600 uppercase tracking-widest text-muted-foreground px-1 mb-3">
-                {t('spaces.yourSpaces', { ns: 'portal' })}
-              </p>
-              {spaces.map((space) => (
-                <div
-                  key={space.id}
-                  onClick={() => setActiveSpaceId(space.id)}
-                  className={`card p-4 cursor-pointer transition-all ${activeSpaceId === space.id ? 'ring-2 ring-accent' : 'hover:shadow-card-md'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg flex-shrink-0"
-                      style={{ backgroundColor: space.color || '#0f3460' }}
-                    >
-                      <Home size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-600 text-foreground truncate">{space.name}</p>
-                      <p className="text-xs text-muted-foreground capitalize">
-                        {getSpaceTypeLabel(space.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
-                      </p>
-                    </div>
-                    {hasSharedSpacesFeature && user?.id === space.owner_id ? (
-                      <div className="relative">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === space.id ? null : space.id); }}
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
-                        >
-                          <MoreVertical size={15} />
-                        </button>
-                        {openMenuId === space.id && (
-                          <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-card-md py-1 min-w-[140px]">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); openEdit(space); }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
-                            >
-                              <Edit2 size={14} /> {t('actions.edit', { ns: 'common' })}
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleArchive(space); }}
-                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
-                            >
-                              <Archive size={14} /> {t('spaces.archiveAction', { ns: 'portal' })}
-                            </button>
-                          </div>
+          <div className="space-y-4">
+            {activeSpace ? (
+              <>
+                {/* Space Header */}
+                <div className="card p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
+                        style={{ backgroundColor: activeSpace.color || '#0f3460' }}
+                      >
+                        <Home size={22} />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-700 text-foreground">{activeSpace.name}</h2>
+                        <p className="text-sm text-muted-foreground capitalize">
+                          {getSpaceTypeLabel(activeSpace.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
+                        </p>
+                        {activeSpace.description && (
+                          <p className="mt-1 text-xs text-muted-foreground">{activeSpace.description}</p>
                         )}
                       </div>
-                    ) : null}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Space Detail */}
-            <div className="lg:col-span-2 space-y-4">
-              {activeSpace ? (
-                <>
-                  {/* Space Header */}
-                  <div className="card p-5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-                          style={{ backgroundColor: activeSpace.color || '#0f3460' }}
-                        >
-                          <Home size={22} />
+                    </div>
+                    <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[260px] lg:items-end">
+                      {shouldShowSpaceSelector ? (
+                        <div className="w-full lg:max-w-[320px]">
+                          <label className="mb-1.5 block text-xs font-600 uppercase tracking-[0.14em] text-muted-foreground">
+                            {t('spaces.yourSpaces', { ns: 'portal' })}
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={activeSpaceId || ''}
+                              onChange={(e) => {
+                                setActiveSpaceId(e.target.value);
+                                setOpenMenuId(null);
+                              }}
+                              className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-2.5 pe-10 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                            >
+                              {spaces.map((space) => (
+                                <option key={space.id} value={space.id}>
+                                  {space.name} - {getSpaceTypeLabel(space.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown
+                              size={16}
+                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <h2 className="text-lg font-700 text-foreground">{activeSpace.name}</h2>
-                          <p className="text-sm text-muted-foreground capitalize">
-                            {getSpaceTypeLabel(activeSpace.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
-                          </p>
-                          {activeSpace.description && (
-                            <p className="text-xs text-muted-foreground mt-1">{activeSpace.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      {hasSharedSpacesFeature && isActiveSpaceOwner ? (
-                        <button
-                          onClick={() => setShowInviteModal(true)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border text-sm font-600 text-foreground hover:bg-muted transition-colors"
-                        >
-                          <UserPlus size={15} /> {t('spaces.inviteAction', { ns: 'portal' })}
-                        </button>
                       ) : null}
+                      <div className="flex flex-wrap gap-2 lg:justify-end">
+                        {hasSharedSpacesFeature && isActiveSpaceOwner ? (
+                          <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-600 text-foreground transition-colors hover:bg-muted"
+                          >
+                            <UserPlus size={15} /> {t('spaces.inviteAction', { ns: 'portal' })}
+                          </button>
+                        ) : null}
+                        {canManageActiveSpaceSettings ? (
+                          <div className="relative">
+                            <button
+                              onClick={() => setOpenMenuId(openMenuId === activeSpace.id ? null : activeSpace.id)}
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted"
+                              aria-label={t('actions.more', { ns: 'common', defaultValue: 'More actions' })}
+                            >
+                              <MoreVertical size={15} />
+                            </button>
+                            {openMenuId === activeSpace.id && (
+                              <div className="absolute right-0 top-12 z-20 min-w-[140px] rounded-xl border border-border bg-card py-1 shadow-card-md">
+                                <button
+                                  onClick={() => openEdit(activeSpace)}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
+                                >
+                                  <Edit2 size={14} /> {t('actions.edit', { ns: 'common' })}
+                                </button>
+                                <button
+                                  onClick={() => handleArchive(activeSpace)}
+                                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
+                                >
+                                  <Archive size={14} /> {t('spaces.archiveAction', { ns: 'portal' })}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="card p-5">
+                <div className="card p-5">
                     <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <h3 className="text-sm font-700 text-foreground">
@@ -1163,14 +1168,14 @@ export default function SpacesPage() {
                         </div>
                       </div>
                     )}
-                  </div>
+                </div>
 
-                  {loadingDetails ? (
-                    <div className="card p-6 animate-pulse h-32 bg-muted" />
-                  ) : activeSpaceRole ? (
-                    <>
-                      {/* Members */}
-                      <div className="card p-5">
+                {loadingDetails ? (
+                  <div className="card p-6 animate-pulse h-32 bg-muted" />
+                ) : activeSpaceRole ? (
+                  <>
+                    {/* Members */}
+                    <div className="card p-5">
                         <div className="flex items-center justify-between mb-4">
                           <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
                             <Users size={16} className="text-accent" />
@@ -1239,11 +1244,11 @@ export default function SpacesPage() {
                             })}
                           </div>
                         )}
-                      </div>
+                    </div>
 
-                      {/* Invitations */}
-                      {canManageInvitations ? (
-                        <div className="card p-5">
+                    {/* Invitations */}
+                    {canManageInvitations ? (
+                      <div className="card p-5">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-sm font-700 text-foreground flex items-center gap-2">
                               <Mail size={16} className="text-accent" />
@@ -1291,18 +1296,17 @@ export default function SpacesPage() {
                               ))}
                             </div>
                           )}
-                        </div>
-                      ) : null}
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <div className="card p-12 text-center">
-                  <Home size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-                  <p className="text-muted-foreground">{t('spaces.selectSpace', { ns: 'portal' })}</p>
-                </div>
-              )}
-            </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <div className="card p-12 text-center">
+                <Home size={40} className="mx-auto text-muted-foreground/40 mb-3" />
+                <p className="text-muted-foreground">{t('spaces.selectSpace', { ns: 'portal' })}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
