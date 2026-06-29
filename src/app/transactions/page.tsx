@@ -1,12 +1,12 @@
 'use client';
 import React from 'react';
-import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import TransactionsHeader from './components/TransactionsHeader';
 import TransactionsTable from './components/TransactionsTable';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { SectionCardSkeleton, TableSkeleton } from '@/components/ui/LoadingSkeleton';
 
 export default function TransactionsPage() {
   const { t } = useTranslation('portal');
@@ -48,17 +48,10 @@ export default function TransactionsPage() {
           activeRangeLabel={headerRangeLabel}
         />
         {periodLoading || !periodContext ? (
-          <div className="section-card">
-            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
-              <Loader2 size={22} className="animate-spin text-accent" />
-              <div>
-                <p className="text-sm font-600 text-foreground">
-                  {t('shared.loadingPlanningPeriodTitle')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('shared.loadingPlanningPeriodDescription')}
-                </p>
-              </div>
+          <div className="space-y-4">
+            <SectionCardSkeleton lines={2} />
+            <div className="data-table-shell">
+              <TableSkeleton rows={6} cols={8} />
             </div>
           </div>
         ) : (

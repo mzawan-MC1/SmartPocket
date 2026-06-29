@@ -103,6 +103,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </PlatformSettingsProvider>
         <Toaster
           position="bottom-right"
+          expand
+          closeButton
+          visibleToasts={4}
+          duration={3200}
+          offset={16}
           toastOptions={{
             style: {
               fontFamily: 'var(--font-sans)',

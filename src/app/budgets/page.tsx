@@ -27,6 +27,8 @@ import { translateSystemCategoryName } from '@/lib/system-category-display';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { getMySpaceMemberships, type Space } from '@/lib/spaces';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { ChartSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
 
@@ -131,6 +133,8 @@ export default function BudgetsPage() {
   const [detailReferenceDate, setDetailReferenceDate] = useState<string | null>(null);
   const [detailSnapshot, setDetailSnapshot] = useState<BudgetDetailSnapshot | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null);
+  const [archivePendingId, setArchivePendingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -206,6 +210,23 @@ export default function BudgetsPage() {
     : singleCurrencySummary && singleCurrencySummary.utilizationPct >= 70
       ? 'text-warning'
       : 'text-positive';
+
+  const handleArchiveBudget = useCallback(async (budgetId: string) => {
+    try {
+      setArchivePendingId(budgetId);
+      await deleteBudget(budgetId);
+      toast.success(t('budgets.archived'));
+      setArchiveTargetId(null);
+      setDetailBudget(null);
+      setDetailSnapshot(null);
+      setDetailReferenceDate(null);
+      load();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('budgets.deleteFailed', { defaultValue: 'Failed to archive the budget.' }));
+    } finally {
+      setArchivePendingId(null);
+    }
+  }, [load, t]);
 
   return (
     <AppLayout activeRoute="/budgets">
@@ -290,9 +311,14 @@ export default function BudgetsPage() {
 
         {/* Overview Card */}
         {loading ? (
-          <div className="card-elevated animate-pulse p-6 max-[480px]:p-4">
-            <div className="h-6 bg-muted rounded w-48 mb-4" />
-            <div className="h-3 bg-muted rounded w-full" />
+          <div className="card-elevated p-6 max-[480px]:p-4">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="h-6 w-48 rounded bg-muted" />
+                <div className="h-3 w-full rounded bg-muted" />
+              </div>
+              <ChartSkeleton height={180} />
+            </div>
           </div>
         ) : budgetSummaries.length > 0 ? (
           <div className="card-elevated p-6 max-[480px]:p-4">
@@ -462,11 +488,7 @@ export default function BudgetsPage() {
           {loading ? (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 xl:gap-4 2xl:grid-cols-3">
               {[...Array(4)].map((_, i) => (
-                <div key={`skel-bud-${i}`} className="card-elevated animate-pulse p-5 max-[480px]:p-4">
-                  <div className="h-4 bg-muted rounded w-32 mb-4" />
-                  <div className="h-2 bg-muted rounded w-full mb-3" />
-                  <div className="h-3 bg-muted rounded w-24" />
-                </div>
+                <SectionCardSkeleton key={`skel-bud-${i}`} lines={3} className="h-full" />
               ))}
             </div>
           ) : items.length === 0 ? (
@@ -679,7 +701,17 @@ export default function BudgetsPage() {
         size="lg"
       >
         {detailLoading || !detailSnapshot ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">{t('budgets.loadingDetails')}</div>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <SectionCardSkeleton key={`budget-detail-summary-skeleton-${index + 1}`} lines={2} />
+              ))}
+            </div>
+            <SectionCardSkeleton lines={3} />
+            <div className="rounded-2xl border border-border bg-card">
+              <ListItemSkeleton count={4} />
+            </div>
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
@@ -793,12 +825,7 @@ export default function BudgetsPage() {
               <button
                 type="button"
                 className="btn-ghost text-negative"
-                onClick={async () => {
-                  await deleteBudget(detailSnapshot.budget.id);
-                  toast.success(t('budgets.archived'));
-                  setDetailBudget(null);
-                  load();
-                }}
+                onClick={() => setArchiveTargetId(detailSnapshot.budget.id)}
               >
                 {t('budgets.archiveAction')}
               </button>
@@ -806,6 +833,22 @@ export default function BudgetsPage() {
           </div>
         )}
       </Modal>
+      <ConfirmationModal
+        open={!!archiveTargetId}
+        onClose={() => setArchiveTargetId(null)}
+        title={t('budgets.archiveConfirmTitle', { defaultValue: 'Archive this budget?' })}
+        description={t('budgets.archiveConfirmDescription', {
+          defaultValue: 'This keeps historical spending intact while removing the budget from active use.',
+        })}
+        cancelLabel={t('common:actions.cancel')}
+        confirmLabel={t('budgets.archiveAction')}
+        pending={archiveTargetId !== null && archivePendingId === archiveTargetId}
+        onConfirm={() => {
+          if (archiveTargetId) {
+            void handleArchiveBudget(archiveTargetId);
+          }
+        }}
+      />
     </AppLayout>
   );
 }

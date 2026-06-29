@@ -1,6 +1,5 @@
  'use client';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import DashboardHeader from '@/app/components/DashboardHeader';
@@ -32,6 +31,7 @@ import {
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 function buildMonthActivePeriod(monthKey: string, timezone: string, locale?: string): DashboardActivePeriod {
   const monthContext = getMonthContext(monthKey, timezone, undefined, locale);
@@ -188,17 +188,50 @@ export default function DashboardPage() {
     <AppLayout activeRoute="/dashboard">
       <div className="page-section gap-3 md:gap-3 lg:gap-4 max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
-          <div className="section-card">
-            <div className="section-card-body flex min-h-[180px] flex-col items-center justify-center gap-3 text-center max-[480px]:min-h-[150px] max-[480px]:gap-2 max-[480px]:p-4">
-              <Loader2 size={22} className="animate-spin text-accent" />
-              <div>
-                <p className="text-sm font-600 text-foreground">
-                  {t('shared.loadingPlanningPeriodTitle')}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {t('shared.loadingPlanningPeriodDescription')}
-                </p>
+          <div className="space-y-4 md:space-y-4 lg:space-y-5 max-[480px]:space-y-3">
+            <SectionCardSkeleton lines={2} />
+            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-12 xl:grid-cols-12">
+              <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-2 lg:grid-cols-3 xl:col-span-9">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <KPICardSkeleton key={`dashboard-kpi-skeleton-${index + 1}`} />
+                ))}
               </div>
+              <div className="hidden md:col-span-12 md:block xl:col-span-3">
+                <SectionCardSkeleton lines={3} className="h-full" />
+              </div>
+              <div className="md:col-span-12 xl:col-span-9">
+                <div className="section-card">
+                  <div className="section-card-header">
+                    <div className="space-y-2">
+                      <div className="h-5 w-40 rounded-lg bg-muted" />
+                      <div className="h-3 w-56 rounded-lg bg-muted" />
+                    </div>
+                  </div>
+                  <div className="section-card-body">
+                    <ChartSkeleton height={320} />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <SectionCardSkeleton key={`dashboard-mid-skeleton-${index + 1}`} lines={4} className="h-full" />
+              ))}
+            </div>
+            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-4">
+              <div className="section-card">
+                <div className="section-card-header">
+                  <div className="space-y-2">
+                    <div className="h-5 w-40 rounded-lg bg-muted" />
+                    <div className="h-3 w-52 rounded-lg bg-muted" />
+                  </div>
+                </div>
+                <div className="section-card-body p-0">
+                  <ListItemSkeleton count={4} />
+                </div>
+              </div>
+              <SectionCardSkeleton lines={4} className="h-full" />
+              <SectionCardSkeleton lines={4} className="h-full" />
             </div>
           </div>
         ) : (

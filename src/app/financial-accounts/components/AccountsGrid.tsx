@@ -28,6 +28,8 @@ import {
   isDefaultBankAccount,
   isDefaultCashAccount,
 } from '@/lib/financial-account-utils';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
+import { KPICardSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -156,6 +158,7 @@ export default function AccountsGrid() {
   const [selectedAccount, setSelectedAccount] = useState<FinancialAccount | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
+  const [archivingId, setArchivingId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -190,12 +193,15 @@ export default function AccountsGrid() {
 
   const handleArchive = async (id: string) => {
     try {
+      setArchivingId(id);
       await archiveAccount(id);
       toast.success(t('accounts.archived'));
       setShowArchiveConfirm(null);
       load();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : t('accounts.archiveFailed'));
+    } finally {
+      setArchivingId(null);
     }
   };
 
@@ -370,21 +376,12 @@ export default function AccountsGrid() {
       <div className="space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={`skel-sum-${i}`} className="card-elevated p-4 animate-pulse">
-              <div className="h-2.5 bg-muted rounded w-20 mb-2" />
-              <div className="h-6 bg-muted rounded w-28" />
-            </div>
+            <KPICardSkeleton key={`skel-sum-${i}`} />
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-acct-${i}`} className="card-elevated overflow-hidden animate-pulse">
-              <div className="h-28 bg-muted" />
-              <div className="p-4">
-                <div className="h-3 bg-muted rounded w-24 mb-2" />
-                <div className="h-3 bg-muted rounded w-16" />
-              </div>
-            </div>
+            <SectionCardSkeleton key={`skel-acct-${i}`} lines={3} className="h-full" />
           ))}
         </div>
       </div>
@@ -627,20 +624,20 @@ export default function AccountsGrid() {
         />
       </Modal>
 
-      {/* Archive Confirm */}
-      {showArchiveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowArchiveConfirm(null)} />
-          <div className="relative bg-card border border-border rounded-2xl shadow-card-lg p-6 max-w-sm w-full">
-            <h3 className="text-base font-700 text-foreground mb-2">{t('accounts.archiveConfirmTitle')}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{t('accounts.archiveConfirmDescription')}</p>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setShowArchiveConfirm(null)} className="btn-secondary">{t('accounts.cancel')}</button>
-              <button onClick={() => handleArchive(showArchiveConfirm)} className="btn-primary bg-warning hover:bg-warning/90">{t('accounts.archive')}</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmationModal
+        open={!!showArchiveConfirm}
+        onClose={() => setShowArchiveConfirm(null)}
+        title={t('accounts.archiveConfirmTitle')}
+        description={t('accounts.archiveConfirmDescription')}
+        cancelLabel={t('accounts.cancel')}
+        confirmLabel={t('accounts.archive')}
+        pending={showArchiveConfirm !== null && archivingId === showArchiveConfirm}
+        onConfirm={() => {
+          if (showArchiveConfirm) {
+            void handleArchive(showArchiveConfirm);
+          }
+        }}
+      />
 
       {/* Account Detail Panel */}
       {selectedAccount && (

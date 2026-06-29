@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { LifeBuoy, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
@@ -12,6 +12,8 @@ import SearchField from '@/components/ui/SearchField';
 import { SupportPriorityBadge, SupportStatusBadge } from '@/components/support/SupportBadges';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SUPPORT_TICKET_CATEGORIES, SUPPORT_TICKET_PRIORITIES, SUPPORT_TICKET_STATUSES, formatSupportDateTime, toTitleLabel } from '@/lib/support';
+import EmptyState from '@/components/ui/EmptyState';
+import { ListItemSkeleton } from '@/components/ui/LoadingSkeleton';
 
 type TicketListItem = {
   id: string;
@@ -135,20 +137,20 @@ export default function SupportPage() {
           description={t('support.list.sectionDescription')}
         >
           {loading ? (
-            <div className="flex min-h-[220px] items-center justify-center">
-              <Loader2 size={20} className="animate-spin text-accent" />
-            </div>
+            <ListItemSkeleton count={5} />
           ) : items.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-6 py-12 text-center">
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                <Search size={20} />
-              </div>
-              <p className="mt-4 text-sm font-700 text-foreground">{t('support.list.emptyTitle')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{t('support.list.emptyDescription')}</p>
-              <Link href="/support/new" className="btn-primary mt-4 inline-flex">
-                <Plus size={16} />
-                {t('support.list.newTicket')}
-              </Link>
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+              <EmptyState
+                icon={LifeBuoy}
+                title={t('support.list.emptyTitle')}
+                description={t('support.list.emptyDescription')}
+                action={{
+                  label: t('support.list.newTicket'),
+                  onClick: () => {
+                    window.location.href = '/support/new';
+                  },
+                }}
+              />
             </div>
           ) : (
             <div className="space-y-3">

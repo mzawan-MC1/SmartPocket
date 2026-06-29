@@ -26,6 +26,7 @@ import {
 import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -503,10 +504,7 @@ export default function TransactionsTable({
 
       <div className="data-table-shell overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center max-[480px]:p-5">
-            <Loader2 size={24} className="animate-spin text-accent mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">{t('transactions.loading', { ns: 'portal' })}</p>
-          </div>
+          <TableSkeleton rows={7} cols={8} />
         ) : filtered.length === 0 ? (
           <div className="p-12 max-[480px]:p-5">
             <EmptyState
@@ -628,7 +626,7 @@ export default function TransactionsTable({
             </div>
             <div className="hidden overflow-x-auto scrollbar-thin sm:block">
               <table className="w-full min-w-[760px]">
-                <thead className="data-table-head">
+                <thead className="data-table-head sticky top-0 z-[1]">
                   <tr className="border-b border-border">
                     <th className="w-10 px-4 py-3">
                       <input type="checkbox" className="w-4 h-4 rounded border-border accent-accent cursor-pointer"

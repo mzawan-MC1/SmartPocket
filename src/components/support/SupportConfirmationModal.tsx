@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
-import Modal from '@/components/ui/Modal';
-import { useLanguage } from '@/contexts/LanguageContext';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 
 type SupportConfirmationModalProps = {
   open: boolean;
@@ -26,45 +24,16 @@ export default function SupportConfirmationModal({
   onClose,
   pending = false,
 }: SupportConfirmationModalProps) {
-  const { isRTL } = useLanguage();
-
   return (
-    <Modal
-      isOpen={open}
-      onClose={() => {
-        if (!pending) {
-          onClose();
-        }
-      }}
+    <ConfirmationModal
+      open={open}
+      onClose={onClose}
       title={title}
       description={description}
-      size="md"
-    >
-      <div className={`flex gap-3 ${isRTL ? 'justify-start' : 'justify-end'}`}>
-        <button
-          type="button"
-          className="btn-secondary"
-          onClick={onClose}
-          disabled={pending}
-        >
-          {cancelLabel}
-        </button>
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={onConfirm}
-          disabled={pending}
-        >
-          {pending ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              {confirmLabel}
-            </>
-          ) : (
-            confirmLabel
-          )}
-        </button>
-      </div>
-    </Modal>
+      confirmLabel={confirmLabel}
+      cancelLabel={cancelLabel}
+      onConfirm={onConfirm}
+      pending={pending}
+    />
   );
 }

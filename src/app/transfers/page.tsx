@@ -13,6 +13,7 @@ import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import AddTransferForm from '@/app/transfers/components/AddTransferForm';
+import { ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 function groupTransferAmounts(transfers: Transfer[]) {
   const grouped = new Map<string, number>();
@@ -83,7 +84,9 @@ export default function TransfersPage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
-          {[
+          {loading ? Array.from({ length: 3 }).map((_, index) => (
+            <SectionCardSkeleton key={`transfer-summary-skeleton-${index + 1}`} lines={2} className="h-full" />
+          )) : [
             { label: t('transfers.summary.totalTransferred'), sub: t('transfers.thisMonth'), grouped: groupedTransferred },
             { label: t('transfers.summary.count'), value: String(thisMonthTransfers.length), sub: t('transfers.thisMonth') },
             { label: t('transfers.summary.average'), value: groupedTransferred.length === 1 ? avgTransfer : null, currency: groupedTransferred[0]?.currency, sub: groupedTransferred.length === 1 ? t('transfers.perTransfer') : t('transfers.unavailableMixedCurrencies') },
@@ -124,18 +127,7 @@ export default function TransfersPage() {
             <h2 className="text-base font-700 text-foreground">{t('transfers.history')}</h2>
           </div>
           {loading ? (
-            <div className="divide-y divide-border">
-              {[...Array(3)].map((_, i) => (
-                <div key={`skel-tr-${i}`} className="flex items-center gap-4 p-4 animate-pulse">
-                  <div className="w-10 h-10 rounded-xl bg-muted flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="h-3 bg-muted rounded w-48 mb-1.5" />
-                    <div className="h-2.5 bg-muted rounded w-32" />
-                  </div>
-                  <div className="h-4 bg-muted rounded w-20" />
-                </div>
-              ))}
-            </div>
+            <ListItemSkeleton count={4} />
           ) : filtered.length === 0 ? (
             <div className="p-12">
               <EmptyState
