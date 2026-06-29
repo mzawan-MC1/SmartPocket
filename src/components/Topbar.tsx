@@ -28,6 +28,8 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const quickActions = useQuickActions();
+  const aiButtonLabel = t('topbar.smartEntry', { ns: 'portal' });
+  const aiMobileLabel = t('topbar.smartEntryShort', { ns: 'portal', defaultValue: 'AI' });
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
   const initials = displayName.charAt(0).toUpperCase();
@@ -139,21 +141,22 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* AI Smart Entry button */}
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="hidden h-10 min-w-[156px] items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-ai-soft px-4 text-sm font-700 text-ai transition-colors hover:bg-purple-100 sm:inline-flex"
-            aria-label={t('topbar.smartEntry', { ns: 'portal' })}
+            className="hidden h-10 min-w-[172px] items-center justify-center gap-2 rounded-full border border-purple-200/90 bg-[linear-gradient(180deg,rgba(139,92,246,0.16),rgba(139,92,246,0.08))] px-4 text-sm font-700 text-ai shadow-[0_18px_36px_-28px_rgba(139,92,246,0.95)] transition-all duration-150 hover:-translate-y-0.5 hover:border-purple-300 hover:bg-purple-100/90 hover:shadow-[0_22px_42px_-28px_rgba(139,92,246,0.95)] sm:inline-flex"
+            aria-label={aiButtonLabel}
             title={t('topbar.smartEntryTitle', { ns: 'portal' })}
           >
-            <Sparkles size={14} />
-            <span className="hidden lg:inline">{t('topbar.smartEntry', { ns: 'portal' })}</span>
+            <Sparkles size={15} />
+            <span>{aiButtonLabel}</span>
           </button>
 
           {/* Mobile AI button */}
           <button
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-full max-[480px]:border max-[480px]:border-accent/20 max-[480px]:bg-accent/12 sm:hidden"
-            aria-label={t('topbar.smartEntry', { ns: 'portal' })}
+            className="hidden h-10 items-center justify-center gap-1 rounded-full border border-accent/20 bg-accent/12 px-3 text-[12px] font-700 text-accent shadow-[0_14px_28px_-24px_rgba(20,184,166,0.9)] transition-all duration-150 hover:-translate-y-0.5 hover:bg-accent/16 max-[480px]:inline-flex sm:hidden"
+            aria-label={aiButtonLabel}
           >
-            <Sparkles size={23} className="text-accent" />
+            <Sparkles size={15} className="text-accent" />
+            <span>{aiMobileLabel}</span>
           </button>
 
           {/* Language Switcher */}

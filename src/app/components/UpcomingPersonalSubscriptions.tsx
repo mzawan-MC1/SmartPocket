@@ -58,25 +58,25 @@ export default function UpcomingPersonalSubscriptions({
     <SectionCard
       title={t('personalSubscriptions.widget.title', { ns: 'portal' })}
       description={t('personalSubscriptions.widget.description', { ns: 'portal' })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
       action={(
         <Link href="/personal-subscriptions" className="text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })}
         </Link>
       )}
-      bodyClassName="flex flex-1 flex-col p-0"
+      bodyClassName="flex flex-1 flex-col p-3"
     >
       {loading ? (
-        <div className="divide-y divide-border">
+        <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={`personal-subscription-widget-skeleton-${index}`} className="animate-pulse px-4 py-3">
+            <div key={`personal-subscription-widget-skeleton-${index}`} className="animate-pulse rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-3">
               <div className="mb-2 h-4 w-36 rounded bg-muted" />
               <div className="h-3 w-28 rounded bg-muted" />
             </div>
           ))}
         </div>
       ) : subscriptions.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-8 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-6 text-center">
           <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[22px] bg-accent/10 text-accent">
             <CalendarClock size={28} />
           </div>
@@ -88,9 +88,9 @@ export default function UpcomingPersonalSubscriptions({
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="space-y-2">
           {subscriptions.map((subscription) => (
-            <div key={subscription.id} className="flex items-center justify-between gap-3 px-4 py-3">
+            <div key={subscription.id} className="flex items-center justify-between gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 hover:border-border/70 hover:bg-muted/30">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

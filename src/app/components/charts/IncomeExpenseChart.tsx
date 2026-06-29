@@ -284,7 +284,7 @@ export default function IncomeExpenseChart({
 
   if (loading) {
     return (
-      <div className="flex h-[280px] items-center justify-center max-[480px]:h-[240px]">
+      <div className="flex h-[320px] items-center justify-center max-[480px]:h-[260px] md:h-[340px]">
         <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
       </div>
     );
@@ -311,7 +311,7 @@ export default function IncomeExpenseChart({
   }
 
   return (
-    <div className="h-[280px] max-[480px]:h-[240px]">
+    <div className="h-[320px] max-[480px]:h-[260px] md:h-[340px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
         <defs>

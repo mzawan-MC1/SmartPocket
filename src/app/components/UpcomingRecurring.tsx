@@ -91,7 +91,7 @@ export default function UpcomingRecurring({
       description={activePeriod.mode === 'month'
         ? t('recurring.widgetDescriptionMonth', { ns: 'portal', period: activePeriod.label })
         : t('recurring.widgetDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
       action={
         <div className="flex items-center gap-2">
           <StatusBadge status="pending" label={activePeriod.label} />
@@ -100,13 +100,13 @@ export default function UpcomingRecurring({
           </Link>
         </div>
       }
-      bodyClassName="flex flex-1 flex-col p-0"
+      bodyClassName="flex flex-1 flex-col p-3"
     >
 
       {loading ? (
-        <div className="divide-y divide-border">
+        <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-rec-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+            <div key={`skel-rec-${i}`} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-3 animate-pulse">
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-36 mb-1.5" />
                 <div className="h-2.5 bg-muted rounded w-24" />
@@ -116,7 +116,7 @@ export default function UpcomingRecurring({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-start px-6 pb-6 pt-4 text-center">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 py-6 text-center">
           <div className="mb-3 flex h-20 w-20 items-center justify-center rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.22),rgba(255,255,255,0.95)_65%)] shadow-[0_22px_46px_-30px_rgba(147,51,234,0.7)]">
             <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-violet-500/12 text-violet-600">
               <CalendarClock size={30} />
@@ -131,7 +131,7 @@ export default function UpcomingRecurring({
         </div>
       ) : (
         <div className="flex flex-1 flex-col">
-          <div className="divide-y divide-border">
+          <div className="space-y-2">
             {items.slice(0, 5).map((item) => {
               const days = daysUntil(item.next_due_date, activePeriod.timezone);
               const urgent = activePeriod.isCurrent && days <= 3;
@@ -142,7 +142,7 @@ export default function UpcomingRecurring({
                 timeZone: 'UTC',
               });
               return (
-                <div key={item.id} className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${urgent ? 'bg-warning-soft/30' : ''}`}>
+                <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition-colors hover:bg-muted/40 ${urgent ? 'border-warning/20 bg-warning-soft/25' : 'border-transparent bg-muted/15 hover:border-border/70'}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       {urgent && <AlertCircle size={12} className="text-warning flex-shrink-0" />}
@@ -191,7 +191,7 @@ export default function UpcomingRecurring({
               );
             })}
           </div>
-          <div className="border-t border-border bg-muted/20 px-4 py-3">
+          <div className="mt-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
             <div className="flex items-center justify-between gap-4 text-xs">
               <span className="min-w-0 text-muted-foreground">
                 {activePeriod.mode === 'month'

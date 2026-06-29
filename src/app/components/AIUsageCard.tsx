@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Zap, Calendar, AlertTriangle, CheckCircle, XCircle, RefreshCw, Clock, Sparkles } from 'lucide-react';
+import { Calendar, AlertTriangle, CheckCircle, XCircle, RefreshCw, Clock, Sparkles } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
@@ -371,7 +371,7 @@ export default function AIUsageCard() {
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4">
+      <div className="card-elevated animate-pulse rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4 shadow-[0_24px_70px_-48px_rgba(124,58,237,0.75)]">
         <div className="mb-3 flex items-center justify-between">
           <div className="space-y-2">
             <div className="h-4 w-28 rounded bg-secondary" />
@@ -395,7 +395,7 @@ export default function AIUsageCard() {
 
   if (!summary?.has_subscription) {
     return (
-      <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4">
+      <div className="card-elevated rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(139,92,246,0.10),rgba(255,255,255,0.96))] p-4 shadow-[0_24px_70px_-48px_rgba(124,58,237,0.75)]">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-500/12 text-violet-600 shadow-[0_12px_24px_-20px_rgba(139,92,246,0.9)]">
@@ -403,10 +403,13 @@ export default function AIUsageCard() {
               <Sparkles size={17} className="relative z-[1]" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
-                <Link href="/ai-history" className="text-sm font-700 text-violet-700 transition-colors hover:text-violet-800">
-                  ({t('aiUsage.history')})
+                <Link
+                  href="/ai-history"
+                  className="inline-flex items-center rounded-full border border-violet-200/80 bg-white/72 px-2.5 py-1 text-[11px] font-700 text-violet-700 transition-colors hover:bg-white hover:text-violet-800"
+                >
+                  {t('aiUsage.history')}
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground">{t('aiUsage.companion')}</p>
@@ -428,9 +431,9 @@ export default function AIUsageCard() {
         <button
           type="button"
           onClick={() => quickActions?.openQuickAction('smart_entry')}
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+          className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-card-md"
         >
-          <Zap size={13} />
+          <Sparkles size={14} />
           {t('aiUsage.openAssistant')}
         </button>
       </div>
@@ -489,10 +492,13 @@ export default function AIUsageCard() {
               <Sparkles size={17} className="relative z-[1]" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <h3 className="text-base font-800 text-foreground">{t('aiUsage.assistantTitle')}</h3>
-                <Link href="/ai-history" className="text-sm font-700 text-violet-700 transition-colors hover:text-violet-800">
-                  ({t('aiUsage.history')})
+                <Link
+                  href="/ai-history"
+                  className="inline-flex items-center rounded-full border border-violet-200/80 bg-white/72 px-2.5 py-1 text-[11px] font-700 text-violet-700 transition-colors hover:bg-white hover:text-violet-800"
+                >
+                  {t('aiUsage.history')}
                 </Link>
               </div>
               <p className="text-[12.5px] text-muted-foreground">{t('aiUsage.companion')}</p>
@@ -602,9 +608,9 @@ export default function AIUsageCard() {
           <button
             type="button"
             onClick={() => quickActions?.openQuickAction('smart_entry')}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-all duration-150 hover:-translate-y-0.5 hover:bg-violet-700 hover:shadow-card-md"
           >
-            <Zap size={14} />
+            <Sparkles size={14} />
             {t('aiUsage.openAssistant')}
           </button>
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-violet-700">

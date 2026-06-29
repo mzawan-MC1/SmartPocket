@@ -67,9 +67,9 @@ export default function DashboardMetrics({
     const skeletonCards = Array.from({ length: 8 });
 
     return (
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-4 lg:grid-cols-3">
         {skeletonCards.map((_, i) => (
-          <div key={`skel-${i}`} className="metric-card h-full min-h-[110px] animate-pulse rounded-[24px] px-4 py-3 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5">
+          <div key={`skel-${i}`} className="metric-card h-full min-h-[116px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5">
             <div className="mb-3 flex items-start justify-between">
               <div className="space-y-2">
                 <div className="h-3.5 w-24 rounded bg-muted" />
@@ -404,7 +404,7 @@ export default function DashboardMetrics({
     return (
       <div
         key={metric.id}
-        className={`metric-card flex h-full min-h-[110px] flex-col rounded-[24px] border border-border/80 px-4 py-3 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
+        className={`metric-card flex h-full min-h-[116px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-muted/15 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
           metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
@@ -461,7 +461,7 @@ export default function DashboardMetrics({
       {hasConfigurationWarning ? (
         <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
       ) : null}
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-4 lg:grid-cols-3">
         {metricCards.map((metric) => renderMetricCard(metric))}
       </div>
     </div>

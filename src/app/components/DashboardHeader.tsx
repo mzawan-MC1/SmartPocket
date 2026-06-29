@@ -27,7 +27,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 
-type QuickActionId = 'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget';
+type QuickActionId = 'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget';
+
+function getFirstName(value?: string | null) {
+  const normalized = value?.trim();
+  if (!normalized) return '';
+  const firstToken = normalized.split(/\s+/)[0];
+  return firstToken || normalized;
+}
 
 export default function DashboardHeader({
   activePeriod,
@@ -70,7 +77,8 @@ export default function DashboardHeader({
   const description = t('dashboardHeader.description', {
     period: activePeriod.label,
   });
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
+  const registeredName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
+  const firstName = getFirstName(registeredName) || registeredName;
   const currentHour = Number(new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     hour12: false,
@@ -81,17 +89,28 @@ export default function DashboardHeader({
     : currentHour < 18
       ? 'dashboardHeader.greeting.afternoon'
       : 'dashboardHeader.greeting.evening';
-  const greeting = t(greetingKey, { name: displayName }).replace(/\s*👋\s*$/, '');
+  const greeting = t(greetingKey, { name: firstName }).replace(/\s*👋\s*$/, '');
   const quickActions = [
     { id: 'transaction' as QuickActionId, label: t('dashboardHeader.quickActions.transaction'), icon: Plus },
     { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.account'), icon: Wallet },
+    {
+      id: 'personal_subscription' as QuickActionId,
+      label: t('dashboardHeader.quickActions.personalSubscriptions', { defaultValue: 'Personal Subscription' }),
+      icon: Calendar,
+    },
     { id: 'recurring' as QuickActionId, label: t('dashboardHeader.quickActions.recurring'), icon: Repeat },
     { id: 'reimbursement' as QuickActionId, label: t('dashboardHeader.quickActions.reimbursement'), icon: RotateCcw },
     { id: 'budget' as QuickActionId, label: t('dashboardHeader.quickActions.budget'), icon: Target },
   ];
-  const quickActionShortLabel = (actionId: QuickActionId) =>
-    t(`dashboardHeader.quickActionShort.${actionId}`);
-  const directActions = quickActions.filter((action) => action.id === 'transaction' || action.id === 'account');
+  const quickActionShortLabel = (actionId: QuickActionId) => {
+    if (actionId === 'personal_subscription') {
+      return t('dashboardHeader.quickActionShort.personalSubscriptions', { defaultValue: 'Personal Subscription' });
+    }
+    return t(`dashboardHeader.quickActionShort.${actionId}`);
+  };
+  const directActions = quickActions.filter((action) =>
+    action.id === 'transaction' || action.id === 'account' || action.id === 'personal_subscription'
+  );
   const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
 
   useEffect(() => {
@@ -116,20 +135,20 @@ export default function DashboardHeader({
   }, []);
 
   return (
-    <section className="space-y-2">
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.18fr)_minmax(31rem,1fr)] lg:items-center xl:grid-cols-[minmax(20rem,1.25fr)_minmax(24.5rem,0.96fr)_15.5rem] xl:gap-3">
-        <div className="min-w-0 space-y-0.5">
-          <h1 className="flex items-center gap-x-1 gap-y-0 text-[1.56rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.28rem] max-[480px]:tracking-[-0.04em] max-[360px]:flex-wrap max-[360px]:text-[1.14rem] xl:flex-nowrap xl:text-[1.66rem]">
+    <section className="space-y-3.5 md:space-y-4">
+      <div className="grid grid-cols-1 gap-3.5 md:gap-4 lg:grid-cols-[minmax(0,1.08fr)_minmax(31rem,1fr)] lg:items-start xl:grid-cols-[minmax(20rem,1.18fr)_minmax(27rem,1fr)_16.25rem] xl:items-center xl:gap-4">
+        <div className="min-w-0 space-y-1.5 rounded-[24px] border border-transparent py-1">
+          <h1 className="flex items-center gap-x-1.5 gap-y-0 text-[1.62rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[1.3rem] max-[480px]:tracking-[-0.04em] max-[360px]:flex-wrap max-[360px]:text-[1.14rem] xl:flex-nowrap xl:text-[1.72rem]">
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
-          <p className="text-[13px] leading-5 text-muted-foreground md:text-[14px]">
+          <p className="max-w-[40rem] text-[13px] leading-5 text-muted-foreground md:text-[14px]">
             {description}
           </p>
         </div>
 
-        <div className="min-w-0 rounded-[20px] border border-border/80 bg-card px-1 py-1 shadow-card-sm">
-          <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.94fr)] items-stretch divide-x divide-border/70 rtl:divide-x-reverse">
+        <div className="min-w-0 rounded-[24px] border border-border/80 bg-card px-1.5 py-1.5 shadow-card-sm transition-shadow duration-200 hover:shadow-card-md">
+          <div className="grid grid-cols-4 items-stretch gap-1">
             {directActions.map((action) => {
               const Icon = action.icon;
               const isSelected = activeQuickAction === action.id;
@@ -138,20 +157,20 @@ export default function DashboardHeader({
                   key={action.id}
                   type="button"
                   onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className={`group flex min-w-0 items-center justify-center gap-1 rounded-[14px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1 max-[480px]:py-1.5 ${
+                  className={`group flex min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] border border-transparent px-2 py-2.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:gap-0.5 max-[480px]:px-1.5 max-[480px]:py-2 ${
                     isSelected
                       ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
-                      : 'text-foreground hover:bg-muted/45'
+                      : 'text-foreground hover:border-border/70 hover:bg-muted/45'
                   }`}
                   aria-label={action.label}
                   aria-pressed={isSelected}
                 >
-                  <span className={`flex h-6.5 w-6.5 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-6 max-[480px]:w-6 ${
+                  <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl transition-colors max-[480px]:h-6.5 max-[480px]:w-6.5 ${
                     isSelected ? 'bg-accent/15 text-accent' : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
                   }`}>
-                    <Icon size={14} />
+                    <Icon size={15} />
                   </span>
-                  <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4 max-[480px]:text-[11.5px]">
+                  <span className="line-clamp-2 min-h-[2rem] text-center text-[11.5px] font-700 leading-4 max-[480px]:text-[10.5px] max-[480px]:leading-[0.92rem]">
                     {quickActionShortLabel(action.id)}
                   </span>
                 </button>
@@ -161,25 +180,25 @@ export default function DashboardHeader({
               <button
                 type="button"
                 onClick={() => setMoreOpen((value) => !value)}
-                className={`group flex h-full w-full min-w-0 items-center justify-center gap-1 rounded-[14px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1 max-[480px]:py-1.5 ${
+                className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-1 rounded-[16px] border border-transparent px-2 py-2.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:gap-0.5 max-[480px]:px-1.5 max-[480px]:py-2 ${
                   activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
                     ? 'border-accent/25 bg-accent/10 text-accent shadow-[0_10px_24px_-18px_rgba(20,184,166,0.85)]'
-                    : 'text-foreground hover:bg-muted/45'
+                    : 'text-foreground hover:border-border/70 hover:bg-muted/45'
                 }`}
                 aria-haspopup="menu"
                 aria-expanded={moreOpen}
               >
-                <span className={`flex h-6.5 w-6.5 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-6 max-[480px]:w-6 ${
+                <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl transition-colors max-[480px]:h-6.5 max-[480px]:w-6.5 ${
                   activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
                     ? 'bg-accent/15 text-accent'
                     : 'bg-muted/70 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
                 }`}>
-                  <Ellipsis size={14} />
+                  <Ellipsis size={15} />
                 </span>
-                <span className="truncate whitespace-nowrap text-[12px] font-700 leading-4 max-[480px]:text-[11.5px]">
+                <span className="text-[11.5px] font-700 leading-4 max-[480px]:text-[10.5px]">
                   {t('dashboardHeader.more')}
                 </span>
-                <ChevronDown size={14} className={`flex-shrink-0 text-muted-foreground transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown size={14} className={`flex-shrink-0 text-muted-foreground/90 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
               </button>
               {moreOpen ? (
                 <div
@@ -214,7 +233,7 @@ export default function DashboardHeader({
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-1.5 rounded-[20px] border border-border/80 bg-card px-2 py-2 shadow-card-sm">
+        <div className="flex w-full flex-col gap-1.5 rounded-[22px] border border-border/80 bg-card px-2 py-2 shadow-card-sm transition-shadow duration-200 hover:shadow-card-md">
           <div className="overflow-hidden">
             <Tabs
               items={[

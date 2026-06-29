@@ -90,19 +90,19 @@ export default function AccountBalances() {
     <SectionCard
       title={t('dashboardAccounts.title', { ns: 'portal' })}
       description={t('accounts.dashboardDescription', { ns: 'portal' })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm"
+      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
       action={
         <Link href="/financial-accounts" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
-      bodyClassName="flex flex-1 flex-col p-0"
+      bodyClassName="flex flex-1 flex-col p-3"
     >
 
       {loading ? (
-        <div className="divide-y divide-border">
+        <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-acct-${i}`} className="flex items-center gap-3 px-4 py-3 animate-pulse">
+            <div key={`skel-acct-${i}`} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-3 animate-pulse">
               <div className="w-8 h-8 rounded-lg bg-muted flex-shrink-0" />
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-28 mb-1.5" />
@@ -113,7 +113,7 @@ export default function AccountBalances() {
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="flex flex-1 items-start justify-center px-4 pb-6 pt-4">
+        <div className="flex flex-1 items-center justify-center px-4 py-6">
           <div className="flex max-w-[15rem] flex-col items-center text-center">
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
               <Wallet size={22} />
@@ -124,7 +124,7 @@ export default function AccountBalances() {
         </div>
       ) : (
         <div className="flex flex-1 flex-col">
-          <div className="divide-y divide-border">
+          <div className="space-y-2">
           {accounts.slice(0, 5).map((acct) => {
             const Icon = getAccountIcon(acct.account_type);
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
@@ -133,7 +133,7 @@ export default function AccountBalances() {
               { month: 'short', day: 'numeric' }
             );
             return (
-              <div key={acct.id} className="flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer hover:bg-muted/35">
+              <div key={acct.id} className="flex items-center gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 cursor-pointer hover:border-border/70 hover:bg-muted/30">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${colorClass} flex-shrink-0`}>
                   <Icon size={15} />
                 </div>
@@ -159,7 +159,7 @@ export default function AccountBalances() {
             );
           })}
           </div>
-          <div className="flex items-start justify-between gap-3 bg-muted/20 px-4 py-3.5">
+          <div className="mt-2 flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3.5">
             <div>
               <p className="text-sm font-700 text-foreground">{t('dashboardAccounts.totalBalance', { ns: 'portal' })}</p>
               <p className="text-xs text-muted-foreground">{t('dashboardMetrics.acrossActiveAccounts', { ns: 'portal' })}</p>

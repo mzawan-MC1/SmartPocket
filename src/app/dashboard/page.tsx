@@ -18,7 +18,8 @@ import FinancialAccountForm from '@/app/financial-accounts/components/FinancialA
 import RecurringTransactionForm from '@/app/recurring/components/RecurringTransactionForm';
 import AddBudgetForm from '@/app/budgets/components/AddBudgetForm';
 import CreateReimbursementForm from '@/app/reimbursements/components/CreateReimbursementForm';
-import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
+import PersonalSubscriptionForm from '@/app/personal-subscriptions/components/PersonalSubscriptionForm';
+import { useSmartPocketDataChanged } from '@/lib/data-change';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import { toast } from 'sonner';
 import {
@@ -69,7 +70,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<DashboardPeriodPreference | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedPayPeriodStart, setSelectedPayPeriodStart] = useState('');
-  const [activeQuickAction, setActiveQuickAction] = useState<'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget' | null>(null);
+  const [activeQuickAction, setActiveQuickAction] = useState<'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget' | null>(null);
   const [lastTrigger, setLastTrigger] = useState<HTMLElement | null>(null);
 
   const loadPeriodContext = useCallback(async () => {
@@ -141,7 +142,7 @@ export default function DashboardPage() {
   }, [lastTrigger]);
 
   const openQuickAction = useCallback((
-    action: 'transaction' | 'account' | 'recurring' | 'reimbursement' | 'budget',
+    action: 'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget',
     trigger: HTMLElement | null
   ) => {
     setLastTrigger(trigger);
@@ -186,12 +187,12 @@ export default function DashboardPage() {
 
   return (
     <AppLayout activeRoute="/dashboard">
-      <div className="page-section gap-3 md:gap-3 lg:gap-4 max-[480px]:gap-3">
+      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
-          <div className="space-y-4 md:space-y-4 lg:space-y-5 max-[480px]:space-y-3">
+          <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
             <SectionCardSkeleton lines={2} />
-            <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-12 xl:grid-cols-12">
-              <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-2 lg:grid-cols-3 xl:col-span-9">
+            <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-12">
+              <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-4 lg:grid-cols-3 xl:col-span-9">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <KPICardSkeleton key={`dashboard-kpi-skeleton-${index + 1}`} />
                 ))}
@@ -213,13 +214,14 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
-              {Array.from({ length: 3 }).map((_, index) => (
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
+              <SectionCardSkeleton lines={4} className="h-full md:col-span-2 xl:col-span-1" />
+              {Array.from({ length: 2 }).map((_, index) => (
                 <SectionCardSkeleton key={`dashboard-mid-skeleton-${index + 1}`} lines={4} className="h-full" />
               ))}
             </div>
-            <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-4">
-              <div className="section-card">
+            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
+              <div className="section-card md:col-span-2 lg:col-span-1">
                 <div className="section-card-header">
                   <div className="space-y-2">
                     <div className="h-5 w-40 rounded-lg bg-muted" />
@@ -246,8 +248,8 @@ export default function DashboardPage() {
               activeQuickAction={activeQuickAction}
               financialPeriodContext={periodContext}
             />
-            <div className="space-y-4 md:space-y-4 lg:space-y-5 max-[480px]:space-y-3">
-              <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-12 xl:grid-cols-12">
+            <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
+              <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-12">
                 <div className="md:col-span-12 xl:col-span-9">
                   <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
@@ -258,8 +260,8 @@ export default function DashboardPage() {
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-3 xl:gap-4">
-                <div>
+              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
+                <div className="md:col-span-2 xl:col-span-1">
                   <RecentTransactions />
                 </div>
                 <div>
@@ -269,8 +271,8 @@ export default function DashboardPage() {
                   <AccountBalances />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-4">
-                <div className="h-full">
+              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
+                <div className="h-full md:col-span-2 lg:col-span-1">
                   <UpcomingPersonalSubscriptions activePeriod={activePeriod} />
                 </div>
                 <div className="h-full">
@@ -297,6 +299,18 @@ export default function DashboardPage() {
           size="md"
         >
           <FinancialAccountForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+        </Modal>
+
+        <Modal
+          isOpen={activeQuickAction === 'personal_subscription'}
+          onClose={closeQuickAction}
+          title={t('personalSubscriptions.newTitle')}
+          size="lg"
+        >
+          <PersonalSubscriptionForm
+            onSuccess={() => closeQuickAction()}
+            onCancel={closeQuickAction}
+          />
         </Modal>
 
         <Modal

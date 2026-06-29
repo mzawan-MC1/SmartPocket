@@ -3,8 +3,9 @@
     "toggleMenu": "Toggle menu",
     "search": "Search",
     "searchPlaceholder": "Search transactions, accounts...",
-    "smartEntry": "Smart Entry",
-    "smartEntryTitle": "Smart Entry (AI)",
+    "smartEntry": "Ask AI",
+    "smartEntryShort": "AI",
+    "smartEntryTitle": "Open AI Assistant",
     "userMenu": "User menu",
     "upgradePackage": "Upgrade Package",
     "settings": "Settings",
@@ -216,6 +217,7 @@
     "quickActions": {
       "transaction": "Add Transaction",
       "account": "Add Account",
+      "personalSubscriptions": "Personal Subscription",
       "recurring": "Add Recurring",
       "reimbursement": "Add Reimbursement",
       "budget": "Add Budget"
@@ -223,6 +225,7 @@
     "quickActionShort": {
       "transaction": "Transaction",
       "account": "Account",
+      "personalSubscriptions": "Personal Subscription",
       "recurring": "Recurring",
       "reimbursement": "Reimbursement",
       "budget": "Budget"
@@ -617,8 +620,8 @@
     "requestsToday": "Requests today",
     "resetDate": "Reset date",
     "status": "Status",
-    "openAssistant": "Open AI Assistant",
-    "history": "AI History",
+    "openAssistant": "Ask AI",
+    "history": "History",
     "upgrade": "Upgrade",
     "none": "None",
     "trialing": "Trialing"

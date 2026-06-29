@@ -171,7 +171,7 @@ export default function SpendingCategoryChart({
   });
 
   if (loading) {
-    return <div className="flex h-[300px] items-center justify-center"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
+    return <div className="flex h-[320px] items-center justify-center max-[480px]:h-[260px]"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
   }
 
   if (!data.length) {
@@ -194,10 +194,10 @@ export default function SpendingCategoryChart({
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
+    <div className="grid gap-5 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
       <div>
-        <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4">
-          <div className="mx-auto h-[190px] w-full max-w-[220px]">
+        <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4 md:p-5">
+          <div className="mx-auto h-[220px] w-full max-w-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -237,11 +237,11 @@ export default function SpendingCategoryChart({
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-2">
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-2">
         {displayedCategories.map((item) => (
           <div
             key={item.id}
-            className={`rounded-2xl border px-3 py-2.5 transition-colors ${
+            className={`rounded-2xl border px-3.5 py-3 transition-colors ${
               activeId === item.id ? 'border-accent/25 bg-accent/5' : 'border-border/70 bg-card'
             }`}
             onMouseEnter={() => setActiveId(item.id)}
