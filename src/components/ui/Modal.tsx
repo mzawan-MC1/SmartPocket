@@ -73,12 +73,12 @@ export default function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center sm:p-5">
-      <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={onClose} />
+      <div className="absolute inset-0 z-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={onClose} />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative z-10 box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
         <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4 ${headerClassName}`}>
           <div>
