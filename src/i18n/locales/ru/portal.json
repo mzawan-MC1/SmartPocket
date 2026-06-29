@@ -1132,6 +1132,138 @@
       "emailPlaceholder": "name@example.com",
       "role": "Роль"
     },
+    "ui": {
+      "pageDescription": "Управляйте общими деньгами с семьей и друзьями.",
+      "createSpace": "Создать пространство",
+      "viewDetails": "Посмотреть детали",
+      "common": {
+        "none": "Нет"
+      },
+      "currentSpace": {
+        "title": "Текущее пространство",
+        "memberCount_one": "{{count}} участник",
+        "memberCount_other": "{{count}} участников",
+        "roleBadge": "{{role}}",
+        "balanceLabel": "Баланс",
+        "balanceEmpty": "Баланса пока нет",
+        "switchLabel": "Сменить пространство",
+        "moreOptions": "Другие параметры"
+      },
+      "quickActions": {
+        "title": "Быстрые действия",
+        "expense": "+ Расход",
+        "income": "+ Доход",
+        "recurring": "Регулярные",
+        "invite": "Пригласить",
+        "more": "Еще",
+        "readOnly": "Вы можете просматривать это пространство, но вносить изменения могут только участники с правом редактирования."
+      },
+      "snapshot": {
+        "title": "Сводка пространства",
+        "balance": "Баланс",
+        "moneyIn": "Поступления",
+        "moneyOut": "Расходы",
+        "amountOwed": "Вы должны",
+        "empty": "Данных пока нет"
+      },
+      "roleHelp": {
+        "owner": "Полный контроль",
+        "manager": "Может управлять пространством",
+        "contributor": "Может добавлять обновления",
+        "viewer": "Только просмотр",
+        "dependent": "Ограниченный доступ"
+      },
+      "activity": {
+        "title": "Недавняя активность",
+        "emptyTitle": "Активности пока нет",
+        "emptyDescription": "Добавьте расход, доход или взнос, чтобы начать.",
+        "labels": {
+          "income": "Доход",
+          "expense": "Расход",
+          "transfer": "Перевод",
+          "contribution": "Взнос",
+          "owed": "Долг",
+          "payment": "Платеж"
+        },
+        "uncategorized": "Без категории",
+        "sharedAccountFallback": "Общий счет",
+        "moneyAddedToAccount": "Деньги добавлены на {{account}}",
+        "expensePaidFromAccount": "Расход оплачен со счета {{account}}",
+        "transferBetweenAccounts": "Перевод между счетами",
+        "memberContribution": "Взнос участника",
+        "memberFallback": "Участник",
+        "moneyOwedTitle": "Сумма к возврату",
+        "paymentTitle": "Платеж"
+      },
+      "members": {
+        "title": "Участники",
+        "emptyDescription": "Пригласите кого-нибудь в это пространство.",
+        "noEmail": "Адрес электронной почты недоступен",
+        "ownerProtected": "Владелец всегда сохраняет полный контроль над этим пространством.",
+        "changeRole": "Изменить роль",
+        "memberFallback": "участник",
+        "remove": "Удалить участника",
+        "sharePrompt": "Пригласите кого-нибудь в это пространство",
+        "sharePromptDescription": "Добавьте члена семьи, друга или помощника, чтобы он мог добавлять или просматривать общую активность."
+      },
+      "invitations": {
+        "title": "Приглашения",
+        "receivedTitle": "Ожидает вашего ответа",
+        "sentTitle": "Ожидающие приглашения",
+        "roleBadge": "Роль: {{role}}",
+        "none": "Нет ожидающих приглашений"
+      },
+      "advanced": {
+        "title": "Подробнее",
+        "description": "Откройте общие счета, задолженности, бюджеты и подробные страницы, когда это понадобится.",
+        "reimbursements": "Задолженности",
+        "settlements": "Платежи",
+        "reports": "Отчеты",
+        "financeErrorTitle": "Не удалось загрузить часть подробной финансовой информации.",
+        "helper": "Основная страница остается простой, а подробные записи доступны здесь.",
+        "financeErrorFields": {
+          "loader": "загрузчик",
+          "request": "запрос",
+          "message": "сообщение",
+          "code": "код",
+          "details": "детали",
+          "hint": "подсказка"
+        }
+      },
+      "details": {
+        "contributions": {
+          "title": "Взносы участников",
+          "empty": "Взносов пока нет"
+        },
+        "owed": {
+          "title": "Задолженности",
+          "empty": "Сейчас никто никому не должен"
+        },
+        "budgets": {
+          "title": "Бюджеты",
+          "active_one": "{{count}} активный бюджет",
+          "active_other": "{{count}} активных бюджетов",
+          "warning_one": "{{count}} бюджету нужно внимание",
+          "warning_other": "{{count}} бюджетам нужно внимание",
+          "ok": "Бюджеты идут по плану",
+          "empty": "Бюджетов пока нет"
+        }
+      },
+      "accounts": {
+        "title": "Общие счета",
+        "add": "Добавить счет",
+        "emptyDescription": "Создайте счет, чтобы начать отслеживать общие деньги.",
+        "count_one": "{{count}} счет",
+        "count_other": "{{count}} счетов"
+      },
+      "modal": {
+        "editSpace": "Изменить пространство",
+        "createSpace": "Создать пространство",
+        "inviteMember": "Пригласить участника",
+        "emailLabel": "Адрес электронной почты",
+        "roleLabel": "Уровень доступа"
+      }
+    },
     "invitationPage": {
       "loading": "Загрузка приглашения...",
       "notFoundTitle": "Приглашение не найдено",

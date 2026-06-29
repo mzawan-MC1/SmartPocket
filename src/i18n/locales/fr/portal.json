@@ -1132,6 +1132,138 @@
       "emailPlaceholder": "name@example.com",
       "role": "Role"
     },
+    "ui": {
+      "pageDescription": "Gerez l'argent partage avec votre famille et vos amis.",
+      "createSpace": "Creer un espace",
+      "viewDetails": "Voir les details",
+      "common": {
+        "none": "Aucun"
+      },
+      "currentSpace": {
+        "title": "Espace actuel",
+        "memberCount_one": "{{count}} membre",
+        "memberCount_other": "{{count}} membres",
+        "roleBadge": "{{role}}",
+        "balanceLabel": "Solde",
+        "balanceEmpty": "Aucun solde pour l'instant",
+        "switchLabel": "Changer d'espace",
+        "moreOptions": "Plus d'options"
+      },
+      "quickActions": {
+        "title": "Actions rapides",
+        "expense": "+ Depense",
+        "income": "+ Revenu",
+        "recurring": "Recurrent",
+        "invite": "Inviter",
+        "more": "Plus",
+        "readOnly": "Vous pouvez consulter cet espace, mais seuls les membres ayant un acces de modification peuvent apporter des changements."
+      },
+      "snapshot": {
+        "title": "Apercu de l'espace",
+        "balance": "Solde",
+        "moneyIn": "Argent entrant",
+        "moneyOut": "Argent sortant",
+        "amountOwed": "Vous devez",
+        "empty": "Aucune donnee pour l'instant"
+      },
+      "roleHelp": {
+        "owner": "Controle total",
+        "manager": "Peut gerer l'espace",
+        "contributor": "Peut ajouter des mises a jour",
+        "viewer": "Consultation uniquement",
+        "dependent": "Acces limite"
+      },
+      "activity": {
+        "title": "Activite recente",
+        "emptyTitle": "Aucune activite pour l'instant",
+        "emptyDescription": "Ajoutez une depense, un revenu ou une contribution pour commencer.",
+        "labels": {
+          "income": "Revenu",
+          "expense": "Depense",
+          "transfer": "Transfert",
+          "contribution": "Contribution",
+          "owed": "Du",
+          "payment": "Paiement"
+        },
+        "uncategorized": "Non classe",
+        "sharedAccountFallback": "Compte partage",
+        "moneyAddedToAccount": "Argent ajoute a {{account}}",
+        "expensePaidFromAccount": "Depense payee depuis {{account}}",
+        "transferBetweenAccounts": "Transfert entre comptes",
+        "memberContribution": "Contribution d'un membre",
+        "memberFallback": "Membre",
+        "moneyOwedTitle": "Argent du",
+        "paymentTitle": "Paiement"
+      },
+      "members": {
+        "title": "Membres",
+        "emptyDescription": "Invitez quelqu'un a partager cet espace.",
+        "noEmail": "Aucune adresse e-mail disponible",
+        "ownerProtected": "Le proprietaire conserve toujours le controle total de cet espace.",
+        "changeRole": "Changer le role",
+        "memberFallback": "membre",
+        "remove": "Retirer le membre",
+        "sharePrompt": "Invitez quelqu'un a partager cet espace",
+        "sharePromptDescription": "Ajoutez un membre de la famille, un ami ou un aide afin qu'il puisse ajouter ou consulter l'activite partagee."
+      },
+      "invitations": {
+        "title": "Invitations",
+        "receivedTitle": "En attente de votre reponse",
+        "sentTitle": "Invitations en attente",
+        "roleBadge": "Role : {{role}}",
+        "none": "Aucune invitation en attente"
+      },
+      "advanced": {
+        "title": "Plus de details",
+        "description": "Ouvrez les comptes partages, l'argent du, les budgets et les pages detaillees lorsque vous en avez besoin.",
+        "reimbursements": "Argent du",
+        "settlements": "Paiements",
+        "reports": "Rapports",
+        "financeErrorTitle": "Certaines informations financieres detaillees n'ont pas pu etre chargees.",
+        "helper": "La page principale reste simple tandis que les enregistrements detailles restent disponibles ici.",
+        "financeErrorFields": {
+          "loader": "chargeur",
+          "request": "requete",
+          "message": "message",
+          "code": "code",
+          "details": "details",
+          "hint": "indice"
+        }
+      },
+      "details": {
+        "contributions": {
+          "title": "Contributions des membres",
+          "empty": "Aucune contribution pour l'instant"
+        },
+        "owed": {
+          "title": "Argent du",
+          "empty": "Personne ne doit d'argent actuellement"
+        },
+        "budgets": {
+          "title": "Budgets",
+          "active_one": "{{count}} budget actif",
+          "active_other": "{{count}} budgets actifs",
+          "warning_one": "{{count}} budget necessite votre attention",
+          "warning_other": "{{count}} budgets necessitent votre attention",
+          "ok": "Les budgets sont sur la bonne voie",
+          "empty": "Aucun budget pour l'instant"
+        }
+      },
+      "accounts": {
+        "title": "Comptes partages",
+        "add": "Ajouter un compte",
+        "emptyDescription": "Creez un compte pour commencer a suivre l'argent partage.",
+        "count_one": "{{count}} compte",
+        "count_other": "{{count}} comptes"
+      },
+      "modal": {
+        "editSpace": "Modifier l'espace",
+        "createSpace": "Creer un espace",
+        "inviteMember": "Inviter un membre",
+        "emailLabel": "Adresse e-mail",
+        "roleLabel": "Niveau d'acces"
+      }
+    },
     "invitationPage": {
       "loading": "Chargement de l'invitation...",
       "notFoundTitle": "Invitation introuvable",

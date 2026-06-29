@@ -121,14 +121,14 @@ function getSpaceTypeLabel(
   type: Space['space_type'],
   t: (key: string, options?: Record<string, unknown>) => string
 ) {
-  return t(`spaces.types.${type}`, { defaultValue: type });
+  return t(`spaces.types.${type}`);
 }
 
 function getRoleLabel(
   role: SpaceRole,
   t: (key: string, options?: Record<string, unknown>) => string
 ) {
-  return t(`spaces.roles.${role}`, { defaultValue: role });
+  return t(`spaces.roles.${role}`);
 }
 
 function getInvitationStatusLabel(
@@ -169,44 +169,21 @@ function groupAmountsByCurrency(rows: Array<{ amount: number; currency: string }
     .sort((left, right) => left.currency.localeCompare(right.currency));
 }
 
-function getFriendlySpaceTypeLabel(
-  type: Space['space_type'],
-  t: (key: string, options?: Record<string, unknown>) => string
-) {
-  const baseLabel = getSpaceTypeLabel(type, t);
-  return baseLabel.toLowerCase().includes('space') ? baseLabel : `${baseLabel} Space`;
-}
-
 function getRoleExplanation(
   role: SpaceRole,
   t: (key: string, options?: Record<string, unknown>) => string
 ) {
   switch (role) {
     case 'owner':
-      return t('spaces.ui.roleHelp.owner', {
-        ns: 'portal',
-        defaultValue: 'Full control of the Space',
-      });
+      return t('spaces.ui.roleHelp.owner', { ns: 'portal' });
     case 'manager':
-      return t('spaces.ui.roleHelp.manager', {
-        ns: 'portal',
-        defaultValue: 'Can manage members and shared finances',
-      });
+      return t('spaces.ui.roleHelp.manager', { ns: 'portal' });
     case 'contributor':
-      return t('spaces.ui.roleHelp.contributor', {
-        ns: 'portal',
-        defaultValue: 'Can add shared expenses and income',
-      });
+      return t('spaces.ui.roleHelp.contributor', { ns: 'portal' });
     case 'viewer':
-      return t('spaces.ui.roleHelp.viewer', {
-        ns: 'portal',
-        defaultValue: 'Can view shared activity',
-      });
+      return t('spaces.ui.roleHelp.viewer', { ns: 'portal' });
     case 'dependent':
-      return t('spaces.ui.roleHelp.dependent', {
-        ns: 'portal',
-        defaultValue: 'Included in shared plans and expenses',
-      });
+      return t('spaces.ui.roleHelp.dependent', { ns: 'portal' });
     default:
       return '';
   }
@@ -218,17 +195,17 @@ function getActivityTypeLabel(
 ) {
   switch (type) {
     case 'income':
-      return t('spaces.ui.activity.income', { ns: 'portal', defaultValue: 'Income' });
+      return t('spaces.ui.activity.labels.income', { ns: 'portal' });
     case 'expense':
-      return t('spaces.ui.activity.expense', { ns: 'portal', defaultValue: 'Expense' });
+      return t('spaces.ui.activity.labels.expense', { ns: 'portal' });
     case 'transfer':
-      return t('spaces.ui.activity.transfer', { ns: 'portal', defaultValue: 'Transfer' });
+      return t('spaces.ui.activity.labels.transfer', { ns: 'portal' });
     case 'contribution':
-      return t('spaces.ui.activity.contribution', { ns: 'portal', defaultValue: 'Money added' });
+      return t('spaces.ui.activity.labels.contribution', { ns: 'portal' });
     case 'owed':
-      return t('spaces.ui.activity.owed', { ns: 'portal', defaultValue: 'Money owed' });
+      return t('spaces.ui.activity.labels.owed', { ns: 'portal' });
     case 'payment':
-      return t('spaces.ui.activity.payment', { ns: 'portal', defaultValue: 'Payment recorded' });
+      return t('spaces.ui.activity.labels.payment', { ns: 'portal' });
     default:
       return '';
   }
@@ -267,6 +244,7 @@ type SpaceRecentActivityItem = {
   amount: number;
   currency: string;
   date: string;
+  dateLabel: string;
   toneClassName: string;
 };
 
@@ -290,14 +268,8 @@ function buildSpaceRecentActivityItems({
       ? translateSystemCategoryName(transaction.category.name, (key, options) =>
           t(key, { ...(options || {}), ns: 'common' })
         )
-      : t('spaces.ui.activity.uncategorized', {
-          ns: 'portal',
-          defaultValue: 'Uncategorized',
-        });
-    const accountName = transaction.account?.name || t('spaces.ui.activity.sharedAccountFallback', {
-      ns: 'portal',
-      defaultValue: 'Shared account',
-    });
+      : t('spaces.ui.activity.uncategorized', { ns: 'portal' });
+    const accountName = transaction.account?.name || t('spaces.ui.activity.sharedAccountFallback', { ns: 'portal' });
     const formattedDate = formatDisplayDate(transaction.transaction_date, language)
       || transaction.transaction_date;
 
@@ -306,22 +278,11 @@ function buildSpaceRecentActivityItems({
 
     if (!title) {
       if (transaction.transaction_type === 'income') {
-        title = t('spaces.ui.activity.moneyAddedToAccount', {
-          ns: 'portal',
-          defaultValue: 'Money added to {{account}}',
-          account: accountName,
-        });
+        title = t('spaces.ui.activity.moneyAddedToAccount', { ns: 'portal', account: accountName });
       } else if (transaction.transaction_type === 'expense') {
-        title = t('spaces.ui.activity.expensePaidFromAccount', {
-          ns: 'portal',
-          defaultValue: 'Expense paid from {{account}}',
-          account: accountName,
-        });
+        title = t('spaces.ui.activity.expensePaidFromAccount', { ns: 'portal', account: accountName });
       } else {
-        title = t('spaces.ui.activity.transferBetweenAccounts', {
-          ns: 'portal',
-          defaultValue: 'Transfer between accounts',
-        });
+        title = t('spaces.ui.activity.transferBetweenAccounts', { ns: 'portal' });
       }
     }
 
@@ -329,12 +290,13 @@ function buildSpaceRecentActivityItems({
       id: `transaction-${transaction.id}`,
       kind,
       title,
-      subtitle: `${getActivityTypeLabel(kind, t)} · ${accountName} · ${categoryName} · ${formattedDate}`,
+      subtitle: `${accountName} · ${categoryName}`,
       amount: transaction.transaction_type === 'expense'
         ? -Math.abs(Number(transaction.amount || 0))
         : Number(transaction.amount || 0),
       currency: transaction.currency,
       date: transaction.transaction_date,
+      dateLabel: formattedDate,
       toneClassName: transaction.transaction_type === 'income'
         ? 'text-positive'
         : transaction.transaction_type === 'expense'
@@ -350,16 +312,14 @@ function buildSpaceRecentActivityItems({
     return {
       id: `contribution-${contribution.id}`,
       kind: 'contribution',
-      title: t('spaces.ui.activity.memberContribution', {
-        ns: 'portal',
-        defaultValue: 'Money added by a member',
-      }),
+      title: t('spaces.ui.activity.memberContribution', { ns: 'portal' }),
       subtitle: contribution.notes?.trim()
-        ? `${contribution.notes.trim()} · ${formattedDate}`
-        : `${getActivityTypeLabel('contribution', t)} · ${formattedDate}`,
+        ? contribution.notes.trim()
+        : getActivityTypeLabel('contribution', t),
       amount: Number(contribution.amount || 0),
       currency: contribution.currency,
       date: contribution.contributed_at,
+      dateLabel: formattedDate,
       toneClassName: 'text-positive',
     };
   });
@@ -379,19 +339,17 @@ function buildSpaceRecentActivityItems({
         || reimbursement.legacy_person?.full_name
         || reimbursement.beneficiary_person?.full_name
         || reimbursement.payer_person?.full_name
-        || t('spaces.ui.activity.memberFallback', { ns: 'portal', defaultValue: 'A member' });
+        || t('spaces.ui.activity.memberFallback', { ns: 'portal' });
 
       return {
         id: `reimbursement-${reimbursement.id}`,
         kind: 'owed',
-        title: reimbursement.description || t('spaces.ui.activity.moneyOwedTitle', {
-          ns: 'portal',
-          defaultValue: 'Money someone owes',
-        }),
-        subtitle: `${personName} · ${formattedDate}`,
+        title: reimbursement.description || t('spaces.ui.activity.moneyOwedTitle', { ns: 'portal' }),
+        subtitle: personName,
         amount: remainingAmount,
         currency: reimbursement.currency,
         date: reimbursement.due_date || reimbursement.created_at,
+        dateLabel: formattedDate,
         toneClassName: 'text-warning',
       };
     });
@@ -401,19 +359,17 @@ function buildSpaceRecentActivityItems({
       || settlement.settlement_date;
     const personName = settlement.person?.full_name
       || settlement.legacy_person?.full_name
-      || t('spaces.ui.activity.memberFallback', { ns: 'portal', defaultValue: 'A member' });
+      || t('spaces.ui.activity.memberFallback', { ns: 'portal' });
 
     return {
       id: `settlement-${settlement.id}`,
       kind: 'payment',
-      title: settlement.description || t('spaces.ui.activity.paymentTitle', {
-        ns: 'portal',
-        defaultValue: 'Payment recorded',
-      }),
-      subtitle: `${personName} · ${formattedDate}`,
+      title: settlement.description || t('spaces.ui.activity.paymentTitle', { ns: 'portal' }),
+      subtitle: personName,
       amount: Number(settlement.amount || 0),
       currency: settlement.currency,
       date: settlement.settlement_date,
+      dateLabel: formattedDate,
       toneClassName: 'text-info',
     };
   });
@@ -528,6 +484,7 @@ function SpacesPageContent() {
   const [spaceFormError, setSpaceFormError] = useState<string | null>(null);
   const [spaceNameError, setSpaceNameError] = useState<string | null>(null);
   const [spaceFinanceError, setSpaceFinanceError] = useState<SpaceFinanceLoadError | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const loadSpaces = useCallback(async () => {
     setLoading(true);
@@ -924,7 +881,7 @@ function SpacesPageContent() {
   const memberCount = members.length;
   const activeBudgetCount = spaceBudgetOverview?.items.length || 0;
   const activeSpaceTypeLabel = activeSpace
-    ? getFriendlySpaceTypeLabel(activeSpace.space_type, (key, options) => t(key, { ns: 'portal', ...options }))
+    ? getSpaceTypeLabel(activeSpace.space_type, (key, options) => t(key, { ns: 'portal', ...options }))
     : '';
   const activeSpaceRoleLabel = activeSpaceRole
     ? getRoleLabel(activeSpaceRole, (key, options) => t(key, { ns: 'portal', ...options }))
@@ -941,6 +898,7 @@ function SpacesPageContent() {
     t: (key, options) => t(key, { ns: 'portal', ...options }),
   }).slice(0, 8);
   const hasInvitationActivity = receivedInvitations.length > 0 || pendingInvitations.length > 0;
+  const showInvitationsSection = hasInvitationActivity || canManageInvitations;
 
   const openCreateSpaceModal = () => {
     setEditingSpace(null);
@@ -962,10 +920,8 @@ function SpacesPageContent() {
       <div className="page-section pb-6">
         <PageHeader
           title={t('spaces.title', { ns: 'portal' })}
-          description={t('spaces.ui.pageDescription', {
-            ns: 'portal',
-            defaultValue: 'Manage shared money with family, friends, or groups in one place.',
-          })}
+          description={t('spaces.ui.pageDescription', { ns: 'portal' })}
+          compact
           actions={
             subscriptionLoading ? (
               <div
@@ -974,15 +930,16 @@ function SpacesPageContent() {
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-muted/40 px-4 text-sm text-muted-foreground sm:w-[180px]"
               >
                 <Loader2 size={15} className="animate-spin" />
-                <span>{t('common.loading', { defaultValue: 'Loading...' })}</span>
+                <span>{t('status.loading', { ns: 'common' })}</span>
               </div>
             ) : canCreateNewSpace ? (
               <button
+                type="button"
                 onClick={openCreateSpaceModal}
                 className="btn-primary w-full sm:w-auto"
               >
                 <Plus size={16} />
-                <span>{t('spaces.createNewSpace', { ns: 'portal', defaultValue: 'Create New Space' })}</span>
+                <span>{t('spaces.ui.createSpace', { ns: 'portal' })}</span>
               </button>
             ) : null
           }
@@ -997,7 +954,7 @@ function SpacesPageContent() {
               disabled={subscriptionLoading}
               className="btn-secondary w-full sm:w-auto"
             >
-              <span>{t('actions.retry', { ns: 'common', defaultValue: 'Retry' })}</span>
+              <span>{t('actions.refresh', { ns: 'common' })}</span>
             </button>
           </div>
         ) : null}
@@ -1009,167 +966,155 @@ function SpacesPageContent() {
             ))}
           </div>
         ) : spaces.length === 0 ? (
-          <div className="card p-12 text-center">
-            <Home size={48} className="mx-auto text-muted-foreground/40 mb-4" />
-            <h3 className="text-lg font-600 text-foreground mb-2">
-              {t('spaces.ui.emptyState.title', {
-                ns: 'portal',
-                defaultValue: 'No Spaces yet',
-              })}
+          <div className="card p-8 text-center sm:p-10">
+            <Home size={44} className="mx-auto mb-4 text-muted-foreground/40" />
+            <h3 className="mb-2 text-lg font-700 text-foreground">
+              {t('spaces.ui.emptyState.title', { ns: 'portal' })}
             </h3>
-            <p className="text-sm text-muted-foreground mb-6">
-              {t('spaces.ui.emptyState.description', {
-                ns: 'portal',
-                defaultValue: 'Create a Space to manage shared money with family, friends, or any group.',
-              })}
+            <p className="mx-auto mb-6 max-w-md text-sm text-muted-foreground">
+              {t('spaces.ui.emptyState.description', { ns: 'portal' })}
             </p>
             {subscriptionLoading ? (
               <div className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-sm font-600 text-muted-foreground opacity-70">
-                {t('common.loading', { defaultValue: 'Loading...' })}
+                {t('status.loading', { ns: 'common' })}
               </div>
             ) : canCreateNewSpace ? (
               <button
+                type="button"
                 onClick={openCreateSpaceModal}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
               >
-                <Plus size={16} /> {t('spaces.createNewSpace', { ns: 'portal', defaultValue: 'Create New Space' })}
+                <Plus size={16} /> {t('spaces.ui.createSpace', { ns: 'portal' })}
               </button>
             ) : null}
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {activeSpace ? (
               <>
-                <section className="card p-6 sm:p-7">
-                  <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+                <section className="card p-4 sm:p-5">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-600 text-muted-foreground">
-                        {t('spaces.ui.currentSpace.label', {
-                          ns: 'portal',
-                          defaultValue: 'Current Space',
-                        })}
+                        {t('spaces.ui.currentSpace.title', { ns: 'portal' })}
                       </p>
-                      <div className="mt-3 flex min-w-0 items-start gap-4">
+                      <div className="mt-3 flex min-w-0 items-center gap-3">
                         <div
-                          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
                           style={{ backgroundColor: activeSpace.color || '#0f3460' }}
                         >
-                          <Home size={24} />
+                          <Home size={20} />
                         </div>
                         <div className="min-w-0">
-                          <h2 className="truncate text-2xl font-700 text-foreground">{activeSpace.name}</h2>
-                          <p className="mt-1 text-sm font-600 text-foreground/80">{activeSpaceTypeLabel}</p>
+                          <h2 className="truncate text-xl font-700 text-foreground sm:text-2xl">{activeSpace.name}</h2>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {activeSpaceTypeLabel}
+                            <span className="px-1.5 text-muted-foreground/70">·</span>
+                            {t('spaces.ui.currentSpace.memberCount', {
+                              ns: 'portal',
+                              count: memberCount,
+                            })}
+                            {activeSpaceRoleLabel ? (
+                              <>
+                                <span className="px-1.5 text-muted-foreground/70">·</span>
+                                {activeSpaceRoleLabel}
+                              </>
+                            ) : null}
+                          </p>
                         </div>
                       </div>
-                      <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
-                        {activeSpace.description?.trim()
-                          || t('spaces.ui.currentSpace.descriptionFallback', {
-                            ns: 'portal',
-                            defaultValue: 'Use this Space to track money, shared expenses, and payments together.',
-                          })}
-                      </p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{activeSpaceTypeLabel}</span>
-                        <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">
-                          {t('spaces.ui.currentSpace.memberCount', {
-                            ns: 'portal',
-                            defaultValue: '{{count}} members',
-                            count: memberCount,
-                          })}
-                        </span>
-                        {activeSpaceRole ? (
-                          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-600 ${ROLE_COLORS[activeSpaceRole]}`}>
-                            {React.createElement(ROLE_ICONS[activeSpaceRole] || Users, { size: 14 })}
-                            {t('spaces.ui.currentSpace.roleLabel', {
+                      {activeSpaceRoleLabel ? (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-700 ${ROLE_COLORS[activeSpaceRole || 'viewer']}`}>
+                            {React.createElement(ROLE_ICONS[activeSpaceRole || 'viewer'] || Users, { size: 12 })}
+                            {t('spaces.ui.currentSpace.roleBadge', {
                               ns: 'portal',
-                              defaultValue: 'Your role: {{role}}',
                               role: activeSpaceRoleLabel,
                             })}
                           </span>
-                        ) : null}
-                      </div>
-                      {activeSpaceRoleHelp ? (
-                        <p className="mt-3 text-sm text-muted-foreground">{activeSpaceRoleHelp}</p>
-                      ) : null}
-                    </div>
-                    <div className="flex w-full flex-col gap-3 xl:w-auto xl:min-w-[280px]">
-                      {shouldShowSpaceSelector ? (
-                        <div>
-                          <label htmlFor="spaces-switcher" className="mb-1.5 block text-sm font-600 text-foreground">
-                            {t('spaces.ui.switchSpace', {
-                              ns: 'portal',
-                              defaultValue: 'Switch Space',
-                            })}
-                          </label>
-                          <div className="relative">
-                            <select
-                              id="spaces-switcher"
-                              value={activeSpaceId || ''}
-                              onChange={(e) => {
-                                setActiveSpaceId(e.target.value);
-                                setOpenMenuId(null);
-                              }}
-                              className="w-full appearance-none rounded-2xl border border-border bg-card px-4 py-3 pe-10 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
-                            >
-                              {spaces.map((space) => (
-                                <option key={space.id} value={space.id}>
-                                  {space.name} - {getFriendlySpaceTypeLabel(space.space_type, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown
-                              size={16}
-                              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                            />
-                          </div>
+                          {activeSpaceRoleHelp ? (
+                            <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-600 text-muted-foreground">
+                              {activeSpaceRoleHelp}
+                            </span>
+                          ) : null}
                         </div>
                       ) : null}
-                      <div className="flex flex-col gap-2 sm:flex-row xl:justify-end">
-                        {hasSharedSpacesFeature && isActiveSpaceOwner ? (
-                          <button
-                            onClick={() => setShowInviteModal(true)}
-                            className="btn-secondary w-full sm:w-auto"
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:min-w-[320px] lg:max-w-[420px] lg:grid-cols-1">
+                      <div className="rounded-2xl bg-muted/30 px-4 py-3">
+                        <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                          {t('spaces.ui.currentSpace.balanceLabel', { ns: 'portal' })}
+                        </p>
+                        <div className="mt-2 space-y-1">
+                          {totalBalanceByCurrency.length > 0 ? totalBalanceByCurrency.map((row) => (
+                            <FormattedCurrencyAmount
+                              key={`current-space-balance-${row.currency}-${row.amount}`}
+                              amount={row.amount}
+                              currencyCode={row.currency}
+                              className="text-lg font-700 text-foreground"
+                              showCode
+                            />
+                          )) : (
+                            <p className="text-sm text-muted-foreground">
+                              {t('spaces.ui.currentSpace.balanceEmpty', { ns: 'portal' })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-start justify-end gap-2">
+                      {shouldShowSpaceSelector ? (
+                        <div className="relative">
+                          <label htmlFor="spaces-switcher" className="sr-only">
+                            {t('spaces.ui.currentSpace.switchLabel', { ns: 'portal' })}
+                          </label>
+                          <select
+                            id="spaces-switcher"
+                            value={activeSpaceId || ''}
+                            onChange={(e) => {
+                              setActiveSpaceId(e.target.value);
+                              setOpenMenuId(null);
+                            }}
+                            className="h-11 min-w-[180px] appearance-none rounded-2xl border border-border bg-card px-4 pe-10 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
                           >
-                            <UserPlus size={15} />
-                            <span>{t('spaces.ui.inviteMember', {
-                              ns: 'portal',
-                              defaultValue: 'Invite Member',
-                            })}</span>
-                          </button>
-                        ) : null}
+                            {spaces.map((space) => (
+                              <option key={space.id} value={space.id}>
+                                {space.name}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown
+                            size={16}
+                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          />
+                        </div>
+                      ) : null}
                         {canManageActiveSpaceSettings ? (
-                          <div className="relative sm:self-start xl:self-auto">
+                          <div className="relative">
                             <button
+                              type="button"
                               onClick={() => setOpenMenuId(openMenuId === activeSpace.id ? null : activeSpace.id)}
-                              className="flex h-11 w-full items-center justify-center rounded-2xl border border-border text-muted-foreground transition-colors hover:bg-muted sm:w-11"
-                              aria-label={t('spaces.ui.moreOptions', {
-                                ns: 'portal',
-                                defaultValue: 'More options',
-                              })}
+                              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border text-muted-foreground transition-colors hover:bg-muted"
+                              aria-label={t('spaces.ui.currentSpace.moreOptions', { ns: 'portal' })}
                             >
                               <MoreVertical size={16} />
                             </button>
                             {openMenuId === activeSpace.id && (
                               <div className="absolute right-0 top-12 z-20 min-w-[160px] rounded-2xl border border-border bg-card py-1 shadow-card-md">
                                 <button
+                                  type="button"
                                   onClick={() => openEdit(activeSpace)}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted"
                                 >
                                   <Edit2 size={14} />
-                                  {t('spaces.ui.editSpace', {
-                                    ns: 'portal',
-                                    defaultValue: 'Edit Space',
-                                  })}
+                                  {t('spaces.ui.modal.editSpace', { ns: 'portal' })}
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleArchive(activeSpace)}
                                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-negative hover:bg-muted"
                                 >
                                   <Archive size={14} />
-                                  {t('spaces.ui.archiveSpace', {
-                                    ns: 'portal',
-                                    defaultValue: 'Archive Space',
-                                  })}
+                                  {t('spaces.archiveAction', { ns: 'portal' })}
                                 </button>
                               </div>
                             )}
@@ -1181,274 +1126,177 @@ function SpacesPageContent() {
                 </section>
 
                 <section className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-700 text-foreground">
-                      {t('spaces.ui.quickActions.title', {
-                        ns: 'portal',
-                        defaultValue: 'What would you like to do?',
-                      })}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t('spaces.ui.quickActions.description', {
-                        ns: 'portal',
-                        defaultValue: 'Choose a simple action to keep shared money up to date.',
-                      })}
-                    </p>
-                  </div>
+                  <h3 className="text-lg font-700 text-foreground">
+                    {t('spaces.ui.quickActions.title', { ns: 'portal' })}
+                  </h3>
                   {canManageSpaceFinance || canAddSpaceTransactions || (hasSharedSpacesFeature && isActiveSpaceOwner) ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      {canManageSpaceFinance ? (
+                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                      {canAddSpaceTransactions ? (
                         <button
                           type="button"
-                          onClick={() => setShowSpaceAccountModal(true)}
-                          className="rounded-3xl border border-border bg-card p-5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          onClick={() => setShowSpaceTransactionModal(true)}
+                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
                         >
-                          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-info-soft text-info">
-                            <Wallet size={20} />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-foreground">
+                            <ArrowUpCircle size={18} />
                           </div>
-                          <h4 className="text-base font-700 text-foreground">
-                            {t('spaces.ui.quickActions.addAccount.title', {
-                              ns: 'portal',
-                              defaultValue: 'Add Account',
-                            })}
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {t('spaces.ui.quickActions.addAccount.description', {
-                              ns: 'portal',
-                              defaultValue: 'Create a shared cash, bank, or wallet account.',
-                            })}
-                          </p>
+                          <span className="text-sm font-700 text-foreground">
+                            {t('spaces.ui.quickActions.expense', { ns: 'portal' })}
+                          </span>
                         </button>
                       ) : null}
                       {canAddSpaceTransactions ? (
                         <button
                           type="button"
                           onClick={() => setShowSpaceTransactionModal(true)}
-                          className="rounded-3xl border border-border bg-card p-5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
                         >
-                          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-positive-soft text-positive">
-                            <CircleDollarSign size={20} />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-positive-soft text-positive">
+                            <ArrowDownCircle size={18} />
                           </div>
-                          <h4 className="text-base font-700 text-foreground">
-                            {t('spaces.ui.quickActions.addTransaction.title', {
-                              ns: 'portal',
-                              defaultValue: 'Add Expense or Income',
-                            })}
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {t('spaces.ui.quickActions.addTransaction.description', {
-                              ns: 'portal',
-                              defaultValue: 'Record money spent or received in this Space.',
-                            })}
-                          </p>
+                          <span className="text-sm font-700 text-foreground">
+                            {t('spaces.ui.quickActions.income', { ns: 'portal' })}
+                          </span>
                         </button>
                       ) : null}
                       {canAddSpaceTransactions ? (
                         <button
                           type="button"
                           onClick={() => setShowSpaceRecurringModal(true)}
-                          className="rounded-3xl border border-border bg-card p-5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
                         >
-                          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-warning-soft text-warning">
-                            <Repeat size={20} />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-warning-soft text-warning">
+                            <Repeat size={18} />
                           </div>
-                          <h4 className="text-base font-700 text-foreground">
-                            {t('spaces.ui.quickActions.addRecurring.title', {
-                              ns: 'portal',
-                              defaultValue: 'Add Recurring Payment',
-                            })}
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {t('spaces.ui.quickActions.addRecurring.description', {
-                              ns: 'portal',
-                              defaultValue: 'Schedule rent, fees, subscriptions, or regular expenses.',
-                            })}
-                          </p>
+                          <span className="text-sm font-700 text-foreground">
+                            {t('spaces.ui.quickActions.recurring', { ns: 'portal' })}
+                          </span>
                         </button>
                       ) : null}
                       {hasSharedSpacesFeature && isActiveSpaceOwner ? (
                         <button
                           type="button"
                           onClick={() => setShowInviteModal(true)}
-                          className="rounded-3xl border border-border bg-card p-5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
                         >
-                          <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                            <UserPlus size={20} />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                            <UserPlus size={18} />
                           </div>
-                          <h4 className="text-base font-700 text-foreground">
-                            {t('spaces.ui.quickActions.invite.title', {
-                              ns: 'portal',
-                              defaultValue: 'Invite Member',
-                            })}
-                          </h4>
-                          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                            {t('spaces.ui.quickActions.invite.description', {
-                              ns: 'portal',
-                              defaultValue: 'Add a family member, friend, or manager.',
-                            })}
-                          </p>
+                          <span className="text-sm font-700 text-foreground">
+                            {t('spaces.ui.quickActions.invite', { ns: 'portal' })}
+                          </span>
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        onClick={() => setAdvancedOpen((value) => !value)}
+                        className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                      >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-info-soft text-info">
+                          <MoreVertical size={18} />
+                        </div>
+                        <span className="text-sm font-700 text-foreground">
+                          {t('spaces.ui.quickActions.more', { ns: 'portal' })}
+                        </span>
+                      </button>
                     </div>
                   ) : (
-                    <div className="rounded-3xl border border-border bg-card p-5">
-                      <p className="text-sm font-600 text-foreground">
-                        {t('spaces.ui.quickActions.readOnly', {
-                          ns: 'portal',
-                          defaultValue: 'You can view this Space, but only members with editing access can make changes.',
-                        })}
+                    <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-600 text-muted-foreground">
+                      <p>
+                        {t('spaces.ui.quickActions.readOnly', { ns: 'portal' })}
                       </p>
                     </div>
                   )}
                 </section>
 
                 <section className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-700 text-foreground">
-                      {t('spaces.ui.summary.title', {
-                        ns: 'portal',
-                        defaultValue: 'Simple financial summary',
-                      })}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t('spaces.ui.summary.description', {
-                        ns: 'portal',
-                        defaultValue: 'A quick look at how money is moving in this Space.',
-                      })}
-                    </p>
-                  </div>
+                  <h3 className="text-lg font-700 text-foreground">
+                    {t('spaces.ui.snapshot.title', { ns: 'portal' })}
+                  </h3>
                   {loadingFinance ? (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                       {[1, 2, 3, 4].map((card) => (
-                        <div key={card} className="h-36 animate-pulse rounded-3xl bg-muted" />
+                        <div key={card} className="h-28 animate-pulse rounded-3xl bg-muted" />
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      <div className="rounded-3xl border border-border bg-card p-5">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.summary.totalBalance.title', {
-                            ns: 'portal',
-                            defaultValue: 'Total Balance',
-                          })}
+                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                        <p className="text-sm font-700 text-muted-foreground">
+                          {t('spaces.ui.snapshot.balance', { ns: 'portal' })}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.summary.totalBalance.description', {
-                            ns: 'portal',
-                            defaultValue: 'Money currently available in this Space',
-                          })}
-                        </p>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-2 space-y-1">
                           {totalBalanceByCurrency.length > 0 ? totalBalanceByCurrency.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-balance-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-2xl font-700 text-foreground"
+                              className="text-lg font-700 text-foreground sm:text-xl"
                               showCode
                             />
                           )) : (
                             <p className="text-sm text-muted-foreground">
-                              {t('spaces.ui.summary.totalBalance.empty', {
-                                ns: 'portal',
-                                defaultValue: 'No shared balance yet',
-                              })}
+                              {t('spaces.ui.snapshot.empty', { ns: 'portal' })}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card p-5">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.summary.moneyIn.title', {
-                            ns: 'portal',
-                            defaultValue: 'Money In',
-                          })}
+                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                        <p className="text-sm font-700 text-muted-foreground">
+                          {t('spaces.ui.snapshot.moneyIn', { ns: 'portal' })}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.summary.moneyIn.description', {
-                            ns: 'portal',
-                            defaultValue: 'Income and member contributions',
-                          })}
-                        </p>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-2 space-y-1">
                           {moneyInRows.length > 0 ? moneyInRows.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-in-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-2xl font-700 text-positive"
+                              className="text-lg font-700 text-positive sm:text-xl"
                               showCode
                             />
                           )) : (
                             <p className="text-sm text-muted-foreground">
-                              {t('spaces.ui.summary.moneyIn.empty', {
-                                ns: 'portal',
-                                defaultValue: 'No contributions recorded yet',
-                              })}
+                              {t('spaces.ui.snapshot.empty', { ns: 'portal' })}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card p-5">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.summary.moneyOut.title', {
-                            ns: 'portal',
-                            defaultValue: 'Money Out',
-                          })}
+                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                        <p className="text-sm font-700 text-muted-foreground">
+                          {t('spaces.ui.snapshot.moneyOut', { ns: 'portal' })}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.summary.moneyOut.description', {
-                            ns: 'portal',
-                            defaultValue: 'Expenses during this period',
-                          })}
-                        </p>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-2 space-y-1">
                           {expenseRows.length > 0 ? expenseRows.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-out-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-2xl font-700 text-foreground"
+                              className="text-lg font-700 text-foreground sm:text-xl"
                               showCode
                             />
                           )) : (
                             <p className="text-sm text-muted-foreground">
-                              {t('spaces.ui.summary.moneyOut.empty', {
-                                ns: 'portal',
-                                defaultValue: 'No expenses recorded yet',
-                              })}
+                              {t('spaces.ui.snapshot.empty', { ns: 'portal' })}
                             </p>
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card p-5">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.summary.amountOwed.title', {
-                            ns: 'portal',
-                            defaultValue: 'Amount Owed',
-                          })}
+                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                        <p className="text-sm font-700 text-muted-foreground">
+                          {t('spaces.ui.snapshot.amountOwed', { ns: 'portal' })}
                         </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.summary.amountOwed.description', {
-                            ns: 'portal',
-                            defaultValue: 'Unpaid shared expenses',
-                          })}
-                        </p>
-                        <div className="mt-4 space-y-2">
+                        <div className="mt-2 space-y-1">
                           {outstandingReimbursementTotals.length > 0 ? outstandingReimbursementTotals.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-owed-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-2xl font-700 text-warning"
+                              className="text-lg font-700 text-warning sm:text-xl"
                               showCode
                             />
                           )) : (
                             <p className="text-sm text-muted-foreground">
-                              {t('spaces.ui.summary.amountOwed.empty', {
-                                ns: 'portal',
-                                defaultValue: 'Everyone is settled up',
-                              })}
+                              {t('spaces.ui.snapshot.empty', { ns: 'portal' })}
                             </p>
                           )}
                         </div>
@@ -1457,257 +1305,12 @@ function SpacesPageContent() {
                   )}
                 </section>
 
-                <section className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-xl font-700 text-foreground">
-                      {t('spaces.ui.sharedMoneyDetails.title', {
-                        ns: 'portal',
-                        defaultValue: 'Shared money details',
-                      })}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t('spaces.ui.sharedMoneyDetails.description', {
-                        ns: 'portal',
-                        defaultValue: 'Open the details you need without crowding the main dashboard.',
-                      })}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div className="rounded-3xl border border-border bg-card p-5">
-                      <p className="text-base font-700 text-foreground">
-                        {t('spaces.ui.details.contributions.title', {
-                          ns: 'portal',
-                          defaultValue: 'Member Contributions',
-                        })}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {t('spaces.ui.details.contributions.description', {
-                          ns: 'portal',
-                          defaultValue: 'Money members added to this Space',
-                        })}
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        {contributionTotals.length > 0 ? contributionTotals.map((row) => (
-                          <FormattedCurrencyAmount
-                            key={`details-contribution-${row.currency}-${row.amount}`}
-                            amount={row.amount}
-                            currencyCode={row.currency}
-                            className="text-lg font-700 text-positive"
-                            showCode
-                          />
-                        )) : (
-                          <p className="text-sm text-muted-foreground">
-                            {t('spaces.ui.details.contributions.empty', {
-                              ns: 'portal',
-                              defaultValue: 'No contributions recorded yet',
-                            })}
-                          </p>
-                        )}
-                      </div>
-                      <a href="#recent-activity" className="mt-5 inline-flex items-center gap-2 text-sm font-600 text-accent hover:underline">
-                        {t('spaces.ui.viewDetails', {
-                          ns: 'portal',
-                          defaultValue: 'View details',
-                        })}
-                      </a>
-                    </div>
-                    <div className="rounded-3xl border border-border bg-card p-5">
-                      <p className="text-base font-700 text-foreground">
-                        {t('spaces.ui.details.owed.title', {
-                          ns: 'portal',
-                          defaultValue: 'Money Owed',
-                        })}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {t('spaces.ui.details.owed.description', {
-                          ns: 'portal',
-                          defaultValue: 'Shared expenses waiting to be repaid',
-                        })}
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        {outstandingReimbursementTotals.length > 0 ? outstandingReimbursementTotals.map((row) => (
-                          <FormattedCurrencyAmount
-                            key={`details-owed-${row.currency}-${row.amount}`}
-                            amount={row.amount}
-                            currencyCode={row.currency}
-                            className="text-lg font-700 text-warning"
-                            showCode
-                          />
-                        )) : (
-                          <p className="text-sm text-muted-foreground">
-                            {t('spaces.ui.details.owed.empty', {
-                              ns: 'portal',
-                              defaultValue: 'No one owes money right now',
-                            })}
-                          </p>
-                        )}
-                      </div>
-                      <Link
-                        href={`/reimbursements?scope=space&spaceId=${activeSpace.id}`}
-                        className="mt-5 inline-flex items-center gap-2 text-sm font-600 text-accent hover:underline"
-                      >
-                        {t('spaces.ui.viewDetails', {
-                          ns: 'portal',
-                          defaultValue: 'View details',
-                        })}
-                      </Link>
-                    </div>
-                    <div className="rounded-3xl border border-border bg-card p-5">
-                      <p className="text-base font-700 text-foreground">
-                        {t('spaces.ui.details.budgets.title', {
-                          ns: 'portal',
-                          defaultValue: 'Budgets',
-                        })}
-                      </p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {t('spaces.ui.details.budgets.description', {
-                          ns: 'portal',
-                          defaultValue: 'Spending limits for this Space',
-                        })}
-                      </p>
-                      <div className="mt-4 space-y-2 text-sm">
-                        {activeBudgetCount > 0 ? (
-                          <>
-                            <p className="font-700 text-foreground">
-                              {t('spaces.ui.details.budgets.active', {
-                                ns: 'portal',
-                                defaultValue: '{{count}} budgets active',
-                                count: activeBudgetCount,
-                              })}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {budgetWarningCount > 0
-                                ? t('spaces.ui.details.budgets.warning', {
-                                    ns: 'portal',
-                                    defaultValue: '{{count}} budgets need attention',
-                                    count: budgetWarningCount,
-                                  })
-                                : t('spaces.ui.details.budgets.ok', {
-                                    ns: 'portal',
-                                    defaultValue: 'Budgets are on track right now',
-                                  })}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-muted-foreground">
-                            {t('spaces.ui.details.budgets.empty', {
-                              ns: 'portal',
-                              defaultValue: 'No budgets created yet',
-                            })}
-                          </p>
-                        )}
-                      </div>
-                      <Link
-                        href={`/budgets?scope=space&spaceId=${activeSpace.id}`}
-                        className="mt-5 inline-flex items-center gap-2 text-sm font-600 text-accent hover:underline"
-                      >
-                        {t('spaces.ui.viewDetails', {
-                          ns: 'portal',
-                          defaultValue: 'View details',
-                        })}
-                      </Link>
-                    </div>
-                  </div>
-                </section>
-
-                <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                  <div className="rounded-3xl border border-border bg-card p-5">
+                <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(320px,1fr)]">
+                  <div id="recent-activity" className="rounded-3xl border border-border bg-card p-4 sm:p-5">
                     <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl font-700 text-foreground">
-                          {t('spaces.ui.accounts.title', {
-                            ns: 'portal',
-                            defaultValue: 'Shared Accounts',
-                          })}
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.accounts.description', {
-                            ns: 'portal',
-                            defaultValue: 'Accounts used for shared money in this Space.',
-                          })}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{activeSpaceAccounts.length}</span>
-                    </div>
-                    {loadingFinance ? (
-                      <div className="space-y-3">
-                        {[1, 2, 3].map((item) => (
-                          <div key={item} className="h-20 animate-pulse rounded-2xl bg-muted" />
-                        ))}
-                      </div>
-                    ) : activeSpaceAccounts.length === 0 ? (
-                      <div className="rounded-3xl bg-muted/30 p-5 text-center">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.accounts.emptyTitle', {
-                            ns: 'portal',
-                            defaultValue: 'No shared accounts yet',
-                          })}
-                        </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {t('spaces.ui.accounts.emptyDescription', {
-                            ns: 'portal',
-                            defaultValue: 'Create an account to start tracking shared money.',
-                          })}
-                        </p>
-                        {canManageSpaceFinance ? (
-                          <button type="button" onClick={() => setShowSpaceAccountModal(true)} className="btn-secondary mt-4">
-                            <Plus size={15} />
-                            <span>{t('spaces.ui.quickActions.addAccount.title', {
-                              ns: 'portal',
-                              defaultValue: 'Add Account',
-                            })}</span>
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {activeSpaceAccounts.map((account) => (
-                          <div key={account.id} className="rounded-2xl bg-muted/20 p-4">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="truncate text-base font-700 text-foreground">{account.name}</p>
-                                <p className="mt-1 text-sm text-muted-foreground">
-                                  {t(`accounts.types.${account.account_type}`, {
-                                    ns: 'portal',
-                                    defaultValue: account.account_type,
-                                  })}
-                                </p>
-                                <p className="mt-2 text-xs font-600 text-muted-foreground">
-                                  {t('spaces.ui.accounts.balanceLabel', {
-                                    ns: 'portal',
-                                    defaultValue: 'Current balance',
-                                  })}
-                                </p>
-                              </div>
-                              <FormattedCurrencyAmount
-                                amount={account.current_balance}
-                                currencyCode={account.currency}
-                                className="text-lg font-700 text-foreground"
-                                showCode
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div id="recent-activity" className="rounded-3xl border border-border bg-card p-5">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl font-700 text-foreground">
-                          {t('spaces.ui.activity.title', {
-                            ns: 'portal',
-                            defaultValue: 'Recent Activity',
-                          })}
-                        </h3>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {t('spaces.ui.activity.description', {
-                            ns: 'portal',
-                            defaultValue: 'Recent expenses, income, money added, and payments in this Space.',
-                          })}
-                        </p>
-                      </div>
+                      <h3 className="text-lg font-700 text-foreground">
+                        {t('spaces.ui.activity.title', { ns: 'portal' })}
+                      </h3>
                       <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{recentActivityItems.length}</span>
                     </div>
                     {loadingFinance ? (
@@ -1717,47 +1320,44 @@ function SpacesPageContent() {
                         ))}
                       </div>
                     ) : recentActivityItems.length === 0 ? (
-                      <div className="rounded-3xl bg-muted/30 p-5 text-center">
-                        <p className="text-base font-700 text-foreground">
-                          {t('spaces.ui.activity.emptyTitle', {
-                            ns: 'portal',
-                            defaultValue: 'No activity yet',
-                          })}
+                      <div className="rounded-2xl bg-muted/30 px-4 py-5 text-center">
+                        <p className="text-sm font-700 text-foreground">
+                          {t('spaces.ui.activity.emptyTitle', { ns: 'portal' })}
                         </p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {t('spaces.ui.activity.emptyDescription', {
-                            ns: 'portal',
-                            defaultValue: 'Add an expense, income, or contribution to get started.',
-                          })}
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {t('spaces.ui.activity.emptyDescription', { ns: 'portal' })}
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {recentActivityItems.map((item) => {
                           const ActivityIcon = ACTIVITY_ICONS[item.kind];
                           return (
-                            <div key={item.id} className="rounded-2xl bg-muted/20 p-4">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex min-w-0 gap-3">
-                                  <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${ACTIVITY_BADGE_COLORS[item.kind]}`}>
-                                    <ActivityIcon size={18} />
+                            <div key={item.id} className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex min-w-0 items-start gap-3">
+                                  <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${ACTIVITY_BADGE_COLORS[item.kind]}`}>
+                                    <ActivityIcon size={16} />
                                   </div>
-                                  <div className="min-w-0">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <p className="truncate text-sm font-700 text-foreground">{item.title}</p>
-                                      <span className={`rounded-full px-2.5 py-1 text-xs font-600 ${ACTIVITY_BADGE_COLORS[item.kind]}`}>
-                                        {getActivityTypeLabel(item.kind, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                      </span>
-                                    </div>
-                                    <p className="mt-1 text-sm text-muted-foreground">{item.subtitle}</p>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="truncate text-sm font-700 text-foreground">{item.title}</p>
+                                    <p className="mt-1 truncate text-sm text-muted-foreground">{item.subtitle}</p>
                                   </div>
                                 </div>
-                                <FormattedCurrencyAmount
-                                  amount={item.amount}
-                                  currencyCode={item.currency}
-                                  className={`text-sm font-700 ${item.toneClassName}`}
-                                  showCode
-                                />
+                                <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                  <span className={`rounded-full px-2.5 py-1 text-xs font-700 ${ACTIVITY_BADGE_COLORS[item.kind]}`}>
+                                    {getActivityTypeLabel(item.kind, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                  </span>
+                                  <span className="text-xs font-600 text-muted-foreground">
+                                    {item.dateLabel}
+                                  </span>
+                                  <FormattedCurrencyAmount
+                                    amount={item.amount}
+                                    currencyCode={item.currency}
+                                    className={`text-sm font-700 ${item.toneClassName}`}
+                                    showCode
+                                  />
+                                </div>
                               </div>
                             </div>
                           );
@@ -1765,47 +1365,23 @@ function SpacesPageContent() {
                       </div>
                     )}
                   </div>
-                </section>
 
-                {loadingDetails ? (
-                  <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                  {loadingDetails ? (
                     <div className="h-40 animate-pulse rounded-3xl bg-muted" />
-                    <div className="h-40 animate-pulse rounded-3xl bg-muted" />
-                  </div>
-                ) : activeSpaceRole ? (
-                  <>
-                    <section className="space-y-4">
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-700 text-foreground">
-                          {t('spaces.ui.members.title', {
-                            ns: 'portal',
-                            defaultValue: 'Members',
-                          })}
+                  ) : activeSpaceRole ? (
+                    <section className="rounded-3xl border border-border bg-card p-4 sm:p-5">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <h3 className="text-lg font-700 text-foreground">
+                          {t('spaces.ui.members.title', { ns: 'portal' })}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {t('spaces.ui.members.description', {
-                            ns: 'portal',
-                            defaultValue: 'See who is part of this Space and what each person can do.',
-                          })}
-                        </p>
+                        <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{members.length}</span>
                       </div>
                       {members.length === 0 ? (
-                        <div className="rounded-3xl border border-border bg-card p-6 text-center">
-                          <p className="text-base font-700 text-foreground">
-                            {t('spaces.ui.members.emptyTitle', {
-                              ns: 'portal',
-                              defaultValue: 'No members yet',
-                            })}
-                          </p>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            {t('spaces.ui.members.emptyDescription', {
-                              ns: 'portal',
-                              defaultValue: 'Invite someone to share this Space.',
-                            })}
-                          </p>
-                        </div>
+                        <p className="rounded-2xl bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                          {t('spaces.ui.members.emptyDescription', { ns: 'portal' })}
+                        </p>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                           {members.map((member) => {
                             const RoleIcon = ROLE_ICONS[member.role] || Users;
                             const canEditMemberRole = canManageSpaceMemberRole({
@@ -1819,55 +1395,46 @@ function SpacesPageContent() {
                               targetMember: member,
                             });
                             return (
-                              <div key={member.id} className="rounded-3xl border border-border bg-card p-5">
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                  <div className="flex min-w-0 gap-4">
-                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full gradient-teal text-base font-700 text-white">
-                                      {(member.user_profile?.full_name || member.user_profile?.email || 'U').charAt(0).toUpperCase()}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <p className="truncate text-base font-700 text-foreground">
-                                          {member.user_profile?.full_name || t('spaces.unknownUser', { ns: 'portal' })}
-                                        </p>
-                                        <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-600 ${ROLE_COLORS[member.role]}`}>
-                                          <RoleIcon size={12} />
-                                          {getRoleLabel(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                        </span>
+                              <div key={member.id} className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                                <div className="flex flex-col gap-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex min-w-0 gap-3">
+                                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white">
+                                        {(member.user_profile?.full_name || member.user_profile?.email || 'U').charAt(0).toUpperCase()}
                                       </div>
-                                      <p className="mt-1 truncate text-sm text-muted-foreground">
-                                        {member.user_profile?.email || t('spaces.ui.members.noEmail', {
-                                          ns: 'portal',
-                                          defaultValue: 'No email available',
-                                        })}
-                                      </p>
-                                      <p className="mt-2 text-sm text-muted-foreground">
-                                        {getRoleExplanation(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                      </p>
-                                      {member.role === 'owner' ? (
-                                        <p className="mt-2 text-xs font-600 text-muted-foreground">
-                                          {t('spaces.ui.members.ownerProtected', {
-                                            ns: 'portal',
-                                            defaultValue: 'The owner always keeps full control of this Space.',
-                                          })}
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <p className="truncate text-sm font-700 text-foreground">
+                                            {member.user_profile?.full_name || t('spaces.unknownUser', { ns: 'portal' })}
+                                          </p>
+                                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-700 ${ROLE_COLORS[member.role]}`}>
+                                            <RoleIcon size={12} />
+                                            {getRoleLabel(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                          </span>
+                                        </div>
+                                        <p className="mt-1 truncate text-sm text-muted-foreground">
+                                          {member.user_profile?.email || t('spaces.ui.members.noEmail', { ns: 'portal' })}
                                         </p>
-                                      ) : null}
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                          {getRoleExplanation(member.role, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                        </p>
+                                        {member.role === 'owner' ? (
+                                          <p className="mt-1 text-xs font-600 text-muted-foreground">
+                                            {t('spaces.ui.members.ownerProtected', { ns: 'portal' })}
+                                          </p>
+                                        ) : null}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[220px]">
-                                    {canEditMemberRole ? (
-                                      <div>
-                                        <label htmlFor={`member-role-${member.id}`} className="mb-1.5 block text-sm font-600 text-foreground">
-                                          {t('spaces.ui.members.changeRole', {
-                                            ns: 'portal',
-                                            defaultValue: 'Change role',
-                                          })}
-                                        </label>
+                                  {(canEditMemberRole || canRemoveMemberEntry) ? (
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+                                      {canEditMemberRole ? (
                                         <select
                                           id={`member-role-${member.id}`}
                                           value={member.role}
                                           onChange={(e) => handleRoleChange(member.id, e.target.value as SpaceRole)}
-                                          className="w-full rounded-2xl border border-border bg-card px-4 py-2.5 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                                          className="h-10 min-w-[170px] rounded-2xl border border-border bg-card px-3 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                                          aria-label={t('spaces.ui.members.changeRole', { ns: 'portal' })}
                                         >
                                           {SPACE_MEMBER_ASSIGNABLE_ROLES.map((role) => (
                                             <option key={role} value={role}>
@@ -1875,22 +1442,19 @@ function SpacesPageContent() {
                                             </option>
                                           ))}
                                         </select>
-                                      </div>
-                                    ) : null}
-                                    {canRemoveMemberEntry ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveMember(member.id, member.user_profile?.full_name || 'member')}
-                                        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-negative/30 px-4 py-2.5 text-sm font-600 text-negative transition-colors hover:bg-negative-soft/60"
-                                      >
-                                        <Trash2 size={15} />
-                                        <span>{t('spaces.ui.members.remove', {
-                                          ns: 'portal',
-                                          defaultValue: 'Remove member',
-                                        })}</span>
-                                      </button>
-                                    ) : null}
-                                  </div>
+                                      ) : null}
+                                      {canRemoveMemberEntry ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveMember(member.id, member.user_profile?.full_name || t('spaces.ui.members.memberFallback', { ns: 'portal' }))}
+                                          className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-negative/30 px-4 text-sm font-600 text-negative transition-colors hover:bg-negative-soft/60"
+                                        >
+                                          <Trash2 size={15} />
+                                          <span>{t('spaces.ui.members.remove', { ns: 'portal' })}</span>
+                                        </button>
+                                      ) : null}
+                                    </div>
+                                  ) : null}
                                 </div>
                               </div>
                             );
@@ -1898,314 +1462,357 @@ function SpacesPageContent() {
                         </div>
                       )}
                       {members.length <= 1 && canManageInvitations ? (
-                        <div className="rounded-3xl border border-border bg-card p-5">
-                          <p className="text-base font-700 text-foreground">
-                            {t('spaces.ui.members.sharePrompt', {
-                              ns: 'portal',
-                              defaultValue: 'Invite someone to share this Space',
-                            })}
+                        <div className="mt-4 rounded-2xl bg-muted/30 px-4 py-4">
+                          <p className="text-sm font-700 text-foreground">
+                            {t('spaces.ui.members.sharePrompt', { ns: 'portal' })}
                           </p>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            {t('spaces.ui.members.sharePromptDescription', {
-                              ns: 'portal',
-                              defaultValue: 'Bring in a family member, friend, or helper so they can add or view shared activity.',
-                            })}
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {t('spaces.ui.members.sharePromptDescription', { ns: 'portal' })}
                           </p>
-                          <button type="button" onClick={() => setShowInviteModal(true)} className="btn-secondary mt-4">
+                          <button type="button" onClick={() => setShowInviteModal(true)} className="btn-secondary mt-3">
                             <UserPlus size={15} />
-                            <span>{t('spaces.ui.inviteMember', {
-                              ns: 'portal',
-                              defaultValue: 'Invite Member',
-                            })}</span>
+                            <span>{t('spaces.ui.quickActions.invite', { ns: 'portal' })}</span>
                           </button>
                         </div>
                       ) : null}
                     </section>
+                  ) : null}
+                </section>
 
-                    <section className="space-y-4">
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-700 text-foreground">
-                          {t('spaces.ui.invitations.title', {
-                            ns: 'portal',
-                            defaultValue: 'Invitations',
-                          })}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {t('spaces.ui.invitations.description', {
-                            ns: 'portal',
-                            defaultValue: 'Manage invitations you received or sent for this Space.',
-                          })}
-                        </p>
-                      </div>
-                      {loadingInvitations && !receivedInvitations.length && !pendingInvitations.length ? (
-                        <div className="h-32 animate-pulse rounded-3xl bg-muted" />
-                      ) : hasInvitationActivity ? (
-                        <div className="space-y-4">
-                          {receivedInvitations.length > 0 ? (
-                            <div className="rounded-3xl border border-border bg-card p-5">
-                              <div className="mb-4 flex items-center justify-between gap-3">
-                                <div>
-                                  <h4 className="text-base font-700 text-foreground">
-                                    {t('spaces.ui.invitations.receivedTitle', {
-                                      ns: 'portal',
-                                      defaultValue: 'Waiting for your response',
-                                    })}
-                                  </h4>
-                                  <p className="mt-1 text-sm text-muted-foreground">
-                                    {t('spaces.ui.invitations.receivedDescription', {
-                                      ns: 'portal',
-                                      defaultValue: 'Accept or decline invitations sent to you.',
-                                    })}
-                                  </p>
-                                </div>
-                                <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{receivedInvitations.length}</span>
-                              </div>
-                              <div className="space-y-3">
-                                {receivedInvitations.map((invitation) => (
-                                  <div key={invitation.id} className="rounded-2xl bg-muted/20 p-4">
-                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                      <div className="min-w-0">
-                                        <p className="text-base font-700 text-foreground">
-                                          {invitation.space?.name || t('spaces.invitationPage.fallbackUnknownSpace', { ns: 'portal' })}
-                                        </p>
-                                        <p className="mt-1 text-sm text-muted-foreground">
-                                          {t('spaces.received.invitedBy', {
+                {showInvitationsSection ? (
+                  <section className="rounded-3xl border border-border bg-card p-4 sm:p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h3 className="text-lg font-700 text-foreground">
+                        {t('spaces.ui.invitations.title', { ns: 'portal' })}
+                      </h3>
+                      {canManageInvitations ? (
+                        <button type="button" onClick={() => setShowInviteModal(true)} className="btn-secondary">
+                          <UserPlus size={15} />
+                          <span>{t('spaces.ui.quickActions.invite', { ns: 'portal' })}</span>
+                        </button>
+                      ) : null}
+                    </div>
+                    {loadingInvitations && !receivedInvitations.length && !pendingInvitations.length ? (
+                      <div className="h-24 animate-pulse rounded-3xl bg-muted" />
+                    ) : hasInvitationActivity ? (
+                      <div className="space-y-4">
+                        {receivedInvitations.length > 0 ? (
+                          <div className="space-y-2">
+                            <p className="text-sm font-700 text-muted-foreground">
+                              {t('spaces.ui.invitations.receivedTitle', { ns: 'portal' })}
+                            </p>
+                            {receivedInvitations.map((invitation) => (
+                              <div key={invitation.id} className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-700 text-foreground">
+                                      {invitation.space?.name || t('spaces.invitationPage.fallbackUnknownSpace', { ns: 'portal' })}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                      {t('spaces.received.invitedBy', {
+                                        ns: 'portal',
+                                        inviter: invitation.inviter?.full_name || invitation.inviter?.email || t('spaces.invitationPage.fallbackInviter', { ns: 'portal' }),
+                                      })}
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs font-700">
+                                      <span className={`rounded-full px-2.5 py-1 ${STATUS_COLORS.pending}`}>
+                                        {t('spaces.received.pending', { ns: 'portal' })}
+                                      </span>
+                                      <span className="rounded-full bg-muted px-2.5 py-1 text-foreground">
+                                        {t('spaces.ui.invitations.roleBadge', {
+                                          ns: 'portal',
+                                          role: getRoleLabel(invitation.role, (key, options) => t(key, { ns: 'portal', ...options })),
+                                        })}
+                                      </span>
+                                      {invitation.expires_at ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-foreground">
+                                          <Clock size={12} />
+                                          {t('spaces.expiresOn', {
                                             ns: 'portal',
-                                            inviter: invitation.inviter?.full_name || invitation.inviter?.email || t('spaces.invitationPage.fallbackInviter', { ns: 'portal' }),
+                                            date: new Date(invitation.expires_at).toLocaleDateString(language),
                                           })}
-                                        </p>
-                                        <div className="mt-3 flex flex-wrap gap-2 text-xs font-600 text-muted-foreground">
-                                          <span className={`rounded-full px-2.5 py-1 ${STATUS_COLORS.pending}`}>
-                                            {t('spaces.received.pending', { ns: 'portal' })}
-                                          </span>
-                                          <span className="rounded-full bg-muted px-2.5 py-1 text-foreground">
-                                            {t('spaces.ui.invitations.roleBadge', {
-                                              ns: 'portal',
-                                              defaultValue: 'Role: {{role}}',
-                                              role: getRoleLabel(invitation.role, (key, options) => t(key, { ns: 'portal', ...options })),
-                                            })}
-                                          </span>
-                                          {invitation.expires_at ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-foreground">
-                                              <Clock size={12} />
-                                              {t('spaces.expiresOn', {
-                                                ns: 'portal',
-                                                date: new Date(invitation.expires_at).toLocaleDateString(language),
-                                              })}
-                                            </span>
-                                          ) : null}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-wrap gap-2">
-                                        <button
-                                          onClick={() => handleRespondToReceivedInvitation(invitation, 'accepted')}
-                                          disabled={respondingInvitationId === invitation.id}
-                                          className="btn-primary"
-                                        >
-                                          <CheckCircle2 size={15} />
-                                          <span>{t('spaces.received.acceptAction', { ns: 'portal' })}</span>
-                                        </button>
-                                        <button
-                                          onClick={() => handleRespondToReceivedInvitation(invitation, 'declined')}
-                                          disabled={respondingInvitationId === invitation.id}
-                                          className="btn-secondary"
-                                        >
-                                          <XCircle size={15} />
-                                          <span>{t('spaces.received.declineAction', { ns: 'portal' })}</span>
-                                        </button>
-                                      </div>
+                                        </span>
+                                      ) : null}
                                     </div>
                                   </div>
-                                ))}
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRespondToReceivedInvitation(invitation, 'accepted')}
+                                      disabled={respondingInvitationId === invitation.id}
+                                      className="btn-primary"
+                                    >
+                                      <CheckCircle2 size={15} />
+                                      <span>{t('spaces.received.acceptAction', { ns: 'portal' })}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRespondToReceivedInvitation(invitation, 'declined')}
+                                      disabled={respondingInvitationId === invitation.id}
+                                      className="btn-secondary"
+                                    >
+                                      <XCircle size={15} />
+                                      <span>{t('spaces.received.declineAction', { ns: 'portal' })}</span>
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          ) : null}
+                            ))}
+                          </div>
+                        ) : null}
 
-                          {canManageInvitations ? (
-                            <div className="rounded-3xl border border-border bg-card p-5">
-                              <div className="mb-4 flex items-center justify-between gap-3">
-                                <div>
-                                  <h4 className="text-base font-700 text-foreground">
-                                    {t('spaces.ui.invitations.sentTitle', {
-                                      ns: 'portal',
-                                      defaultValue: 'Pending invitations',
-                                    })}
-                                  </h4>
-                                  <p className="mt-1 text-sm text-muted-foreground">
-                                    {t('spaces.ui.invitations.sentDescription', {
-                                      ns: 'portal',
-                                      defaultValue: 'Invite someone to help manage or view this Space.',
-                                    })}
-                                  </p>
-                                </div>
-                                <span className="rounded-full bg-muted px-3 py-1 text-sm font-600 text-foreground">{pendingInvitations.length}</span>
-                              </div>
-                              {pendingInvitations.length === 0 ? (
-                                <div className="rounded-3xl bg-muted/30 p-5 text-center">
-                                  <p className="text-base font-700 text-foreground">
-                                    {t('spaces.ui.invitations.emptyTitle', {
-                                      ns: 'portal',
-                                      defaultValue: 'No pending invitations',
-                                    })}
-                                  </p>
-                                  <p className="mt-2 text-sm text-muted-foreground">
-                                    {t('spaces.ui.invitations.emptyDescription', {
-                                      ns: 'portal',
-                                      defaultValue: 'Invite someone to help manage or view this Space.',
-                                    })}
-                                  </p>
-                                  <button type="button" onClick={() => setShowInviteModal(true)} className="btn-secondary mt-4">
-                                    <UserPlus size={15} />
-                                    <span>{t('spaces.ui.inviteMember', {
-                                      ns: 'portal',
-                                      defaultValue: 'Invite Member',
-                                    })}</span>
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="space-y-3">
-                                  {pendingInvitations.map((inv) => (
-                                    <div key={inv.id} className="rounded-2xl bg-muted/20 p-4">
-                                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                                        <div className="min-w-0">
-                                          <p className="truncate text-base font-700 text-foreground">{inv.email}</p>
-                                          <div className="mt-3 flex flex-wrap gap-2 text-xs font-600 text-muted-foreground">
-                                            <span className={`rounded-full px-2.5 py-1 ${STATUS_COLORS[inv.status] || 'bg-muted text-muted-foreground'}`}>
-                                              {getInvitationStatusLabel(inv.status, (key, options) => t(key, { ns: 'portal', ...options }))}
-                                            </span>
-                                            <span className="rounded-full bg-muted px-2.5 py-1 text-foreground">
-                                              {t('spaces.ui.invitations.roleBadge', {
-                                                ns: 'portal',
-                                                defaultValue: 'Role: {{role}}',
-                                                role: getRoleLabel(inv.role, (key, options) => t(key, { ns: 'portal', ...options })),
-                                              })}
-                                            </span>
-                                            {inv.expires_at ? (
-                                              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-foreground">
-                                                <Clock size={12} />
-                                                {new Date(inv.expires_at) < new Date()
-                                                  ? t('spaces.expired', { ns: 'portal' })
-                                                  : t('spaces.expiresOn', {
-                                                      ns: 'portal',
-                                                      date: new Date(inv.expires_at).toLocaleDateString(language),
-                                                    })}
-                                              </span>
-                                            ) : null}
-                                          </div>
-                                        </div>
-                                        <button
-                                          onClick={() => handleRevoke(inv.id)}
-                                          className="inline-flex items-center gap-2 text-sm font-600 text-negative hover:underline"
-                                        >
-                                          <XCircle size={15} />
-                                          <span>{t('spaces.revokeAction', { ns: 'portal' })}</span>
-                                        </button>
+                        {canManageInvitations ? (
+                          <div className="space-y-2">
+                            <p className="text-sm font-700 text-muted-foreground">
+                              {t('spaces.ui.invitations.sentTitle', { ns: 'portal' })}
+                            </p>
+                            {pendingInvitations.length === 0 ? (
+                              <p className="rounded-2xl bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                                {t('spaces.ui.invitations.none', { ns: 'portal' })}
+                              </p>
+                            ) : (
+                              pendingInvitations.map((inv) => (
+                                <div key={inv.id} className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-700 text-foreground">{inv.email}</p>
+                                      <div className="mt-2 flex flex-wrap gap-2 text-xs font-700">
+                                        <span className={`rounded-full px-2.5 py-1 ${STATUS_COLORS[inv.status] || 'bg-muted text-muted-foreground'}`}>
+                                          {getInvitationStatusLabel(inv.status, (key, options) => t(key, { ns: 'portal', ...options }))}
+                                        </span>
+                                        <span className="rounded-full bg-muted px-2.5 py-1 text-foreground">
+                                          {t('spaces.ui.invitations.roleBadge', {
+                                            ns: 'portal',
+                                            role: getRoleLabel(inv.role, (key, options) => t(key, { ns: 'portal', ...options })),
+                                          })}
+                                        </span>
+                                        {inv.expires_at ? (
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-foreground">
+                                            <Clock size={12} />
+                                            {new Date(inv.expires_at) < new Date()
+                                              ? t('spaces.expired', { ns: 'portal' })
+                                              : t('spaces.expiresOn', {
+                                                  ns: 'portal',
+                                                  date: new Date(inv.expires_at).toLocaleDateString(language),
+                                                })}
+                                          </span>
+                                        ) : null}
                                       </div>
                                     </div>
-                                  ))}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevoke(inv.id)}
+                                      className="inline-flex items-center gap-2 text-sm font-600 text-negative hover:underline"
+                                    >
+                                      <XCircle size={15} />
+                                      <span>{t('spaces.revokeAction', { ns: 'portal' })}</span>
+                                    </button>
+                                  </div>
                                 </div>
-                              )}
+                              ))
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="rounded-2xl bg-muted/30 px-4 py-4 text-sm text-muted-foreground">
+                        {t('spaces.ui.invitations.none', { ns: 'portal' })}
+                      </p>
+                    )}
+                  </section>
+                ) : null}
+
+                <section className="rounded-3xl border border-border bg-card p-4 sm:p-5">
+                  <button
+                    type="button"
+                    onClick={() => setAdvancedOpen((value) => !value)}
+                    className="flex w-full items-center justify-between gap-3 text-left"
+                    aria-expanded={advancedOpen}
+                  >
+                    <div>
+                      <h3 className="text-lg font-700 text-foreground">
+                        {t('spaces.ui.advanced.title', { ns: 'portal' })}
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t('spaces.ui.advanced.description', { ns: 'portal' })}
+                      </p>
+                    </div>
+                    <ChevronDown size={18} className={`shrink-0 text-muted-foreground transition-transform ${advancedOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {advancedOpen ? (
+                    <div className="mt-5 space-y-4">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-sm font-700 text-foreground">
+                              {t('spaces.ui.details.contributions.title', { ns: 'portal' })}
+                            </p>
+                            <a href="#recent-activity" className="text-xs font-700 text-accent hover:underline">
+                              {t('spaces.ui.viewDetails', { ns: 'portal' })}
+                            </a>
+                          </div>
+                          <div className="space-y-1">
+                            {contributionTotals.length > 0 ? contributionTotals.map((row) => (
+                              <FormattedCurrencyAmount
+                                key={`details-contribution-${row.currency}-${row.amount}`}
+                                amount={row.amount}
+                                currencyCode={row.currency}
+                                className="text-base font-700 text-positive"
+                                showCode
+                              />
+                            )) : (
+                              <p className="text-sm text-muted-foreground">
+                                {t('spaces.ui.details.contributions.empty', { ns: 'portal' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-sm font-700 text-foreground">
+                              {t('spaces.ui.details.owed.title', { ns: 'portal' })}
+                            </p>
+                            <Link href={`/reimbursements?scope=space&spaceId=${activeSpace.id}`} className="text-xs font-700 text-accent hover:underline">
+                              {t('spaces.ui.viewDetails', { ns: 'portal' })}
+                            </Link>
+                          </div>
+                          <div className="space-y-1">
+                            {outstandingReimbursementTotals.length > 0 ? outstandingReimbursementTotals.map((row) => (
+                              <FormattedCurrencyAmount
+                                key={`details-owed-${row.currency}-${row.amount}`}
+                                amount={row.amount}
+                                currencyCode={row.currency}
+                                className="text-base font-700 text-warning"
+                                showCode
+                              />
+                            )) : (
+                              <p className="text-sm text-muted-foreground">
+                                {t('spaces.ui.details.owed.empty', { ns: 'portal' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-sm font-700 text-foreground">
+                              {t('spaces.ui.details.budgets.title', { ns: 'portal' })}
+                            </p>
+                            <Link href={`/budgets?scope=space&spaceId=${activeSpace.id}`} className="text-xs font-700 text-accent hover:underline">
+                              {t('spaces.ui.viewDetails', { ns: 'portal' })}
+                            </Link>
+                          </div>
+                          <div className="space-y-1 text-sm">
+                            {activeBudgetCount > 0 ? (
+                              <>
+                                <p className="font-700 text-foreground">
+                                  {t('spaces.ui.details.budgets.active', {
+                                    ns: 'portal',
+                                    count: activeBudgetCount,
+                                  })}
+                                </p>
+                                <p className="text-muted-foreground">
+                                  {budgetWarningCount > 0
+                                    ? t('spaces.ui.details.budgets.warning', {
+                                        ns: 'portal',
+                                        count: budgetWarningCount,
+                                      })
+                                    : t('spaces.ui.details.budgets.ok', { ns: 'portal' })}
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-muted-foreground">
+                                {t('spaces.ui.details.budgets.empty', { ns: 'portal' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <p className="text-sm font-700 text-foreground">
+                              {t('spaces.ui.accounts.title', { ns: 'portal' })}
+                            </p>
+                            {canManageSpaceFinance ? (
+                              <button type="button" onClick={() => setShowSpaceAccountModal(true)} className="text-xs font-700 text-accent hover:underline">
+                                {t('spaces.ui.accounts.add', { ns: 'portal' })}
+                              </button>
+                            ) : null}
+                          </div>
+                          {loadingFinance ? (
+                            <div className="space-y-2">
+                              {[1, 2].map((item) => (
+                                <div key={item} className="h-10 animate-pulse rounded-2xl bg-muted" />
+                              ))}
                             </div>
-                          ) : null}
+                          ) : activeSpaceAccounts.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              {t('spaces.ui.accounts.emptyDescription', { ns: 'portal' })}
+                            </p>
+                          ) : (
+                            <div className="space-y-2">
+                              {activeSpaceAccounts.slice(0, 3).map((account) => (
+                                <div key={account.id} className="flex items-center justify-between gap-3 rounded-2xl bg-card px-3 py-2.5">
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-700 text-foreground">{account.name}</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      {t(`accountTypes.${account.account_type}`, { ns: 'common' })}
+                                    </p>
+                                  </div>
+                                  <FormattedCurrencyAmount
+                                    amount={account.current_balance}
+                                    currencyCode={account.currency}
+                                    className="text-sm font-700 text-foreground"
+                                    showCode
+                                  />
+                                </div>
+                              ))}
+                              {activeSpaceAccounts.length > 3 ? (
+                                <p className="text-xs text-muted-foreground">
+                                  {t('spaces.ui.accounts.count', {
+                                    ns: 'portal',
+                                    count: activeSpaceAccounts.length,
+                                  })}
+                                </p>
+                              ) : null}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/reimbursements?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
+                          <HandCoins size={15} />
+                          <span>{t('spaces.ui.advanced.reimbursements', { ns: 'portal' })}</span>
+                        </Link>
+                        <Link href={`/settlements?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
+                          <CircleDollarSign size={15} />
+                          <span>{t('spaces.ui.advanced.settlements', { ns: 'portal' })}</span>
+                        </Link>
+                        <Link href={`/reports?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
+                          <ReceiptText size={15} />
+                          <span>{t('spaces.ui.advanced.reports', { ns: 'portal' })}</span>
+                        </Link>
+                      </div>
+                      {spaceFinanceError ? (
+                        <div className="rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning">
+                          <p className="font-700 text-foreground">
+                            {t('spaces.ui.advanced.financeErrorTitle', { ns: 'portal' })}
+                          </p>
+                          <div className="mt-2 space-y-1 font-mono text-xs break-words">
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.loader', { ns: 'portal' })}:</span> {spaceFinanceError.loader}</p>
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.request', { ns: 'portal' })}:</span> {spaceFinanceError.request}</p>
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.message', { ns: 'portal' })}:</span> {spaceFinanceError.message}</p>
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.code', { ns: 'portal' })}:</span> {spaceFinanceError.code || t('spaces.ui.common.none', { ns: 'portal' })}</p>
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.details', { ns: 'portal' })}:</span> {spaceFinanceError.details || t('spaces.ui.common.none', { ns: 'portal' })}</p>
+                            <p><span className="font-700">{t('spaces.ui.advanced.financeErrorFields.hint', { ns: 'portal' })}:</span> {spaceFinanceError.hint || t('spaces.ui.common.none', { ns: 'portal' })}</p>
+                          </div>
                         </div>
                       ) : (
-                        <div className="rounded-3xl border border-border bg-card p-6 text-center">
-                          <p className="text-base font-700 text-foreground">
-                            {t('spaces.ui.invitations.emptyTitle', {
-                              ns: 'portal',
-                              defaultValue: 'No pending invitations',
-                            })}
-                          </p>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            {t('spaces.ui.invitations.emptyDescription', {
-                              ns: 'portal',
-                              defaultValue: 'Invite someone to help manage or view this Space.',
-                            })}
-                          </p>
-                          {canManageInvitations ? (
-                            <button type="button" onClick={() => setShowInviteModal(true)} className="btn-secondary mt-4">
-                              <UserPlus size={15} />
-                              <span>{t('spaces.ui.inviteMember', {
-                                ns: 'portal',
-                                defaultValue: 'Invite Member',
-                              })}</span>
-                            </button>
-                          ) : null}
-                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {t('spaces.ui.advanced.helper', { ns: 'portal' })}
+                        </p>
                       )}
-                    </section>
-
-                    <details className="group rounded-3xl border border-border bg-card p-5">
-                      <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-xl font-700 text-foreground">
-                            {t('spaces.ui.advanced.title', {
-                              ns: 'portal',
-                              defaultValue: 'Advanced details',
-                            })}
-                          </h3>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {t('spaces.ui.advanced.description', {
-                              ns: 'portal',
-                              defaultValue: 'Open full pages for reimbursements, payments, reports, and other detailed records.',
-                            })}
-                          </p>
-                        </div>
-                        <ChevronDown size={18} className="text-muted-foreground transition-transform group-open:rotate-180" />
-                      </summary>
-                      <div className="mt-5 space-y-4">
-                        <div className="flex flex-wrap gap-2">
-                          <Link href={`/reimbursements?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
-                            <HandCoins size={15} />
-                            <span>{t('spaces.ui.advanced.reimbursements', {
-                              ns: 'portal',
-                              defaultValue: 'Money owed',
-                            })}</span>
-                          </Link>
-                          <Link href={`/settlements?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
-                            <CircleDollarSign size={15} />
-                            <span>{t('spaces.ui.advanced.settlements', {
-                              ns: 'portal',
-                              defaultValue: 'Payments',
-                            })}</span>
-                          </Link>
-                          <Link href={`/reports?scope=space&spaceId=${activeSpace.id}`} className="btn-secondary">
-                            <ReceiptText size={15} />
-                            <span>{t('spaces.ui.advanced.reports', {
-                              ns: 'portal',
-                              defaultValue: 'Reports',
-                            })}</span>
-                          </Link>
-                        </div>
-                        {spaceFinanceError ? (
-                          <div className="rounded-2xl border border-warning/30 bg-warning-soft/60 px-4 py-3 text-sm text-warning">
-                            <p className="font-700 text-foreground">
-                              {t('spaces.ui.advanced.financeErrorTitle', {
-                                ns: 'portal',
-                                defaultValue: 'Some detailed finance information could not be loaded.',
-                              })}
-                            </p>
-                            <div className="mt-2 space-y-1 font-mono text-xs break-words">
-                              <p><span className="font-700">loader:</span> {spaceFinanceError.loader}</p>
-                              <p><span className="font-700">request:</span> {spaceFinanceError.request}</p>
-                              <p><span className="font-700">message:</span> {spaceFinanceError.message}</p>
-                              <p><span className="font-700">code:</span> {spaceFinanceError.code || 'null'}</p>
-                              <p><span className="font-700">details:</span> {spaceFinanceError.details || 'null'}</p>
-                              <p><span className="font-700">hint:</span> {spaceFinanceError.hint || 'null'}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            {t('spaces.ui.advanced.helper', {
-                              ns: 'portal',
-                              defaultValue: 'The main dashboard stays simple, while detailed pages remain available when you need them.',
-                            })}
-                          </p>
-                        )}
-                      </div>
-                    </details>
-                  </>
-                ) : null}
+                    </div>
+                  ) : null}
+                </section>
               </>
             ) : (
               <div className="card p-12 text-center">
@@ -2224,10 +1831,17 @@ function SpacesPageContent() {
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-700 text-foreground">
                 {editingSpace
-                  ? t('spaces.ui.modal.editSpace', { ns: 'portal', defaultValue: 'Edit Space' })
-                  : t('spaces.ui.modal.createSpace', { ns: 'portal', defaultValue: 'Create Space' })}
+                  ? t('spaces.ui.modal.editSpace', { ns: 'portal' })
+                  : t('spaces.ui.modal.createSpace', { ns: 'portal' })}
               </h3>
-              <button onClick={closeSpaceFormModal} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
+              <button
+                type="button"
+                onClick={closeSpaceFormModal}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                aria-label={t('actions.close', { ns: 'common' })}
+              >
+                ✕
+              </button>
             </div>
 
             <div>
@@ -2333,14 +1947,21 @@ function SpacesPageContent() {
           <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-700 text-foreground">
-                {t('spaces.ui.modal.inviteMember', { ns: 'portal', defaultValue: 'Invite Member' })}
+                {t('spaces.ui.modal.inviteMember', { ns: 'portal' })}
               </h3>
-              <button onClick={() => setShowInviteModal(false)} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
+              <button
+                type="button"
+                onClick={() => setShowInviteModal(false)}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground"
+                aria-label={t('actions.close', { ns: 'common' })}
+              >
+                ✕
+              </button>
             </div>
 
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
-                {t('spaces.ui.modal.emailLabel', { ns: 'portal', defaultValue: 'Email address' })}
+                {t('spaces.ui.modal.emailLabel', { ns: 'portal' })}
               </label>
               <input
                 type="email"
@@ -2353,7 +1974,7 @@ function SpacesPageContent() {
 
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
-                {t('spaces.ui.modal.roleLabel', { ns: 'portal', defaultValue: 'Access level' })}
+                {t('spaces.ui.modal.roleLabel', { ns: 'portal' })}
               </label>
               <select
                 value={inviteRole}
@@ -2393,10 +2014,7 @@ function SpacesPageContent() {
       <Modal
         isOpen={showSpaceAccountModal && !!activeSpace}
         onClose={() => setShowSpaceAccountModal(false)}
-        title={t('spaces.ui.quickActions.addAccount.title', {
-          ns: 'portal',
-          defaultValue: 'Add Account',
-        })}
+        title={t('spaces.ui.accounts.add', { ns: 'portal' })}
         size="md"
       >
         {activeSpace ? (
@@ -2433,10 +2051,7 @@ function SpacesPageContent() {
       <Modal
         isOpen={showSpaceRecurringModal && !!activeSpace}
         onClose={() => setShowSpaceRecurringModal(false)}
-        title={t('spaces.ui.quickActions.addRecurring.title', {
-          ns: 'portal',
-          defaultValue: 'Add Recurring Payment',
-        })}
+        title={t('spaces.ui.quickActions.recurring', { ns: 'portal' })}
         size="md"
       >
         {activeSpace ? (

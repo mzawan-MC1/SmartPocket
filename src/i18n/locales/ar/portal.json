@@ -1160,6 +1160,138 @@
       "emailPlaceholder": "name@example.com",
       "role": "الدور"
     },
+    "ui": {
+      "pageDescription": "أدر الأموال المشتركة مع العائلة والأصدقاء.",
+      "createSpace": "إنشاء مساحة",
+      "viewDetails": "عرض التفاصيل",
+      "common": {
+        "none": "لا يوجد"
+      },
+      "currentSpace": {
+        "title": "المساحة الحالية",
+        "memberCount_one": "عضو واحد",
+        "memberCount_other": "{{count}} أعضاء",
+        "roleBadge": "{{role}}",
+        "balanceLabel": "الرصيد",
+        "balanceEmpty": "لا يوجد رصيد بعد",
+        "switchLabel": "تبديل المساحة",
+        "moreOptions": "خيارات إضافية"
+      },
+      "quickActions": {
+        "title": "إجراءات سريعة",
+        "expense": "+ مصروف",
+        "income": "+ دخل",
+        "recurring": "متكرر",
+        "invite": "دعوة",
+        "more": "المزيد",
+        "readOnly": "يمكنك عرض هذه المساحة، لكن التعديل متاح فقط للأعضاء الذين لديهم صلاحية التحرير."
+      },
+      "snapshot": {
+        "title": "ملخص المساحة",
+        "balance": "الرصيد",
+        "moneyIn": "الأموال الداخلة",
+        "moneyOut": "الأموال الخارجة",
+        "amountOwed": "المبلغ المستحق",
+        "empty": "لا توجد بيانات بعد"
+      },
+      "roleHelp": {
+        "owner": "تحكم كامل",
+        "manager": "يمكنه إدارة المساحة",
+        "contributor": "يمكنه إضافة التحديثات",
+        "viewer": "عرض فقط",
+        "dependent": "وصول محدود"
+      },
+      "activity": {
+        "title": "النشاط الأخير",
+        "emptyTitle": "لا يوجد نشاط بعد",
+        "emptyDescription": "أضف مصروفا أو دخلا أو مساهمة للبدء.",
+        "labels": {
+          "income": "دخل",
+          "expense": "مصروف",
+          "transfer": "تحويل",
+          "contribution": "مساهمة",
+          "owed": "مستحق",
+          "payment": "دفعة"
+        },
+        "uncategorized": "غير مصنف",
+        "sharedAccountFallback": "حساب مشترك",
+        "moneyAddedToAccount": "تمت إضافة المال إلى {{account}}",
+        "expensePaidFromAccount": "تم دفع المصروف من {{account}}",
+        "transferBetweenAccounts": "تحويل بين الحسابات",
+        "memberContribution": "مساهمة عضو",
+        "memberFallback": "عضو",
+        "moneyOwedTitle": "مال مستحق",
+        "paymentTitle": "دفعة"
+      },
+      "members": {
+        "title": "الأعضاء",
+        "emptyDescription": "ادع شخصا لمشاركة هذه المساحة.",
+        "noEmail": "لا يوجد بريد إلكتروني",
+        "ownerProtected": "يحتفظ المالك دائما بالتحكم الكامل في هذه المساحة.",
+        "changeRole": "تغيير الدور",
+        "memberFallback": "عضو",
+        "remove": "إزالة العضو",
+        "sharePrompt": "ادع شخصا لمشاركة هذه المساحة",
+        "sharePromptDescription": "أضف أحد أفراد العائلة أو صديقا أو مساعدا ليتمكن من الإضافة أو العرض."
+      },
+      "invitations": {
+        "title": "الدعوات",
+        "receivedTitle": "بانتظار ردك",
+        "sentTitle": "الدعوات المعلقة",
+        "roleBadge": "الدور: {{role}}",
+        "none": "لا توجد دعوات معلقة"
+      },
+      "advanced": {
+        "title": "مزيد من التفاصيل",
+        "description": "افتح الحسابات المشتركة والمبالغ المستحقة والميزانيات والصفحات التفصيلية عند الحاجة.",
+        "reimbursements": "المبالغ المستحقة",
+        "settlements": "الدفعات",
+        "reports": "التقارير",
+        "financeErrorTitle": "تعذر تحميل بعض المعلومات المالية التفصيلية.",
+        "helper": "تبقى الصفحة الرئيسية بسيطة، بينما تظل السجلات التفصيلية متاحة هنا.",
+        "financeErrorFields": {
+          "loader": "أداة التحميل",
+          "request": "الطلب",
+          "message": "الرسالة",
+          "code": "الرمز",
+          "details": "التفاصيل",
+          "hint": "التلميح"
+        }
+      },
+      "details": {
+        "contributions": {
+          "title": "مساهمات الأعضاء",
+          "empty": "لا توجد مساهمات بعد"
+        },
+        "owed": {
+          "title": "الأموال المستحقة",
+          "empty": "لا يوجد أحد مدين الآن"
+        },
+        "budgets": {
+          "title": "الميزانيات",
+          "active_one": "ميزانية واحدة نشطة",
+          "active_other": "{{count}} ميزانيات نشطة",
+          "warning_one": "ميزانية واحدة تحتاج إلى انتباه",
+          "warning_other": "{{count}} ميزانيات تحتاج إلى انتباه",
+          "ok": "الميزانيات تسير بشكل جيد",
+          "empty": "لا توجد ميزانيات بعد"
+        }
+      },
+      "accounts": {
+        "title": "الحسابات المشتركة",
+        "add": "إضافة حساب",
+        "emptyDescription": "أنشئ حسابا لبدء تتبع الأموال المشتركة.",
+        "count_one": "حساب واحد",
+        "count_other": "{{count}} حسابات"
+      },
+      "modal": {
+        "editSpace": "تعديل المساحة",
+        "createSpace": "إنشاء مساحة",
+        "inviteMember": "دعوة عضو",
+        "emailLabel": "عنوان البريد الإلكتروني",
+        "roleLabel": "مستوى الوصول"
+      }
+    },
     "invitationPage": {
       "loading": "جار تحميل الدعوة...",
       "notFoundTitle": "الدعوة غير موجودة",

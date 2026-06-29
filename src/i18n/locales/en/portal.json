@@ -1577,6 +1577,138 @@
       "emailPlaceholder": "name@example.com",
       "role": "Role"
     },
+    "ui": {
+      "pageDescription": "Manage shared money with family and friends.",
+      "createSpace": "Create Space",
+      "viewDetails": "View details",
+      "common": {
+        "none": "None"
+      },
+      "currentSpace": {
+        "title": "Current Space",
+        "memberCount_one": "{{count}} member",
+        "memberCount_other": "{{count}} members",
+        "roleBadge": "{{role}}",
+        "balanceLabel": "Balance",
+        "balanceEmpty": "No balance yet",
+        "switchLabel": "Switch Space",
+        "moreOptions": "More options"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "expense": "+ Expense",
+        "income": "+ Income",
+        "recurring": "Recurring",
+        "invite": "Invite",
+        "more": "More",
+        "readOnly": "You can view this Space, but only members with editing access can make changes."
+      },
+      "snapshot": {
+        "title": "Space Snapshot",
+        "balance": "Balance",
+        "moneyIn": "Money In",
+        "moneyOut": "Money Out",
+        "amountOwed": "You Owe",
+        "empty": "No data yet"
+      },
+      "roleHelp": {
+        "owner": "Full control",
+        "manager": "Can manage space",
+        "contributor": "Can add updates",
+        "viewer": "View only",
+        "dependent": "Limited access"
+      },
+      "activity": {
+        "title": "Recent Activity",
+        "emptyTitle": "No activity yet",
+        "emptyDescription": "Add an expense, income, or contribution to get started.",
+        "labels": {
+          "income": "Income",
+          "expense": "Expense",
+          "transfer": "Transfer",
+          "contribution": "Contribution",
+          "owed": "Owed",
+          "payment": "Payment"
+        },
+        "uncategorized": "Uncategorized",
+        "sharedAccountFallback": "Shared account",
+        "moneyAddedToAccount": "Money added to {{account}}",
+        "expensePaidFromAccount": "Expense paid from {{account}}",
+        "transferBetweenAccounts": "Transfer between accounts",
+        "memberContribution": "Member contribution",
+        "memberFallback": "Member",
+        "moneyOwedTitle": "Money owed",
+        "paymentTitle": "Payment"
+      },
+      "members": {
+        "title": "Members",
+        "emptyDescription": "Invite someone to share this Space.",
+        "noEmail": "No email available",
+        "ownerProtected": "The owner always keeps full control of this Space.",
+        "changeRole": "Change role",
+        "memberFallback": "member",
+        "remove": "Remove member",
+        "sharePrompt": "Invite someone to share this Space",
+        "sharePromptDescription": "Bring in a family member, friend, or helper so they can add or view shared activity."
+      },
+      "invitations": {
+        "title": "Invitations",
+        "receivedTitle": "Waiting for your response",
+        "sentTitle": "Pending invitations",
+        "roleBadge": "Role: {{role}}",
+        "none": "No pending invitations"
+      },
+      "advanced": {
+        "title": "More details",
+        "description": "Open shared accounts, money owed, budgets, and detailed pages when you need them.",
+        "reimbursements": "Money owed",
+        "settlements": "Payments",
+        "reports": "Reports",
+        "financeErrorTitle": "Some detailed finance information could not be loaded.",
+        "helper": "The main page stays simple while detailed records remain available here.",
+        "financeErrorFields": {
+          "loader": "loader",
+          "request": "request",
+          "message": "message",
+          "code": "code",
+          "details": "details",
+          "hint": "hint"
+        }
+      },
+      "details": {
+        "contributions": {
+          "title": "Member Contributions",
+          "empty": "No contributions yet"
+        },
+        "owed": {
+          "title": "Money Owed",
+          "empty": "No one owes money right now"
+        },
+        "budgets": {
+          "title": "Budgets",
+          "active_one": "{{count}} budget active",
+          "active_other": "{{count}} budgets active",
+          "warning_one": "{{count}} budget needs attention",
+          "warning_other": "{{count}} budgets need attention",
+          "ok": "Budgets are on track",
+          "empty": "No budgets yet"
+        }
+      },
+      "accounts": {
+        "title": "Shared Accounts",
+        "add": "Add Account",
+        "emptyDescription": "Create an account to start tracking shared money.",
+        "count_one": "{{count}} account",
+        "count_other": "{{count}} accounts"
+      },
+      "modal": {
+        "editSpace": "Edit Space",
+        "createSpace": "Create Space",
+        "inviteMember": "Invite Member",
+        "emailLabel": "Email address",
+        "roleLabel": "Access level"
+      }
+    },
     "invitationPage": {
       "loading": "Loading invitation...",
       "notFoundTitle": "Invitation Not Found",
