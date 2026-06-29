@@ -5,7 +5,6 @@ import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVer
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
-import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { toast } from 'sonner';
 import {
   getAccounts,
@@ -252,15 +251,15 @@ export default function AccountsGrid() {
                   <p className="text-white font-700 text-base mt-0.5 truncate max-w-[180px]">{acct.name}</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
                     <Icon size={16} className="text-white" />
                   </div>
                   <button
-                    className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/20 transition-colors hover:bg-white/30"
+                    className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
                     onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === acct.id ? null : acct.id); }}
                     aria-label={t('accounts.accountOptions')}
                   >
-                    <MoreVertical size={18} className="text-white" />
+                    <MoreVertical size={15} className="text-white" />
                   </button>
                 </div>
               </div>
@@ -296,18 +295,18 @@ export default function AccountsGrid() {
               </div>
               {openMenuId === acct.id && (
                 <div
-                  className="absolute top-12 right-4 z-10 min-w-[210px] rounded-xl border border-border bg-card py-1 shadow-card-lg"
+                  className="absolute top-12 right-4 z-10 bg-card border border-border rounded-xl shadow-card-lg py-1 min-w-[190px]"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button className="flex min-h-11 w-full items-center gap-2.5 px-3 py-3 text-sm text-foreground transition-colors hover:bg-muted" onClick={() => openEdit(acct)}>
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
                     <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
                   </button>
-                  <button className="flex min-h-11 w-full items-center gap-2.5 px-3 py-3 text-sm text-foreground transition-colors hover:bg-muted" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
                     <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
                   </button>
                   {canSetDefaultCash ? (
                     <button
-                      className="flex min-h-11 w-full items-center gap-2.5 px-3 py-3 text-sm text-foreground transition-colors hover:bg-muted"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                       onClick={() => {
                         setOpenMenuId(null);
                         void handleSetDefault(acct.id, 'personal_cash');
@@ -318,7 +317,7 @@ export default function AccountsGrid() {
                   ) : null}
                   {canSetDefaultBank ? (
                     <button
-                      className="flex min-h-11 w-full items-center gap-2.5 px-3 py-3 text-sm text-foreground transition-colors hover:bg-muted"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
                       onClick={() => {
                         setOpenMenuId(null);
                         void handleSetDefault(acct.id, 'personal_bank');
@@ -328,7 +327,7 @@ export default function AccountsGrid() {
                     </button>
                   ) : null}
                   <hr className="my-1 border-border" />
-                  <button className="flex min-h-11 w-full items-center gap-2.5 px-3 py-3 text-sm text-warning transition-colors hover:bg-warning-soft" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
+                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning-soft transition-colors" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
                     <Archive size={14} /> {t('accounts.archiveAccount')}
                   </button>
                 </div>
@@ -628,20 +627,20 @@ export default function AccountsGrid() {
         />
       </Modal>
 
-      <ConfirmationModal
-        open={Boolean(showArchiveConfirm)}
-        title={t('accounts.archiveConfirmTitle')}
-        description={t('accounts.archiveConfirmDescription')}
-        confirmLabel={t('accounts.archive')}
-        cancelLabel={t('accounts.cancel')}
-        onConfirm={() => {
-          if (showArchiveConfirm) {
-            void handleArchive(showArchiveConfirm);
-          }
-        }}
-        onClose={() => setShowArchiveConfirm(null)}
-        confirmTone="warning"
-      />
+      {/* Archive Confirm */}
+      {showArchiveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-foreground/20 backdrop-blur-sm" onClick={() => setShowArchiveConfirm(null)} />
+          <div className="relative bg-card border border-border rounded-2xl shadow-card-lg p-6 max-w-sm w-full">
+            <h3 className="text-base font-700 text-foreground mb-2">{t('accounts.archiveConfirmTitle')}</h3>
+            <p className="text-sm text-muted-foreground mb-4">{t('accounts.archiveConfirmDescription')}</p>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowArchiveConfirm(null)} className="btn-secondary">{t('accounts.cancel')}</button>
+              <button onClick={() => handleArchive(showArchiveConfirm)} className="btn-primary bg-warning hover:bg-warning/90">{t('accounts.archive')}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Detail Panel */}
       {selectedAccount && (

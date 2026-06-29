@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import Modal from '@/components/ui/Modal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { normalizeCurrencyCode, resolveUserDefaultCurrency } from '@/lib/currency-totals';
@@ -83,49 +82,14 @@ function PaymentModal({ reimbursement, onClose, onSuccess }: PaymentModalProps) 
     }
   };
 
-  const formId = `reimbursement-payment-${reimbursement.id}`;
-
   return (
-    <Modal
-      isOpen
-      onClose={() => {
-        if (!saving) {
-          onClose();
-        }
-      }}
-      title={t('reimbursements.recordPayment')}
-      size="md"
-      footerClassName="px-4 py-4 sm:px-6"
-      footer={(
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="btn-secondary min-h-11 w-full sm:w-auto"
-          >
-            {t('reimbursements.cancel')}
-          </button>
-          <button
-            type="submit"
-            form={formId}
-            disabled={saving}
-            className="btn-primary min-h-11 w-full justify-center sm:w-auto"
-          >
-            {saving ? t('reimbursements.saving') : t('reimbursements.recordPayment')}
-          </button>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
+      <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-700 text-foreground">{t('reimbursements.recordPayment')}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
-      )}
-    >
-      <form
-        id={formId}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void handleSave();
-        }}
-        className="space-y-4"
-      >
-        <div className="rounded-xl bg-muted p-3 text-sm">
+        <div className="bg-muted rounded-xl p-3 text-sm">
           <p className="font-600 text-foreground">{reimbursement.description}</p>
           <div className="text-muted-foreground mt-0.5 inline-flex items-center gap-1">
             {t('reimbursements.outstanding')}:
@@ -159,8 +123,15 @@ function PaymentModal({ reimbursement, onClose, onSuccess }: PaymentModalProps) 
             {submitError}
           </div>
         ) : null}
-      </form>
-    </Modal>
+        <div className="flex gap-3 pt-1">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">{t('reimbursements.cancel')}</button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
+            {saving ? t('reimbursements.saving') : t('reimbursements.recordPayment')}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -368,7 +339,7 @@ export default function ReimbursementsPage() {
             <button
               type="button"
               onClick={() => setScope('personal')}
-              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-700 transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-600 transition-colors ${
                 scope === 'personal' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
@@ -377,7 +348,7 @@ export default function ReimbursementsPage() {
             <button
               type="button"
               onClick={() => setScope('space')}
-              className={`min-h-11 rounded-lg px-4 py-2.5 text-sm font-700 transition-colors ${
+              className={`rounded-lg px-3 py-2 text-sm font-600 transition-colors ${
                 scope === 'space' ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-muted'
               }`}
             >
@@ -516,7 +487,7 @@ export default function ReimbursementsPage() {
                       {canPay && (
                         <button
                           onClick={() => setPayingReimb(r)}
-                          className="mt-2 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-700 text-white transition-opacity hover:opacity-90 gradient-teal"
+                          className="mt-2 text-xs px-3 py-1.5 rounded-lg gradient-teal text-white font-600 hover:opacity-90 transition-opacity"
                         >
                           {t('reimbursements.recordPayment')}
                         </button>

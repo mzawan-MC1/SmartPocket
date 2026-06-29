@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Languages, Loader2, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import Modal from '@/components/ui/Modal';
 import SearchField from '@/components/ui/SearchField';
 
 type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
@@ -46,10 +45,6 @@ export default function AdminTranslationsPage() {
   const [filterType, setFilterType] = useState('all');
   const [activeLanguage, setActiveLanguage] = useState<SupportedLanguage>('en');
   const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
-  const [showAddKeyModal, setShowAddKeyModal] = useState(false);
-  const [newContentType, setNewContentType] = useState('');
-  const [newContentKey, setNewContentKey] = useState('');
-  const [isAddingKey, setIsAddingKey] = useState(false);
 
   const buildRows = useCallback((data: Translation[]) => {
     const map = new Map<string, TranslationRow>();
@@ -177,37 +172,30 @@ export default function AdminTranslationsPage() {
   };
 
   const handleAddKey = async () => {
-    const contentType = newContentType.trim();
-    const contentKey = newContentKey.trim();
-    if (!contentType || !contentKey) return;
+    const contentType = prompt('Content type (e.g. homepage):');
+    if (!contentType) return;
+    const contentKey = prompt('Content key (e.g. hero_title):');
+    if (!contentKey) return;
 
-    setIsAddingKey(true);
-    try {
-      const supabase = createClient();
-      const inserts = LANGUAGES.map((l) => ({
-        content_type: contentType,
-        content_key: contentKey,
-        language: l.code,
-        value: '',
-        is_approved: false,
-        is_published: false,
-      }));
+    const supabase = createClient();
+    const inserts = LANGUAGES.map((l) => ({
+      content_type: contentType.trim(),
+      content_key: contentKey.trim(),
+      language: l.code,
+      value: '',
+      is_approved: false,
+      is_published: false,
+    }));
 
-      const { error } = await supabase
-        .from('cms_translations')
-        .upsert(inserts, { onConflict: 'content_type,content_key,language' });
+    const { error } = await supabase
+      .from('cms_translations')
+      .upsert(inserts, { onConflict: 'content_type,content_key,language' });
 
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success('Translation key added');
-        setShowAddKeyModal(false);
-        setNewContentType('');
-        setNewContentKey('');
-        await fetchTranslations();
-      }
-    } finally {
-      setIsAddingKey(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success('Translation key added');
+      await fetchTranslations();
     }
   };
 
@@ -227,7 +215,6 @@ export default function AdminTranslationsPage() {
   );
 
   return (
-    <>
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -241,7 +228,7 @@ export default function AdminTranslationsPage() {
             <button onClick={handleSeedFromSource} disabled={isSeeding} className="btn-secondary text-sm">
               {isSeeding ? <Loader2 size={14} className="animate-spin" /> : '+ Import from source'}
             </button>
-            <button onClick={() => setShowAddKeyModal(true)} className="btn-secondary text-sm">
+            <button onClick={handleAddKey} className="btn-secondary text-sm">
               + Add Key
             </button>
             <button onClick={handleSaveAll} disabled={isSaving || dirtyKeys.size === 0} className={`btn-primary ${dirtyKeys.size === 0 ? 'opacity-50' : ''}`}>
@@ -315,7 +302,7 @@ export default function AdminTranslationsPage() {
                 <button onClick={handleSeedFromSource} disabled={isSeeding} className="btn-primary text-sm">
                   {isSeeding ? <Loader2 size={15} className="animate-spin" /> : '+ Import from source'}
                 </button>
-                <button onClick={() => setShowAddKeyModal(true)} className="btn-secondary text-sm">
+                <button onClick={handleAddKey} className="btn-secondary text-sm">
                   + Add First Key
                 </button>
               </div>
@@ -369,60 +356,5 @@ export default function AdminTranslationsPage() {
           </div>
         )}
       </div>
-      <Modal
-        isOpen={showAddKeyModal}
-        onClose={() => {
-          if (!isAddingKey) {
-            setShowAddKeyModal(false);
-          }
-        }}
-        title="Add Key"
-        description="Add a new translation key for every supported language."
-        size="sm"
-        footerClassName="px-4 py-4 sm:px-6"
-        footer={(
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={() => setShowAddKeyModal(false)}
-              disabled={isAddingKey}
-              className="btn-secondary min-h-11 w-full sm:w-auto"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleAddKey()}
-              disabled={isAddingKey || !newContentType.trim() || !newContentKey.trim()}
-              className="btn-primary min-h-11 w-full justify-center sm:w-auto"
-            >
-              {isAddingKey ? <Loader2 size={15} className="animate-spin" /> : null}
-              Add Key
-            </button>
-          </div>
-        )}
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-600 text-foreground">Content type</label>
-            <input
-              value={newContentType}
-              onChange={(event) => setNewContentType(event.target.value)}
-              className="input-base"
-              placeholder="homepage"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-600 text-foreground">Content key</label>
-            <input
-              value={newContentKey}
-              onChange={(event) => setNewContentKey(event.target.value)}
-              className="input-base"
-              placeholder="hero_title"
-            />
-          </div>
-        </div>
-      </Modal>
-    </>
   );
 }

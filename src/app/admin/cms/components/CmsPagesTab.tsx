@@ -6,7 +6,6 @@ import { Eye, FilePlus2, Loader2, Pencil, Search, ShieldAlert, Trash2 } from 'lu
 import { toast } from 'sonner';
 import CmsHtml from '@/components/cms/CmsHtml';
 import RichTextEditor from '@/components/cms/RichTextEditor';
-import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import {
   slugifyCmsPageSlug,
   type CmsPageInput,
@@ -37,8 +36,6 @@ export default function CmsPagesTab() {
   const [showPreview, setShowPreview] = useState(true);
   const [form, setForm] = useState<CmsPageInput>(EMPTY_FORM);
   const [isNewPage, setIsNewPage] = useState(true);
-  const [deleteTarget, setDeleteTarget] = useState<CmsPageListItem | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadPages = async (preferredId?: string | null) => {
     setIsLoading(true);
@@ -207,8 +204,11 @@ export default function CmsPagesTab() {
       return;
     }
 
+    if (!window.confirm(`Delete "${page.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
     try {
-      setIsDeleting(true);
       const res = await fetch(`/api/admin/cms/pages/${page.id}`, {
         method: 'DELETE',
       });
@@ -218,18 +218,14 @@ export default function CmsPagesTab() {
       }
 
       toast.success('Page deleted.');
-      setDeleteTarget(null);
       await loadPages();
     } catch (error: any) {
       toast.error(error?.message || 'Failed to delete page.');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
   return (
-    <>
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
       <div className="space-y-4">
         <div className="card-elevated p-4 space-y-4">
           <div className="flex items-center justify-between">
@@ -376,7 +372,7 @@ export default function CmsPagesTab() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setDeleteTarget(selectedPage)}
+                    onClick={() => deletePage(selectedPage)}
                     disabled={!selectedPage.can_delete}
                     className="btn-secondary text-xs py-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -531,26 +527,6 @@ export default function CmsPagesTab() {
           </div>
         ) : null}
       </div>
-      </div>
-      <ConfirmationModal
-        open={Boolean(deleteTarget)}
-        title="Delete"
-        description={deleteTarget ? `Delete "${deleteTarget.title}"? This action cannot be undone.` : undefined}
-        confirmLabel="Delete"
-        cancelLabel="Keep"
-        onConfirm={() => {
-          if (deleteTarget) {
-            void deletePage(deleteTarget);
-          }
-        }}
-        onClose={() => {
-          if (!isDeleting) {
-            setDeleteTarget(null);
-          }
-        }}
-        pending={isDeleting}
-        confirmTone="danger"
-      />
-    </>
+    </div>
   );
 }

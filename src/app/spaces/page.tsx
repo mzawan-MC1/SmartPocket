@@ -59,7 +59,6 @@ import {
 } from '@/lib/people';
 import { toast } from 'sonner';
 import PageHeader from '@/components/ui/PageHeader';
-import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
@@ -523,14 +522,6 @@ function SpacesPageContent() {
   const [respondingInvitationId, setRespondingInvitationId] = useState<string | null>(null);
   const [spaceFormError, setSpaceFormError] = useState<string | null>(null);
   const [spaceFinanceError, setSpaceFinanceError] = useState<SpaceFinanceLoadError | null>(null);
-  const [pendingConfirmation, setPendingConfirmation] = useState<{
-    kind: 'archive-space' | 'revoke-invitation' | 'remove-member';
-    title: string;
-    description: string;
-    confirmLabel: string;
-    onConfirm: () => Promise<void>;
-  } | null>(null);
-  const [confirmingAction, setConfirmingAction] = useState(false);
 
   const loadSpaces = useCallback(async () => {
     setLoading(true);
@@ -781,18 +772,15 @@ function SpacesPageContent() {
   };
 
   const handleArchive = async (space: Space) => {
-    setPendingConfirmation({
-      kind: 'archive-space',
-      title: t('spaces.archive', { ns: 'portal', defaultValue: 'Archive' }),
-      description: t('spaces.archiveConfirm', { ns: 'portal', name: space.name }),
-      confirmLabel: t('spaces.archive', { ns: 'portal', defaultValue: 'Archive' }),
-      onConfirm: async () => {
-        await archiveSpace(space.id);
-        toast.success(t('spaces.archived', { ns: 'portal' }));
-        if (activeSpaceId === space.id) setActiveSpaceId(null);
-        loadSpaces();
-      },
-    });
+    if (!confirm(t('spaces.archiveConfirm', { ns: 'portal', name: space.name }))) return;
+    try {
+      await archiveSpace(space.id);
+      toast.success(t('spaces.archived', { ns: 'portal' }));
+      if (activeSpaceId === space.id) setActiveSpaceId(null);
+      loadSpaces();
+    } catch (e: unknown) {
+      toast.error((e as Error).message || t('spaces.archiveFailed', { ns: 'portal' }));
+    }
     setOpenMenuId(null);
   };
 
@@ -819,22 +807,19 @@ function SpacesPageContent() {
   };
 
   const handleRevoke = async (invId: string) => {
-    setPendingConfirmation({
-      kind: 'revoke-invitation',
-      title: t('spaces.revoke', { ns: 'portal', defaultValue: 'Cancel invitation' }),
-      description: t('spaces.revokeConfirm', { ns: 'portal' }),
-      confirmLabel: t('spaces.revoke', { ns: 'portal', defaultValue: 'Cancel invitation' }),
-      onConfirm: async () => {
-        await revokeInvitation(invId);
-        toast.success(t('spaces.revoked', { ns: 'portal' }));
-        dispatchSmartPocketDataChanged({
-          source: 'spaces-page:revoke-invitation',
-          entities: ['notifications'],
-        });
-        void loadReceivedInvitations();
-        if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
-      },
-    });
+    if (!confirm(t('spaces.revokeConfirm', { ns: 'portal' }))) return;
+    try {
+      await revokeInvitation(invId);
+      toast.success(t('spaces.revoked', { ns: 'portal' }));
+      dispatchSmartPocketDataChanged({
+        source: 'spaces-page:revoke-invitation',
+        entities: ['notifications'],
+      });
+      void loadReceivedInvitations();
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
+    } catch {
+      toast.error(t('spaces.revokeFailed', { ns: 'portal' }));
+    }
   };
 
   const handleRespondToReceivedInvitation = async (
@@ -891,40 +876,15 @@ function SpacesPageContent() {
     if (!activeSpaceId) {
       return;
     }
-    setPendingConfirmation({
-      kind: 'remove-member',
-      title: t('spaces.removeMember', { ns: 'portal', defaultValue: 'Remove member' }),
-      description: t('spaces.removeMemberConfirm', { ns: 'portal', name: memberName }),
-      confirmLabel: t('spaces.removeMember', { ns: 'portal', defaultValue: 'Remove member' }),
-      onConfirm: async () => {
-        await removeSpaceMember(activeSpaceId, memberId);
-        toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
-        if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
-      },
-    });
-  };
-
-  const handleConfirmPendingAction = useCallback(async () => {
-    if (!pendingConfirmation) {
-      return;
-    }
-
-    setConfirmingAction(true);
+    if (!confirm(t('spaces.removeMemberConfirm', { ns: 'portal', name: memberName }))) return;
     try {
-      await pendingConfirmation.onConfirm();
-      setPendingConfirmation(null);
+      await removeSpaceMember(activeSpaceId, memberId);
+      toast.success(t('spaces.memberRemoved', { ns: 'portal' }));
+      if (activeSpaceId) loadSpaceDetails(activeSpaceId, canManageInvitations);
     } catch (e: unknown) {
-      if (pendingConfirmation.kind === 'archive-space') {
-        toast.error((e as Error).message || t('spaces.archiveFailed', { ns: 'portal' }));
-      } else if (pendingConfirmation.kind === 'revoke-invitation') {
-        toast.error((e as Error).message || t('spaces.revokeFailed', { ns: 'portal' }));
-      } else {
-        toast.error((e as Error).message || t('spaces.memberRemoveFailed', { ns: 'portal' }));
-      }
-    } finally {
-      setConfirmingAction(false);
+      toast.error((e as Error).message || t('spaces.memberRemoveFailed', { ns: 'portal' }));
     }
-  }, [pendingConfirmation, t]);
+  };
 
   const openEdit = (space: Space) => {
     setEditingSpace(space);
@@ -2476,22 +2436,6 @@ function SpacesPageContent() {
           />
         ) : null}
       </Modal>
-
-      <ConfirmationModal
-        open={Boolean(pendingConfirmation)}
-        title={pendingConfirmation?.title || t('actions.confirm', { ns: 'common', defaultValue: 'Confirm' })}
-        description={pendingConfirmation?.description}
-        confirmLabel={pendingConfirmation?.confirmLabel || t('actions.confirm', { ns: 'common', defaultValue: 'Confirm' })}
-        cancelLabel={t('actions.keep', { ns: 'common', defaultValue: 'Keep' })}
-        onConfirm={() => void handleConfirmPendingAction()}
-        onClose={() => {
-          if (!confirmingAction) {
-            setPendingConfirmation(null);
-          }
-        }}
-        pending={confirmingAction}
-        confirmTone={pendingConfirmation?.kind === 'archive-space' ? 'warning' : 'danger'}
-      />
     </>
   );
 }

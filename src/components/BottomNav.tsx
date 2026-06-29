@@ -81,14 +81,14 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {quickAddOpen && (
-        <div className="fixed inset-x-0 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-2 sm:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="text-sm font-700 text-foreground">{t('bottomNav.quickAdd', { ns: 'portal' })}</p>
               <button
                 type="button"
                 onClick={() => setQuickAddOpen(false)}
-                className="btn-ghost h-11 w-11 rounded-full p-0"
+                className="btn-ghost h-8 w-8 rounded-full p-0"
                 aria-label={t('bottomNav.closeQuickAdd', { ns: 'portal' })}
               >
                 <X size={16} />
@@ -148,14 +148,14 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {moreOpen && (
-        <div className="fixed inset-x-0 bottom-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-2 sm:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="text-sm font-700 text-foreground">{t('bottomNav.more', { ns: 'portal' })}</p>
               <button
                 type="button"
                 onClick={() => setMoreOpen(false)}
-                className="btn-ghost h-11 w-11 rounded-full p-0"
+                className="btn-ghost h-8 w-8 rounded-full p-0"
                 aria-label={t('bottomNav.closeMore', { ns: 'portal' })}
               >
                 <X size={16} />
@@ -218,7 +218,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
 
       <nav
         className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/98 backdrop-blur safe-area-bottom shadow-[0_-6px_24px_rgba(15,52,96,0.08)]"
-        style={{ height: 'calc(var(--bottom-nav-height) + env(safe-area-inset-bottom))' }}
+        style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
       >
         <div className="flex h-full items-center justify-around px-1.5 pt-1">
           {navItems.map((item) => {
@@ -240,7 +240,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setMoreOpen(!moreOpen); setQuickAddOpen(false); }}
-                  className={`flex min-h-[44px] min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${moreOpen ? 'bg-accent/8 text-accent' : 'text-muted-foreground'}`}
+                  className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${moreOpen ? 'bg-accent/8 text-accent' : 'text-muted-foreground'}`}
                 >
                   <NavIcon size={19} />
                   <span className="text-[10px] font-700 leading-none">{item.label}</span>
@@ -253,7 +253,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex min-h-[44px] min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${
+                className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${
                   active ? 'bg-accent/8 text-accent' : 'text-muted-foreground'
                 }`}
                 onClick={(event) => {
