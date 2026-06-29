@@ -479,7 +479,7 @@ export default function TransactionsTable({
           </div>
 
           <div className="hidden md:block lg:hidden">
-            <div className="grid grid-cols-12 gap-2">
+            <div className="grid grid-cols-12 gap-2.5">
               <div className="col-span-4">
                 <SearchField
                   placeholder={t('transactions.searchPlaceholder', { ns: 'portal' })}
@@ -488,21 +488,14 @@ export default function TransactionsTable({
                   inputClassName="h-10"
                 />
               </div>
-              <div className="col-span-6 rounded-2xl border border-border bg-muted/20 p-2">
+              <div className="col-span-4 rounded-2xl border border-border bg-muted/20 px-3 py-2.5">
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                     <CalendarRange size={15} />
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      if (dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') {
-                        setPeriodOffset(0);
-                        setPage(1);
-                        return;
-                      }
-                      setTabletFiltersOpen(true);
-                    }}
+                    onClick={() => setTabletFiltersOpen(true)}
                     className="min-w-0 flex-1 text-left"
                   >
                     <p className="truncate text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
@@ -510,43 +503,45 @@ export default function TransactionsTable({
                     </p>
                     <p className="truncate text-sm font-700 text-foreground">{activeDateFilter.label}</p>
                   </button>
-                  {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
-                    <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
-                      <button
-                        type="button"
-                        onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
-                        className="btn-ghost min-h-0 rounded-lg p-2"
-                        aria-label={dateFilterMode === 'month' ? t('transactions.filters.previousMonth', { ns: 'portal' }) : t('transactions.filters.previousPayPeriod', { ns: 'portal' })}
-                      >
-                        <PreviousIcon size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setPeriodOffset(0); setPage(1); }}
-                        className="btn-ghost min-h-0 rounded-lg px-2 py-2 text-[11px] font-700"
-                      >
-                        {t('common:actions.current', { defaultValue: 'Current' })}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { if (!activeDateFilter.canMoveNext) return; setPeriodOffset((current) => Math.min(0, current + 1)); setPage(1); }}
-                        disabled={!activeDateFilter.canMoveNext}
-                        className="btn-ghost min-h-0 rounded-lg p-2 disabled:opacity-40"
-                        aria-label={dateFilterMode === 'month' ? t('transactions.filters.nextMonth', { ns: 'portal' }) : t('transactions.filters.nextPayPeriod', { ns: 'portal' })}
-                      >
-                        <NextIcon size={14} />
-                      </button>
-                    </div>
-                  ) : (
+                </div>
+              </div>
+              <div className="col-span-2 rounded-2xl border border-border bg-card p-1.5">
+                {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
+                  <div className="flex items-center justify-between gap-1">
                     <button
                       type="button"
-                      onClick={() => setTabletFiltersOpen(true)}
+                      onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
+                      className="btn-ghost min-h-0 rounded-xl p-2"
+                      aria-label={dateFilterMode === 'month' ? t('transactions.filters.previousMonth', { ns: 'portal' }) : t('transactions.filters.previousPayPeriod', { ns: 'portal' })}
+                    >
+                      <PreviousIcon size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPeriodOffset(0); setPage(1); }}
                       className="btn-ghost min-h-0 rounded-xl px-2.5 py-2 text-[11px] font-700"
                     >
-                      {periodModeOptions.find((option) => option.key === dateFilterMode)?.label || t('actions.filter', { ns: 'common' })}
+                      {t('common:actions.current', { defaultValue: 'Current' })}
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => { if (!activeDateFilter.canMoveNext) return; setPeriodOffset((current) => Math.min(0, current + 1)); setPage(1); }}
+                      disabled={!activeDateFilter.canMoveNext}
+                      className="btn-ghost min-h-0 rounded-xl p-2 disabled:opacity-40"
+                      aria-label={dateFilterMode === 'month' ? t('transactions.filters.nextMonth', { ns: 'portal' }) : t('transactions.filters.nextPayPeriod', { ns: 'portal' })}
+                    >
+                      <NextIcon size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setTabletFiltersOpen(true)}
+                    className="flex h-full min-h-[56px] w-full items-center justify-center rounded-xl text-[11px] font-700 text-muted-foreground hover:text-foreground"
+                  >
+                    {periodModeOptions.find((option) => option.key === dateFilterMode)?.label || t('actions.filter', { ns: 'common' })}
+                  </button>
+                )}
               </div>
               <div className="col-span-2">
                 <button
@@ -874,7 +869,7 @@ export default function TransactionsTable({
             </div>
             <div className="hidden md:block lg:hidden">
               <div className="rounded-2xl border border-border bg-card">
-                <div className="grid grid-cols-[36px_88px_minmax(0,2.35fr)_minmax(0,1.3fr)_116px_36px] items-center gap-2 border-b border-border px-3 py-2.5 text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                <div className="grid grid-cols-[36px_82px_minmax(0,2.9fr)_minmax(0,1.2fr)_116px_36px] items-center gap-2 border-b border-border px-3 py-2.5 text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
                   <div>
                     <input
                       type="checkbox"
@@ -888,21 +883,29 @@ export default function TransactionsTable({
                     {t('transactions.date', { ns: 'portal' })}
                     <SortIcon col="transaction_date" />
                   </button>
-                  <button type="button" className="flex items-center gap-1 text-left leading-tight hover:text-foreground" onClick={() => handleSort('merchant')}>
-                    {t('transactions.merchantSource', { ns: 'portal' })} / {t('transactions.account', { ns: 'portal' })}
-                    <SortIcon col="merchant" />
+                  <button type="button" className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-left leading-tight hover:text-foreground" onClick={() => handleSort('merchant')}>
+                    <span className="inline-flex min-w-0 items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                      {t('transactions.merchantSource', { ns: 'portal' })}
+                      <SortIcon col="merchant" />
+                    </span>
                   </button>
-                  <div className="leading-tight">{t('transactions.category', { ns: 'portal' })} / {t('transactions.type', { ns: 'portal' })}</div>
-                  <button type="button" className="flex items-center justify-end gap-1 text-right leading-tight hover:text-foreground" onClick={() => handleSort('amount')}>
-                    {t('transactions.amount', { ns: 'portal' })}
-                    <SortIcon col="amount" />
+                  <div className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap leading-tight">
+                    {t('transactions.category', { ns: 'portal' })} / {t('transactions.type', { ns: 'portal' })}
+                  </div>
+                  <button type="button" className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-right leading-tight hover:text-foreground" onClick={() => handleSort('amount')}>
+                    <span className="inline-flex min-w-0 items-center justify-end gap-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                      {t('transactions.amount', { ns: 'portal' })}
+                      <SortIcon col="amount" />
+                    </span>
                   </button>
-                  <div className="text-right">{t('transactions.actions', { ns: 'portal' })}</div>
+                  <div className="overflow-hidden text-right text-ellipsis whitespace-nowrap">{t('transactions.actions', { ns: 'portal' })}</div>
                 </div>
                 <div className="divide-y divide-border">
                   {paginated.map((txn) => {
                     const catColor = txn.category?.color || '#6b7280';
                     const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
+                    const merchantTitle = txn.merchant || txn.description || title;
+                    const secondaryDescription = txn.description && txn.description !== merchantTitle ? txn.description : null;
                     const hasPerson = !!(txn as any).person_id;
                     const reportingPreview = transactionReportingPreviews[txn.id];
                     const showReportingPreview =
@@ -913,7 +916,7 @@ export default function TransactionsTable({
                     return (
                       <div
                         key={`tablet-${txn.id}`}
-                        className={`grid grid-cols-[36px_88px_minmax(0,2.35fr)_minmax(0,1.3fr)_116px_36px] items-start gap-2 px-3 py-3 transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : 'hover:bg-muted/20'}`}
+                        className={`grid grid-cols-[36px_82px_minmax(0,2.9fr)_minmax(0,1.2fr)_116px_36px] items-start gap-2 px-3 py-3 transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : 'hover:bg-muted/20'}`}
                       >
                         <div className="pt-1">
                           <input
@@ -924,12 +927,12 @@ export default function TransactionsTable({
                             aria-label={t('transactions.selectRow', { ns: 'portal' })}
                           />
                         </div>
-                        <div className="pt-0.5 text-sm text-muted-foreground">
+                        <div className="overflow-hidden pt-0.5 text-sm text-muted-foreground text-ellipsis whitespace-nowrap">
                           {txn.transaction_date}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 overflow-hidden">
                           <div className="flex min-w-0 items-start gap-1.5">
-                            <p className="min-w-0 truncate text-sm font-700 text-foreground">{title}</p>
+                            <p className="min-w-0 truncate text-sm font-700 text-foreground">{merchantTitle}</p>
                             {hasDocument ? (
                               <button
                                 type="button"
@@ -942,14 +945,11 @@ export default function TransactionsTable({
                             ) : null}
                             {hasPerson ? <Users size={11} className="mt-0.5 flex-shrink-0 text-accent" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} /> : null}
                           </div>
-                          <p className="mt-1 truncate text-xs text-muted-foreground">
-                            {txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}
-                          </p>
-                          {txn.notes ? (
-                            <p className="mt-1 truncate text-[11px] text-muted-foreground">{txn.notes}</p>
+                          {secondaryDescription ? (
+                            <p className="mt-1 truncate text-[11px] text-muted-foreground">{secondaryDescription}</p>
                           ) : null}
                         </div>
-                        <div className="min-w-0 space-y-1">
+                        <div className="min-w-0 space-y-1 overflow-hidden">
                           {txn.category ? (
                             <span className="flex items-center gap-1.5 text-xs text-foreground">
                               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
@@ -969,8 +969,8 @@ export default function TransactionsTable({
                             {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
                           </Badge>
                         </div>
-                        <div className="text-right">
-                          <div className={`text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
+                        <div className="min-w-0 text-right">
+                          <div className={`truncate text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
                             <FormattedCurrencyAmount
                               amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
                               currencyCode={txn.currency}
@@ -980,7 +980,7 @@ export default function TransactionsTable({
                           </div>
                           {showReportingPreview ? (
                             <span
-                              className="mt-1 block text-[10px] text-muted-foreground"
+                              className="mt-1 block truncate text-[10px] text-muted-foreground"
                               title={t('transactions.reportingPreviewTitle', {
                                 ns: 'portal',
                                 currency: transactionReportingCurrency,
