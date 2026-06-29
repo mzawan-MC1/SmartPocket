@@ -1224,7 +1224,7 @@ export default function AddTransactionModal({
 
   return (
     <>
-      <Modal
+    <Modal
       isOpen={isOpen}
       onClose={handleRequestClose}
       title={editingTransaction ? t('transactions.form.editTitle', { ns: 'portal' }) : t('transactions.form.addTitle', { ns: 'portal' })}
@@ -2305,26 +2305,23 @@ export default function AddTransactionModal({
           </div>
         </div>
       </div>
+      <DocumentTransactionReviewModal
+        isOpen={isOpen && !!documentReviewFile}
+        file={documentReviewFile}
+        sourceSurface="add_transaction"
+        onClose={() => setDocumentReviewFile(null)}
+        onSaved={async () => {
+          dispatchSmartPocketDataChanged({
+            source: 'transactions-document-review',
+            entities: ['transactions', 'financial_accounts', 'dashboard'],
+          });
+          await onSaved?.();
+          closeModalAndReset();
+        }}
+      />
     </Modal>
-      {isOpen && documentReviewFile ? (
-        <DocumentTransactionReviewModal
-          isOpen
-          file={documentReviewFile}
-          sourceSurface="add_transaction"
-          onClose={() => setDocumentReviewFile(null)}
-          onSaved={async () => {
-            dispatchSmartPocketDataChanged({
-              source: 'transactions-document-review',
-              entities: ['transactions', 'financial_accounts', 'dashboard'],
-            });
-            await onSaved?.();
-            closeModalAndReset();
-          }}
-        />
-      ) : null}
-      {pendingConfirmation ? (
-        <ConfirmationModal
-        open
+      <ConfirmationModal
+        open={Boolean(pendingConfirmation)}
         title={pendingConfirmation?.title || t('actions.confirm', { ns: 'common', defaultValue: 'Confirm' })}
         description={pendingConfirmation?.description}
         confirmLabel={pendingConfirmation?.confirmLabel}
@@ -2338,8 +2335,7 @@ export default function AddTransactionModal({
         }}
         onClose={() => setPendingConfirmation(null)}
         confirmTone={pendingConfirmation?.confirmTone}
-        />
-      ) : null}
+      />
     </>
   );
 }
