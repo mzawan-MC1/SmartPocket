@@ -81,7 +81,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {quickAddOpen && (
-        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 lg:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="text-sm font-700 text-foreground">{t('bottomNav.quickAdd', { ns: 'portal' })}</p>
@@ -148,7 +148,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {moreOpen && (
-        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 sm:hidden">
+        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 lg:hidden">
           <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <p className="text-sm font-700 text-foreground">{t('bottomNav.more', { ns: 'portal' })}</p>

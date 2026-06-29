@@ -107,13 +107,13 @@ export default function PublicHeader() {
   return (
     <header className={headerClass} ref={mobileRef}>
       <div className="page-shell">
-        <div className="flex items-center justify-between gap-4 min-h-[5rem] py-3">
+        <div className="flex min-h-[5rem] items-center justify-between gap-3 py-3 max-[480px]:gap-2">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 flex-shrink-0 min-w-0">
             <AppLogo
               width={236}
               height={56}
-              imageClassName="h-10 w-auto max-w-[172px] sm:h-11 sm:max-w-[208px] lg:h-12 lg:max-w-[236px]"
+              imageClassName="h-10 w-auto max-w-[156px] sm:h-11 sm:max-w-[188px] lg:h-12 lg:max-w-[212px] xl:max-w-[236px]"
             />
             {showBrandText && (
               <div className="min-w-0">
@@ -128,7 +128,7 @@ export default function PublicHeader() {
           </Link>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-1.5">
+          <nav className="hidden xl:flex items-center gap-1.5">
             {publicUi.headerMenu.map((item) => (
               <Link
                 key={item.id}
@@ -149,7 +149,7 @@ export default function PublicHeader() {
           </nav>
 
           {/* Desktop right actions */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden xl:flex items-center gap-2">
             <LanguageSwitcher
               variant="compact"
               theme={isHomePage ? 'light' : 'default'}
@@ -169,7 +169,7 @@ export default function PublicHeader() {
           </div>
 
           {/* Mobile: language + hamburger */}
-          <div className="flex md:hidden items-center gap-2">
+          <div className="flex xl:hidden items-center gap-2">
             <LanguageSwitcher
               variant="compact"
               theme={isHomePage ? 'light' : 'default'}
@@ -186,7 +186,7 @@ export default function PublicHeader() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className={`md:hidden space-y-1 border-t py-4 pb-4 ${isHomePage ? 'border-slate-200 bg-white' : 'border-border'}`}>
+          <div className={`xl:hidden space-y-1 border-t py-4 pb-4 ${isHomePage ? 'border-slate-200 bg-white' : 'border-border'}`}>
             {showBrandText && (
               <div className="px-3.5 pb-3">
                 <p className={`text-sm font-700 ${isHomePage ? 'text-primary' : 'text-primary'}`}>{branding.appName}</p>
