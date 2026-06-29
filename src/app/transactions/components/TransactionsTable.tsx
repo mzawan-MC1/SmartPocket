@@ -613,7 +613,7 @@ export default function TransactionsTable({
                               <Edit2 size={14} className="text-muted-foreground" />
                             </button>
                             <button
-                              onClick={() => handleDelete(txn)}
+                              onClick={() => setDeleteTarget(txn)}
                               disabled={deletingId === txn.id}
                               className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-negative-soft"
                               aria-label={t('actions.delete', { ns: 'common' })}

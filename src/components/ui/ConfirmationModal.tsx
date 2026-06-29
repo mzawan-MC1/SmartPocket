@@ -43,9 +43,13 @@ export default function ConfirmationModal({
 }: ConfirmationModalProps) {
   const { t } = useTranslation(['common', 'portal']);
 
+  if (!open) {
+    return null;
+  }
+
   return (
     <Modal
-      isOpen={open}
+      isOpen
       onClose={() => {
         if (!pending) {
           onClose();
