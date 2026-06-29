@@ -476,6 +476,8 @@ export default function AddTransactionModal({
   const firstAmountFieldRef = useRef<HTMLInputElement | null>(null);
   const createModeDefaultCurrencyRef = useRef('');
   const createModeAutoCurrencyRef = useRef('');
+  const lastInitializedKeyRef = useRef<string | null>(null);
+  const hasAutoFocusedRef = useRef(false);
 
   const accounts = providedAccounts ?? internalAccounts;
   const categories = providedCategories ?? internalCategories;
@@ -626,6 +628,21 @@ export default function AddTransactionModal({
   });
 
   const activeDraftRows = draftRows.length > 0 ? (transactionMode === 'single' ? [draftRows[0]] : draftRows) : [];
+  const initializationKey = JSON.stringify({
+    isOpen,
+    editingTransactionId: editingTransaction?.id ?? null,
+    spaceId: spaceId ?? null,
+    initialMode,
+    initialEntryKind,
+    initialTransactionType,
+    preselectedPersonId: preselectedPersonId ?? null,
+  });
+
+  useEffect(() => {
+    if (isOpen) return;
+    lastInitializedKeyRef.current = null;
+    hasAutoFocusedRef.current = false;
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -649,6 +666,11 @@ export default function AddTransactionModal({
 
   useEffect(() => {
     if (!isOpen) return;
+    if (lastInitializedKeyRef.current === initializationKey) return;
+
+    lastInitializedKeyRef.current = initializationKey;
+    hasAutoFocusedRef.current = false;
+
     if (editingTransaction) {
       setTransactionMode('single');
       setDraftRows([buildDraftFromTransaction(editingTransaction)]);
@@ -666,7 +688,7 @@ export default function AddTransactionModal({
     setSaveProgress(null);
     setIsSaving(false);
     setDocumentReviewFile(null);
-  }, [buildEmptyDraft, editingTransaction, initialEntryKind, initialMode, initialTransactionType, isOpen, preselectedPersonId, spaceId]);
+  }, [buildEmptyDraft, editingTransaction, initializationKey, isOpen, initialEntryKind, initialMode, initialTransactionType, preselectedPersonId, spaceId]);
 
   useEffect(() => {
     if (!isOpen || !spaceId) return;
@@ -706,12 +728,13 @@ export default function AddTransactionModal({
   }, [accountMap, isOpen, spaceId, spaceParticipants, user?.id]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || hasAutoFocusedRef.current || draftRows.length === 0) return;
     const timer = window.setTimeout(() => {
       firstAmountFieldRef.current?.focus();
+      hasAutoFocusedRef.current = true;
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [isOpen, transactionMode, draftRows.length]);
+  }, [draftRows.length, isOpen]);
 
   const updateDraftRow = useCallback((rowId: string, updater: (row: TransactionDraftRow) => TransactionDraftRow) => {
     setDraftRows((rows) => rows.map((row) => (row.id === rowId ? updater(row) : row)));
