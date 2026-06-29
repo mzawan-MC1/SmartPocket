@@ -200,6 +200,7 @@ export default function AddBudgetForm({
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<BudgetFormState>(() => buildInitialFormState(budget));
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<BudgetFieldKey, string>>>({});
+  const amountErrorId = fieldErrors.amount ? 'budget-amount-error' : undefined;
   const [hasAppliedProfileDefault, setHasAppliedProfileDefault] = useState(Boolean(budget));
   const autoAppliedCurrencyRef = useRef('');
 
@@ -429,8 +430,9 @@ export default function AddBudgetForm({
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('budgets.form.amount', { ns: 'portal' })}</label>
+          <label htmlFor="budget-amount" className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('budgets.form.amount', { ns: 'portal' })}</label>
           <input
+            id="budget-amount"
             type="number"
             step="0.01"
             min="0.01"
@@ -438,8 +440,10 @@ export default function AddBudgetForm({
             placeholder="0.00"
             value={form.amount}
             onChange={(e) => updateField('amount', e.target.value)}
+            aria-invalid={fieldErrors.amount ? 'true' : 'false'}
+            aria-describedby={amountErrorId}
           />
-          {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
+          {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
         </div>
         <div>
           <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('budgets.form.currency', { ns: 'portal' })}</label>

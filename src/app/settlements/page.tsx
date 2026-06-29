@@ -319,8 +319,13 @@ function NewSettlementModal({
 
   const parsedPayer = parseParticipantKey(payerKey);
   const parsedReceiver = parseParticipantKey(receiverKey);
+  const personErrorId = fieldErrors.personId ? 'settlement-person-error' : undefined;
+  const amountErrorId = fieldErrors.amount ? 'settlement-amount-error' : undefined;
+  const descriptionErrorId = fieldErrors.description ? 'settlement-description-error' : undefined;
+  const spaceAllocationsErrorId = fieldErrors.space_allocations ? 'settlement-space-allocations-error' : undefined;
 
   const clearFieldError = (field: SettlementFieldKey) => {
+    setSubmitError(null);
     setFieldErrors((current) => {
       if (!current[field]) return current;
       const next = { ...current };
@@ -436,7 +441,7 @@ function NewSettlementModal({
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           {mode === 'space' ? (
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -595,6 +600,7 @@ function NewSettlementModal({
                                 {t('settlements.allocateAmount', { defaultValue: 'Allocate amount' })}
                               </label>
                               <input
+                                id={`settlement-allocation-${reimbursement.id}`}
                                 type="number"
                                 min="0.01"
                                 max={outstanding}
@@ -608,6 +614,8 @@ function NewSettlementModal({
                                   }));
                                 }}
                                 className={getFieldInputClassName('w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.space_allocations))}
+                                aria-invalid={fieldErrors.space_allocations ? 'true' : 'false'}
+                                aria-describedby={spaceAllocationsErrorId}
                               />
                             </div>
                           </div>
@@ -616,24 +624,27 @@ function NewSettlementModal({
                     })
                   )}
                 </div>
-                {fieldErrors.space_allocations ? <p className={getFieldErrorTextClassName()}>{fieldErrors.space_allocations}</p> : null}
+                {fieldErrors.space_allocations ? <p id={spaceAllocationsErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.space_allocations}</p> : null}
               </div>
             </>
           ) : (
             <div>
               <label className={getFieldLabelClassName(Boolean(fieldErrors.personId))}>{t('settlements.person')} <span className="text-negative">*</span></label>
               <select
+                id="settlement-person"
                 value={personId}
                 onChange={(e) => {
                   clearFieldError('personId');
                   setPersonId(e.target.value);
                 }}
                 className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.personId))}
+                aria-invalid={fieldErrors.personId ? 'true' : 'false'}
+                aria-describedby={personErrorId}
               >
                 <option value="">{t('settlements.selectPerson')}</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
               </select>
-              {fieldErrors.personId ? <p className={getFieldErrorTextClassName()}>{fieldErrors.personId}</p> : null}
+              {fieldErrors.personId ? <p id={personErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.personId}</p> : null}
             </div>
           )}
 
@@ -651,6 +662,7 @@ function NewSettlementModal({
                 </div>
               ) : (
                 <input
+                  id="settlement-amount"
                   type="number"
                   value={amount}
                   onChange={(e) => {
@@ -661,9 +673,11 @@ function NewSettlementModal({
                   min="0.01"
                   step="0.01"
                   className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.amount))}
+                  aria-invalid={fieldErrors.amount ? 'true' : 'false'}
+                  aria-describedby={amountErrorId}
                 />
               )}
-              {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
+              {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency')}</label>
@@ -732,6 +746,7 @@ function NewSettlementModal({
           <div>
             <label className={getFieldLabelClassName(Boolean(fieldErrors.description))}>{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
             <input
+              id="settlement-description"
               type="text"
               value={description}
               onChange={(e) => {
@@ -740,8 +755,10 @@ function NewSettlementModal({
               }}
               placeholder={t('settlements.descriptionPlaceholder')}
               className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.description))}
+              aria-invalid={fieldErrors.description ? 'true' : 'false'}
+              aria-describedby={descriptionErrorId}
             />
-            {fieldErrors.description ? <p className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
+            {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
           </div>
 
           {mode === 'personal' && personReimbs.length > 0 && (
@@ -804,7 +821,7 @@ function NewSettlementModal({
             </div>
           ) : null}
 
-          {submitError ? (
+          {submitError && Object.keys(fieldErrors).length === 0 ? (
             <div className="rounded-xl border border-negative/20 bg-negative-soft/50 px-4 py-3 text-sm text-negative">
               {submitError}
             </div>

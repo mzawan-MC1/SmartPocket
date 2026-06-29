@@ -21,6 +21,11 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
+import {
   getAccountTransferCapabilities,
   getFinancialAccountScopeType,
 } from '@/lib/financial-account-utils';
@@ -41,6 +46,8 @@ interface TransferFormData {
   transfer_purpose: TransferPurpose;
 }
 
+type TransferFieldKey = 'from_account_id' | 'to_account_id' | 'amount';
+
 export default function AddTransferForm({
   accounts: providedAccounts,
   onSuccess,
@@ -58,6 +65,7 @@ export default function AddTransferForm({
   const [latestSnapshot, setLatestSnapshot] = useState<Awaited<ReturnType<typeof getLatestExchangeRateSnapshot>> | null>(null);
   const [latestSnapshotError, setLatestSnapshotError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<TransferFieldKey, string>>>({});
   const [form, setForm] = useState<TransferFormData>({
     from_account_id: '',
     to_account_id: '',
@@ -287,6 +295,9 @@ export default function AddTransferForm({
   const selectDestinationPlaceholder = hasDestinationAccounts
     ? t('transfers.form.selectAccount', { ns: 'portal' })
     : t('transfers.form.noAccountsAvailable', { ns: 'portal' });
+  const fromAccountErrorId = fieldErrors.from_account_id ? 'transfer-from-account-error' : undefined;
+  const toAccountErrorId = fieldErrors.to_account_id ? 'transfer-to-account-error' : undefined;
+  const amountErrorId = fieldErrors.amount ? 'transfer-amount-error' : undefined;
 
   useEffect(() => {
     if (!allowedPurposes.includes(form.transfer_purpose)) {
@@ -388,23 +399,45 @@ export default function AddTransferForm({
     }
   }, [form.amount, fromAccount, latestSnapshot, latestSnapshotError, toAccount]);
 
+  const updateField = <K extends keyof TransferFormData>(field: K, value: TransferFormData[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    setSubmitError(null);
+    if (field in fieldErrors) {
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field as TransferFieldKey];
+        return next;
+      });
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitError(null);
+    setFieldErrors({});
     if (!form.from_account_id || !form.to_account_id) {
       const message = t('transfers.form.selectBothAccounts', { ns: 'portal' });
+      setFieldErrors({
+        ...(form.from_account_id ? {} : { from_account_id: message }),
+        ...(form.to_account_id ? {} : { to_account_id: message }),
+      });
       setSubmitError(message);
       toast.error(message);
       return;
     }
     if (form.from_account_id === form.to_account_id) {
       const message = t('transfers.form.chooseDifferentAccounts', { ns: 'portal' });
+      setFieldErrors({
+        from_account_id: message,
+        to_account_id: message,
+      });
       setSubmitError(message);
       toast.error(message);
       return;
     }
     if (!form.amount || Number(form.amount) <= 0) {
       const message = t('settlements.validAmountError', { ns: 'portal' });
+      setFieldErrors({ amount: message });
       setSubmitError(message);
       toast.error(message);
       return;
@@ -497,15 +530,18 @@ export default function AddTransferForm({
     <form onSubmit={handleSubmit} className="space-y-4 max-[480px]:space-y-3" noValidate>
       <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">
+          <label htmlFor="transfer-from-account" className={getFieldLabelClassName(Boolean(fieldErrors.from_account_id))}>
             {t('transfers.form.fromAccount', { ns: 'portal' })}
           </label>
           <select
-            className="input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10"
+            id="transfer-from-account"
+            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10', Boolean(fieldErrors.from_account_id))}
             value={form.from_account_id}
-            onChange={(event) => setForm((current) => ({ ...current, from_account_id: event.target.value }))}
+            onChange={(event) => updateField('from_account_id', event.target.value)}
             disabled={!hasAccounts}
             title={fromAccount ? getAccountOptionLabel(fromAccount) : undefined}
+            aria-invalid={fieldErrors.from_account_id ? 'true' : 'false'}
+            aria-describedby={fromAccountErrorId}
           >
             <option value="">{selectAccountPlaceholder}</option>
             {fromAccountOptions.map(({ account }) => (
@@ -514,17 +550,21 @@ export default function AddTransferForm({
               </option>
             ))}
           </select>
+          {fieldErrors.from_account_id ? <p id={fromAccountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.from_account_id}</p> : null}
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">
+          <label htmlFor="transfer-to-account" className={getFieldLabelClassName(Boolean(fieldErrors.to_account_id))}>
             {t('transfers.form.toAccount', { ns: 'portal' })}
           </label>
           <select
-            className="input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10"
+            id="transfer-to-account"
+            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10', Boolean(fieldErrors.to_account_id))}
             value={form.to_account_id}
-            onChange={(event) => setForm((current) => ({ ...current, to_account_id: event.target.value }))}
+            onChange={(event) => updateField('to_account_id', event.target.value)}
             disabled={!hasDestinationAccounts}
             title={toAccount ? getAccountOptionLabel(toAccount) : undefined}
+            aria-invalid={fieldErrors.to_account_id ? 'true' : 'false'}
+            aria-describedby={toAccountErrorId}
           >
             <option value="">{selectDestinationPlaceholder}</option>
             {toAccountOptions.map(({ account }) => (
@@ -533,6 +573,7 @@ export default function AddTransferForm({
                 </option>
               ))}
           </select>
+          {fieldErrors.to_account_id ? <p id={toAccountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.to_account_id}</p> : null}
         </div>
       </div>
 
@@ -575,18 +616,22 @@ export default function AddTransferForm({
       ) : null}
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">
+        <label htmlFor="transfer-amount" className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>
           {t('transactions.form.amount', { ns: 'portal' })}
         </label>
         <input
+          id="transfer-amount"
           type="number"
           step="0.01"
           min="0.01"
-          className="input-base h-12 text-base font-tabular max-[480px]:h-11"
+          className={getFieldInputClassName('input-base h-12 text-base font-tabular max-[480px]:h-11', Boolean(fieldErrors.amount))}
           placeholder="0.00"
           value={form.amount}
-          onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
+          onChange={(event) => updateField('amount', event.target.value)}
+          aria-invalid={fieldErrors.amount ? 'true' : 'false'}
+          aria-describedby={amountErrorId}
         />
+        {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
       </div>
 
       {transferPreview && fromAccount && toAccount ? (
@@ -659,7 +704,7 @@ export default function AddTransferForm({
         </p>
       </div>
 
-      {submitError ? (
+      {submitError && Object.keys(fieldErrors).length === 0 ? (
         <div className="rounded-xl border border-negative/20 bg-negative-soft/50 px-4 py-3 text-sm text-negative">
           {submitError}
         </div>

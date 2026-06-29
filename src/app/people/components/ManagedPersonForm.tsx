@@ -10,6 +10,11 @@ import {
   dispatchSmartPocketDataChanged,
   type SmartPocketDataEntity,
 } from '@/lib/data-change';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import { createManagedPerson, type ManagedPerson, type RelationshipType } from '@/lib/people';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 
@@ -25,6 +30,8 @@ const RELATIONSHIPS: RelationshipType[] = [
   'other',
 ];
 
+type ManagedPersonFieldKey = 'full_name';
+
 export default function ManagedPersonForm({
   initialName = '',
   onSuccess,
@@ -37,6 +44,8 @@ export default function ManagedPersonForm({
   const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
   const [saving, setSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ManagedPersonFieldKey, string>>>({});
+  const fullNameErrorId = fieldErrors.full_name ? 'managed-person-full-name-error' : undefined;
   const [phoneState, setPhoneState] = useState<InternationalPhoneValue>({
     display: '',
     e164: null,
@@ -74,10 +83,13 @@ export default function ManagedPersonForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.full_name.trim()) {
-      toast.error(t('people.form.fullNameRequired', { ns: 'portal' }));
+      const message = t('people.form.fullNameRequired', { ns: 'portal' });
+      setFieldErrors({ full_name: message });
+      toast.error(message);
       return;
     }
 
+    setFieldErrors({});
     setSaving(true);
     try {
       const person = await createManagedPerson({
@@ -113,7 +125,7 @@ export default function ManagedPersonForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-[480px]:space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5 max-[480px]:space-y-4" noValidate>
       <div className="flex justify-center max-[480px]:hidden">
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-accent to-blue-600">
           <User size={32} className="text-white" />
@@ -121,17 +133,28 @@ export default function ManagedPersonForm({
       </div>
 
       <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">
+        <label className={getFieldLabelClassName(Boolean(fieldErrors.full_name))}>
           {t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span>
         </label>
         <input
+          id="managed-person-full-name"
           type="text"
           value={form.full_name}
-          onChange={(event) => setForm((current) => ({ ...current, full_name: event.target.value }))}
+          onChange={(event) => {
+            setForm((current) => ({ ...current, full_name: event.target.value }));
+            setFieldErrors((current) => {
+              if (!current.full_name) return current;
+              const next = { ...current };
+              delete next.full_name;
+              return next;
+            });
+          }}
           placeholder={t('people.form.fullNamePlaceholder', { ns: 'portal' })}
-          className="input-base h-11 max-[480px]:h-10"
-          required
+          className={getFieldInputClassName('input-base h-11 max-[480px]:h-10', Boolean(fieldErrors.full_name))}
+          aria-invalid={fieldErrors.full_name ? 'true' : 'false'}
+          aria-describedby={fullNameErrorId}
         />
+        {fieldErrors.full_name ? <p id={fullNameErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.full_name}</p> : null}
       </div>
 
       <div>

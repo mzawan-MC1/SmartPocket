@@ -10,6 +10,11 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import SupportAttachmentUploader, { type PendingSupportFile } from '@/components/support/SupportAttachmentUploader';
 import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
+import {
   SUPPORT_TICKET_CATEGORIES,
   SUPPORT_TICKET_PRIORITIES,
   toTitleLabel,
@@ -34,6 +39,9 @@ export default function SupportNewPage() {
   const [attachments, setAttachments] = React.useState<PendingSupportFile[]>([]);
   const [uploadProgress, setUploadProgress] = React.useState<Record<string, number>>({});
   const [submitting, setSubmitting] = React.useState(false);
+  const [fieldErrors, setFieldErrors] = React.useState<Partial<Record<'subject' | 'message', string>>>({});
+  const subjectErrorId = fieldErrors.subject ? 'support-subject-error' : undefined;
+  const messageErrorId = fieldErrors.message ? 'support-message-error' : undefined;
 
   const draftId = React.useMemo(() => createClientId(), []);
   const getCategoryLabel = React.useCallback(
@@ -51,7 +59,26 @@ export default function SupportNewPage() {
       toast.error(t('support.newTicket.authRequired'));
       return;
     }
+    if (!subject.trim()) {
+      const message = t('support.newTicket.subjectRequired', { defaultValue: 'Enter a subject.' });
+      setFieldErrors({ subject: message });
+      toast.error(message);
+      return;
+    }
+    if (!message.trim()) {
+      const errorMessage = t('support.newTicket.messageRequired', { defaultValue: 'Enter the detailed message.' });
+      setFieldErrors({ message: errorMessage });
+      toast.error(errorMessage);
+      return;
+    }
+    if (message.trim().length < 10) {
+      const errorMessage = t('support.newTicket.messageMinLength', { defaultValue: 'Detailed message must be at least 10 characters.' });
+      setFieldErrors({ message: errorMessage });
+      toast.error(errorMessage);
+      return;
+    }
 
+    setFieldErrors({});
     setSubmitting(true);
     try {
       let finalizedUploads: FinalizedSupportUpload[] = [];
@@ -112,26 +139,36 @@ export default function SupportNewPage() {
           }
         />
 
-        <form onSubmit={submitTicket} className="space-y-6">
+        <form onSubmit={submitTicket} className="space-y-6" noValidate>
           <SectionCard
             title={t('support.newTicket.detailsTitle')}
             description={t('support.newTicket.detailsDescription')}
           >
             <div className="space-y-4">
               <div>
-                <label htmlFor="support-subject" className="mb-1.5 block text-sm font-600 text-foreground">
+                <label htmlFor="support-subject" className={getFieldLabelClassName(Boolean(fieldErrors.subject))}>
                   {t('support.newTicket.subject')}
                 </label>
                 <input
                   id="support-subject"
-                  className="input-base text-start"
+                  className={getFieldInputClassName('input-base text-start', Boolean(fieldErrors.subject))}
                   dir={isRTL ? 'rtl' : 'ltr'}
                   value={subject}
-                  onChange={(event) => setSubject(event.target.value)}
+                  onChange={(event) => {
+                    setSubject(event.target.value);
+                    setFieldErrors((current) => {
+                      if (!current.subject) return current;
+                      const next = { ...current };
+                      delete next.subject;
+                      return next;
+                    });
+                  }}
                   placeholder={t('support.newTicket.subjectPlaceholder')}
                   maxLength={160}
-                  required
+                  aria-invalid={fieldErrors.subject ? 'true' : 'false'}
+                  aria-describedby={subjectErrorId}
                 />
+                {fieldErrors.subject ? <p id={subjectErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.subject}</p> : null}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -201,20 +238,29 @@ export default function SupportNewPage() {
               </div>
 
               <div>
-                <label htmlFor="support-message" className="mb-1.5 block text-sm font-600 text-foreground">
+                <label htmlFor="support-message" className={getFieldLabelClassName(Boolean(fieldErrors.message))}>
                   {t('support.newTicket.message')}
                 </label>
                 <textarea
                   id="support-message"
-                  className="input-base min-h-[230px] resize-y text-start"
+                  className={getFieldInputClassName('input-base min-h-[230px] resize-y text-start', Boolean(fieldErrors.message))}
                   dir={isRTL ? 'rtl' : 'ltr'}
                   value={message}
-                  onChange={(event) => setMessage(event.target.value)}
+                  onChange={(event) => {
+                    setMessage(event.target.value);
+                    setFieldErrors((current) => {
+                      if (!current.message) return current;
+                      const next = { ...current };
+                      delete next.message;
+                      return next;
+                    });
+                  }}
                   placeholder={t('support.newTicket.messagePlaceholder')}
-                  minLength={10}
                   maxLength={6000}
-                  required
+                  aria-invalid={fieldErrors.message ? 'true' : 'false'}
+                  aria-describedby={messageErrorId}
                 />
+                {fieldErrors.message ? <p id={messageErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.message}</p> : null}
               </div>
             </div>
           </SectionCard>

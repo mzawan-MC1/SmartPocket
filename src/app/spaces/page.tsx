@@ -67,6 +67,11 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
 import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
 import RecurringTransactionForm from '@/app/recurring/components/RecurringTransactionForm';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 import { getSpaceOwnedFinancialAccounts } from '@/lib/financial-account-utils';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
@@ -521,6 +526,7 @@ function SpacesPageContent() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [respondingInvitationId, setRespondingInvitationId] = useState<string | null>(null);
   const [spaceFormError, setSpaceFormError] = useState<string | null>(null);
+  const [spaceNameError, setSpaceNameError] = useState<string | null>(null);
   const [spaceFinanceError, setSpaceFinanceError] = useState<SpaceFinanceLoadError | null>(null);
 
   const loadSpaces = useCallback(async () => {
@@ -727,8 +733,9 @@ function SpacesPageContent() {
   const handleCreate = async () => {
     const nameRequiredMessage = t('spaces.nameRequired', { ns: 'portal' });
     setSpaceFormError(null);
+    setSpaceNameError(null);
     if (!form.name.trim()) {
-      setSpaceFormError(nameRequiredMessage);
+      setSpaceNameError(nameRequiredMessage);
       toast.error(nameRequiredMessage);
       return;
     }
@@ -751,8 +758,9 @@ function SpacesPageContent() {
   const handleUpdate = async () => {
     const nameRequiredMessage = t('spaces.nameRequired', { ns: 'portal' });
     setSpaceFormError(null);
+    setSpaceNameError(null);
     if (!editingSpace || !form.name.trim()) {
-      setSpaceFormError(nameRequiredMessage);
+      setSpaceNameError(nameRequiredMessage);
       toast.error(nameRequiredMessage);
       return;
     }
@@ -889,6 +897,7 @@ function SpacesPageContent() {
   const openEdit = (space: Space) => {
     setEditingSpace(space);
     setSpaceFormError(null);
+    setSpaceNameError(null);
     setForm({
       name: space.name,
       space_type: space.space_type,
@@ -937,6 +946,7 @@ function SpacesPageContent() {
     setEditingSpace(null);
     setForm(DEFAULT_FORM);
     setSpaceFormError(null);
+    setSpaceNameError(null);
     setShowCreateModal(true);
   };
 
@@ -944,6 +954,7 @@ function SpacesPageContent() {
     setShowCreateModal(false);
     setEditingSpace(null);
     setSpaceFormError(null);
+    setSpaceNameError(null);
   };
 
   return (
@@ -2220,17 +2231,22 @@ function SpacesPageContent() {
             </div>
 
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('spaces.form.name', { ns: 'portal' })}</label>
+              <label htmlFor="space-name" className={getFieldLabelClassName(Boolean(spaceNameError))}>{t('spaces.form.name', { ns: 'portal' })}</label>
               <input
+                id="space-name"
                 type="text"
                 value={form.name}
                 onChange={(e) => {
                   setSpaceFormError(null);
+                  setSpaceNameError(null);
                   setForm({ ...form, name: e.target.value });
                 }}
                 placeholder={t('spaces.form.namePlaceholder', { ns: 'portal' })}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(spaceNameError))}
+                aria-invalid={spaceNameError ? 'true' : 'false'}
+                aria-describedby={spaceNameError ? 'space-name-error' : undefined}
               />
+              {spaceNameError ? <p id="space-name-error" className={getFieldErrorTextClassName()}>{spaceNameError}</p> : null}
             </div>
 
             <div>
@@ -2282,7 +2298,7 @@ function SpacesPageContent() {
               </div>
             </div>
 
-            {spaceFormError ? (
+            {spaceFormError && !spaceNameError ? (
               <div className="rounded-xl border border-negative/20 bg-negative-soft/50 px-4 py-3 text-sm text-negative">
                 {spaceFormError}
               </div>

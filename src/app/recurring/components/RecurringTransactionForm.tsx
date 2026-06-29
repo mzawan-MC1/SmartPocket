@@ -114,6 +114,9 @@ export default function RecurringTransactionForm({
   const [exactAllocationAmounts, setExactAllocationAmounts] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<RecurringFieldKey, string>>>({});
+  const descriptionErrorId = fieldErrors.description ? 'recurring-description-error' : undefined;
+  const accountErrorId = fieldErrors.account_id ? 'recurring-account-error' : undefined;
+  const amountErrorId = fieldErrors.amount ? 'recurring-amount-error' : undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -225,6 +228,7 @@ export default function RecurringTransactionForm({
   }, [splitMethod]);
 
   const toggleBeneficiary = (participantKey: string) => {
+    setSubmitError(null);
     setFieldErrors((current) => {
       if (!current.beneficiaries) return current;
       const next = { ...current };
@@ -243,6 +247,7 @@ export default function RecurringTransactionForm({
 
   const updateFormField = <K extends keyof RecurringFormData>(field: K, value: RecurringFormData[K]) => {
     setForm((current) => ({ ...current, [field]: value }));
+    setSubmitError(null);
     if (field in fieldErrors) {
       setFieldErrors((current) => {
         const next = { ...current };
@@ -440,8 +445,10 @@ export default function RecurringTransactionForm({
           placeholder={t('recurring.form.descriptionPlaceholder', { ns: 'portal' })}
           value={form.description}
           onChange={(event) => updateFormField('description', event.target.value)}
+          aria-invalid={fieldErrors.description ? 'true' : 'false'}
+          aria-describedby={descriptionErrorId}
         />
-        {fieldErrors.description ? <p className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
+        {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -494,6 +501,8 @@ export default function RecurringTransactionForm({
           className={getFieldInputClassName('input-base', Boolean(fieldErrors.account_id))}
           value={form.account_id}
           onChange={(event) => updateFormField('account_id', event.target.value)}
+          aria-invalid={fieldErrors.account_id ? 'true' : 'false'}
+          aria-describedby={accountErrorId}
         >
           <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
           {selectorAccounts.map((account) => (
@@ -505,7 +514,7 @@ export default function RecurringTransactionForm({
             </option>
           ))}
         </select>
-        {fieldErrors.account_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.account_id}</p> : null}
+        {fieldErrors.account_id ? <p id={accountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.account_id}</p> : null}
       </div>
 
       <div>
@@ -542,8 +551,10 @@ export default function RecurringTransactionForm({
           placeholder="0.00"
           value={form.amount}
           onChange={(event) => updateFormField('amount', event.target.value)}
+          aria-invalid={fieldErrors.amount ? 'true' : 'false'}
+          aria-describedby={amountErrorId}
         />
-        {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
+        {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -617,7 +628,10 @@ export default function RecurringTransactionForm({
             <select
               className="input-base"
               value={splitMethod}
-              onChange={(event) => setSplitMethod(event.target.value as SplitMethod)}
+              onChange={(event) => {
+                setSubmitError(null);
+                setSplitMethod(event.target.value as SplitMethod);
+              }}
             >
               <option value="none">{t('recurring.form.split.none', { ns: 'portal', defaultValue: 'Single beneficiary' })}</option>
               <option value="equal">{t('recurring.form.split.equal', { ns: 'portal', defaultValue: 'Equal split' })}</option>
@@ -653,6 +667,7 @@ export default function RecurringTransactionForm({
                           placeholder="0.00"
                           value={exactAllocationAmounts[option.key] || ''}
                           onChange={(event) => {
+                            setSubmitError(null);
                             setFieldErrors((current) => {
                               if (!current.exact_allocations) return current;
                               const next = { ...current };
@@ -679,7 +694,7 @@ export default function RecurringTransactionForm({
         </div>
       ) : null}
 
-      {submitError ? (
+      {submitError && Object.keys(fieldErrors).length === 0 ? (
         <div className="rounded-xl border border-negative/20 bg-negative-soft/50 px-4 py-3 text-sm text-negative">
           {submitError}
         </div>

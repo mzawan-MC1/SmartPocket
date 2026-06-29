@@ -61,12 +61,36 @@ import {
   getPreferredTransactionAccount,
   getSpaceTransactionEligibleAccounts,
 } from '@/lib/financial-account-utils';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import type { SpaceMember } from '@/lib/spaces';
 
 type TransactionModalMode = 'single' | 'multiple';
 type TransactionEntryKind = 'standard' | 'personal_subscription_payment' | 'loan_repayment';
 type SpaceSplitMethod = 'none' | 'equal' | 'exact' | 'percentage' | 'shares';
 type SpaceParticipantType = 'member' | 'managed_person';
+type TransactionFieldKey =
+  | 'account_id'
+  | 'personal_subscription_id'
+  | 'currency'
+  | 'amount'
+  | 'transaction_date'
+  | 'merchant'
+  | 'description'
+  | 'category_id'
+  | 'person_id'
+  | 'notes'
+  | 'space_payer';
+
+type TransactionFieldErrors = Partial<Record<TransactionFieldKey, string[]>>;
+
+interface TransactionRowValidationResult {
+  errors: string[];
+  fieldErrors: TransactionFieldErrors;
+}
 
 interface SpaceParticipantOption {
   key: string;
@@ -240,6 +264,21 @@ function syncSpaceAllocations(
   }
 
   return buildDefaultSpaceAllocations(participants, currentUserId);
+}
+
+function appendFieldError(
+  result: TransactionRowValidationResult,
+  fields: TransactionFieldKey | TransactionFieldKey[],
+  message: string
+) {
+  result.errors.push(message);
+
+  for (const field of Array.isArray(fields) ? fields : [fields]) {
+    if (!result.fieldErrors[field]) {
+      result.fieldErrors[field] = [];
+    }
+    result.fieldErrors[field]!.push(message);
+  }
 }
 
 function createDraftId() {
@@ -778,62 +817,98 @@ export default function AddTransactionModal({
   }, []);
 
   const validateDraftRow = useCallback((row: TransactionDraftRow, rowIndex: number) => {
-    const errors: string[] = [];
+    const result: TransactionRowValidationResult = {
+      errors: [],
+      fieldErrors: {},
+    };
     const account = accountMap.get(row.account_id);
     const amount = Number(row.amount);
 
     if (row.entry_kind === 'personal_subscription_payment') {
+      const subscriptionField = 'personal_subscription_id' as const;
       if (!row.personal_subscription_id) {
-        errors.push(t('transactions.form.rowSelectPersonalSubscription', { ns: 'portal', index: rowIndex + 1 }));
+        appendFieldError(
+          result,
+          subscriptionField,
+          t('transactions.form.rowSelectPersonalSubscription', { ns: 'portal', index: rowIndex + 1 })
+        );
       } else if (!eligiblePersonalSubscriptionMap.has(row.personal_subscription_id)) {
-        errors.push(t('transactions.form.rowSubscriptionUnavailable', { ns: 'portal', index: rowIndex + 1 }));
+        appendFieldError(
+          result,
+          subscriptionField,
+          t('transactions.form.rowSubscriptionUnavailable', { ns: 'portal', index: rowIndex + 1 })
+        );
       }
-      return errors;
+      return result;
     }
 
-    if (!row.account_id) errors.push(t('transactions.form.rowSelectAccount', { ns: 'portal', index: rowIndex + 1 }));
-    if (!account && row.account_id) errors.push(t('transactions.form.rowAccountUnavailable', { ns: 'portal', index: rowIndex + 1 }));
-    if (!row.currency) errors.push(t('transactions.form.rowSelectCurrency', { ns: 'portal', index: rowIndex + 1 }));
+    if (!row.account_id) {
+      appendFieldError(result, 'account_id', t('transactions.form.rowSelectAccount', { ns: 'portal', index: rowIndex + 1 }));
+    }
+    if (!account && row.account_id) {
+      appendFieldError(result, 'account_id', t('transactions.form.rowAccountUnavailable', { ns: 'portal', index: rowIndex + 1 }));
+    }
+    if (!row.currency) {
+      appendFieldError(result, 'currency', t('transactions.form.rowSelectCurrency', { ns: 'portal', index: rowIndex + 1 }));
+    }
     if (account && row.currency && row.currency !== account.currency) {
-      errors.push(t('transactions.form.rowCurrencyMismatch', { ns: 'portal', index: rowIndex + 1, currency: account.currency }));
+      appendFieldError(
+        result,
+        ['account_id', 'currency'],
+        t('transactions.form.rowCurrencyMismatch', { ns: 'portal', index: rowIndex + 1, currency: account.currency })
+      );
     }
 
     if (!row.amount || !Number.isFinite(amount) || amount <= 0) {
-      errors.push(t('transactions.form.rowValidAmount', { ns: 'portal', index: rowIndex + 1 }));
+      appendFieldError(result, 'amount', t('transactions.form.rowValidAmount', { ns: 'portal', index: rowIndex + 1 }));
     }
-    if (!row.transaction_date) errors.push(t('transactions.form.rowSelectDate', { ns: 'portal', index: rowIndex + 1 }));
+    if (!row.transaction_date) {
+      appendFieldError(result, 'transaction_date', t('transactions.form.rowSelectDate', { ns: 'portal', index: rowIndex + 1 }));
+    }
     if (row.entry_kind === 'loan_repayment' && !row.person_id) {
-      errors.push(t('transactions.form.rowSelectLoanPerson', {
-        ns: 'portal',
-        index: rowIndex + 1,
-        defaultValue: 'Transaction {{index}}: choose a person for the loan repayment',
-      }));
+      appendFieldError(
+        result,
+        'person_id',
+        t('transactions.form.rowSelectLoanPerson', {
+          ns: 'portal',
+          index: rowIndex + 1,
+          defaultValue: 'Transaction {{index}}: choose a person for the loan repayment',
+        })
+      );
     }
     if (row.entry_kind === 'loan_repayment' && !row.notes.trim()) {
-      errors.push(t('transactions.form.rowLoanRepaymentNotes', {
-        ns: 'portal',
-        index: rowIndex + 1,
-        defaultValue: 'Transaction {{index}}: enter notes for the loan repayment',
-      }));
+      appendFieldError(
+        result,
+        'notes',
+        t('transactions.form.rowLoanRepaymentNotes', {
+          ns: 'portal',
+          index: rowIndex + 1,
+          defaultValue: 'Transaction {{index}}: enter notes for the loan repayment',
+        })
+      );
     }
     if (row.entry_kind === 'standard' && !row.description.trim() && !row.merchant.trim()) {
-      errors.push(t('transactions.form.rowDescriptionOrMerchant', { ns: 'portal', index: rowIndex + 1 }));
+      appendFieldError(
+        result,
+        ['merchant', 'description'],
+        t('transactions.form.rowDescriptionOrMerchant', { ns: 'portal', index: rowIndex + 1 })
+      );
     }
     if (row.use_held_balance && row.showManagedPerson && !row.person_id) {
-      errors.push(t('transactions.form.rowChooseManagedPerson', { ns: 'portal', index: rowIndex + 1 }));
+      appendFieldError(result, 'person_id', t('transactions.form.rowChooseManagedPerson', { ns: 'portal', index: rowIndex + 1 }));
     }
 
     if (spaceId) {
       const selectedAllocations = row.space_allocations.filter((allocation) => allocation.selected);
       if (selectedAllocations.length === 0) {
-        errors.push(t('transactions.form.rowSelectSpaceParticipants', {
+        result.errors.push(t('transactions.form.rowSelectSpaceParticipants', {
           ns: 'portal',
           index: rowIndex + 1,
           defaultValue: 'Transaction {{index}}: choose at least one Space participant',
         }));
       }
       if (row.split_method === 'none' && selectedAllocations.length !== 1) {
-        errors.push(t('transactions.form.rowSingleSpaceParticipant', {
+        result.errors.push(t('transactions.form.rowSingleSpaceParticipant', {
           ns: 'portal',
           index: rowIndex + 1,
           defaultValue: 'Transaction {{index}}: single-beneficiary splits require exactly one participant',
@@ -842,16 +917,20 @@ export default function AddTransactionModal({
       if (getFinancialAccountScopeType(account || { scope_type: 'personal', space_id: null }) === 'personal'
         && !row.paid_by_user_id
         && !row.paid_by_person_id) {
-        errors.push(t('transactions.form.rowSelectPayer', {
-          ns: 'portal',
-          index: rowIndex + 1,
-          defaultValue: 'Transaction {{index}}: choose who paid when using a shared personal account',
-        }));
+        appendFieldError(
+          result,
+          'space_payer',
+          t('transactions.form.rowSelectPayer', {
+            ns: 'portal',
+            index: rowIndex + 1,
+            defaultValue: 'Transaction {{index}}: choose who paid when using a shared personal account',
+          })
+        );
       }
       if (row.split_method === 'exact') {
         const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.allocated_amount || 0), 0);
         if (Math.abs(total - amount) > 0.01) {
-          errors.push(t('transactions.form.rowExactSplitTotal', {
+          result.errors.push(t('transactions.form.rowExactSplitTotal', {
             ns: 'portal',
             index: rowIndex + 1,
             defaultValue: 'Transaction {{index}}: exact split amounts must equal the transaction amount',
@@ -861,7 +940,7 @@ export default function AddTransactionModal({
       if (row.split_method === 'percentage') {
         const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.percentage || 0), 0);
         if (Math.abs(total - 100) > 0.001) {
-          errors.push(t('transactions.form.rowPercentageSplitTotal', {
+          result.errors.push(t('transactions.form.rowPercentageSplitTotal', {
             ns: 'portal',
             index: rowIndex + 1,
             defaultValue: 'Transaction {{index}}: percentages must total 100',
@@ -871,7 +950,7 @@ export default function AddTransactionModal({
       if (row.split_method === 'shares') {
         const total = selectedAllocations.reduce((sum, allocation) => sum + Number(allocation.shares || 0), 0);
         if (total <= 0) {
-          errors.push(t('transactions.form.rowSharesSplitTotal', {
+          result.errors.push(t('transactions.form.rowSharesSplitTotal', {
             ns: 'portal',
             index: rowIndex + 1,
             defaultValue: 'Transaction {{index}}: enter shares greater than 0',
@@ -880,7 +959,7 @@ export default function AddTransactionModal({
       }
     }
 
-    return errors;
+    return result;
   }, [accountMap, eligiblePersonalSubscriptionMap, spaceId, t]);
 
   const closeModalAndReset = useCallback(() => {
@@ -971,9 +1050,9 @@ export default function AddTransactionModal({
     const nextRowErrors: Record<string, string[]> = {};
 
     rowsToSave.forEach((row, index) => {
-      const errors = validateDraftRow(row, index);
-      if (errors.length > 0) {
-        nextRowErrors[row.id] = errors;
+      const validation = validateDraftRow(row, index);
+      if (validation.errors.length > 0) {
+        nextRowErrors[row.id] = validation.errors;
       }
     });
 
@@ -1449,14 +1528,22 @@ export default function AddTransactionModal({
                 const requiresSpacePayer = spaceId
                   && getFinancialAccountScopeType(account || { scope_type: 'personal', space_id: null }) === 'personal';
                 const rowHasErrors = rowErrors[row.id] || [];
+                const rowFieldErrorMap = rowHasErrors.length > 0
+                  ? validateDraftRow(row, index).fieldErrors
+                  : {};
                 const rowLabel = transactionMode === 'multiple' && !editingTransaction
                   ? t('transactions.form.transactionNumber', { ns: 'portal', index: index + 1 })
                   : editingTransaction
                     ? t('transactions.form.detailsTitle', { ns: 'portal' })
                     : t('transactions.form.transaction', { ns: 'portal' });
+                const hasFieldError = (field: TransactionFieldKey) => Boolean(rowFieldErrorMap[field]?.length);
+                const getFieldError = (field: TransactionFieldKey) => rowFieldErrorMap[field]?.[0] || null;
 
                 return (
-                  <div key={row.id} className="rounded-2xl border border-border bg-card">
+                  <div
+                    key={row.id}
+                    className={`rounded-2xl border bg-card ${rowHasErrors.length > 0 ? 'border-negative/40' : 'border-border'}`}
+                  >
                     <div className="flex items-center justify-between gap-3 border-b border-border/70 px-3 py-2">
                       <p className="text-sm font-700 text-foreground">{rowLabel}</p>
                       {transactionMode === 'multiple' && !editingTransaction ? (
@@ -1517,11 +1604,11 @@ export default function AddTransactionModal({
                         <>
                           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                             <div className="md:col-span-2">
-                              <label className="mb-1 block text-sm font-600 text-foreground">
+                              <label className={getFieldLabelClassName(hasFieldError('personal_subscription_id'), 'mb-1 block text-sm font-600')}>
                                 {t('transactions.form.personalSubscriptionLabel', { ns: 'portal' })} *
                               </label>
                               <select
-                                className="input-base h-9 text-sm"
+                                className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('personal_subscription_id'))}
                                 value={row.personal_subscription_id}
                                 onChange={(event) => {
                                   const subscription = eligiblePersonalSubscriptionMap.get(event.target.value);
@@ -1542,10 +1629,11 @@ export default function AddTransactionModal({
                                   </option>
                                 ))}
                               </select>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {eligiblePersonalSubscriptions.length > 0
-                                  ? t('transactions.form.personalSubscriptionHelper', { ns: 'portal' })
-                                  : t('transactions.form.noActivePersonalSubscriptions', { ns: 'portal' })}
+                              <p className={getFieldError('personal_subscription_id') ? getFieldErrorTextClassName('mt-1 text-xs') : 'mt-1 text-xs text-muted-foreground'}>
+                                {getFieldError('personal_subscription_id')
+                                  || (eligiblePersonalSubscriptions.length > 0
+                                    ? t('transactions.form.personalSubscriptionHelper', { ns: 'portal' })
+                                    : t('transactions.form.noActivePersonalSubscriptions', { ns: 'portal' }))}
                               </p>
                             </div>
                           </div>
@@ -1631,13 +1719,13 @@ export default function AddTransactionModal({
                         <>
                           <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
                             <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">
+                              <label className={getFieldLabelClassName(hasFieldError('account_id'), 'mb-1 block text-sm font-600')}>
                                 {row.transaction_type === 'income'
                                   ? t('transactions.form.receivedInto', { ns: 'portal', defaultValue: 'Received into' })
                                   : t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })} *
                               </label>
                               <select
-                                className="input-base h-9 text-sm"
+                                className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('account_id'))}
                                 value={row.account_id}
                                 onChange={(event) => {
                                   const nextAccountId = event.target.value;
@@ -1659,14 +1747,17 @@ export default function AddTransactionModal({
                                   </option>
                                 ))}
                               </select>
+                              {getFieldError('account_id') ? (
+                                <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('account_id')}</p>
+                              ) : null}
                             </div>
                             {isLoanRepaymentRow ? (
                               <div>
-                                <label className="mb-1 block text-sm font-600 text-foreground">
+                                <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
                                   {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
                                 </label>
                                 <select
-                                  className="input-base h-9 text-sm"
+                                  className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('person_id'))}
                                   value={row.person_id}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
                                 >
@@ -1675,12 +1766,17 @@ export default function AddTransactionModal({
                                     <option key={person.id} value={person.id}>{person.full_name}</option>
                                   ))}
                                 </select>
+                                {getFieldError('person_id') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('person_id')}</p>
+                                ) : null}
                               </div>
                             ) : (
                               <div>
-                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
+                                <label className={getFieldLabelClassName(hasFieldError('category_id'), 'mb-1 block text-sm font-600')}>
+                                  {t('transactions.category', { ns: 'portal' })}
+                                </label>
                                 <select
-                                  className="input-base h-9 text-sm"
+                                  className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('category_id'))}
                                   value={row.category_id}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
                                 >
@@ -1693,16 +1789,23 @@ export default function AddTransactionModal({
                                     </option>
                                   ))}
                                 </select>
+                                {getFieldError('category_id') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('category_id')}</p>
+                                ) : null}
                               </div>
                             )}
                           </div>
 
                           <div className="rounded-2xl border border-border/70 bg-muted/10 p-2 max-[480px]:order-1 max-[480px]:space-y-3">
                             <div className="max-[480px]:hidden">
-                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.amount', { ns: 'portal' })} *</label>
+                              <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-sm font-600')}>
+                                {t('transactions.amount', { ns: 'portal' })} *
+                              </label>
                             </div>
                             <div className="hidden max-[480px]:block">
-                              <label className="mb-1 block text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</label>
+                              <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-[11px] font-700 uppercase tracking-[0.16em]')}>
+                                {t('transactions.amount', { ns: 'portal' })}
+                              </label>
                             </div>
                             <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                               <div>
@@ -1712,68 +1815,94 @@ export default function AddTransactionModal({
                                   step="0.01"
                                   min="0.01"
                                   inputMode="decimal"
-                                  className="input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800"
+                                  className={getFieldInputClassName('input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800', hasFieldError('amount'))}
                                   placeholder="0.00"
                                   value={row.amount}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
                                 />
+                                {getFieldError('amount') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('amount')}</p>
+                                ) : null}
                               </div>
                               <div>
-                                <CurrencySelector
-                                  value={row.currency}
-                                  onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
-                                  placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
-                                  disabled={Boolean(account)}
-                                  helperText={account ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency }) : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' })}
-                                />
+                                <div className={hasFieldError('currency') ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
+                                  <CurrencySelector
+                                    value={row.currency}
+                                    onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
+                                    placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
+                                    disabled={Boolean(account)}
+                                    helperText={getFieldError('currency')
+                                      || (account
+                                        ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency })
+                                        : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' }))}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
 
                           <div className="max-[480px]:order-4">
-                            <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.date', { ns: 'portal' })} *</label>
+                            <label className={getFieldLabelClassName(hasFieldError('transaction_date'), 'mb-1 block text-sm font-600')}>
+                              {t('transactions.date', { ns: 'portal' })} *
+                            </label>
                             <input
                               type="date"
-                              className="input-base h-9 text-sm"
+                              className={getFieldInputClassName('input-base h-9 text-sm', hasFieldError('transaction_date'))}
                               value={row.transaction_date}
                               onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
                             />
+                            {getFieldError('transaction_date') ? (
+                              <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('transaction_date')}</p>
+                            ) : null}
                           </div>
 
                           {isLoanRepaymentRow ? (
                             <div className="max-[480px]:order-5">
-                              <label className="mb-1 block text-sm font-600 text-foreground">
+                              <label className={getFieldLabelClassName(hasFieldError('notes'), 'mb-1 block text-sm font-600')}>
                                 {t('reimbursements.notes', { ns: 'portal' })} *
                               </label>
                               <textarea
                                 rows={3}
-                                className="input-base resize-none text-sm"
+                                className={getFieldInputClassName('input-base resize-none text-sm', hasFieldError('notes'))}
                                 placeholder={t('transactions.form.notesPlaceholder', { ns: 'portal' })}
                                 value={row.notes}
                                 onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, notes: event.target.value }))}
                               />
+                              {getFieldError('notes') ? (
+                                <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('notes')}</p>
+                              ) : null}
                             </div>
                           ) : (
                             <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-5">
                               <div className="min-w-0">
-                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.merchantLabel', { ns: 'portal' })}</label>
+                                <label className={getFieldLabelClassName(hasFieldError('merchant'), 'mb-1 block text-sm font-600')}>
+                                  {t('transactions.form.merchantLabel', { ns: 'portal' })}
+                                </label>
                                 <input
                                   type="text"
-                                  className="input-base h-9 min-w-0 w-full text-sm"
+                                  className={getFieldInputClassName('input-base h-9 min-w-0 w-full text-sm', hasFieldError('merchant'))}
                                   placeholder={t('transactions.form.merchantPlaceholder', { ns: 'portal' })}
                                   value={row.merchant}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, merchant: event.target.value }))}
                                 />
+                                {getFieldError('merchant') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('merchant')}</p>
+                                ) : null}
                               </div>
                               <div className="min-w-0">
-                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.descriptionLabel', { ns: 'portal' })} *</label>
+                                <label className={getFieldLabelClassName(hasFieldError('description'), 'mb-1 block text-sm font-600')}>
+                                  {t('transactions.form.descriptionLabel', { ns: 'portal' })} *
+                                </label>
                                 <input
                                   type="text"
-                                  className="input-base h-9 min-w-0 w-full text-sm"
+                                  className={getFieldInputClassName('input-base h-9 min-w-0 w-full text-sm', hasFieldError('description'))}
                                   placeholder={t('transactions.form.descriptionPlaceholder', { ns: 'portal' })}
                                   value={row.description}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, description: event.target.value }))}
                                 />
+                                {getFieldError('description') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('description')}</p>
+                                ) : null}
                               </div>
                             </div>
                           )}
@@ -1840,7 +1969,7 @@ export default function AddTransactionModal({
 
                                 <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                                   <div>
-                                    <label className="mb-1 block text-sm font-600 text-foreground">
+                                    <label className={getFieldLabelClassName(hasFieldError('space_payer'), 'mb-1 block text-sm font-600')}>
                                       {t('transactions.form.spacePayerLabel', {
                                         ns: 'portal',
                                         defaultValue: 'Paid by',
@@ -1848,7 +1977,7 @@ export default function AddTransactionModal({
                                       {requiresSpacePayer ? ' *' : ''}
                                     </label>
                                     <select
-                                      className="input-base h-9 text-sm"
+                                      className={getFieldInputClassName('input-base h-9 text-sm', hasFieldError('space_payer'))}
                                       value={selectedPayerKey}
                                       onChange={(event) => {
                                         const participant = spaceParticipants.find((option) => option.key === event.target.value) || null;
@@ -1878,6 +2007,9 @@ export default function AddTransactionModal({
                                         </option>
                                       ))}
                                     </select>
+                                    {getFieldError('space_payer') ? (
+                                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('space_payer')}</p>
+                                    ) : null}
                                   </div>
                                   <div>
                                     <label className="mb-1 block text-sm font-600 text-foreground">
@@ -2109,9 +2241,11 @@ export default function AddTransactionModal({
                               {row.showManagedPerson ? (
                                 <div className="space-y-2 border-t border-border/70 px-3 py-2">
                                   <div>
-                                    <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.managedPerson', { ns: 'portal' })}</label>
+                                    <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
+                                      {t('transactions.form.managedPerson', { ns: 'portal' })}
+                                    </label>
                                     <select
-                                      className="input-base h-10 text-sm"
+                                      className={getFieldInputClassName('input-base h-10 text-sm', hasFieldError('person_id'))}
                                       value={row.person_id}
                                       onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
                                     >
@@ -2120,6 +2254,9 @@ export default function AddTransactionModal({
                                         <option key={person.id} value={person.id}>{person.full_name}</option>
                                       ))}
                                     </select>
+                                    {getFieldError('person_id') ? (
+                                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('person_id')}</p>
+                                    ) : null}
                                   </div>
 
                                   <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
