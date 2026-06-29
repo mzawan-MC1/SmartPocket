@@ -19,6 +19,7 @@ import {
 import {
   getActivePersonalFinancialAccounts,
   getFinancialAccountDisplayLabel,
+  getPreferredDocumentAccount,
   getPreferredTransactionAccount,
 } from '@/lib/financial-account-utils';
 import {
@@ -189,13 +190,31 @@ export default function PersonalSubscriptionForm({
   }, [providedAccounts, providedCategories, t]);
 
   useEffect(() => {
-    if (selectedAccountId || accountOptions.length === 0) return;
-    const preferred = getPreferredTransactionAccount(accountOptions, 'expense');
-    if (preferred?.id) {
+    if (subscription || selectedAccountId || accountOptions.length === 0) return;
+
+    let cancelled = false;
+
+    void resolveCurrencyPreference({
+      platformCurrency: referenceData?.platformDefaultCurrency,
+      forceRefreshUserDefault: true,
+    }).then((currencyCode) => {
+      if (cancelled) return;
+
+      const preferred = getPreferredDocumentAccount(accountOptions, 'expense', currencyCode)
+        || getPreferredTransactionAccount(accountOptions, 'expense');
+      if (!preferred?.id) {
+        return;
+      }
+
+      autoAppliedCurrencyRef.current = preferred.currency;
       setValue('financial_account_id', preferred.id, { shouldDirty: false });
       setValue('currency_code', preferred.currency, { shouldDirty: false });
-    }
-  }, [accountOptions, selectedAccountId, setValue]);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accountOptions, referenceData?.platformDefaultCurrency, selectedAccountId, setValue, subscription]);
 
   useEffect(() => {
     if (!selectedAccount?.currency) return;

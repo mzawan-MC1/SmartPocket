@@ -17,7 +17,7 @@ export type SanitizedSpaceAccountSharing = {
 };
 
 function getPlatformFallbackCurrency() {
-  return (process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'AED').trim().toUpperCase();
+  return (process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'USD').trim().toUpperCase();
 }
 
 function normalizeOptionalText(value: unknown, options?: { uppercase?: boolean; maxLength?: number }) {

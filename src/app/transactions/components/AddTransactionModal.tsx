@@ -57,6 +57,7 @@ import {
 import {
   getFinancialAccountScopeType,
   getFinancialAccountDisplayLabel,
+  getPreferredDocumentAccount,
   getPreferredTransactionAccount,
   getSpaceTransactionEligibleAccounts,
 } from '@/lib/financial-account-utils';
@@ -281,6 +282,17 @@ function isDraftRowPopulated(row: TransactionDraftRow) {
     row.receiptFile ||
     row.is_recurring
   );
+}
+
+function canAutoApplyDraftAccountOrCurrency(row: TransactionDraftRow) {
+  return !row.amount
+    && !row.category_id
+    && !row.personal_subscription_id
+    && !row.description.trim()
+    && !row.merchant.trim()
+    && !row.notes.trim()
+    && !row.tags.trim()
+    && row.transaction_date === getTodayDate();
 }
 
 function applyPersonalSubscriptionToDraft(
@@ -551,9 +563,14 @@ export default function AddTransactionModal({
   );
 
   const buildEmptyDraft = useCallback((overrides: Partial<TransactionDraftRow> = {}): TransactionDraftRow => {
-    const defaultAccount = getPreferredTransactionAccount(
+    const transactionType = spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType);
+    const defaultAccount = getPreferredDocumentAccount(
       selectorAccounts,
-      spaceId ? initialTransactionType : (initialEntryKind === 'loan_repayment' ? 'expense' : initialTransactionType)
+      transactionType,
+      createModeDefaultCurrencyRef.current
+    ) || getPreferredTransactionAccount(
+      selectorAccounts,
+      transactionType
     ) || selectorAccounts[0] || null;
     const base = buildBaseForm();
     return {
@@ -596,18 +613,32 @@ export default function AddTransactionModal({
     }
 
     setDraftRows((rows) => rows.map((row) => {
-      const accountCurrency = accountMap.get(row.account_id)?.currency || null;
+      const preferredAccount = canAutoApplyDraftAccountOrCurrency(row)
+        ? (
+          getPreferredDocumentAccount(selectorAccounts, row.transaction_type, currencyCode)
+          || getPreferredTransactionAccount(selectorAccounts, row.transaction_type)
+          || selectorAccounts[0]
+          || null
+        )
+        : null;
+      const nextAccountId = preferredAccount?.id || row.account_id;
+      const accountCurrency = preferredAccount?.currency || accountMap.get(nextAccountId)?.currency || null;
+
       if (accountCurrency) {
-        return row.currency === accountCurrency ? row : { ...row, currency: accountCurrency };
+        return row.account_id === nextAccountId && row.currency === accountCurrency
+          ? row
+          : { ...row, account_id: nextAccountId, currency: accountCurrency };
       }
 
       if (row.currency && row.currency !== previousAutoCurrency) {
         return row;
       }
 
-      return row.currency === currencyCode ? row : { ...row, currency: currencyCode };
+      return row.account_id === nextAccountId && row.currency === currencyCode
+        ? row
+        : { ...row, account_id: nextAccountId, currency: currencyCode };
     }));
-  }, [accountMap, editingTransaction, isOpen, referenceData?.platformDefaultCurrency]);
+  }, [accountMap, editingTransaction, isOpen, referenceData?.platformDefaultCurrency, selectorAccounts]);
 
   useEffect(() => {
     let cancelled = false;
