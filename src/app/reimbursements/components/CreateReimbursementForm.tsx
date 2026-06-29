@@ -7,9 +7,16 @@ import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import { createReimbursement } from '@/lib/people';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+
+type ReimbursementFieldKey = 'person_id' | 'amount' | 'description';
 
 export default function CreateReimbursementForm({
   onSuccess,
@@ -23,6 +30,7 @@ export default function CreateReimbursementForm({
   const [people, setPeople] = useState<ManagedPerson[]>([]);
   const [loadingPeople, setLoadingPeople] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ReimbursementFieldKey, string>>>({});
   const [form, setForm] = useState({
     person_id: '',
     amount: '',
@@ -71,20 +79,38 @@ export default function CreateReimbursementForm({
     await refreshCreateCurrency();
   });
 
+  const updateField = <K extends keyof typeof form>(field: K, value: (typeof form)[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (field in fieldErrors) {
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field as ReimbursementFieldKey];
+        return next;
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!form.person_id) {
-      toast.error(t('settlements.selectPersonError', { ns: 'portal' }));
+      const message = t('settlements.selectPersonError', { ns: 'portal' });
+      setFieldErrors({ person_id: message });
+      toast.error(message);
       return;
     }
     if (!form.amount || Number(form.amount) <= 0) {
-      toast.error(t('settlements.validAmountError', { ns: 'portal' }));
+      const message = t('settlements.validAmountError', { ns: 'portal' });
+      setFieldErrors({ amount: message });
+      toast.error(message);
       return;
     }
     if (!form.description.trim()) {
-      toast.error(t('settlements.descriptionRequired', { ns: 'portal' }));
+      const message = t('settlements.descriptionRequired', { ns: 'portal' });
+      setFieldErrors({ description: message });
+      toast.error(message);
       return;
     }
 
+    setFieldErrors({});
     setIsSaving(true);
     try {
       await createReimbursement({
@@ -123,25 +149,31 @@ export default function CreateReimbursementForm({
   return (
     <div className="space-y-4 max-[480px]:space-y-3">
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.person', { ns: 'portal' })} *</label>
-        <select className="input-base" value={form.person_id} onChange={(event) => setForm((current) => ({ ...current, person_id: event.target.value }))}>
+        <label className={getFieldLabelClassName(Boolean(fieldErrors.person_id))}>{t('settlements.person', { ns: 'portal' })} *</label>
+        <select
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.person_id))}
+          value={form.person_id}
+          onChange={(event) => updateField('person_id', event.target.value)}
+        >
           <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
           {people.map((person) => <option key={person.id} value={person.id}>{person.full_name}</option>)}
         </select>
+        {fieldErrors.person_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.person_id}</p> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.amount', { ns: 'portal' })} *</label>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('settlements.amount', { ns: 'portal' })} *</label>
           <input
             type="number"
             step="0.01"
             min="0.01"
-            className="input-base font-tabular"
+            className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
             placeholder="0.00"
             value={form.amount}
-            onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
+            onChange={(event) => updateField('amount', event.target.value)}
           />
+          {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
         </div>
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency', { ns: 'portal' })}</label>
@@ -171,14 +203,15 @@ export default function CreateReimbursementForm({
       </div>
 
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
+        <label className={getFieldLabelClassName(Boolean(fieldErrors.description))}>{t('settlements.descriptionLabel', { ns: 'portal' })} *</label>
         <input
           type="text"
-          className="input-base"
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.description))}
           placeholder={t('reimbursements.form.descriptionPlaceholder', { ns: 'portal' })}
           value={form.description}
-          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+          onChange={(event) => updateField('description', event.target.value)}
         />
+        {fieldErrors.description ? <p className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
       </div>
 
       <div>

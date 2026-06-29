@@ -10,6 +10,11 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { useAuth } from '@/contexts/AuthContext';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
+import {
   normalizeCurrencyCode,
   resolveCurrencyPreference,
   resolveUserDefaultCurrency,
@@ -55,6 +60,15 @@ interface NewSettlementModalProps {
   onClose: () => void;
   onSuccess: () => void;
 }
+
+type SettlementFieldKey =
+  | 'selectedSpaceId'
+  | 'payerKey'
+  | 'receiverKey'
+  | 'space_allocations'
+  | 'personId'
+  | 'amount'
+  | 'description';
 
 function buildParticipantKey(userId?: string | null, personId?: string | null) {
   if (userId) return `user:${userId}`;
@@ -106,6 +120,7 @@ function NewSettlementModal({
   const [spaceAllocationSelection, setSpaceAllocationSelection] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<SettlementFieldKey, string>>>({});
   const secureSettlementAccountMovementAvailable = false;
   const autoResolvedCurrencyRef = useRef('');
 
@@ -305,28 +320,44 @@ function NewSettlementModal({
   const parsedPayer = parseParticipantKey(payerKey);
   const parsedReceiver = parseParticipantKey(receiverKey);
 
+  const clearFieldError = (field: SettlementFieldKey) => {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
     if (!description.trim()) {
       const message = t('settlements.descriptionRequired');
+      setFieldErrors({ description: message });
       setSubmitError(message);
       toast.error(message);
       return;
     }
 
+    setFieldErrors({});
     setSaving(true);
     try {
       if (mode === 'space') {
         if (!selectedSpaceId) {
           const message = t('settlements.selectSpaceError', { defaultValue: 'Select a Space first.' });
+        setFieldErrors({ selectedSpaceId: message });
           setSubmitError(message);
           toast.error(message);
           return;
         }
         if (!payerKey || !receiverKey) {
           const message = t('settlements.selectParticipantsError', { defaultValue: 'Select both payer and receiver.' });
+        setFieldErrors({
+          ...(payerKey ? {} : { payerKey: message }),
+          ...(receiverKey ? {} : { receiverKey: message }),
+        });
           setSubmitError(message);
           toast.error(message);
           return;
@@ -335,6 +366,7 @@ function NewSettlementModal({
           const message = t('settlements.selectReimbursementsError', {
             defaultValue: 'Select at least one reimbursement allocation.',
           });
+        setFieldErrors({ space_allocations: message });
           setSubmitError(message);
           toast.error(message);
           return;
@@ -358,12 +390,14 @@ function NewSettlementModal({
       } else {
         if (!personId) {
           const message = t('settlements.selectPersonError');
+        setFieldErrors({ personId: message });
           setSubmitError(message);
           toast.error(message);
           return;
         }
         if (!amount || Number(amount) <= 0) {
           const message = t('settlements.validAmountError');
+        setFieldErrors({ amount: message });
           setSubmitError(message);
           toast.error(message);
           return;
@@ -407,13 +441,16 @@ function NewSettlementModal({
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                 <div className="md:col-span-3">
-                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                  <label className={getFieldLabelClassName(Boolean(fieldErrors.selectedSpaceId))}>
                     {t('settlements.space', { defaultValue: 'Space' })}
                   </label>
                   <select
                     value={selectedSpaceId}
-                    onChange={(e) => onSelectedSpaceChange(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                    onChange={(e) => {
+                      clearFieldError('selectedSpaceId');
+                      onSelectedSpaceChange(e.target.value);
+                    }}
+                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.selectedSpaceId))}
                   >
                     <option value="">{t('settlements.selectSpace', { defaultValue: 'Select Space' })}</option>
                     {spaces.map((space) => (
@@ -422,15 +459,19 @@ function NewSettlementModal({
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.selectedSpaceId ? <p className={getFieldErrorTextClassName()}>{fieldErrors.selectedSpaceId}</p> : null}
                 </div>
                 <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                  <label className={getFieldLabelClassName(Boolean(fieldErrors.payerKey))}>
                     {t('settlements.payer', { defaultValue: 'Payer' })}
                   </label>
                   <select
                     value={payerKey}
-                    onChange={(e) => setPayerKey(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                    onChange={(e) => {
+                      clearFieldError('payerKey');
+                      setPayerKey(e.target.value);
+                    }}
+                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.payerKey))}
                   >
                     <option value="">{t('settlements.selectPayer', { defaultValue: 'Select payer' })}</option>
                     {participantOptions.map((option) => (
@@ -439,15 +480,19 @@ function NewSettlementModal({
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.payerKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.payerKey}</p> : null}
                 </div>
                 <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                  <label className={getFieldLabelClassName(Boolean(fieldErrors.receiverKey))}>
                     {t('settlements.receiver', { defaultValue: 'Receiver' })}
                   </label>
                   <select
                     value={receiverKey}
-                    onChange={(e) => setReceiverKey(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                    onChange={(e) => {
+                      clearFieldError('receiverKey');
+                      setReceiverKey(e.target.value);
+                    }}
+                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.receiverKey))}
                   >
                     <option value="">{t('settlements.selectReceiver', { defaultValue: 'Select receiver' })}</option>
                     {participantOptions.map((option) => (
@@ -456,6 +501,7 @@ function NewSettlementModal({
                       </option>
                     ))}
                   </select>
+                  {fieldErrors.receiverKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.receiverKey}</p> : null}
                 </div>
                 <div>
                   <label className="block text-sm font-600 text-foreground mb-1.5">
@@ -469,7 +515,7 @@ function NewSettlementModal({
                 </div>
               </div>
 
-              <div className="rounded-xl border border-border bg-muted/10 p-4">
+              <div className={`rounded-xl border p-4 ${fieldErrors.space_allocations ? 'border-negative/40 bg-negative-soft/20' : 'border-border bg-muted/10'}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
@@ -511,10 +557,13 @@ function NewSettlementModal({
                               <input
                                 type="checkbox"
                                 checked={spaceAllocationSelection[reimbursement.id] ?? false}
-                                onChange={(e) => setSpaceAllocationSelection((current) => ({
-                                  ...current,
-                                  [reimbursement.id]: e.target.checked,
-                                }))}
+                                onChange={(e) => {
+                                  clearFieldError('space_allocations');
+                                  setSpaceAllocationSelection((current) => ({
+                                    ...current,
+                                    [reimbursement.id]: e.target.checked,
+                                  }));
+                                }}
                                 className="mt-1 rounded"
                               />
                               <div className="min-w-0">
@@ -551,11 +600,14 @@ function NewSettlementModal({
                                 max={outstanding}
                                 step="0.01"
                                 value={spaceAllocationAmounts[reimbursement.id] || ''}
-                                onChange={(e) => setSpaceAllocationAmounts((current) => ({
-                                  ...current,
-                                  [reimbursement.id]: e.target.value,
-                                }))}
-                                className="w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                                onChange={(e) => {
+                                  clearFieldError('space_allocations');
+                                  setSpaceAllocationAmounts((current) => ({
+                                    ...current,
+                                    [reimbursement.id]: e.target.value,
+                                  }));
+                                }}
+                                className={getFieldInputClassName('w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.space_allocations))}
                               />
                             </div>
                           </div>
@@ -564,22 +616,30 @@ function NewSettlementModal({
                     })
                   )}
                 </div>
+                {fieldErrors.space_allocations ? <p className={getFieldErrorTextClassName()}>{fieldErrors.space_allocations}</p> : null}
               </div>
             </>
           ) : (
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.person')} <span className="text-negative">*</span></label>
-              <select value={personId} onChange={(e) => setPersonId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
+              <label className={getFieldLabelClassName(Boolean(fieldErrors.personId))}>{t('settlements.person')} <span className="text-negative">*</span></label>
+              <select
+                value={personId}
+                onChange={(e) => {
+                  clearFieldError('personId');
+                  setPersonId(e.target.value);
+                }}
+                className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.personId))}
+              >
                 <option value="">{t('settlements.selectPerson')}</option>
                 {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
               </select>
+              {fieldErrors.personId ? <p className={getFieldErrorTextClassName()}>{fieldErrors.personId}</p> : null}
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.amount')} <span className="text-negative">*</span></label>
+              <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('settlements.amount')} <span className="text-negative">*</span></label>
               {mode === 'space' ? (
                 <div className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-sm font-600 text-foreground">
                   <FormattedCurrencyAmount
@@ -590,9 +650,20 @@ function NewSettlementModal({
                   />
                 </div>
               ) : (
-                <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={t('settlements.amountPlaceholder')} min="0.01" step="0.01"
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
+                <input
+                  type="number"
+                  value={amount}
+                  onChange={(e) => {
+                    clearFieldError('amount');
+                    setAmount(e.target.value);
+                  }}
+                  placeholder={t('settlements.amountPlaceholder')}
+                  min="0.01"
+                  step="0.01"
+                  className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.amount))}
+                />
               )}
+              {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
             </div>
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency')}</label>
@@ -659,9 +730,18 @@ function NewSettlementModal({
           )}
 
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('settlements.descriptionPlaceholder')}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
+            <label className={getFieldLabelClassName(Boolean(fieldErrors.description))}>{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
+            <input
+              type="text"
+              value={description}
+              onChange={(e) => {
+                clearFieldError('description');
+                setDescription(e.target.value);
+              }}
+              placeholder={t('settlements.descriptionPlaceholder')}
+              className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.description))}
+            />
+            {fieldErrors.description ? <p className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
           </div>
 
           {mode === 'personal' && personReimbs.length > 0 && (

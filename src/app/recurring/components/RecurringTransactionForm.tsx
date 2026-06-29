@@ -7,6 +7,11 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
+import {
   createRecurringTransaction,
   getAccounts,
   getCategories,
@@ -27,6 +32,7 @@ import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 type SplitMethod = 'none' | 'equal' | 'exact';
 type ExecutionPermission = 'owner_only' | 'owner_manager' | 'owner_manager_contributor';
+type RecurringFieldKey = 'description' | 'amount' | 'account_id' | 'beneficiaries' | 'exact_allocations';
 
 interface RecurringFormData {
   description: string;
@@ -107,6 +113,7 @@ export default function RecurringTransactionForm({
   const [beneficiaryKeys, setBeneficiaryKeys] = useState<string[]>([]);
   const [exactAllocationAmounts, setExactAllocationAmounts] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<RecurringFieldKey, string>>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -207,7 +214,23 @@ export default function RecurringTransactionForm({
     }
   }, [beneficiaryKeys, payerKey, splitMethod]);
 
+  useEffect(() => {
+    setFieldErrors((current) => {
+      if (!current.beneficiaries && !current.exact_allocations) return current;
+      const next = { ...current };
+      delete next.beneficiaries;
+      delete next.exact_allocations;
+      return next;
+    });
+  }, [splitMethod]);
+
   const toggleBeneficiary = (participantKey: string) => {
+    setFieldErrors((current) => {
+      if (!current.beneficiaries) return current;
+      const next = { ...current };
+      delete next.beneficiaries;
+      return next;
+    });
     setBeneficiaryKeys((current) => {
       if (splitMethod === 'none') {
         return [participantKey];
@@ -216,6 +239,17 @@ export default function RecurringTransactionForm({
         ? current.filter((key) => key !== participantKey)
         : [...current, participantKey];
     });
+  };
+
+  const updateFormField = <K extends keyof RecurringFormData>(field: K, value: RecurringFormData[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (field in fieldErrors) {
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field as RecurringFieldKey];
+        return next;
+      });
+    }
   };
 
   const buildAllocationTemplate = (amountValue: number): TransactionAllocation[] => {
@@ -287,6 +321,7 @@ export default function RecurringTransactionForm({
 
     if (!form.description.trim()) {
       const message = t('settlements.descriptionRequired', { ns: 'portal' });
+      setFieldErrors({ description: message });
       setSubmitError(message);
       toast.error(message);
       return;
@@ -295,6 +330,7 @@ export default function RecurringTransactionForm({
     const amountValue = roundMoney(Number(form.amount || 0));
     if (!Number.isFinite(amountValue) || amountValue <= 0) {
       const message = t('recurring.form.amountMin', { ns: 'portal' });
+      setFieldErrors({ amount: message });
       setSubmitError(message);
       toast.error(message);
       return;
@@ -302,6 +338,7 @@ export default function RecurringTransactionForm({
 
     if (!form.account_id) {
       const message = t('recurring.form.accountRequired', { ns: 'portal' });
+      setFieldErrors({ account_id: message });
       setSubmitError(message);
       toast.error(message);
       return;
@@ -310,11 +347,13 @@ export default function RecurringTransactionForm({
     const selectedAccount = accounts.find((account) => account.id === form.account_id);
     if (!selectedAccount?.currency) {
       const message = t('recurring.form.accountCurrencyMissing', { ns: 'portal' });
+      setFieldErrors({ account_id: message });
       setSubmitError(message);
       toast.error(message);
       return;
     }
 
+    setFieldErrors({});
     setIsLoading(true);
     try {
       const parsedPayer = parseParticipantKey(payerKey);
@@ -348,6 +387,20 @@ export default function RecurringTransactionForm({
       onSuccess();
     } catch (error) {
       const message = error instanceof Error ? error.message : t('recurring.form.createFailed', { ns: 'portal' });
+      if (message === t('recurring.form.beneficiariesRequired', {
+        ns: 'portal',
+        defaultValue: 'Select at least one beneficiary.',
+      }) || message === t('recurring.form.singleBeneficiaryRequired', {
+        ns: 'portal',
+        defaultValue: 'Single-beneficiary recurring items require exactly one beneficiary.',
+      })) {
+        setFieldErrors({ beneficiaries: message });
+      } else if (message === t('recurring.form.exactAllocationMismatch', {
+        ns: 'portal',
+        defaultValue: 'Exact allocations must total the recurring amount.',
+      })) {
+        setFieldErrors({ exact_allocations: message });
+      }
       setSubmitError(message);
       toast.error(message);
     } finally {
@@ -377,17 +430,18 @@ export default function RecurringTransactionForm({
       ) : null}
 
       <div>
-        <label htmlFor="rec-desc-shared" className="block text-sm font-600 text-foreground mb-1.5">
+        <label htmlFor="rec-desc-shared" className={getFieldLabelClassName(Boolean(fieldErrors.description))}>
           {t('settlements.descriptionLabel', { ns: 'portal' })} *
         </label>
         <input
           id="rec-desc-shared"
           type="text"
-          className="input-base"
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.description))}
           placeholder={t('recurring.form.descriptionPlaceholder', { ns: 'portal' })}
           value={form.description}
-          onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+          onChange={(event) => updateFormField('description', event.target.value)}
         />
+        {fieldErrors.description ? <p className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -432,14 +486,14 @@ export default function RecurringTransactionForm({
       </div>
 
       <div>
-        <label htmlFor="rec-account-shared" className="block text-sm font-600 text-foreground mb-1.5">
+        <label htmlFor="rec-account-shared" className={getFieldLabelClassName(Boolean(fieldErrors.account_id))}>
           {t('settlements.account', { ns: 'portal' })} *
         </label>
         <select
           id="rec-account-shared"
-          className="input-base"
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.account_id))}
           value={form.account_id}
-          onChange={(event) => setForm((current) => ({ ...current, account_id: event.target.value }))}
+          onChange={(event) => updateFormField('account_id', event.target.value)}
         >
           <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
           {selectorAccounts.map((account) => (
@@ -451,6 +505,7 @@ export default function RecurringTransactionForm({
             </option>
           ))}
         </select>
+        {fieldErrors.account_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.account_id}</p> : null}
       </div>
 
       <div>
@@ -475,7 +530,7 @@ export default function RecurringTransactionForm({
       </div>
 
       <div>
-        <label htmlFor="rec-amount-shared" className="block text-sm font-600 text-foreground mb-1.5">
+        <label htmlFor="rec-amount-shared" className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>
           {t('settlements.amount', { ns: 'portal' })} *
         </label>
         <input
@@ -483,11 +538,12 @@ export default function RecurringTransactionForm({
           type="number"
           step="0.01"
           min="0.01"
-          className="input-base font-tabular"
+          className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
           placeholder="0.00"
           value={form.amount}
-          onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
+          onChange={(event) => updateFormField('amount', event.target.value)}
         />
+        {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -519,7 +575,7 @@ export default function RecurringTransactionForm({
       </div>
 
       {spaceId ? (
-        <div className="space-y-4 rounded-xl border border-border bg-muted/10 p-4">
+        <div className={`space-y-4 rounded-xl border bg-muted/10 p-4 ${fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40 bg-negative-soft/20' : 'border-border'}`}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
@@ -570,14 +626,14 @@ export default function RecurringTransactionForm({
           </div>
 
           <div>
-            <p className="mb-1.5 block text-sm font-600 text-foreground">
+            <p className={getFieldLabelClassName(Boolean(fieldErrors.beneficiaries || fieldErrors.exact_allocations), 'mb-1.5 block text-sm font-600')}>
               {t('recurring.form.beneficiaries', { ns: 'portal', defaultValue: 'Beneficiaries' })}
             </p>
             <div className="space-y-2">
               {participantOptions.map((option) => {
                 const checked = beneficiaryKeys.includes(option.key);
                 return (
-                  <div key={option.key} className="rounded-xl border border-border bg-card p-3">
+                  <div key={option.key} className={`rounded-xl border bg-card p-3 ${fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/30' : 'border-border'}`}>
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                       <label className="flex items-center gap-3 text-sm text-foreground">
                         <input
@@ -593,13 +649,21 @@ export default function RecurringTransactionForm({
                           type="number"
                           min="0"
                           step="0.01"
-                          className="input-base md:w-40"
+                          className={getFieldInputClassName('input-base md:w-40', Boolean(fieldErrors.exact_allocations))}
                           placeholder="0.00"
                           value={exactAllocationAmounts[option.key] || ''}
-                          onChange={(event) => setExactAllocationAmounts((current) => ({
-                            ...current,
-                            [option.key]: event.target.value,
-                          }))}
+                          onChange={(event) => {
+                            setFieldErrors((current) => {
+                              if (!current.exact_allocations) return current;
+                              const next = { ...current };
+                              delete next.exact_allocations;
+                              return next;
+                            });
+                            setExactAllocationAmounts((current) => ({
+                              ...current,
+                              [option.key]: event.target.value,
+                            }));
+                          }}
                         />
                       ) : null}
                     </div>
@@ -607,6 +671,10 @@ export default function RecurringTransactionForm({
                 );
               })}
             </div>
+            {fieldErrors.beneficiaries ? <p className={getFieldErrorTextClassName()}>{fieldErrors.beneficiaries}</p> : null}
+            {!fieldErrors.beneficiaries && fieldErrors.exact_allocations ? (
+              <p className={getFieldErrorTextClassName()}>{fieldErrors.exact_allocations}</p>
+            ) : null}
           </div>
         </div>
       ) : null}

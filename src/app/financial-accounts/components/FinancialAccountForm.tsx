@@ -7,6 +7,11 @@ import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finance';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import {
@@ -50,6 +55,8 @@ interface AccountFormData {
   bank_account_type: string;
   space_sharing: SharingFormEntry[];
 }
+
+type FinancialAccountFieldKey = 'name' | 'currency' | 'space_id';
 
 const EMPTY_FORM: AccountFormData = {
   name: '',
@@ -117,6 +124,7 @@ export default function FinancialAccountForm({
   const { data: referenceData } = useClientReferenceData();
   const platformDefaultCurrency = referenceData?.platformDefaultCurrency || '';
   const [isSaving, setIsSaving] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FinancialAccountFieldKey, string>>>({});
   const [loadedSpaces, setLoadedSpaces] = useState<FormSpaceOption[]>([]);
   const [form, setForm] = useState<AccountFormData>(EMPTY_FORM);
   const autoAppliedCurrencyRef = useRef('');
@@ -263,23 +271,41 @@ export default function FinancialAccountForm({
     }));
   }, [account, sharingTargets]);
 
+  const updateField = <K extends keyof AccountFormData>(field: K, value: AccountFormData[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (field in fieldErrors) {
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field as FinancialAccountFieldKey];
+        return next;
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) {
-      toast.error(t('accounts.form.nameRequired', { ns: 'portal' }));
+      const message = t('accounts.form.nameRequired', { ns: 'portal' });
+      setFieldErrors({ name: message });
+      toast.error(message);
       return;
     }
     if (!form.currency) {
-      toast.error(t('accounts.form.currencyRequired', { ns: 'portal' }));
+      const message = t('accounts.form.currencyRequired', { ns: 'portal' });
+      setFieldErrors({ currency: message });
+      toast.error(message);
       return;
     }
     if (form.scope_type === 'space' && !form.space_id) {
-      toast.error(t('accounts.form.spaceRequired', {
+      const message = t('accounts.form.spaceRequired', {
         ns: 'portal',
         defaultValue: 'Select a Space for this account.',
-      }));
+      });
+      setFieldErrors({ space_id: message });
+      toast.error(message);
       return;
     }
 
+    setFieldErrors({});
     setIsSaving(true);
     try {
       const payload = {
@@ -381,14 +407,15 @@ export default function FinancialAccountForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">{t('accounts.form.name', { ns: 'portal' })} *</label>
+        <label className={getFieldLabelClassName(Boolean(fieldErrors.name))}>{t('accounts.form.name', { ns: 'portal' })} *</label>
         <input
           type="text"
-          className="input-base"
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.name))}
           placeholder={t('accounts.form.namePlaceholder', { ns: 'portal' })}
           value={form.name}
-          onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+          onChange={(event) => updateField('name', event.target.value)}
         />
+        {fieldErrors.name ? <p className={getFieldErrorTextClassName()}>{fieldErrors.name}</p> : null}
       </div>
       {hideScopeControls ? (
         isSpaceAccount && selectedScopeSpace ? (
@@ -437,13 +464,13 @@ export default function FinancialAccountForm({
           </div>
           {isSpaceAccount ? (
             <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">
+              <label className={getFieldLabelClassName(Boolean(fieldErrors.space_id))}>
                 {t('spaces.title', { ns: 'portal' })} *
               </label>
               <select
-                className="input-base"
+                className={getFieldInputClassName('input-base', Boolean(fieldErrors.space_id))}
                 value={form.space_id}
-                onChange={(event) => setForm((current) => ({ ...current, space_id: event.target.value }))}
+                onChange={(event) => updateField('space_id', event.target.value)}
               >
                 <option value="">{t('accounts.form.selectSpace', {
                   ns: 'portal',
@@ -453,6 +480,7 @@ export default function FinancialAccountForm({
                   <option key={space.id} value={space.id}>{space.name}</option>
                 ))}
               </select>
+              {fieldErrors.space_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.space_id}</p> : null}
             </div>
           ) : null}
         </div>
@@ -490,13 +518,16 @@ export default function FinancialAccountForm({
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency', { ns: 'portal' })} *</label>
-          <CurrencySelector
-            value={form.currency}
-            onChange={(currencyCode) => setForm((current) => ({ ...current, currency: currencyCode }))}
-            showCountryCount
-            placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
-          />
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('settlements.currency', { ns: 'portal' })} *</label>
+          <div className={fieldErrors.currency ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
+            <CurrencySelector
+              value={form.currency}
+              onChange={(currencyCode) => updateField('currency', currencyCode)}
+              showCountryCount
+              placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
+              helperText={fieldErrors.currency || undefined}
+            />
+          </div>
         </div>
         <label className="flex items-center gap-3 rounded-xl bg-muted/40 p-3 sm:mt-7">
           <input

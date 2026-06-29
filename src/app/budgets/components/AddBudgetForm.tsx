@@ -10,6 +10,11 @@ import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
+import {
+  getFieldErrorTextClassName,
+  getFieldInputClassName,
+  getFieldLabelClassName,
+} from '@/lib/form-field-styles';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { getBudgetPeriodTypeLabel, getCurrentBudgetPeriod, getDefaultBudgetAnchorDate, normalizeBudgetPeriodValue, validateBudgetPeriodConfig } from '@/lib/financial-periods/budgets';
 import type { BudgetPeriod } from '@/lib/financial-periods';
@@ -32,6 +37,14 @@ type BudgetFormState = {
   custom_period_days: string;
   alert_at_percent: string;
 };
+
+type BudgetFieldKey =
+  | 'category_id'
+  | 'amount'
+  | 'currency'
+  | 'budget_period'
+  | 'period_anchor_date'
+  | 'custom_period_days';
 
 function buildInitialFormState(budget: Budget | null): BudgetFormState {
   return {
@@ -87,6 +100,26 @@ function getBudgetPeriodLabel(
     case 'monthly':
     default:
       return t('financialPeriods.budgetPeriods.monthly', { ns: 'portal' });
+  }
+}
+
+function getBudgetValidationField(message: string | null | undefined): BudgetFieldKey | null {
+  switch (message) {
+    case 'budgets.form.errors.semimonthlyScheduleRequired':
+      return 'budget_period';
+    case 'budgets.form.errors.biweeklyAnchorRequired':
+    case 'budgets.form.errors.customAnchorRequired':
+    case 'Weekly schedules need a recent or upcoming payday anchor date.':
+    case 'Every 2 weeks schedules need one recent or upcoming payday anchor date.':
+    case 'Custom schedules need an anchor date.':
+      return 'period_anchor_date';
+    case 'budgets.form.errors.customCycleLengthInvalid':
+      return 'custom_period_days';
+    default:
+      if (message?.startsWith('Custom schedules must repeat every ')) {
+        return 'custom_period_days';
+      }
+      return null;
   }
 }
 
@@ -166,6 +199,7 @@ export default function AddBudgetForm({
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [form, setForm] = useState<BudgetFormState>(() => buildInitialFormState(budget));
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<BudgetFieldKey, string>>>({});
   const [hasAppliedProfileDefault, setHasAppliedProfileDefault] = useState(Boolean(budget));
   const autoAppliedCurrencyRef = useRef('');
 
@@ -249,6 +283,17 @@ export default function AddBudgetForm({
     await refreshCreateModeCurrency();
   });
 
+  const updateField = <K extends keyof BudgetFormState>(field: K, value: BudgetFormState[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+    if (field in fieldErrors) {
+      setFieldErrors((current) => {
+        const next = { ...current };
+        delete next[field as BudgetFieldKey];
+        return next;
+      });
+    }
+  };
+
   const scheduleLabel = useMemo(() => formatSemimonthlySchedule(periodContext, t), [periodContext, t]);
   const budgetValidation = useMemo(() => {
     if (!periodContext) return null;
@@ -272,18 +317,40 @@ export default function AddBudgetForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.category_id) { toast.error(t('budgets.form.categoryRequired', { ns: 'portal' })); return; }
-    if (!form.amount || parseFloat(form.amount) <= 0) { toast.error(t('budgets.form.amountRequired', { ns: 'portal' })); return; }
-    if (!form.currency) { toast.error(t('budgets.form.currencyRequired', { ns: 'portal' })); return; }
+    if (!form.category_id) {
+      const message = t('budgets.form.categoryRequired', { ns: 'portal' });
+      setFieldErrors({ category_id: message });
+      toast.error(message);
+      return;
+    }
+    if (!form.amount || parseFloat(form.amount) <= 0) {
+      const message = t('budgets.form.amountRequired', { ns: 'portal' });
+      setFieldErrors({ amount: message });
+      toast.error(message);
+      return;
+    }
+    if (!form.currency) {
+      const message = t('budgets.form.currencyRequired', { ns: 'portal' });
+      setFieldErrors({ currency: message });
+      toast.error(message);
+      return;
+    }
     if (!periodContext) { toast.error(t('budgets.form.loadingPeriodSettings', { ns: 'portal' })); return; }
     if (form.budget_period === 'semimonthly' && !scheduleLabel) {
-      toast.error(t('budgets.form.semimonthlyNeedsSettings', { ns: 'portal' }));
+      const message = t('budgets.form.semimonthlyNeedsSettings', { ns: 'portal' });
+      setFieldErrors({ budget_period: message });
+      toast.error(message);
       return;
     }
     if (!budgetValidation?.isValid) {
-      toast.error(translateBudgetValidationError(budgetValidation?.error, t) || t('budgets.form.incompletePeriodConfig', { ns: 'portal' }));
+      const message = translateBudgetValidationError(budgetValidation?.error, t)
+        || t('budgets.form.incompletePeriodConfig', { ns: 'portal' });
+      const field = getBudgetValidationField(budgetValidation?.error);
+      setFieldErrors(field ? { [field]: message } : {});
+      toast.error(message);
       return;
     }
+    setFieldErrors({});
     setIsLoading(true);
     try {
       const budgetName = form.name.trim() || categories.find((c) => c.id === form.category_id)?.name || t('budgets.budgetFallback', { ns: 'portal' });
@@ -345,11 +412,16 @@ export default function AddBudgetForm({
         </div>
       ) : null}
       <div>
-        <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.category', { ns: 'portal' })}</label>
-        <select className="input-base" value={form.category_id} onChange={(e) => setForm((f) => ({ ...f, category_id: e.target.value }))}>
+        <label className={getFieldLabelClassName(Boolean(fieldErrors.category_id))}>{t('budgets.form.category', { ns: 'portal' })}</label>
+        <select
+          className={getFieldInputClassName('input-base', Boolean(fieldErrors.category_id))}
+          value={form.category_id}
+          onChange={(e) => updateField('category_id', e.target.value)}
+        >
           <option value="">{t('budgets.form.selectCategory', { ns: 'portal' })}</option>
           {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        {fieldErrors.category_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.category_id}</p> : null}
       </div>
       <div>
         <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.name', { ns: 'portal' })}</label>
@@ -357,23 +429,35 @@ export default function AddBudgetForm({
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.amount', { ns: 'portal' })}</label>
-          <input type="number" step="0.01" min="0.01" className="input-base font-tabular" placeholder="0.00" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('budgets.form.amount', { ns: 'portal' })}</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0.01"
+            className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
+            placeholder="0.00"
+            value={form.amount}
+            onChange={(e) => updateField('amount', e.target.value)}
+          />
+          {fieldErrors.amount ? <p className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
         </div>
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.currency', { ns: 'portal' })}</label>
-          <CurrencySelector
-            value={form.currency}
-            onChange={(currencyCode) => setForm((f) => ({ ...f, currency: currencyCode }))}
-            placeholder={t('budgets.form.currencyPlaceholder', { ns: 'portal' })}
-          />
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('budgets.form.currency', { ns: 'portal' })}</label>
+          <div className={fieldErrors.currency ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
+            <CurrencySelector
+              value={form.currency}
+              onChange={(currencyCode) => updateField('currency', currencyCode)}
+              placeholder={t('budgets.form.currencyPlaceholder', { ns: 'portal' })}
+              helperText={fieldErrors.currency || undefined}
+            />
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.period', { ns: 'portal' })}</label>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.budget_period))}>{t('budgets.form.period', { ns: 'portal' })}</label>
           <select
-            className="input-base"
+            className={getFieldInputClassName('input-base', Boolean(fieldErrors.budget_period))}
             aria-label={t('budgets.form.period', { ns: 'portal' })}
             value={form.budget_period}
             onChange={(e) => {
@@ -388,12 +472,23 @@ export default function AddBudgetForm({
                     : current.period_anchor_date,
                 custom_period_days: nextPeriod === 'custom' ? current.custom_period_days || '10' : '',
               }));
+              setFieldErrors((current) => {
+                if (!current.budget_period && !current.period_anchor_date && !current.custom_period_days) {
+                  return current;
+                }
+                const next = { ...current };
+                delete next.budget_period;
+                delete next.period_anchor_date;
+                delete next.custom_period_days;
+                return next;
+              });
             }}
           >
             {(['weekly', 'biweekly', 'semimonthly', 'monthly', 'custom'] as BudgetPeriod[]).map((period) => (
               <option key={period} value={period}>{getBudgetPeriodLabel(period, t)}</option>
             ))}
           </select>
+          {fieldErrors.budget_period ? <p className={getFieldErrorTextClassName()}>{fieldErrors.budget_period}</p> : null}
         </div>
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.alertAtPercent', { ns: 'portal' })}</label>
@@ -402,35 +497,37 @@ export default function AddBudgetForm({
       </div>
       {form.budget_period === 'weekly' || form.budget_period === 'biweekly' || form.budget_period === 'custom' ? (
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.period_anchor_date))}>
             {t('budgets.form.anchorDate', { ns: 'portal' })}
           </label>
           <input
             type="date"
-            className="input-base"
+            className={getFieldInputClassName('input-base', Boolean(fieldErrors.period_anchor_date))}
             value={form.period_anchor_date}
-            onChange={(e) => setForm((current) => ({ ...current, period_anchor_date: e.target.value }))}
+            onChange={(e) => updateField('period_anchor_date', e.target.value)}
           />
-          <p className="mt-1 text-xs text-muted-foreground">
-            {form.budget_period === 'weekly'
-              ? t('budgets.form.anchorDateHelp.weekly', { ns: 'portal' })
-              : form.budget_period === 'biweekly'
-                ? t('budgets.form.anchorDateHelp.biweekly', { ns: 'portal' })
-                : t('budgets.form.anchorDateHelp.custom', { ns: 'portal' })}
+          <p className={fieldErrors.period_anchor_date ? getFieldErrorTextClassName('mt-1 text-xs') : 'mt-1 text-xs text-muted-foreground'}>
+            {fieldErrors.period_anchor_date
+              || (form.budget_period === 'weekly'
+                ? t('budgets.form.anchorDateHelp.weekly', { ns: 'portal' })
+                : form.budget_period === 'biweekly'
+                  ? t('budgets.form.anchorDateHelp.biweekly', { ns: 'portal' })
+                  : t('budgets.form.anchorDateHelp.custom', { ns: 'portal' }))}
           </p>
         </div>
       ) : null}
       {form.budget_period === 'custom' ? (
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.cycleLengthDays', { ns: 'portal' })}</label>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.custom_period_days))}>{t('budgets.form.cycleLengthDays', { ns: 'portal' })}</label>
           <input
             type="number"
             min="2"
             max="90"
-            className="input-base"
+            className={getFieldInputClassName('input-base', Boolean(fieldErrors.custom_period_days))}
             value={form.custom_period_days}
-            onChange={(e) => setForm((current) => ({ ...current, custom_period_days: e.target.value }))}
+            onChange={(e) => updateField('custom_period_days', e.target.value)}
           />
+          {fieldErrors.custom_period_days ? <p className={getFieldErrorTextClassName()}>{fieldErrors.custom_period_days}</p> : null}
         </div>
       ) : null}
       {form.budget_period === 'semimonthly' ? (
