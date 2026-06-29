@@ -1510,17 +1510,16 @@ export default function TransactionsTable({
         title={tabletDetailsTransaction?.merchant || tabletDetailsDocumentMeta?.title || t('transactions.documentDetails.title', { ns: 'portal', defaultValue: 'Transaction Details' })}
         description={tabletDetailsTransaction?.transaction_date || ''}
         size="lg"
-        bodyClassName="space-y-5"
-        stickyFooter
+        bodyClassName="space-y-4"
         footer={tabletDetailsTransaction ? (
-          <div className="flex gap-3 p-4">
+          <div className="flex justify-end gap-2 p-4">
             <button
               type="button"
               onClick={() => {
                 setTabletDetailsTransactionId(null);
                 openEdit(tabletDetailsTransaction);
               }}
-              className="btn-secondary flex-1"
+              className="btn-secondary h-10 px-4 text-sm"
             >
               {t('actions.edit', { ns: 'common' })}
             </button>
@@ -1530,7 +1529,7 @@ export default function TransactionsTable({
                 setTabletDetailsTransactionId(null);
                 void handleDelete(tabletDetailsTransaction);
               }}
-              className="btn-secondary flex-1 border-negative text-negative hover:bg-negative-soft"
+              className="btn-secondary h-10 border-negative px-4 text-sm text-negative hover:bg-negative-soft"
             >
               {t('actions.delete', { ns: 'common' })}
             </button>
@@ -1539,132 +1538,158 @@ export default function TransactionsTable({
       >
         {tabletDetailsTransaction ? (
           <>
-            <section className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.merchantSource', { ns: 'portal' })}</p>
-                <p className="mt-1 text-sm font-700 text-foreground">{tabletDetailsTransaction.merchant || tabletDetailsDocumentMeta?.title || '—'}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.amount', { ns: 'portal' })}</p>
-                <div className="mt-1 text-sm font-700 text-foreground">
-                  <FormattedCurrencyAmount
-                    amount={tabletDetailsTransaction.transaction_type === 'income'
-                      ? tabletDetailsTransaction.amount
-                      : tabletDetailsTransaction.transaction_type === 'expense'
-                        ? -Math.abs(tabletDetailsTransaction.amount)
-                        : tabletDetailsTransaction.amount}
-                    currencyCode={tabletDetailsTransaction.currency}
-                    size="sm"
-                    className={tabletDetailsTransaction.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
-                  />
+            <section className="rounded-2xl border border-border bg-card px-4 py-3">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                    {t('transactions.date', { ns: 'portal' })}
+                  </p>
+                  <p className="mt-1 truncate text-sm text-foreground">
+                    {tabletDetailsTransaction.transaction_date}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                    {t('transactions.amount', { ns: 'portal' })}
+                  </p>
+                  <div className="mt-1 whitespace-nowrap text-lg font-700">
+                    <FormattedCurrencyAmount
+                      amount={tabletDetailsTransaction.transaction_type === 'income'
+                        ? tabletDetailsTransaction.amount
+                        : tabletDetailsTransaction.transaction_type === 'expense'
+                          ? -Math.abs(tabletDetailsTransaction.amount)
+                          : tabletDetailsTransaction.amount}
+                      currencyCode={tabletDetailsTransaction.currency}
+                      size="sm"
+                      className={tabletDetailsTransaction.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.account', { ns: 'portal' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.account?.name || t('transactions.noAccount', { ns: 'portal' })}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.category', { ns: 'portal' })}</p>
-                <p className="mt-1 text-sm text-foreground">
-                  {tabletDetailsTransaction.category
-                    ? translateSystemCategoryName(tabletDetailsTransaction.category.name, (key, options) =>
-                      t(key, { ...(options || {}), ns: 'common' })
-                    )
-                    : t('transactions.uncategorized', { ns: 'portal' })}
+            </section>
+
+            <section className="rounded-2xl border border-border bg-card">
+              <div className="border-b border-border/70 px-4 py-2.5">
+                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                  {t('transactions.keyDetails', { ns: 'portal', defaultValue: 'Key Details' })}
                 </p>
               </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.type', { ns: 'portal' })}</p>
-                <div className="mt-1">
-                  <Badge variant={tabletDetailsTransaction.transaction_type === 'income' ? 'active' : tabletDetailsTransaction.transaction_type === 'expense' ? 'exceeded' : 'default'}>
+              <div className="divide-y divide-border/70 px-4">
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{t('transactions.type', { ns: 'portal' })}</span>
+                  <Badge
+                    variant={tabletDetailsTransaction.transaction_type === 'income' ? 'active' : tabletDetailsTransaction.transaction_type === 'expense' ? 'exceeded' : 'default'}
+                    className="px-1.5 py-0.5 text-[10px]"
+                  >
                     {t(`transactions.types.${tabletDetailsTransaction.transaction_type}` as const, { ns: 'portal', defaultValue: tabletDetailsTransaction.transaction_type })}
                   </Badge>
                 </div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.date', { ns: 'portal' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.transaction_date}</p>
-              </div>
-            </section>
-
-            <section className="grid grid-cols-1 gap-4">
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.description', { ns: 'portal', defaultValue: 'Description' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.description || '—'}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.notes', { ns: 'portal', defaultValue: 'Notes' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.notes || '—'}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.tags', { ns: 'portal', defaultValue: 'Tags' })}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(tabletDetailsTransaction.tags || []).length > 0 ? tabletDetailsTransaction.tags.map((tag) => (
-                    <span key={`tablet-detail-tag-${tag}`} className="inline-flex rounded-full border border-border bg-muted/20 px-2.5 py-1 text-xs font-600 text-foreground">
-                      {tag}
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{t('transactions.category', { ns: 'portal' })}</span>
+                  <span className="max-w-[60%] truncate text-right text-foreground">
+                    {tabletDetailsTransaction.category
+                      ? translateSystemCategoryName(tabletDetailsTransaction.category.name, (key, options) =>
+                        t(key, { ...(options || {}), ns: 'common' })
+                      )
+                      : t('transactions.uncategorized', { ns: 'portal' })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{t('transactions.account', { ns: 'portal' })}</span>
+                  <span className="max-w-[60%] truncate text-right text-foreground">
+                    {tabletDetailsTransaction.account?.name || t('transactions.noAccount', { ns: 'portal' })}
+                  </span>
+                </div>
+                {(tabletDetailsTransaction.space_id || tabletDetailsTransaction.transaction_context === 'space') ? (
+                  <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                    <span className="text-muted-foreground">{t('transactions.space', { ns: 'portal', defaultValue: 'Space' })}</span>
+                    <span className="max-w-[60%] truncate text-right text-foreground">
+                      {tabletDetailsTransaction.space_id || tabletDetailsTransaction.transaction_context}
                     </span>
-                  )) : <span className="text-sm text-muted-foreground">—</span>}
-                </div>
-              </div>
-            </section>
-
-            <section className="grid grid-cols-2 gap-4">
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.transfer', { ns: 'portal', defaultValue: 'Transfer' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.transfer_pair_id || '—'}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.space', { ns: 'portal', defaultValue: 'Space' })}</p>
-                <p className="mt-1 text-sm text-foreground">{tabletDetailsTransaction.space_id || tabletDetailsTransaction.transaction_context || '—'}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.created', { ns: 'portal', defaultValue: 'Created' })}</p>
-                <p className="mt-1 text-sm text-foreground">{formatMetaDateTime(tabletDetailsTransaction.created_at)}</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
-                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.updated', { ns: 'portal', defaultValue: 'Updated' })}</p>
-                <p className="mt-1 text-sm text-foreground">{formatMetaDateTime(tabletDetailsTransaction.updated_at)}</p>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-border bg-card p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.documentDetails.documentSection', { ns: 'portal', defaultValue: 'Receipt / Document' })}</p>
-                  <p className="mt-1 text-sm text-foreground">
-                    {tabletDetailsDocumentMeta?.hasDocument
-                      ? t('transactions.documentDetails.title', { ns: 'portal', defaultValue: 'Transaction Details' })
-                      : t('transactions.documentDetails.noLineItems', { ns: 'portal', defaultValue: 'No line items were saved for this document.' })}
-                  </p>
-                </div>
-                {tabletDetailsDocumentMeta?.hasDocument ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTabletDetailsTransactionId(null);
-                      setDetailsTransactionId(tabletDetailsTransaction.id);
-                    }}
-                    className="btn-secondary"
-                  >
-                    {t('actions.view', { ns: 'common', defaultValue: 'View' })} {t('transactions.documentDetails.title', { ns: 'portal', defaultValue: 'Details' })}
-                  </button>
+                  </div>
                 ) : null}
               </div>
-              <div className="mt-3 space-y-2">
-                {(tabletDetailsTransaction.receipt_attachments || []).length > 0 ? tabletDetailsTransaction.receipt_attachments?.map((attachment) => (
-                  <a
-                    key={attachment.id}
-                    href={attachment.file_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between rounded-2xl border border-border/70 bg-muted/10 px-3 py-2 text-sm text-foreground"
-                  >
-                    <span className="truncate">{attachment.file_name}</span>
-                    <span className="ml-3 flex-shrink-0 text-xs text-muted-foreground">{attachment.mime_type || 'file'}</span>
-                  </a>
-                )) : (
-                  <p className="text-sm text-muted-foreground">—</p>
-                )}
+            </section>
+
+            <section className="rounded-2xl border border-border bg-card">
+              <div className="border-b border-border/70 px-4 py-2.5">
+                <p className="text-xs font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                  {t('transactions.extraDetails', { ns: 'portal', defaultValue: 'Extra Details' })}
+                </p>
+              </div>
+              <div className="divide-y divide-border/70 px-4">
+                {tabletDetailsTransaction.description ? (
+                  <div className="flex items-start justify-between gap-4 py-3 text-sm">
+                    <span className="text-muted-foreground">{t('transactions.description', { ns: 'portal', defaultValue: 'Description' })}</span>
+                    <span className="max-w-[65%] text-right leading-5 text-foreground">
+                      {tabletDetailsTransaction.description}
+                    </span>
+                  </div>
+                ) : null}
+                {tabletDetailsTransaction.notes ? (
+                  <div className="flex items-start justify-between gap-4 py-3 text-sm">
+                    <span className="text-muted-foreground">{t('transactions.notes', { ns: 'portal', defaultValue: 'Notes' })}</span>
+                    <span className="max-w-[65%] text-right leading-5 text-foreground">
+                      {tabletDetailsTransaction.notes}
+                    </span>
+                  </div>
+                ) : null}
+                {(tabletDetailsTransaction.tags || []).length > 0 ? (
+                  <div className="flex items-start justify-between gap-4 py-3 text-sm">
+                    <span className="text-muted-foreground">{t('transactions.tags', { ns: 'portal', defaultValue: 'Tags' })}</span>
+                    <div className="flex max-w-[65%] flex-wrap justify-end gap-1.5">
+                      {tabletDetailsTransaction.tags.map((tag) => (
+                        <span key={`tablet-detail-tag-${tag}`} className="inline-flex rounded-full border border-border bg-muted/20 px-2 py-0.5 text-[11px] font-600 text-foreground">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {tabletDetailsTransaction.transfer_pair_id ? (
+                  <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                    <span className="text-muted-foreground">{t('transactions.transfer', { ns: 'portal', defaultValue: 'Transfer' })}</span>
+                    <span className="max-w-[65%] truncate text-right text-foreground">
+                      {tabletDetailsTransaction.transfer_pair_id}
+                    </span>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">
+                    {t('transactions.documentDetails.documentSection', { ns: 'portal', defaultValue: 'Receipt / Document' })}
+                  </span>
+                  <div className="flex max-w-[65%] items-center justify-end gap-3">
+                    <span className="truncate text-right text-foreground">
+                      {tabletDetailsDocumentMeta?.hasDocument
+                        ? t('transactions.receiptAvailable', { ns: 'portal', defaultValue: 'Receipt/document available' })
+                        : t('transactions.noReceiptDocument', { ns: 'portal', defaultValue: 'No receipt/document' })}
+                    </span>
+                    {tabletDetailsDocumentMeta?.hasDocument ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTabletDetailsTransactionId(null);
+                          setDetailsTransactionId(tabletDetailsTransaction.id);
+                        }}
+                        className="text-xs font-700 text-accent hover:underline"
+                      >
+                        {t('transactions.viewDocument', { ns: 'portal', defaultValue: 'View document' })}
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{t('transactions.created', { ns: 'portal', defaultValue: 'Created' })}</span>
+                  <span className="max-w-[65%] truncate text-right text-foreground">
+                    {formatMetaDateTime(tabletDetailsTransaction.created_at)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4 py-3 text-sm">
+                  <span className="text-muted-foreground">{t('transactions.updated', { ns: 'portal', defaultValue: 'Updated' })}</span>
+                  <span className="max-w-[65%] truncate text-right text-foreground">
+                    {formatMetaDateTime(tabletDetailsTransaction.updated_at)}
+                  </span>
+                </div>
               </div>
             </section>
           </>
