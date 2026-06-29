@@ -100,6 +100,7 @@ export default function TransactionsTable({
   const [perPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [tabletFiltersOpen, setTabletFiltersOpen] = useState(false);
   const [editingTxn, setEditingTxn] = useState<Transaction | null>(null);
   const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -327,6 +328,47 @@ export default function TransactionsTable({
     return count;
   }, [customDateFrom, customDateTo, dateFilterMode, filterAccount, filterCategory, filterType, financialPeriodContext.defaultDashboardPeriod, periodOffset]);
 
+  const activeTabletFilterSummaries = useMemo(() => {
+    const summaries: string[] = [];
+    const selectedAccount = accounts.find((account) => account.id === filterAccount);
+    const selectedCategory = categories.find((category) => category.id === filterCategory);
+
+    if (dateFilterMode !== financialPeriodContext.defaultDashboardPeriod || periodOffset !== 0 || customDateFrom || customDateTo) {
+      summaries.push(activeDateFilter.label);
+    }
+
+    if (filterType !== 'all') {
+      summaries.push(t(`transactions.types.${filterType}` as const, { ns: 'portal' }));
+    }
+
+    if (selectedAccount) {
+      summaries.push(selectedAccount.name);
+    }
+
+    if (selectedCategory) {
+      summaries.push(
+        translateSystemCategoryName(selectedCategory.name, (key, options) =>
+          t(key, { ...(options || {}), ns: 'common' })
+        )
+      );
+    }
+
+    return summaries;
+  }, [
+    accounts,
+    activeDateFilter.label,
+    categories,
+    customDateFrom,
+    customDateTo,
+    dateFilterMode,
+    filterAccount,
+    filterCategory,
+    filterType,
+    financialPeriodContext.defaultDashboardPeriod,
+    periodOffset,
+    t,
+  ]);
+
   const filtered = useMemo(() => {
     let result = transactions.filter((transaction) => {
       const categoryDisplayName = translateSystemCategoryName(transaction.category?.name, (key, options) =>
@@ -436,7 +478,7 @@ export default function TransactionsTable({
             </div>
           </div>
 
-          <div className="hidden space-y-3 md:block lg:hidden">
+          <div className="hidden md:block lg:hidden">
             <div className="grid grid-cols-12 gap-2">
               <div className="col-span-4">
                 <SearchField
@@ -446,31 +488,28 @@ export default function TransactionsTable({
                   inputClassName="h-10"
                 />
               </div>
-              <div className="col-span-4 rounded-2xl border border-border bg-muted/20 p-2">
-                <div className="flex flex-wrap gap-1.5">
-                  {periodModeOptions.map((option) => (
-                    <button
-                      key={`tablet-mode-${option.key}`}
-                      type="button"
-                      onClick={() => setQuickDateMode(option.key)}
-                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-700 transition-colors ${dateFilterMode === option.key ? 'bg-accent text-accent-foreground' : 'bg-card text-muted-foreground hover:text-foreground'}`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="col-span-4 rounded-2xl border border-border bg-muted/20 p-2">
+              <div className="col-span-6 rounded-2xl border border-border bg-muted/20 p-2">
                 <div className="flex items-center gap-2">
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                     <CalendarRange size={15} />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') {
+                        setPeriodOffset(0);
+                        setPage(1);
+                        return;
+                      }
+                      setTabletFiltersOpen(true);
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
                     <p className="truncate text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
                       {activeDateFilter.description}
                     </p>
                     <p className="truncate text-sm font-700 text-foreground">{activeDateFilter.label}</p>
-                  </div>
+                  </button>
                   {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
                     <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
                       <button
@@ -501,89 +540,42 @@ export default function TransactionsTable({
                   ) : (
                     <button
                       type="button"
-                      onClick={resetResponsiveFilters}
+                      onClick={() => setTabletFiltersOpen(true)}
                       className="btn-ghost min-h-0 rounded-xl px-2.5 py-2 text-[11px] font-700"
                     >
-                      {t('common:actions.reset', { defaultValue: 'Reset' })}
+                      {periodModeOptions.find((option) => option.key === dateFilterMode)?.label || t('actions.filter', { ns: 'common' })}
                     </button>
                   )}
                 </div>
               </div>
+              <div className="col-span-2">
+                <button
+                  type="button"
+                  onClick={() => setTabletFiltersOpen(true)}
+                  className={`btn-secondary flex h-full min-h-[56px] w-full items-center justify-center gap-2 rounded-2xl px-3 py-2.5 text-sm ${tabletFiltersOpen ? 'border-accent text-accent' : ''}`}
+                >
+                  <Filter size={16} />
+                  {t('actions.filter', { ns: 'common' })}
+                  {activeResponsiveFilterCount > 0 ? (
+                    <span className="rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-700 text-accent-foreground">
+                      {activeResponsiveFilterCount}
+                    </span>
+                  ) : null}
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-12 gap-2">
-              <div className="col-span-4 rounded-2xl border border-border bg-muted/20 p-2">
-                <div className="mb-1.5 flex items-center justify-between">
-                  <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
-                    {t('transactions.type', { ns: 'portal' })}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={resetResponsiveFilters}
-                    className="text-[11px] font-700 text-accent"
+            {activeTabletFilterSummaries.length > 0 ? (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {activeTabletFilterSummaries.map((summary) => (
+                  <span
+                    key={`tablet-filter-summary-${summary}`}
+                    className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-700 text-muted-foreground"
                   >
-                    {t('common:actions.reset', { defaultValue: 'Reset' })}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {(['all', 'income', 'expense', 'transfer'] as const).map((filterValue) => (
-                    <button
-                      key={`tablet-type-filter-${filterValue}`}
-                      type="button"
-                      onClick={() => { setFilterType(filterValue); setPage(1); }}
-                      className={`rounded-xl px-2.5 py-1.5 text-[11px] font-700 transition-colors ${
-                        filterType === filterValue ? 'bg-accent text-accent-foreground' : 'bg-card text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {filterValue === 'all'
-                        ? t('transactions.filters.all', { ns: 'portal' })
-                        : t(`transactions.types.${filterValue}` as const, { ns: 'portal' })}
-                    </button>
-                  ))}
-                </div>
+                    {summary}
+                  </span>
+                ))}
               </div>
-              <div className="col-span-2">
-                <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.account', { ns: 'portal' })}</label>
-                <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-10 text-sm">
-                  <option value="all">{t('transactions.allAccounts', { ns: 'portal' })}</option>
-                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.category', { ns: 'portal' })}</label>
-                <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }} className="input-base h-10 text-sm">
-                  <option value="all">{t('transactions.allCategories', { ns: 'portal' })}</option>
-                  {categories
-                    .filter((category) => filterType === 'all' || category.category_type === filterType)
-                    .map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {translateSystemCategoryName(category.name, (key, options) =>
-                          t(key, { ...(options || {}), ns: 'common' })
-                        )}
-                      </option>
-                    ))}
-                </select>
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.dateFrom', { ns: 'portal' })}</label>
-                <input
-                  type="date"
-                  className="input-base h-10 text-sm"
-                  value={customDateFrom}
-                  onChange={(e) => { setCustomDateFrom(e.target.value); setDateFilterMode('custom'); setPage(1); }}
-                  aria-label={t('transactions.customRangeStart', { ns: 'portal' })}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('transactions.dateTo', { ns: 'portal' })}</label>
-                <input
-                  type="date"
-                  className="input-base h-10 text-sm"
-                  value={customDateTo}
-                  onChange={(e) => { setCustomDateTo(e.target.value); setDateFilterMode('custom'); setPage(1); }}
-                  aria-label={t('transactions.customRangeEnd', { ns: 'portal' })}
-                />
-              </div>
-            </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -882,7 +874,7 @@ export default function TransactionsTable({
             </div>
             <div className="hidden md:block lg:hidden">
               <div className="rounded-2xl border border-border bg-card">
-                <div className="grid grid-cols-[40px_104px_minmax(0,2.1fr)_minmax(0,1.15fr)_124px_40px] items-center gap-3 border-b border-border px-3 py-2.5 text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                <div className="grid grid-cols-[36px_88px_minmax(0,2.35fr)_minmax(0,1.3fr)_116px_36px] items-center gap-2 border-b border-border px-3 py-2.5 text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
                   <div>
                     <input
                       type="checkbox"
@@ -896,12 +888,12 @@ export default function TransactionsTable({
                     {t('transactions.date', { ns: 'portal' })}
                     <SortIcon col="transaction_date" />
                   </button>
-                  <button type="button" className="flex items-center gap-1 text-left hover:text-foreground" onClick={() => handleSort('merchant')}>
-                    {t('transactions.merchantSource', { ns: 'portal' })}
+                  <button type="button" className="flex items-center gap-1 text-left leading-tight hover:text-foreground" onClick={() => handleSort('merchant')}>
+                    {t('transactions.merchantSource', { ns: 'portal' })} / {t('transactions.account', { ns: 'portal' })}
                     <SortIcon col="merchant" />
                   </button>
-                  <div>{t('transactions.category', { ns: 'portal' })}</div>
-                  <button type="button" className="flex items-center justify-end gap-1 text-right hover:text-foreground" onClick={() => handleSort('amount')}>
+                  <div className="leading-tight">{t('transactions.category', { ns: 'portal' })} / {t('transactions.type', { ns: 'portal' })}</div>
+                  <button type="button" className="flex items-center justify-end gap-1 text-right leading-tight hover:text-foreground" onClick={() => handleSort('amount')}>
                     {t('transactions.amount', { ns: 'portal' })}
                     <SortIcon col="amount" />
                   </button>
@@ -921,7 +913,7 @@ export default function TransactionsTable({
                     return (
                       <div
                         key={`tablet-${txn.id}`}
-                        className={`grid grid-cols-[40px_104px_minmax(0,2.1fr)_minmax(0,1.15fr)_124px_40px] items-start gap-3 px-3 py-3 transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : 'hover:bg-muted/20'}`}
+                        className={`grid grid-cols-[36px_88px_minmax(0,2.35fr)_minmax(0,1.3fr)_116px_36px] items-start gap-2 px-3 py-3 transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : 'hover:bg-muted/20'}`}
                       >
                         <div className="pt-1">
                           <input
@@ -954,16 +946,10 @@ export default function TransactionsTable({
                             {txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}
                           </p>
                           {txn.notes ? (
-                            <p className="mt-1 truncate text-xs text-muted-foreground">{txn.notes}</p>
+                            <p className="mt-1 truncate text-[11px] text-muted-foreground">{txn.notes}</p>
                           ) : null}
                         </div>
                         <div className="min-w-0 space-y-1">
-                          <Badge
-                            variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}
-                            className="px-2 py-0.5 text-[10px]"
-                          >
-                            {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
-                          </Badge>
                           {txn.category ? (
                             <span className="flex items-center gap-1.5 text-xs text-foreground">
                               <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
@@ -976,6 +962,12 @@ export default function TransactionsTable({
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
+                          <Badge
+                            variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}
+                            className="px-1.5 py-0.5 text-[10px]"
+                          >
+                            {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
+                          </Badge>
                         </div>
                         <div className="text-right">
                           <div className={`text-sm font-700 font-tabular ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
@@ -1384,6 +1376,147 @@ export default function TransactionsTable({
                 aria-label={t('transactions.customRangeEnd', { ns: 'portal' })}
               />
             </div>
+          </div>
+        </section>
+      </Modal>
+      <Modal
+        isOpen={tabletFiltersOpen}
+        onClose={() => setTabletFiltersOpen(false)}
+        title={t('actions.filter', { ns: 'common' })}
+        description={activeDateFilter.label}
+        size="md"
+        bodyClassName="space-y-5"
+        stickyFooter
+        footer={
+          <div className="flex gap-3 p-4">
+            <button
+              type="button"
+              onClick={resetResponsiveFilters}
+              className="btn-secondary flex-1"
+            >
+              {t('common:actions.reset', { defaultValue: 'Reset' })}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTabletFiltersOpen(false)}
+              className="btn-primary flex-1"
+            >
+              {t('common:actions.apply', { defaultValue: 'Apply' })}
+            </button>
+          </div>
+        }
+      >
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-700 text-foreground">
+              {t('transactions.filters.month', { ns: 'portal', defaultValue: 'Period' })}
+            </h3>
+            <span className="text-xs text-muted-foreground">{activeDateFilter.label}</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {periodModeOptions.map((option) => (
+              <button
+                key={`tablet-mode-sheet-${option.key}`}
+                type="button"
+                onClick={() => setQuickDateMode(option.key)}
+                className={`rounded-xl border px-3 py-2 text-xs font-700 ${dateFilterMode === option.key ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 p-2">
+              <button
+                type="button"
+                onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
+                className="btn-ghost min-h-0 rounded-xl p-2"
+                aria-label={dateFilterMode === 'month' ? t('transactions.filters.previousMonth', { ns: 'portal' }) : t('transactions.filters.previousPayPeriod', { ns: 'portal' })}
+              >
+                <PreviousIcon size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => { setPeriodOffset(0); setPage(1); }}
+                className="btn-secondary min-h-0 flex-1 rounded-xl px-3 py-2 text-sm"
+              >
+                {t('common:actions.current', { defaultValue: 'Current' })}
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (!activeDateFilter.canMoveNext) return; setPeriodOffset((current) => Math.min(0, current + 1)); setPage(1); }}
+                disabled={!activeDateFilter.canMoveNext}
+                className="btn-ghost min-h-0 rounded-xl p-2 disabled:opacity-40"
+                aria-label={dateFilterMode === 'month' ? t('transactions.filters.nextMonth', { ns: 'portal' }) : t('transactions.filters.nextPayPeriod', { ns: 'portal' })}
+              >
+                <NextIcon size={16} />
+              </button>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="text-sm font-700 text-foreground">{t('transactions.type', { ns: 'portal' })}</h3>
+          <div className="flex flex-wrap gap-2">
+            {(['all', 'income', 'expense', 'transfer'] as const).map((filterValue) => (
+              <button
+                key={`tablet-type-filter-sheet-${filterValue}`}
+                type="button"
+                onClick={() => { setFilterType(filterValue); setPage(1); }}
+                className={`rounded-xl border px-3 py-2 text-xs font-700 ${
+                  filterType === filterValue ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'
+                }`}
+              >
+                {filterValue === 'all'
+                  ? t('transactions.filters.all', { ns: 'portal' })
+                  : t(`transactions.types.${filterValue}` as const, { ns: 'portal' })}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-2 gap-4">
+          <div className="col-span-1">
+            <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.account', { ns: 'portal' })}</label>
+            <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-10 text-sm">
+              <option value="all">{t('transactions.allAccounts', { ns: 'portal' })}</option>
+              {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <div className="col-span-1">
+            <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.category', { ns: 'portal' })}</label>
+            <select value={filterCategory} onChange={(e) => { setFilterCategory(e.target.value); setPage(1); }} className="input-base h-10 text-sm">
+              <option value="all">{t('transactions.allCategories', { ns: 'portal' })}</option>
+              {categories
+                .filter((category) => filterType === 'all' || category.category_type === filterType)
+                .map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {translateSystemCategoryName(category.name, (key, options) =>
+                      t(key, { ...(options || {}), ns: 'common' })
+                    )}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div className="col-span-1">
+            <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.dateFrom', { ns: 'portal' })}</label>
+            <input
+              type="date"
+              className="input-base h-10 text-sm"
+              value={customDateFrom}
+              onChange={(e) => { setCustomDateFrom(e.target.value); setDateFilterMode('custom'); setPage(1); }}
+              aria-label={t('transactions.customRangeStart', { ns: 'portal' })}
+            />
+          </div>
+          <div className="col-span-1">
+            <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.dateTo', { ns: 'portal' })}</label>
+            <input
+              type="date"
+              className="input-base h-10 text-sm"
+              value={customDateTo}
+              onChange={(e) => { setCustomDateTo(e.target.value); setDateFilterMode('custom'); setPage(1); }}
+              aria-label={t('transactions.customRangeEnd', { ns: 'portal' })}
+            />
           </div>
         </section>
       </Modal>
