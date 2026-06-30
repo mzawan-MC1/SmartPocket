@@ -2,11 +2,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Calendar, Clock, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, History, RefreshCw, Sparkles } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
-import StatusBadge from '@/components/ui/StatusBadge';
 
 interface SubscriptionSummary {
   has_subscription: boolean;
@@ -118,6 +117,8 @@ type UsageMetric = {
   title: string;
   helper: string;
   valueText: string;
+  valueNumber: string;
+  valueLabel: string;
   usedText: string | null;
   progressLabel: string;
   tone: UsageMetricTone;
@@ -333,6 +334,60 @@ function getPeakPercent(metrics: UsageMetric[]) {
   return metrics.reduce((peak, metric) => Math.max(peak, metric.percent ?? 0), 0);
 }
 
+function getRemainingDisplayParts(
+  metricId: UsageMetric['id'],
+  remaining: number,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (metricId === 'text') {
+    return {
+      valueNumber: `${remaining}`,
+      valueLabel: t('aiUsage.requestsRemainingLabel', { count: remaining }),
+    };
+  }
+
+  if (metricId === 'receipt') {
+    return {
+      valueNumber: `${remaining}`,
+      valueLabel: t('aiUsage.scansRemainingLabel', { count: remaining }),
+    };
+  }
+
+  const normalized = Math.max(0, Math.ceil(remaining));
+  if (normalized < 60) {
+    return {
+      valueNumber: `${normalized}`,
+      valueLabel: t('aiUsage.secondsRemainingLabel', { count: normalized }),
+    };
+  }
+
+  const minutes = Math.round(normalized / 60);
+  return {
+    valueNumber: `${minutes}`,
+    valueLabel: t('aiUsage.minutesRemainingLabel', { count: minutes }),
+  };
+}
+
+function CompactStatus({
+  label,
+  tone = 'default',
+}: {
+  label: string;
+  tone?: 'default' | 'warning';
+}) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-700 leading-none ${
+        tone === 'warning'
+          ? 'border-warning/25 bg-warning-soft text-warning'
+          : 'border-violet-200/80 bg-violet-500/10 text-violet-700'
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
+
 export default function AIUsageCard() {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -431,12 +486,15 @@ export default function AIUsageCard() {
   const textUsed = summary?.requests_today ?? 0;
   const textTotal = summary?.daily_ai_request_limit ?? 0;
   const textRemaining = Math.max(0, textAvailability?.total_available ?? (textTotal - textUsed));
+  const textDisplay = getRemainingDisplayParts('text', textRemaining, t);
   const textMetric: UsageMetric | null = textEnabled
     ? {
         id: 'text',
         title: t('aiUsage.textAi'),
         helper: t('aiUsage.requestsUsedToday'),
         valueText: t('aiUsage.requestsCount', { count: textRemaining }),
+        valueNumber: textDisplay.valueNumber,
+        valueLabel: textDisplay.valueLabel,
         usedText: textTotal > 0
           ? t('aiUsage.usedOfTotal', { used: textUsed, total: textTotal })
           : textRemaining > 0
@@ -453,12 +511,15 @@ export default function AIUsageCard() {
   const voiceUsedSeconds = Math.max(0, summary?.voice_seconds_used ?? 0);
   const voiceTotalSeconds = Math.max(0, summary?.monthly_voice_seconds ?? 0);
   const voiceRemainingSeconds = Math.max(0, voiceAvailability?.total_available ?? (voiceTotalSeconds - voiceUsedSeconds));
+  const voiceDisplay = getRemainingDisplayParts('voice', voiceRemainingSeconds, t);
   const voiceMetric: UsageMetric | null = voiceEnabled
     ? {
         id: 'voice',
         title: t('aiUsage.voiceAi'),
         helper: t('aiUsage.voiceUsedIncluded'),
         valueText: formatVoiceRemaining(voiceRemainingSeconds, t),
+        valueNumber: voiceDisplay.valueNumber,
+        valueLabel: voiceDisplay.valueLabel,
         usedText: voiceTotalSeconds > 0
           ? t('aiUsage.usedOfTotal', {
               used: formatVoiceAmount(voiceUsedSeconds, t),
@@ -484,12 +545,15 @@ export default function AIUsageCard() {
     : typeof summary?.receipt_extractions_remaining === 'number'
     ? (receiptEnabled ? summary.receipt_extractions_remaining : 0)
     : Math.max(0, receiptIncluded - receiptUsageTotal);
+  const receiptDisplay = getRemainingDisplayParts('receipt', receiptRemaining, t);
   const receiptMetric: UsageMetric | null = receiptEnabled
     ? {
         id: 'receipt',
         title: t('aiUsage.receiptIntelligence'),
         helper: t('aiUsage.receiptUsedIncluded'),
         valueText: t('aiUsage.receiptCount', { count: receiptRemaining }),
+        valueNumber: receiptDisplay.valueNumber,
+        valueLabel: receiptDisplay.valueLabel,
         usedText: receiptIncluded > 0
           ? t('aiUsage.usedOfTotal', { used: receiptUsageTotal, total: receiptIncluded })
           : receiptRemaining > 0
@@ -519,47 +583,52 @@ export default function AIUsageCard() {
     usageMessage = { tone: 'warning', text: t('aiUsage.eightyUsed') };
   }
 
+  const statusLabel = isTrialing ? t('aiUsage.trialing') : t('status.active', { ns: 'common' });
+  const statusTone = peakPercent >= 100 || isTrialing ? 'warning' : 'default';
+  const primarySurfaceClassName = 'rounded-[18px] bg-muted/[0.08] px-3 py-3 ring-1 ring-border/45';
+  const secondarySurfaceClassName = 'rounded-[18px] bg-muted/[0.04] px-3 py-1 ring-1 ring-border/40';
+
   const renderHeader = (showHistory: boolean, badge?: React.ReactNode) => (
-    <div className="flex items-start justify-between gap-3">
-      <div className="flex min-w-0 items-start gap-2.5">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
-          <Sparkles size={16} />
-        </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">{t('aiUsage.assistantTitle')}</h3>
-            {badge}
-          </div>
-          <p className="mt-0.5 text-[12px] leading-4 text-muted-foreground">{t('aiUsage.companion')}</p>
-        </div>
+    <div className="grid grid-cols-[auto,minmax(0,1fr)] gap-x-2.5 gap-y-1">
+      <div className="row-span-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
+        <Sparkles size={15} />
       </div>
-      <div className="flex items-center gap-1.5">
-        {showHistory ? (
-          <Link
-            href="/ai-history"
-            className="inline-flex items-center rounded-full border border-border/70 bg-card px-2.5 py-1 text-[11px] font-700 text-foreground transition-colors hover:bg-muted/30"
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <h3 className="truncate text-[15px] font-700 tracking-[-0.02em] text-foreground">{t('aiUsage.assistantTitle')}</h3>
+          {badge}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          {showHistory ? (
+            <Link
+              href="/ai-history"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-600 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+              aria-label={t('aiUsage.history')}
+            >
+              <History size={12} />
+              <span className="whitespace-nowrap">{t('aiUsage.history')}</span>
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void load(true)}
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
+            aria-label={t('aiHistory.refresh')}
           >
-            {t('aiUsage.history')}
-          </Link>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => void load(true)}
-          className="rounded-xl p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
-          aria-label={t('aiHistory.refresh')}
-        >
-          <RefreshCw size={14} />
-        </button>
+            <RefreshCw size={13} />
+          </button>
+        </div>
       </div>
+      <p className="truncate text-[11px] leading-4 text-muted-foreground">{t('aiUsage.companion')}</p>
     </div>
   );
 
   if (isUnavailable) {
     return (
       <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
-        <div className="flex flex-col gap-3">
-          {renderHeader(Boolean(summary?.ai_history_enabled), <StatusBadge status="warning" label={t('aiUsage.unavailableBadge')} />)}
-          <div className="rounded-2xl border border-border/70 bg-muted/10 px-3 py-3">
+        <div className="flex flex-col gap-2.5">
+          {renderHeader(Boolean(summary?.ai_history_enabled), <CompactStatus label={t('aiUsage.unavailableBadge')} tone="warning" />)}
+          <div className={primarySurfaceClassName}>
             <p className="text-sm font-700 text-foreground">{t('aiUsage.unavailableTitle')}</p>
             <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{t('aiUsage.unavailable')}</p>
           </div>
@@ -579,9 +648,9 @@ export default function AIUsageCard() {
   if (!summary?.has_subscription) {
     return (
       <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {renderHeader(false)}
-          <div className="rounded-2xl border border-border/70 bg-muted/10 px-3 py-3">
+          <div className={primarySurfaceClassName}>
             <p className="text-sm font-700 text-foreground">{t('aiUsage.noSubscriptionTitle')}</p>
             <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{t('aiUsage.noSubscription')}</p>
           </div>
@@ -600,9 +669,9 @@ export default function AIUsageCard() {
   if (!hasAnyAiAccess) {
     return (
       <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
-        <div className="flex flex-col gap-3">
-          {renderHeader(Boolean(summary.ai_history_enabled), <StatusBadge status="warning" label={t('aiUsage.noAccessBadge')} />)}
-          <div className="rounded-2xl border border-border/70 bg-muted/10 px-3 py-3">
+        <div className="flex flex-col gap-2.5">
+          {renderHeader(Boolean(summary.ai_history_enabled), <CompactStatus label={t('aiUsage.noAccessBadge')} tone="warning" />)}
+          <div className={primarySurfaceClassName}>
             <p className="text-sm font-700 text-foreground">{t('aiUsage.noAccessTitle')}</p>
             <p className="mt-1 text-[12px] leading-5 text-muted-foreground">{t('aiUsage.noAccess')}</p>
           </div>
@@ -622,15 +691,8 @@ export default function AIUsageCard() {
 
   return (
     <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
-      <div className="flex flex-col gap-3">
-        {renderHeader(
-          Boolean(summary.ai_history_enabled),
-          <StatusBadge
-            status={peakPercent >= 100 ? 'warning' : isTrialing ? 'pending' : 'ai'}
-            label={isTrialing ? t('aiUsage.trialing') : t('status.active', { ns: 'common' })}
-            className="px-2 py-0.5 text-[10px]"
-          />
-        )}
+      <div className="flex flex-col gap-2.5">
+        {renderHeader(Boolean(summary.ai_history_enabled), <CompactStatus label={statusLabel} tone={statusTone} />)}
 
         {usageMessage ? <UsageAlert message={usageMessage.text} tone={usageMessage.tone} /> : null}
 
@@ -642,28 +704,28 @@ export default function AIUsageCard() {
         ) : null}
 
         {primaryMetric ? (
-          <div className="rounded-2xl border border-border/70 bg-muted/10 px-3 py-3">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] font-700 uppercase tracking-[0.12em] text-muted-foreground">
-                  {t('aiUsage.remaining')}
-                </p>
-                <p className="mt-2 text-xl font-800 tracking-[-0.02em] text-foreground tabular-nums md:text-[1.35rem]">
-                  {primaryMetric.valueText}
-                </p>
-                <p className="mt-1 text-sm font-700 text-foreground">{primaryMetric.title}</p>
-                <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">{primaryMetric.helper}</p>
-              </div>
+          <div className={primarySurfaceClassName}>
+            <div className="flex items-center justify-between gap-3">
+              <p className="min-w-0 truncate text-[13px] font-700 text-foreground">{primaryMetric.title}</p>
               {resetDate ? (
-                <div className="inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2.5 py-1 text-[10px] font-700 text-muted-foreground">
+                <div className="inline-flex shrink-0 items-center gap-1 text-[11px] font-600 text-muted-foreground">
                   <Calendar size={11} />
-                  {t('aiUsage.resetsOn', { date: resetDate })}
+                  <span className="whitespace-nowrap">{t('aiUsage.resetsOn', { date: resetDate })}</span>
                 </div>
               ) : null}
             </div>
 
+            <div className="mt-2 flex items-end gap-2">
+              <span dir="ltr" className="text-[1.7rem] font-800 leading-none tracking-[-0.03em] text-foreground tabular-nums md:text-[1.85rem]">
+                {primaryMetric.valueNumber}
+              </span>
+              <span className="pb-0.5 text-[12px] font-600 leading-4 text-muted-foreground">
+                {primaryMetric.valueLabel}
+              </span>
+            </div>
+
             {primaryMetric.total > 0 ? (
-              <div className="mt-3 space-y-2">
+              <div className="mt-2.5 space-y-1.5">
                 <UsageProgress
                   label={primaryMetric.progressLabel}
                   used={primaryMetric.used}
@@ -675,34 +737,35 @@ export default function AIUsageCard() {
                 ) : null}
               </div>
             ) : (
-              <p className="mt-3 text-[11px] leading-4 text-muted-foreground">{primaryMetric.usedText ?? t('aiUsage.noneRemaining')}</p>
+              <p className="mt-2 text-[11px] leading-4 text-muted-foreground">{primaryMetric.usedText ?? t('aiUsage.noneRemaining')}</p>
             )}
           </div>
         ) : null}
 
         {secondaryMetrics.length > 0 ? (
-          <div className="rounded-2xl border border-border/70 bg-muted/5 px-3 py-2">
+          <div className={secondarySurfaceClassName}>
             <div className="divide-y divide-border/50">
               {secondaryMetrics.map((metric) => (
-                <div key={metric.id} className="flex items-start justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                <div key={metric.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-2.5 first:pt-2 last:pb-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-700 text-foreground">{metric.title}</p>
+                    <p className="text-[13px] font-700 text-foreground">{metric.title}</p>
                     <p className="text-[11px] leading-4 text-muted-foreground">{metric.helper}</p>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-sm font-800 tabular-nums ${
+                  <div className="min-w-[98px] text-right">
+                    <span className={`inline-flex items-baseline justify-end gap-1 text-[15px] font-800 leading-none tabular-nums ${
                       metric.tone === 'exhausted'
                         ? 'text-negative'
                         : metric.tone === 'warning'
                           ? 'text-warning'
                           : 'text-foreground'
                     }`}>
-                      {metric.valueText}
-                    </p>
+                      <span dir="ltr">{metric.valueNumber}</span>
+                      <span className="text-[11px] font-700 leading-none text-current/90">{metric.valueLabel}</span>
+                    </span>
                     {metric.usedText ? (
-                      <p className="text-[11px] leading-4 text-muted-foreground">{metric.usedText}</p>
+                      <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{metric.usedText}</p>
                     ) : (
-                      <p className="text-[11px] leading-4 text-muted-foreground">{t('aiUsage.noneRemaining')}</p>
+                      <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{t('aiUsage.noneRemaining')}</p>
                     )}
                   </div>
                 </div>
@@ -711,7 +774,7 @@ export default function AIUsageCard() {
           </div>
         ) : null}
 
-        <div className="space-y-2">
+        <div className="space-y-2 pt-0.5">
           <button
             type="button"
             onClick={() => quickActions?.openQuickAction('smart_entry')}
