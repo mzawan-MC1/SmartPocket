@@ -180,6 +180,31 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     );
   };
 
+  const renderSectionHeading = (heading: string) => {
+    if (collapsed) {
+      return null;
+    }
+
+    if (isMobileDrawer) {
+      return (
+        <p className="px-3 text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85">
+          {heading}
+        </p>
+      );
+    }
+
+    return (
+      <div className="px-2.5 lg:mb-1.5 lg:pt-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-[11px] font-800 uppercase tracking-[0.22em] text-cyan-700/70">
+            {heading}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-r from-cyan-200/70 via-border/80 to-transparent" aria-hidden="true" />
+        </div>
+      </div>
+    );
+  };
+
   const renderReportsSection = () => {
     if (!canUseStandardReports) {
       return null;
@@ -192,11 +217,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
     return (
       <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
-        {!collapsed && (
-          <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
-            {t('sidebar.sections.reports', { ns: 'portal' })}
-          </p>
-        )}
+        {renderSectionHeading(t('sidebar.sections.reports', { ns: 'portal' }))}
         <div className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
           <button
             type="button"
@@ -311,26 +332,18 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
       {/* Navigation */}
       <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2.5 py-4'}`}>
-        <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3'}>
+        <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3 lg:space-y-5'}>
           {navSections.slice(0, 2).map((section) => (
-            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
-              {!collapsed && (
-                <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
-                  {section.heading}
-                </p>
-              )}
+            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
+              {renderSectionHeading(section.heading)}
               <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
                 {section.items.map((item) => renderNavItem(item))}
               </ul>
             </div>
           ))}
           {renderReportsSection()}
-          <div className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
-            {!collapsed && (
-              <p className={`text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85 ${isMobileDrawer ? 'px-3' : 'px-2.5'}`}>
-                {navSections[3].heading}
-              </p>
-            )}
+          <div className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
+            {renderSectionHeading(navSections[3].heading)}
             <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
               {navSections[3].items.map((item) => renderNavItem(item))}
             </ul>

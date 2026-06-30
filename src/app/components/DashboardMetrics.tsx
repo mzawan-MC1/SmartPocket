@@ -392,6 +392,7 @@ export default function DashboardMetrics({
   const renderMetricCard = (metric: DashboardMetricCard) => {
     const Icon = metric.icon;
     const isHero = metric.hero;
+    const isBalanceCard = metric.id === 'metric-balance';
     const valueClassName = isHero
       ? 'inline-flex items-baseline text-[1.48rem] font-800 tracking-[-0.03em] max-[480px]:text-[1.22rem] md:text-[1.42rem]'
       : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] max-[480px]:text-[1.02rem] md:text-[1.14rem]';
@@ -410,10 +411,10 @@ export default function DashboardMetrics({
           metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
         }`}
       >
-        <div className="mb-1.5 flex items-start justify-between gap-2.5">
-          <div className="min-w-0">
+        <div className="mb-1.5 flex items-start justify-between gap-2.5 lg:mb-2">
+          <div className="min-w-0 lg:space-y-2">
             <p className="text-[13px] font-700 leading-[1.25rem] text-foreground max-[480px]:text-[12px] max-[480px]:leading-[1.1rem]">{metric.label}</p>
-            <div className="mt-0.5 font-tabular leading-tight text-foreground">
+            <div className="mt-0.5 font-tabular leading-tight text-foreground lg:mt-0">
               {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
             </div>
           </div>
@@ -421,7 +422,7 @@ export default function DashboardMetrics({
             <Icon size={18} className={`${metric.iconColor} max-[480px]:h-4 max-[480px]:w-4`} />
           </div>
         </div>
-        <div className="mt-auto space-y-1">
+        <div className="mt-auto space-y-1.5 lg:space-y-2">
           <div className="flex items-start gap-1.5">
             {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
             {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
@@ -432,13 +433,15 @@ export default function DashboardMetrics({
               }`}>
                 {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
               </div>
-              <p className="mt-1 text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2">
+              <p className="mt-1.5 text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2 lg:mt-2">
                 {helperChangeLabel}
               </p>
             </div>
           </div>
           {metric.subtext ? (
-            <p className="text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem]">{metric.subtext}</p>
+            <p className={`text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] ${isBalanceCard ? 'lg:hidden' : ''}`}>
+              {metric.subtext}
+            </p>
           ) : null}
           {renderMetricDetails(metric.valueMetric)}
         </div>
