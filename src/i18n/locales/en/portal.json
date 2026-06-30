@@ -2954,6 +2954,14 @@
       "saveChanges": "Save Changes",
       "reminderOption_one": "{{count}} day",
       "reminderOption_other": "{{count}} days",
+      "moreOptions": {
+        "title": "More options",
+        "description": "Payment method, reminders, cancellation tracking, and notes.",
+        "reminders": "Reminders",
+        "reminderTiming": "Reminder timing",
+        "multipleReminders": "Multiple reminders",
+        "openForDetails": "Open more options for reminder details"
+      },
       "sections": {
         "basic": "Basic Information",
         "basicDescription": "Name the service and define how it should appear in your records.",
@@ -2997,7 +3005,9 @@
       "errors": {
         "nameRequired": "Subscription name is required.",
         "amountRequired": "Amount is required.",
-        "amountMin": "Amount cannot be negative."
+        "amountMin": "Amount cannot be negative.",
+        "nextBillingRequired": "Next billing date is required.",
+        "accountRequired": "Financial account is required."
       },
       "helpers": {
         "billingInterval": "Use this for custom billing intervals or longer repeating gaps.",

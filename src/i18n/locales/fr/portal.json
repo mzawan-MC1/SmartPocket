@@ -2549,6 +2549,14 @@
       "saveChanges": "Enregistrer les modifications",
       "reminderOption_one": "{{count}} jour",
       "reminderOption_other": "{{count}} jours",
+      "moreOptions": {
+        "title": "Plus d options",
+        "description": "Methode de paiement, rappels, suivi d annulation et notes.",
+        "reminders": "Rappels",
+        "reminderTiming": "Moment du rappel",
+        "multipleReminders": "Rappels multiples",
+        "openForDetails": "Ouvrir Plus d options pour les details de rappel"
+      },
       "sections": {
         "basic": "Informations de base",
         "basicDescription": "Nommez le service et choisissez son affichage dans vos enregistrements.",
@@ -2592,7 +2600,9 @@
       "errors": {
         "nameRequired": "Le nom de l abonnement est requis.",
         "amountRequired": "Le montant est requis.",
-        "amountMin": "Le montant ne peut pas etre negatif."
+        "amountMin": "Le montant ne peut pas etre negatif.",
+        "nextBillingRequired": "La prochaine date de facturation est requise.",
+        "accountRequired": "Le compte financier est requis."
       },
       "helpers": {
         "billingInterval": "Utilisez ceci pour les intervalles personnalises ou les repetitions plus longues.",

@@ -2577,6 +2577,14 @@
       "saveChanges": "حفظ التغييرات",
       "reminderOption_one": "{{count}} يوم",
       "reminderOption_other": "{{count}} أيام",
+      "moreOptions": {
+        "title": "مزيد من الخيارات",
+        "description": "طريقة الدفع والتذكيرات وتتبع الإلغاء والملاحظات.",
+        "reminders": "التذكيرات",
+        "reminderTiming": "توقيت التذكير",
+        "multipleReminders": "تذكيرات متعددة",
+        "openForDetails": "افتح مزيدًا من الخيارات لتفاصيل التذكير"
+      },
       "sections": {
         "basic": "المعلومات الأساسية",
         "basicDescription": "سمِّ الخدمة وحدد كيف تظهر في سجلاتك.",
@@ -2620,7 +2628,9 @@
       "errors": {
         "nameRequired": "اسم الاشتراك مطلوب.",
         "amountRequired": "المبلغ مطلوب.",
-        "amountMin": "لا يمكن أن يكون المبلغ سالبًا."
+        "amountMin": "لا يمكن أن يكون المبلغ سالبًا.",
+        "nextBillingRequired": "تاريخ الفوترة القادم مطلوب.",
+        "accountRequired": "الحساب المالي مطلوب."
       },
       "helpers": {
         "billingInterval": "استخدم هذا للفواصل المخصصة أو للفترات المتكررة الأطول.",
