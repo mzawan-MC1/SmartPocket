@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import FormSection from '@/components/ui/FormSection';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
   getFieldErrorTextClassName,
@@ -586,7 +587,21 @@ export default function RecurringTransactionForm({
       </div>
 
       {spaceId ? (
-        <div className={`space-y-4 rounded-xl border bg-muted/10 p-4 ${fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40 bg-negative-soft/20' : 'border-border'}`}>
+        <FormSection
+          variant="secondary"
+          title={spaceName
+            ? t('transactions.form.spaceDetailsTitle', {
+              ns: 'portal',
+              defaultValue: 'Space details for {{space}}',
+              space: spaceName,
+            })
+            : t('transactions.form.spaceDetailsTitleGeneric', {
+              ns: 'portal',
+              defaultValue: 'Space details',
+            })}
+          className={fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40' : ''}
+          bodyClassName="space-y-4"
+        >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
@@ -691,7 +706,7 @@ export default function RecurringTransactionForm({
               <p className={getFieldErrorTextClassName()}>{fieldErrors.exact_allocations}</p>
             ) : null}
           </div>
-        </div>
+        </FormSection>
       ) : null}
 
       {submitError && Object.keys(fieldErrors).length === 0 ? (

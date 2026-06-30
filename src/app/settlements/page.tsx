@@ -44,6 +44,7 @@ import {
   type SpaceRole,
 } from '@/lib/spaces';
 import PageHeader from '@/components/ui/PageHeader';
+import FormSection from '@/components/ui/FormSection';
 import SearchField from '@/components/ui/SearchField';
 import StatusBadge from '@/components/ui/StatusBadge';
 
@@ -442,354 +443,360 @@ function NewSettlementModal({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          {mode === 'space' ? (
-            <>
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                <div className="md:col-span-3">
-                  <label className={getFieldLabelClassName(Boolean(fieldErrors.selectedSpaceId))}>
-                    {t('settlements.space', { defaultValue: 'Space' })}
-                  </label>
-                  <select
-                    value={selectedSpaceId}
-                    onChange={(e) => {
-                      clearFieldError('selectedSpaceId');
-                      onSelectedSpaceChange(e.target.value);
-                    }}
-                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.selectedSpaceId))}
-                  >
-                    <option value="">{t('settlements.selectSpace', { defaultValue: 'Select Space' })}</option>
-                    {spaces.map((space) => (
-                      <option key={space.id} value={space.id}>
-                        {space.name}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.selectedSpaceId ? <p className={getFieldErrorTextClassName()}>{fieldErrors.selectedSpaceId}</p> : null}
-                </div>
-                <div>
-                  <label className={getFieldLabelClassName(Boolean(fieldErrors.payerKey))}>
-                    {t('settlements.payer', { defaultValue: 'Payer' })}
-                  </label>
-                  <select
-                    value={payerKey}
-                    onChange={(e) => {
-                      clearFieldError('payerKey');
-                      setPayerKey(e.target.value);
-                    }}
-                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.payerKey))}
-                  >
-                    <option value="">{t('settlements.selectPayer', { defaultValue: 'Select payer' })}</option>
-                    {participantOptions.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.payerKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.payerKey}</p> : null}
-                </div>
-                <div>
-                  <label className={getFieldLabelClassName(Boolean(fieldErrors.receiverKey))}>
-                    {t('settlements.receiver', { defaultValue: 'Receiver' })}
-                  </label>
-                  <select
-                    value={receiverKey}
-                    onChange={(e) => {
-                      clearFieldError('receiverKey');
-                      setReceiverKey(e.target.value);
-                    }}
-                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.receiverKey))}
-                  >
-                    <option value="">{t('settlements.selectReceiver', { defaultValue: 'Select receiver' })}</option>
-                    {participantOptions.map((option) => (
-                      <option key={option.key} value={option.key}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldErrors.receiverKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.receiverKey}</p> : null}
-                </div>
-                <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">
-                    {t('settlements.currency')}
-                  </label>
-                  <CurrencySelector
-                    value={currency}
-                    onChange={setCurrency}
-                    placeholder={t('settlements.chooseCurrency')}
-                  />
-                </div>
-              </div>
-
-              <div className={`rounded-xl border p-4 ${fieldErrors.space_allocations ? 'border-negative/40 bg-negative-soft/20' : 'border-border bg-muted/10'}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
-                      {t('settlements.eligibleOutstanding', { defaultValue: 'Eligible outstanding reimbursements' })}
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t('settlements.partialOrFull', {
-                        defaultValue: 'Select one or more reimbursements and adjust each allocation for a partial or full settlement.',
-                      })}
-                    </p>
+          <FormSection
+            variant="primary"
+            title={mode === 'space' ? t('settlements.newSettlement') : t('settlements.recordSettlement')}
+            bodyClassName="space-y-4"
+          >
+            {mode === 'space' ? (
+              <>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  <div className="md:col-span-3">
+                    <label className={getFieldLabelClassName(Boolean(fieldErrors.selectedSpaceId))}>
+                      {t('settlements.space', { defaultValue: 'Space' })}
+                    </label>
+                    <select
+                      value={selectedSpaceId}
+                      onChange={(e) => {
+                        clearFieldError('selectedSpaceId');
+                        onSelectedSpaceChange(e.target.value);
+                      }}
+                      className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.selectedSpaceId))}
+                    >
+                      <option value="">{t('settlements.selectSpace', { defaultValue: 'Select Space' })}</option>
+                      {spaces.map((space) => (
+                        <option key={space.id} value={space.id}>
+                          {space.name}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.selectedSpaceId ? <p className={getFieldErrorTextClassName()}>{fieldErrors.selectedSpaceId}</p> : null}
                   </div>
-                  <div className="text-right">
-                    <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
-                      {t('settlements.allocatedTotal', { defaultValue: 'Allocated total' })}
-                    </p>
+                  <div>
+                    <label className={getFieldLabelClassName(Boolean(fieldErrors.payerKey))}>
+                      {t('settlements.payer', { defaultValue: 'Payer' })}
+                    </label>
+                    <select
+                      value={payerKey}
+                      onChange={(e) => {
+                        clearFieldError('payerKey');
+                        setPayerKey(e.target.value);
+                      }}
+                      className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.payerKey))}
+                    >
+                      <option value="">{t('settlements.selectPayer', { defaultValue: 'Select payer' })}</option>
+                      {participantOptions.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.payerKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.payerKey}</p> : null}
+                  </div>
+                  <div>
+                    <label className={getFieldLabelClassName(Boolean(fieldErrors.receiverKey))}>
+                      {t('settlements.receiver', { defaultValue: 'Receiver' })}
+                    </label>
+                    <select
+                      value={receiverKey}
+                      onChange={(e) => {
+                        clearFieldError('receiverKey');
+                        setReceiverKey(e.target.value);
+                      }}
+                      className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.receiverKey))}
+                    >
+                      <option value="">{t('settlements.selectReceiver', { defaultValue: 'Select receiver' })}</option>
+                      {participantOptions.map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    {fieldErrors.receiverKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.receiverKey}</p> : null}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-600 text-foreground mb-1.5">
+                      {t('settlements.currency')}
+                    </label>
+                    <CurrencySelector
+                      value={currency}
+                      onChange={setCurrency}
+                      placeholder={t('settlements.chooseCurrency')}
+                    />
+                  </div>
+                </div>
+
+                <div className={`rounded-xl border p-4 ${fieldErrors.space_allocations ? 'border-negative/40 bg-negative-soft/10' : 'border-border bg-card'}`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                        {t('settlements.eligibleOutstanding', { defaultValue: 'Eligible outstanding reimbursements' })}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t('settlements.partialOrFull', {
+                          defaultValue: 'Select one or more reimbursements and adjust each allocation for a partial or full settlement.',
+                        })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                        {t('settlements.allocatedTotal', { defaultValue: 'Allocated total' })}
+                      </p>
+                      <FormattedCurrencyAmount
+                        amount={selectedSpaceTotal}
+                        currencyCode={currency || requiredCurrency || ''}
+                        className="text-sm font-700 text-foreground"
+                        showCode
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {eligibleSpaceReimbursements.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t('settlements.noEligibleReimbursements', {
+                          defaultValue: 'No outstanding reimbursements match the selected payer and receiver.',
+                        })}
+                      </p>
+                    ) : (
+                      eligibleSpaceReimbursements.map((reimbursement) => {
+                        const outstanding = getOutstandingAmount(reimbursement);
+                        return (
+                          <div key={reimbursement.id} className="rounded-xl border border-border bg-card p-3">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                              <label className="flex flex-1 cursor-pointer items-start gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={spaceAllocationSelection[reimbursement.id] ?? false}
+                                  onChange={(e) => {
+                                    clearFieldError('space_allocations');
+                                    setSpaceAllocationSelection((current) => ({
+                                      ...current,
+                                      [reimbursement.id]: e.target.checked,
+                                    }));
+                                  }}
+                                  className="mt-1 rounded"
+                                />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-600 text-foreground">{reimbursement.description}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {t('settlements.outstandingForReimbursement', {
+                                      defaultValue: 'Outstanding',
+                                    })}
+                                    {': '}
+                                    <FormattedCurrencyAmount
+                                      amount={outstanding}
+                                      currencyCode={reimbursement.currency}
+                                      className="inline-flex text-xs text-muted-foreground"
+                                      showCode
+                                    />
+                                  </p>
+                                  {reimbursement.transaction?.description ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      {t('settlements.originatingTransaction', {
+                                        defaultValue: 'Origin: {{description}}',
+                                        description: reimbursement.transaction.description,
+                                      })}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </label>
+                              <div className="w-full md:w-40">
+                                <label className="mb-1 block text-xs font-600 text-muted-foreground">
+                                  {t('settlements.allocateAmount', { defaultValue: 'Allocate amount' })}
+                                </label>
+                                <input
+                                  id={`settlement-allocation-${reimbursement.id}`}
+                                  type="number"
+                                  min="0.01"
+                                  max={outstanding}
+                                  step="0.01"
+                                  value={spaceAllocationAmounts[reimbursement.id] || ''}
+                                  onChange={(e) => {
+                                    clearFieldError('space_allocations');
+                                    setSpaceAllocationAmounts((current) => ({
+                                      ...current,
+                                      [reimbursement.id]: e.target.value,
+                                    }));
+                                  }}
+                                  className={getFieldInputClassName('w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.space_allocations))}
+                                  aria-invalid={fieldErrors.space_allocations ? 'true' : 'false'}
+                                  aria-describedby={spaceAllocationsErrorId}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                  {fieldErrors.space_allocations ? <p id={spaceAllocationsErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.space_allocations}</p> : null}
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className={getFieldLabelClassName(Boolean(fieldErrors.personId))}>{t('settlements.person')} <span className="text-negative">*</span></label>
+                <select
+                  id="settlement-person"
+                  value={personId}
+                  onChange={(e) => {
+                    clearFieldError('personId');
+                    setPersonId(e.target.value);
+                  }}
+                  className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.personId))}
+                  aria-invalid={fieldErrors.personId ? 'true' : 'false'}
+                  aria-describedby={personErrorId}
+                >
+                  <option value="">{t('settlements.selectPerson')}</option>
+                  {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
+                </select>
+                {fieldErrors.personId ? <p id={personErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.personId}</p> : null}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('settlements.amount')} <span className="text-negative">*</span></label>
+                {mode === 'space' ? (
+                  <div className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-600 text-foreground">
                     <FormattedCurrencyAmount
                       amount={selectedSpaceTotal}
                       currencyCode={currency || requiredCurrency || ''}
-                      className="text-sm font-700 text-foreground"
+                      className="text-sm font-600 text-foreground"
                       showCode
                     />
                   </div>
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  {eligibleSpaceReimbursements.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t('settlements.noEligibleReimbursements', {
-                        defaultValue: 'No outstanding reimbursements match the selected payer and receiver.',
-                      })}
-                    </p>
-                  ) : (
-                    eligibleSpaceReimbursements.map((reimbursement) => {
-                      const outstanding = getOutstandingAmount(reimbursement);
-                      return (
-                        <div key={reimbursement.id} className="rounded-xl border border-border bg-card p-3">
-                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                            <label className="flex flex-1 cursor-pointer items-start gap-3">
-                              <input
-                                type="checkbox"
-                                checked={spaceAllocationSelection[reimbursement.id] ?? false}
-                                onChange={(e) => {
-                                  clearFieldError('space_allocations');
-                                  setSpaceAllocationSelection((current) => ({
-                                    ...current,
-                                    [reimbursement.id]: e.target.checked,
-                                  }));
-                                }}
-                                className="mt-1 rounded"
-                              />
-                              <div className="min-w-0">
-                                <p className="text-sm font-600 text-foreground">{reimbursement.description}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {t('settlements.outstandingForReimbursement', {
-                                    defaultValue: 'Outstanding',
-                                  })}
-                                  {': '}
-                                  <FormattedCurrencyAmount
-                                    amount={outstanding}
-                                    currencyCode={reimbursement.currency}
-                                    className="inline-flex text-xs text-muted-foreground"
-                                    showCode
-                                  />
-                                </p>
-                                {reimbursement.transaction?.description ? (
-                                  <p className="text-xs text-muted-foreground">
-                                    {t('settlements.originatingTransaction', {
-                                      defaultValue: 'Origin: {{description}}',
-                                      description: reimbursement.transaction.description,
-                                    })}
-                                  </p>
-                                ) : null}
-                              </div>
-                            </label>
-                            <div className="w-full md:w-40">
-                              <label className="mb-1 block text-xs font-600 text-muted-foreground">
-                                {t('settlements.allocateAmount', { defaultValue: 'Allocate amount' })}
-                              </label>
-                              <input
-                                id={`settlement-allocation-${reimbursement.id}`}
-                                type="number"
-                                min="0.01"
-                                max={outstanding}
-                                step="0.01"
-                                value={spaceAllocationAmounts[reimbursement.id] || ''}
-                                onChange={(e) => {
-                                  clearFieldError('space_allocations');
-                                  setSpaceAllocationAmounts((current) => ({
-                                    ...current,
-                                    [reimbursement.id]: e.target.value,
-                                  }));
-                                }}
-                                className={getFieldInputClassName('w-full px-3 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.space_allocations))}
-                                aria-invalid={fieldErrors.space_allocations ? 'true' : 'false'}
-                                aria-describedby={spaceAllocationsErrorId}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-                {fieldErrors.space_allocations ? <p id={spaceAllocationsErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.space_allocations}</p> : null}
-              </div>
-            </>
-          ) : (
-            <div>
-              <label className={getFieldLabelClassName(Boolean(fieldErrors.personId))}>{t('settlements.person')} <span className="text-negative">*</span></label>
-              <select
-                id="settlement-person"
-                value={personId}
-                onChange={(e) => {
-                  clearFieldError('personId');
-                  setPersonId(e.target.value);
-                }}
-                className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.personId))}
-                aria-invalid={fieldErrors.personId ? 'true' : 'false'}
-                aria-describedby={personErrorId}
-              >
-                <option value="">{t('settlements.selectPerson')}</option>
-                {people.map((p) => <option key={p.id} value={p.id}>{p.full_name}</option>)}
-              </select>
-              {fieldErrors.personId ? <p id={personErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.personId}</p> : null}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('settlements.amount')} <span className="text-negative">*</span></label>
-              {mode === 'space' ? (
-                <div className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-sm font-600 text-foreground">
-                  <FormattedCurrencyAmount
-                    amount={selectedSpaceTotal}
-                    currencyCode={currency || requiredCurrency || ''}
-                    className="text-sm font-600 text-foreground"
-                    showCode
+                ) : (
+                  <input
+                    id="settlement-amount"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => {
+                      clearFieldError('amount');
+                      setAmount(e.target.value);
+                    }}
+                    placeholder={t('settlements.amountPlaceholder')}
+                    min="0.01"
+                    step="0.01"
+                    className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.amount))}
+                    aria-invalid={fieldErrors.amount ? 'true' : 'false'}
+                    aria-describedby={amountErrorId}
                   />
+                )}
+                {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
+              </div>
+              <div>
+                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency')}</label>
+                <CurrencySelector
+                  value={currency}
+                  onChange={setCurrency}
+                  placeholder={t('settlements.chooseCurrency')}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.date')}</label>
+              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.paymentMethod')}</label>
+              {mode === 'space' ? (
+                <div className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+                  {t('settlements.offPlatform', { defaultValue: 'Off-platform settlement' })}
                 </div>
               ) : (
-                <input
-                  id="settlement-amount"
-                  type="number"
-                  value={amount}
-                  onChange={(e) => {
-                    clearFieldError('amount');
-                    setAmount(e.target.value);
-                  }}
-                  placeholder={t('settlements.amountPlaceholder')}
-                  min="0.01"
-                  step="0.01"
-                  className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.amount))}
-                  aria-invalid={fieldErrors.amount ? 'true' : 'false'}
-                  aria-describedby={amountErrorId}
-                />
+                <select value={method} onChange={(e) => setMethod(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
+                  <option value="cash">{t('settlements.methods.cash')}</option>
+                  <option value="bank_transfer">{t('settlements.methods.bankTransfer')}</option>
+                  <option value="card">{t('settlements.methods.card')}</option>
+                  <option value="digital_wallet">{t('settlements.methods.digitalWallet')}</option>
+                  <option value="other">{t('settlements.methods.other')}</option>
+                </select>
               )}
-              {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
             </div>
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.currency')}</label>
-              <CurrencySelector
-                value={currency}
-                onChange={setCurrency}
-                placeholder={t('settlements.chooseCurrency')}
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.date')}</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.paymentMethod')}</label>
             {mode === 'space' ? (
-              <div className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/10 text-sm text-muted-foreground">
-                {t('settlements.offPlatform', { defaultValue: 'Off-platform settlement' })}
+              <div className="rounded-xl border border-border bg-card p-4">
+                <p className="text-sm text-muted-foreground">
+                  {secureSettlementAccountMovementAvailable
+                    ? t('settlements.optionalAccountMovement', {
+                      defaultValue: 'Secure account movement is available for this settlement.',
+                    })
+                    : t('settlements.accountMovementUnavailable', {
+                      defaultValue: 'Account movement is temporarily hidden until secure destination account options are available. Off-platform settlement remains available.',
+                    })}
+                </p>
               </div>
             ) : (
-              <select value={method} onChange={(e) => setMethod(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-                <option value="cash">{t('settlements.methods.cash')}</option>
-                <option value="bank_transfer">{t('settlements.methods.bankTransfer')}</option>
-                <option value="card">{t('settlements.methods.card')}</option>
-                <option value="digital_wallet">{t('settlements.methods.digitalWallet')}</option>
-                <option value="other">{t('settlements.methods.other')}</option>
-              </select>
-            )}
-          </div>
-
-          {mode === 'space' ? (
-            <div className="rounded-xl border border-border bg-muted/10 p-4 space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {secureSettlementAccountMovementAvailable
-                  ? t('settlements.optionalAccountMovement', {
-                    defaultValue: 'Secure account movement is available for this settlement.',
-                  })
-                  : t('settlements.accountMovementUnavailable', {
-                    defaultValue: 'Account movement is temporarily hidden until secure destination account options are available. Off-platform settlement remains available.',
-                  })}
-              </p>
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.receivingAccount')}</label>
-              <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
-                <option value="">{t('settlements.noneExternal')}</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {getFinancialAccountDisplayLabel(a, {
-                      includeCurrency: true,
-                      includeDefaultLabel: true,
-                    })}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label className={getFieldLabelClassName(Boolean(fieldErrors.description))}>{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
-            <input
-              id="settlement-description"
-              type="text"
-              value={description}
-              onChange={(e) => {
-                clearFieldError('description');
-                setDescription(e.target.value);
-              }}
-              placeholder={t('settlements.descriptionPlaceholder')}
-              className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.description))}
-              aria-invalid={fieldErrors.description ? 'true' : 'false'}
-              aria-describedby={descriptionErrorId}
-            />
-            {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
-          </div>
-
-          {mode === 'personal' && personReimbs.length > 0 && (
-            <div>
-              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.clearReimbursements')}</label>
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {personReimbs.map((r) => (
-                  <label key={r.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-muted">
-                    <input type="checkbox" checked={selectedReimbs.includes(r.id)}
-                      onChange={(e) => setSelectedReimbs(e.target.checked
-                        ? [...selectedReimbs, r.id]
-                        : selectedReimbs.filter((id) => id !== r.id))}
-                      className="rounded" />
-                    <span className="text-sm text-foreground flex-1">{r.description}</span>
-                    <FormattedCurrencyAmount
-                      amount={Number(r.amount) - Number(r.amount_paid)}
-                      currencyCode={r.currency}
-                      className="text-xs text-muted-foreground"
-                      showCode
-                    />
-                  </label>
-                ))}
+              <div>
+                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.receivingAccount')}</label>
+                <select value={accountId} onChange={(e) => setAccountId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30">
+                  <option value="">{t('settlements.noneExternal')}</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {getFinancialAccountDisplayLabel(a, {
+                        includeCurrency: true,
+                        includeDefaultLabel: true,
+                      })}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-          )}
+            )}
 
-          <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.notes')}</label>
-            <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('settlements.optional')}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
-          </div>
+            <div>
+              <label className={getFieldLabelClassName(Boolean(fieldErrors.description))}>{t('settlements.descriptionLabel')} <span className="text-negative">*</span></label>
+              <input
+                id="settlement-description"
+                type="text"
+                value={description}
+                onChange={(e) => {
+                  clearFieldError('description');
+                  setDescription(e.target.value);
+                }}
+                placeholder={t('settlements.descriptionPlaceholder')}
+                className={getFieldInputClassName('w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30', Boolean(fieldErrors.description))}
+                aria-invalid={fieldErrors.description ? 'true' : 'false'}
+                aria-describedby={descriptionErrorId}
+              />
+              {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
+            </div>
+
+            {mode === 'personal' && personReimbs.length > 0 && (
+              <div>
+                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.clearReimbursements')}</label>
+                <div className="max-h-32 space-y-2 overflow-y-auto">
+                  {personReimbs.map((r) => (
+                    <label key={r.id} className="flex cursor-pointer items-center gap-2 rounded-lg p-2 hover:bg-muted">
+                      <input type="checkbox" checked={selectedReimbs.includes(r.id)}
+                        onChange={(e) => setSelectedReimbs(e.target.checked
+                          ? [...selectedReimbs, r.id]
+                          : selectedReimbs.filter((id) => id !== r.id))}
+                        className="rounded" />
+                      <span className="flex-1 text-sm text-foreground">{r.description}</span>
+                      <FormattedCurrencyAmount
+                        amount={Number(r.amount) - Number(r.amount_paid)}
+                        currencyCode={r.currency}
+                        className="text-xs text-muted-foreground"
+                        showCode
+                      />
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-600 text-foreground mb-1.5">{t('settlements.notes')}</label>
+              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('settlements.optional')}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30" />
+            </div>
+          </FormSection>
 
           {mode === 'space' ? (
             <div className="rounded-xl border border-info/20 bg-info-soft/40 p-4">

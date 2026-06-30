@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
+import FormSection from '@/components/ui/FormSection';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
@@ -442,7 +443,12 @@ export default function PersonalSubscriptionForm({
 
   return (
     <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-[640px]:space-y-4" noValidate>
-      <section className="space-y-4 max-[640px]:space-y-3">
+      <FormSection
+        variant="primary"
+        title={t('personalSubscriptions.formTitle', { ns: 'portal' })}
+        description={t('personalSubscriptions.formDescription', { ns: 'portal' })}
+        bodyClassName="space-y-4 max-[640px]:space-y-3"
+      >
         <div>
           <label htmlFor="subscription-name" className={compactFieldLabelClassName(Boolean(errors.name))}>
             {t('personalSubscriptions.form.fields.name', { ns: 'portal' })}
@@ -574,28 +580,29 @@ export default function PersonalSubscriptionForm({
           </label>
         </div>
 
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left max-[640px]:px-3.5 max-[640px]:py-2.5"
-          aria-expanded={moreOptionsOpen ? 'true' : 'false'}
-          onClick={() => setMoreOptionsOpen((value) => !value)}
-        >
-          <div>
-            <div className="text-sm font-800 text-foreground max-[640px]:text-[13px] max-[640px]:leading-4">
-              {t('personalSubscriptions.form.moreOptions.title', { ns: 'portal' })}
-            </div>
-            {subscription?.id && moreOptionsOpen ? null : (
-              <div className="mt-0.5 text-xs leading-4 text-muted-foreground max-[640px]:text-[11px]">
-                {t('personalSubscriptions.form.moreOptions.description', { ns: 'portal' })}
-              </div>
-            )}
-          </div>
-          {moreOptionsOpen ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
-        </button>
-      </section>
+      </FormSection>
 
-      {moreOptionsOpen ? (
-        <section className="space-y-5 border-t border-border pt-5 max-[640px]:space-y-4 max-[640px]:pt-4">
+      <FormSection
+        variant="secondary"
+        title={t('personalSubscriptions.form.moreOptions.title', { ns: 'portal' })}
+        description={subscription?.id && moreOptionsOpen
+          ? undefined
+          : t('personalSubscriptions.form.moreOptions.description', { ns: 'portal' })}
+        action={(
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
+            aria-expanded={moreOptionsOpen ? 'true' : 'false'}
+            aria-label={t('personalSubscriptions.form.moreOptions.title', { ns: 'portal' })}
+            onClick={() => setMoreOptionsOpen((value) => !value)}
+          >
+            {moreOptionsOpen ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
+          </button>
+        )}
+        bodyClassName="space-y-5 max-[640px]:space-y-4"
+      >
+        {moreOptionsOpen ? (
+        <section className="space-y-5 max-[640px]:space-y-4">
           <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-provider" className={compactFieldLabelClassName(false)}>
@@ -783,6 +790,7 @@ export default function PersonalSubscriptionForm({
           </div>
         </section>
       ) : null}
+      </FormSection>
 
       <div className={`flex flex-col gap-2 border-t border-border pt-4 max-[640px]:gap-1.5 max-[640px]:pt-3 sm:flex-row ${isRTL ? 'sm:justify-start sm:flex-row-reverse' : 'sm:justify-end'}`}>
         <button type="button" onClick={onCancel} className="order-2 btn-secondary max-[640px]:min-h-[2.5rem] max-[640px]:border-transparent max-[640px]:bg-transparent max-[640px]:px-3 max-[640px]:py-2 max-[640px]:text-sm max-[640px]:text-muted-foreground sm:order-1">

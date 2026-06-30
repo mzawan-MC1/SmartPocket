@@ -19,6 +19,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import FormSection from '@/components/ui/FormSection';
 import CurrencySelector from '@/components/CurrencySelector';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
@@ -150,14 +151,6 @@ interface TransactionDraftRow extends TxnFormData {
 }
 
 const MAX_BATCH_ROWS = 20;
-const TRANSACTION_GROUP_SURFACE =
-  'border-slate-200/80 bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(243,248,255,0.94))] shadow-[0_1px_2px_rgba(15,23,42,0.03),0_10px_24px_-22px_rgba(14,116,144,0.28)]';
-const TRANSACTION_GROUP_SURFACE_SOFT =
-  'border-sky-200/60 bg-[linear-gradient(165deg,rgba(248,252,255,0.96),rgba(238,247,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]';
-const TRANSACTION_GROUP_SURFACE_LAVENDER =
-  'border-violet-200/55 bg-[linear-gradient(165deg,rgba(251,249,255,0.96),rgba(244,241,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]';
-const TRANSACTION_GROUP_SURFACE_SUBTLE =
-  'border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(246,250,253,0.86))]';
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -1548,26 +1541,25 @@ export default function AddTransactionModal({
                 const getFieldError = (field: TransactionFieldKey) => rowFieldErrorMap[field]?.[0] || null;
 
                 return (
-                  <div
+                  <FormSection
                     key={row.id}
-                    className={`rounded-2xl border ${rowHasErrors.length > 0 ? 'border-negative/40 bg-negative-soft/10' : TRANSACTION_GROUP_SURFACE}`}
+                    variant="primary"
+                    title={rowLabel}
+                    className={rowHasErrors.length > 0 ? 'border-negative/40' : ''}
+                    action={transactionMode === 'multiple' && !editingTransaction ? (
+                      <button
+                        type="button"
+                        onClick={() => removeDraftRow(row.id, index)}
+                        disabled={draftRows.length === 1 || isSaving}
+                        className="btn-ghost px-2 py-1 text-xs text-negative disabled:opacity-40"
+                        aria-label={t('transactions.form.removeTransaction', { ns: 'portal', index: index + 1 })}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : null}
+                    bodyClassName="p-3 pt-2.5 max-[480px]:space-y-4 max-[480px]:px-3.5"
                   >
-                    <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-2">
-                      <p className="text-sm font-700 text-foreground">{rowLabel}</p>
-                      {transactionMode === 'multiple' && !editingTransaction ? (
-                        <button
-                          type="button"
-                          onClick={() => removeDraftRow(row.id, index)}
-                          disabled={draftRows.length === 1 || isSaving}
-                          className="btn-ghost px-2 py-1 text-xs text-negative disabled:opacity-40"
-                          aria-label={t('transactions.form.removeTransaction', { ns: 'portal', index: index + 1 })}
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-col space-y-2 px-3 py-2.5 max-[480px]:space-y-4 max-[480px]:px-3.5">
+                    <div className="flex flex-col space-y-2 max-[480px]:space-y-4">
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
@@ -1647,19 +1639,19 @@ export default function AddTransactionModal({
                           </div>
 
                           {selectedSubscription ? (
-                            <div className={`rounded-2xl border p-3 max-[480px]:order-1 ${TRANSACTION_GROUP_SURFACE_LAVENDER}`}>
+                            <div className="rounded-2xl border border-border bg-card p-3 max-[480px]:order-1">
                               <div className="mb-2 flex items-center gap-2 text-sm font-600 text-foreground">
                                 <RefreshCw size={14} className="text-accent" />
                                 <span>{t('transactions.form.subscriptionPaymentSummary', { ns: 'portal' })}</span>
                               </div>
                               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.personalSubscriptionLabel', { ns: 'portal' })}
                                   </p>
                                   <p className="mt-1 text-sm font-600 text-foreground">{selectedSubscription.name}</p>
                                 </div>
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })}
                                   </p>
@@ -1682,7 +1674,7 @@ export default function AddTransactionModal({
                                       : t('transactions.noAccount', { ns: 'portal' })}
                                   </p>
                                 </div>
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.category', { ns: 'portal' })}
                                   </p>
@@ -1695,7 +1687,7 @@ export default function AddTransactionModal({
                                       : t('transactions.noCategory', { ns: 'portal' })}
                                   </p>
                                 </div>
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.amount', { ns: 'portal' })}
                                   </p>
@@ -1703,7 +1695,7 @@ export default function AddTransactionModal({
                                     {selectedSubscription.currency_code} {selectedSubscription.amount.toFixed(2)}
                                   </p>
                                 </div>
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.merchantLabel', { ns: 'portal' })}
                                   </p>
@@ -1711,7 +1703,7 @@ export default function AddTransactionModal({
                                     {selectedSubscription.provider || t('notAvailable', { ns: 'common' })}
                                   </p>
                                 </div>
-                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
+                                <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.descriptionLabel', { ns: 'portal' })}
                                   </p>
@@ -1804,7 +1796,7 @@ export default function AddTransactionModal({
                             )}
                           </div>
 
-                          <div className={`rounded-2xl border p-2 max-[480px]:order-1 max-[480px]:space-y-3 ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
+                          <div className="rounded-2xl border border-border bg-card p-2 max-[480px]:order-1 max-[480px]:space-y-3">
                             <div className="max-[480px]:hidden">
                               <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-sm font-600')}>
                                 {t('transactions.amount', { ns: 'portal' })} *
@@ -1918,474 +1910,480 @@ export default function AddTransactionModal({
                       )}
 
                       {!isSubscriptionPaymentRow ? (
-                      <div className={`rounded-xl border max-[480px]:order-6 ${TRANSACTION_GROUP_SURFACE_LAVENDER}`}>
-                        <button
-                          type="button"
-                          onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
-                          aria-expanded={row.showMoreOptions}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-600 text-foreground"
+                        <FormSection
+                          variant="secondary"
+                          title={t('transactions.form.moreDetails', { ns: 'portal' })}
+                          className="max-[480px]:order-6"
+                          action={(
+                            <button
+                              type="button"
+                              onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
+                              aria-expanded={row.showMoreOptions}
+                              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
+                              aria-label={t('transactions.form.moreDetails', { ns: 'portal' })}
+                            >
+                              {row.showMoreOptions ? <ChevronUpIcon size={15} /> : <ChevronDownIcon size={15} />}
+                            </button>
+                          )}
+                          bodyClassName="space-y-2"
                         >
-                          <span>{t('transactions.form.moreDetails', { ns: 'portal' })}</span>
-                          {row.showMoreOptions ? <ChevronUpIcon size={15} /> : <ChevronDownIcon size={15} />}
-                        </button>
-
-                        {row.showMoreOptions ? (
-                          <div className="space-y-2 border-t border-slate-200/75 px-3 py-2">
-                            {!isLoanRepaymentRow ? (
-                              <div>
-                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
-                                <div className="relative">
-                                  <Tag size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                  <input
-                                    type="text"
-                                    className="input-base h-9 pl-11 pr-3 text-sm"
-                                    placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
-                                    value={row.tags}
-                                    onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
-                                  />
-                                </div>
-                              </div>
-                            ) : null}
-
-                            {spaceId ? (
-                              <div className={`space-y-3 rounded-xl border p-3 ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
+                          {row.showMoreOptions ? (
+                            <>
+                              {!isLoanRepaymentRow ? (
                                 <div>
-                                  <p className="text-sm font-700 text-foreground">
-                                    {spaceName
-                                      ? t('transactions.form.spaceDetailsTitle', {
-                                        ns: 'portal',
-                                        defaultValue: 'Space details for {{space}}',
-                                        space: spaceName,
-                                      })
-                                      : t('transactions.form.spaceDetailsTitleGeneric', {
-                                        ns: 'portal',
-                                        defaultValue: 'Space details',
-                                      })}
-                                  </p>
-                                  <p className="mt-1 text-xs text-muted-foreground">
-                                    {requiresSpacePayer
-                                      ? t('transactions.form.spacePayerRequiredHelper', {
-                                        ns: 'portal',
-                                        defaultValue: 'Shared personal accounts require a payer so reimbursements and balances stay correct.',
-                                      })
-                                      : t('transactions.form.spacePayerOptionalHelper', {
-                                        ns: 'portal',
-                                        defaultValue: 'Choose who paid for this Space transaction when relevant.',
-                                      })}
-                                  </p>
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                                  <div>
-                                    <label className={getFieldLabelClassName(hasFieldError('space_payer'), 'mb-1 block text-sm font-600')}>
-                                      {t('transactions.form.spacePayerLabel', {
-                                        ns: 'portal',
-                                        defaultValue: 'Paid by',
-                                      })}
-                                      {requiresSpacePayer ? ' *' : ''}
-                                    </label>
-                                    <select
-                                      className={getFieldInputClassName('input-base h-9 text-sm', hasFieldError('space_payer'))}
-                                      value={selectedPayerKey}
-                                      onChange={(event) => {
-                                        const participant = spaceParticipants.find((option) => option.key === event.target.value) || null;
-                                        updateDraftRow(row.id, (draft) => ({
-                                          ...draft,
-                                          paid_by_user_id: participant?.member_user_id || '',
-                                          paid_by_person_id: participant?.managed_person_id || '',
-                                        }));
-                                      }}
-                                    >
-                                      <option value="">
-                                        {requiresSpacePayer
-                                          ? t('transactions.form.selectSpacePayer', {
-                                            ns: 'portal',
-                                            defaultValue: 'Select who paid',
-                                          })
-                                          : t('transactions.form.noSpacePayerSelected', {
-                                            ns: 'portal',
-                                            defaultValue: 'No payer selected',
-                                          })}
-                                      </option>
-                                      {spaceParticipants.map((participant) => (
-                                        <option key={`${row.id}-payer-${participant.key}`} value={participant.key}>
-                                          {participant.subtitle
-                                            ? `${participant.label} - ${participant.subtitle}`
-                                            : participant.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    {getFieldError('space_payer') ? (
-                                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('space_payer')}</p>
-                                    ) : null}
-                                  </div>
-                                  <div>
-                                    <label className="mb-1 block text-sm font-600 text-foreground">
-                                      {t('transactions.form.spaceSplitMethodLabel', {
-                                        ns: 'portal',
-                                        defaultValue: 'Split method',
-                                      })}
-                                    </label>
-                                    <select
-                                      className="input-base h-9 text-sm"
-                                      value={row.split_method}
-                                      onChange={(event) => {
-                                        const nextSplitMethod = event.target.value as SpaceSplitMethod;
-                                        updateDraftRow(row.id, (draft) => ({
-                                          ...draft,
-                                          split_method: nextSplitMethod,
-                                          space_allocations: draft.space_allocations.map((allocation, allocationIndex) => ({
-                                            ...allocation,
-                                            selected: nextSplitMethod === 'none'
-                                              ? allocationIndex === 0
-                                              : allocation.selected,
-                                          })),
-                                        }));
-                                      }}
-                                    >
-                                      <option value="none">{t('transactions.form.splitMethodNone', { ns: 'portal', defaultValue: 'Single beneficiary' })}</option>
-                                      <option value="equal">{t('transactions.form.splitMethodEqual', { ns: 'portal', defaultValue: 'Equal split' })}</option>
-                                      <option value="exact">{t('transactions.form.splitMethodExact', { ns: 'portal', defaultValue: 'Exact amounts' })}</option>
-                                      <option value="percentage">{t('transactions.form.splitMethodPercentage', { ns: 'portal', defaultValue: 'Percentages' })}</option>
-                                      <option value="shares">{t('transactions.form.splitMethodShares', { ns: 'portal', defaultValue: 'Shares' })}</option>
-                                    </select>
-                                  </div>
-                                </div>
-
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between gap-3">
-                                    <p className="text-sm font-600 text-foreground">
-                                      {t('transactions.form.spaceBeneficiariesLabel', {
-                                        ns: 'portal',
-                                        defaultValue: 'Beneficiaries',
-                                      })}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {t('transactions.form.spaceBeneficiariesSummary', {
-                                        ns: 'portal',
-                                        count: selectedAllocations.length,
-                                        defaultValue: '{{count}} selected',
-                                      })}
-                                    </p>
-                                  </div>
-                                  {row.space_allocations.length === 0 ? (
-                                    <p className={`rounded-xl border px-3 py-2 text-xs text-muted-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
-                                      {t('transactions.form.noSpaceParticipants', {
-                                        ns: 'portal',
-                                        defaultValue: 'No eligible Space participants are available yet.',
-                                      })}
-                                    </p>
-                                  ) : (
-                                    row.space_allocations.map((allocation) => (
-                                      <div key={`${row.id}-allocation-${allocation.participant_key}`} className={`rounded-xl border p-3 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
-                                        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                                          <label className="flex min-w-0 items-start gap-3">
-                                            <input
-                                              type="checkbox"
-                                              className="mt-1 h-4 w-4 rounded border-border accent-accent"
-                                              checked={allocation.selected}
-                                              onChange={(event) => {
-                                                const checked = event.target.checked;
-                                                updateDraftRow(row.id, (draft) => ({
-                                                  ...draft,
-                                                  space_allocations: draft.space_allocations.map((item) => {
-                                                    if (draft.split_method === 'none') {
-                                                      return {
-                                                        ...item,
-                                                        selected: item.participant_key === allocation.participant_key ? checked : false,
-                                                      };
-                                                    }
-                                                    return item.participant_key === allocation.participant_key
-                                                      ? { ...item, selected: checked }
-                                                      : item;
-                                                  }),
-                                                }));
-                                              }}
-                                            />
-                                            <span className="min-w-0">
-                                              <span className="block text-sm font-600 text-foreground">{allocation.label}</span>
-                                              {allocation.subtitle ? (
-                                                <span className="mt-1 block text-xs text-muted-foreground">{allocation.subtitle}</span>
-                                              ) : null}
-                                            </span>
-                                          </label>
-                                          {allocation.selected ? (
-                                            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                                              <input
-                                                type="checkbox"
-                                                className="h-4 w-4 rounded border-border accent-accent"
-                                                checked={allocation.reimbursement_required}
-                                                onChange={(event) => {
-                                                  updateDraftRow(row.id, (draft) => ({
-                                                    ...draft,
-                                                    space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
-                                                      ? { ...item, reimbursement_required: event.target.checked }
-                                                      : item),
-                                                  }));
-                                                }}
-                                              />
-                                              {t('transactions.form.spaceReimbursementRequired', {
-                                                ns: 'portal',
-                                                defaultValue: 'Needs reimbursement',
-                                              })}
-                                            </label>
-                                          ) : null}
-                                        </div>
-
-                                        {allocation.selected && row.split_method !== 'equal' && row.split_method !== 'none' ? (
-                                          <div className="mt-3">
-                                            {row.split_method === 'exact' ? (
-                                              <div>
-                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
-                                                  {t('transactions.form.allocatedAmountLabel', {
-                                                    ns: 'portal',
-                                                    defaultValue: 'Allocated amount',
-                                                  })}
-                                                </label>
-                                                <input
-                                                  type="number"
-                                                  step="0.01"
-                                                  min="0"
-                                                  className="input-base h-9 text-sm"
-                                                  value={allocation.allocated_amount}
-                                                  onChange={(event) => {
-                                                    updateDraftRow(row.id, (draft) => ({
-                                                      ...draft,
-                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
-                                                        ? { ...item, allocated_amount: event.target.value }
-                                                        : item),
-                                                    }));
-                                                  }}
-                                                />
-                                              </div>
-                                            ) : null}
-                                            {row.split_method === 'percentage' ? (
-                                              <div>
-                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
-                                                  {t('transactions.form.allocationPercentageLabel', {
-                                                    ns: 'portal',
-                                                    defaultValue: 'Percentage',
-                                                  })}
-                                                </label>
-                                                <input
-                                                  type="number"
-                                                  step="0.01"
-                                                  min="0"
-                                                  className="input-base h-9 text-sm"
-                                                  value={allocation.percentage}
-                                                  onChange={(event) => {
-                                                    updateDraftRow(row.id, (draft) => ({
-                                                      ...draft,
-                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
-                                                        ? { ...item, percentage: event.target.value }
-                                                        : item),
-                                                    }));
-                                                  }}
-                                                />
-                                              </div>
-                                            ) : null}
-                                            {row.split_method === 'shares' ? (
-                                              <div>
-                                                <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
-                                                  {t('transactions.form.allocationSharesLabel', {
-                                                    ns: 'portal',
-                                                    defaultValue: 'Shares',
-                                                  })}
-                                                </label>
-                                                <input
-                                                  type="number"
-                                                  step="0.01"
-                                                  min="0.01"
-                                                  className="input-base h-9 text-sm"
-                                                  value={allocation.shares}
-                                                  onChange={(event) => {
-                                                    updateDraftRow(row.id, (draft) => ({
-                                                      ...draft,
-                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
-                                                        ? { ...item, shares: event.target.value }
-                                                        : item),
-                                                    }));
-                                                  }}
-                                                />
-                                              </div>
-                                            ) : null}
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            ) : !isLoanRepaymentRow ? (
-                              <div className={`rounded-xl border overflow-hidden ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
-                              <button
-                                type="button"
-                                onClick={() => updateDraftRow(row.id, (draft) => ({
-                                  ...draft,
-                                  showManagedPerson: !draft.showManagedPerson,
-                                  ...(draft.showManagedPerson
-                                    ? {
-                                      person_id: '',
-                                      expense_owner: 'user',
-                                      paid_by: 'user',
-                                      paid_from: 'account',
-                                      use_held_balance: false,
-                                      reimbursement_required: false,
-                                      reimbursement_status: '',
-                                    }
-                                    : {}),
-                                }))}
-                                className="flex w-full items-center justify-between bg-slate-50/55 px-3 py-2 text-sm font-600 text-foreground"
-                              >
-                                <span className="flex items-center gap-2">
-                                  <Users size={14} className="text-accent" />
-                                  {t('transactions.form.managedPersonSharedExpense', { ns: 'portal' })}
-                                </span>
-                                <span className={`rounded-full px-2 py-0.5 text-[11px] font-600 ${row.showManagedPerson ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                                  {row.showManagedPerson ? t('status.active', { ns: 'common' }) : t('reimbursements.optional', { ns: 'portal' })}
-                                </span>
-                              </button>
-
-                              {row.showManagedPerson ? (
-                                <div className="space-y-2 border-t border-slate-200/75 px-3 py-2">
-                                  <div>
-                                    <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
-                                      {t('transactions.form.managedPerson', { ns: 'portal' })}
-                                    </label>
-                                    <select
-                                      className={getFieldInputClassName('input-base h-10 text-sm', hasFieldError('person_id'))}
-                                      value={row.person_id}
-                                      onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
-                                    >
-                                      <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
-                                      {people.map((person) => (
-                                        <option key={person.id} value={person.id}>{person.full_name}</option>
-                                      ))}
-                                    </select>
-                                    {getFieldError('person_id') ? (
-                                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('person_id')}</p>
-                                    ) : null}
-                                  </div>
-
-                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                                    <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.expenseBelongsTo', { ns: 'portal' })}</label>
-                                      <select className="input-base h-9 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
-                                        <option value="user">{t('transactions.form.ownedByMe', { ns: 'portal' })}</option>
-                                        <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
-                                        <option value="shared">{t('transactions.form.shared', { ns: 'portal' })}</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidBy', { ns: 'portal' })}</label>
-                                      <select className="input-base h-9 text-sm" value={row.paid_by} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, paid_by: event.target.value }))}>
-                                        <option value="user">{t('transactions.form.paidByMe', { ns: 'portal' })}</option>
-                                        <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
-                                        <option value="third_party">{t('transactions.form.thirdParty', { ns: 'portal' })}</option>
-                                      </select>
-                                    </div>
-                                    <div>
-                                      <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidFrom', { ns: 'portal' })}</label>
-                                      <select
-                                        className="input-base h-9 text-sm"
-                                        value={row.use_held_balance ? 'held_balance' : row.paid_from}
-                                        onChange={(event) => {
-                                          const value = event.target.value;
-                                          updateDraftRow(row.id, (draft) => ({
-                                            ...draft,
-                                            paid_from: value === 'held_balance' ? 'held_balance' : value,
-                                            use_held_balance: value === 'held_balance',
-                                          }));
-                                        }}
-                                      >
-                                        <option value="account">{t('transactions.account', { ns: 'portal' })}</option>
-                                        <option value="held_balance">{t('transactions.form.heldBalance', { ns: 'portal' })}</option>
-                                        <option value="cash">{t('accounts.types.cash', { ns: 'portal' })}</option>
-                                        <option value="external">{t('transactions.form.external', { ns: 'portal' })}</option>
-                                      </select>
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_170px]">
-                                    <label className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm text-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
-                                      <input
-                                        type="checkbox"
-                                        checked={row.reimbursement_required}
-                                        onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_required: event.target.checked }))}
-                                        className="rounded accent-accent"
-                                      />
-                                      {t('transactions.form.reimbursementRequired', { ns: 'portal' })}
-                                    </label>
-                                    {row.reimbursement_required ? (
-                                      <select
-                                        className="input-base h-9 text-sm"
-                                        value={row.reimbursement_status}
-                                        onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_status: event.target.value }))}
-                                      >
-                                        <option value="">{t('transactions.form.reimbursementStatus', { ns: 'portal' })}</option>
-                                        <option value="pending">{t('reimbursements.statuses.pending', { ns: 'portal' })}</option>
-                                        <option value="partially_paid">{t('reimbursements.statuses.partially_paid', { ns: 'portal' })}</option>
-                                        <option value="settled">{t('reimbursements.statuses.settled', { ns: 'portal' })}</option>
-                                        <option value="waived">{t('reimbursements.statuses.waived', { ns: 'portal' })}</option>
-                                        <option value="cancelled">{t('reimbursements.statuses.cancelled', { ns: 'portal' })}</option>
-                                      </select>
-                                    ) : null}
+                                  <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
+                                  <div className="relative">
+                                    <Tag size={14} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                      type="text"
+                                      className="input-base h-9 pl-11 pr-3 text-sm"
+                                      placeholder={t('transactions.form.tagsPlaceholder', { ns: 'portal' })}
+                                      value={row.tags}
+                                      onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, tags: event.target.value }))}
+                                    />
                                   </div>
                                 </div>
                               ) : null}
-                              </div>
-                            ) : null}
 
-                            <div>
-                              <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
-                              <div className="rounded-xl border-2 border-dashed border-sky-200/80 bg-sky-50/35 px-3.5 py-2.5 text-center">
-                                <input
-                                  type="file"
-                                  id={`receipt-upload-${row.id}`}
-                                  accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
-                                  className="hidden"
-                                  onChange={async (event) => {
-                                    const file = event.target.files?.[0];
-                                    try {
-                                      if (file) {
-                                        await validateTransactionDocumentFile(file);
-                                      }
-                                      updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: file || null }));
-                                    } catch (error) {
-                                      toast.error(getLocalizedDocumentValidationError(t, error));
-                                    }
-                                    event.currentTarget.value = '';
-                                  }}
-                                />
-                                <label htmlFor={`receipt-upload-${row.id}`} className="cursor-pointer text-sm text-muted-foreground">
-                                  <Upload size={18} className="mx-auto mb-1 text-muted-foreground" />
-                                  {row.receiptFile ? row.receiptFile.name : t('transactions.form.uploadReceipt', { ns: 'portal' })}
-                                </label>
-                                {row.receiptFile ? (
-                                  <button type="button" onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: null }))} className="mt-2 text-xs text-negative hover:underline">
-                                    {t('actions.remove', { ns: 'common' })}
+                              {spaceId ? (
+                                <div className="space-y-3 rounded-xl border border-border bg-card p-3">
+                                  <div>
+                                    <p className="text-sm font-700 text-foreground">
+                                      {spaceName
+                                        ? t('transactions.form.spaceDetailsTitle', {
+                                          ns: 'portal',
+                                          defaultValue: 'Space details for {{space}}',
+                                          space: spaceName,
+                                        })
+                                        : t('transactions.form.spaceDetailsTitleGeneric', {
+                                          ns: 'portal',
+                                          defaultValue: 'Space details',
+                                        })}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {requiresSpacePayer
+                                        ? t('transactions.form.spacePayerRequiredHelper', {
+                                          ns: 'portal',
+                                          defaultValue: 'Shared personal accounts require a payer so reimbursements and balances stay correct.',
+                                        })
+                                        : t('transactions.form.spacePayerOptionalHelper', {
+                                          ns: 'portal',
+                                          defaultValue: 'Choose who paid for this Space transaction when relevant.',
+                                        })}
+                                    </p>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                    <div>
+                                      <label className={getFieldLabelClassName(hasFieldError('space_payer'), 'mb-1 block text-sm font-600')}>
+                                        {t('transactions.form.spacePayerLabel', {
+                                          ns: 'portal',
+                                          defaultValue: 'Paid by',
+                                        })}
+                                        {requiresSpacePayer ? ' *' : ''}
+                                      </label>
+                                      <select
+                                        className={getFieldInputClassName('input-base h-9 text-sm', hasFieldError('space_payer'))}
+                                        value={selectedPayerKey}
+                                        onChange={(event) => {
+                                          const participant = spaceParticipants.find((option) => option.key === event.target.value) || null;
+                                          updateDraftRow(row.id, (draft) => ({
+                                            ...draft,
+                                            paid_by_user_id: participant?.member_user_id || '',
+                                            paid_by_person_id: participant?.managed_person_id || '',
+                                          }));
+                                        }}
+                                      >
+                                        <option value="">
+                                          {requiresSpacePayer
+                                            ? t('transactions.form.selectSpacePayer', {
+                                              ns: 'portal',
+                                              defaultValue: 'Select who paid',
+                                            })
+                                            : t('transactions.form.noSpacePayerSelected', {
+                                              ns: 'portal',
+                                              defaultValue: 'No payer selected',
+                                            })}
+                                        </option>
+                                        {spaceParticipants.map((participant) => (
+                                          <option key={`${row.id}-payer-${participant.key}`} value={participant.key}>
+                                            {participant.subtitle
+                                              ? `${participant.label} - ${participant.subtitle}`
+                                              : participant.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {getFieldError('space_payer') ? (
+                                        <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('space_payer')}</p>
+                                      ) : null}
+                                    </div>
+                                    <div>
+                                      <label className="mb-1 block text-sm font-600 text-foreground">
+                                        {t('transactions.form.spaceSplitMethodLabel', {
+                                          ns: 'portal',
+                                          defaultValue: 'Split method',
+                                        })}
+                                      </label>
+                                      <select
+                                        className="input-base h-9 text-sm"
+                                        value={row.split_method}
+                                        onChange={(event) => {
+                                          const nextSplitMethod = event.target.value as SpaceSplitMethod;
+                                          updateDraftRow(row.id, (draft) => ({
+                                            ...draft,
+                                            split_method: nextSplitMethod,
+                                            space_allocations: draft.space_allocations.map((allocation, allocationIndex) => ({
+                                              ...allocation,
+                                              selected: nextSplitMethod === 'none'
+                                                ? allocationIndex === 0
+                                                : allocation.selected,
+                                            })),
+                                          }));
+                                        }}
+                                      >
+                                        <option value="none">{t('transactions.form.splitMethodNone', { ns: 'portal', defaultValue: 'Single beneficiary' })}</option>
+                                        <option value="equal">{t('transactions.form.splitMethodEqual', { ns: 'portal', defaultValue: 'Equal split' })}</option>
+                                        <option value="exact">{t('transactions.form.splitMethodExact', { ns: 'portal', defaultValue: 'Exact amounts' })}</option>
+                                        <option value="percentage">{t('transactions.form.splitMethodPercentage', { ns: 'portal', defaultValue: 'Percentages' })}</option>
+                                        <option value="shares">{t('transactions.form.splitMethodShares', { ns: 'portal', defaultValue: 'Shares' })}</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <div className="flex items-center justify-between gap-3">
+                                      <p className="text-sm font-600 text-foreground">
+                                        {t('transactions.form.spaceBeneficiariesLabel', {
+                                          ns: 'portal',
+                                          defaultValue: 'Beneficiaries',
+                                        })}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {t('transactions.form.spaceBeneficiariesSummary', {
+                                          ns: 'portal',
+                                          count: selectedAllocations.length,
+                                          defaultValue: '{{count}} selected',
+                                        })}
+                                      </p>
+                                    </div>
+                                    {row.space_allocations.length === 0 ? (
+                                      <p className="rounded-xl border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+                                        {t('transactions.form.noSpaceParticipants', {
+                                          ns: 'portal',
+                                          defaultValue: 'No eligible Space participants are available yet.',
+                                        })}
+                                      </p>
+                                    ) : (
+                                      row.space_allocations.map((allocation) => (
+                                        <div key={`${row.id}-allocation-${allocation.participant_key}`} className="rounded-xl border border-border bg-card p-3">
+                                          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                                            <label className="flex min-w-0 items-start gap-3">
+                                              <input
+                                                type="checkbox"
+                                                className="mt-1 h-4 w-4 rounded border-border accent-accent"
+                                                checked={allocation.selected}
+                                                onChange={(event) => {
+                                                  const checked = event.target.checked;
+                                                  updateDraftRow(row.id, (draft) => ({
+                                                    ...draft,
+                                                    space_allocations: draft.space_allocations.map((item) => {
+                                                      if (draft.split_method === 'none') {
+                                                        return {
+                                                          ...item,
+                                                          selected: item.participant_key === allocation.participant_key ? checked : false,
+                                                        };
+                                                      }
+                                                      return item.participant_key === allocation.participant_key
+                                                        ? { ...item, selected: checked }
+                                                        : item;
+                                                    }),
+                                                  }));
+                                                }}
+                                              />
+                                              <span className="min-w-0">
+                                                <span className="block text-sm font-600 text-foreground">{allocation.label}</span>
+                                                {allocation.subtitle ? (
+                                                  <span className="mt-1 block text-xs text-muted-foreground">{allocation.subtitle}</span>
+                                                ) : null}
+                                              </span>
+                                            </label>
+                                            {allocation.selected ? (
+                                              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <input
+                                                  type="checkbox"
+                                                  className="h-4 w-4 rounded border-border accent-accent"
+                                                  checked={allocation.reimbursement_required}
+                                                  onChange={(event) => {
+                                                    updateDraftRow(row.id, (draft) => ({
+                                                      ...draft,
+                                                      space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                        ? { ...item, reimbursement_required: event.target.checked }
+                                                        : item),
+                                                    }));
+                                                  }}
+                                                />
+                                                {t('transactions.form.spaceReimbursementRequired', {
+                                                  ns: 'portal',
+                                                  defaultValue: 'Needs reimbursement',
+                                                })}
+                                              </label>
+                                            ) : null}
+                                          </div>
+
+                                          {allocation.selected && row.split_method !== 'equal' && row.split_method !== 'none' ? (
+                                            <div className="mt-3">
+                                              {row.split_method === 'exact' ? (
+                                                <div>
+                                                  <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                    {t('transactions.form.allocatedAmountLabel', {
+                                                      ns: 'portal',
+                                                      defaultValue: 'Allocated amount',
+                                                    })}
+                                                  </label>
+                                                  <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    className="input-base h-9 text-sm"
+                                                    value={allocation.allocated_amount}
+                                                    onChange={(event) => {
+                                                      updateDraftRow(row.id, (draft) => ({
+                                                        ...draft,
+                                                        space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                          ? { ...item, allocated_amount: event.target.value }
+                                                          : item),
+                                                      }));
+                                                    }}
+                                                  />
+                                                </div>
+                                              ) : null}
+                                              {row.split_method === 'percentage' ? (
+                                                <div>
+                                                  <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                    {t('transactions.form.allocationPercentageLabel', {
+                                                      ns: 'portal',
+                                                      defaultValue: 'Percentage',
+                                                    })}
+                                                  </label>
+                                                  <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0"
+                                                    className="input-base h-9 text-sm"
+                                                    value={allocation.percentage}
+                                                    onChange={(event) => {
+                                                      updateDraftRow(row.id, (draft) => ({
+                                                        ...draft,
+                                                        space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                          ? { ...item, percentage: event.target.value }
+                                                          : item),
+                                                      }));
+                                                    }}
+                                                  />
+                                                </div>
+                                              ) : null}
+                                              {row.split_method === 'shares' ? (
+                                                <div>
+                                                  <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+                                                    {t('transactions.form.allocationSharesLabel', {
+                                                      ns: 'portal',
+                                                      defaultValue: 'Shares',
+                                                    })}
+                                                  </label>
+                                                  <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    min="0.01"
+                                                    className="input-base h-9 text-sm"
+                                                    value={allocation.shares}
+                                                    onChange={(event) => {
+                                                      updateDraftRow(row.id, (draft) => ({
+                                                        ...draft,
+                                                        space_allocations: draft.space_allocations.map((item) => item.participant_key === allocation.participant_key
+                                                          ? { ...item, shares: event.target.value }
+                                                          : item),
+                                                      }));
+                                                    }}
+                                                  />
+                                                </div>
+                                              ) : null}
+                                            </div>
+                                          ) : null}
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              ) : !isLoanRepaymentRow ? (
+                                <div className="rounded-xl border border-border bg-card overflow-hidden">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateDraftRow(row.id, (draft) => ({
+                                      ...draft,
+                                      showManagedPerson: !draft.showManagedPerson,
+                                      ...(draft.showManagedPerson
+                                        ? {
+                                          person_id: '',
+                                          expense_owner: 'user',
+                                          paid_by: 'user',
+                                          paid_from: 'account',
+                                          use_held_balance: false,
+                                          reimbursement_required: false,
+                                          reimbursement_status: '',
+                                        }
+                                        : {}),
+                                    }))}
+                                    className="flex w-full items-center justify-between bg-card px-3 py-2 text-sm font-600 text-foreground"
+                                  >
+                                    <span className="flex items-center gap-2">
+                                      <Users size={14} className="text-accent" />
+                                      {t('transactions.form.managedPersonSharedExpense', { ns: 'portal' })}
+                                    </span>
+                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-600 ${row.showManagedPerson ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                                      {row.showManagedPerson ? t('status.active', { ns: 'common' }) : t('reimbursements.optional', { ns: 'portal' })}
+                                    </span>
                                   </button>
-                                ) : null}
-                              </div>
-                            </div>
 
-                            {!isLoanRepaymentRow ? (
-                              <label className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm text-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
-                                <input
-                                  type="checkbox"
-                                  checked={row.is_recurring}
-                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, is_recurring: event.target.checked }))}
-                                  className="rounded accent-accent"
-                                />
-                                {t('transactions.form.markAsRecurring', { ns: 'portal' })}
-                              </label>
-                            ) : null}
-                          </div>
-                        ) : null}
-                      </div>
+                                  {row.showManagedPerson ? (
+                                    <div className="space-y-2 border-t border-border px-3 py-2">
+                                      <div>
+                                        <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
+                                          {t('transactions.form.managedPerson', { ns: 'portal' })}
+                                        </label>
+                                        <select
+                                          className={getFieldInputClassName('input-base h-10 text-sm', hasFieldError('person_id'))}
+                                          value={row.person_id}
+                                          onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
+                                        >
+                                          <option value="">{t('settlements.selectPerson', { ns: 'portal' })}</option>
+                                          {people.map((person) => (
+                                            <option key={person.id} value={person.id}>{person.full_name}</option>
+                                          ))}
+                                        </select>
+                                        {getFieldError('person_id') ? (
+                                          <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('person_id')}</p>
+                                        ) : null}
+                                      </div>
+
+                                      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                                        <div>
+                                          <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.expenseBelongsTo', { ns: 'portal' })}</label>
+                                          <select className="input-base h-9 text-sm" value={row.expense_owner} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, expense_owner: event.target.value }))}>
+                                            <option value="user">{t('transactions.form.ownedByMe', { ns: 'portal' })}</option>
+                                            <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
+                                            <option value="shared">{t('transactions.form.shared', { ns: 'portal' })}</option>
+                                          </select>
+                                        </div>
+                                        <div>
+                                          <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidBy', { ns: 'portal' })}</label>
+                                          <select className="input-base h-9 text-sm" value={row.paid_by} onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, paid_by: event.target.value }))}>
+                                            <option value="user">{t('transactions.form.paidByMe', { ns: 'portal' })}</option>
+                                            <option value="person">{t('transactions.form.person', { ns: 'portal' })}</option>
+                                            <option value="third_party">{t('transactions.form.thirdParty', { ns: 'portal' })}</option>
+                                          </select>
+                                        </div>
+                                        <div>
+                                          <label className="mb-1 block text-xs font-600 uppercase tracking-wide text-muted-foreground">{t('transactions.form.paidFrom', { ns: 'portal' })}</label>
+                                          <select
+                                            className="input-base h-9 text-sm"
+                                            value={row.use_held_balance ? 'held_balance' : row.paid_from}
+                                            onChange={(event) => {
+                                              const value = event.target.value;
+                                              updateDraftRow(row.id, (draft) => ({
+                                                ...draft,
+                                                paid_from: value === 'held_balance' ? 'held_balance' : value,
+                                                use_held_balance: value === 'held_balance',
+                                              }));
+                                            }}
+                                          >
+                                            <option value="account">{t('transactions.account', { ns: 'portal' })}</option>
+                                            <option value="held_balance">{t('transactions.form.heldBalance', { ns: 'portal' })}</option>
+                                            <option value="cash">{t('accounts.types.cash', { ns: 'portal' })}</option>
+                                            <option value="external">{t('transactions.form.external', { ns: 'portal' })}</option>
+                                          </select>
+                                        </div>
+                                      </div>
+
+                                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_170px]">
+                                        <label className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-sm text-foreground">
+                                          <input
+                                            type="checkbox"
+                                            checked={row.reimbursement_required}
+                                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_required: event.target.checked }))}
+                                            className="rounded accent-accent"
+                                          />
+                                          {t('transactions.form.reimbursementRequired', { ns: 'portal' })}
+                                        </label>
+                                        {row.reimbursement_required ? (
+                                          <select
+                                            className="input-base h-9 text-sm"
+                                            value={row.reimbursement_status}
+                                            onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, reimbursement_status: event.target.value }))}
+                                          >
+                                            <option value="">{t('transactions.form.reimbursementStatus', { ns: 'portal' })}</option>
+                                            <option value="pending">{t('reimbursements.statuses.pending', { ns: 'portal' })}</option>
+                                            <option value="partially_paid">{t('reimbursements.statuses.partially_paid', { ns: 'portal' })}</option>
+                                            <option value="settled">{t('reimbursements.statuses.settled', { ns: 'portal' })}</option>
+                                            <option value="waived">{t('reimbursements.statuses.waived', { ns: 'portal' })}</option>
+                                            <option value="cancelled">{t('reimbursements.statuses.cancelled', { ns: 'portal' })}</option>
+                                          </select>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : null}
+
+                              <div>
+                                <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
+                                <div className="rounded-xl border-2 border-dashed border-border bg-card px-3.5 py-2.5 text-center">
+                                  <input
+                                    type="file"
+                                    id={`receipt-upload-${row.id}`}
+                                    accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
+                                    className="hidden"
+                                    onChange={async (event) => {
+                                      const file = event.target.files?.[0];
+                                      try {
+                                        if (file) {
+                                          await validateTransactionDocumentFile(file);
+                                        }
+                                        updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: file || null }));
+                                      } catch (error) {
+                                        toast.error(getLocalizedDocumentValidationError(t, error));
+                                      }
+                                      event.currentTarget.value = '';
+                                    }}
+                                  />
+                                  <label htmlFor={`receipt-upload-${row.id}`} className="cursor-pointer text-sm text-muted-foreground">
+                                    <Upload size={18} className="mx-auto mb-1 text-muted-foreground" />
+                                    {row.receiptFile ? row.receiptFile.name : t('transactions.form.uploadReceipt', { ns: 'portal' })}
+                                  </label>
+                                  {row.receiptFile ? (
+                                    <button type="button" onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, receiptFile: null }))} className="mt-2 text-xs text-negative hover:underline">
+                                      {t('actions.remove', { ns: 'common' })}
+                                    </button>
+                                  ) : null}
+                                </div>
+                              </div>
+
+                              {!isLoanRepaymentRow ? (
+                                <label className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-1.5 text-sm text-foreground">
+                                  <input
+                                    type="checkbox"
+                                    checked={row.is_recurring}
+                                    onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, is_recurring: event.target.checked }))}
+                                    className="rounded accent-accent"
+                                  />
+                                  {t('transactions.form.markAsRecurring', { ns: 'portal' })}
+                                </label>
+                              ) : null}
+                            </>
+                          ) : null}
+                        </FormSection>
                       ) : null}
                     </div>
-                  </div>
+                  </FormSection>
                 );
               })}
             </div>

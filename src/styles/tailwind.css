@@ -33,6 +33,12 @@
   --info-bg: #eff6ff;
   --ai: #7c3aed;
   --ai-bg: #f5f3ff;
+  --section-primary-border: #bfdcf4;
+  --section-primary-header: #eef8ff;
+  --section-secondary-border: #d8cff8;
+  --section-secondary-header: #f6f2ff;
+  --section-neutral-border: #d9e3ec;
+  --section-neutral-header: #f5f8fb;
 
   --navy-50: #f0f4fa;
   --navy-100: #dde6f5;
@@ -218,6 +224,98 @@
     border-radius: calc(var(--radius) + 2px);
     box-shadow: 0 8px 24px rgba(15, 52, 96, 0.08), 0 2px 8px rgba(15, 52, 96, 0.04);
   }
+
+  .form-section {
+    background-color: var(--card);
+    border: 1px solid var(--section-neutral-border);
+    border-radius: calc(var(--radius) + 2px);
+    overflow: hidden;
+  }
+
+  .form-section-primary {
+    border-color: var(--section-primary-border);
+  }
+
+  .form-section-secondary {
+    border-color: var(--section-secondary-border);
+  }
+
+  .form-section-neutral {
+    border-color: var(--section-neutral-border);
+  }
+
+  .form-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.875rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--section-neutral-border);
+    background-color: var(--section-neutral-header);
+  }
+
+  .form-section-header-no-divider {
+    border-bottom-color: transparent;
+  }
+
+  .form-section-primary > .form-section-header {
+    background-color: var(--section-primary-header);
+    border-bottom-color: var(--section-primary-border);
+  }
+
+  .form-section-secondary > .form-section-header {
+    background-color: var(--section-secondary-header);
+    border-bottom-color: var(--section-secondary-border);
+  }
+
+  .form-section-neutral > .form-section-header {
+    background-color: var(--section-neutral-header);
+    border-bottom-color: var(--section-neutral-border);
+  }
+
+  .form-section-header-main {
+    min-width: 0;
+    flex: 1 1 14rem;
+  }
+
+  .form-section-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .form-section-title {
+    font-size: 0.95rem;
+    line-height: 1.3;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: var(--foreground);
+  }
+
+  .form-section-description {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--muted-foreground);
+  }
+
+  .form-section-action {
+    display: flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    min-width: min(100%, 10rem);
+  }
+
+  .form-section-body {
+    padding: 1rem;
+    background-color: var(--card);
+  }
+
 
   .sidebar-transition {
     transition: width 300ms ease, transform 300ms ease;
@@ -905,6 +1003,14 @@
 
   .section-card-header {
     padding: 1rem 1rem 0;
+  }
+
+  .form-section-header {
+    padding: 0.85rem 0.9rem;
+  }
+
+  .form-section-body {
+    padding: 0.9rem;
   }
 
   .settings-row {

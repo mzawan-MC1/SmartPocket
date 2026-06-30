@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
+import FormSection from '@/components/ui/FormSection';
 import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finance';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import {
@@ -638,28 +639,31 @@ export default function FinancialAccountForm({
       </div>
 
       {showSharingSection ? (
-        <div className="rounded-2xl border border-border bg-muted/20 p-3">
-          <button
-            type="button"
-            onClick={() => setSharingExpanded((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-            aria-expanded={sharingExpanded}
-          >
-            <div>
-              <p className="text-sm font-700 text-foreground">
-                {t('accounts.form.spaceSharingTitle', {
-                  ns: 'portal',
-                  defaultValue: 'Share with Spaces',
-                })}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{sharingSummary}</p>
-            </div>
-            <span className="rounded-full border border-border bg-card p-1.5 text-muted-foreground">
+        <FormSection
+          variant="secondary"
+          title={t('accounts.form.spaceSharingTitle', {
+            ns: 'portal',
+            defaultValue: 'Share with Spaces',
+          })}
+          description={sharingSummary}
+          action={(
+            <button
+              type="button"
+              onClick={() => setSharingExpanded((current) => !current)}
+              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
+              aria-expanded={sharingExpanded}
+              aria-label={t('accounts.form.spaceSharingTitle', {
+                ns: 'portal',
+                defaultValue: 'Share with Spaces',
+              })}
+            >
               {sharingExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </span>
-          </button>
+            </button>
+          )}
+          bodyClassName="space-y-2.5"
+        >
           {sharingExpanded ? (
-            <div className="mt-3 space-y-2.5">
+            <>
               <p className="text-xs text-muted-foreground">
                 {t('accounts.form.spaceSharingHelper', {
                   ns: 'portal',
@@ -762,31 +766,31 @@ export default function FinancialAccountForm({
                   ) : null}
                 </div>
               ))}
-            </div>
+            </>
           ) : null}
-        </div>
+        </FormSection>
       ) : null}
 
       {isBankAccount ? (
-        <div className="rounded-2xl border border-border bg-muted/20 p-3">
-          <button
-            type="button"
-            onClick={() => setBankDetailsExpanded((current) => !current)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-            aria-expanded={bankDetailsExpanded}
-          >
-            <div>
-              <p className="text-sm font-700 text-foreground">
-                {t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">{bankDetailsSummary}</p>
-            </div>
-            <span className="rounded-full border border-border bg-card p-1.5 text-muted-foreground">
+        <FormSection
+          variant="neutral"
+          title={t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
+          description={bankDetailsSummary}
+          action={(
+            <button
+              type="button"
+              onClick={() => setBankDetailsExpanded((current) => !current)}
+              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
+              aria-expanded={bankDetailsExpanded}
+              aria-label={t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
+            >
               {bankDetailsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </span>
-          </button>
+            </button>
+          )}
+          bodyClassName="space-y-3"
+        >
           {bankDetailsExpanded ? (
-            <div className="mt-3 space-y-3">
+            <>
               <p className="text-xs text-muted-foreground">
                 {t('accounts.form.bankDetailsHelper', {
                   ns: 'portal',
@@ -874,9 +878,9 @@ export default function FinancialAccountForm({
                   onChange={(event) => setForm((current) => ({ ...current, branch_name: event.target.value }))}
                 />
               </div>
-            </div>
+            </>
           ) : null}
-        </div>
+        </FormSection>
       ) : null}
 
       <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2.5">

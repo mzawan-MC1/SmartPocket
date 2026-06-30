@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
+import FormSection from '@/components/ui/FormSection';
 import {
   dispatchSmartPocketDataChanged,
   type SmartPocketDataEntity,
@@ -132,98 +133,111 @@ export default function ManagedPersonForm({
         </div>
       </div>
 
-      <div>
-        <label className={getFieldLabelClassName(Boolean(fieldErrors.full_name))}>
-          {t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span>
-        </label>
-        <input
-          id="managed-person-full-name"
-          type="text"
-          value={form.full_name}
-          onChange={(event) => {
-            setForm((current) => ({ ...current, full_name: event.target.value }));
-            setFieldErrors((current) => {
-              if (!current.full_name) return current;
-              const next = { ...current };
-              delete next.full_name;
-              return next;
-            });
-          }}
-          placeholder={t('people.form.fullNamePlaceholder', { ns: 'portal' })}
-          className={getFieldInputClassName('input-base h-11 max-[480px]:h-10', Boolean(fieldErrors.full_name))}
-          aria-invalid={fieldErrors.full_name ? 'true' : 'false'}
-          aria-describedby={fullNameErrorId}
-        />
-        {fieldErrors.full_name ? <p id={fullNameErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.full_name}</p> : null}
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.relationship', { ns: 'portal' })}</label>
-        <select
-          value={form.relationship}
-          onChange={(event) => setForm((current) => ({ ...current, relationship: event.target.value as RelationshipType }))}
-          className="input-base h-11 max-[480px]:h-10"
-        >
-          {RELATIONSHIPS.map((relationship) => (
-            <option key={relationship} value={relationship}>
-              {t(`people.relationships.${relationship}` as const, {
-                ns: 'portal',
-              })}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
+      <FormSection
+        variant="primary"
+        title={t('people.addPerson', { ns: 'portal' })}
+        description={t('people.form.createManagedProfile', { ns: 'portal' })}
+        bodyClassName="space-y-4 max-[480px]:space-y-3"
+      >
         <div>
-          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.email', { ns: 'portal' })}</label>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.full_name))}>
+            {t('people.form.fullName', { ns: 'portal' })} <span className="text-negative">*</span>
+          </label>
           <input
-            type="email"
-            value={form.email}
-            onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
-            placeholder={t('people.form.optional', { ns: 'portal' })}
-            className="input-base h-11 max-[480px]:h-10"
-          />
-        </div>
-        <div>
-          <InternationalPhoneInput
-            label={t('people.form.phone', { ns: 'portal' })}
-            value={form.phone_display}
-            countryCode={form.phone_country_code}
-            onChange={(phone) => {
-              setPhoneState(phone);
-              setForm((current) => ({
-                ...current,
-                phone: phone.display || phone.e164 || '',
-                phone_display: phone.display,
-                phone_country_code: phone.countryCode || '',
-                phone_e164: phone.e164 || '',
-              }));
+            id="managed-person-full-name"
+            type="text"
+            value={form.full_name}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, full_name: event.target.value }));
+              setFieldErrors((current) => {
+                if (!current.full_name) return current;
+                const next = { ...current };
+                delete next.full_name;
+                return next;
+              });
             }}
-            helperText={t('people.form.phoneHelper', { ns: 'portal' })}
+            placeholder={t('people.form.fullNamePlaceholder', { ns: 'portal' })}
+            className={getFieldInputClassName('input-base h-11 max-[480px]:h-10', Boolean(fieldErrors.full_name))}
+            aria-invalid={fieldErrors.full_name ? 'true' : 'false'}
+            aria-describedby={fullNameErrorId}
+          />
+          {fieldErrors.full_name ? <p id={fullNameErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.full_name}</p> : null}
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.relationship', { ns: 'portal' })}</label>
+          <select
+            value={form.relationship}
+            onChange={(event) => setForm((current) => ({ ...current, relationship: event.target.value as RelationshipType }))}
+            className="input-base h-11 max-[480px]:h-10"
+          >
+            {RELATIONSHIPS.map((relationship) => (
+              <option key={relationship} value={relationship}>
+                {t(`people.relationships.${relationship}` as const, {
+                  ns: 'portal',
+                })}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.email', { ns: 'portal' })}</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
+              placeholder={t('people.form.optional', { ns: 'portal' })}
+              className="input-base h-11 max-[480px]:h-10"
+            />
+          </div>
+          <div>
+            <InternationalPhoneInput
+              label={t('people.form.phone', { ns: 'portal' })}
+              value={form.phone_display}
+              countryCode={form.phone_country_code}
+              onChange={(phone) => {
+                setPhoneState(phone);
+                setForm((current) => ({
+                  ...current,
+                  phone: phone.display || phone.e164 || '',
+                  phone_display: phone.display,
+                  phone_country_code: phone.countryCode || '',
+                  phone_e164: phone.e164 || '',
+                }));
+              }}
+              helperText={t('people.form.phoneHelper', { ns: 'portal' })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.preferredCurrency', { ns: 'portal' })}</label>
+          <CurrencySelector
+            value={form.preferred_currency}
+            onChange={(currencyCode) => setForm((current) => ({ ...current, preferred_currency: currencyCode }))}
+            placeholder={t('people.form.chooseCurrency', { ns: 'portal' })}
           />
         </div>
-      </div>
+      </FormSection>
 
-      <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.preferredCurrency', { ns: 'portal' })}</label>
-        <CurrencySelector
-          value={form.preferred_currency}
-          onChange={(currencyCode) => setForm((current) => ({ ...current, preferred_currency: currencyCode }))}
-          placeholder={t('people.form.chooseCurrency', { ns: 'portal' })}
-        />
-      </div>
-
-      <div>
-        <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.notes', { ns: 'portal' })}</label>
-        <textarea
-          value={form.notes}
-          onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-          placeholder={t('people.form.notesPlaceholder', { ns: 'portal' })}
-          rows={3}
-          className="input-base resize-none"
-        />
-      </div>
+      <FormSection
+        variant="secondary"
+        title={t('people.form.notes', { ns: 'portal' })}
+        bodyClassName="space-y-3"
+      >
+        <div>
+          <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.notes', { ns: 'portal' })}</label>
+          <textarea
+            value={form.notes}
+            onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+            placeholder={t('people.form.notesPlaceholder', { ns: 'portal' })}
+            rows={3}
+            className="input-base resize-none"
+          />
+        </div>
+      </FormSection>
 
       <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
         <div className="flex gap-3">

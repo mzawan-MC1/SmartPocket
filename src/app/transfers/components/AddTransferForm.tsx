@@ -20,6 +20,7 @@ import {
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import FormSection from '@/components/ui/FormSection';
 import {
   getFieldErrorTextClassName,
   getFieldInputClassName,
@@ -578,17 +579,16 @@ export default function AddTransferForm({
       </div>
 
       {transferRoute ? (
-        <div className="rounded-xl border border-border bg-muted/10 p-3">
+        <FormSection
+          variant="neutral"
+          title={t('transfers.form.routeLabel', {
+            ns: 'portal',
+            defaultValue: 'Transfer route',
+          })}
+          description={getRouteLabel()}
+          bodyClassName="space-y-3"
+        >
           <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2">
-            <div>
-              <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
-                {t('transfers.form.routeLabel', {
-                  ns: 'portal',
-                  defaultValue: 'Transfer route',
-                })}
-              </p>
-              <p className="mt-1 text-sm font-600 text-foreground">{getRouteLabel()}</p>
-            </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {t('transfers.form.transferPurpose', {
@@ -612,7 +612,7 @@ export default function AddTransferForm({
               </select>
             </div>
           </div>
-        </div>
+        </FormSection>
       ) : null}
 
       <div>
