@@ -75,14 +75,21 @@ export default function TransactionDetailsModal({
     }
     return getTransactionDocumentDisplayTitle({
       merchant: details.transaction.merchant,
-      description: details.document.description || details.transaction.description,
-      hasDocument: true,
+      description: details.document?.description || details.transaction.description,
+      hasDocument: details.documentState === 'available' || details.documentState === 'processing',
       fallbackLabel: t('transactions.documentDetails.fallbackTitle', {
         ns: 'portal',
         defaultValue: 'Receipt purchase',
       }),
     });
   }, [details, t]);
+
+  const hasDocumentPreview = Boolean(details?.document?.previewUrl && details?.document?.downloadUrl);
+  const showDocumentWarning = details?.documentState === 'unavailable';
+  const showNoDocument = details?.documentState === 'missing';
+  const showProcessingState = details?.documentState === 'processing';
+  const showTotals = Boolean(details?.document && details?.totals);
+  const showLineItems = Boolean(details?.document?.createdFromAI);
 
   return (
     <Modal
@@ -127,7 +134,7 @@ export default function TransactionDetailsModal({
                         })}
                       </p>
                     </div>
-                    {details.document.createdFromAI ? (
+                    {details.document?.createdFromAI ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-700 text-accent">
                         <Paperclip size={12} />
                         {t('transactions.documentDetails.aiExtractedBadge', {
@@ -138,48 +145,78 @@ export default function TransactionDetailsModal({
                     ) : null}
                   </div>
 
-                  <div className="overflow-hidden rounded-xl border border-border bg-muted/10">
-                    {details.document.mimeType === 'application/pdf' ? (
-                      <iframe
-                        src={details.document.previewUrl}
-                        title={details.document.fileName}
-                        className="h-[24rem] w-full bg-white"
-                      />
-                    ) : (
-                      <img
-                        src={details.document.previewUrl}
-                        alt={details.document.fileName}
-                        className="h-[24rem] w-full bg-white object-contain"
-                      />
-                    )}
-                  </div>
+                  {showDocumentWarning ? (
+                    <div className="rounded-xl border border-warning/25 bg-warning/10 px-3 py-3 text-sm text-warning" role="status">
+                      <p className="font-700">
+                        {t('transactions.documentDetails.documentUnavailable', {
+                          ns: 'portal'
+                        })}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {details.documentMessage || t('transactions.documentDetails.documentLoadFailed', {
+                          ns: 'portal'
+                        })}
+                      </p>
+                    </div>
+                  ) : showNoDocument ? (
+                    <div className="rounded-xl border border-border/70 bg-muted/10 px-3 py-3 text-sm text-muted-foreground">
+                      {t('transactions.documentDetails.noDocument', {
+                        ns: 'portal'
+                      })}
+                    </div>
+                  ) : hasDocumentPreview && details.document ? (
+                    <>
+                      <div className="overflow-hidden rounded-xl border border-border bg-muted/10">
+                        {details.document.mimeType === 'application/pdf' ? (
+                          <iframe
+                            src={details.document.previewUrl}
+                            title={details.document.fileName}
+                            className="h-[24rem] w-full bg-white"
+                          />
+                        ) : (
+                          <img
+                            src={details.document.previewUrl}
+                            alt={details.document.fileName}
+                            className="h-[24rem] w-full bg-white object-contain"
+                          />
+                        )}
+                      </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={details.document.previewUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="btn-secondary"
-                    >
-                      {t('transactions.documentDetails.viewOriginal', {
-                        ns: 'portal',
-                        defaultValue: 'View Original',
-                      })}
-                    </a>
-                    <a
-                      href={details.document.downloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      download={details.document.fileName}
-                      className="btn-secondary"
-                    >
-                      <Download size={14} />
-                      {t('transactions.documentDetails.downloadOriginal', {
-                        ns: 'portal',
-                        defaultValue: 'Download',
-                      })}
-                    </a>
-                  </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <a
+                          href={details.document.previewUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-secondary"
+                        >
+                          {t('transactions.documentDetails.viewOriginal', {
+                            ns: 'portal',
+                            defaultValue: 'View Original',
+                          })}
+                        </a>
+                        <a
+                          href={details.document.downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          download={details.document.fileName}
+                          className="btn-secondary"
+                        >
+                          <Download size={14} />
+                          {t('transactions.documentDetails.downloadOriginal', {
+                            ns: 'portal',
+                            defaultValue: 'Download',
+                          })}
+                        </a>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {showProcessingState ? (
+                    <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs font-700 text-muted-foreground" role="status">
+                      <Loader2 size={12} className="animate-spin" />
+                      <span>{t('status.processing', { ns: 'common' })}</span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
@@ -191,7 +228,7 @@ export default function TransactionDetailsModal({
                         {t('transactions.merchantSource', { ns: 'portal' })}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.document.merchant || details.transaction.merchant || '—'}
+                        {details.document?.merchant || details.transaction.merchant || '—'}
                       </p>
                     </div>
                     <div>
@@ -199,7 +236,7 @@ export default function TransactionDetailsModal({
                         {t('transactions.documentReview.receiptNumber', { ns: 'portal' })}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.document.receiptNumber || '—'}
+                        {details.document?.receiptNumber || '—'}
                       </p>
                     </div>
                     <div>
@@ -218,7 +255,7 @@ export default function TransactionDetailsModal({
                         })}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {typeof details.document.confidence === 'number'
+                        {typeof details.document?.confidence === 'number'
                           ? `${Math.round(details.document.confidence * 100)}%`
                           : '—'}
                       </p>
@@ -231,15 +268,62 @@ export default function TransactionDetailsModal({
                         })}
                       </p>
                       <p className="mt-1 text-sm font-600 text-foreground">
-                        {t(`transactions.documentDetails.sourceSurfaces.${details.document.sourceSurface || 'add_transaction'}` as const, {
+                        {t(`transactions.documentDetails.sourceSurfaces.${details.document?.sourceSurface || 'add_transaction'}` as const, {
                           ns: 'portal',
-                          defaultValue: details.document.sourceSurface === 'smart_entry' ? 'Smart Entry' : 'Add Transaction',
+                          defaultValue: details.document?.sourceSurface === 'smart_entry' ? 'Smart Entry' : 'Add Transaction',
                         })}
                       </p>
                     </div>
+                    <div>
+                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                        {t('transactions.account', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {details.transaction.accountName || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                        {t('transactions.category', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {details.transaction.categoryName || '—'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                        {t('transactions.amount', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-1 text-sm font-700 text-foreground">
+                        {formatCurrencyText(details.transaction.amount, {
+                          currencyCode: details.transaction.currency,
+                          fallbackCurrencyCode: details.transaction.currency,
+                          textOnly: true,
+                        })}
+                      </p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                        {t('transactions.form.details.description', { ns: 'portal' })}
+                      </p>
+                      <p className="mt-1 text-sm font-600 text-foreground">
+                        {details.transaction.description || '—'}
+                      </p>
+                    </div>
+                    {details.transaction.notes ? (
+                      <div className="sm:col-span-2">
+                        <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                          {t('transactions.form.details.notes', { ns: 'portal' })}
+                        </p>
+                        <p className="mt-1 text-sm font-600 text-foreground">
+                          {details.transaction.notes}
+                        </p>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
+                {showTotals ? (
                 <div className="rounded-2xl border border-border bg-card p-4">
                   <p className="text-sm font-700 text-foreground">
                     {t('transactions.documentDetails.totalSummary', {
@@ -264,7 +348,7 @@ export default function TransactionDetailsModal({
                           })}
                         </p>
                         <p className="mt-1 font-700 text-foreground">
-                          {formatCurrencyText(value as number, {
+                          {formatCurrencyText((value as number) || 0, {
                             currencyCode: details.transaction.currency,
                             fallbackCurrencyCode: details.transaction.currency,
                             textOnly: true,
@@ -274,7 +358,9 @@ export default function TransactionDetailsModal({
                     ))}
                   </div>
                 </div>
+                ) : null}
 
+                {showLineItems && details.document ? (
                 <div className="rounded-2xl border border-border bg-card p-4">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-sm font-700 text-foreground">
@@ -360,6 +446,7 @@ export default function TransactionDetailsModal({
                     </div>
                   )}
                 </div>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -29,6 +29,8 @@ export interface TransactionDocumentTransactionDetail {
 export interface TransactionDocumentDetailsResponse {
   success: true;
   transaction: TransactionDocumentTransactionDetail;
+  documentState: 'available' | 'missing' | 'processing' | 'unavailable';
+  documentMessage?: string | null;
   document: {
     id: string;
     fileName: string;
@@ -42,8 +44,8 @@ export interface TransactionDocumentDetailsResponse {
     sourceSurface?: string | null;
     itemCount: number;
     createdFromAI: boolean;
-  };
-  totals: TransactionDocumentTotalSummary;
+  } | null;
+  totals: TransactionDocumentTotalSummary | null;
   lineItems: TransactionDocumentItemDetail[];
 }
 

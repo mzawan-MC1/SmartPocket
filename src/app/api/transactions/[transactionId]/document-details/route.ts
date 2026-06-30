@@ -62,7 +62,8 @@ export async function GET(
       return jsonWithCookies({ success: false }, 404, cookieMutations);
     }
 
-    const { data: itemRows, error: itemError } = await admin
+    const [{ data: itemRows, error: itemError }, { data: attachmentRows, error: attachmentError }] = await Promise.all([
+      admin
       .from('transaction_items')
       .select(`
         id,
@@ -79,59 +80,19 @@ export async function GET(
       `)
       .eq('transaction_id', normalizedTransactionId)
       .eq('user_id', user.id)
-      .order('line_index', { ascending: true });
+      .order('line_index', { ascending: true }),
+      admin
+        .from('receipt_attachments')
+        .select('id, file_name, file_url, mime_type, created_at')
+        .eq('transaction_id', normalizedTransactionId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
 
     if (itemError) {
       throw itemError;
     }
-
-    const documentIdFromItems = (itemRows || []).find((row) => row.document_id)?.document_id;
-    const documentQuery = admin
-      .from('transaction_documents')
-      .select('id, storage_path, file_name, mime_type, merchant_name, receipt_number, source_surface')
-      .eq('user_id', user.id)
-      .limit(1);
-
-    const { data: documentRows, error: documentError } = documentIdFromItems
-      ? await documentQuery.eq('id', documentIdFromItems)
-      : await documentQuery.eq('primary_transaction_id', normalizedTransactionId);
-
-    if (documentError) {
-      throw documentError;
-    }
-
-    const document = documentRows?.[0];
-    if (!document) {
-      return jsonWithCookies({ success: false }, 404, cookieMutations);
-    }
-
-    const { data: jobRows, error: jobError } = await admin
-      .from('document_extraction_jobs')
-      .select('parsed_result, reviewed_result, saved_transaction_ids')
-      .eq('user_id', user.id)
-      .eq('document_id', document.id)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (jobError) {
-      throw jobError;
-    }
-
-    const latestJob = jobRows?.[0];
-    const savedTransactionIds = Array.isArray(latestJob?.saved_transaction_ids)
-      ? latestJob.saved_transaction_ids.map((value) => String(value))
-      : [];
-    const reviewedTransactions = Array.isArray(latestJob?.reviewed_result)
-      ? latestJob.reviewed_result
-      : [];
-    const parsedTransactions = Array.isArray((latestJob?.parsed_result as { transactions?: unknown[] } | null)?.transactions)
-      ? ((latestJob?.parsed_result as { transactions?: unknown[] }).transactions || [])
-      : [];
-
-    const reviewedIndex = savedTransactionIds.findIndex((value) => value === normalizedTransactionId);
-    const reviewedEntry = reviewedIndex >= 0 ? reviewedTransactions[reviewedIndex] : reviewedTransactions[0];
-    const parsedEntry = reviewedIndex >= 0 ? parsedTransactions[reviewedIndex] : parsedTransactions[0];
-
     const lineItems = (itemRows || []).map((item) => ({
       id: String(item.id),
       name: String(item.name || 'Item'),
@@ -148,37 +109,164 @@ export async function GET(
       itemKind: isTransactionDocumentItemKind(item.item_kind) ? item.item_kind : 'regular',
     }));
 
-    const taxValue = typeof reviewedEntry === 'object'
-      && reviewedEntry !== null
-      && 'tax' in reviewedEntry
-      && typeof reviewedEntry.tax === 'number'
-        ? reviewedEntry.tax
+    const attachmentLookupFailed = Boolean(attachmentError);
+    if (attachmentError) {
+      console.error({
+        scope: 'transaction-document-details',
+        stage: 'load-attachment',
+        internalError: attachmentError.message,
+      });
+    }
+
+    const documentIdFromItems = (itemRows || []).find((row) => row.document_id)?.document_id;
+    const receiptAttachment = attachmentRows?.[0];
+    let documentState: 'available' | 'missing' | 'processing' | 'unavailable' = 'missing';
+    let documentMessage: string | null = null;
+    let documentPayload: {
+      id: string;
+      fileName: string;
+      mimeType: string;
+      previewUrl: string;
+      downloadUrl: string;
+      merchant?: string | null;
+      description?: string | null;
+      receiptNumber?: string | null;
+      confidence?: number | null;
+      sourceSurface?: string | null;
+      itemCount: number;
+      createdFromAI: boolean;
+    } | null = null;
+    let totals: ReturnType<typeof getTransactionDocumentTotalSummary> | null = null;
+
+    try {
+      const documentQuery = admin
+        .from('transaction_documents')
+        .select('id, storage_path, file_name, mime_type, merchant_name, receipt_number, source_surface')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      const { data: documentRows, error: documentError } = documentIdFromItems
+        ? await documentQuery.eq('id', documentIdFromItems)
+        : await documentQuery.eq('primary_transaction_id', normalizedTransactionId);
+
+      if (documentError) {
+        throw documentError;
+      }
+
+      const document = documentRows?.[0];
+
+      if (document) {
+        const { data: jobRows, error: jobError } = await admin
+          .from('document_extraction_jobs')
+          .select('parsed_result, reviewed_result, saved_transaction_ids')
+          .eq('user_id', user.id)
+          .eq('document_id', document.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (jobError) {
+          throw jobError;
+        }
+
+        const latestJob = jobRows?.[0];
+        const savedTransactionIds = Array.isArray(latestJob?.saved_transaction_ids)
+          ? latestJob.saved_transaction_ids.map((value) => String(value))
+          : [];
+        const reviewedTransactions = Array.isArray(latestJob?.reviewed_result)
+          ? latestJob.reviewed_result
+          : [];
+        const parsedTransactions = Array.isArray((latestJob?.parsed_result as { transactions?: unknown[] } | null)?.transactions)
+          ? ((latestJob?.parsed_result as { transactions?: unknown[] }).transactions || [])
+          : [];
+
+        const reviewedIndex = savedTransactionIds.findIndex((value) => value === normalizedTransactionId);
+        const reviewedEntry = reviewedIndex >= 0 ? reviewedTransactions[reviewedIndex] : reviewedTransactions[0];
+        const parsedEntry = reviewedIndex >= 0 ? parsedTransactions[reviewedIndex] : parsedTransactions[0];
+        const taxValue = typeof reviewedEntry === 'object'
+          && reviewedEntry !== null
+          && 'tax' in reviewedEntry
+          && typeof reviewedEntry.tax === 'number'
+            ? reviewedEntry.tax
+            : null;
+
+        totals = getTransactionDocumentTotalSummary({
+          amount: Number(transaction.amount || 0),
+          tax: taxValue,
+          lineItems: lineItems.map((item) => ({
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+            itemKind: item.itemKind,
+          })),
+        });
+
+        const signedUrl = await createSignedTransactionDocumentPreview({
+          admin,
+          path: document.storage_path,
+        });
+
+        const confidence = typeof parsedEntry === 'object'
+          && parsedEntry !== null
+          && 'confidence' in parsedEntry
+          && typeof parsedEntry.confidence === 'number'
+            ? parsedEntry.confidence
+            : typeof (latestJob?.parsed_result as { confidence?: unknown } | null)?.confidence === 'number'
+              ? Number((latestJob?.parsed_result as { confidence?: number }).confidence)
+              : null;
+
+        documentPayload = {
+          id: String(document.id),
+          fileName: String(document.file_name || ''),
+          mimeType: String(document.mime_type || ''),
+          previewUrl: signedUrl,
+          downloadUrl: signedUrl,
+          merchant: document.merchant_name ? String(document.merchant_name) : null,
+          description:
+            typeof reviewedEntry === 'object' && reviewedEntry !== null && 'description' in reviewedEntry
+              ? String(reviewedEntry.description || '')
+              : String(transaction.description || ''),
+          receiptNumber:
+            typeof reviewedEntry === 'object' && reviewedEntry !== null && 'receiptNumber' in reviewedEntry
+              ? String(reviewedEntry.receiptNumber || '')
+              : document.receipt_number ? String(document.receipt_number) : null,
+          confidence,
+          sourceSurface: document.source_surface ? String(document.source_surface) : null,
+          itemCount: lineItems.length,
+          createdFromAI: true,
+        };
+        documentState = !latestJob && lineItems.length === 0 ? 'processing' : 'available';
+      } else if (receiptAttachment) {
+        documentPayload = {
+          id: String(receiptAttachment.id),
+          fileName: String(receiptAttachment.file_name || ''),
+          mimeType: String(receiptAttachment.mime_type || ''),
+          previewUrl: String(receiptAttachment.file_url || ''),
+          downloadUrl: String(receiptAttachment.file_url || ''),
+          merchant: transaction.merchant ? String(transaction.merchant) : null,
+          description: String(transaction.description || ''),
+          receiptNumber: null,
+          confidence: null,
+          sourceSurface: 'add_transaction',
+          itemCount: 0,
+          createdFromAI: false,
+        };
+        documentState = 'available';
+      } else if (attachmentLookupFailed) {
+        documentState = 'unavailable';
+        documentMessage = 'Failed to load the linked receipt/document.';
+      }
+    } catch (error) {
+      documentState = documentIdFromItems || receiptAttachment ? 'unavailable' : 'missing';
+      documentMessage = documentState === 'unavailable'
+        ? 'Failed to load the linked receipt/document.'
         : null;
-
-    const totals = getTransactionDocumentTotalSummary({
-      amount: Number(transaction.amount || 0),
-      tax: taxValue,
-      lineItems: lineItems.map((item) => ({
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.total,
-        itemKind: item.itemKind,
-      })),
-    });
-
-    const signedUrl = await createSignedTransactionDocumentPreview({
-      admin,
-      path: document.storage_path,
-    });
-
-    const confidence = typeof parsedEntry === 'object'
-      && parsedEntry !== null
-      && 'confidence' in parsedEntry
-      && typeof parsedEntry.confidence === 'number'
-        ? parsedEntry.confidence
-        : typeof (latestJob?.parsed_result as { confidence?: unknown } | null)?.confidence === 'number'
-          ? Number((latestJob?.parsed_result as { confidence?: number }).confidence)
-          : null;
+      console.error({
+        scope: 'transaction-document-details',
+        stage: 'load-document',
+        transactionId: normalizedTransactionId,
+        internalError: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
 
     return jsonWithCookies({
       success: true,
@@ -199,26 +287,9 @@ export async function GET(
             : null,
         notes: transaction.notes ? String(transaction.notes) : null,
       },
-      document: {
-        id: String(document.id),
-        fileName: String(document.file_name || ''),
-        mimeType: String(document.mime_type || ''),
-        previewUrl: signedUrl,
-        downloadUrl: signedUrl,
-        merchant: document.merchant_name ? String(document.merchant_name) : null,
-        description:
-          typeof reviewedEntry === 'object' && reviewedEntry !== null && 'description' in reviewedEntry
-            ? String(reviewedEntry.description || '')
-            : String(transaction.description || ''),
-        receiptNumber:
-          typeof reviewedEntry === 'object' && reviewedEntry !== null && 'receiptNumber' in reviewedEntry
-            ? String(reviewedEntry.receiptNumber || '')
-            : document.receipt_number ? String(document.receipt_number) : null,
-        confidence,
-        sourceSurface: document.source_surface ? String(document.source_surface) : null,
-        itemCount: lineItems.length,
-        createdFromAI: true,
-      },
+      documentState,
+      documentMessage,
+      document: documentPayload,
       totals,
       lineItems,
     }, 200, cookieMutations);
