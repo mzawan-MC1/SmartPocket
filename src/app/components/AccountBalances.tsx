@@ -135,7 +135,7 @@ export default function AccountBalances() {
               { month: 'short', day: 'numeric' }
             );
             return (
-              <div key={acct.id} className="flex items-center gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 cursor-pointer hover:border-border/70 hover:bg-muted/30">
+              <div key={acct.id} className="flex items-center gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3">
                 <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${colorClass} flex-shrink-0`}>
                   <Icon size={15} />
                 </div>

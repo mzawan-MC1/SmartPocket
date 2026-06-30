@@ -24,6 +24,10 @@ function formatDate(dateStr: string, locale: string): string {
   return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
+function shouldOpenRowFromKeyboard(event: React.KeyboardEvent<HTMLDivElement>) {
+  return event.key === 'Enter' || event.key === ' ';
+}
+
 export default function RecentTransactions() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
@@ -68,6 +72,10 @@ export default function RecentTransactions() {
       title,
     };
   }, [documentSummaries, t]);
+
+  const openTransactionDetails = useCallback((transactionId: string) => {
+    setDetailsTransactionId(transactionId);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -120,8 +128,36 @@ export default function RecentTransactions() {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
             const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
+            const categoryLabel = txn.category?.name
+              ? translateSystemCategoryName(txn.category.name, (key, options) =>
+                  t(key, { ...(options || {}), ns: 'common' })
+                )
+              : t('recentTransactions.uncategorized', { ns: 'portal' });
+            const accountLabel = txn.account?.name || '';
+            const formattedDate = formatDate(
+              txn.transaction_date,
+              language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US'
+            );
+            const ariaLabel = t('recentTransactions.openTransactionDetails', {
+              ns: 'portal',
+              defaultValue: 'Open transaction details for {{title}} on {{date}}',
+              title,
+              date: formattedDate,
+            });
             return (
-              <div key={txn.id} className="group flex items-start gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 cursor-pointer hover:border-border/70 hover:bg-muted/30">
+              <div
+                key={txn.id}
+                role="button"
+                tabIndex={0}
+                aria-label={ariaLabel}
+                onClick={() => openTransactionDetails(txn.id)}
+                onKeyDown={(event) => {
+                  if (!shouldOpenRowFromKeyboard(event)) return;
+                  event.preventDefault();
+                  openTransactionDetails(txn.id);
+                }}
+                className="group flex items-start gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 cursor-pointer hover:border-border/70 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2"
+              >
                 <div
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
                   style={{ backgroundColor: catColor + '20' }}
@@ -139,7 +175,13 @@ export default function RecentTransactions() {
                     {hasDocument ? (
                       <button
                         type="button"
-                        onClick={() => setDetailsTransactionId(txn.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openTransactionDetails(txn.id);
+                        }}
+                        onKeyDown={(event) => {
+                          event.stopPropagation();
+                        }}
                         className="inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-600 leading-4 text-muted-foreground transition-colors hover:bg-muted/80"
                       >
                         <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
@@ -150,11 +192,7 @@ export default function RecentTransactions() {
                     ) : null}
                   </div>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                    {txn.category?.name
-                      ? translateSystemCategoryName(txn.category.name, (key, options) =>
-                          t(key, { ...(options || {}), ns: 'common' })
-                        )
-                      : t('recentTransactions.uncategorized', { ns: 'portal' })} · {txn.account?.name || ''}
+                    {categoryLabel} · {accountLabel}
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1 text-right">
@@ -166,10 +204,7 @@ export default function RecentTransactions() {
                     showCode
                   />
                   <span className="text-[11px] text-muted-foreground">
-                    {formatDate(
-                      txn.transaction_date,
-                      language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US'
-                    )}
+                    {formattedDate}
                   </span>
                 </div>
               </div>
