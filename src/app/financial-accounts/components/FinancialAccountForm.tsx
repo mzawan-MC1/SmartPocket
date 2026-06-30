@@ -483,14 +483,16 @@ export default function FinancialAccountForm({
             </p>
           </div>
         ) : null
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+        {!hideScopeControls ? (
+          <div className="min-w-0">
             <label className="mb-1.5 block text-sm font-600 text-foreground">
               {t('accounts.form.scopeLabel', { ns: 'portal', defaultValue: 'Account scope' })}
             </label>
             <select
-              className={compactInputClassName}
+              className={`${compactInputClassName} min-w-0 w-full`}
               value={form.scope_type}
               onChange={(event) => {
                 const nextScope = event.target.value as FinancialAccountScopeType;
@@ -510,35 +512,11 @@ export default function FinancialAccountForm({
               ))}
             </select>
           </div>
-          {isSpaceAccount ? (
-            <div>
-              <label className={getFieldLabelClassName(Boolean(fieldErrors.space_id))}>
-                {t('spaces.title', { ns: 'portal' })} *
-              </label>
-              <select
-                className={getFieldInputClassName(compactInputClassName, Boolean(fieldErrors.space_id))}
-                value={form.space_id}
-                onChange={(event) => updateField('space_id', event.target.value)}
-              >
-                <option value="">{t('accounts.form.selectSpace', {
-                  ns: 'portal',
-                  defaultValue: 'Select a Space',
-                })}</option>
-                {availableSpaces.map((space) => (
-                  <option key={space.id} value={space.id}>{space.name}</option>
-                ))}
-              </select>
-              {fieldErrors.space_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.space_id}</p> : null}
-            </div>
-          ) : null}
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div>
+        ) : null}
+        <div className="min-w-0">
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('accounts.form.type', { ns: 'portal' })} *</label>
           <select
-            className={compactInputClassName}
+            className={`${compactInputClassName} min-w-0 w-full`}
             value={form.account_type}
             onChange={(event) => {
               const nextType = event.target.value;
@@ -551,13 +529,38 @@ export default function FinancialAccountForm({
             {accountTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </div>
+      </div>
+
+      {!hideScopeControls && isSpaceAccount ? (
+        <div>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.space_id))}>
+            {t('spaces.title', { ns: 'portal' })} *
+          </label>
+          <select
+            className={getFieldInputClassName(`${compactInputClassName} w-full`, Boolean(fieldErrors.space_id))}
+            value={form.space_id}
+            onChange={(event) => updateField('space_id', event.target.value)}
+          >
+            <option value="">{t('accounts.form.selectSpace', {
+              ns: 'portal',
+              defaultValue: 'Select a Space',
+            })}</option>
+            {availableSpaces.map((space) => (
+              <option key={space.id} value={space.id}>{space.name}</option>
+            ))}
+          </select>
+          {fieldErrors.space_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.space_id}</p> : null}
+        </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
         {!isSpaceAccount ? (
-          <div>
+          <div className="min-w-0">
             <label className="mb-1.5 block text-sm font-600 text-foreground">
               {t('accounts.form.ownershipType', { ns: 'portal', defaultValue: 'Ownership type' })} *
             </label>
             <select
-              className={compactInputClassName}
+              className={`${compactInputClassName} min-w-0 w-full`}
               value={form.ownership_type}
               onChange={(event) => setForm((current) => ({ ...current, ownership_type: event.target.value }))}
             >
@@ -565,7 +568,7 @@ export default function FinancialAccountForm({
             </select>
           </div>
         ) : (
-          <div className="rounded-xl bg-muted/40 px-3 py-2.5 sm:mt-6">
+          <div className="min-w-0 rounded-xl bg-muted/40 px-3 py-2.5">
             <p className="text-sm font-500 text-foreground">
               {t('accounts.form.spaceOwnershipSummary', {
                 ns: 'portal',
@@ -574,10 +577,7 @@ export default function FinancialAccountForm({
             </p>
           </div>
         )}
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <div>
+        <div className="min-w-0">
           <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('settlements.currency', { ns: 'portal' })} *</label>
           <div className={fieldErrors.currency ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
             <CurrencySelector
@@ -589,6 +589,9 @@ export default function FinancialAccountForm({
             />
           </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
         <label className="flex min-h-[40px] items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2.5">
           <input
             type="checkbox"
