@@ -252,20 +252,22 @@ function UsageProgress({
 }) {
   const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
   const barTone =
-    tone === 'exhausted' ? 'bg-negative' :
-    tone === 'warning' ? 'bg-warning' :
-    'bg-accent';
+    tone === 'exhausted'
+      ? 'bg-[linear-gradient(90deg,rgba(220,38,38,0.78),rgba(239,68,68,0.92))]'
+      : tone === 'warning'
+        ? 'bg-[linear-gradient(90deg,rgba(217,119,6,0.76),rgba(245,158,11,0.92))]'
+        : 'bg-[linear-gradient(90deg,rgba(109,40,217,0.78),rgba(139,92,246,0.96))]';
 
   return (
     <div
-      className="h-2 overflow-hidden rounded-full bg-muted/50"
+      className="h-2.5 overflow-hidden rounded-full bg-violet-100/70 ring-1 ring-violet-200/40"
       role="progressbar"
       aria-label={label}
       aria-valuemin={0}
       aria-valuemax={total}
       aria-valuenow={Math.min(used, total)}
     >
-      <div className={`h-full rounded-full transition-all ${barTone}`} style={{ width: `${pct}%` }} />
+      <div className={`h-full rounded-full shadow-[0_4px_12px_-6px_rgba(124,58,237,0.55)] transition-all ${barTone}`} style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -441,10 +443,10 @@ export default function AIUsageCard() {
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
+      <div className="card-elevated animate-pulse rounded-[24px] border border-violet-200/45 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(248,247,255,0.95)_58%,rgba(243,248,255,0.93))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_16px_36px_-20px_rgba(76,29,149,0.18)]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-2xl bg-secondary" />
+            <div className="h-9 w-9 rounded-2xl bg-violet-100/80" />
             <div className="space-y-2">
               <div className="h-4 w-24 rounded bg-secondary" />
               <div className="h-3 w-36 rounded bg-secondary" />
@@ -453,13 +455,13 @@ export default function AIUsageCard() {
           <div className="h-7 w-20 rounded-full bg-secondary" />
         </div>
         <div className="mt-3 space-y-2.5">
-          <div className="rounded-2xl border border-border/70 bg-muted/15 px-3 py-3">
+          <div className="rounded-2xl border border-violet-200/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(245,243,255,0.86))] px-3 py-3">
             <div className="h-3 w-20 rounded bg-secondary" />
             <div className="mt-3 h-8 w-28 rounded bg-secondary" />
             <div className="mt-3 h-2 w-full rounded bg-secondary" />
             <div className="mt-2 h-3 w-32 rounded bg-secondary" />
           </div>
-          <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/10 px-3 py-2.5">
+          <div className="space-y-2 rounded-2xl border border-slate-200/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.72),rgba(241,245,249,0.68))] px-3 py-2.5">
             {[1, 2].map((item) => (
               <div key={item} className="h-10 rounded-xl bg-secondary" />
             ))}
@@ -585,12 +587,13 @@ export default function AIUsageCard() {
 
   const statusLabel = isTrialing ? t('aiUsage.trialing') : t('status.active', { ns: 'common' });
   const statusTone = peakPercent >= 100 || isTrialing ? 'warning' : 'default';
-  const primarySurfaceClassName = 'rounded-[18px] bg-muted/[0.08] px-3 py-3 ring-1 ring-border/45';
-  const secondarySurfaceClassName = 'rounded-[18px] bg-muted/[0.04] px-3 py-1 ring-1 ring-border/40';
+  const outerCardClassName = 'card-elevated rounded-[24px] border border-violet-200/45 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(248,247,255,0.95)_58%,rgba(243,248,255,0.93))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_16px_36px_-20px_rgba(76,29,149,0.18)]';
+  const primarySurfaceClassName = 'rounded-[18px] border border-violet-200/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(245,243,255,0.86))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_28px_-20px_rgba(109,40,217,0.24)]';
+  const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.72),rgba(241,245,249,0.68))] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]';
 
   const renderHeader = (showHistory: boolean, badge?: React.ReactNode) => (
     <div className="grid grid-cols-[auto,minmax(0,1fr)] gap-x-2.5 gap-y-1">
-      <div className="row-span-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
+      <div className="row-span-2 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl border border-violet-200/70 bg-[linear-gradient(180deg,rgba(139,92,246,0.16),rgba(139,92,246,0.08))] text-violet-600 shadow-[0_10px_18px_-14px_rgba(109,40,217,0.55)]">
         <Sparkles size={15} />
       </div>
       <div className="flex min-w-0 items-center justify-between gap-2">
@@ -625,7 +628,7 @@ export default function AIUsageCard() {
 
   if (isUnavailable) {
     return (
-      <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
+      <div className={outerCardClassName}>
         <div className="flex flex-col gap-2.5">
           {renderHeader(Boolean(summary?.ai_history_enabled), <CompactStatus label={t('aiUsage.unavailableBadge')} tone="warning" />)}
           <div className={primarySurfaceClassName}>
@@ -647,7 +650,7 @@ export default function AIUsageCard() {
 
   if (!summary?.has_subscription) {
     return (
-      <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
+      <div className={outerCardClassName}>
         <div className="flex flex-col gap-2.5">
           {renderHeader(false)}
           <div className={primarySurfaceClassName}>
@@ -668,7 +671,7 @@ export default function AIUsageCard() {
 
   if (!hasAnyAiAccess) {
     return (
-      <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
+      <div className={outerCardClassName}>
         <div className="flex flex-col gap-2.5">
           {renderHeader(Boolean(summary.ai_history_enabled), <CompactStatus label={t('aiUsage.noAccessBadge')} tone="warning" />)}
           <div className={primarySurfaceClassName}>
@@ -690,7 +693,7 @@ export default function AIUsageCard() {
   }
 
   return (
-    <div className="card-elevated rounded-[24px] border border-border/80 bg-card p-3.5 shadow-card-sm">
+    <div className={outerCardClassName}>
       <div className="flex flex-col gap-2.5">
         {renderHeader(Boolean(summary.ai_history_enabled), <CompactStatus label={statusLabel} tone={statusTone} />)}
 
