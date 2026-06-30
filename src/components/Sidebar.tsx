@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +30,11 @@ type NavItem = {
   href: string;
 };
 
+type SectionHeading = {
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+};
+
 export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateItem, isMobileDrawer = false }: SidebarProps) {
   const { dir } = useLanguage();
   const isRTL = dir === 'rtl';
@@ -55,7 +60,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   const navSections = [
     {
-      heading: t('sidebar.sections.finance', { ns: 'portal' }),
+      heading: {
+        label: t('sidebar.sections.finance', { ns: 'portal' }),
+        icon: LayoutDashboard,
+      },
       items: [
         { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
         { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },
@@ -68,7 +76,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ],
     },
     {
-      heading: t('sidebar.sections.manage', { ns: 'portal' }),
+      heading: {
+        label: t('sidebar.sections.manage', { ns: 'portal' }),
+        icon: BriefcaseBusiness,
+      },
       items: [
         { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
         { id: 'nav-settlements', label: t('sidebar.nav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
@@ -81,7 +92,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ],
     },
     {
-      heading: t('sidebar.sections.reports', { ns: 'portal' }),
+      heading: {
+        label: t('sidebar.sections.reports', { ns: 'portal' }),
+        icon: BarChart3,
+      },
       items: [
         ...(canUseAiHistory
           ? [{ id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' }]
@@ -89,7 +103,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ],
     },
     {
-      heading: t('sidebar.sections.support', { ns: 'portal', defaultValue: 'Support' }),
+      heading: {
+        label: t('sidebar.sections.support', { ns: 'portal', defaultValue: 'Support' }),
+        icon: LifeBuoy,
+      },
       items: [
         { id: 'nav-faqs', label: t('sidebar.nav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
         { id: 'nav-support', label: t('sidebar.nav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
@@ -180,7 +197,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     );
   };
 
-  const renderSectionHeading = (heading: string) => {
+  const renderSectionHeading = (heading: SectionHeading) => {
     if (collapsed) {
       return null;
     }
@@ -188,18 +205,23 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     if (isMobileDrawer) {
       return (
         <p className="px-3 text-[10px] font-800 uppercase tracking-[0.16em] text-muted-foreground/85">
-          {heading}
+          {heading.label}
         </p>
       );
     }
 
+    const HeadingIcon = heading.icon;
+
     return (
-      <div className="px-2.5 lg:mb-1.5 lg:pt-3">
-        <div className="flex items-center gap-2.5">
-          <span className="text-[11px] font-800 uppercase tracking-[0.22em] text-cyan-700/70">
-            {heading}
+      <div className="px-2.5 lg:mb-1.5 lg:pt-3.5">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-md bg-cyan-50 text-cyan-700/80 ring-1 ring-cyan-100/80">
+            <HeadingIcon size={11} />
           </span>
-          <span className="h-px flex-1 bg-gradient-to-r from-cyan-200/70 via-border/80 to-transparent" aria-hidden="true" />
+          <span className="text-[11px] font-800 uppercase tracking-[0.24em] text-cyan-800/80">
+            {heading.label}
+          </span>
+          <span className="mt-px h-px flex-1 bg-gradient-to-r from-cyan-200/80 via-border/80 to-transparent" aria-hidden="true" />
         </div>
       </div>
     );
@@ -217,7 +239,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
     return (
       <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
-        {renderSectionHeading(t('sidebar.sections.reports', { ns: 'portal' }))}
+        {renderSectionHeading(navSections[2].heading)}
         <div className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
           <button
             type="button"
@@ -334,7 +356,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2.5 py-4'}`}>
         <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3 lg:space-y-5'}>
           {navSections.slice(0, 2).map((section) => (
-            <div key={section.heading} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
+            <div key={section.heading.label} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
               {renderSectionHeading(section.heading)}
               <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
                 {section.items.map((item) => renderNavItem(item))}

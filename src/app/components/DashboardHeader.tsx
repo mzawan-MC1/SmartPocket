@@ -138,7 +138,7 @@ export default function DashboardHeader({
     <section className="space-y-2 md:space-y-2.5">
       <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:grid-cols-[minmax(0,1.02fr)_minmax(27rem,1fr)] lg:items-start xl:grid-cols-[minmax(17rem,1.08fr)_minmax(24rem,1fr)_15.5rem] xl:items-center xl:gap-3">
         <div className="min-w-0 space-y-1 rounded-[20px] border border-transparent py-0.5 lg:space-y-0.5">
-          <h1 className="flex items-center gap-x-1 gap-y-0 text-[0.94rem] font-800 tracking-[-0.02em] text-foreground max-[480px]:text-[0.88rem] max-[360px]:flex-wrap max-[360px]:text-[0.82rem] lg:text-[0.82rem] lg:font-700 xl:flex-nowrap xl:text-[0.88rem]">
+          <h1 className="flex items-center gap-x-1 gap-y-0 text-[0.94rem] font-800 tracking-[-0.02em] text-foreground max-[480px]:text-[0.88rem] max-[360px]:flex-wrap max-[360px]:text-[0.82rem] lg:text-[1.03rem] lg:font-700 xl:flex-nowrap xl:text-[1.1rem]">
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
