@@ -989,25 +989,25 @@ function SpacesPageContent() {
             ) : null}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-5 md:space-y-4 xl:space-y-6">
             {activeSpace ? (
               <>
-                <section className="card p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <section className="card p-3.5 sm:p-4 md:p-4.5">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-600 text-muted-foreground">
+                      <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                         {t('spaces.ui.currentSpace.title', { ns: 'portal' })}
                       </p>
-                      <div className="mt-3 flex min-w-0 items-center gap-3">
+                      <div className="mt-2 flex min-w-0 items-center gap-2.5">
                         <div
-                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm"
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white shadow-sm md:h-11 md:w-11 md:rounded-2xl"
                           style={{ backgroundColor: activeSpace.color || '#0f3460' }}
                         >
-                          <Home size={20} />
+                          <Home size={18} />
                         </div>
                         <div className="min-w-0">
-                          <h2 className="truncate text-xl font-700 text-foreground sm:text-2xl">{activeSpace.name}</h2>
-                          <p className="mt-1 text-sm text-muted-foreground">
+                          <h2 className="truncate text-lg font-700 text-foreground sm:text-xl md:text-[22px]">{activeSpace.name}</h2>
+                          <p className="mt-0.5 text-xs text-muted-foreground sm:text-sm">
                             {activeSpaceTypeLabel}
                             <span className="px-1.5 text-muted-foreground/70">·</span>
                             {t('spaces.ui.currentSpace.memberCount', {
@@ -1024,8 +1024,8 @@ function SpacesPageContent() {
                         </div>
                       </div>
                       {activeSpaceRoleLabel ? (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-700 ${ROLE_COLORS[activeSpaceRole || 'viewer']}`}>
+                        <div className="mt-2 flex flex-wrap gap-1.5 md:gap-2">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-700 md:px-3 md:text-xs ${ROLE_COLORS[activeSpaceRole || 'viewer']}`}>
                             {React.createElement(ROLE_ICONS[activeSpaceRole || 'viewer'] || Users, { size: 12 })}
                             {t('spaces.ui.currentSpace.roleBadge', {
                               ns: 'portal',
@@ -1033,25 +1033,25 @@ function SpacesPageContent() {
                             })}
                           </span>
                           {activeSpaceRoleHelp ? (
-                            <span className="inline-flex items-center rounded-full bg-muted px-3 py-1 text-xs font-600 text-muted-foreground">
+                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-[11px] font-600 text-muted-foreground md:px-3 md:text-xs">
                               {activeSpaceRoleHelp}
                             </span>
                           ) : null}
                         </div>
                       ) : null}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] lg:min-w-[320px] lg:max-w-[420px] lg:grid-cols-1">
-                      <div className="rounded-2xl bg-muted/30 px-4 py-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2.5 md:min-w-[280px] md:max-w-[360px] lg:min-w-[320px] lg:max-w-[420px]">
+                      <div className="rounded-2xl bg-muted/30 px-3 py-2.5 md:px-4 md:py-3">
                         <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                           {t('spaces.ui.currentSpace.balanceLabel', { ns: 'portal' })}
                         </p>
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5 md:mt-2 md:space-y-1">
                           {totalBalanceByCurrency.length > 0 ? totalBalanceByCurrency.map((row) => (
                             <FormattedCurrencyAmount
                               key={`current-space-balance-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-lg font-700 text-foreground"
+                              className="text-base font-700 text-foreground md:text-lg"
                               showCode
                             />
                           )) : (
@@ -1061,9 +1061,9 @@ function SpacesPageContent() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-start justify-end gap-2">
+                      <div className="flex flex-col items-end gap-2 md:justify-end">
                       {shouldShowSpaceSelector ? (
-                        <div className="relative">
+                        <div className="relative w-full min-w-0 md:w-auto">
                           <label htmlFor="spaces-switcher" className="sr-only">
                             {t('spaces.ui.currentSpace.switchLabel', { ns: 'portal' })}
                           </label>
@@ -1074,7 +1074,7 @@ function SpacesPageContent() {
                               setActiveSpaceId(e.target.value);
                               setOpenMenuId(null);
                             }}
-                            className="h-11 min-w-[180px] appearance-none rounded-2xl border border-border bg-card px-4 pe-10 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30"
+                            className="h-10 min-w-0 w-full appearance-none rounded-xl border border-border bg-card px-3 pe-9 text-sm font-600 text-foreground focus:outline-none focus:ring-2 focus:ring-accent/30 md:h-11 md:min-w-[180px] md:rounded-2xl md:px-4 md:pe-10"
                           >
                             {spaces.map((space) => (
                               <option key={space.id} value={space.id}>
@@ -1093,7 +1093,7 @@ function SpacesPageContent() {
                             <button
                               type="button"
                               onClick={() => setOpenMenuId(openMenuId === activeSpace.id ? null : activeSpace.id)}
-                              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border text-muted-foreground transition-colors hover:bg-muted"
+                              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-muted md:h-11 md:w-11 md:rounded-2xl"
                               aria-label={t('spaces.ui.currentSpace.moreOptions', { ns: 'portal' })}
                             >
                               <MoreVertical size={16} />
@@ -1125,20 +1125,20 @@ function SpacesPageContent() {
                   </div>
                 </section>
 
-                <section className="space-y-4">
+                <section className="space-y-3">
                   <h3 className="text-lg font-700 text-foreground">
                     {t('spaces.ui.quickActions.title', { ns: 'portal' })}
                   </h3>
                   {canManageSpaceFinance || canAddSpaceTransactions || (hasSharedSpacesFeature && isActiveSpaceOwner) ? (
-                    <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+                    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3 xl:grid-cols-4 lg:gap-3">
                       {canAddSpaceTransactions ? (
                         <button
                           type="button"
                           onClick={() => setShowSpaceTransactionModal(true)}
-                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[74px] flex-col items-start gap-2 rounded-2xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30 md:min-h-[78px] md:px-3.5"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted text-foreground">
-                            <ArrowUpCircle size={18} />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-muted text-foreground md:h-9 md:w-9">
+                            <ArrowUpCircle size={16} />
                           </div>
                           <span className="text-sm font-700 text-foreground">
                             {t('spaces.ui.quickActions.expense', { ns: 'portal' })}
@@ -1149,10 +1149,10 @@ function SpacesPageContent() {
                         <button
                           type="button"
                           onClick={() => setShowSpaceTransactionModal(true)}
-                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[74px] flex-col items-start gap-2 rounded-2xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30 md:min-h-[78px] md:px-3.5"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-positive-soft text-positive">
-                            <ArrowDownCircle size={18} />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-positive-soft text-positive md:h-9 md:w-9">
+                            <ArrowDownCircle size={16} />
                           </div>
                           <span className="text-sm font-700 text-foreground">
                             {t('spaces.ui.quickActions.income', { ns: 'portal' })}
@@ -1163,10 +1163,10 @@ function SpacesPageContent() {
                         <button
                           type="button"
                           onClick={() => setShowSpaceRecurringModal(true)}
-                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="flex min-h-[74px] flex-col items-start gap-2 rounded-2xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30 md:min-h-[78px] md:px-3.5"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-warning-soft text-warning">
-                            <Repeat size={18} />
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-warning-soft text-warning md:h-9 md:w-9">
+                            <Repeat size={16} />
                           </div>
                           <span className="text-sm font-700 text-foreground">
                             {t('spaces.ui.quickActions.recurring', { ns: 'portal' })}
@@ -1177,28 +1177,16 @@ function SpacesPageContent() {
                         <button
                           type="button"
                           onClick={() => setShowInviteModal(true)}
-                          className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                          className="hidden min-h-[78px] flex-col items-start gap-2 rounded-2xl border border-border bg-card px-3.5 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30 xl:flex"
                         >
-                          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                            <UserPlus size={18} />
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                            <UserPlus size={16} />
                           </div>
                           <span className="text-sm font-700 text-foreground">
                             {t('spaces.ui.quickActions.invite', { ns: 'portal' })}
                           </span>
                         </button>
                       ) : null}
-                      <button
-                        type="button"
-                        onClick={() => setAdvancedOpen((value) => !value)}
-                        className="flex min-h-[88px] flex-col items-start gap-3 rounded-3xl border border-border bg-card px-4 py-3.5 text-left transition-colors hover:bg-muted/40 focus:outline-none focus:ring-2 focus:ring-accent/30"
-                      >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-info-soft text-info">
-                          <MoreVertical size={18} />
-                        </div>
-                        <span className="text-sm font-700 text-foreground">
-                          {t('spaces.ui.quickActions.more', { ns: 'portal' })}
-                        </span>
-                      </button>
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-600 text-muted-foreground">
@@ -1209,29 +1197,29 @@ function SpacesPageContent() {
                   )}
                 </section>
 
-                <section className="space-y-4">
+                <section className="space-y-3">
                   <h3 className="text-lg font-700 text-foreground">
                     {t('spaces.ui.snapshot.title', { ns: 'portal' })}
                   </h3>
                   {loadingFinance ? (
-                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
                       {[1, 2, 3, 4].map((card) => (
-                        <div key={card} className="h-28 animate-pulse rounded-3xl bg-muted" />
+                        <div key={card} className="h-24 animate-pulse rounded-3xl bg-muted md:h-22" />
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 md:gap-3">
+                      <div className="rounded-2xl border border-border bg-card px-3 py-3 md:rounded-3xl md:px-4 md:py-3.5">
                         <p className="text-sm font-700 text-muted-foreground">
                           {t('spaces.ui.snapshot.balance', { ns: 'portal' })}
                         </p>
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5 md:mt-2 md:space-y-1">
                           {totalBalanceByCurrency.length > 0 ? totalBalanceByCurrency.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-balance-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-lg font-700 text-foreground sm:text-xl"
+                              className="text-base font-700 text-foreground sm:text-lg md:text-xl"
                               showCode
                             />
                           )) : (
@@ -1241,17 +1229,17 @@ function SpacesPageContent() {
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                      <div className="rounded-2xl border border-border bg-card px-3 py-3 md:rounded-3xl md:px-4 md:py-3.5">
                         <p className="text-sm font-700 text-muted-foreground">
                           {t('spaces.ui.snapshot.moneyIn', { ns: 'portal' })}
                         </p>
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5 md:mt-2 md:space-y-1">
                           {moneyInRows.length > 0 ? moneyInRows.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-in-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-lg font-700 text-positive sm:text-xl"
+                              className="text-base font-700 text-positive sm:text-lg md:text-xl"
                               showCode
                             />
                           )) : (
@@ -1261,17 +1249,17 @@ function SpacesPageContent() {
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                      <div className="rounded-2xl border border-border bg-card px-3 py-3 md:rounded-3xl md:px-4 md:py-3.5">
                         <p className="text-sm font-700 text-muted-foreground">
                           {t('spaces.ui.snapshot.moneyOut', { ns: 'portal' })}
                         </p>
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5 md:mt-2 md:space-y-1">
                           {expenseRows.length > 0 ? expenseRows.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-out-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-lg font-700 text-foreground sm:text-xl"
+                              className="text-base font-700 text-foreground sm:text-lg md:text-xl"
                               showCode
                             />
                           )) : (
@@ -1281,17 +1269,17 @@ function SpacesPageContent() {
                           )}
                         </div>
                       </div>
-                      <div className="rounded-3xl border border-border bg-card px-4 py-3.5">
+                      <div className="rounded-2xl border border-border bg-card px-3 py-3 md:rounded-3xl md:px-4 md:py-3.5">
                         <p className="text-sm font-700 text-muted-foreground">
                           {t('spaces.ui.snapshot.amountOwed', { ns: 'portal' })}
                         </p>
-                        <div className="mt-2 space-y-1">
+                        <div className="mt-1.5 space-y-0.5 md:mt-2 md:space-y-1">
                           {outstandingReimbursementTotals.length > 0 ? outstandingReimbursementTotals.map((row) => (
                             <FormattedCurrencyAmount
                               key={`summary-owed-${row.currency}-${row.amount}`}
                               amount={row.amount}
                               currencyCode={row.currency}
-                              className="text-lg font-700 text-warning sm:text-xl"
+                              className="text-base font-700 text-warning sm:text-lg md:text-xl"
                               showCode
                             />
                           )) : (
@@ -1381,7 +1369,7 @@ function SpacesPageContent() {
                           {t('spaces.ui.members.emptyDescription', { ns: 'portal' })}
                         </p>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-1">
                           {members.map((member) => {
                             const RoleIcon = ROLE_ICONS[member.role] || Users;
                             const canEditMemberRole = canManageSpaceMemberRole({
@@ -1395,11 +1383,11 @@ function SpacesPageContent() {
                               targetMember: member,
                             });
                             return (
-                              <div key={member.id} className="rounded-2xl border border-border/70 bg-muted/10 px-4 py-3">
+                              <div key={member.id} className="rounded-2xl border border-border/70 bg-muted/10 px-3.5 py-3 md:px-4">
                                 <div className="flex flex-col gap-3">
                                   <div className="flex items-start justify-between gap-3">
                                     <div className="flex min-w-0 gap-3">
-                                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white">
+                                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full gradient-teal text-sm font-700 text-white">
                                         {(member.user_profile?.full_name || member.user_profile?.email || 'U').charAt(0).toUpperCase()}
                                       </div>
                                       <div className="min-w-0">
