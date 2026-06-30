@@ -587,7 +587,7 @@ export default function AIUsageCard() {
 
   const statusLabel = isTrialing ? t('aiUsage.trialing') : t('status.active', { ns: 'common' });
   const statusTone = peakPercent >= 100 || isTrialing ? 'warning' : 'default';
-  const outerCardClassName = 'card-elevated rounded-[24px] border border-violet-200/45 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(248,247,255,0.95)_58%,rgba(243,248,255,0.93))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_16px_36px_-20px_rgba(76,29,149,0.18)]';
+  const outerCardClassName = 'card-elevated rounded-[24px] border border-violet-200/55 bg-[linear-gradient(150deg,rgba(252,250,255,0.98),rgba(246,242,255,0.96)_54%,rgba(241,246,255,0.94))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_18px_38px_-22px_rgba(91,33,182,0.24)]';
   const primarySurfaceClassName = 'rounded-[18px] border border-violet-200/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(245,243,255,0.86))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_28px_-20px_rgba(109,40,217,0.24)]';
   const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.72),rgba(241,245,249,0.68))] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]';
 

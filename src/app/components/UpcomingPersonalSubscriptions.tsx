@@ -25,8 +25,10 @@ function addDays(dateIso: string, days: number) {
 
 export default function UpcomingPersonalSubscriptions({
   activePeriod,
+  compact = false,
 }: {
   activePeriod: DashboardActivePeriod;
+  compact?: boolean;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const [subscriptions, setSubscriptions] = useState<PersonalSubscription[]>([]);
@@ -73,45 +75,55 @@ export default function UpcomingPersonalSubscriptions({
   return (
     <SectionCard
       title={t('personalSubscriptions.widget.title', { ns: 'portal' })}
-      description={t('personalSubscriptions.widget.description', { ns: 'portal' })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
+      description={compact ? undefined : t('personalSubscriptions.widget.description', { ns: 'portal' })}
+      className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md ${
+        compact
+          ? 'border-violet-200/60 bg-[linear-gradient(165deg,rgba(255,255,255,0.95),rgba(247,244,255,0.92))]'
+          : 'border-border/80 bg-card'
+      }`}
       action={(
-        <Link href="/personal-subscriptions" className="text-sm font-700 text-accent transition-colors hover:text-teal-600">
+        <Link href="/personal-subscriptions" className={`font-700 text-accent transition-colors hover:text-teal-600 ${compact ? 'text-xs' : 'text-sm'}`}>
           {t('actions.viewAll', { ns: 'common' })}
         </Link>
       )}
-      bodyClassName="flex flex-1 flex-col p-3"
+      bodyClassName={`flex flex-1 flex-col ${compact ? 'p-2.5 pt-2' : 'p-3'}`}
     >
       {loading ? (
-        <div className="space-y-2">
+        <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={`personal-subscription-widget-skeleton-${index}`} className="animate-pulse rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-3">
+            <div key={`personal-subscription-widget-skeleton-${index}`} className={`animate-pulse rounded-2xl border px-3.5 py-3 ${
+              compact ? 'border-violet-100/70 bg-white/75' : 'border-border/60 bg-muted/15'
+            }`}>
               <div className="mb-2 h-4 w-36 rounded bg-muted" />
               <div className="h-3 w-28 rounded bg-muted" />
             </div>
           ))}
         </div>
       ) : subscriptions.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-6 text-center">
-          <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-[22px] bg-accent/10 text-accent">
-            <CalendarClock size={28} />
+        <div className={`flex flex-1 flex-col items-center justify-center text-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}>
+          <div className={`mb-3 flex items-center justify-center text-accent ${compact ? 'h-12 w-12 rounded-[18px] bg-violet-500/10' : 'h-16 w-16 rounded-[22px] bg-accent/10'}`}>
+            <CalendarClock size={compact ? 22 : 28} />
           </div>
-          <p className="text-base font-800 text-foreground">
+          <p className={`${compact ? 'text-[15px]' : 'text-base'} font-800 text-foreground`}>
             {t('personalSubscriptions.widget.emptyTitle', { ns: 'portal' })}
           </p>
-          <p className="mt-2 max-w-[18rem] text-sm text-muted-foreground">
+          <p className={`mt-2 max-w-[18rem] text-muted-foreground ${compact ? 'text-[12px] leading-5' : 'text-sm'}`}>
             {t('personalSubscriptions.widget.emptyDescription', { ns: 'portal' })}
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
           {subscriptions.map((subscription) => (
-            <div key={subscription.id} className="flex items-center justify-between gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 hover:border-border/70 hover:bg-muted/30">
+            <div key={subscription.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-3.5 transition-all duration-150 ${
+              compact
+                ? 'border-violet-100/70 bg-white/75 py-2.5 hover:border-violet-200/80 hover:bg-white/90'
+                : 'border-transparent bg-muted/15 py-3 hover:border-border/70 hover:bg-muted/30'
+            }`}>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/personal-subscriptions/${subscription.id}`}
-                    className="truncate text-sm font-700 text-foreground hover:text-accent"
+                    className={`truncate font-700 text-foreground hover:text-accent ${compact ? 'text-[13px]' : 'text-sm'}`}
                   >
                     {subscription.name}
                   </Link>
@@ -122,14 +134,14 @@ export default function UpcomingPersonalSubscriptions({
                     />
                   ) : null}
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className={`mt-1 text-muted-foreground ${compact ? 'text-[11px]' : 'text-xs'}`}>
                   {subscription.next_billing_date || notAvailableLabel}
                 </p>
               </div>
               <FormattedCurrencyAmount
                 amount={subscription.amount}
                 currencyCode={subscription.currency_code}
-                className="text-sm font-700 text-foreground"
+                className={`${compact ? 'text-[13px]' : 'text-sm'} font-700 text-foreground`}
                 showCode
               />
             </div>

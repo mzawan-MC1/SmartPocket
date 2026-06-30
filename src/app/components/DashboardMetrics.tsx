@@ -451,6 +451,11 @@ export default function DashboardMetrics({
       : metric.id === 'metric-upcoming'
         ? t('dashboardMetrics.scheduledThisPeriod')
         : metric.changeLabel;
+    const primaryDirectionAccent = metric.changeDir === 'down' ? 'from-rose-200/55 via-transparent to-transparent' : 'from-sky-200/55 via-transparent to-transparent';
+    const primaryOrbAccent = metric.changeDir === 'down' ? 'bg-rose-200/45' : 'bg-sky-200/55';
+    const primaryRingAccent = metric.changeDir === 'down'
+      ? 'border-rose-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(255,241,242,0.92))]'
+      : 'border-sky-200/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(239,246,255,0.92))]';
 
     return (
       <div
@@ -458,19 +463,26 @@ export default function DashboardMetrics({
         className={`metric-card flex h-full min-h-[116px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-muted/15 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
-          isPrimary ? 'border-blue-200 bg-blue-50/60 px-4 py-4 max-[480px]:px-3.5 max-[480px]:py-3' : ''
+          isPrimary ? 'border-sky-200/85 bg-[linear-gradient(160deg,rgba(249,252,255,0.98),rgba(239,246,255,0.93))] px-4 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_18px_38px_-24px_rgba(59,130,246,0.3)] max-[480px]:px-3.5 max-[480px]:py-3' : ''
         } ${
           isSupporting ? 'border-border/65 bg-muted/30 hover:bg-muted/40' : ''
         } ${gridSpanClassName}`}
       >
-        <div className={`mb-1.5 flex items-start justify-between gap-2.5 ${isPrimary ? 'lg:mb-2.5' : 'lg:mb-2'}`}>
+        {isPrimary ? (
+          <>
+            <div aria-hidden="true" className={`pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.78),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.6),transparent_32%)]`} />
+            <div aria-hidden="true" className={`pointer-events-none absolute -top-10 end-4 h-28 w-28 rounded-full blur-2xl ${primaryOrbAccent}`} />
+            <div aria-hidden="true" className={`pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-br ${primaryDirectionAccent}`} />
+          </>
+        ) : null}
+        <div className={`relative z-[1] mb-1.5 flex items-start justify-between gap-2.5 ${isPrimary ? 'lg:mb-2.5' : 'lg:mb-2'}`}>
           <div className={`min-w-0 ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'lg:space-y-2'}`}>
             <p className={`min-h-[2.45rem] leading-[1.25rem] max-[480px]:min-h-[2.2rem] max-[480px]:leading-[1.1rem] ${
               isPrimary
-                ? 'min-h-0 text-[13px] font-700 text-foreground/90 max-[480px]:text-[12px]'
+                ? 'min-h-0 text-[14px] font-800 tracking-[-0.015em] text-foreground max-[480px]:text-[12.5px]'
                 : isSupporting
-                  ? 'text-[12.5px] font-700 text-muted-foreground max-[480px]:text-[11.5px]'
-                  : 'text-[13px] font-700 text-foreground max-[480px]:text-[12px]'
+                  ? 'text-[13px] font-800 tracking-[-0.012em] text-foreground/88 max-[480px]:text-[11.75px]'
+                  : 'text-[13.5px] font-800 tracking-[-0.012em] text-foreground/95 max-[480px]:text-[12.25px]'
             }`}>
               {metric.label}
             </p>
@@ -478,11 +490,11 @@ export default function DashboardMetrics({
               {metric.valueContent ?? renderMetricValue(metric.valueMetric, isPrimary ? 'xl' : isSupporting ? 'xs' : 'sm', valueClassName, isPrimary ? 'font-800' : 'font-700')}
             </div>
           </div>
-          <div className={`flex flex-shrink-0 items-center justify-center ${isPrimary ? 'h-11 w-11 rounded-[18px]' : 'h-10 w-10 rounded-2xl'} max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl ${metric.iconBg}`}>
+          <div className={`relative z-[1] flex flex-shrink-0 items-center justify-center ${isPrimary ? 'h-11 w-11 rounded-[18px] border shadow-[0_14px_24px_-18px_rgba(37,99,235,0.45)]' : 'h-10 w-10 rounded-2xl'} max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl ${isPrimary ? primaryRingAccent : metric.iconBg}`}>
             <Icon size={isPrimary ? 19 : 18} className={`${metric.iconColor} max-[480px]:h-4 max-[480px]:w-4`} />
           </div>
         </div>
-        <div className={`mt-auto ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'space-y-1.5 lg:space-y-2'}`}>
+        <div className={`relative z-[1] mt-auto ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'space-y-1.5 lg:space-y-2'}`}>
           {hasSecondaryContent ? (
             <div className="flex items-start gap-1.5">
               {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}

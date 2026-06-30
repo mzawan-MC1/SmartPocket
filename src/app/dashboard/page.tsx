@@ -167,6 +167,7 @@ export default function DashboardPage() {
   const [activeQuickAction, setActiveQuickAction] = useState<'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget' | null>(null);
   const [lastTrigger, setLastTrigger] = useState<HTMLElement | null>(null);
   const isMdUp = useMinWidth(768);
+  const isXlUp = useMinWidth(1280);
   const firstLowerGrid = useDeferredMount(true, '650px 0px');
   const secondLowerGrid = useDeferredMount(true, '900px 0px');
 
@@ -282,22 +283,29 @@ export default function DashboardPage() {
     setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
   }, [dashboardLocale, periodContext]);
 
+  const showDesktopRightRail = isXlUp === true;
+
   return (
     <AppLayout activeRoute="/dashboard">
       <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3">
         {periodLoading || !periodContext || !activePeriod || !viewMode ? (
           <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
             <SectionCardSkeleton lines={2} />
-            <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-12">
-              <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-4 lg:grid-cols-3 xl:col-span-9">
+            <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
+              <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-4 lg:grid-cols-3 xl:col-[1]">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <KPICardSkeleton key={`dashboard-kpi-skeleton-${index + 1}`} />
                 ))}
               </div>
-              <div className="hidden md:col-span-12 md:block xl:col-span-3">
-                <SectionCardSkeleton lines={3} className="h-full" />
+              <div className="hidden md:col-span-12 md:block xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
+                <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
+                  <SectionCardSkeleton lines={3} className="h-full" />
+                  <div className="hidden xl:block">
+                    <SectionCardSkeleton lines={4} className="h-full" />
+                  </div>
+                </div>
               </div>
-              <div className="md:col-span-12 xl:col-span-9">
+              <div className="md:col-span-12 xl:col-[1]">
                 <div className="section-card">
                   <div className="section-card-header">
                     <div className="space-y-2">
@@ -317,8 +325,8 @@ export default function DashboardPage() {
                 <SectionCardSkeleton key={`dashboard-mid-skeleton-${index + 1}`} lines={4} className="h-full" />
               ))}
             </div>
-            <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
-              <div className="section-card md:col-span-2 lg:col-span-1">
+              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-2">
+                <div className="section-card md:col-span-2 lg:col-span-1 xl:hidden">
                 <div className="section-card-header">
                   <div className="space-y-2">
                     <div className="h-5 w-40 rounded-lg bg-muted" />
@@ -346,17 +354,22 @@ export default function DashboardPage() {
               financialPeriodContext={periodContext}
             />
             <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
-              <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-12">
-                <div className="md:col-span-12 xl:col-span-9">
+              <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
+                <div className="md:col-span-12 xl:col-[1]">
                   <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
-                <div className="hidden md:block md:col-span-12 xl:col-span-3 xl:col-start-10 xl:row-span-2 xl:row-start-1 xl:self-start">
-                  {isMdUp
-                    ? <AIUsageCardLazy />
-                    : <SectionCardSkeleton lines={3} className="h-full" />
-                  }
+                <div className="hidden md:block md:col-span-12 xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
+                  <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
+                    {isMdUp
+                      ? <AIUsageCardLazy />
+                      : <SectionCardSkeleton lines={3} className="h-full" />
+                    }
+                    {showDesktopRightRail ? (
+                      <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} compact />
+                    ) : null}
+                  </div>
                 </div>
-                <div className="md:col-span-12 xl:col-span-9">
+                <div className="md:col-span-12 xl:col-[1]">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
               </div>
@@ -381,12 +394,14 @@ export default function DashboardPage() {
                   </>
                 )}
               </div>
-              <div ref={secondLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
+              <div ref={secondLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-2">
                 {secondLowerGrid.shouldMount ? (
                   <>
-                    <div className="h-full md:col-span-2 lg:col-span-1">
-                      <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} />
-                    </div>
+                    {!showDesktopRightRail ? (
+                      <div className="h-full md:col-span-2 lg:col-span-1 xl:hidden">
+                        <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} />
+                      </div>
+                    ) : null}
                     <div className="h-full">
                       <PeopleDashboardWidgetLazy />
                     </div>
@@ -396,7 +411,9 @@ export default function DashboardPage() {
                   </>
                 ) : (
                   <>
-                    <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1" />
+                    {!showDesktopRightRail ? (
+                      <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1 xl:hidden" />
+                    ) : null}
                     <SectionCardSkeleton lines={4} className="h-full" />
                     <SectionCardSkeleton lines={4} className="h-full" />
                   </>

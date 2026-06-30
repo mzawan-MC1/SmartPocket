@@ -214,11 +214,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
     return (
       <div className="px-2.5 lg:mb-1.5 lg:pt-3.5">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-md bg-cyan-50 text-cyan-700/80 ring-1 ring-cyan-100/80">
-            <HeadingIcon size={11} />
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-5.5 w-5.5 items-center justify-center rounded-lg bg-cyan-50/95 text-cyan-700/85 ring-1 ring-cyan-100/90">
+            <HeadingIcon size={13} />
           </span>
-          <span className="text-[11px] font-800 uppercase tracking-[0.24em] text-cyan-800/80">
+          <span className="text-[13.5px] font-800 uppercase tracking-[0.22em] text-cyan-900/78">
             {heading.label}
           </span>
           <span className="mt-px h-px flex-1 bg-gradient-to-r from-cyan-200/80 via-border/80 to-transparent" aria-hidden="true" />

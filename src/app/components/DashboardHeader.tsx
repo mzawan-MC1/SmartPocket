@@ -137,12 +137,12 @@ export default function DashboardHeader({
   return (
     <section className="space-y-2">
       <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[minmax(18rem,1.1fr)_minmax(22rem,0.96fr)_14.75rem] xl:items-start xl:gap-3">
-        <div className="min-w-0 space-y-1 rounded-[20px] border border-transparent py-0.5">
-          <h1 className="flex items-center gap-x-1 gap-y-0 text-[1rem] font-800 tracking-[-0.025em] text-foreground max-[480px]:text-[0.94rem] max-[360px]:flex-wrap max-[360px]:text-[0.86rem] lg:text-[1.14rem] xl:flex-nowrap xl:text-[1.2rem]">
+        <div className="min-w-0 space-y-1.5 rounded-[20px] border border-transparent py-0.5">
+          <h1 className="flex items-center gap-x-1 gap-y-0 text-[1.04rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem] lg:text-[1.5rem] xl:flex-nowrap xl:text-[1.6rem]">
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
-          <p className="max-w-[32rem] text-[11px] leading-4 text-muted-foreground md:text-[12px] md:leading-[1.05rem]">
+          <p className="max-w-[34rem] text-[11px] leading-4 text-muted-foreground md:text-[12px] md:leading-[1.05rem] lg:text-[12.5px]">
             {description}
           </p>
         </div>
