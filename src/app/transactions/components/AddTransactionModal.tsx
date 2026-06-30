@@ -150,6 +150,14 @@ interface TransactionDraftRow extends TxnFormData {
 }
 
 const MAX_BATCH_ROWS = 20;
+const TRANSACTION_GROUP_SURFACE =
+  'border-slate-200/80 bg-[linear-gradient(165deg,rgba(255,255,255,0.98),rgba(243,248,255,0.94))] shadow-[0_1px_2px_rgba(15,23,42,0.03),0_10px_24px_-22px_rgba(14,116,144,0.28)]';
+const TRANSACTION_GROUP_SURFACE_SOFT =
+  'border-sky-200/60 bg-[linear-gradient(165deg,rgba(248,252,255,0.96),rgba(238,247,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]';
+const TRANSACTION_GROUP_SURFACE_LAVENDER =
+  'border-violet-200/55 bg-[linear-gradient(165deg,rgba(251,249,255,0.96),rgba(244,241,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]';
+const TRANSACTION_GROUP_SURFACE_SUBTLE =
+  'border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(246,250,253,0.86))]';
 
 function getTodayDate() {
   return new Date().toISOString().slice(0, 10);
@@ -1542,9 +1550,9 @@ export default function AddTransactionModal({
                 return (
                   <div
                     key={row.id}
-                    className={`rounded-2xl border bg-card ${rowHasErrors.length > 0 ? 'border-negative/40' : 'border-border'}`}
+                    className={`rounded-2xl border ${rowHasErrors.length > 0 ? 'border-negative/40 bg-negative-soft/10' : TRANSACTION_GROUP_SURFACE}`}
                   >
-                    <div className="flex items-center justify-between gap-3 border-b border-border/70 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3 border-b border-slate-200/80 px-3 py-2">
                       <p className="text-sm font-700 text-foreground">{rowLabel}</p>
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <button
@@ -1639,19 +1647,19 @@ export default function AddTransactionModal({
                           </div>
 
                           {selectedSubscription ? (
-                            <div className="rounded-2xl border border-border/70 bg-muted/10 p-3 max-[480px]:order-1">
+                            <div className={`rounded-2xl border p-3 max-[480px]:order-1 ${TRANSACTION_GROUP_SURFACE_LAVENDER}`}>
                               <div className="mb-2 flex items-center gap-2 text-sm font-600 text-foreground">
                                 <RefreshCw size={14} className="text-accent" />
                                 <span>{t('transactions.form.subscriptionPaymentSummary', { ns: 'portal' })}</span>
                               </div>
                               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.personalSubscriptionLabel', { ns: 'portal' })}
                                   </p>
                                   <p className="mt-1 text-sm font-600 text-foreground">{selectedSubscription.name}</p>
                                 </div>
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })}
                                   </p>
@@ -1674,7 +1682,7 @@ export default function AddTransactionModal({
                                       : t('transactions.noAccount', { ns: 'portal' })}
                                   </p>
                                 </div>
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.category', { ns: 'portal' })}
                                   </p>
@@ -1687,7 +1695,7 @@ export default function AddTransactionModal({
                                       : t('transactions.noCategory', { ns: 'portal' })}
                                   </p>
                                 </div>
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.amount', { ns: 'portal' })}
                                   </p>
@@ -1695,7 +1703,7 @@ export default function AddTransactionModal({
                                     {selectedSubscription.currency_code} {selectedSubscription.amount.toFixed(2)}
                                   </p>
                                 </div>
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.merchantLabel', { ns: 'portal' })}
                                   </p>
@@ -1703,7 +1711,7 @@ export default function AddTransactionModal({
                                     {selectedSubscription.provider || t('notAvailable', { ns: 'common' })}
                                   </p>
                                 </div>
-                                <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
+                                <div className={`rounded-xl border px-3 py-2 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.form.descriptionLabel', { ns: 'portal' })}
                                   </p>
@@ -1796,7 +1804,7 @@ export default function AddTransactionModal({
                             )}
                           </div>
 
-                          <div className="rounded-2xl border border-border/70 bg-muted/10 p-2 max-[480px]:order-1 max-[480px]:space-y-3">
+                          <div className={`rounded-2xl border p-2 max-[480px]:order-1 max-[480px]:space-y-3 ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
                             <div className="max-[480px]:hidden">
                               <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-sm font-600')}>
                                 {t('transactions.amount', { ns: 'portal' })} *
@@ -1910,7 +1918,7 @@ export default function AddTransactionModal({
                       )}
 
                       {!isSubscriptionPaymentRow ? (
-                      <div className="rounded-xl border border-border/70 bg-muted/10 max-[480px]:order-6">
+                      <div className={`rounded-xl border max-[480px]:order-6 ${TRANSACTION_GROUP_SURFACE_LAVENDER}`}>
                         <button
                           type="button"
                           onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
@@ -1922,7 +1930,7 @@ export default function AddTransactionModal({
                         </button>
 
                         {row.showMoreOptions ? (
-                          <div className="space-y-2 border-t border-border/70 px-3 py-2">
+                          <div className="space-y-2 border-t border-slate-200/75 px-3 py-2">
                             {!isLoanRepaymentRow ? (
                               <div>
                                 <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.tags', { ns: 'portal' })}</label>
@@ -1940,7 +1948,7 @@ export default function AddTransactionModal({
                             ) : null}
 
                             {spaceId ? (
-                              <div className="space-y-3 rounded-xl border border-border/70 bg-card/70 p-3">
+                              <div className={`space-y-3 rounded-xl border p-3 ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
                                 <div>
                                   <p className="text-sm font-700 text-foreground">
                                     {spaceName
@@ -2061,7 +2069,7 @@ export default function AddTransactionModal({
                                     </p>
                                   </div>
                                   {row.space_allocations.length === 0 ? (
-                                    <p className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                                    <p className={`rounded-xl border px-3 py-2 text-xs text-muted-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                       {t('transactions.form.noSpaceParticipants', {
                                         ns: 'portal',
                                         defaultValue: 'No eligible Space participants are available yet.',
@@ -2069,7 +2077,7 @@ export default function AddTransactionModal({
                                     </p>
                                   ) : (
                                     row.space_allocations.map((allocation) => (
-                                      <div key={`${row.id}-allocation-${allocation.participant_key}`} className="rounded-xl border border-border bg-muted/10 p-3">
+                                      <div key={`${row.id}-allocation-${allocation.participant_key}`} className={`rounded-xl border p-3 ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                         <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                                           <label className="flex min-w-0 items-start gap-3">
                                             <input
@@ -2209,7 +2217,7 @@ export default function AddTransactionModal({
                                 </div>
                               </div>
                             ) : !isLoanRepaymentRow ? (
-                              <div className="rounded-xl border border-border/70 overflow-hidden">
+                              <div className={`rounded-xl border overflow-hidden ${TRANSACTION_GROUP_SURFACE_SOFT}`}>
                               <button
                                 type="button"
                                 onClick={() => updateDraftRow(row.id, (draft) => ({
@@ -2227,7 +2235,7 @@ export default function AddTransactionModal({
                                     }
                                     : {}),
                                 }))}
-                                className="flex w-full items-center justify-between bg-muted/30 px-3 py-2 text-sm font-600 text-foreground"
+                                className="flex w-full items-center justify-between bg-slate-50/55 px-3 py-2 text-sm font-600 text-foreground"
                               >
                                 <span className="flex items-center gap-2">
                                   <Users size={14} className="text-accent" />
@@ -2239,7 +2247,7 @@ export default function AddTransactionModal({
                               </button>
 
                               {row.showManagedPerson ? (
-                                <div className="space-y-2 border-t border-border/70 px-3 py-2">
+                                <div className="space-y-2 border-t border-slate-200/75 px-3 py-2">
                                   <div>
                                     <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
                                       {t('transactions.form.managedPerson', { ns: 'portal' })}
@@ -2299,7 +2307,7 @@ export default function AddTransactionModal({
                                   </div>
 
                                   <div className="grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,1fr)_170px]">
-                                    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm text-foreground">
+                                    <label className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm text-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                       <input
                                         type="checkbox"
                                         checked={row.reimbursement_required}
@@ -2330,7 +2338,7 @@ export default function AddTransactionModal({
 
                             <div>
                               <label className="mb-1 block text-sm font-600 text-foreground">{t('transactions.form.receiptAttachment', { ns: 'portal' })}</label>
-                              <div className="rounded-xl border-2 border-dashed border-border px-3.5 py-2.5 text-center">
+                              <div className="rounded-xl border-2 border-dashed border-sky-200/80 bg-sky-50/35 px-3.5 py-2.5 text-center">
                                 <input
                                   type="file"
                                   id={`receipt-upload-${row.id}`}
@@ -2362,7 +2370,7 @@ export default function AddTransactionModal({
                             </div>
 
                             {!isLoanRepaymentRow ? (
-                              <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-1.5 text-sm text-foreground">
+                              <label className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 text-sm text-foreground ${TRANSACTION_GROUP_SURFACE_SUBTLE}`}>
                                 <input
                                   type="checkbox"
                                   checked={row.is_recurring}
