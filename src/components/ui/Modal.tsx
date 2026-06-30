@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useId } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -51,6 +51,8 @@ export default function Modal({
   const isVisible = open || isOpen || false;
   const headingId = useId();
   const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
   const mobileContentClassName = mobileLayout === 'fullscreen'
     ? 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[24px]'
     : 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[22px]';
@@ -62,6 +64,24 @@ export default function Modal({
       document.body.style.overflow = '';
     }
     return () => { document.body.style.overflow = ''; };
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+
+    const id = window.requestAnimationFrame(() => {
+      dialogRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(id);
+      restoreFocusRef.current?.focus?.();
+      restoreFocusRef.current = null;
+    };
   }, [isVisible]);
 
   useEffect(() => {
@@ -89,15 +109,17 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center sm:p-5">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={handleBackdropClick} />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
         aria-describedby={description ? descriptionId : undefined}
+        tabIndex={-1}
         className={`relative box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
-        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-6 max-[480px]:p-4 ${headerClassName}`}>
+        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-4 ${headerClassName}`}>
           <div>
-            <h2 id={headingId} className="text-lg font-800 text-foreground">{title}</h2>
+            <h2 id={headingId} className="text-[1.02rem] font-800 leading-snug text-foreground sm:text-lg">{title}</h2>
             {description ? <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
           </div>
           <button
@@ -109,7 +131,7 @@ export default function Modal({
             <X size={18} />
           </button>
         </div>
-        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-6 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
+        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-5 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
           {children}
         </div>
         {footer ? (
