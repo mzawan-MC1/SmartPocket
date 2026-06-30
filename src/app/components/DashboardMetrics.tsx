@@ -25,7 +25,6 @@ interface DashboardMetricCard {
   warningState?: boolean;
   budgetPct?: number;
   valueContent?: React.ReactNode;
-  subtext?: string;
 }
 
 export default function DashboardMetrics({
@@ -72,7 +71,13 @@ export default function DashboardMetrics({
           <div
             key={`skel-${i}`}
             className={`metric-card h-full min-h-[116px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
-              i === 0 ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2' : ''
+              i === 0
+                ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2'
+                : i === 5
+                  ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-1'
+                  : i >= 6
+                    ? 'md:col-span-2 lg:col-span-1'
+                    : ''
             }`}
           >
             <div className="mb-3 flex items-start justify-between">
@@ -233,6 +238,29 @@ export default function DashboardMetrics({
     );
   };
 
+  const isZeroAmount = (amount: number | null | undefined) => Math.abs(Number(amount || 0)) < 0.000001;
+
+  const isZeroMetric = (metric: DashboardConvertedMetric | undefined) => {
+    if (!metric) return true;
+    if (metric.originalTotals.length > 0) {
+      return metric.originalTotals.every((row) => isZeroAmount(row.amount));
+    }
+    return isZeroAmount(metric.reportingAmount);
+  };
+
+  const getSignedDirection = (metric: DashboardConvertedMetric | undefined): DashboardMetricCard['changeDir'] => {
+    if (!metric || isZeroMetric(metric)) return 'neutral';
+    return metric.originalTotals.every((row) => row.amount >= 0) ? 'up' : 'down';
+  };
+
+  const getFixedDirection = (
+    metric: DashboardConvertedMetric | undefined,
+    nonZeroDirection: Extract<DashboardMetricCard['changeDir'], 'up' | 'down'>
+  ): DashboardMetricCard['changeDir'] => {
+    if (!metric || isZeroMetric(metric)) return 'neutral';
+    return nonZeroDirection;
+  };
+
   const personalCards: DashboardMetricCard[] = [
     {
       id: 'metric-balance',
@@ -240,7 +268,7 @@ export default function DashboardMetrics({
       valueMetric: metrics.totalBalance,
       priority: 'primary',
       changeMetric: metrics.netCashFlow,
-      changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      changeDir: getSignedDirection(metrics.netCashFlow),
       changeLabel: isMonthMode ? t('dashboardMetrics.netChangeThisMonth') : t('dashboardMetrics.netChangeThisPayPeriod'),
       icon: Wallet,
       iconBg: 'bg-primary/10',
@@ -251,8 +279,7 @@ export default function DashboardMetrics({
       label: t('dashboardMetrics.cards.flowIncome', { flow: flowLabel }),
       valueMetric: metrics.monthlyIncome,
       priority: 'secondary',
-      changeMetric: metrics.monthlyIncome,
-      changeDir: 'up' as const,
+      changeDir: getFixedDirection(metrics.monthlyIncome, 'up'),
       changeLabel: activePeriod.label,
       icon: TrendingUp,
       iconBg: 'bg-positive-soft',
@@ -263,8 +290,7 @@ export default function DashboardMetrics({
       label: t('dashboardMetrics.cards.flowExpenses', { flow: flowLabel }),
       valueMetric: metrics.monthlyExpenses,
       priority: 'secondary',
-      changeMetric: metrics.monthlyExpenses,
-      changeDir: 'down' as const,
+      changeDir: getFixedDirection(metrics.monthlyExpenses, 'down'),
       changeLabel: activePeriod.label,
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
@@ -276,8 +302,14 @@ export default function DashboardMetrics({
       label: isMonthMode ? t('dashboardMetrics.cards.netCashFlow') : t('dashboardMetrics.cards.periodCashFlow'),
       valueMetric: metrics.netCashFlow,
       priority: 'secondary',
-      change: metrics.netCashFlow.originalTotals.length > 1 ? t('dashboardMetrics.mixedCurrencies') : metrics.netCashFlow.originalTotals[0]?.amount >= 0 ? t('dashboardMetrics.positive') : t('dashboardMetrics.negative'),
-      changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
+      change: isZeroMetric(metrics.netCashFlow)
+        ? undefined
+        : metrics.netCashFlow.originalTotals.length > 1
+          ? t('dashboardMetrics.mixedCurrencies')
+          : metrics.netCashFlow.originalTotals[0]?.amount >= 0
+            ? t('dashboardMetrics.positive')
+            : t('dashboardMetrics.negative'),
+      changeDir: getSignedDirection(metrics.netCashFlow),
       changeLabel: t('dashboardMetrics.incomeMinusExpenses'),
       icon: ArrowUpDown,
       iconBg: 'bg-info-soft',
@@ -348,7 +380,7 @@ export default function DashboardMetrics({
       label: t('dashboardMetrics.cards.outstandingLoans'),
       valueMetric: metrics.outstandingLoanBalance,
       priority: 'supporting',
-      changeMetric: metrics.loanBorrowedThisMonth,
+      changeMetric: isZeroMetric(metrics.loanBorrowedThisMonth) ? undefined : metrics.loanBorrowedThisMonth,
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.borrowedIn', { period: activePeriod.label }),
       icon: TrendingDown,
@@ -360,7 +392,6 @@ export default function DashboardMetrics({
       label: t('dashboardMetrics.cards.loanRepayments'),
       valueMetric: metrics.loanRepaidThisMonth,
       priority: 'supporting',
-      changeMetric: metrics.loanRepaidThisMonth,
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.paidIn', { period: activePeriod.label }),
       icon: ArrowUpDown,
@@ -397,7 +428,19 @@ export default function DashboardMetrics({
     const Icon = metric.icon;
     const isPrimary = metric.priority === 'primary';
     const isSupporting = metric.priority === 'supporting';
-    const isBalanceCard = metric.id === 'metric-balance';
+    const isUpcomingCard = metric.id === 'metric-upcoming';
+    const gridSpanClassName = isPrimary
+      ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2'
+      : isUpcomingCard
+        ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-1'
+        : isSupporting
+          ? 'md:col-span-2 lg:col-span-1'
+          : '';
+    const hasDistinctSecondaryMetric = Boolean(metric.changeMetric && metric.changeMetric !== metric.valueMetric);
+    const secondaryContent = hasDistinctSecondaryMetric
+      ? renderMetricValue(metric.changeMetric!, 'xs')
+      : metric.change;
+    const hasSecondaryContent = Boolean(secondaryContent);
     const valueClassName = isPrimary
       ? 'inline-flex items-baseline text-[1.72rem] font-800 tracking-[-0.035em] max-[480px]:text-[1.42rem] md:text-[1.68rem] lg:text-[1.78rem]'
       : isSupporting
@@ -415,23 +458,23 @@ export default function DashboardMetrics({
         className={`metric-card flex h-full min-h-[116px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-muted/15 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
-          isPrimary ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2 border-blue-200 bg-blue-50/60 px-4 py-4 max-[480px]:px-3.5 max-[480px]:py-3' : ''
+          isPrimary ? 'border-blue-200 bg-blue-50/60 px-4 py-4 max-[480px]:px-3.5 max-[480px]:py-3' : ''
         } ${
           isSupporting ? 'border-border/65 bg-muted/30 hover:bg-muted/40' : ''
-        }`}
+        } ${gridSpanClassName}`}
       >
         <div className={`mb-1.5 flex items-start justify-between gap-2.5 ${isPrimary ? 'lg:mb-2.5' : 'lg:mb-2'}`}>
           <div className={`min-w-0 ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'lg:space-y-2'}`}>
-            <p className={`leading-[1.25rem] max-[480px]:leading-[1.1rem] ${
+            <p className={`min-h-[2.45rem] leading-[1.25rem] max-[480px]:min-h-[2.2rem] max-[480px]:leading-[1.1rem] ${
               isPrimary
-                ? 'text-[13px] font-700 text-foreground/90 max-[480px]:text-[12px]'
+                ? 'min-h-0 text-[13px] font-700 text-foreground/90 max-[480px]:text-[12px]'
                 : isSupporting
                   ? 'text-[12.5px] font-700 text-muted-foreground max-[480px]:text-[11.5px]'
                   : 'text-[13px] font-700 text-foreground max-[480px]:text-[12px]'
             }`}>
               {metric.label}
             </p>
-            <div className={`mt-0.5 font-tabular leading-tight ${isSupporting ? 'text-foreground/90' : 'text-foreground'} lg:mt-0`}>
+            <div className={`mt-0.5 min-h-[2.2rem] font-tabular leading-tight ${isSupporting ? 'text-foreground/90' : 'text-foreground'} lg:mt-0`}>
               {metric.valueContent ?? renderMetricValue(metric.valueMetric, isPrimary ? 'xl' : isSupporting ? 'xs' : 'sm', valueClassName, isPrimary ? 'font-800' : 'font-700')}
             </div>
           </div>
@@ -440,34 +483,41 @@ export default function DashboardMetrics({
           </div>
         </div>
         <div className={`mt-auto ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'space-y-1.5 lg:space-y-2'}`}>
-          <div className="flex items-start gap-1.5">
-            {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
-            {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
-            <div className="min-w-0">
-              <div className={`font-tabular leading-none max-[480px]:text-[12px] ${
-                isPrimary ? 'text-[0.95rem] font-800 md:text-[1rem]' : isSupporting ? 'text-[0.82rem] font-700 md:text-[0.85rem]' : 'text-sm font-700'
-              } ${
-                metric.changeDir === 'up' ? 'text-positive' :
-                metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
-              }`}>
-                {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
+          {hasSecondaryContent ? (
+            <div className="flex items-start gap-1.5">
+              {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
+              {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
+              <div className="min-w-0">
+                <div className={`font-tabular leading-none max-[480px]:text-[12px] ${
+                  isPrimary ? 'text-[0.95rem] font-800 md:text-[1rem]' : isSupporting ? 'text-[0.82rem] font-700 md:text-[0.85rem]' : 'text-sm font-700'
+                } ${
+                  metric.changeDir === 'up' ? 'text-positive' :
+                  metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
+                }`}>
+                  {secondaryContent}
+                </div>
+                <p className={`mt-1.5 text-muted-foreground max-[480px]:leading-[1rem] ${
+                  isPrimary
+                    ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+                    : isSupporting
+                      ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px] lg:mt-1.5'
+                      : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+                }`}>
+                  {helperChangeLabel}
+                </p>
               </div>
-              <p className={`mt-1.5 text-muted-foreground max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2 ${
-                isPrimary
-                  ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px] lg:mt-2'
-                  : isSupporting
-                    ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px] lg:mt-1.5'
-                    : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px] lg:mt-2'
-              }`}>
-                {helperChangeLabel}
-              </p>
             </div>
-          </div>
-          {metric.subtext ? (
-            <p className={`text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] ${isBalanceCard ? 'lg:hidden' : ''}`}>
-              {metric.subtext}
+          ) : (
+            <p className={`text-muted-foreground max-[480px]:leading-[1rem] ${
+              isPrimary
+                ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px]'
+                : isSupporting
+                  ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px]'
+                  : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px]'
+            }`}>
+              {helperChangeLabel}
             </p>
-          ) : null}
+          )}
           {renderMetricDetails(metric.valueMetric)}
         </div>
         {metric.warningState && metric.budgetPct !== undefined && (
