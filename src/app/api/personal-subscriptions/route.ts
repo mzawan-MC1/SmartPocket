@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   createPersonalSubscription,
   listPersonalSubscriptions,
@@ -9,14 +9,25 @@ import { requirePersonalSubscriptionsUser, withPersonalSubscriptionsCookies } fr
 
 export const runtime = 'nodejs';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await requirePersonalSubscriptionsUser();
   if (!auth.ok) {
     return auth.response;
   }
 
   try {
-    const subscriptions = await listPersonalSubscriptions(auth.supabase, auth.user.id);
+    const searchParams = request.nextUrl.searchParams;
+    const statuses = searchParams.getAll('status').filter(Boolean);
+    const nextBillingDateFrom = searchParams.get('nextBillingDateFrom')?.trim() || undefined;
+    const nextBillingDateTo = searchParams.get('nextBillingDateTo')?.trim() || undefined;
+    const rawLimit = Number(searchParams.get('limit'));
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : undefined;
+    const subscriptions = await listPersonalSubscriptions(auth.supabase, auth.user.id, {
+      statuses: statuses.length > 0 ? statuses as Array<(typeof statuses)[number]> : undefined,
+      nextBillingDateFrom,
+      nextBillingDateTo,
+      limit,
+    });
     return withPersonalSubscriptionsCookies(
       NextResponse.json({ subscriptions }, { status: 200 }),
       auth.cookieMutations

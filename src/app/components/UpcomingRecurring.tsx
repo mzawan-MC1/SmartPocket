@@ -40,19 +40,32 @@ export default function UpcomingRecurring({
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
   const [items, setItems] = useState<RecurringTransaction[]>([]);
+  const [totalDueByCurrency, setTotalDueByCurrency] = useState<Array<{ currency: string; amount: number }>>([]);
   const [loading, setLoading] = useState(true);
   const [markingId, setMarkingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const all = await getRecurringTransactions();
-      const upcoming = all.filter(
-        (r) => r.is_active && r.next_due_date >= activePeriod.startDate && r.next_due_date <= activePeriod.endDate
-      );
+      const upcoming = await getRecurringTransactions({
+        activeOnly: true,
+        transactionType: 'expense',
+        dateFrom: activePeriod.startDate,
+        dateTo: activePeriod.endDate,
+      });
+      const totals = Array.from(
+        upcoming.reduce((map, item) => {
+          const currency = normalizeCurrencyCode(item.currency);
+          map.set(currency, (map.get(currency) || 0) + Number(item.amount || 0));
+          return map;
+        }, new Map<string, number>())
+      ).map(([currency, amount]) => ({ currency, amount }));
       setItems(upcoming);
+      setTotalDueByCurrency(totals);
     } catch (error) {
       console.error(error);
+      setItems([]);
+      setTotalDueByCurrency([]);
     } finally {
       setLoading(false);
     }
@@ -60,7 +73,7 @@ export default function UpcomingRecurring({
 
   useEffect(() => { void load(); }, [load]);
 
-  useSmartPocketDataChanged(['dashboard', 'transactions', 'financial_accounts', 'recurring_transactions', 'profile'], 'UpcomingRecurring', async () => {
+  useSmartPocketDataChanged(['recurring_transactions'], 'UpcomingRecurring', async () => {
     await load();
   });
 
@@ -77,13 +90,7 @@ export default function UpcomingRecurring({
     }
   };
 
-  const totalDueByCurrency = Array.from(
-    items.reduce((map, item) => {
-      const currency = normalizeCurrencyCode(item.currency);
-      map.set(currency, (map.get(currency) || 0) + Number(item.amount || 0));
-      return map;
-    }, new Map<string, number>())
-  ).map(([currency, amount]) => ({ currency, amount }));
+  const visibleItems = items.slice(0, 5);
 
   return (
     <SectionCard
@@ -132,7 +139,7 @@ export default function UpcomingRecurring({
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">
-            {items.slice(0, 5).map((item) => {
+            {visibleItems.map((item) => {
               const days = daysUntil(item.next_due_date, activePeriod.timezone);
               const urgent = activePeriod.isCurrent && days <= 3;
               const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);

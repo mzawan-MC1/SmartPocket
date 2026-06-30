@@ -464,14 +464,35 @@ function normalizePostgrestMaybeError(error: PostgrestError | null, fallback: st
 
 export async function listPersonalSubscriptions(
   supabase: RouteSupabaseClient,
-  userId: string
+  userId: string,
+  options?: {
+    statuses?: PersonalSubscription['status'][];
+    nextBillingDateFrom?: string;
+    nextBillingDateTo?: string;
+    limit?: number;
+  }
 ) {
-  const { data, error } = await supabase
+  let query = supabase
     .from('personal_subscriptions')
     .select(SUBSCRIPTION_SELECT)
     .eq('user_id', userId)
     .order('next_billing_date', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: false });
+
+  if (options?.statuses && options.statuses.length > 0) {
+    query = query.in('status', options.statuses);
+  }
+  if (options?.nextBillingDateFrom) {
+    query = query.gte('next_billing_date', options.nextBillingDateFrom);
+  }
+  if (options?.nextBillingDateTo) {
+    query = query.lte('next_billing_date', options.nextBillingDateTo);
+  }
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;

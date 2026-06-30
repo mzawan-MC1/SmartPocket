@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import {
   ensureDefaultPersonalAccounts,
@@ -44,7 +44,7 @@ const ACCOUNT_SELECT = `
   )
 `;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const auth = await requireUser();
   if (!auth.ok) {
     return auth.response;
@@ -54,11 +54,19 @@ export async function GET() {
 
   await ensureDefaultPersonalAccounts(user.id);
 
-  const { data, error } = await supabase
+  const activeOnly = request.nextUrl.searchParams.get('activeOnly') === 'true';
+
+  let query = supabase
     .from('financial_accounts')
     .select(ACCOUNT_SELECT)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
+
+  if (activeOnly) {
+    query = query.eq('is_active', true);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return applySupabaseCookies(

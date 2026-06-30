@@ -18,8 +18,29 @@ async function parsePersonalSubscriptionsResponse(response: Response) {
   return body as Record<string, unknown>;
 }
 
-export async function getPersonalSubscriptions() {
-  const response = await fetch('/api/personal-subscriptions', {
+export async function getPersonalSubscriptions(options?: {
+  statuses?: PersonalSubscription['status'][];
+  nextBillingDateFrom?: string;
+  nextBillingDateTo?: string;
+  limit?: number;
+}) {
+  const searchParams = new URLSearchParams();
+  options?.statuses?.forEach((status) => {
+    if (status) {
+      searchParams.append('status', status);
+    }
+  });
+  if (options?.nextBillingDateFrom) {
+    searchParams.set('nextBillingDateFrom', options.nextBillingDateFrom);
+  }
+  if (options?.nextBillingDateTo) {
+    searchParams.set('nextBillingDateTo', options.nextBillingDateTo);
+  }
+  if (options?.limit) {
+    searchParams.set('limit', String(options.limit));
+  }
+
+  const response = await fetch(`/api/personal-subscriptions${searchParams.size > 0 ? `?${searchParams.toString()}` : ''}`, {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',

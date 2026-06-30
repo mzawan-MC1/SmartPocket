@@ -44,8 +44,8 @@ export default function AccountBalances() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const all = await getAccounts();
-      setAccounts(all.filter((a) => a.is_active));
+      const activeAccounts = await getAccounts({ activeOnly: true });
+      setAccounts(activeAccounts);
     } catch (error) {
       console.error(error);
     } finally {
@@ -57,9 +57,11 @@ export default function AccountBalances() {
     void load();
   }, [load]);
 
-  useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountBalances', async () => {
+  useSmartPocketDataChanged(['financial_accounts', 'transactions'], 'AccountBalances', async () => {
     await load();
   });
+
+  const visibleAccounts = accounts.slice(0, 5);
 
   const getAccountTypeLabel = (type: string) => {
     switch (type) {
@@ -125,7 +127,7 @@ export default function AccountBalances() {
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">
-          {accounts.slice(0, 5).map((acct) => {
+          {visibleAccounts.map((acct) => {
             const Icon = getAccountIcon(acct.account_type);
             const colorClass = getAccountColorClass(acct.account_type, acct.current_balance);
             const lastActivity = new Date(acct.updated_at).toLocaleDateString(

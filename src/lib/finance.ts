@@ -1473,8 +1473,15 @@ async function parseFinancialAccountResponse(response: Response) {
   return body as Record<string, unknown>;
 }
 
-export async function getAccounts(): Promise<FinancialAccount[]> {
-  const response = await fetch('/api/financial-accounts', {
+export async function getAccounts(options?: {
+  activeOnly?: boolean;
+}): Promise<FinancialAccount[]> {
+  const searchParams = new URLSearchParams();
+  if (options?.activeOnly) {
+    searchParams.set('activeOnly', 'true');
+  }
+
+  const response = await fetch(`/api/financial-accounts${searchParams.size > 0 ? `?${searchParams.toString()}` : ''}`, {
     method: 'GET',
     cache: 'no-store',
     credentials: 'include',
@@ -2864,12 +2871,36 @@ export async function deleteBudget(id: string): Promise<void> {
 
 // ─── Recurring Transactions ───────────────────────────────────────────────────
 
-export async function getRecurringTransactions(): Promise<RecurringTransaction[]> {
+export async function getRecurringTransactions(filters?: {
+  activeOnly?: boolean;
+  transactionType?: RecurringTransaction['transaction_type'];
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+}): Promise<RecurringTransaction[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from('recurring_transactions')
     .select(`*, account:financial_accounts(name), category:categories(name, color)`)
     .order('next_due_date', { ascending: true });
+
+  if (filters?.activeOnly) {
+    query = query.eq('is_active', true);
+  }
+  if (filters?.transactionType) {
+    query = query.eq('transaction_type', filters.transactionType);
+  }
+  if (filters?.dateFrom) {
+    query = query.gte('next_due_date', filters.dateFrom);
+  }
+  if (filters?.dateTo) {
+    query = query.lte('next_due_date', filters.dateTo);
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return (data || []) as RecurringTransaction[];
 }

@@ -17,6 +17,12 @@ import {
 import type { DashboardActivePeriod } from '@/lib/finance';
 import PersonalSubscriptionWarningBadge from '@/app/personal-subscriptions/components/PersonalSubscriptionWarningBadge';
 
+function addDays(dateIso: string, days: number) {
+  const date = new Date(`${dateIso}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 export default function UpcomingPersonalSubscriptions({
   activePeriod,
 }: {
@@ -29,25 +35,35 @@ export default function UpcomingPersonalSubscriptions({
     () => getCurrentBusinessDate(activePeriod.timezone),
     [activePeriod.timezone]
   );
+  const upcomingWindowEnd = useMemo(
+    () => addDays(todayIso, 7),
+    [todayIso]
+  );
   const notAvailableLabel = t('notAvailable', { ns: 'common' });
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const all = await getPersonalSubscriptions();
+      const all = await getPersonalSubscriptions({
+        statuses: ['trial', 'active', 'cancellation_requested', 'cancelling'],
+        nextBillingDateFrom: todayIso,
+        nextBillingDateTo: upcomingWindowEnd,
+      });
       const upcoming = getUpcomingPersonalSubscriptionCharges(all, todayIso).slice(0, 3);
       setSubscriptions(upcoming);
+    } catch {
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
-  }, [todayIso]);
+  }, [todayIso, upcomingWindowEnd]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   useSmartPocketDataChanged(
-    ['personal_subscriptions', 'transactions', 'financial_accounts', 'recurring_transactions', 'notifications'],
+    ['personal_subscriptions'],
     'UpcomingPersonalSubscriptions',
     async () => {
       await load();

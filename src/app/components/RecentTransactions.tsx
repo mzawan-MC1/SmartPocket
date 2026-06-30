@@ -17,6 +17,8 @@ import {
 } from '@/lib/transaction-document-details';
 import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
 
+const RECENT_TRANSACTIONS_LIMIT = 5;
+
 function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
@@ -33,8 +35,10 @@ export default function RecentTransactions() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const nextTransactions = await getTransactions({ limit: 8 });
-      const summaries = await getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id));
+      const nextTransactions = await getTransactions({ limit: RECENT_TRANSACTIONS_LIMIT });
+      const summaries = nextTransactions.length > 0
+        ? await getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id))
+        : {};
       setTransactions(nextTransactions);
       setDocumentSummaries(summaries);
     } catch (error) {
@@ -69,7 +73,7 @@ export default function RecentTransactions() {
     void load();
   }, [load]);
 
-  useSmartPocketDataChanged(['transactions', 'dashboard'], 'RecentTransactions', async () => {
+  useSmartPocketDataChanged(['transactions', 'transaction_documents', 'financial_accounts'], 'RecentTransactions', async () => {
     await load();
   });
 
@@ -112,7 +116,7 @@ export default function RecentTransactions() {
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">
-          {transactions.slice(0, 5).map((txn) => {
+          {transactions.map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
             const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
