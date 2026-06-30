@@ -7,6 +7,7 @@ import {
 import {
   getTransactionDocumentTotalSummary,
   isTransactionDocumentItemKind,
+  type TransactionDocumentItemKind,
 } from '@/lib/transaction-documents';
 
 function jsonWithCookies(
@@ -62,64 +63,18 @@ export async function GET(
       return jsonWithCookies({ success: false }, 404, cookieMutations);
     }
 
-    const [{ data: itemRows, error: itemError }, { data: attachmentRows, error: attachmentError }] = await Promise.all([
-      admin
-      .from('transaction_items')
-      .select(`
-        id,
-        document_id,
-        name,
-        description,
-        quantity,
-        unit_price,
-        line_total,
-        currency,
-        category_id,
-        item_kind,
-        item_category:categories(name)
-      `)
-      .eq('transaction_id', normalizedTransactionId)
-      .eq('user_id', user.id)
-      .order('line_index', { ascending: true }),
-      admin
-        .from('receipt_attachments')
-        .select('id, file_name, file_url, mime_type, created_at')
-        .eq('transaction_id', normalizedTransactionId)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1),
-    ]);
-
-    if (itemError) {
-      throw itemError;
-    }
-    const lineItems = (itemRows || []).map((item) => ({
-      id: String(item.id),
-      name: String(item.name || 'Item'),
-      description: item.description ? String(item.description) : null,
-      quantity: typeof item.quantity === 'number' ? item.quantity : item.quantity ? Number(item.quantity) : null,
-      unitPrice: typeof item.unit_price === 'number' ? item.unit_price : item.unit_price ? Number(item.unit_price) : null,
-      total: typeof item.line_total === 'number' ? item.line_total : item.line_total ? Number(item.line_total) : null,
-      currency: item.currency ? String(item.currency) : transaction.currency,
-      categoryId: item.category_id ? String(item.category_id) : null,
-      categoryName:
-        typeof item.item_category === 'object' && item.item_category !== null && 'name' in item.item_category
-          ? String(item.item_category.name || '')
-          : null,
-      itemKind: isTransactionDocumentItemKind(item.item_kind) ? item.item_kind : 'regular',
-    }));
-
-    const attachmentLookupFailed = Boolean(attachmentError);
-    if (attachmentError) {
-      console.error({
-        scope: 'transaction-document-details',
-        stage: 'load-attachment',
-        internalError: attachmentError.message,
-      });
-    }
-
-    const documentIdFromItems = (itemRows || []).find((row) => row.document_id)?.document_id;
-    const receiptAttachment = attachmentRows?.[0];
+    let lineItems: Array<{
+      id: string;
+      name: string;
+      description: string | null;
+      quantity: number | null;
+      unitPrice: number | null;
+      total: number | null;
+      currency: string | null;
+      categoryId: string | null;
+      categoryName: string | null;
+      itemKind: TransactionDocumentItemKind;
+    }> = [];
     let documentState: 'available' | 'missing' | 'processing' | 'unavailable' = 'missing';
     let documentMessage: string | null = null;
     let documentPayload: {
@@ -137,6 +92,111 @@ export async function GET(
       createdFromAI: boolean;
     } | null = null;
     let totals: ReturnType<typeof getTransactionDocumentTotalSummary> | null = null;
+    let documentIdFromItems: string | null = null;
+    let receiptAttachment: {
+      id: string;
+      file_name: string | null;
+      file_url: string | null;
+      mime_type: string | null;
+      created_at: string;
+    } | null = null;
+
+    const [itemResult, attachmentResult] = await Promise.allSettled([
+      admin
+        .from('transaction_items')
+        .select(`
+          id,
+          document_id,
+          name,
+          description,
+          quantity,
+          unit_price,
+          line_total,
+          currency,
+          category_id,
+          item_kind,
+          item_category:categories(name)
+        `)
+        .eq('transaction_id', normalizedTransactionId)
+        .eq('user_id', user.id)
+        .order('line_index', { ascending: true }),
+      admin
+        .from('receipt_attachments')
+        .select('id, file_name, file_url, mime_type, created_at')
+        .eq('transaction_id', normalizedTransactionId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1),
+    ]);
+
+    if (itemResult.status === 'fulfilled') {
+      if (itemResult.value.error) {
+        documentState = 'unavailable';
+        documentMessage = 'Failed to load the linked receipt/document.';
+        console.error({
+          scope: 'transaction-document-details',
+          stage: 'load-items',
+          transactionId: normalizedTransactionId,
+          internalError: itemResult.value.error.message,
+        });
+      } else {
+        const itemRows = itemResult.value.data || [];
+        const matchedDocumentRow = itemRows.find((row) => row.document_id);
+        lineItems = itemRows.map((item) => ({
+          id: String(item.id),
+          name: String(item.name || 'Item'),
+          description: item.description ? String(item.description) : null,
+          quantity: typeof item.quantity === 'number' ? item.quantity : item.quantity ? Number(item.quantity) : null,
+          unitPrice: typeof item.unit_price === 'number' ? item.unit_price : item.unit_price ? Number(item.unit_price) : null,
+          total: typeof item.line_total === 'number' ? item.line_total : item.line_total ? Number(item.line_total) : null,
+          currency: item.currency ? String(item.currency) : transaction.currency,
+          categoryId: item.category_id ? String(item.category_id) : null,
+          categoryName:
+            typeof item.item_category === 'object' && item.item_category !== null && 'name' in item.item_category
+              ? String(item.item_category.name || '')
+              : null,
+          itemKind: isTransactionDocumentItemKind(item.item_kind) ? item.item_kind : 'regular',
+        }));
+        documentIdFromItems = matchedDocumentRow?.document_id ? String(matchedDocumentRow.document_id) : null;
+      }
+    } else {
+      documentState = 'unavailable';
+      documentMessage = 'Failed to load the linked receipt/document.';
+      console.error({
+        scope: 'transaction-document-details',
+        stage: 'load-items',
+        transactionId: normalizedTransactionId,
+        internalError: itemResult.reason instanceof Error ? itemResult.reason.message : 'Unknown error',
+      });
+    }
+
+    if (attachmentResult.status === 'fulfilled') {
+      if (attachmentResult.value.error) {
+        if (documentState === 'missing') {
+          documentState = 'unavailable';
+          documentMessage = 'Failed to load the linked receipt/document.';
+        }
+        console.error({
+          scope: 'transaction-document-details',
+          stage: 'load-attachment',
+          transactionId: normalizedTransactionId,
+          internalError: attachmentResult.value.error.message,
+        });
+      } else {
+        receiptAttachment = attachmentResult.value.data?.[0] || null;
+      }
+    } else {
+      if (documentState === 'missing') {
+        documentState = 'unavailable';
+        documentMessage = 'Failed to load the linked receipt/document.';
+      }
+      console.error({
+        scope: 'transaction-document-details',
+        stage: 'load-attachment',
+        transactionId: normalizedTransactionId,
+        internalError: attachmentResult.reason instanceof Error ? attachmentResult.reason.message : 'Unknown error',
+      });
+    }
 
     try {
       const documentQuery = admin
@@ -251,15 +311,14 @@ export async function GET(
           createdFromAI: false,
         };
         documentState = 'available';
-      } else if (attachmentLookupFailed) {
-        documentState = 'unavailable';
-        documentMessage = 'Failed to load the linked receipt/document.';
       }
     } catch (error) {
-      documentState = documentIdFromItems || receiptAttachment ? 'unavailable' : 'missing';
+      documentState = documentIdFromItems || receiptAttachment || lineItems.length > 0 || documentState === 'unavailable'
+        ? 'unavailable'
+        : 'missing';
       documentMessage = documentState === 'unavailable'
         ? 'Failed to load the linked receipt/document.'
-        : null;
+        : documentMessage;
       console.error({
         scope: 'transaction-document-details',
         stage: 'load-document',
