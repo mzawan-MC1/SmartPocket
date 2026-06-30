@@ -13,12 +13,12 @@ interface DashboardMetricCard {
   id: string;
   label: string;
   valueMetric: DashboardConvertedMetric;
+  priority: 'primary' | 'secondary' | 'supporting';
   changeDir: 'up' | 'down' | 'neutral';
   changeLabel: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   iconBg: string;
   iconColor: string;
-  hero: boolean;
   changeMetric?: DashboardConvertedMetric;
   change?: string;
   alert?: boolean;
@@ -69,7 +69,12 @@ export default function DashboardMetrics({
     return (
       <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-4 lg:grid-cols-3">
         {skeletonCards.map((_, i) => (
-          <div key={`skel-${i}`} className="metric-card h-full min-h-[116px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5">
+          <div
+            key={`skel-${i}`}
+            className={`metric-card h-full min-h-[116px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
+              i === 0 ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2' : ''
+            }`}
+          >
             <div className="mb-3 flex items-start justify-between">
               <div className="space-y-2">
                 <div className="h-3.5 w-24 rounded bg-muted" />
@@ -233,56 +238,56 @@ export default function DashboardMetrics({
       id: 'metric-balance',
       label: t('dashboardMetrics.cards.personalBalance'),
       valueMetric: metrics.totalBalance,
+      priority: 'primary',
       changeMetric: metrics.netCashFlow,
       changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
       changeLabel: isMonthMode ? t('dashboardMetrics.netChangeThisMonth') : t('dashboardMetrics.netChangeThisPayPeriod'),
       icon: Wallet,
       iconBg: 'bg-primary/10',
       iconColor: 'text-primary',
-      hero: true,
-      subtext: t('dashboardMetrics.netBalanceChange', { defaultValue: 'Net balance change' }),
     },
     {
       id: 'metric-income',
       label: t('dashboardMetrics.cards.flowIncome', { flow: flowLabel }),
       valueMetric: metrics.monthlyIncome,
+      priority: 'secondary',
       changeMetric: metrics.monthlyIncome,
       changeDir: 'up' as const,
       changeLabel: activePeriod.label,
       icon: TrendingUp,
       iconBg: 'bg-positive-soft',
       iconColor: 'text-positive',
-      hero: false,
     },
     {
       id: 'metric-expenses',
       label: t('dashboardMetrics.cards.flowExpenses', { flow: flowLabel }),
       valueMetric: metrics.monthlyExpenses,
+      priority: 'secondary',
       changeMetric: metrics.monthlyExpenses,
       changeDir: 'down' as const,
       changeLabel: activePeriod.label,
       icon: TrendingDown,
       iconBg: 'bg-negative-soft',
       iconColor: 'text-negative',
-      hero: false,
       alert: hasExpenseAlert,
     },
     {
       id: 'metric-netflow',
       label: isMonthMode ? t('dashboardMetrics.cards.netCashFlow') : t('dashboardMetrics.cards.periodCashFlow'),
       valueMetric: metrics.netCashFlow,
+      priority: 'secondary',
       change: metrics.netCashFlow.originalTotals.length > 1 ? t('dashboardMetrics.mixedCurrencies') : metrics.netCashFlow.originalTotals[0]?.amount >= 0 ? t('dashboardMetrics.positive') : t('dashboardMetrics.negative'),
       changeDir: metrics.netCashFlow.originalTotals.every((row) => row.amount >= 0) ? 'up' as const : 'down' as const,
       changeLabel: t('dashboardMetrics.incomeMinusExpenses'),
       icon: ArrowUpDown,
       iconBg: 'bg-info-soft',
       iconColor: 'text-info',
-      hero: false,
     },
     {
       id: 'metric-budget',
       label: t('dashboardMetrics.cards.budgetRemaining'),
       valueMetric: budgetRemainingMetric,
+      priority: 'secondary',
       valueContent: metrics.budgetConversionUnavailableCount > 0 ? (
         <span className="text-[0.95rem] font-700 text-warning md:text-[0.9rem] lg:text-[0.95rem]">{t('dashboardMetrics.unavailable')}</span>
       ) : undefined,
@@ -320,7 +325,6 @@ export default function DashboardMetrics({
       icon: Target,
       iconBg: 'bg-warning-soft',
       iconColor: 'text-warning',
-      hero: false,
       warningState: metrics.activeBudgetCount > 0 && metrics.budgetConversionUnavailableCount === 0 && budgetRemaining.some((row) => row.usedPct >= 70),
       budgetPct: metrics.activeBudgetCount > 0 && metrics.budgetConversionUnavailableCount === 0 && budgetRemaining.length === 1 ? budgetRemaining[0].usedPct : undefined,
     },
@@ -328,13 +332,13 @@ export default function DashboardMetrics({
       id: 'metric-upcoming',
       label: t('dashboardMetrics.cards.upcomingPayments'),
       valueMetric: metrics.upcomingPayments,
+      priority: 'secondary',
       change: t('dashboardMetrics.paymentCount', { count: metrics.upcomingPaymentsCount }),
       changeDir: 'neutral' as const,
       changeLabel: isMonthMode ? t('dashboardMetrics.scheduledIn', { period: activePeriod.label }) : t('dashboardMetrics.dueIn', { period: activePeriod.label }),
       icon: CalendarClock,
       iconBg: 'bg-secondary',
       iconColor: 'text-muted-foreground',
-      hero: false,
     },
   ];
 
@@ -343,25 +347,25 @@ export default function DashboardMetrics({
       id: 'metric-loan-outstanding',
       label: t('dashboardMetrics.cards.outstandingLoans'),
       valueMetric: metrics.outstandingLoanBalance,
+      priority: 'supporting',
       changeMetric: metrics.loanBorrowedThisMonth,
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.borrowedIn', { period: activePeriod.label }),
       icon: TrendingDown,
       iconBg: 'bg-rose-50',
       iconColor: 'text-rose-500',
-      hero: false,
     },
     {
       id: 'metric-loan-repaid',
       label: t('dashboardMetrics.cards.loanRepayments'),
       valueMetric: metrics.loanRepaidThisMonth,
+      priority: 'supporting',
       changeMetric: metrics.loanRepaidThisMonth,
       changeDir: 'neutral' as const,
       changeLabel: t('dashboardMetrics.paidIn', { period: activePeriod.label }),
       icon: ArrowUpDown,
       iconBg: 'bg-cyan-50',
       iconColor: 'text-cyan-500',
-      hero: false,
     },
   ];
 
@@ -391,11 +395,14 @@ export default function DashboardMetrics({
 
   const renderMetricCard = (metric: DashboardMetricCard) => {
     const Icon = metric.icon;
-    const isHero = metric.hero;
+    const isPrimary = metric.priority === 'primary';
+    const isSupporting = metric.priority === 'supporting';
     const isBalanceCard = metric.id === 'metric-balance';
-    const valueClassName = isHero
-      ? 'inline-flex items-baseline text-[1.48rem] font-800 tracking-[-0.03em] max-[480px]:text-[1.22rem] md:text-[1.42rem]'
-      : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] max-[480px]:text-[1.02rem] md:text-[1.14rem]';
+    const valueClassName = isPrimary
+      ? 'inline-flex items-baseline text-[1.72rem] font-800 tracking-[-0.035em] max-[480px]:text-[1.42rem] md:text-[1.68rem] lg:text-[1.78rem]'
+      : isSupporting
+        ? 'inline-flex items-baseline text-[1.08rem] font-700 tracking-[-0.02em] max-[480px]:text-[0.98rem] md:text-[1.05rem]'
+        : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] max-[480px]:text-[1.02rem] md:text-[1.14rem]';
     const helperChangeLabel = metric.id === 'metric-netflow'
       ? t('dashboardMetrics.netOfIncomeAndExpenses')
       : metric.id === 'metric-upcoming'
@@ -408,32 +415,50 @@ export default function DashboardMetrics({
         className={`metric-card flex h-full min-h-[116px] flex-col rounded-[24px] border border-border/80 px-4 py-3.5 shadow-card-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-muted/15 hover:shadow-card-md max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
           metric.alert ? 'border-negative/25 bg-negative-soft/20' : 'bg-card'
         } ${metric.warningState ? 'border-warning/30' : ''} ${
-          metric.id === 'metric-balance' ? 'border-blue-100 bg-blue-50/40' : ''
+          isPrimary ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2 border-blue-200 bg-blue-50/60 px-4 py-4 max-[480px]:px-3.5 max-[480px]:py-3' : ''
+        } ${
+          isSupporting ? 'border-border/65 bg-muted/30 hover:bg-muted/40' : ''
         }`}
       >
-        <div className="mb-1.5 flex items-start justify-between gap-2.5 lg:mb-2">
-          <div className="min-w-0 lg:space-y-2">
-            <p className="text-[13px] font-700 leading-[1.25rem] text-foreground max-[480px]:text-[12px] max-[480px]:leading-[1.1rem]">{metric.label}</p>
-            <div className="mt-0.5 font-tabular leading-tight text-foreground lg:mt-0">
-              {metric.valueContent ?? renderMetricValue(metric.valueMetric, isHero ? 'lg' : 'sm', valueClassName, 'font-800')}
+        <div className={`mb-1.5 flex items-start justify-between gap-2.5 ${isPrimary ? 'lg:mb-2.5' : 'lg:mb-2'}`}>
+          <div className={`min-w-0 ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'lg:space-y-2'}`}>
+            <p className={`leading-[1.25rem] max-[480px]:leading-[1.1rem] ${
+              isPrimary
+                ? 'text-[13px] font-700 text-foreground/90 max-[480px]:text-[12px]'
+                : isSupporting
+                  ? 'text-[12.5px] font-700 text-muted-foreground max-[480px]:text-[11.5px]'
+                  : 'text-[13px] font-700 text-foreground max-[480px]:text-[12px]'
+            }`}>
+              {metric.label}
+            </p>
+            <div className={`mt-0.5 font-tabular leading-tight ${isSupporting ? 'text-foreground/90' : 'text-foreground'} lg:mt-0`}>
+              {metric.valueContent ?? renderMetricValue(metric.valueMetric, isPrimary ? 'xl' : isSupporting ? 'xs' : 'sm', valueClassName, isPrimary ? 'font-800' : 'font-700')}
             </div>
           </div>
-          <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl ${metric.iconBg}`}>
-            <Icon size={18} className={`${metric.iconColor} max-[480px]:h-4 max-[480px]:w-4`} />
+          <div className={`flex flex-shrink-0 items-center justify-center ${isPrimary ? 'h-11 w-11 rounded-[18px]' : 'h-10 w-10 rounded-2xl'} max-[480px]:h-8.5 max-[480px]:w-8.5 max-[480px]:rounded-xl ${metric.iconBg}`}>
+            <Icon size={isPrimary ? 19 : 18} className={`${metric.iconColor} max-[480px]:h-4 max-[480px]:w-4`} />
           </div>
         </div>
-        <div className="mt-auto space-y-1.5 lg:space-y-2">
+        <div className={`mt-auto ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'space-y-1.5 lg:space-y-2'}`}>
           <div className="flex items-start gap-1.5">
             {metric.changeDir === 'up' && <ArrowUp size={13} className="text-positive flex-shrink-0" />}
             {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
             <div className="min-w-0">
-              <div className={`text-sm font-700 font-tabular leading-none max-[480px]:text-[12px] ${
+              <div className={`font-tabular leading-none max-[480px]:text-[12px] ${
+                isPrimary ? 'text-[0.95rem] font-800 md:text-[1rem]' : isSupporting ? 'text-[0.82rem] font-700 md:text-[0.85rem]' : 'text-sm font-700'
+              } ${
                 metric.changeDir === 'up' ? 'text-positive' :
                 metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
               }`}>
                 {metric.changeMetric ? renderMetricValue(metric.changeMetric, 'xs') : metric.change}
               </div>
-              <p className="mt-1.5 text-[12.5px] leading-4 text-muted-foreground max-[480px]:text-[11.5px] max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2 lg:mt-2">
+              <p className={`mt-1.5 text-muted-foreground max-[480px]:leading-[1rem] max-[480px]:line-clamp-none sm:line-clamp-2 ${
+                isPrimary
+                  ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+                  : isSupporting
+                    ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px] lg:mt-1.5'
+                    : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+              }`}>
                 {helperChangeLabel}
               </p>
             </div>

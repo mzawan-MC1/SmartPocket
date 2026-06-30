@@ -195,7 +195,7 @@
   },
   "dashboardHeader": {
     "title": "Dashboard",
-    "description": "Your financial overview for {{period}}",
+    "description": "Overview for {{period}}",
     "greeting": {
       "morning": "Good morning, {{name}}! 👋",
       "afternoon": "Good afternoon, {{name}}! 👋",
@@ -213,11 +213,11 @@
     "chooseMonth": "Choose month",
     "dashboardMonth": "Dashboard month",
     "more": "More",
-    "moreActions": "More dashboard actions",
+    "moreActions": "More actions",
     "quickActions": {
       "transaction": "Add Transaction",
       "account": "Add Account",
-      "personalSubscriptions": "Personal Subscription",
+      "personalSubscriptions": "Add Subscription",
       "recurring": "Add Recurring",
       "reimbursement": "Add Reimbursement",
       "budget": "Add Budget"
@@ -225,7 +225,7 @@
     "quickActionShort": {
       "transaction": "Transaction",
       "account": "Account",
-      "personalSubscriptions": "Personal Subscription",
+      "personalSubscriptions": "Subscription",
       "recurring": "Recurring",
       "reimbursement": "Reimbursement",
       "budget": "Budget"
@@ -533,8 +533,8 @@
     "fetchedAt": "Fetched at: {{value}}",
     "provider": "Provider: {{value}}",
     "staleRates": "One or more historical FX rates are stale.",
-    "netChangeThisMonth": "net change this month",
-    "netChangeThisPayPeriod": "net change this pay period",
+    "netChangeThisMonth": "this month",
+    "netChangeThisPayPeriod": "this pay period",
     "acrossActiveAccounts": "across active accounts",
     "mixedCurrencies": "Mixed currencies",
     "positive": "Positive",
@@ -544,12 +544,12 @@
     "noBudgetsForPeriod": "No budgets for this period",
     "conversionUnavailable": "Conversion unavailable",
     "noSpendingInPeriod": "No spending in this period",
-    "acrossActiveBudgetCount": "Across {{count}} active budgets",
+    "acrossActiveBudgetCount": "{{count}} budgets",
     "forPeriod": "for {{period}}",
     "duringPeriod": "during {{period}}",
     "budgetsNeedHistoricalFx": "{{count}} budgets need historical FX data",
-    "acrossActiveCycleBudgets": "Across active {{cycles}} budgets",
-    "acrossActiveSingleCycleBudgets": "Across active {{cycle}} budgets",
+    "acrossActiveCycleBudgets": "{{cycles}} budgets",
+    "acrossActiveSingleCycleBudgets": "{{cycle}} budgets",
     "and": "and",
     "budget": "budget",
     "paymentCount": "{{count}} scheduled",
@@ -558,8 +558,8 @@
     "peopleWithManagedMoney": "{{count}} people with managed money",
     "borrowedIn": "borrowed in {{period}}",
     "paidIn": "paid in {{period}}",
-    "netOfIncomeAndExpenses": "net of income and expenses",
-    "scheduledThisPeriod": "scheduled this period",
+    "netOfIncomeAndExpenses": "income - expenses",
+    "scheduledThisPeriod": "this period",
     "cards": {
       "personalBalance": "Personal Balance",
       "flowIncome": "{{flow}} Income",
@@ -575,10 +575,10 @@
   },
   "dashboardCharts": {
     "title": "Financial Overview",
-    "trendDescriptionThrough": "Income and expenses through {{period}}",
-    "trendDescriptionDuring": "Income and expenses during {{period}}",
-    "categoryDescriptionThrough": "Category breakdown through {{period}}",
-    "categoryDescriptionDuring": "Category breakdown during {{period}}",
+    "trendDescriptionThrough": "Through {{period}}",
+    "trendDescriptionDuring": "During {{period}}",
+    "categoryDescriptionThrough": "Categories through {{period}}",
+    "categoryDescriptionDuring": "Categories during {{period}}",
     "warning": "Pay-period mode is not configured, so charts are showing the current month instead.",
     "tabs": {
       "trend": "Income vs Expenses",
@@ -800,7 +800,7 @@
       "investment": "Investment",
       "other": "Other"
     },
-    "dashboardDescription": "Balances across your active cash, bank, card, and wallet accounts.",
+    "dashboardDescription": "Balances across your active accounts.",
     "form": {
       "nameRequired": "Account name is required.",
       "currencyRequired": "Currency is required.",
@@ -1168,7 +1168,7 @@
   },
   "recentTransactions": {
     "title": "Recent Transactions",
-    "description": "Latest income and expense activity across your tracked accounts.",
+    "description": "Latest activity across your accounts.",
     "emptyDescription": "Add a transaction to start building your recent activity feed.",
     "uncategorized": "Uncategorized"
   },

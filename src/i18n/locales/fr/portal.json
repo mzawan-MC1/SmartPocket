@@ -180,7 +180,7 @@
   },
   "dashboardHeader": {
     "title": "Tableau de bord",
-    "description": "Votre vue d'ensemble financière pour {{period}}",
+    "description": "Vue d'ensemble pour {{period}}",
     "greeting": {
       "morning": "Bonjour, {{name}}! 👋",
       "afternoon": "Bon apres-midi, {{name}}! 👋",
@@ -198,9 +198,19 @@
     "chooseMonth": "Choisir le mois",
     "dashboardMonth": "Mois du tableau de bord",
     "more": "Plus",
+    "moreActions": "Plus d'actions",
+    "quickActions": {
+      "transaction": "Ajouter une transaction",
+      "account": "Ajouter un compte",
+      "personalSubscriptions": "Ajouter un abonnement",
+      "recurring": "Ajouter un récurrent",
+      "reimbursement": "Ajouter un remboursement",
+      "budget": "Ajouter un budget"
+    },
     "quickActionShort": {
       "transaction": "Transaction",
       "account": "Compte",
+      "personalSubscriptions": "Abonnement",
       "recurring": "Recurrent",
       "reimbursement": "Remboursement",
       "budget": "Budget"
@@ -292,8 +302,8 @@
     "fetchedAt": "Récupéré le : {{value}}",
     "provider": "Fournisseur : {{value}}",
     "staleRates": "Un ou plusieurs taux historiques sont périmés.",
-    "netChangeThisMonth": "variation nette ce mois-ci",
-    "netChangeThisPayPeriod": "variation nette sur cette période de paie",
+    "netChangeThisMonth": "ce mois-ci",
+    "netChangeThisPayPeriod": "cette période",
     "acrossActiveAccounts": "sur les comptes actifs",
     "mixedCurrencies": "Devises mixtes",
     "positive": "Positif",
@@ -303,12 +313,12 @@
     "noBudgetsForPeriod": "Aucun budget pour cette période",
     "conversionUnavailable": "Conversion indisponible",
     "noSpendingInPeriod": "Aucune dépense sur cette période",
-    "acrossActiveBudgetCount": "Sur {{count}} budgets actifs",
+    "acrossActiveBudgetCount": "{{count}} budgets",
     "forPeriod": "pour {{period}}",
     "duringPeriod": "pendant {{period}}",
     "budgetsNeedHistoricalFx": "{{count}} budgets nécessitent des taux historiques",
-    "acrossActiveCycleBudgets": "Sur les budgets actifs {{cycles}}",
-    "acrossActiveSingleCycleBudgets": "Sur les budgets actifs {{cycle}}",
+    "acrossActiveCycleBudgets": "Budgets {{cycles}}",
+    "acrossActiveSingleCycleBudgets": "Budgets {{cycle}}",
     "and": "et",
     "budget": "budget",
     "paymentCount": "{{count}} planifié(s)",
@@ -317,8 +327,8 @@
     "peopleWithManagedMoney": "{{count}} personnes avec argent géré",
     "borrowedIn": "emprunté sur {{period}}",
     "paidIn": "payé sur {{period}}",
-    "netOfIncomeAndExpenses": "net des revenus et dépenses",
-    "scheduledThisPeriod": "prévu sur cette période",
+    "netOfIncomeAndExpenses": "revenus - dépenses",
+    "scheduledThisPeriod": "cette période",
     "cards": {
       "personalBalance": "Solde personnel",
       "flowIncome": "Revenus {{flow}}",
@@ -334,10 +344,10 @@
   },
   "dashboardCharts": {
     "title": "Vue financière",
-    "trendDescriptionThrough": "Revenus et dépenses jusqu'à {{period}}",
-    "trendDescriptionDuring": "Revenus et dépenses pendant {{period}}",
-    "categoryDescriptionThrough": "Répartition par catégorie jusqu'à {{period}}",
-    "categoryDescriptionDuring": "Répartition par catégorie pendant {{period}}",
+    "trendDescriptionThrough": "Jusqu'à {{period}}",
+    "trendDescriptionDuring": "Pendant {{period}}",
+    "categoryDescriptionThrough": "Catégories jusqu'à {{period}}",
+    "categoryDescriptionDuring": "Catégories pendant {{period}}",
     "warning": "Le mode période de paie n'est pas configuré, les graphiques affichent donc le mois en cours.",
     "tabs": {
       "trend": "Revenus vs dépenses",
@@ -507,7 +517,7 @@
       "investment": "Investissement",
       "other": "Autre"
     },
-    "dashboardDescription": "Soldes de vos comptes actifs en espèces, bancaires, cartes et portefeuilles.",
+    "dashboardDescription": "Soldes de vos comptes actifs.",
     "form": {
       "typeRequired": "Le type de compte est obligatoire.",
       "currency": "Devise"
@@ -769,7 +779,7 @@
   },
   "recentTransactions": {
     "title": "Transactions récentes",
-    "description": "Dernières activités de revenus et dépenses sur vos comptes suivis.",
+    "description": "Dernière activité sur vos comptes.",
     "emptyDescription": "Ajoutez une transaction pour commencer votre flux d’activité récente.",
     "uncategorized": "Non catégorisé"
   },

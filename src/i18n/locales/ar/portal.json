@@ -185,7 +185,7 @@
   },
   "dashboardHeader": {
     "title": "لوحة التحكم",
-    "description": "نظرتك المالية العامة للفترة {{period}}",
+    "description": "نظرة سريعة على {{period}}",
     "greeting": {
       "morning": "صباح الخير، {{name}}! 👋",
       "afternoon": "مساء الخير، {{name}}! 👋",
@@ -203,10 +203,11 @@
     "chooseMonth": "اختر الشهر",
     "dashboardMonth": "شهر لوحة التحكم",
     "more": "المزيد",
-    "moreActions": "مزيد من إجراءات لوحة التحكم",
+    "moreActions": "إجراءات إضافية",
     "quickActions": {
       "transaction": "إضافة معاملة",
       "account": "إضافة حساب",
+      "personalSubscriptions": "إضافة اشتراك",
       "recurring": "إضافة معاملة متكررة",
       "reimbursement": "إضافة تعويض",
       "budget": "إضافة ميزانية"
@@ -214,6 +215,7 @@
     "quickActionShort": {
       "transaction": "معاملة",
       "account": "حساب",
+      "personalSubscriptions": "اشتراك",
       "recurring": "متكررة",
       "reimbursement": "تعويض",
       "budget": "ميزانية"
@@ -320,8 +322,8 @@
     "fetchedAt": "تم الجلب في: {{value}}",
     "provider": "المزود: {{value}}",
     "staleRates": "أحد أسعار الصرف التاريخية أو أكثر قديم.",
-    "netChangeThisMonth": "صافي التغير هذا الشهر",
-    "netChangeThisPayPeriod": "صافي التغير في فترة الدفع هذه",
+    "netChangeThisMonth": "هذا الشهر",
+    "netChangeThisPayPeriod": "هذه الفترة",
     "acrossActiveAccounts": "عبر الحسابات النشطة",
     "mixedCurrencies": "عملات مختلطة",
     "positive": "إيجابي",
@@ -331,12 +333,12 @@
     "noBudgetsForPeriod": "لا توجد ميزانيات لهذه الفترة",
     "conversionUnavailable": "التحويل غير متاح",
     "noSpendingInPeriod": "لا يوجد إنفاق في هذه الفترة",
-    "acrossActiveBudgetCount": "عبر {{count}} ميزانيات نشطة",
+    "acrossActiveBudgetCount": "{{count}} ميزانيات",
     "forPeriod": "لـ {{period}}",
     "duringPeriod": "خلال {{period}}",
     "budgetsNeedHistoricalFx": "{{count}} ميزانيات تحتاج إلى بيانات صرف تاريخية",
-    "acrossActiveCycleBudgets": "عبر الميزانيات النشطة لدورات {{cycles}}",
-    "acrossActiveSingleCycleBudgets": "عبر الميزانيات النشطة لدورة {{cycle}}",
+    "acrossActiveCycleBudgets": "ميزانيات {{cycles}}",
+    "acrossActiveSingleCycleBudgets": "ميزانيات {{cycle}}",
     "and": "و",
     "budget": "الميزانية",
     "paymentCount": "{{count}} مجدولة",
@@ -345,8 +347,8 @@
     "peopleWithManagedMoney": "{{count}} أشخاص بأموال مُدارة",
     "borrowedIn": "تم اقتراضه في {{period}}",
     "paidIn": "تم دفعه في {{period}}",
-    "netOfIncomeAndExpenses": "صافي الدخل والمصروفات",
-    "scheduledThisPeriod": "مجدولة لهذه الفترة",
+    "netOfIncomeAndExpenses": "الدخل - المصروفات",
+    "scheduledThisPeriod": "هذه الفترة",
     "cards": {
       "personalBalance": "الرصيد الشخصي",
       "flowIncome": "دخل {{flow}}",
@@ -362,10 +364,10 @@
   },
   "dashboardCharts": {
     "title": "النظرة المالية العامة",
-    "trendDescriptionThrough": "الدخل والمصروفات حتى {{period}}",
-    "trendDescriptionDuring": "الدخل والمصروفات خلال {{period}}",
-    "categoryDescriptionThrough": "تصنيف الفئات حتى {{period}}",
-    "categoryDescriptionDuring": "تصنيف الفئات خلال {{period}}",
+    "trendDescriptionThrough": "حتى {{period}}",
+    "trendDescriptionDuring": "خلال {{period}}",
+    "categoryDescriptionThrough": "الفئات حتى {{period}}",
+    "categoryDescriptionDuring": "الفئات خلال {{period}}",
     "warning": "لم يتم إعداد وضع فترة الدفع، لذا تعرض الرسوم البيانية الشهر الحالي بدلًا من ذلك.",
     "tabs": {
       "trend": "الدخل مقابل المصروفات",
@@ -535,7 +537,7 @@
       "investment": "استثمار",
       "other": "أخرى"
     },
-    "dashboardDescription": "أرصدة حساباتك النشطة من النقد والبنك والبطاقات والمحافظ.",
+    "dashboardDescription": "أرصدة حساباتك النشطة.",
     "form": {
       "typeRequired": "نوع الحساب مطلوب.",
       "currency": "العملة"
@@ -797,7 +799,7 @@
   },
   "recentTransactions": {
     "title": "المعاملات الأخيرة",
-    "description": "أحدث نشاطات الدخل والمصروفات عبر حساباتك المتتبعة.",
+    "description": "أحدث النشاطات عبر حساباتك.",
     "emptyDescription": "أضف معاملة لبدء عرض نشاطك الأخير.",
     "uncategorized": "غير مصنفة"
   },

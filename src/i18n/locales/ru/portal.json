@@ -180,7 +180,7 @@
   },
   "dashboardHeader": {
     "title": "Панель управления",
-    "description": "Ваш финансовый обзор за период {{period}}",
+    "description": "Обзор за {{period}}",
     "greeting": {
       "morning": "Доброе утро, {{name}}! 👋",
       "afternoon": "Добрый день, {{name}}! 👋",
@@ -198,9 +198,19 @@
     "chooseMonth": "Выбрать месяц",
     "dashboardMonth": "Месяц панели",
     "more": "Еще",
+    "moreActions": "Еще действия",
+    "quickActions": {
+      "transaction": "Добавить операцию",
+      "account": "Добавить счет",
+      "personalSubscriptions": "Добавить подписку",
+      "recurring": "Добавить регулярную",
+      "reimbursement": "Добавить возмещение",
+      "budget": "Добавить бюджет"
+    },
     "quickActionShort": {
       "transaction": "Операция",
       "account": "Счет",
+      "personalSubscriptions": "Подписка",
       "recurring": "Регулярно",
       "reimbursement": "Возмещение",
       "budget": "Бюджет"
@@ -292,8 +302,8 @@
     "fetchedAt": "Получено: {{value}}",
     "provider": "Поставщик: {{value}}",
     "staleRates": "Один или несколько исторических курсов устарели.",
-    "netChangeThisMonth": "чистое изменение за месяц",
-    "netChangeThisPayPeriod": "чистое изменение за период выплат",
+    "netChangeThisMonth": "в этом месяце",
+    "netChangeThisPayPeriod": "за этот период",
     "acrossActiveAccounts": "по активным счетам",
     "mixedCurrencies": "Смешанные валюты",
     "positive": "Положительно",
@@ -303,12 +313,12 @@
     "noBudgetsForPeriod": "Нет бюджетов для этого периода",
     "conversionUnavailable": "Конвертация недоступна",
     "noSpendingInPeriod": "За этот период нет расходов",
-    "acrossActiveBudgetCount": "По {{count}} активным бюджетам",
+    "acrossActiveBudgetCount": "{{count}} бюджетов",
     "forPeriod": "для {{period}}",
     "duringPeriod": "в течение {{period}}",
     "budgetsNeedHistoricalFx": "{{count}} бюджетам нужны исторические курсы",
-    "acrossActiveCycleBudgets": "По активным бюджетам цикла {{cycles}}",
-    "acrossActiveSingleCycleBudgets": "По активным бюджетам цикла {{cycle}}",
+    "acrossActiveCycleBudgets": "Бюджеты {{cycles}}",
+    "acrossActiveSingleCycleBudgets": "Бюджеты {{cycle}}",
     "and": "и",
     "budget": "бюджет",
     "paymentCount": "{{count}} запланировано",
@@ -317,8 +327,8 @@
     "peopleWithManagedMoney": "{{count}} человек с управляемыми деньгами",
     "borrowedIn": "занято в {{period}}",
     "paidIn": "выплачено в {{period}}",
-    "netOfIncomeAndExpenses": "чистый итог доходов и расходов",
-    "scheduledThisPeriod": "запланировано на этот период",
+    "netOfIncomeAndExpenses": "доходы - расходы",
+    "scheduledThisPeriod": "за этот период",
     "cards": {
       "personalBalance": "Личный баланс",
       "flowIncome": "Доход {{flow}}",
@@ -334,10 +344,10 @@
   },
   "dashboardCharts": {
     "title": "Финансовый обзор",
-    "trendDescriptionThrough": "Доходы и расходы до {{period}}",
-    "trendDescriptionDuring": "Доходы и расходы в течение {{period}}",
-    "categoryDescriptionThrough": "Разбивка по категориям до {{period}}",
-    "categoryDescriptionDuring": "Разбивка по категориям в течение {{period}}",
+    "trendDescriptionThrough": "До {{period}}",
+    "trendDescriptionDuring": "В течение {{period}}",
+    "categoryDescriptionThrough": "Категории до {{period}}",
+    "categoryDescriptionDuring": "Категории в течение {{period}}",
     "warning": "Режим периода выплат не настроен, поэтому графики показывают текущий месяц.",
     "tabs": {
       "trend": "Доходы и расходы",
@@ -507,7 +517,7 @@
       "investment": "Инвестиции",
       "other": "Другое"
     },
-    "dashboardDescription": "Балансы ваших активных наличных, банковских, карточных и кошельковых счетов.",
+    "dashboardDescription": "Балансы ваших активных счетов.",
     "form": {
       "typeRequired": "Тип счета обязателен.",
       "currency": "Валюта"
@@ -769,7 +779,7 @@
   },
   "recentTransactions": {
     "title": "Последние операции",
-    "description": "Последние доходы и расходы по вашим отслеживаемым счетам.",
+    "description": "Последняя активность по вашим счетам.",
     "emptyDescription": "Добавьте операцию, чтобы начать ленту недавней активности.",
     "uncategorized": "Без категории"
   },
