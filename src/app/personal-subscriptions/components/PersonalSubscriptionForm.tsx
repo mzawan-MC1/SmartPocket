@@ -313,6 +313,12 @@ export default function PersonalSubscriptionForm({
   const remindersEnabled = reminderDaysBefore.length > 0;
   const remindersAreMultiple = reminderDaysBefore.length > 1;
   const primaryReminderDay = reminderDaysBefore.length === 1 ? reminderDaysBefore[0] : '';
+  const compactFieldLabelClassName = (hasError?: boolean) =>
+    getFieldLabelClassName(hasError, 'mb-1 block text-[13px] font-700 leading-4');
+  const fieldErrorClassName = getFieldErrorTextClassName('mt-1 text-[11px] font-600 leading-4');
+  const compactInputClassName = 'input-base max-[640px]:min-h-[2.75rem] max-[640px]:px-3 max-[640px]:py-2.5 max-[640px]:text-[0.9rem]';
+  const compactSelectClassName = `${compactInputClassName} max-[640px]:pr-9`;
+  const compactTextareaClassName = `${compactInputClassName} min-h-[5.5rem] resize-none max-[640px]:min-h-[4.75rem]`;
 
   useEffect(() => {
     if (submitCount === 0) return;
@@ -429,7 +435,7 @@ export default function PersonalSubscriptionForm({
 
   if (loadingSupportingData) {
     return (
-      <div className="rounded-xl border border-border bg-muted/10 p-6 text-center">
+      <div className="rounded-xl border border-border bg-muted/10 p-6 text-center max-[640px]:p-4">
         <Loader2 size={18} className="mx-auto mb-2 animate-spin text-accent" />
         <p className="text-sm text-muted-foreground">{t('personalSubscriptions.form.loading', { ns: 'portal' })}</p>
       </div>
@@ -437,10 +443,10 @@ export default function PersonalSubscriptionForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      <section className="space-y-4">
+    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-[640px]:space-y-4" noValidate>
+      <section className="space-y-4 max-[640px]:space-y-3">
         <div>
-          <label htmlFor="subscription-name" className={getFieldLabelClassName(Boolean(errors.name))}>
+          <label htmlFor="subscription-name" className={compactFieldLabelClassName(Boolean(errors.name))}>
             {t('personalSubscriptions.form.fields.name', { ns: 'portal' })}
             <span className={getRequiredMarkerClassName()}> *</span>
           </label>
@@ -448,15 +454,15 @@ export default function PersonalSubscriptionForm({
             id="subscription-name"
             type="text"
             aria-invalid={errors.name ? 'true' : 'false'}
-            className={getFieldInputClassName('input-base', Boolean(errors.name))}
+            className={getFieldInputClassName(compactInputClassName, Boolean(errors.name))}
             {...register('name', { required: t('personalSubscriptions.form.errors.nameRequired', { ns: 'portal' }) })}
           />
-          {errors.name ? <p className={getFieldErrorTextClassName()}>{errors.name.message}</p> : null}
+          {errors.name ? <p className={fieldErrorClassName}>{errors.name.message}</p> : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
           <div className="md:col-span-4">
-            <label htmlFor="subscription-amount" className={getFieldLabelClassName(Boolean(errors.amount))}>
+            <label htmlFor="subscription-amount" className={compactFieldLabelClassName(Boolean(errors.amount))}>
               {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
             </label>
@@ -466,13 +472,13 @@ export default function PersonalSubscriptionForm({
               step="0.01"
               min="0"
               aria-invalid={errors.amount ? 'true' : 'false'}
-              className={getFieldInputClassName('input-base font-tabular', Boolean(errors.amount))}
+              className={getFieldInputClassName(`${compactInputClassName} font-tabular`, Boolean(errors.amount))}
               {...register('amount', {
                 required: t('personalSubscriptions.form.errors.amountRequired', { ns: 'portal' }),
                 validate: (value) => Number(value) >= 0 || t('personalSubscriptions.form.errors.amountMin', { ns: 'portal' }),
               })}
             />
-            {errors.amount ? <p className={getFieldErrorTextClassName()}>{errors.amount.message}</p> : null}
+            {errors.amount ? <p className={fieldErrorClassName}>{errors.amount.message}</p> : null}
           </div>
 
           <div className="md:col-span-4">
@@ -480,15 +486,16 @@ export default function PersonalSubscriptionForm({
               label={t('personalSubscriptions.form.fields.currency', { ns: 'portal' })}
               value={watch('currency_code')}
               onChange={(currencyCode) => setValue('currency_code', currencyCode, { shouldDirty: true })}
+              className="max-[640px]:[&_label]:mb-1 max-[640px]:[&_label]:text-[13px] max-[640px]:[&_label]:font-700 max-[640px]:[&_label]:leading-4 max-[640px]:[&_button.input-base]:min-h-[2.75rem] max-[640px]:[&_button.input-base]:px-3 max-[640px]:[&_button.input-base]:py-2.5 max-[640px]:[&_button.input-base]:text-[0.9rem]"
             />
           </div>
 
           <div className="md:col-span-4">
-            <label htmlFor="subscription-frequency" className={getFieldLabelClassName(false)}>
+            <label htmlFor="subscription-frequency" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
             </label>
-            <select id="subscription-frequency" className="input-base" {...register('billing_frequency')}>
+            <select id="subscription-frequency" className={compactSelectClassName} {...register('billing_frequency')}>
               {PERSONAL_SUBSCRIPTION_BILLING_FREQUENCIES.map((item) => (
                 <option key={item} value={item}>
                   {t(`personalSubscriptions.frequencies.${item}`, { ns: 'portal' })}
@@ -498,9 +505,9 @@ export default function PersonalSubscriptionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
           <div className="md:col-span-6">
-            <label htmlFor="subscription-next-billing" className={getFieldLabelClassName(Boolean(errors.next_billing_date))}>
+            <label htmlFor="subscription-next-billing" className={compactFieldLabelClassName(Boolean(errors.next_billing_date))}>
               {t('personalSubscriptions.form.fields.nextBillingDate', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}
             </label>
@@ -508,23 +515,23 @@ export default function PersonalSubscriptionForm({
               id="subscription-next-billing"
               type="date"
               aria-invalid={errors.next_billing_date ? 'true' : 'false'}
-              className={getFieldInputClassName('input-base', Boolean(errors.next_billing_date))}
+              className={getFieldInputClassName(compactInputClassName, Boolean(errors.next_billing_date))}
               {...register('next_billing_date', {
                 required: subscription?.id ? false : t('personalSubscriptions.form.errors.nextBillingRequired', { ns: 'portal' }),
               })}
             />
-            {errors.next_billing_date ? <p className={getFieldErrorTextClassName()}>{errors.next_billing_date.message}</p> : null}
+            {errors.next_billing_date ? <p className={fieldErrorClassName}>{errors.next_billing_date.message}</p> : null}
           </div>
 
           <div className="md:col-span-6">
-            <label htmlFor="subscription-account" className={getFieldLabelClassName(Boolean(errors.financial_account_id))}>
+            <label htmlFor="subscription-account" className={compactFieldLabelClassName(Boolean(errors.financial_account_id))}>
               {t('personalSubscriptions.form.fields.financialAccount', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}
             </label>
             <select
               id="subscription-account"
               aria-invalid={errors.financial_account_id ? 'true' : 'false'}
-              className={getFieldInputClassName('input-base', Boolean(errors.financial_account_id))}
+              className={getFieldInputClassName(compactSelectClassName, Boolean(errors.financial_account_id))}
               {...register('financial_account_id', {
                 required: subscription?.id ? false : t('personalSubscriptions.form.errors.accountRequired', { ns: 'portal' }),
               })}
@@ -539,16 +546,16 @@ export default function PersonalSubscriptionForm({
                 </option>
               ))}
             </select>
-            {errors.financial_account_id ? <p className={getFieldErrorTextClassName()}>{errors.financial_account_id.message}</p> : null}
+            {errors.financial_account_id ? <p className={fieldErrorClassName}>{errors.financial_account_id.message}</p> : null}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
           <div className="md:col-span-6">
-            <label htmlFor="subscription-category" className={getFieldLabelClassName(false)}>
+            <label htmlFor="subscription-category" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
             </label>
-            <select id="subscription-category" className="input-base" {...register('category_id')}>
+            <select id="subscription-category" className={compactSelectClassName} {...register('category_id')}>
               <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
               {expenseCategories.map((category) => (
                 <option key={category.id} value={category.id}>
@@ -561,14 +568,14 @@ export default function PersonalSubscriptionForm({
           </div>
 
           <div className="md:col-span-6">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <label className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 px-3 py-2 text-sm font-600 text-foreground">
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
+              <label className="flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-border bg-muted/15 px-3 py-2 text-[13px] font-600 leading-4 text-foreground max-[640px]:min-h-[2.625rem] max-[640px]:rounded-xl max-[640px]:py-2">
                 <input type="checkbox" className="rounded border-border" {...register('auto_renew')} />
                 <span>{t('personalSubscriptions.form.fields.autoRenew', { ns: 'portal' })}</span>
               </label>
 
-              <div className="rounded-2xl border border-border bg-muted/20 px-3 py-2">
-                <label className="flex items-center gap-2 text-sm font-600 text-foreground">
+              <div className="rounded-xl border border-border bg-muted/15 px-3 py-2 max-[640px]:py-2">
+                <label className="flex min-h-[1.5rem] items-center gap-2 text-[13px] font-600 leading-4 text-foreground">
                   <input
                     type="checkbox"
                     className="rounded border-border"
@@ -586,12 +593,12 @@ export default function PersonalSubscriptionForm({
                   <span>{t('personalSubscriptions.form.moreOptions.reminders', { ns: 'portal' })}</span>
                 </label>
                 {remindersEnabled ? (
-                  <div className="mt-2">
+                  <div className="mt-1.5">
                     {remindersAreMultiple ? (
                       <button
                         type="button"
                         onClick={() => setMoreOptionsOpen(true)}
-                        className="btn-ghost h-9 w-full justify-between px-3 text-xs"
+                        className="btn-ghost h-9 w-full justify-between px-3 text-xs max-[640px]:h-8 max-[640px]:px-2.5"
                         aria-label={t('personalSubscriptions.form.moreOptions.openForDetails', { ns: 'portal' })}
                       >
                         <span>{t('personalSubscriptions.form.moreOptions.multipleReminders', { ns: 'portal' })}</span>
@@ -599,7 +606,7 @@ export default function PersonalSubscriptionForm({
                       </button>
                     ) : (
                       <select
-                        className="input-base h-9 text-xs"
+                        className={`${compactSelectClassName} h-9 min-h-[2.25rem] py-2 text-xs`}
                         value={primaryReminderDay || '3'}
                         onChange={(event) => setValue('reminder_days_before', [event.target.value], { shouldDirty: true })}
                         aria-label={t('personalSubscriptions.form.moreOptions.reminderTiming', { ns: 'portal' })}
@@ -620,16 +627,16 @@ export default function PersonalSubscriptionForm({
 
         <button
           type="button"
-          className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-4 py-3 text-left"
+          className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-left max-[640px]:px-3.5 max-[640px]:py-2.5"
           aria-expanded={moreOptionsOpen ? 'true' : 'false'}
           onClick={() => setMoreOptionsOpen((value) => !value)}
         >
           <div>
-            <div className="text-sm font-800 text-foreground">
+            <div className="text-sm font-800 text-foreground max-[640px]:text-[13px] max-[640px]:leading-4">
               {t('personalSubscriptions.form.moreOptions.title', { ns: 'portal' })}
             </div>
             {subscription?.id && moreOptionsOpen ? null : (
-              <div className="mt-0.5 text-xs text-muted-foreground">
+              <div className="mt-0.5 text-xs leading-4 text-muted-foreground max-[640px]:text-[11px]">
                 {t('personalSubscriptions.form.moreOptions.description', { ns: 'portal' })}
               </div>
             )}
@@ -639,20 +646,20 @@ export default function PersonalSubscriptionForm({
       </section>
 
       {moreOptionsOpen ? (
-        <section className="space-y-5 border-t border-border pt-5">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+        <section className="space-y-5 border-t border-border pt-5 max-[640px]:space-y-4 max-[640px]:pt-4">
+          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-6">
-              <label htmlFor="subscription-provider" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-provider" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.provider', { ns: 'portal' })}
               </label>
-              <input id="subscription-provider" type="text" className="input-base" {...register('provider')} />
+              <input id="subscription-provider" type="text" className={compactInputClassName} {...register('provider')} />
             </div>
 
             <div className="md:col-span-6">
-              <label htmlFor="subscription-status" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-status" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.status', { ns: 'portal' })}
               </label>
-              <select id="subscription-status" className="input-base" {...register('status')}>
+              <select id="subscription-status" className={compactSelectClassName} {...register('status')}>
                 {PERSONAL_SUBSCRIPTION_STATUSES.map((status) => (
                   <option key={status} value={status}>
                     {t(`personalSubscriptions.statuses.${status}`, { ns: 'portal' })}
@@ -663,16 +670,16 @@ export default function PersonalSubscriptionForm({
           </div>
 
           <div>
-            <label htmlFor="subscription-description" className={getFieldLabelClassName(false)}>
+            <label htmlFor="subscription-description" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.description', { ns: 'portal' })}
             </label>
-            <textarea id="subscription-description" rows={3} className="input-base resize-none" {...register('description')} />
+            <textarea id="subscription-description" rows={3} className={compactTextareaClassName} {...register('description')} />
           </div>
 
           {(frequency === 'custom' || watch('billing_interval') !== '1') ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+            <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
               <div className="md:col-span-6">
-                <label htmlFor="subscription-billing-interval" className={getFieldLabelClassName(false)}>
+                <label htmlFor="subscription-billing-interval" className={compactFieldLabelClassName(false)}>
                   {t('personalSubscriptions.form.fields.billingInterval', { ns: 'portal' })}
                 </label>
                 <input
@@ -680,52 +687,52 @@ export default function PersonalSubscriptionForm({
                   type="number"
                   min="1"
                   step="1"
-                  className="input-base"
+                  className={compactInputClassName}
                   {...register('billing_interval')}
                 />
-                <p className="mt-1.5 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs leading-4 text-muted-foreground">
                   {t('personalSubscriptions.form.helpers.billingInterval', { ns: 'portal' })}
                 </p>
               </div>
 
               <div className="md:col-span-6">
-                <label htmlFor="subscription-start-date" className={getFieldLabelClassName(false)}>
+                <label htmlFor="subscription-start-date" className={compactFieldLabelClassName(false)}>
                   {t('personalSubscriptions.form.fields.startDate', { ns: 'portal' })}
                 </label>
-                <input id="subscription-start-date" type="date" className="input-base" {...register('start_date')} />
+                <input id="subscription-start-date" type="date" className={compactInputClassName} {...register('start_date')} />
               </div>
             </div>
           ) : (
             <div>
-              <label htmlFor="subscription-start-date" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-start-date" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.startDate', { ns: 'portal' })}
               </label>
-              <input id="subscription-start-date" type="date" className="input-base" {...register('start_date')} />
+              <input id="subscription-start-date" type="date" className={compactInputClassName} {...register('start_date')} />
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-6">
-              <label htmlFor="subscription-trial-end" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-trial-end" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.trialEndDate', { ns: 'portal' })}
               </label>
-              <input id="subscription-trial-end" type="date" className="input-base" {...register('trial_end_date')} />
+              <input id="subscription-trial-end" type="date" className={compactInputClassName} {...register('trial_end_date')} />
             </div>
 
             <div className="md:col-span-6">
-              <label htmlFor="subscription-contract-end" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-contract-end" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.contractEndDate', { ns: 'portal' })}
               </label>
-              <input id="subscription-contract-end" type="date" className="input-base" {...register('contract_end_date')} />
+              <input id="subscription-contract-end" type="date" className={compactInputClassName} {...register('contract_end_date')} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-6">
-              <label htmlFor="subscription-payment-method" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-payment-method" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.paymentMethod', { ns: 'portal' })}
               </label>
-              <select id="subscription-payment-method" className="input-base" {...register('payment_method')}>
+              <select id="subscription-payment-method" className={compactSelectClassName} {...register('payment_method')}>
                 <option value="">{t('personalSubscriptions.form.fields.selectPaymentMethod', { ns: 'portal' })}</option>
                 {PERSONAL_SUBSCRIPTION_PAYMENT_METHODS.map((method) => (
                   <option key={method} value={method}>
@@ -736,7 +743,7 @@ export default function PersonalSubscriptionForm({
             </div>
 
             <div className="md:col-span-6">
-              <label className={`flex items-start gap-2 rounded-2xl border border-border bg-muted/20 p-3 text-sm ${!linkedRecurringSupported || subscription?.recurring_transaction_id ? 'opacity-60' : ''}`}>
+              <label className={`flex items-start gap-2 rounded-xl border border-border bg-muted/15 p-3 text-sm max-[640px]:p-2.5 ${!linkedRecurringSupported || subscription?.recurring_transaction_id ? 'opacity-60' : ''}`}>
                 <input
                   type="checkbox"
                   className="mt-0.5 rounded border-border"
@@ -744,10 +751,10 @@ export default function PersonalSubscriptionForm({
                   {...register('create_linked_recurring_expense')}
                 />
                 <span>
-                  <span className="block font-700 text-foreground">
+                    <span className="block text-[13px] font-700 leading-4 text-foreground">
                     {t('personalSubscriptions.form.fields.createLinkedRecurringExpense', { ns: 'portal' })}
                   </span>
-                  <span className="block text-xs text-muted-foreground">
+                    <span className="mt-0.5 block text-xs leading-4 text-muted-foreground">
                     {subscription?.recurring_transaction_id
                       ? t('personalSubscriptions.form.helpers.linkedRecurringExists', { ns: 'portal' })
                       : linkedRecurringSupported
@@ -763,7 +770,7 @@ export default function PersonalSubscriptionForm({
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm font-700 text-foreground">{t('personalSubscriptions.form.fields.reminderDaysBefore', { ns: 'portal' })}</p>
+            <p className="text-sm font-700 text-foreground max-[640px]:text-[13px]">{t('personalSubscriptions.form.fields.reminderDaysBefore', { ns: 'portal' })}</p>
             <div className="flex flex-wrap gap-2">
               {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((day) => (
                 <label key={day} className="choice-check-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
@@ -774,65 +781,65 @@ export default function PersonalSubscriptionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-4">
-              <label htmlFor="subscription-notice-days" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-notice-days" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.cancellationNoticeDays', { ns: 'portal' })}
               </label>
-              <input id="subscription-notice-days" type="number" min="0" step="1" className="input-base" {...register('cancellation_notice_days')} />
+              <input id="subscription-notice-days" type="number" min="0" step="1" className={compactInputClassName} {...register('cancellation_notice_days')} />
             </div>
 
             <div className="md:col-span-4">
-              <label htmlFor="subscription-cancellation-deadline" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-cancellation-deadline" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.cancellationDeadline', { ns: 'portal' })}
               </label>
-              <input id="subscription-cancellation-deadline" type="date" className="input-base" {...register('cancellation_deadline')} />
+              <input id="subscription-cancellation-deadline" type="date" className={compactInputClassName} {...register('cancellation_deadline')} />
             </div>
 
             <div className="md:col-span-4">
-              <label htmlFor="subscription-threshold" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-threshold" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.warningThresholdAmount', { ns: 'portal' })}
               </label>
-              <input id="subscription-threshold" type="number" min="0" step="0.01" className="input-base" {...register('warning_threshold_amount')} />
+              <input id="subscription-threshold" type="number" min="0" step="0.01" className={compactInputClassName} {...register('warning_threshold_amount')} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
             <div className="md:col-span-6">
-              <label htmlFor="subscription-website-url" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-website-url" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.websiteUrl', { ns: 'portal' })}
               </label>
-              <input id="subscription-website-url" type="url" className="input-base" {...register('website_url')} />
+              <input id="subscription-website-url" type="url" className={compactInputClassName} {...register('website_url')} />
             </div>
 
             <div className="md:col-span-6">
-              <label htmlFor="subscription-account-reference" className={getFieldLabelClassName(false)}>
+              <label htmlFor="subscription-account-reference" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.accountReference', { ns: 'portal' })}
               </label>
               <input
                 id="subscription-account-reference"
                 type="text"
                 autoComplete="off"
-                className="input-base"
+                className={compactInputClassName}
                 {...register('account_reference')}
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="subscription-notes" className={getFieldLabelClassName(false)}>
+            <label htmlFor="subscription-notes" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.notes', { ns: 'portal' })}
             </label>
-            <textarea id="subscription-notes" rows={4} className="input-base resize-none" {...register('notes')} />
+            <textarea id="subscription-notes" rows={4} className={compactTextareaClassName} {...register('notes')} />
           </div>
         </section>
       ) : null}
 
-      <div className={`flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row ${isRTL ? 'sm:justify-start sm:flex-row-reverse' : 'sm:justify-end'}`}>
-        <button type="button" onClick={onCancel} className="btn-secondary">
+      <div className={`flex flex-col gap-2 border-t border-border pt-4 max-[640px]:gap-1.5 max-[640px]:pt-3 sm:flex-row ${isRTL ? 'sm:justify-start sm:flex-row-reverse' : 'sm:justify-end'}`}>
+        <button type="button" onClick={onCancel} className="order-2 btn-secondary max-[640px]:min-h-[2.5rem] max-[640px]:border-transparent max-[640px]:bg-transparent max-[640px]:px-3 max-[640px]:py-2 max-[640px]:text-sm max-[640px]:text-muted-foreground sm:order-1">
           {t('actions.cancel', { ns: 'common' })}
         </button>
-        <button type="submit" disabled={saving} className="btn-primary">
+        <button type="submit" disabled={saving} className="order-1 w-full btn-primary max-[640px]:min-h-[2.75rem] max-[640px]:px-4 max-[640px]:py-2.5 sm:order-2 sm:w-auto">
           {saving ? (
             <>
               <Loader2 size={15} className="animate-spin" />

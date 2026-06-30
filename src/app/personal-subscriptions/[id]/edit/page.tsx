@@ -87,18 +87,18 @@ export default function EditPersonalSubscriptionPage() {
 
   return (
     <AppLayout activeRoute="/personal-subscriptions">
-      <div className="mx-auto max-w-4xl space-y-5 pb-6">
-        <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="mx-auto max-w-4xl space-y-5 pb-6 max-[640px]:space-y-3.5 max-[640px]:pb-2">
+        <div className={`flex items-start gap-3 max-[640px]:gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
             href={`/personal-subscriptions/${subscription.id}`}
-            className="rounded-xl border border-border p-2 text-muted-foreground transition-colors hover:bg-muted"
+            className="rounded-xl border border-border p-2 text-muted-foreground transition-colors hover:bg-muted max-[640px]:rounded-lg max-[640px]:p-1.5"
             aria-label={t('personalSubscriptions.actions.backToDetails', { ns: 'portal' })}
           >
-            <ArrowLeft size={18} className={isRTL ? 'rotate-180' : ''} />
+            <ArrowLeft size={18} className={`${isRTL ? 'rotate-180' : ''} max-[640px]:size-[17px]`} />
           </Link>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-800 tracking-[-0.02em] text-foreground">
+            <div className="flex flex-wrap items-center gap-2 max-[640px]:gap-1.5">
+              <h1 className="text-2xl font-800 tracking-[-0.02em] text-foreground max-[640px]:text-[1.3rem] max-[640px]:leading-tight">
                 {t('personalSubscriptions.editTitle', { ns: 'portal' })}
               </h1>
               <StatusBadge
@@ -106,14 +106,14 @@ export default function EditPersonalSubscriptionPage() {
                 label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })}
               />
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted-foreground max-[640px]:mt-0.5 max-[640px]:text-xs max-[640px]:leading-5">
               {subscription.name}
             </p>
           </div>
         </div>
 
         <div className="section-card">
-          <div className="section-card-body">
+          <div className="section-card-body max-[640px]:p-4">
             <PersonalSubscriptionForm
               subscription={subscription}
               accounts={accounts}
@@ -124,9 +124,9 @@ export default function EditPersonalSubscriptionPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Loader2 size={14} className="text-accent" />
+        <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground max-[640px]:rounded-xl max-[640px]:p-3 max-[640px]:text-xs">
+          <div className="flex items-center gap-2 max-[640px]:gap-1.5">
+            <Loader2 size={14} className="text-accent max-[640px]:size-[13px]" />
             <span>{t('personalSubscriptions.editHelper', { ns: 'portal' })}</span>
           </div>
         </div>
