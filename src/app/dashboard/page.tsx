@@ -1,24 +1,12 @@
  'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import DashboardHeader from '@/app/components/DashboardHeader';
 import DashboardMetrics from '@/app/components/DashboardMetrics';
 import DashboardCharts from '@/app/components/DashboardCharts';
-import RecentTransactions from '@/app/components/RecentTransactions';
-import AccountBalances from '@/app/components/AccountBalances';
-import UpcomingRecurring from '@/app/components/UpcomingRecurring';
-import UpcomingPersonalSubscriptions from '@/app/components/UpcomingPersonalSubscriptions';
-import PeopleDashboardWidget from '@/app/components/PeopleDashboardWidget';
-import AIUsageCard from '@/app/components/AIUsageCard';
-import ReceiptInsightsCard from '@/app/components/ReceiptInsightsCard';
 import Modal from '@/components/ui/Modal';
-import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
-import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
-import RecurringTransactionForm from '@/app/recurring/components/RecurringTransactionForm';
-import AddBudgetForm from '@/app/budgets/components/AddBudgetForm';
-import CreateReimbursementForm from '@/app/reimbursements/components/CreateReimbursementForm';
-import PersonalSubscriptionForm from '@/app/personal-subscriptions/components/PersonalSubscriptionForm';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import { toast } from 'sonner';
@@ -33,6 +21,44 @@ import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
+
+const AIUsageCardLazy = dynamic(() => import('@/app/components/AIUsageCard'), {
+  loading: () => <SectionCardSkeleton lines={3} className="h-full" />,
+});
+const RecentTransactionsLazy = dynamic(() => import('@/app/components/RecentTransactions'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full md:col-span-2 xl:col-span-1" />,
+});
+const AccountBalancesLazy = dynamic(() => import('@/app/components/AccountBalances'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full" />,
+});
+const UpcomingRecurringLazy = dynamic(() => import('@/app/components/UpcomingRecurring'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full" />,
+});
+const UpcomingPersonalSubscriptionsLazy = dynamic(() => import('@/app/components/UpcomingPersonalSubscriptions'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1" />,
+});
+const PeopleDashboardWidgetLazy = dynamic(() => import('@/app/components/PeopleDashboardWidget'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full" />,
+});
+const ReceiptInsightsCardLazy = dynamic(() => import('@/app/components/ReceiptInsightsCard'), {
+  loading: () => <SectionCardSkeleton lines={4} className="h-full" />,
+});
+const AddTransactionModalLazy = dynamic(() => import('@/app/transactions/components/AddTransactionModal'));
+const FinancialAccountFormLazy = dynamic(() => import('@/app/financial-accounts/components/FinancialAccountForm'), {
+  loading: () => <DashboardQuickActionFallback />,
+});
+const RecurringTransactionFormLazy = dynamic(() => import('@/app/recurring/components/RecurringTransactionForm'), {
+  loading: () => <DashboardQuickActionFallback />,
+});
+const AddBudgetFormLazy = dynamic(() => import('@/app/budgets/components/AddBudgetForm'), {
+  loading: () => <DashboardQuickActionFallback />,
+});
+const CreateReimbursementFormLazy = dynamic(() => import('@/app/reimbursements/components/CreateReimbursementForm'), {
+  loading: () => <DashboardQuickActionFallback />,
+});
+const PersonalSubscriptionFormLazy = dynamic(() => import('@/app/personal-subscriptions/components/PersonalSubscriptionForm'), {
+  loading: () => <DashboardQuickActionFallback />,
+});
 
 function buildMonthActivePeriod(monthKey: string, timezone: string, locale?: string): DashboardActivePeriod {
   const monthContext = getMonthContext(monthKey, timezone, undefined, locale);
@@ -61,6 +87,74 @@ function buildPayPeriodActivePeriod(startDate: string, context: UserFinancialPer
   };
 }
 
+function DashboardQuickActionFallback() {
+  return (
+    <div className="space-y-3 py-1">
+      <div className="skeleton h-10 w-full rounded-xl" />
+      <div className="skeleton h-10 w-full rounded-xl" />
+      <div className="skeleton h-24 w-full rounded-2xl" />
+    </div>
+  );
+}
+
+function useMinWidth(minWidth: number) {
+  const [matches, setMatches] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia(`(min-width: ${minWidth}px)`);
+    const updateMatch = () => setMatches(mediaQuery.matches);
+
+    updateMatch();
+    mediaQuery.addEventListener('change', updateMatch);
+    return () => {
+      mediaQuery.removeEventListener('change', updateMatch);
+    };
+  }, [minWidth]);
+
+  return matches;
+}
+
+function useDeferredMount(enabled = true, rootMargin = '700px 0px') {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [shouldMount, setShouldMount] = useState(!enabled);
+
+  useEffect(() => {
+    if (!enabled || shouldMount) {
+      if (!shouldMount) {
+        setShouldMount(true);
+      }
+      return;
+    }
+
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') {
+      setShouldMount(true);
+      return;
+    }
+
+    const target = ref.current;
+    if (!target) {
+      setShouldMount(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setShouldMount(true);
+        observer.disconnect();
+      }
+    }, { rootMargin });
+
+    observer.observe(target);
+    return () => {
+      observer.disconnect();
+    };
+  }, [enabled, rootMargin, shouldMount]);
+
+  return { ref, shouldMount };
+}
+
 export default function DashboardPage() {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -72,6 +166,9 @@ export default function DashboardPage() {
   const [selectedPayPeriodStart, setSelectedPayPeriodStart] = useState('');
   const [activeQuickAction, setActiveQuickAction] = useState<'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget' | null>(null);
   const [lastTrigger, setLastTrigger] = useState<HTMLElement | null>(null);
+  const isMdUp = useMinWidth(768);
+  const firstLowerGrid = useDeferredMount(true, '650px 0px');
+  const secondLowerGrid = useDeferredMount(true, '900px 0px');
 
   const loadPeriodContext = useCallback(async () => {
     setPeriodLoading(true);
@@ -254,97 +351,132 @@ export default function DashboardPage() {
                   <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
                 <div className="hidden md:block md:col-span-12 xl:col-span-3 xl:col-start-10 xl:row-span-2 xl:row-start-1 xl:self-start">
-                  <AIUsageCard />
+                  {isMdUp
+                    ? <AIUsageCardLazy />
+                    : <SectionCardSkeleton lines={3} className="h-full" />
+                  }
                 </div>
                 <div className="md:col-span-12 xl:col-span-9">
                   <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
                 </div>
               </div>
-              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
-                <div className="md:col-span-2 xl:col-span-1">
-                  <RecentTransactions />
-                </div>
-                <div>
-                  <UpcomingRecurring activePeriod={activePeriod} />
-                </div>
-                <div>
-                  <AccountBalances />
-                </div>
+              <div ref={firstLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
+                {firstLowerGrid.shouldMount ? (
+                  <>
+                    <div className="md:col-span-2 xl:col-span-1">
+                      <RecentTransactionsLazy />
+                    </div>
+                    <div>
+                      <UpcomingRecurringLazy activePeriod={activePeriod} />
+                    </div>
+                    <div>
+                      <AccountBalancesLazy />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <SectionCardSkeleton lines={4} className="h-full md:col-span-2 xl:col-span-1" />
+                    <SectionCardSkeleton lines={4} className="h-full" />
+                    <SectionCardSkeleton lines={4} className="h-full" />
+                  </>
+                )}
               </div>
-              <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
-                <div className="h-full md:col-span-2 lg:col-span-1">
-                  <UpcomingPersonalSubscriptions activePeriod={activePeriod} />
-                </div>
-                <div className="h-full">
-                  <PeopleDashboardWidget />
-                </div>
-                <div className="h-full">
-                  <ReceiptInsightsCard activePeriod={activePeriod} />
-                </div>
+              <div ref={secondLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4">
+                {secondLowerGrid.shouldMount ? (
+                  <>
+                    <div className="h-full md:col-span-2 lg:col-span-1">
+                      <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} />
+                    </div>
+                    <div className="h-full">
+                      <PeopleDashboardWidgetLazy />
+                    </div>
+                    <div className="h-full">
+                      <ReceiptInsightsCardLazy activePeriod={activePeriod} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1" />
+                    <SectionCardSkeleton lines={4} className="h-full" />
+                    <SectionCardSkeleton lines={4} className="h-full" />
+                  </>
+                )}
               </div>
             </div>
           </>
         )}
 
-        <AddTransactionModal
-          isOpen={activeQuickAction === 'transaction'}
-          onClose={closeQuickAction}
-          initialMode="single"
-        />
-
-        <Modal
-          isOpen={activeQuickAction === 'account'}
-          onClose={closeQuickAction}
-          title={t('dashboardHeader.quickActions.account')}
-          size="md"
-        >
-          <FinancialAccountForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-        </Modal>
-
-        <Modal
-          isOpen={activeQuickAction === 'personal_subscription'}
-          onClose={closeQuickAction}
-          title={t('personalSubscriptions.newTitle')}
-          size="lg"
-        >
-          <PersonalSubscriptionForm
-            onSuccess={() => closeQuickAction()}
-            onCancel={closeQuickAction}
+        {activeQuickAction === 'transaction' ? (
+          <AddTransactionModalLazy
+            isOpen
+            onClose={closeQuickAction}
+            initialMode="single"
           />
-        </Modal>
+        ) : null}
 
-        <Modal
-          isOpen={activeQuickAction === 'recurring'}
-          onClose={closeQuickAction}
-          title={t('dashboardHeader.quickActions.recurring')}
-          size="md"
-        >
-          <RecurringTransactionForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-        </Modal>
+        {activeQuickAction === 'account' ? (
+          <Modal
+            isOpen
+            onClose={closeQuickAction}
+            title={t('dashboardHeader.quickActions.account')}
+            size="md"
+          >
+            <FinancialAccountFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+          </Modal>
+        ) : null}
 
-        <Modal
-          isOpen={activeQuickAction === 'budget'}
-          onClose={closeQuickAction}
-          title={t('dashboardHeader.quickActions.budget')}
-          size="md"
-        >
-          <AddBudgetForm
-            onSuccess={() => {
-              toast.success(t('budgets.addSuccess'));
-              closeQuickAction();
-            }}
-            onCancel={closeQuickAction}
-          />
-        </Modal>
+        {activeQuickAction === 'personal_subscription' ? (
+          <Modal
+            isOpen
+            onClose={closeQuickAction}
+            title={t('personalSubscriptions.newTitle')}
+            size="lg"
+          >
+            <PersonalSubscriptionFormLazy
+              onSuccess={() => closeQuickAction()}
+              onCancel={closeQuickAction}
+            />
+          </Modal>
+        ) : null}
 
-        <Modal
-          isOpen={activeQuickAction === 'reimbursement'}
-          onClose={closeQuickAction}
-          title={t('dashboardHeader.quickActions.reimbursement')}
-          size="md"
-        >
-          <CreateReimbursementForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-        </Modal>
+        {activeQuickAction === 'recurring' ? (
+          <Modal
+            isOpen
+            onClose={closeQuickAction}
+            title={t('dashboardHeader.quickActions.recurring')}
+            size="md"
+          >
+            <RecurringTransactionFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+          </Modal>
+        ) : null}
+
+        {activeQuickAction === 'budget' ? (
+          <Modal
+            isOpen
+            onClose={closeQuickAction}
+            title={t('dashboardHeader.quickActions.budget')}
+            size="md"
+          >
+            <AddBudgetFormLazy
+              onSuccess={() => {
+                toast.success(t('budgets.addSuccess'));
+                closeQuickAction();
+              }}
+              onCancel={closeQuickAction}
+            />
+          </Modal>
+        ) : null}
+
+        {activeQuickAction === 'reimbursement' ? (
+          <Modal
+            isOpen
+            onClose={closeQuickAction}
+            title={t('dashboardHeader.quickActions.reimbursement')}
+            size="md"
+          >
+            <CreateReimbursementFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+          </Modal>
+        ) : null}
       </div>
     </AppLayout>
   );

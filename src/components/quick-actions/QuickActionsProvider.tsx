@@ -1,14 +1,10 @@
 'use client';
 
 import React, { useCallback, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
-import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
-import ManagedPersonForm from '@/app/people/components/ManagedPersonForm';
-import CreateReimbursementForm from '@/app/reimbursements/components/CreateReimbursementForm';
-import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
-import AddTransferForm from '@/app/transfers/components/AddTransferForm';
 import {
   QuickActionsContext,
   type QuickActionId,
@@ -17,7 +13,30 @@ import {
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 
-const AIAssistantModalLazy = React.lazy(() => import('@/components/ai/AIAssistantModal'));
+const AddTransactionModalLazy = dynamic(() => import('@/app/transactions/components/AddTransactionModal'));
+const FinancialAccountFormLazy = dynamic(() => import('@/app/financial-accounts/components/FinancialAccountForm'), {
+  loading: () => <QuickActionFormFallback />,
+});
+const ManagedPersonFormLazy = dynamic(() => import('@/app/people/components/ManagedPersonForm'), {
+  loading: () => <QuickActionFormFallback />,
+});
+const CreateReimbursementFormLazy = dynamic(() => import('@/app/reimbursements/components/CreateReimbursementForm'), {
+  loading: () => <QuickActionFormFallback />,
+});
+const AddTransferFormLazy = dynamic(() => import('@/app/transfers/components/AddTransferForm'), {
+  loading: () => <QuickActionFormFallback />,
+});
+const AIAssistantModalLazy = dynamic(() => import('@/components/ai/AIAssistantModal'));
+
+function QuickActionFormFallback() {
+  return (
+    <div className="space-y-3 py-1">
+      <div className="skeleton h-10 w-full rounded-xl" />
+      <div className="skeleton h-10 w-full rounded-xl" />
+      <div className="skeleton h-20 w-full rounded-2xl" />
+    </div>
+  );
+}
 
 export default function QuickActionsProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation('portal');
@@ -63,48 +82,58 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
     <QuickActionsContext.Provider value={contextValue}>
       {children}
 
-      <AddTransactionModal
-        isOpen={activeAction === 'expense' || activeAction === 'income'}
-        onClose={closeQuickAction}
-        initialMode="single"
-        initialTransactionType={initialTransactionType}
-      />
+      {(activeAction === 'expense' || activeAction === 'income') ? (
+        <AddTransactionModalLazy
+          isOpen
+          onClose={closeQuickAction}
+          initialMode="single"
+          initialTransactionType={initialTransactionType}
+        />
+      ) : null}
 
-      <Modal
-        isOpen={activeAction === 'transfer'}
-        onClose={closeQuickAction}
-        title={t('transfers.newTransfer')}
-        size="md"
-      >
-        <AddTransferForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-      </Modal>
+      {activeAction === 'transfer' ? (
+        <Modal
+          isOpen
+          onClose={closeQuickAction}
+          title={t('transfers.newTransfer')}
+          size="md"
+        >
+          <AddTransferFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+        </Modal>
+      ) : null}
 
-      <Modal
-        isOpen={activeAction === 'account'}
-        onClose={closeQuickAction}
-        title={t('accounts.addAccount')}
-        size="md"
-      >
-        <FinancialAccountForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-      </Modal>
+      {activeAction === 'account' ? (
+        <Modal
+          isOpen
+          onClose={closeQuickAction}
+          title={t('accounts.addAccount')}
+          size="md"
+        >
+          <FinancialAccountFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+        </Modal>
+      ) : null}
 
-      <Modal
-        isOpen={activeAction === 'person' && canUseManagedPeople}
-        onClose={closeQuickAction}
-        title={t('people.addPerson')}
-        size="md"
-      >
-        <ManagedPersonForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-      </Modal>
+      {(activeAction === 'person' && canUseManagedPeople) ? (
+        <Modal
+          isOpen
+          onClose={closeQuickAction}
+          title={t('people.addPerson')}
+          size="md"
+        >
+          <ManagedPersonFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+        </Modal>
+      ) : null}
 
-      <Modal
-        isOpen={activeAction === 'reimbursement' && canUseManagedPeople}
-        onClose={closeQuickAction}
-        title={t('reimbursements.addReimbursement')}
-        size="md"
-      >
-        <CreateReimbursementForm onSuccess={closeQuickAction} onCancel={closeQuickAction} />
-      </Modal>
+      {(activeAction === 'reimbursement' && canUseManagedPeople) ? (
+        <Modal
+          isOpen
+          onClose={closeQuickAction}
+          title={t('reimbursements.addReimbursement')}
+          size="md"
+        >
+          <CreateReimbursementFormLazy onSuccess={closeQuickAction} onCancel={closeQuickAction} />
+        </Modal>
+      ) : null}
 
       {((activeAction === 'smart_entry' && canUseTextAi) || (activeAction === 'voice_entry' && canUseVoiceAi)) && (
         <React.Suspense fallback={null}>
