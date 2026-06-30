@@ -311,8 +311,6 @@ export default function PersonalSubscriptionForm({
   }, [linkedRecurringSupported, setValue]);
 
   const remindersEnabled = reminderDaysBefore.length > 0;
-  const remindersAreMultiple = reminderDaysBefore.length > 1;
-  const primaryReminderDay = reminderDaysBefore.length === 1 ? reminderDaysBefore[0] : '';
   const compactFieldLabelClassName = (hasError?: boolean) =>
     getFieldLabelClassName(hasError, 'mb-1 block text-[13px] font-700 leading-4');
   const fieldErrorClassName = getFieldErrorTextClassName('mt-1 text-[11px] font-600 leading-4');
@@ -460,8 +458,8 @@ export default function PersonalSubscriptionForm({
           {errors.name ? <p className={fieldErrorClassName}>{errors.name.message}</p> : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
-          <div className="md:col-span-4">
+        <div className="grid grid-cols-12 gap-3 md:gap-4 lg:grid-cols-12">
+          <div className="col-span-5 min-w-0 lg:col-span-4">
             <label htmlFor="subscription-amount" className={compactFieldLabelClassName(Boolean(errors.amount))}>
               {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
@@ -481,7 +479,7 @@ export default function PersonalSubscriptionForm({
             {errors.amount ? <p className={fieldErrorClassName}>{errors.amount.message}</p> : null}
           </div>
 
-          <div className="md:col-span-4">
+          <div className="col-span-7 min-w-0 lg:col-span-4">
             <CurrencySelector
               label={t('personalSubscriptions.form.fields.currency', { ns: 'portal' })}
               value={watch('currency_code')}
@@ -490,7 +488,7 @@ export default function PersonalSubscriptionForm({
             />
           </div>
 
-          <div className="md:col-span-4">
+          <div className="col-span-12 min-w-0 lg:col-span-4">
             <label htmlFor="subscription-frequency" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
@@ -505,8 +503,8 @@ export default function PersonalSubscriptionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
-          <div className="md:col-span-6">
+        <div className="grid grid-cols-12 gap-3 md:gap-4 lg:grid-cols-12">
+          <div className="col-span-5 min-w-0 lg:col-span-6">
             <label htmlFor="subscription-next-billing" className={compactFieldLabelClassName(Boolean(errors.next_billing_date))}>
               {t('personalSubscriptions.form.fields.nextBillingDate', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}
@@ -523,7 +521,7 @@ export default function PersonalSubscriptionForm({
             {errors.next_billing_date ? <p className={fieldErrorClassName}>{errors.next_billing_date.message}</p> : null}
           </div>
 
-          <div className="md:col-span-6">
+          <div className="col-span-7 min-w-0 lg:col-span-6">
             <label htmlFor="subscription-account" className={compactFieldLabelClassName(Boolean(errors.financial_account_id))}>
               {t('personalSubscriptions.form.fields.financialAccount', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}
@@ -551,7 +549,7 @@ export default function PersonalSubscriptionForm({
         </div>
 
         <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
-          <div className="md:col-span-6">
+          <div className="min-w-0 md:col-span-6">
             <label htmlFor="subscription-category" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
             </label>
@@ -567,62 +565,13 @@ export default function PersonalSubscriptionForm({
             </select>
           </div>
 
-          <div className="md:col-span-6">
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
-              <label className="flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-border bg-muted/15 px-3 py-2 text-[13px] font-600 leading-4 text-foreground max-[640px]:min-h-[2.625rem] max-[640px]:rounded-xl max-[640px]:py-2">
-                <input type="checkbox" className="rounded border-border" {...register('auto_renew')} />
-                <span>{t('personalSubscriptions.form.fields.autoRenew', { ns: 'portal' })}</span>
-              </label>
+        </div>
 
-              <div className="rounded-xl border border-border bg-muted/15 px-3 py-2 max-[640px]:py-2">
-                <label className="flex min-h-[1.5rem] items-center gap-2 text-[13px] font-600 leading-4 text-foreground">
-                  <input
-                    type="checkbox"
-                    className="rounded border-border"
-                    checked={remindersEnabled}
-                    onChange={(event) => {
-                      const nextEnabled = event.target.checked;
-                      if (nextEnabled) {
-                        const fallback = remindersAreMultiple ? '3' : (primaryReminderDay || '3');
-                        setValue('reminder_days_before', [fallback], { shouldDirty: true });
-                        return;
-                      }
-                      setValue('reminder_days_before', [], { shouldDirty: true });
-                    }}
-                  />
-                  <span>{t('personalSubscriptions.form.moreOptions.reminders', { ns: 'portal' })}</span>
-                </label>
-                {remindersEnabled ? (
-                  <div className="mt-1.5">
-                    {remindersAreMultiple ? (
-                      <button
-                        type="button"
-                        onClick={() => setMoreOptionsOpen(true)}
-                        className="btn-ghost h-9 w-full justify-between px-3 text-xs max-[640px]:h-8 max-[640px]:px-2.5"
-                        aria-label={t('personalSubscriptions.form.moreOptions.openForDetails', { ns: 'portal' })}
-                      >
-                        <span>{t('personalSubscriptions.form.moreOptions.multipleReminders', { ns: 'portal' })}</span>
-                        <ChevronDown size={14} className="opacity-70" />
-                      </button>
-                    ) : (
-                      <select
-                        className={`${compactSelectClassName} h-9 min-h-[2.25rem] py-2 text-xs`}
-                        value={primaryReminderDay || '3'}
-                        onChange={(event) => setValue('reminder_days_before', [event.target.value], { shouldDirty: true })}
-                        aria-label={t('personalSubscriptions.form.moreOptions.reminderTiming', { ns: 'portal' })}
-                      >
-                        {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((day) => (
-                          <option key={day} value={String(day)}>
-                            {t('personalSubscriptions.form.reminderOption', { ns: 'portal', count: day })}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </div>
+        <div>
+          <label className="flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-border bg-muted/15 px-3 py-2 text-[13px] font-600 leading-4 text-foreground max-[640px]:min-h-[2.625rem] max-[640px]:py-2">
+            <input type="checkbox" className="rounded border-border" {...register('auto_renew')} />
+            <span>{t('personalSubscriptions.form.fields.autoRenew', { ns: 'portal' })}</span>
+          </label>
         </div>
 
         <button
