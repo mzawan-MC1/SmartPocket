@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, FileText, Loader2, Paperclip } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import Modal from '@/components/ui/Modal';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import {
@@ -88,7 +89,8 @@ export default function TransactionDetailsModal({
   const showDocumentWarning = details?.documentState === 'unavailable';
   const showNoDocument = details?.documentState === 'missing';
   const showProcessingState = details?.documentState === 'processing';
-  const showTotals = Boolean(details?.document && details?.totals);
+  const totals = details?.totals ?? null;
+  const showTotals = Boolean(details?.document && totals);
   const showLineItems = Boolean(details?.document?.createdFromAI);
 
   return (
@@ -222,6 +224,41 @@ export default function TransactionDetailsModal({
 
               <div className="space-y-4">
                 <div className="rounded-2xl border border-border bg-card p-4">
+                  <div className="rounded-[20px] border border-border/70 bg-muted/10 px-4 py-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                          {t('transactions.amount', { ns: 'portal' })}
+                        </p>
+                        <div className="mt-2">
+                          <FormattedCurrencyAmount
+                            amount={details.transaction.amount}
+                            currencyCode={details.transaction.currency}
+                            fallbackCurrencyCode={details.transaction.currency}
+                            className="text-[1.6rem] font-800 text-foreground"
+                            numberClassName="text-[1.85rem] font-800 tracking-tight text-foreground"
+                            symbolClassName="text-[1.05rem] text-muted-foreground"
+                          />
+                        </div>
+                      </div>
+                      <div className="rounded-full bg-card px-3 py-1 text-xs font-700 text-muted-foreground">
+                        {details.transaction.transactionDate}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 space-y-1">
+                      <p className="text-sm font-700 text-foreground">
+                        {details.transaction.merchant || details.transaction.description || '—'}
+                      </p>
+                      {(details.transaction.merchant && details.transaction.description) ? (
+                        <p className="text-sm text-muted-foreground">
+                          {details.transaction.description}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 border-t border-border/70 pt-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
@@ -321,9 +358,10 @@ export default function TransactionDetailsModal({
                       </div>
                     ) : null}
                   </div>
+                  </div>
                 </div>
 
-                {showTotals ? (
+                {showTotals && totals ? (
                 <div className="rounded-2xl border border-border bg-card p-4">
                   <p className="text-sm font-700 text-foreground">
                     {t('transactions.documentDetails.totalSummary', {
@@ -333,12 +371,12 @@ export default function TransactionDetailsModal({
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
                     {[
-                      ['subtotal', details.totals.subtotal],
-                      ['tax', details.totals.tax],
-                      ['discount', details.totals.discount],
-                      ['fee', details.totals.fee],
-                      ['calculatedTotal', details.totals.calculatedTotal],
-                      ['receiptTotal', details.totals.receiptTotal],
+                      ['subtotal', totals.subtotal],
+                      ['tax', totals.tax],
+                      ['discount', totals.discount],
+                      ['fee', totals.fee],
+                      ['calculatedTotal', totals.calculatedTotal],
+                      ['receiptTotal', totals.receiptTotal],
                     ].map(([key, value]) => (
                       <div key={key} className="rounded-xl bg-muted/20 px-3 py-2">
                         <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">

@@ -5,6 +5,7 @@ import {
   sanitizePersonalSubscriptionPayload,
   validatePersonalSubscriptionInput,
 } from '@/lib/personal-subscriptions-server';
+import { isPersonalSubscriptionStatus } from '@/lib/personal-subscriptions-shared';
 import { requirePersonalSubscriptionsUser, withPersonalSubscriptionsCookies } from './_lib';
 
 export const runtime = 'nodejs';
@@ -17,13 +18,20 @@ export async function GET(request: NextRequest) {
 
   try {
     const searchParams = request.nextUrl.searchParams;
-    const statuses = searchParams.getAll('status').filter(Boolean);
+    const statuses = Array.from(
+      new Set(
+        searchParams
+          .getAll('status')
+          .map((value) => value.trim())
+          .filter(isPersonalSubscriptionStatus)
+      )
+    );
     const nextBillingDateFrom = searchParams.get('nextBillingDateFrom')?.trim() || undefined;
     const nextBillingDateTo = searchParams.get('nextBillingDateTo')?.trim() || undefined;
     const rawLimit = Number(searchParams.get('limit'));
     const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 50) : undefined;
     const subscriptions = await listPersonalSubscriptions(auth.supabase, auth.user.id, {
-      statuses: statuses.length > 0 ? statuses as Array<(typeof statuses)[number]> : undefined,
+      statuses: statuses.length > 0 ? statuses : undefined,
       nextBillingDateFrom,
       nextBillingDateTo,
       limit,
