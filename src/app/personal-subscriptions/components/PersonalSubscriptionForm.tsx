@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -588,17 +588,9 @@ export default function PersonalSubscriptionForm({
         description={subscription?.id && moreOptionsOpen
           ? undefined
           : t('personalSubscriptions.form.moreOptions.description', { ns: 'portal' })}
-        action={(
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
-            aria-expanded={moreOptionsOpen ? 'true' : 'false'}
-            aria-label={t('personalSubscriptions.form.moreOptions.title', { ns: 'portal' })}
-            onClick={() => setMoreOptionsOpen((value) => !value)}
-          >
-            {moreOptionsOpen ? <ChevronUp size={18} className="text-muted-foreground" /> : <ChevronDown size={18} className="text-muted-foreground" />}
-          </button>
-        )}
+        collapsible
+        expanded={moreOptionsOpen}
+        onExpandedChange={setMoreOptionsOpen}
         bodyClassName="space-y-5 max-[640px]:space-y-4"
       >
         {moreOptionsOpen ? (

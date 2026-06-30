@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link';
 import {
   AlertCircle,
-  ChevronDown as ChevronDownIcon,
-  ChevronUp as ChevronUpIcon,
   Loader2,
   Plus,
   RefreshCw,
@@ -1914,17 +1912,9 @@ export default function AddTransactionModal({
                           variant="secondary"
                           title={t('transactions.form.moreDetails', { ns: 'portal' })}
                           className="max-[480px]:order-6"
-                          action={(
-                            <button
-                              type="button"
-                              onClick={() => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: !draft.showMoreOptions }))}
-                              aria-expanded={row.showMoreOptions}
-                              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
-                              aria-label={t('transactions.form.moreDetails', { ns: 'portal' })}
-                            >
-                              {row.showMoreOptions ? <ChevronUpIcon size={15} /> : <ChevronDownIcon size={15} />}
-                            </button>
-                          )}
+                          collapsible
+                          expanded={row.showMoreOptions}
+                          onExpandedChange={(expanded) => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: expanded }))}
                           bodyClassName="space-y-2"
                         >
                           {row.showMoreOptions ? (

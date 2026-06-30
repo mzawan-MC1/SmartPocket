@@ -255,6 +255,26 @@
     background-color: var(--section-neutral-header);
   }
 
+  .form-section-header-button {
+    width: 100%;
+    border: 0;
+    cursor: pointer;
+    text-align: start;
+    transition: box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .form-section-header-button:hover {
+    box-shadow: inset 0 0 0 999px rgba(15, 23, 42, 0.018);
+  }
+
+  .form-section-header-button:active {
+    box-shadow: inset 0 0 0 999px rgba(15, 23, 42, 0.04);
+  }
+
+  .form-section-header-button:focus-visible {
+    box-shadow: inset 0 0 0 999px rgba(15, 23, 42, 0.018), 0 0 0 4px rgba(var(--accent-rgb), 0.16);
+  }
+
   .form-section-header-no-divider {
     border-bottom-color: transparent;
   }
@@ -309,6 +329,18 @@
     justify-content: flex-end;
     gap: 0.5rem;
     min-width: min(100%, 10rem);
+  }
+
+  .form-section-chevron {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+  }
+
+  .form-section-chevron svg {
+    transition: transform 160ms ease;
   }
 
   .form-section-body {
@@ -1013,6 +1045,7 @@
     padding: 0.9rem;
   }
 
+
   .settings-row {
     align-items: flex-start;
   }
@@ -1045,7 +1078,9 @@
 
   .btn-primary,
   .btn-secondary,
-  .btn-ghost {
+  .btn-ghost,
+  .form-section-header-button,
+  .form-section-chevron svg {
     transition: none !important;
   }
 

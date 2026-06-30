@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
@@ -646,20 +646,9 @@ export default function FinancialAccountForm({
             defaultValue: 'Share with Spaces',
           })}
           description={sharingSummary}
-          action={(
-            <button
-              type="button"
-              onClick={() => setSharingExpanded((current) => !current)}
-              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
-              aria-expanded={sharingExpanded}
-              aria-label={t('accounts.form.spaceSharingTitle', {
-                ns: 'portal',
-                defaultValue: 'Share with Spaces',
-              })}
-            >
-              {sharingExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
+          collapsible
+          expanded={sharingExpanded}
+          onExpandedChange={setSharingExpanded}
           bodyClassName="space-y-2.5"
         >
           {sharingExpanded ? (
@@ -776,17 +765,9 @@ export default function FinancialAccountForm({
           variant="neutral"
           title={t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
           description={bankDetailsSummary}
-          action={(
-            <button
-              type="button"
-              onClick={() => setBankDetailsExpanded((current) => !current)}
-              className="inline-flex items-center justify-center rounded-full border border-border bg-card p-1.5 text-muted-foreground"
-              aria-expanded={bankDetailsExpanded}
-              aria-label={t('accounts.form.bankDetailsTitle', { ns: 'portal', defaultValue: 'Bank details' })}
-            >
-              {bankDetailsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </button>
-          )}
+          collapsible
+          expanded={bankDetailsExpanded}
+          onExpandedChange={setBankDetailsExpanded}
           bodyClassName="space-y-3"
         >
           {bankDetailsExpanded ? (
