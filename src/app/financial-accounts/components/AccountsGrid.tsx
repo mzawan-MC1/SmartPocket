@@ -1,9 +1,10 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, ArrowUpDown } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -30,6 +31,7 @@ import {
 } from '@/lib/financial-account-utils';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { KPICardSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const AccountDetailPanel = dynamic(() => import('./AccountDetailPanel'), {
   ssr: false,
@@ -160,6 +162,7 @@ type SummaryMetric =
 
 export default function AccountsGrid() {
   const { t } = useTranslation('portal');
+  const { dir } = useLanguage();
   const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [summary, setSummary] = useState<AccountsSummaryMetrics | null>(null);
@@ -171,6 +174,9 @@ export default function AccountsGrid() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
   const [archivingId, setArchivingId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuTriggerRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const load = useCallback(() => {
     setLoading(true);
@@ -206,6 +212,84 @@ export default function AccountsGrid() {
     setStartCurrencyWorkflowOnOpen(false);
     setShowAddModal(true);
   };
+
+  const closeMenu = useCallback((options?: { restoreFocus?: boolean }) => {
+    const activeMenuId = openMenuId;
+    setOpenMenuId(null);
+    setMenuPosition(null);
+    if (options?.restoreFocus === false || !activeMenuId) return;
+    window.requestAnimationFrame(() => {
+      menuTriggerRefs.current[activeMenuId]?.focus();
+    });
+  }, [openMenuId]);
+
+  const updateMenuPosition = useCallback((menuId: string) => {
+    if (typeof window === 'undefined') return;
+    const trigger = menuTriggerRefs.current[menuId];
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const menuWidth = menuRef.current?.offsetWidth ?? 220;
+    const menuHeight = menuRef.current?.offsetHeight ?? 260;
+    const sideOffset = 8;
+    const viewportPadding = 8;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const placement: 'top' | 'bottom' =
+      spaceBelow < menuHeight + sideOffset && spaceAbove > spaceBelow
+        ? 'top'
+        : 'bottom';
+
+    const unclampedTop = placement === 'top'
+      ? rect.top - menuHeight - sideOffset
+      : rect.bottom + sideOffset;
+    const top = Math.min(
+      Math.max(unclampedTop, viewportPadding),
+      window.innerHeight - menuHeight - viewportPadding
+    );
+
+    const unclampedLeft = dir === 'rtl'
+      ? rect.left
+      : rect.right - menuWidth;
+    const left = Math.min(
+      Math.max(unclampedLeft, viewportPadding),
+      window.innerWidth - menuWidth - viewportPadding
+    );
+
+    setMenuPosition({ top, left, placement });
+  }, [dir]);
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+
+    const update = () => updateMenuPosition(openMenuId);
+    const focusFirstItem = () => {
+      menuRef.current?.querySelector<HTMLElement>('[data-account-menu-item="true"]')?.focus();
+    };
+
+    const frameId = window.requestAnimationFrame(() => {
+      update();
+      window.requestAnimationFrame(focusFirstItem);
+    });
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMenu();
+      }
+    };
+
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeMenu, openMenuId, updateMenuPosition]);
 
   const openEdit = (acct: FinancialAccount, options?: { startCurrencyChange?: boolean }) => {
     setEditingAccount(acct);
@@ -249,6 +333,7 @@ export default function AccountsGrid() {
   const archivedAccounts = accounts.filter((a) => !a.is_active && a.archive_reason !== 'currency_conversion');
   const { personalSections, sharedWithSpacesAccounts, spaceAccounts } = getSectionedAccounts(activeAccounts);
   const personalAccounts = personalSections.flatMap((section) => section.accounts);
+  const openMenuAccount = openMenuId ? activeAccounts.find((account) => account.id === openMenuId) ?? null : null;
   const summaryCards = [
     { id: 'sum-total', label: t('accounts.summary.totalNetWorth'), field: 'totalNetWorth' as const },
     { id: 'sum-assets', label: t('accounts.summary.totalAssets'), field: 'totalAssets' as const },
@@ -284,9 +369,22 @@ export default function AccountsGrid() {
                     <Icon size={16} className="text-white" />
                   </div>
                   <button
+                    ref={(node) => {
+                      menuTriggerRefs.current[acct.id] = node;
+                    }}
+                    type="button"
                     className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === acct.id ? null : acct.id); }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (openMenuId === acct.id) {
+                        closeMenu();
+                        return;
+                      }
+                      setOpenMenuId(acct.id);
+                    }}
                     aria-label={t('accounts.accountOptions')}
+                    aria-haspopup="menu"
+                    aria-expanded={openMenuId === acct.id}
                   >
                     <MoreVertical size={15} className="text-white" />
                   </button>
@@ -322,53 +420,6 @@ export default function AccountsGrid() {
                   />
                 </p>
               </div>
-              {openMenuId === acct.id && (
-                <div
-                  className="absolute top-12 right-4 z-10 bg-card border border-border rounded-xl shadow-card-lg py-1 min-w-[190px]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
-                    <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                    onClick={() => openEdit(acct, { startCurrencyChange: true })}
-                  >
-                    <ArrowUpDown size={14} className="text-muted-foreground" /> {t('accounts.currencyChange.openAction', {
-                      defaultValue: 'Change Currency',
-                    })}
-                  </button>
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
-                    <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
-                  </button>
-                  {canSetDefaultCash ? (
-                    <button
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        void handleSetDefault(acct.id, 'personal_cash');
-                      }}
-                    >
-                      <Wallet size={14} className="text-muted-foreground" /> {t('accounts.setAsDefaultCash', { defaultValue: 'Set as Default Cash' })}
-                    </button>
-                  ) : null}
-                  {canSetDefaultBank ? (
-                    <button
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-                      onClick={() => {
-                        setOpenMenuId(null);
-                        void handleSetDefault(acct.id, 'personal_bank');
-                      }}
-                    >
-                      <Building2 size={14} className="text-muted-foreground" /> {t('accounts.setAsDefaultBank', { defaultValue: 'Set as Default Bank' })}
-                    </button>
-                  ) : null}
-                  <hr className="my-1 border-border" />
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-warning hover:bg-warning-soft transition-colors" onClick={() => { setShowArchiveConfirm(acct.id); setOpenMenuId(null); }}>
-                    <Archive size={14} /> {t('accounts.archiveAccount')}
-                  </button>
-                </div>
-              )}
             </div>
             <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
               <div>
@@ -628,6 +679,115 @@ export default function AccountsGrid() {
           </div>
         </div>
       )}
+
+      {openMenuId && openMenuAccount && menuPosition
+        ? createPortal(
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => closeMenu()} />
+              <div
+                ref={menuRef}
+                role="menu"
+                aria-label={t('accounts.accountOptions')}
+                className="fixed z-50 flex min-w-[220px] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-[0_22px_48px_-28px_rgba(15,23,42,0.45)]"
+                style={{
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  transformOrigin: menuPosition.placement === 'top'
+                    ? dir === 'rtl' ? 'bottom left' : 'bottom right'
+                    : dir === 'rtl' ? 'top left' : 'top right',
+                }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-account-menu-item="true"
+                  className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  onClick={() => {
+                    openEdit(openMenuAccount);
+                    closeMenu({ restoreFocus: false });
+                  }}
+                >
+                  <Edit2 size={14} className="text-muted-foreground" />
+                  {t('accounts.editAccount')}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-account-menu-item="true"
+                  className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  onClick={() => {
+                    openEdit(openMenuAccount, { startCurrencyChange: true });
+                    closeMenu({ restoreFocus: false });
+                  }}
+                >
+                  <ArrowUpDown size={14} className="text-muted-foreground" />
+                  {t('accounts.currencyChange.openAction', {
+                    defaultValue: 'Change Currency',
+                  })}
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-account-menu-item="true"
+                  className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                  onClick={() => {
+                    setSelectedAccount(openMenuAccount);
+                    closeMenu({ restoreFocus: false });
+                  }}
+                >
+                  <Eye size={14} className="text-muted-foreground" />
+                  {t('accounts.viewTransactions')}
+                </button>
+                {openMenuAccount.account_type === 'cash' && getFinancialAccountOwnershipType(openMenuAccount) === 'personal' && !isDefaultCashAccount(openMenuAccount) ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-account-menu-item="true"
+                    className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    onClick={() => {
+                      closeMenu({ restoreFocus: false });
+                      void handleSetDefault(openMenuAccount.id, 'personal_cash');
+                    }}
+                  >
+                    <Wallet size={14} className="text-muted-foreground" />
+                    {t('accounts.setAsDefaultCash', { defaultValue: 'Set as Default Cash' })}
+                  </button>
+                ) : null}
+                {openMenuAccount.account_type === 'bank' && getFinancialAccountOwnershipType(openMenuAccount) === 'personal' && !isDefaultBankAccount(openMenuAccount) ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-account-menu-item="true"
+                    className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+                    onClick={() => {
+                      closeMenu({ restoreFocus: false });
+                      void handleSetDefault(openMenuAccount.id, 'personal_bank');
+                    }}
+                  >
+                    <Building2 size={14} className="text-muted-foreground" />
+                    {t('accounts.setAsDefaultBank', { defaultValue: 'Set as Default Bank' })}
+                  </button>
+                ) : null}
+                <div className="my-1 h-px bg-border/80" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-account-menu-item="true"
+                  className="inline-flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-sm font-600 text-warning transition-colors hover:bg-warning-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning/30"
+                  onClick={() => {
+                    setShowArchiveConfirm(openMenuAccount.id);
+                    closeMenu({ restoreFocus: false });
+                  }}
+                >
+                  <Archive size={14} />
+                  {t('accounts.archiveAccount')}
+                </button>
+              </div>
+            </>,
+            document.body
+          )
+        : null}
 
       {/* Add/Edit Modal */}
       {showAddModal ? (

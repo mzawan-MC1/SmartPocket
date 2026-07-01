@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown,
+  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -62,7 +62,12 @@ function formatCompactRate(value: number, locale: string) {
 
 function formatProviderName(provider: string | null) {
   if (!provider) return null;
-  return provider.replace(/_/g, ' ');
+  if (provider === 'open_exchange_rates') {
+    return 'Open Exchange Rates';
+  }
+  return provider
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (value) => value.toUpperCase());
 }
 
 function OriginalCurrencyDisclosure({
@@ -96,16 +101,14 @@ function OriginalCurrencyDisclosure({
     ? Math.abs(metric.reportingAmount as number) / Math.abs(singleOriginal.amount)
     : null;
   const rateDate = formatCompactDate(metric.rateDate, locale);
-  const providerTimestamp = formatCompactDateTime(metric.providerTimestamp, locale);
-  const fetchedAt = formatCompactDateTime(metric.fetchedAt, locale);
+  const updatedAt = formatCompactDateTime(metric.providerTimestamp || metric.fetchedAt, locale);
   const providerName = formatProviderName(metric.provider);
-  const showHistoricalStatus = metric.lookupMode === 'previous_available';
 
   return (
     <div className="mt-2 rounded-2xl border border-border/70 bg-muted/15 px-3 py-2.5 max-[480px]:mt-1.5">
       <button
         type="button"
-        className="text-xs font-700 text-muted-foreground transition-colors hover:text-foreground"
+        className="flex w-full items-center justify-between gap-3 rounded-xl px-2 py-1.5 text-left text-xs font-700 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
         onClick={() => {
           const nextOpen = !isOpen;
           setIsOpen(nextOpen);
@@ -115,9 +118,16 @@ function OriginalCurrencyDisclosure({
         }}
         aria-expanded={isOpen}
       >
-        {t('dashboardMetrics.viewOriginalCurrencies', {
-          defaultValue: 'View original currencies',
-        })}
+        <span>
+          {isOpen
+            ? t('dashboardMetrics.originalCurrencyDetails', {
+                defaultValue: 'Original currency details',
+              })
+            : t('dashboardMetrics.viewOriginalCurrencies', {
+                defaultValue: 'View original currencies',
+              })}
+        </span>
+        {isOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </button>
 
       {isOpen ? (
@@ -170,26 +180,6 @@ function OriginalCurrencyDisclosure({
             </div>
           ) : null}
 
-          {showHistoricalStatus ? (
-            <p className="rounded-xl bg-muted/40 px-2.5 py-2 text-foreground/90">
-              {t('dashboardMetrics.historicalRateUsed', {
-                defaultValue: 'Historical exchange rate used',
-              })}
-            </p>
-          ) : null}
-
-          {metric.stale ? (
-            <p className="rounded-xl bg-warning-soft/20 px-2.5 py-2 text-warning">
-              {t('dashboardMetrics.staleRatesCompact', {
-                defaultValue: 'A recent rate was unavailable, so Smart Pocket used the latest available historical rate.',
-              })}
-            </p>
-          ) : null}
-
-          {metric.unavailableReason ? (
-            <p className="rounded-xl bg-warning-soft/20 px-2.5 py-2 text-warning">{metric.unavailableReason}</p>
-          ) : null}
-
           <div className="flex flex-wrap items-center gap-3 pt-0.5">
             <button
               type="button"
@@ -201,18 +191,6 @@ function OriginalCurrencyDisclosure({
                 defaultValue: 'Rate details',
               })}
             </button>
-            <button
-              type="button"
-              className="text-xs font-700 text-muted-foreground transition-colors hover:text-foreground"
-              onClick={() => {
-                setIsOpen(false);
-                setShowRateDetails(false);
-              }}
-            >
-              {t('dashboardMetrics.hideOriginalCurrencies', {
-                defaultValue: 'Hide',
-              })}
-            </button>
           </div>
 
           {showRateDetails ? (
@@ -220,22 +198,17 @@ function OriginalCurrencyDisclosure({
               <div className="space-y-1.5 text-xs text-muted-foreground">
                 {providerName ? (
                   <p>
-                    {t('dashboardMetrics.provider', { value: providerName })}
-                  </p>
-                ) : null}
-                {providerTimestamp ? (
-                  <p>
-                    {t('dashboardMetrics.providerTimestampCompact', {
-                      defaultValue: 'Provider timestamp: {{value}}',
-                      value: providerTimestamp,
+                    {t('dashboardMetrics.source', {
+                      defaultValue: 'Source: {{value}}',
+                      value: providerName,
                     })}
                   </p>
                 ) : null}
-                {fetchedAt ? (
+                {updatedAt ? (
                   <p>
-                    {t('dashboardMetrics.fetchedAtCompact', {
-                      defaultValue: 'Fetched: {{value}}',
-                      value: fetchedAt,
+                    {t('dashboardMetrics.updatedAt', {
+                      defaultValue: 'Updated: {{value}}',
+                      value: updatedAt,
                     })}
                   </p>
                 ) : null}
