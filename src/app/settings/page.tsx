@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
 import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard } from 'lucide-react';
@@ -14,6 +15,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
+import Modal from '@/components/ui/Modal';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
@@ -135,9 +137,13 @@ function buildPlanningValues(data: Pick<ProfileFormData, keyof FinancialPeriodFo
 
 export default function SettingsPage() {
   const { t } = useTranslation(['portal', 'common']);
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedDefaultCurrency, setSavedDefaultCurrency] = useState('');
+  const [showReportingCurrencyConfirm, setShowReportingCurrencyConfirm] = useState(false);
+  const [pendingProfileData, setPendingProfileData] = useState<ProfileFormData | null>(null);
   const [financialPeriodErrors, setFinancialPeriodErrors] = useState<FinancialPeriodFieldErrors>({});
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
@@ -182,6 +188,9 @@ export default function SettingsPage() {
   const selectedCountryRecord = getCountryByCode(snapshot?.countries ?? [], selectedCountry);
   const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
   const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
+  const getCurrencyDisplayName = useCallback((currencyCode: string) => {
+    return getCurrencyByCode(snapshot?.currencies ?? [], currencyCode)?.name || currencyCode;
+  }, [snapshot?.currencies]);
   const LANGUAGES = [
     { code: 'en', name: t('language.en', { ns: 'common' }) },
     { code: 'ar', name: t('language.ar', { ns: 'common' }) },
@@ -210,12 +219,13 @@ export default function SettingsPage() {
       const supabase = createClient();
       const { data } = await supabase.from('user_profiles').select(SETTINGS_PROFILE_SELECT).eq('id', user.id).single();
       if (data) {
+        const nextDefaultCurrency = data.default_currency || referenceData?.platformDefaultCurrency || '';
         reset({
           full_name: data.full_name || '',
           country: data.country || '',
           monthly_income: data.monthly_income?.toString() || '',
           month_start_day: data.month_start_day?.toString() || '1',
-          default_currency: data.default_currency || referenceData?.platformDefaultCurrency || '',
+          default_currency: nextDefaultCurrency,
           preferred_language: data.preferred_language || 'en',
           ...buildFinancialPeriodFormValues({
             income_frequency: data.income_frequency,
@@ -233,6 +243,7 @@ export default function SettingsPage() {
             custom_cycle_days: data.custom_cycle_days,
           }),
         });
+        setSavedDefaultCurrency(nextDefaultCurrency);
       }
     };
     loadProfile();
@@ -301,7 +312,10 @@ export default function SettingsPage() {
       });
   };
 
-  const onSubmit = async (data: ProfileFormData) => {
+  const persistProfile = useCallback(async (
+    data: ProfileFormData,
+    options?: { reportingCurrencyChanged?: boolean }
+  ) => {
     if (!user) return;
     setIsSaving(true);
     try {
@@ -330,6 +344,7 @@ export default function SettingsPage() {
         .select(SETTINGS_PROFILE_SELECT)
         .single();
       if (error) throw error;
+      const nextDefaultCurrency = savedProfile.default_currency || referenceData?.platformDefaultCurrency || '';
       setLanguage((savedProfile.preferred_language || 'en') as any);
       clearResolvedUserDefaultCurrencyCache();
       clearFinancialPeriodProfileCache();
@@ -338,7 +353,7 @@ export default function SettingsPage() {
         country: savedProfile.country || '',
         monthly_income: savedProfile.monthly_income?.toString() || '',
         month_start_day: savedProfile.month_start_day?.toString() || '1',
-        default_currency: savedProfile.default_currency || referenceData?.platformDefaultCurrency || '',
+        default_currency: nextDefaultCurrency,
         preferred_language: savedProfile.preferred_language || 'en',
         ...buildFinancialPeriodFormValues({
           income_frequency: savedProfile.income_frequency,
@@ -356,18 +371,43 @@ export default function SettingsPage() {
           custom_cycle_days: savedProfile.custom_cycle_days,
         }),
       });
+      setSavedDefaultCurrency(nextDefaultCurrency);
+      setPendingProfileData(null);
+      setShowReportingCurrencyConfirm(false);
       dispatchSmartPocketDataChanged({
         source: 'SettingsPage',
         entities: ['profile', 'dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
       });
       setSaved(true);
-      toast.success(t('settings.saved', { ns: 'portal' }));
+      toast.success(
+        options?.reportingCurrencyChanged
+          ? t('settings.preferences.reportingCurrencyChangedNotice', {
+              ns: 'portal',
+              defaultValue: 'Reporting currency changed to {{currency}}. Existing account currencies were not changed.',
+              currency: getCurrencyDisplayName(nextDefaultCurrency),
+            })
+          : t('settings.saved', { ns: 'portal' })
+      );
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       toast.error(err?.message || t('settings.saveFailed', { ns: 'portal' }));
     } finally {
       setIsSaving(false);
     }
+  }, [getCurrencyDisplayName, getValues, referenceData?.platformDefaultCurrency, reset, setLanguage, t, user]);
+
+  const onSubmit = async (data: ProfileFormData) => {
+    const previousCurrency = (savedDefaultCurrency || '').trim().toUpperCase();
+    const nextCurrency = (data.default_currency || '').trim().toUpperCase();
+    const reportingCurrencyChanged = previousCurrency !== nextCurrency;
+
+    if (reportingCurrencyChanged) {
+      setPendingProfileData(data);
+      setShowReportingCurrencyConfirm(true);
+      return;
+    }
+
+    await persistProfile(data);
   };
 
   const toggleNotificationPreference = (key: keyof NotificationPreferences) => {
@@ -811,6 +851,87 @@ export default function SettingsPage() {
             </div>
           )}
         </form>
+        <Modal
+          isOpen={showReportingCurrencyConfirm}
+          onClose={() => {
+            if (!isSaving) {
+              setShowReportingCurrencyConfirm(false);
+              setPendingProfileData(null);
+            }
+          }}
+          title={t('settings.preferences.reportingCurrencyConfirmTitle', {
+            ns: 'portal',
+            defaultValue: 'Change reporting currency?',
+          })}
+          size="md"
+          closeOnBackdrop={!isSaving}
+          closeOnEscape={!isSaving}
+          stickyFooter
+          footer={
+            <div className="flex flex-wrap justify-end gap-2 p-4">
+              <button
+                type="button"
+                className="btn-secondary h-10 px-4 text-sm"
+                onClick={() => {
+                  setShowReportingCurrencyConfirm(false);
+                  setPendingProfileData(null);
+                }}
+                disabled={isSaving}
+              >
+                {t('actions.cancel', { ns: 'common' })}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary h-10 px-4 text-sm"
+                onClick={() => {
+                  setShowReportingCurrencyConfirm(false);
+                  setPendingProfileData(null);
+                  router.push('/financial-accounts');
+                }}
+                disabled={isSaving}
+              >
+                {t('settings.preferences.reviewAccountsAction', {
+                  ns: 'portal',
+                  defaultValue: 'Review Accounts',
+                })}
+              </button>
+              <button
+                type="button"
+                className="btn-primary h-10 px-4 text-sm"
+                onClick={() => {
+                  if (pendingProfileData) {
+                    void persistProfile(pendingProfileData, { reportingCurrencyChanged: true });
+                  }
+                }}
+                disabled={isSaving || !pendingProfileData}
+              >
+                {isSaving ? (
+                  <><Loader2 size={15} className="animate-spin" />{t('status.saving', { ns: 'common' })}</>
+                ) : (
+                  t('settings.preferences.changeReportingCurrencyAction', {
+                    ns: 'portal',
+                    defaultValue: 'Change Reporting Currency',
+                  })
+                )}
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              {t('settings.preferences.reportingCurrencyConfirmMessage', {
+                ns: 'portal',
+                defaultValue: 'Existing accounts will keep their current currencies unless you choose to convert them separately.',
+              })}
+            </p>
+            <p>
+              {t('settings.preferences.reportingCurrencyConfirmHelper', {
+                ns: 'portal',
+                defaultValue: 'Smart Pocket will use the new currency for dashboard totals, reports, and as the default currency for new accounts.',
+              })}
+            </p>
+          </div>
+        </Modal>
       </div>
     </AppLayout>
   );

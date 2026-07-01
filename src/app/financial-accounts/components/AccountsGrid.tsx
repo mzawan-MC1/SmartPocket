@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
-import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye } from 'lucide-react';
+import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, ArrowUpDown } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -164,6 +164,7 @@ export default function AccountsGrid() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<FinancialAccount | null>(null);
+  const [startCurrencyWorkflowOnOpen, setStartCurrencyWorkflowOnOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<FinancialAccount | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
@@ -191,11 +192,13 @@ export default function AccountsGrid() {
 
   const openAdd = () => {
     setEditingAccount(null);
+    setStartCurrencyWorkflowOnOpen(false);
     setShowAddModal(true);
   };
 
-  const openEdit = (acct: FinancialAccount) => {
+  const openEdit = (acct: FinancialAccount, options?: { startCurrencyChange?: boolean }) => {
     setEditingAccount(acct);
+    setStartCurrencyWorkflowOnOpen(options?.startCurrencyChange === true);
     setShowAddModal(true);
     setOpenMenuId(null);
   };
@@ -232,7 +235,7 @@ export default function AccountsGrid() {
   };
 
   const activeAccounts = accounts.filter((a) => a.is_active);
-  const archivedAccounts = accounts.filter((a) => !a.is_active);
+  const archivedAccounts = accounts.filter((a) => !a.is_active && a.archive_reason !== 'currency_conversion');
   const { personalSections, sharedWithSpacesAccounts, spaceAccounts } = getSectionedAccounts(activeAccounts);
   const personalAccounts = personalSections.flatMap((section) => section.accounts);
   const summaryCards = [
@@ -315,6 +318,14 @@ export default function AccountsGrid() {
                 >
                   <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => openEdit(acct)}>
                     <Edit2 size={14} className="text-muted-foreground" /> {t('accounts.editAccount')}
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+                    onClick={() => openEdit(acct, { startCurrencyChange: true })}
+                  >
+                    <ArrowUpDown size={14} className="text-muted-foreground" /> {t('accounts.currencyChange.openAction', {
+                      defaultValue: 'Change Currency',
+                    })}
                   </button>
                   <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors" onClick={() => { setSelectedAccount(acct); setOpenMenuId(null); }}>
                     <Eye size={14} className="text-muted-foreground" /> {t('accounts.viewTransactions')}
@@ -619,6 +630,7 @@ export default function AccountsGrid() {
             account={editingAccount}
             onSuccess={() => setShowAddModal(false)}
             onCancel={() => setShowAddModal(false)}
+            initialCurrencyWorkflowOpen={startCurrencyWorkflowOnOpen}
           />
         </Modal>
       ) : null}

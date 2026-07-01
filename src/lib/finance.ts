@@ -22,6 +22,12 @@ import {
   getLatestExchangeRateSnapshot,
   listHistoricalExchangeRateSnapshots,
 } from '@/lib/exchange-rates/service';
+import type {
+  AccountCurrencyChangePreview,
+  AccountCurrencyHistoryItem,
+  ApplyAccountCurrencyChangeInput,
+  ApplyAccountCurrencyChangeResult,
+} from '@/lib/financial-account-currency-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import {
   formatBudgetPeriodLabel,
@@ -135,6 +141,11 @@ export type TransactionClassification =
 export interface FinancialAccount {
   id: string;
   user_id: string;
+  logical_account_id?: string | null;
+  previous_account_id?: string | null;
+  replaced_by_account_id?: string | null;
+  archived_at?: string | null;
+  archive_reason?: string | null;
   created_by_user_id?: string | null;
   name: string;
   account_type: 'bank' | 'credit_card' | 'cash' | 'savings' | 'digital_wallet' | 'investment' | 'other';
@@ -1565,6 +1576,57 @@ export async function updateAccount(id: string, payload: Partial<FinancialAccoun
   });
   const body = await parseFinancialAccountResponse(response);
   return body.account as FinancialAccount;
+}
+
+export async function previewAccountCurrencyChange(
+  accountId: string,
+  payload: {
+    mode: 'correction' | 'conversion';
+    targetCurrency: string;
+  }
+): Promise<AccountCurrencyChangePreview> {
+  const response = await fetch(`/api/financial-accounts/${accountId}/currency-change`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      intent: 'preview',
+      ...payload,
+    }),
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return body.preview as AccountCurrencyChangePreview;
+}
+
+export async function applyAccountCurrencyChange(
+  accountId: string,
+  payload: ApplyAccountCurrencyChangeInput
+): Promise<ApplyAccountCurrencyChangeResult> {
+  const response = await fetch(`/api/financial-accounts/${accountId}/currency-change`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      intent: 'apply',
+      ...payload,
+    }),
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return body.result as ApplyAccountCurrencyChangeResult;
+}
+
+export async function getAccountCurrencyHistory(accountId: string): Promise<AccountCurrencyHistoryItem[]> {
+  const response = await fetch(`/api/financial-accounts/${accountId}/currency-history`, {
+    method: 'GET',
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  const body = await parseFinancialAccountResponse(response);
+  return (body.items as AccountCurrencyHistoryItem[]) || [];
 }
 
 export async function archiveAccount(id: string): Promise<void> {

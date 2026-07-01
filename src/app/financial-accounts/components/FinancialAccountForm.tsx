@@ -5,8 +5,16 @@ import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
+import Modal from '@/components/ui/Modal';
 import FormSection from '@/components/ui/FormSection';
-import { createAccount, type FinancialAccount, updateAccount } from '@/lib/finance';
+import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import {
+  applyAccountCurrencyChange,
+  createAccount,
+  previewAccountCurrencyChange,
+  type FinancialAccount,
+  updateAccount,
+} from '@/lib/finance';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import {
   getFieldErrorTextClassName,
@@ -20,6 +28,12 @@ import {
   type FinancialBankAccountType,
   type FinancialAccountScopeType,
 } from '@/lib/financial-account-utils';
+import {
+  normalizeCurrencyCode,
+  type AccountCurrencyChangeMode,
+  type AccountCurrencyChangePreview,
+} from '@/lib/financial-account-currency-change';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 import { getMySpaceMemberships, type Space } from '@/lib/spaces';
 
 interface SharingFormEntry {
@@ -112,6 +126,7 @@ export default function FinancialAccountForm({
   initialScopeType,
   initialSpaceId,
   hideScopeControls = false,
+  initialCurrencyWorkflowOpen = false,
 }: {
   account?: FinancialAccount | null;
   onSuccess: () => void;
@@ -120,6 +135,7 @@ export default function FinancialAccountForm({
   initialScopeType?: FinancialAccountScopeType;
   initialSpaceId?: string | null;
   hideScopeControls?: boolean;
+  initialCurrencyWorkflowOpen?: boolean;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { data: referenceData } = useClientReferenceData();
@@ -130,6 +146,13 @@ export default function FinancialAccountForm({
   const [form, setForm] = useState<AccountFormData>(EMPTY_FORM);
   const [sharingExpanded, setSharingExpanded] = useState(false);
   const [bankDetailsExpanded, setBankDetailsExpanded] = useState(false);
+  const [showCurrencyWorkflow, setShowCurrencyWorkflow] = useState(Boolean(account) && initialCurrencyWorkflowOpen);
+  const [currencyMode, setCurrencyMode] = useState<AccountCurrencyChangeMode | null>(null);
+  const [currencyTarget, setCurrencyTarget] = useState('');
+  const [currencyPreview, setCurrencyPreview] = useState<AccountCurrencyChangePreview | null>(null);
+  const [currencyPreviewLoading, setCurrencyPreviewLoading] = useState(false);
+  const [currencyApplying, setCurrencyApplying] = useState(false);
+  const [currencyConfirmChecked, setCurrencyConfirmChecked] = useState(false);
   const autoAppliedCurrencyRef = useRef('');
   const availableSpaces = useMemo<FormSpaceOption[]>(
     () => (allowedSpaces || loadedSpaces).map((space) => ({ id: space.id, name: space.name })),
@@ -146,6 +169,9 @@ export default function FinancialAccountForm({
     }
     return availableSpaces;
   }, [availableSpaces, initialSpaceId, scopeLockedToSpace]);
+  const currentCurrencyCode = normalizeCurrencyCode(account?.currency || form.currency);
+  const currentCurrencyRecord = getCurrencyByCode(referenceData?.snapshot?.currencies ?? [], currentCurrencyCode);
+  const targetCurrencyRecord = getCurrencyByCode(referenceData?.snapshot?.currencies ?? [], currencyTarget);
 
   const refreshCreateModeCurrency = useCallback(async () => {
     if (account) {
@@ -236,6 +262,11 @@ export default function FinancialAccountForm({
           (account.bank_account_type && account.bank_account_type !== 'current')
         )
       ));
+      setShowCurrencyWorkflow(initialCurrencyWorkflowOpen);
+      setCurrencyMode(null);
+      setCurrencyTarget('');
+      setCurrencyPreview(null);
+      setCurrencyConfirmChecked(false);
       return;
     }
 
@@ -250,8 +281,14 @@ export default function FinancialAccountForm({
     });
     setSharingExpanded(false);
     setBankDetailsExpanded(false);
+    setShowCurrencyWorkflow(false);
+    setCurrencyMode(null);
+    setCurrencyTarget('');
+    setCurrencyPreview(null);
+    setCurrencyConfirmChecked(false);
   }, [
     account,
+    initialCurrencyWorkflowOpen,
     initialScopeType,
     initialSpaceId,
     scopeLockedToSpace,
@@ -298,6 +335,96 @@ export default function FinancialAccountForm({
       });
     }
   };
+
+  const resetCurrencyWorkflow = useCallback((keepOpen = false) => {
+    setShowCurrencyWorkflow(keepOpen);
+    setCurrencyMode(null);
+    setCurrencyTarget('');
+    setCurrencyPreview(null);
+    setCurrencyConfirmChecked(false);
+  }, []);
+
+  const handlePreviewCurrencyChange = useCallback(async () => {
+    if (!account || !currencyMode) {
+      return;
+    }
+    if (!currencyTarget) {
+      toast.error(t('accounts.form.currencyRequired', { ns: 'portal' }));
+      return;
+    }
+    if (currencyTarget === currentCurrencyCode) {
+      toast.error(t('accounts.currencyChange.chooseDifferentCurrency', {
+        ns: 'portal',
+        defaultValue: 'Choose a different currency.',
+      }));
+      return;
+    }
+
+    setCurrencyPreviewLoading(true);
+    try {
+      const preview = await previewAccountCurrencyChange(account.id, {
+        mode: currencyMode,
+        targetCurrency: currencyTarget,
+      });
+      setCurrencyPreview(preview);
+      setCurrencyConfirmChecked(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('accounts.currencyChange.previewFailed', {
+        ns: 'portal',
+        defaultValue: 'Failed to preview the currency change.',
+      }));
+    } finally {
+      setCurrencyPreviewLoading(false);
+    }
+  }, [account, currencyMode, currencyTarget, currentCurrencyCode, t]);
+
+  const handleApplyCurrencyChange = useCallback(async () => {
+    if (!account || !currencyMode || !currencyPreview) {
+      return;
+    }
+    if (currencyMode === 'correction' && !currencyConfirmChecked) {
+      toast.error(t('accounts.currencyChange.confirmCorrectionRequired', {
+        ns: 'portal',
+        defaultValue: 'Confirm that the existing amounts were entered in the new currency.',
+      }));
+      return;
+    }
+
+    setCurrencyApplying(true);
+    try {
+      await applyAccountCurrencyChange(account.id, {
+        mode: currencyMode,
+        targetCurrency: currencyPreview.targetCurrency,
+        reason: currencyMode === 'correction' ? 'wrong_currency_selected' : 'convert_account_currency',
+        confirmationChecked: currencyMode === 'correction' ? currencyConfirmChecked : undefined,
+        snapshotId: currencyMode === 'conversion' ? currencyPreview.snapshotId : null,
+        previewToken: currencyMode === 'conversion' ? currencyPreview.previewToken : null,
+      });
+      toast.success(
+        currencyMode === 'correction'
+          ? t('accounts.currencyChange.correctionApplied', {
+              ns: 'portal',
+              defaultValue: 'Account currency corrected.',
+            })
+          : t('accounts.currencyChange.conversionApplied', {
+              ns: 'portal',
+              defaultValue: 'Account currency converted safely.',
+            })
+      );
+      dispatchSmartPocketDataChanged({
+        source: 'financial-account-currency-change',
+        entities: ['financial_accounts', 'dashboard', 'transactions', 'recurring_transactions'],
+      });
+      onSuccess();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('accounts.currencyChange.applyFailed', {
+        ns: 'portal',
+        defaultValue: 'Failed to change the account currency.',
+      }));
+    } finally {
+      setCurrencyApplying(false);
+    }
+  }, [account, currencyConfirmChecked, currencyMode, currencyPreview, onSuccess, t]);
 
   const handleSave = async () => {
     if (!form.name.trim()) {
@@ -451,6 +578,8 @@ export default function FinancialAccountForm({
       ns: 'portal',
       defaultValue: 'Optional bank details are hidden until you need them.',
     });
+  const canPreviewCurrencyChange = Boolean(account && currencyMode && currencyTarget && currencyTarget !== currentCurrencyCode);
+  const currencyWorkflowBlocked = currencyApplying || currencyPreviewLoading;
 
   return (
     <div className="space-y-3.5">
@@ -580,15 +709,47 @@ export default function FinancialAccountForm({
         )}
         <div className="min-w-0">
           <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('settlements.currency', { ns: 'portal' })} *</label>
-          <div className={fieldErrors.currency ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
-            <CurrencySelector
-              value={form.currency}
-              onChange={(currencyCode) => updateField('currency', currencyCode)}
-              showCountryCount
-              placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
-              helperText={fieldErrors.currency || undefined}
-            />
-          </div>
+          {account ? (
+            <div className="space-y-2">
+              <div className="rounded-xl border border-border bg-muted/20 p-3">
+                <p className="text-sm font-700 text-foreground">
+                  {currentCurrencyRecord?.name || currentCurrencyCode}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('accounts.currencyChange.editHelper', {
+                    ns: 'portal',
+                    defaultValue: 'Existing accounts use a secure currency-change workflow so values never change silently.',
+                  })}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="btn-secondary h-9 px-3 text-sm"
+                    onClick={() => setShowCurrencyWorkflow(true)}
+                  >
+                    {t('accounts.currencyChange.openAction', {
+                      ns: 'portal',
+                      defaultValue: 'Change Currency',
+                    })}
+                  </button>
+                  <span className="rounded-full border border-border px-2.5 py-1 text-xs font-600 text-muted-foreground">
+                    {currentCurrencyCode}
+                  </span>
+                </div>
+              </div>
+              {fieldErrors.currency ? <p className={getFieldErrorTextClassName()}>{fieldErrors.currency}</p> : null}
+            </div>
+          ) : (
+            <div className={fieldErrors.currency ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
+              <CurrencySelector
+                value={form.currency}
+                onChange={(currencyCode) => updateField('currency', currencyCode)}
+                showCountryCount
+                placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
+                helperText={fieldErrors.currency || undefined}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -885,10 +1046,388 @@ export default function FinancialAccountForm({
 
       <div className="flex justify-end gap-2 border-t border-border pt-3">
         <button type="button" onClick={onCancel} className="btn-secondary h-10 px-4 text-sm">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary h-10 px-4 text-sm">
+        <button type="button" onClick={handleSave} disabled={isSaving || currencyApplying} className="btn-primary h-10 px-4 text-sm">
           {isSaving ? <><Loader2 size={15} className="animate-spin" /> {t('status.saving', { ns: 'common' })}</> : account ? t('accounts.form.updateAction', { ns: 'portal' }) : t('accounts.addAccount', { ns: 'portal' })}
         </button>
       </div>
+
+      {account ? (
+        <Modal
+          isOpen={showCurrencyWorkflow}
+          onClose={() => {
+            if (!currencyWorkflowBlocked) {
+              resetCurrencyWorkflow(false);
+            }
+          }}
+          title={t('accounts.currencyChange.openAction', {
+            ns: 'portal',
+            defaultValue: 'Change Currency',
+          })}
+          description={t('accounts.currencyChange.whyQuestion', {
+            ns: 'portal',
+            defaultValue: 'Why are you changing the currency?',
+          })}
+          size="md"
+          closeOnBackdrop={!currencyWorkflowBlocked}
+          closeOnEscape={!currencyWorkflowBlocked}
+          stickyFooter
+          footer={
+            <div className="flex flex-wrap justify-end gap-2 p-4">
+              <button
+                type="button"
+                className="btn-secondary h-10 px-4 text-sm"
+                onClick={() => resetCurrencyWorkflow(false)}
+                disabled={currencyWorkflowBlocked}
+              >
+                {t('actions.cancel', { ns: 'common' })}
+              </button>
+              {currencyPreview ? (
+                <>
+                  {currencyMode === 'conversion' ? (
+                    <button
+                      type="button"
+                      className="btn-secondary h-10 px-4 text-sm"
+                      onClick={() => resetCurrencyWorkflow(false)}
+                      disabled={currencyWorkflowBlocked}
+                    >
+                      {t('accounts.currencyChange.keepOriginalCurrency', {
+                        ns: 'portal',
+                        defaultValue: 'Keep Original Currency',
+                      })}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="btn-primary h-10 px-4 text-sm"
+                    onClick={handleApplyCurrencyChange}
+                    disabled={
+                      currencyWorkflowBlocked
+                      || currencyPreview.mixedCurrencyConflict
+                      || currencyPreview.automationConflict
+                      || (currencyMode === 'correction' && !currencyConfirmChecked)
+                    }
+                  >
+                    {currencyApplying ? (
+                      <><Loader2 size={15} className="animate-spin" /> {t('status.processing', { ns: 'common' })}</>
+                    ) : currencyMode === 'correction' ? (
+                      t('accounts.currencyChange.correctAction', {
+                        ns: 'portal',
+                        defaultValue: 'Correct Currency',
+                      })
+                    ) : (
+                      t('accounts.currencyChange.convertAction', {
+                        ns: 'portal',
+                        defaultValue: 'Convert Currency',
+                      })
+                    )}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-primary h-10 px-4 text-sm"
+                  onClick={handlePreviewCurrencyChange}
+                  disabled={!canPreviewCurrencyChange || currencyWorkflowBlocked}
+                >
+                  {currencyPreviewLoading ? (
+                    <><Loader2 size={15} className="animate-spin" /> {t('status.loading', { ns: 'common' })}</>
+                  ) : (
+                    t('accounts.currencyChange.previewAction', {
+                      ns: 'portal',
+                      defaultValue: 'Preview',
+                    })
+                  )}
+                </button>
+              )}
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <button
+                type="button"
+                className={`rounded-2xl border p-3 text-left transition-colors ${currencyMode === 'correction' ? 'border-accent bg-accent/5' : 'border-border bg-card hover:bg-muted/20'}`}
+                onClick={() => {
+                  setCurrencyMode('correction');
+                  setCurrencyPreview(null);
+                  setCurrencyConfirmChecked(false);
+                }}
+                disabled={currencyWorkflowBlocked}
+              >
+                <p className="text-sm font-700 text-foreground">
+                  {t('accounts.currencyChange.optionCorrectionTitle', {
+                    ns: 'portal',
+                    defaultValue: 'The wrong currency was selected',
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('accounts.currencyChange.optionCorrectionDescription', {
+                    ns: 'portal',
+                    defaultValue: 'Correct Currency. Keep all numerical values unchanged.',
+                  })}
+                </p>
+              </button>
+              <button
+                type="button"
+                className={`rounded-2xl border p-3 text-left transition-colors ${currencyMode === 'conversion' ? 'border-accent bg-accent/5' : 'border-border bg-card hover:bg-muted/20'}`}
+                onClick={() => {
+                  setCurrencyMode('conversion');
+                  setCurrencyPreview(null);
+                  setCurrencyConfirmChecked(false);
+                }}
+                disabled={currencyWorkflowBlocked}
+              >
+                <p className="text-sm font-700 text-foreground">
+                  {t('accounts.currencyChange.optionConversionTitle', {
+                    ns: 'portal',
+                    defaultValue: 'I want to convert this account',
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('accounts.currencyChange.optionConversionDescription', {
+                    ns: 'portal',
+                    defaultValue: 'Convert Currency. Apply an exchange rate and preserve the previous account version.',
+                  })}
+                </p>
+              </button>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-600 text-foreground">
+                {t('accounts.currencyChange.targetCurrencyLabel', {
+                  ns: 'portal',
+                  defaultValue: 'Target currency',
+                })}
+              </label>
+              <CurrencySelector
+                value={currencyTarget}
+                onChange={(currencyCode) => {
+                  setCurrencyTarget(currencyCode);
+                  setCurrencyPreview(null);
+                  setCurrencyConfirmChecked(false);
+                }}
+                showCountryCount
+                placeholder={t('accounts.currencyChange.targetCurrencyPlaceholder', {
+                  ns: 'portal',
+                  defaultValue: 'Choose the new currency',
+                })}
+              />
+            </div>
+
+            {currencyPreview ? (
+              <div className="space-y-3 rounded-2xl border border-border bg-muted/15 p-4">
+                {currencyPreview.mixedCurrencyConflict ? (
+                  <div className="rounded-xl border border-warning/30 bg-warning-soft/20 p-3 text-sm text-foreground">
+                    {currencyPreview.mixedCurrencyMessage}
+                  </div>
+                ) : null}
+
+                {currencyPreview.automationConflict ? (
+                  <div className="rounded-xl border border-warning/30 bg-warning-soft/20 p-3 text-sm text-foreground">
+                    {currencyPreview.automationConflictMessage}
+                  </div>
+                ) : null}
+
+                {currencyPreview.conflicts.length > 0 ? (
+                  <div className="rounded-xl border border-warning/30 bg-warning-soft/10 p-3 text-sm text-foreground">
+                    <p className="font-700">
+                      {t('accounts.currencyChange.conflictsTitle', {
+                        ns: 'portal',
+                        defaultValue: 'Review these linked records first',
+                      })}
+                    </p>
+                    <ul className="mt-2 space-y-1 text-muted-foreground">
+                      {currencyPreview.conflicts.map((conflict) => (
+                        <li key={`${conflict.type}-${conflict.count}`}>
+                          {conflict.message} ({conflict.count})
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {currencyMode === 'correction' ? (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-sm font-700 text-foreground">
+                        {t('accounts.currencyChange.correctionTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Correct account currency?',
+                        })}
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {t('accounts.currencyChange.correctionMessage', {
+                          ns: 'portal',
+                          defaultValue: 'You selected {{fromCurrency}}, but the amounts in this account were actually entered in {{toCurrency}}.',
+                          fromCurrency: currentCurrencyRecord?.name || currentCurrencyCode,
+                          toCurrency: targetCurrencyRecord?.name || currencyPreview.targetCurrency,
+                        })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-3">
+                      <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                        {t('accounts.currencyChange.previewLabel', {
+                          ns: 'portal',
+                          defaultValue: 'Preview',
+                        })}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between gap-3 text-sm font-700 text-foreground">
+                        <FormattedCurrencyAmount amount={currencyPreview.currentBalance} currencyCode={currentCurrencyCode} />
+                        <span aria-hidden="true">→</span>
+                        <FormattedCurrencyAmount amount={currencyPreview.currentBalance} currencyCode={currencyPreview.targetCurrency} />
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {t('accounts.currencyChange.correctionHelper', {
+                        ns: 'portal',
+                        defaultValue: 'No exchange rate will be applied. The numerical values will remain unchanged.',
+                      })}
+                    </p>
+                    <label className="flex items-start gap-2 rounded-xl border border-border bg-card p-3">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
+                        checked={currencyConfirmChecked}
+                        onChange={(event) => setCurrencyConfirmChecked(event.target.checked)}
+                        disabled={currencyWorkflowBlocked}
+                      />
+                      <span className="text-sm text-foreground">
+                        {t('accounts.currencyChange.correctionCheckbox', {
+                          ns: 'portal',
+                          defaultValue: 'I confirm that all amounts in this account were originally entered in {{currency}}.',
+                          currency: targetCurrencyRecord?.name || currencyPreview.targetCurrency,
+                        })}
+                      </span>
+                    </label>
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-sm font-700 text-foreground">
+                        {t('accounts.currencyChange.conversionTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Convert account currency?',
+                        })}
+                      </p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {currencyPreview.directUpdateAllowed
+                          ? t('accounts.currencyChange.emptyConversionMessage', {
+                              ns: 'portal',
+                              defaultValue: 'This account is empty, so Smart Pocket can update the currency directly without archiving the account.',
+                            })
+                          : t('accounts.currencyChange.conversionMessage', {
+                              ns: 'portal',
+                              defaultValue: 'Smart Pocket will convert this account from {{fromCurrency}} to {{toCurrency}} using the current exchange rate. Your current account will be archived, and a new account will be created. Previous transactions will stay in their original currency.',
+                              fromCurrency: currentCurrencyRecord?.name || currentCurrencyCode,
+                              toCurrency: targetCurrencyRecord?.name || currencyPreview.targetCurrency,
+                            })}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border bg-card p-3 text-sm">
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            {t('accounts.currencyChange.accountNameLabel', {
+                              ns: 'portal',
+                              defaultValue: 'Account',
+                            })}
+                          </span>
+                          <span className="font-700 text-foreground">{account.name}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            {t('accounts.currencyChange.currentCurrencyLabel', {
+                              ns: 'portal',
+                              defaultValue: 'Current currency',
+                            })}
+                          </span>
+                          <span className="font-700 text-foreground">{currentCurrencyCode}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            {t('accounts.currencyChange.targetCurrencyLabel', {
+                              ns: 'portal',
+                              defaultValue: 'Target currency',
+                            })}
+                          </span>
+                          <span className="font-700 text-foreground">{currencyPreview.targetCurrency}</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-muted-foreground">
+                            {t('accounts.currentBalance', { ns: 'portal' })}
+                          </span>
+                          <FormattedCurrencyAmount amount={currencyPreview.currentBalance} currencyCode={currentCurrencyCode} className="font-700 text-foreground" />
+                        </div>
+                        {currencyPreview.exchangeRate !== null ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {t('accounts.currencyChange.exchangeRateLabel', {
+                                ns: 'portal',
+                                defaultValue: 'Exchange rate',
+                              })}
+                            </span>
+                            <span className="font-700 text-foreground">{currencyPreview.exchangeRate}</span>
+                          </div>
+                        ) : null}
+                        {currencyPreview.convertedBalance !== null ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {t('accounts.currencyChange.convertedBalanceLabel', {
+                                ns: 'portal',
+                                defaultValue: 'Converted balance',
+                              })}
+                            </span>
+                            <FormattedCurrencyAmount amount={currencyPreview.convertedBalance} currencyCode={currencyPreview.targetCurrency} className="font-700 text-foreground" />
+                          </div>
+                        ) : null}
+                        {currencyPreview.rateTimestamp ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {t('accounts.currencyChange.rateTimeLabel', {
+                                ns: 'portal',
+                                defaultValue: 'Rate date/time',
+                              })}
+                            </span>
+                            <span className="font-600 text-foreground">{currencyPreview.rateTimestamp}</span>
+                          </div>
+                        ) : null}
+                        {currencyPreview.rateProvider ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {t('accounts.currencyChange.rateProviderLabel', {
+                                ns: 'portal',
+                                defaultValue: 'Rate provider',
+                              })}
+                            </span>
+                            <span className="font-600 text-foreground">{currencyPreview.rateProvider}</span>
+                          </div>
+                        ) : null}
+                        {currencyPreview.roundingMinorUnits !== null ? (
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-muted-foreground">
+                              {t('accounts.currencyChange.roundingLabel', {
+                                ns: 'portal',
+                                defaultValue: 'Rounding',
+                              })}
+                            </span>
+                            <span className="font-600 text-foreground">
+                              {t('accounts.currencyChange.roundingValue', {
+                                ns: 'portal',
+                                defaultValue: 'Final amount only ({{minorUnits}} dp)',
+                                minorUnits: currencyPreview.roundingMinorUnits,
+                              })}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

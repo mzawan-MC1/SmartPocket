@@ -55,7 +55,7 @@ export async function PATCH(
 
     const { data: existingAccount, error: existingAccountError } = await supabase
       .from('financial_accounts')
-      .select('id, user_id, space_id, scope_type, is_system_default, system_default_type, account_type, ownership_type, is_active')
+      .select('id, user_id, space_id, scope_type, is_system_default, system_default_type, account_type, ownership_type, is_active, currency')
       .eq('id', accountId)
       .single();
 
@@ -105,6 +105,16 @@ export async function PATCH(
     if (payload.is_active === false && existingAccount?.is_system_default && existingAccount?.system_default_type) {
       return applySupabaseCookies(
         NextResponse.json({ error: 'Assign another default account before archiving this system default' }, { status: 400 }),
+        cookieMutations
+      );
+    }
+
+    if ((existingAccount.currency || '').trim().toUpperCase() !== (payload.currency || '').trim().toUpperCase()) {
+      return applySupabaseCookies(
+        NextResponse.json(
+          { error: 'Use the secure Change Currency workflow to correct or convert an existing account currency' },
+          { status: 400 }
+        ),
         cookieMutations
       );
     }

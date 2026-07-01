@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, TrendingDown, TrendingUp, ArrowUpDown, Receipt } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getTransactions, type Transaction, type FinancialAccount } from '@/lib/finance';
+import { getAccountCurrencyHistory, getTransactions, type Transaction, type FinancialAccount } from '@/lib/finance';
 import EmptyState from '@/components/ui/EmptyState';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
@@ -12,6 +12,7 @@ import {
   isDefaultBankAccount,
   isDefaultCashAccount,
 } from '@/lib/financial-account-utils';
+import type { AccountCurrencyHistoryItem } from '@/lib/financial-account-currency-change';
 
 interface AccountDetailPanelProps {
   account: FinancialAccount;
@@ -21,13 +22,26 @@ interface AccountDetailPanelProps {
 export default function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps) {
   const { t } = useTranslation(['portal', 'common']);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [currencyHistory, setCurrencyHistory] = useState<AccountCurrencyHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   useEffect(() => {
-    getTransactions({ accountId: account.id, limit: 20 })
-      .then(setTransactions)
+    setLoading(true);
+    setHistoryLoading(true);
+    Promise.all([
+      getTransactions({ accountId: account.id, limit: 20 }),
+      getAccountCurrencyHistory(account.id).catch(() => []),
+    ])
+      .then(([nextTransactions, nextHistory]) => {
+        setTransactions(nextTransactions);
+        setCurrencyHistory(nextHistory);
+      })
       .catch(console.error)
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setHistoryLoading(false);
+      });
   }, [account.id]);
 
   const gradient = account.account_type === 'credit_card' ?'from-negative to-red-700'
@@ -130,6 +144,95 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
             {account.bank_account_type ? <p className="text-sm text-foreground">{t('accounts.form.bankAccountType', { ns: 'portal', defaultValue: 'Bank account type' })}: {account.bank_account_type.replace('_', ' ')}</p> : null}
           </div>
         ) : null}
+
+        <div className="px-4 py-3 border-b border-border">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-600 text-muted-foreground">
+              {t('accounts.currencyChange.historyTitle', {
+                ns: 'portal',
+                defaultValue: 'Currency history',
+              })}
+            </p>
+            <span className="text-xs text-muted-foreground">
+              {t('accounts.currencyChange.historyAction', {
+                ns: 'portal',
+                defaultValue: 'View currency history',
+              })}
+            </span>
+          </div>
+          {historyLoading ? (
+            <p className="mt-2 text-xs text-muted-foreground">{t('status.loading', { ns: 'common' })}</p>
+          ) : currencyHistory.length === 0 ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t('accounts.currencyChange.noHistory', {
+                ns: 'portal',
+                defaultValue: 'No currency changes recorded for this account.',
+              })}
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {currencyHistory.map((item) => (
+                <div key={item.id} className="rounded-xl border border-border bg-muted/20 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-700 text-foreground">
+                      {item.actionType === 'currency_correction'
+                        ? t('accounts.currencyChange.historyCorrected', {
+                            ns: 'portal',
+                            defaultValue: 'Corrected',
+                          })
+                        : t('accounts.currencyChange.historyConverted', {
+                            ns: 'portal',
+                            defaultValue: 'Converted',
+                          })}
+                    </p>
+                    <Badge variant={item.currentStatus === 'current' ? 'active' : 'default'}>
+                      {item.currentStatus === 'current'
+                        ? t('status.active', { ns: 'common' })
+                        : t('status.archived', { ns: 'common' })}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-sm text-foreground">
+                    <span>{item.previousCurrency}</span>
+                    <span aria-hidden="true">→</span>
+                    <span>{item.newCurrency}</span>
+                  </div>
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{t('accounts.currencyChange.previousBalanceLabel', {
+                        ns: 'portal',
+                        defaultValue: 'Previous balance',
+                      })}</span>
+                      <FormattedCurrencyAmount amount={item.previousBalance} currencyCode={item.previousCurrency} textOnly className="text-xs text-muted-foreground" />
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{t('accounts.currencyChange.resultingBalanceLabel', {
+                        ns: 'portal',
+                        defaultValue: 'Resulting balance',
+                      })}</span>
+                      <FormattedCurrencyAmount amount={item.resultingBalance} currencyCode={item.newCurrency} textOnly className="text-xs text-muted-foreground" />
+                    </div>
+                    {item.exchangeRate !== null ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span>{t('accounts.currencyChange.exchangeRateLabel', {
+                          ns: 'portal',
+                          defaultValue: 'Exchange rate',
+                        })}</span>
+                        <span>{item.exchangeRate}</span>
+                      </div>
+                    ) : null}
+                    <div className="flex items-center justify-between gap-3">
+                      <span>{t('accounts.currencyChange.changeDateLabel', {
+                        ns: 'portal',
+                        defaultValue: 'Change date',
+                      })}</span>
+                      <span>{item.confirmedAt || item.createdAt}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Recent Transactions */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">
