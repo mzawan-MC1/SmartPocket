@@ -15,6 +15,39 @@ import {
   type SupportedLanguage,
 } from '@/i18n/resources';
 
+// #region debug-point home-first-visit-blank:language-report
+function reportHomeFirstVisitBlankEvent(payload: Record<string, unknown>) {
+  try {
+    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
+    if (typeof window === 'undefined') return;
+
+    const url =
+      process.env.NEXT_PUBLIC_SP_DEBUG_URL
+      || `http://${window.location.hostname}:7777/event`;
+    if (!url) return;
+
+    const body = JSON.stringify({
+      sessionId: 'home-first-visit-blank',
+      ts: Date.now(),
+      source: 'LanguageContext',
+      ...payload,
+    });
+
+    if ('sendBeacon' in navigator) {
+      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      return;
+    }
+
+    void fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    });
+  } catch {}
+}
+// #endregion debug-point home-first-visit-blank:language-report
+
 interface LanguageContextValue {
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
@@ -36,15 +69,36 @@ export const useLanguage = () => useContext(LanguageContext);
 function persistBrowserLanguage(language: SupportedLanguage) {
   if (typeof window === 'undefined') return;
 
-  window.localStorage.setItem(I18N_STORAGE_KEY, language);
-  document.cookie = `${I18N_COOKIE_NAME}=${encodeURIComponent(language)}; path=/; max-age=31536000; samesite=lax`;
+  try {
+    window.localStorage.setItem(I18N_STORAGE_KEY, language);
+    document.cookie = `${I18N_COOKIE_NAME}=${encodeURIComponent(language)}; path=/; max-age=31536000; samesite=lax`;
+  } catch (error) {
+    reportHomeFirstVisitBlankEvent({
+      point: 'persistBrowserLanguage',
+      language,
+      errorName: error instanceof Error ? error.name : 'unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    try {
+      document.cookie = `${I18N_COOKIE_NAME}=${encodeURIComponent(language)}; path=/; max-age=31536000; samesite=lax`;
+    } catch {}
+  }
 }
 
 function readBrowserLanguage() {
   if (typeof window === 'undefined') return null;
 
-  const stored = window.localStorage.getItem(I18N_STORAGE_KEY);
-  return isSupportedLanguage(stored) ? stored : null;
+  try {
+    const stored = window.localStorage.getItem(I18N_STORAGE_KEY);
+    return isSupportedLanguage(stored) ? stored : null;
+  } catch (error) {
+    reportHomeFirstVisitBlankEvent({
+      point: 'readBrowserLanguage',
+      errorName: error instanceof Error ? error.name : 'unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 function applyDocumentLanguage(language: SupportedLanguage) {

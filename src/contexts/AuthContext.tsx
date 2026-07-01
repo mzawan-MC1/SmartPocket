@@ -6,6 +6,39 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
+// #region debug-point home-first-visit-blank:auth-report
+function reportHomeFirstVisitBlankEvent(payload: Record<string, unknown>) {
+  try {
+    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
+    if (typeof window === 'undefined') return;
+
+    const url =
+      process.env.NEXT_PUBLIC_SP_DEBUG_URL
+      || `http://${window.location.hostname}:7777/event`;
+    if (!url) return;
+
+    const body = JSON.stringify({
+      sessionId: 'home-first-visit-blank',
+      ts: Date.now(),
+      source: 'AuthContext',
+      ...payload,
+    });
+
+    if ('sendBeacon' in navigator) {
+      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      return;
+    }
+
+    void fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    });
+  } catch {}
+}
+// #endregion debug-point home-first-visit-blank:auth-report
+
 type SignUpMetadata = {
   fullName?: string;
   avatarUrl?: string;
@@ -35,11 +68,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }: { data: { session: Session | null } }) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      })
+      .catch((error: unknown) => {
+        reportHomeFirstVisitBlankEvent({
+          point: 'getSession',
+          errorName: error instanceof Error ? error.name : 'unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+        });
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      });
 
     // Listen for auth changes
     const {
