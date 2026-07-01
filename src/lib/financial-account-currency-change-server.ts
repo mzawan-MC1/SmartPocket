@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { logFinancialAccountsServerError } from '@/lib/financial-accounts-server';
 import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
 import { getLatestExchangeRateSnapshot } from '@/lib/exchange-rates/service';
 import type { ExchangeRateSnapshotRecord } from '@/lib/exchange-rates/types';
@@ -79,9 +80,17 @@ const CORRECTION_CONFLICT_MESSAGE =
   'This account has linked records that may use their own currencies. Review those items individually before correcting the whole account currency.';
 const PREVIEW_TOKEN_MAX_AGE_MS = 10 * 60 * 1000;
 
+function logWizardServerDiagnostic(action: string, context?: Record<string, unknown>) {
+  logFinancialAccountsServerError(`reporting-currency-wizard:${action}`, new Error(action), context);
+}
+
 function getPreviewSigningSecret() {
   const secret = process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET;
   if (!secret) {
+    logWizardServerDiagnostic('preview-secret-missing', {
+      hasPreviewSecret: false,
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    });
     throw new Error(CONFIGURATION_ERROR_MESSAGE);
   }
   return secret;
@@ -199,6 +208,11 @@ export function verifyReportingCurrencyBatchPreviewToken(
 export async function loadTrustedCurrentBalance(accountId: string, options?: { required?: boolean }) {
   const admin = createAdminClient();
   if (!admin) {
+    logWizardServerDiagnostic('admin-client-unavailable', {
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+      rpcName: 'rpc_recalculate_financial_account_balance',
+    });
     if (options?.required) {
       throw new Error(CONFIGURATION_ERROR_MESSAGE);
     }
@@ -210,6 +224,13 @@ export async function loadTrustedCurrentBalance(accountId: string, options?: { r
   });
 
   if (error) {
+    logWizardServerDiagnostic('trusted-balance-rpc-failed', {
+      rpcName: 'rpc_recalculate_financial_account_balance',
+      supabaseErrorCode: 'code' in error ? error.code : undefined,
+      supabaseErrorMessage: error.message || 'Unknown Supabase RPC error',
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+    });
     if (options?.required) {
       throw new Error(CONFIGURATION_ERROR_MESSAGE);
     }
@@ -218,6 +239,11 @@ export async function loadTrustedCurrentBalance(accountId: string, options?: { r
 
   const nextBalance = Number(data);
   if (!Number.isFinite(nextBalance)) {
+    logWizardServerDiagnostic('trusted-balance-invalid-result', {
+      rpcName: 'rpc_recalculate_financial_account_balance',
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+    });
     if (options?.required) {
       throw new Error(CONFIGURATION_ERROR_MESSAGE);
     }
@@ -239,6 +265,11 @@ export async function loadExchangeRateSnapshot(
     .single();
 
   if (error || !data) {
+    logWizardServerDiagnostic('exchange-rate-snapshot-unavailable', {
+      snapshotId,
+      supabaseErrorCode: error && 'code' in error ? error.code : undefined,
+      supabaseErrorMessage: error?.message || 'Exchange-rate snapshot not found',
+    });
     throw new Error(error?.message || 'The selected exchange-rate snapshot is unavailable');
   }
 
@@ -293,6 +324,10 @@ export async function buildConversionPreview(args: {
     : await getLatestExchangeRateSnapshot(args.supabase);
 
   if (!snapshot) {
+    logWizardServerDiagnostic('exchange-rate-snapshot-missing', {
+      currentCurrency: args.currentCurrency,
+      targetCurrency: args.targetCurrency,
+    });
     throw new Error('The current exchange rate is unavailable for this currency pair');
   }
 
@@ -674,6 +709,11 @@ export async function loadActivePersonalAccountsForWizard(supabase: SupabaseClie
     .order('created_at', { ascending: true });
 
   if (error) {
+    logWizardServerDiagnostic('load-active-personal-accounts-failed', {
+      userId,
+      supabaseErrorCode: 'code' in error ? error.code : undefined,
+      supabaseErrorMessage: error.message || 'Failed to load accounts',
+    });
     throw new Error(error.message || 'Failed to load accounts');
   }
 
@@ -693,6 +733,11 @@ export async function loadActiveCurrencyMinorUnits(supabase: SupabaseClient, cod
     .single();
 
   if (error || !data) {
+    logWizardServerDiagnostic('reporting-currency-unavailable', {
+      currencyCode: code,
+      supabaseErrorCode: error && 'code' in error ? error.code : undefined,
+      supabaseErrorMessage: error?.message || 'Selected currency is unavailable',
+    });
     throw new Error('The selected currency is unavailable');
   }
 

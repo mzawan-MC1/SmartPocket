@@ -1650,12 +1650,16 @@ export async function previewReportingCurrencyWizard(payload: {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(
-      typeof body?.error === 'string'
-        ? body.error
+      typeof body?.message === 'string'
+        ? body.message
+        : typeof body?.error === 'string'
+          ? body.error
         : 'Reporting currency review failed'
     ) as Error & { code?: string; preview?: ReportingCurrencyWizardPreview };
     if (typeof body?.code === 'string') {
       error.code = body.code;
+    } else if (typeof body?.error === 'string') {
+      error.code = body.error;
     }
     if (body?.preview) {
       error.preview = body.preview as ReportingCurrencyWizardPreview;
@@ -1684,12 +1688,16 @@ export async function applyReportingCurrencyWizard(payload: {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(
-      typeof body?.error === 'string'
-        ? body.error
+      typeof body?.message === 'string'
+        ? body.message
+        : typeof body?.error === 'string'
+          ? body.error
         : 'Reporting currency update failed'
     ) as Error & { code?: string; preview?: ReportingCurrencyWizardPreview };
     if (typeof body?.code === 'string') {
       error.code = body.code;
+    } else if (typeof body?.error === 'string') {
+      error.code = body.error;
     }
     if (body?.preview) {
       error.preview = body.preview as ReportingCurrencyWizardPreview;

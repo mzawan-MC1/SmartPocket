@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowRight, CheckCircle2, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
@@ -36,6 +36,11 @@ type WizardStep = 1 | 2 | 3 | 4;
 type WizardError = Error & {
   code?: string;
   preview?: ReportingCurrencyWizardPreview;
+};
+
+type InlineWizardError = {
+  code?: string;
+  message: string;
 };
 
 const STEPS: Array<{ id: WizardStep; labelKey: string; fallback: string }> = [
@@ -84,7 +89,7 @@ export default function ReportingCurrencyWizard({
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [applying, setApplying] = useState(false);
   const [result, setResult] = useState<ReportingCurrencyWizardApplyResult | null>(null);
-  const [inlineError, setInlineError] = useState<string | null>(null);
+  const [inlineError, setInlineError] = useState<InlineWizardError | null>(null);
 
   const currentCurrencyRecord = getCurrencyByCode(currencies, currentReportingCurrency);
   const newCurrencyRecord = getCurrencyByCode(currencies, newReportingCurrency);
@@ -136,7 +141,10 @@ export default function ReportingCurrencyWizard({
         setPreview(nextError.preview);
         syncSelectionsFromPreview(nextError.preview);
       }
-      setInlineError(nextError.message || t('settings.saveFailed', { ns: 'portal' }));
+      setInlineError({
+        code: nextError.code,
+        message: nextError.message || t('settings.saveFailed', { ns: 'portal' }),
+      });
       throw nextError;
     } finally {
       setLoadingPreview(false);
@@ -149,9 +157,14 @@ export default function ReportingCurrencyWizard({
   );
 
   const ensureStepTwoLoaded = useCallback(async () => {
-    const loadedPreview = preview || await loadPreview(selectionList);
-    setStep(2);
-    return loadedPreview;
+    try {
+      const loadedPreview = preview || await loadPreview(selectionList);
+      setStep(2);
+      return loadedPreview;
+    } catch {
+      setStep(1);
+      return null;
+    }
   }, [loadPreview, preview, selectionList]);
 
   const setAccountAction = (accountId: string, action: ReportingCurrencyWizardAccountAction) => {
@@ -282,11 +295,25 @@ export default function ReportingCurrencyWizard({
         syncSelectionsFromPreview(nextError.preview);
         setStep(3);
       }
-      setInlineError(nextError.message || t('settings.saveFailed', { ns: 'portal' }));
+      setInlineError({
+        code: nextError.code,
+        message: nextError.message || t('settings.saveFailed', { ns: 'portal' }),
+      });
     } finally {
       setApplying(false);
     }
   };
+
+  const retryStageOnePreview = useCallback(async () => {
+    await ensureStepTwoLoaded();
+  }, [ensureStepTwoLoaded]);
+
+  const targetCurrencyDisplay = useMemo(() => {
+    if (newCurrencyRecord?.name) {
+      return `${newCurrencyRecord.name} (${newReportingCurrency})`;
+    }
+    return newReportingCurrency;
+  }, [newCurrencyRecord?.name, newReportingCurrency]);
 
   const historyTargetAccountId = useMemo(() => {
     if (!result) return null;
@@ -479,8 +506,37 @@ export default function ReportingCurrencyWizard({
         </div>
 
         {inlineError ? (
-          <div className="rounded-2xl border border-warning/30 bg-warning-soft/20 px-4 py-3 text-sm text-foreground">
-            {inlineError}
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-foreground dark:border-red-900/40 dark:bg-red-950/30">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 shrink-0 text-red-600 dark:text-red-300" size={18} />
+              <div className="min-w-0 flex-1">
+                <p className="font-700 text-foreground">
+                  {inlineError.message}
+                </p>
+                {step === 1 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3 text-sm"
+                      onClick={() => void retryStageOnePreview()}
+                      disabled={loadingPreview}
+                    >
+                      {loadingPreview
+                        ? t('status.loading', { ns: 'common' })
+                        : t('actions.retry', { ns: 'common', defaultValue: 'Retry' })}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-secondary h-9 px-3 text-sm"
+                      onClick={onClose}
+                      disabled={loadingPreview}
+                    >
+                      {t('actions.cancel', { ns: 'common' })}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
 
@@ -508,20 +564,26 @@ export default function ReportingCurrencyWizard({
                 {newReportingCurrency} {newCurrencyRecord ? `- ${newCurrencyRecord.name}` : ''}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-4 text-sm leading-relaxed text-muted-foreground">
-              <p>
-                {t('settings.preferences.reportingCurrencyWizard.stepOneMessagePrimary', {
-                  ns: 'portal',
-                  defaultValue: 'Smart Pocket will use {{currency}} for dashboard totals, reports, and as the default currency for new accounts.',
-                  currency: newReportingCurrency,
-                })}
-              </p>
-              <p className="mt-2">
-                {t('settings.preferences.reportingCurrencyWizard.stepOneMessageSecondary', {
-                  ns: 'portal',
-                  defaultValue: 'Your existing accounts will not change until you review and confirm how each one should be handled.',
-                })}
-              </p>
+            <div className="rounded-2xl border border-sky-200 bg-sky-50 p-4 dark:border-sky-900/40 dark:bg-sky-950/25">
+              <div className="flex items-start gap-3">
+                <Info className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" size={18} />
+                <div className="min-w-0">
+                  <p className="text-sm font-800 text-foreground">
+                    {t('settings.preferences.reportingCurrencyWizard.stepOneInfoHeading', {
+                      ns: 'portal',
+                      defaultValue: 'What will happen?',
+                    })}
+                  </p>
+                  <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-foreground/90">
+                    {t('settings.preferences.reportingCurrencyWizard.stepOneInfoBody', {
+                      ns: 'portal',
+                      defaultValue: '{{currency}} will become your reporting currency for dashboard totals, reports, and new accounts.\n\nOn the next step, you will review each existing account and choose whether to convert it to {{code}}, keep its current currency, or correct a previously selected wrong currency.\n\nNothing will change until you review and confirm everything.',
+                      currency: targetCurrencyDisplay,
+                      code: newReportingCurrency,
+                    })}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}

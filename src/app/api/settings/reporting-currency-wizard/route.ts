@@ -13,7 +13,6 @@ import {
 import {
   buildConversionPreview,
   createReportingCurrencyBatchPreviewToken,
-  getConfigurationErrorMessage,
   getCorrectionConflictMessage,
   getPreviewTokenMaxAgeMs,
   inspectAccountCurrencyChange,
@@ -27,6 +26,10 @@ import {
 } from '@/lib/financial-account-currency-change-server';
 
 export const runtime = 'nodejs';
+const PREVIEW_UNAVAILABLE_CODE = 'preview_unavailable';
+const PREVIEW_UNAVAILABLE_MESSAGE = 'We couldn’t load your accounts for review. Please try again.';
+const APPLY_FAILED_CODE = 'apply_failed';
+const APPLY_FAILED_MESSAGE = 'We couldn’t apply your reporting currency changes. Please try again.';
 
 type PreviewBody = {
   intent: 'preview';
@@ -45,9 +48,18 @@ type RouteCookieMutations = Awaited<ReturnType<typeof createRouteHandlerSupabase
 const ACCOUNT_LIST_CHANGED_MESSAGE =
   'Your accounts changed while you were reviewing them. Please review the updated account list before confirming again.';
 
-function badRequest(message: string, cookieMutations: RouteCookieMutations, status = 400) {
+function routeError(
+  error: string,
+  message: string,
+  cookieMutations: RouteCookieMutations,
+  status = 400,
+  preview?: ReportingCurrencyWizardPreview
+) {
   return applySupabaseCookies(
-    NextResponse.json({ error: message }, { status }),
+    NextResponse.json(
+      preview ? { error, message, preview } : { error, message },
+      { status }
+    ),
     cookieMutations
   );
 }
@@ -57,10 +69,11 @@ function previewOutdatedResponse(
   preview: ReportingCurrencyWizardPreview,
   cookieMutations: RouteCookieMutations
 ) {
-  return applySupabaseCookies(
-    NextResponse.json({ error: message, code: 'preview_outdated', preview }, { status: 409 }),
-    cookieMutations
-  );
+  return routeError('preview_outdated', message, cookieMutations, 409, preview);
+}
+
+function badRequest(message: string, cookieMutations: RouteCookieMutations, status = 400) {
+  return routeError('invalid_request', message, cookieMutations, status);
 }
 
 async function requireRouteUser() {
@@ -73,10 +86,7 @@ async function requireRouteUser() {
   if (error || !user) {
     return {
       ok: false as const,
-      response: applySupabaseCookies(
-        NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
-        cookieMutations
-      ),
+      response: routeError('unauthorized', 'Unauthorized', cookieMutations, 401),
     };
   }
 
@@ -374,9 +384,11 @@ export async function POST(request: Request) {
   }
 
   const { supabase, cookieMutations, user } = auth;
+  let requestIntent: PreviewBody['intent'] | ApplyBody['intent'] | null = null;
 
   try {
     const body = await request.json() as PreviewBody | ApplyBody;
+    requestIntent = body?.intent;
     const newReportingCurrency = normalizeCurrencyCode(body?.newReportingCurrency);
 
     if (!newReportingCurrency) {
@@ -388,19 +400,35 @@ export async function POST(request: Request) {
       return badRequest('Choose a different reporting currency', cookieMutations);
     }
 
-    if (body.intent === 'preview') {
-      const { preview } = await buildWizardPreview({
-        supabase,
-        userId: user.id,
-        currentReportingCurrency,
-        newReportingCurrency,
-        selections: body.selections,
-      });
+    if (requestIntent === 'preview') {
+      try {
+        const { preview } = await buildWizardPreview({
+          supabase,
+          userId: user.id,
+          currentReportingCurrency,
+          newReportingCurrency,
+          selections: body.selections,
+        });
 
-      return applySupabaseCookies(
-        NextResponse.json({ preview }, { status: 200 }),
-        cookieMutations
-      );
+        return applySupabaseCookies(
+          NextResponse.json({ preview }, { status: 200 }),
+          cookieMutations
+        );
+      } catch (error) {
+        logFinancialAccountsServerError('reporting-currency-wizard-preview', error, {
+          userId: user.id,
+          routeStep: 'build-preview',
+          newReportingCurrency,
+          hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+          hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+        });
+        return routeError(
+          PREVIEW_UNAVAILABLE_CODE,
+          PREVIEW_UNAVAILABLE_MESSAGE,
+          cookieMutations,
+          500
+        );
+      }
     }
 
     const applyBody = body as ApplyBody;
@@ -458,7 +486,13 @@ export async function POST(request: Request) {
 
     const admin = createAdminClient();
     if (!admin) {
-      return badRequest(getConfigurationErrorMessage(), cookieMutations, 500);
+      logFinancialAccountsServerError('reporting-currency-wizard-apply-admin-client', new Error('Admin client unavailable'), {
+        userId: user.id,
+        routeStep: 'apply-admin-client',
+        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+      });
+      return routeError(APPLY_FAILED_CODE, APPLY_FAILED_MESSAGE, cookieMutations, 500);
     }
 
     const { data, error } = await admin.rpc('rpc_change_reporting_currency_with_account_review', {
@@ -493,7 +527,14 @@ export async function POST(request: Request) {
         );
       }
 
-      return badRequest(error.message || 'Failed to apply the reporting currency changes', cookieMutations);
+      logFinancialAccountsServerError('reporting-currency-wizard-apply', error, {
+        userId: user.id,
+        routeStep: 'apply-rpc',
+        newReportingCurrency,
+        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
+      });
+      return routeError(APPLY_FAILED_CODE, APPLY_FAILED_MESSAGE, cookieMutations, 500);
     }
 
     const rpcResult = (Array.isArray(data) ? data[0] : data) as Omit<ReportingCurrencyWizardApplyResult, 'blockedAccountsCount'> | null;
@@ -520,9 +561,13 @@ export async function POST(request: Request) {
   } catch (error) {
     logFinancialAccountsServerError('reporting-currency-wizard-route', error, {
       userId: user.id,
+      requestIntent,
+      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+      hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
     });
-    return badRequest(
-      error instanceof Error ? error.message : 'Failed to review reporting currency changes',
+    return routeError(
+      requestIntent === 'preview' ? PREVIEW_UNAVAILABLE_CODE : APPLY_FAILED_CODE,
+      requestIntent === 'preview' ? PREVIEW_UNAVAILABLE_MESSAGE : APPLY_FAILED_MESSAGE,
       cookieMutations,
       500
     );
