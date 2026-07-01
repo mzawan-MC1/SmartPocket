@@ -1,4 +1,5 @@
 export type AccountCurrencyChangeMode = 'correction' | 'conversion';
+export type ReportingCurrencyWizardAccountAction = 'keep' | 'correction' | 'conversion';
 
 export type AccountCurrencyChangeConflictType =
   | 'shared_space_account'
@@ -97,4 +98,89 @@ export function roundAmountForMinorUnits(amount: number, minorUnits: number) {
   const nextMinorUnits = Number.isFinite(minorUnits) ? Math.max(0, Math.min(4, minorUnits)) : 2;
   const factor = 10 ** nextMinorUnits;
   return Math.round(amount * factor) / factor;
+}
+
+export interface ReportingCurrencyWizardSelectionInput {
+  accountId: string;
+  action: ReportingCurrencyWizardAccountAction;
+  confirmationChecked?: boolean;
+}
+
+export interface ReportingCurrencyWizardAccountOptionState {
+  eligible: boolean;
+  blockedReason: string | null;
+  conflicts: AccountCurrencyChangeConflictItem[];
+}
+
+export interface ReportingCurrencyWizardConversionState extends ReportingCurrencyWizardAccountOptionState {
+  directUpdateAllowed: boolean;
+  requiresReplacementAccount: boolean;
+  exchangeRate: number | null;
+  convertedBalance: number | null;
+  snapshotId: string | null;
+  rateDate: string | null;
+  rateTimestamp: string | null;
+  rateProvider: string | null;
+  roundingAdjustment: number | null;
+  roundingMinorUnits: number | null;
+  previewToken: string | null;
+  previewGeneratedAt: string | null;
+  previewExpiresAt: string | null;
+}
+
+export interface ReportingCurrencyWizardCorrectionState extends ReportingCurrencyWizardAccountOptionState {
+  correctedBalance: number;
+  confirmationChecked: boolean;
+}
+
+export interface ReportingCurrencyWizardAccountReview {
+  accountId: string;
+  logicalAccountId: string;
+  accountName: string;
+  accountType: string;
+  currentCurrency: string;
+  targetCurrency: string;
+  currentBalance: number;
+  alreadyMatchesTargetCurrency: boolean;
+  statusMessage: string | null;
+  selectedAction: ReportingCurrencyWizardAccountAction;
+  selectionError: string | null;
+  keepMessage: string;
+  conversion: ReportingCurrencyWizardConversionState;
+  correction: ReportingCurrencyWizardCorrectionState;
+}
+
+export interface ReportingCurrencyWizardPreview {
+  currentReportingCurrency: string;
+  newReportingCurrency: string;
+  reviewGeneratedAt: string;
+  reviewExpiresAt: string;
+  batchPreviewToken: string;
+  accounts: ReportingCurrencyWizardAccountReview[];
+}
+
+export interface ReportingCurrencyWizardAccountResult {
+  accountId: string;
+  logicalAccountId: string;
+  accountName: string;
+  action: ReportingCurrencyWizardAccountAction;
+  previousCurrency: string;
+  resultingCurrency: string;
+  previousBalance: number;
+  resultingBalance: number;
+  archivedPreviousVersion: boolean;
+  directUpdate: boolean;
+  auditId: string | null;
+  newAccountId: string | null;
+}
+
+export interface ReportingCurrencyWizardApplyResult {
+  previousReportingCurrency: string;
+  newReportingCurrency: string;
+  convertedAccountsCount: number;
+  keptAccountsCount: number;
+  correctedAccountsCount: number;
+  archivedAccountsCount: number;
+  blockedAccountsCount: number;
+  changedAccounts: ReportingCurrencyWizardAccountResult[];
 }

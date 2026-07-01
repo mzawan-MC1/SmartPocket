@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
 import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard } from 'lucide-react';
@@ -15,7 +14,6 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import Modal from '@/components/ui/Modal';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
@@ -66,6 +64,11 @@ const PayScheduleFields = dynamic(() => import('@/components/financial-periods/P
 const PlanningPreferencesFields = dynamic(() => import('@/components/financial-periods/PlanningPreferencesFields'), {
   ssr: false,
   loading: () => <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">Loading...</div>,
+});
+
+const ReportingCurrencyWizard = dynamic(() => import('./components/ReportingCurrencyWizard'), {
+  ssr: false,
+  loading: () => null,
 });
 
 
@@ -137,12 +140,11 @@ function buildPlanningValues(data: Pick<ProfileFormData, keyof FinancialPeriodFo
 
 export default function SettingsPage() {
   const { t } = useTranslation(['portal', 'common']);
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedDefaultCurrency, setSavedDefaultCurrency] = useState('');
-  const [showReportingCurrencyConfirm, setShowReportingCurrencyConfirm] = useState(false);
+  const [showReportingCurrencyWizard, setShowReportingCurrencyWizard] = useState(false);
   const [pendingProfileData, setPendingProfileData] = useState<ProfileFormData | null>(null);
   const [financialPeriodErrors, setFinancialPeriodErrors] = useState<FinancialPeriodFieldErrors>({});
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFERENCES);
@@ -314,7 +316,11 @@ export default function SettingsPage() {
 
   const persistProfile = useCallback(async (
     data: ProfileFormData,
-    options?: { reportingCurrencyChanged?: boolean }
+    options?: {
+      reportingCurrencyChanged?: boolean;
+      suppressSuccessToast?: boolean;
+      preserveReportingCurrencyWizard?: boolean;
+    }
   ) => {
     if (!user) return;
     setIsSaving(true);
@@ -372,22 +378,26 @@ export default function SettingsPage() {
         }),
       });
       setSavedDefaultCurrency(nextDefaultCurrency);
-      setPendingProfileData(null);
-      setShowReportingCurrencyConfirm(false);
+      if (!options?.preserveReportingCurrencyWizard) {
+        setPendingProfileData(null);
+        setShowReportingCurrencyWizard(false);
+      }
       dispatchSmartPocketDataChanged({
         source: 'SettingsPage',
         entities: ['profile', 'dashboard', 'transactions', 'financial_accounts', 'recurring_transactions'],
       });
       setSaved(true);
-      toast.success(
-        options?.reportingCurrencyChanged
-          ? t('settings.preferences.reportingCurrencyChangedNotice', {
-              ns: 'portal',
-              defaultValue: 'Reporting currency changed to {{currency}}. Existing account currencies were not changed.',
-              currency: getCurrencyDisplayName(nextDefaultCurrency),
-            })
-          : t('settings.saved', { ns: 'portal' })
-      );
+      if (!options?.suppressSuccessToast) {
+        toast.success(
+          options?.reportingCurrencyChanged
+            ? t('settings.preferences.reportingCurrencyChangedNotice', {
+                ns: 'portal',
+                defaultValue: 'Reporting currency changed to {{currency}}. Existing account currencies were not changed.',
+                currency: getCurrencyDisplayName(nextDefaultCurrency),
+              })
+            : t('settings.saved', { ns: 'portal' })
+        );
+      }
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       toast.error(err?.message || t('settings.saveFailed', { ns: 'portal' }));
@@ -403,7 +413,7 @@ export default function SettingsPage() {
 
     if (reportingCurrencyChanged) {
       setPendingProfileData(data);
-      setShowReportingCurrencyConfirm(true);
+      setShowReportingCurrencyWizard(true);
       return;
     }
 
@@ -610,6 +620,12 @@ export default function SettingsPage() {
                   placeholder={t('settings.preferences.defaultCurrencyPlaceholder', { ns: 'portal' })}
                 />
                 <input type="hidden" {...register('default_currency')} />
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {t('settings.preferences.reportingCurrencyHelper', {
+                    ns: 'portal',
+                    defaultValue: 'Used for dashboard totals, reports, and as the default for new accounts.',
+                  })}
+                </p>
                 {selectedCurrencyRecord && !selectedCurrencyRecord.isActive ? (
                   <p className="mt-1.5 text-xs text-warning">
                     {t('settings.preferences.inactiveCurrency', { ns: 'portal' })}
@@ -851,87 +867,25 @@ export default function SettingsPage() {
             </div>
           )}
         </form>
-        <Modal
-          isOpen={showReportingCurrencyConfirm}
+        <ReportingCurrencyWizard
+          isOpen={showReportingCurrencyWizard && Boolean(pendingProfileData)}
+          currentReportingCurrency={(savedDefaultCurrency || '').trim().toUpperCase()}
+          newReportingCurrency={(pendingProfileData?.default_currency || '').trim().toUpperCase()}
           onClose={() => {
-            if (!isSaving) {
-              setShowReportingCurrencyConfirm(false);
-              setPendingProfileData(null);
+            setShowReportingCurrencyWizard(false);
+            setPendingProfileData(null);
+          }}
+          onApplied={async (result) => {
+            const nextPendingProfile = pendingProfileData;
+            setSavedDefaultCurrency(result.newReportingCurrency);
+            if (nextPendingProfile) {
+              await persistProfile(nextPendingProfile, {
+                suppressSuccessToast: true,
+                preserveReportingCurrencyWizard: true,
+              });
             }
           }}
-          title={t('settings.preferences.reportingCurrencyConfirmTitle', {
-            ns: 'portal',
-            defaultValue: 'Change reporting currency?',
-          })}
-          size="md"
-          closeOnBackdrop={!isSaving}
-          closeOnEscape={!isSaving}
-          stickyFooter
-          footer={
-            <div className="flex flex-wrap justify-end gap-2 p-4">
-              <button
-                type="button"
-                className="btn-secondary h-10 px-4 text-sm"
-                onClick={() => {
-                  setShowReportingCurrencyConfirm(false);
-                  setPendingProfileData(null);
-                }}
-                disabled={isSaving}
-              >
-                {t('actions.cancel', { ns: 'common' })}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary h-10 px-4 text-sm"
-                onClick={() => {
-                  setShowReportingCurrencyConfirm(false);
-                  setPendingProfileData(null);
-                  router.push('/financial-accounts');
-                }}
-                disabled={isSaving}
-              >
-                {t('settings.preferences.reviewAccountsAction', {
-                  ns: 'portal',
-                  defaultValue: 'Review Accounts',
-                })}
-              </button>
-              <button
-                type="button"
-                className="btn-primary h-10 px-4 text-sm"
-                onClick={() => {
-                  if (pendingProfileData) {
-                    void persistProfile(pendingProfileData, { reportingCurrencyChanged: true });
-                  }
-                }}
-                disabled={isSaving || !pendingProfileData}
-              >
-                {isSaving ? (
-                  <><Loader2 size={15} className="animate-spin" />{t('status.saving', { ns: 'common' })}</>
-                ) : (
-                  t('settings.preferences.changeReportingCurrencyAction', {
-                    ns: 'portal',
-                    defaultValue: 'Change Reporting Currency',
-                  })
-                )}
-              </button>
-            </div>
-          }
-        >
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              {t('settings.preferences.reportingCurrencyConfirmMessage', {
-                ns: 'portal',
-                defaultValue: 'Existing accounts will keep their current currencies unless you choose to convert them separately.',
-              })}
-            </p>
-            <p>
-              {t('settings.preferences.reportingCurrencyConfirmHelper', {
-                ns: 'portal',
-                defaultValue: 'Smart Pocket will use the new currency for dashboard totals, reports, and as the default currency for new accounts.',
-              })}
-            </p>
-          </div>
-        </Modal>
+        />
       </div>
     </AppLayout>
   );

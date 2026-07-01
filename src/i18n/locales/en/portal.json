@@ -2084,12 +2084,70 @@
       "title": "Language & Currency",
       "description": "Choose the defaults used throughout Smart Pocket.",
       "language": "Language",
-      "defaultCurrency": "Default currency",
-      "recommendedCurrency": "Recommended for {{country}}: {{currency}} ({{code}})",
+      "defaultCurrency": "Reporting currency",
+      "recommendedCurrency": "Recommended for your country: {{currency}} ({{code}})",
       "useRecommended": "Use recommended {{code}}",
-      "defaultCurrencyPlaceholder": "Choose your default currency",
+      "defaultCurrencyPlaceholder": "Choose your reporting currency",
+      "reportingCurrencyHelper": "Used for dashboard totals, reports, and as the default for new accounts.",
       "inactiveCurrency": "This saved currency is inactive and is kept for compatibility.",
-      "legacyMonthStartHelper": "Month start day remains in your profile only for legacy compatibility and is not used by the shared planning-period engine."
+      "legacyMonthStartHelper": "Month start day remains in your profile only for legacy compatibility and is not used by the shared planning-period engine.",
+      "reportingCurrencyWizard": {
+        "title": "Change currency and review accounts",
+        "steps": {
+          "reportingCurrency": "Reporting Currency",
+          "reviewAccounts": "Review Accounts",
+          "confirmChanges": "Confirm Changes",
+          "result": "Result"
+        },
+        "currentLabel": "Current reporting currency",
+        "newLabel": "New reporting currency",
+        "targetLabel": "Target reporting currency",
+        "statusLabel": "Status",
+        "stepOneMessagePrimary": "Smart Pocket will use {{currency}} for dashboard totals, reports, and as the default currency for new accounts.",
+        "stepOneMessageSecondary": "Your existing accounts will not change until you review and confirm how each one should be handled.",
+        "noAccounts": "No active personal accounts need review.",
+        "noRateApplied": "No exchange rate applied",
+        "notRequired": "Not required",
+        "emptyAccountNotice": "This account is empty. Its currency can be changed directly without conversion or archiving.",
+        "correctionCheckbox": "I confirm that all eligible amounts in this account were originally entered in {{currency}}.",
+        "confirmAction": "Confirm Changes",
+        "doneAction": "Done",
+        "viewAccountsAction": "View Accounts",
+        "viewHistoryAction": "View Currency History",
+        "summaryTitle": "You are about to:",
+        "successToast": "Reporting currency changed to {{currency}} and your account choices were applied successfully.",
+        "resultTitle": "Currency update completed",
+        "resultMessage": "Reporting currency changed from {{from}} to {{to}}.",
+        "resultConverted": "{{count}} accounts converted to {{currency}}",
+        "resultKept": "{{count}} accounts kept their original currencies",
+        "resultCorrected": "{{count}} accounts corrected without conversion",
+        "resultArchived": "{{count}} previous account versions archived",
+        "actionLabels": {
+          "convert": "Convert",
+          "keep": "Keep Current Currency",
+          "correct": "Correct Currency"
+        },
+        "options": {
+          "convertTitle": "Convert this account",
+          "convertDescription": "Use today's rate. The current account will be archived and a new version in {{currency}} will become active.",
+          "convertEmptyDescription": "This account is empty. Its currency can be changed directly without conversion or archiving.",
+          "keepTitle": "Keep current currency",
+          "correctTitle": "Correct wrong currency",
+          "correctDescription": "No exchange rate will be applied. The numbers will stay the same, but the currency will change."
+        },
+        "bulk": {
+          "convertEligible": "Convert all eligible accounts to {{currency}}",
+          "keepAll": "Keep all accounts in their current currencies",
+          "convertEligibleConfirm": "Convert all eligible accounts and keep blocked accounts unchanged?",
+          "keepAllConfirm": "Keep all accounts in their current currencies?"
+        },
+        "summary": {
+          "reportingChange": "Change reporting currency from {{from}} to {{to}}",
+          "converted": "Convert {{count}} accounts to {{currency}}",
+          "kept": "Keep {{count}} accounts in their current currencies",
+          "corrected": "Correct {{count}} accounts without an exchange rate"
+        }
+      }
     },
     "planning": {
       "title": "Income & Planning Schedule",

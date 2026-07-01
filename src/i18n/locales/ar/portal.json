@@ -1656,12 +1656,70 @@
       "title": "اللغة والعملة",
       "description": "اختر الإعدادات الافتراضية المستخدمة في Smart Pocket.",
       "language": "اللغة",
-      "defaultCurrency": "العملة الافتراضية",
-      "recommendedCurrency": "الموصى بها لـ {{country}}: {{currency}} ({{code}})",
+      "defaultCurrency": "عملة التقارير",
+      "recommendedCurrency": "الموصى بها لبلدك: {{currency}} ({{code}})",
       "useRecommended": "استخدم {{code}} الموصى بها",
-      "defaultCurrencyPlaceholder": "اختر عملتك الافتراضية",
+      "defaultCurrencyPlaceholder": "اختر عملة التقارير",
+      "reportingCurrencyHelper": "تستخدم لإجماليات لوحة المعلومات والتقارير وكعملة افتراضية للحسابات الجديدة.",
       "inactiveCurrency": "هذه العملة المحفوظة غير نشطة وتم الإبقاء عليها للتوافق.",
-      "legacyMonthStartHelper": "يبقى يوم بداية الشهر في ملفك الشخصي للتوافق القديم فقط ولا يستخدمه محرك فترات التخطيط المشتركة."
+      "legacyMonthStartHelper": "يبقى يوم بداية الشهر في ملفك الشخصي للتوافق القديم فقط ولا يستخدمه محرك فترات التخطيط المشتركة.",
+      "reportingCurrencyWizard": {
+        "title": "تغيير العملة ومراجعة الحسابات",
+        "steps": {
+          "reportingCurrency": "عملة التقارير",
+          "reviewAccounts": "مراجعة الحسابات",
+          "confirmChanges": "تأكيد التغييرات",
+          "result": "النتيجة"
+        },
+        "currentLabel": "عملة التقارير الحالية",
+        "newLabel": "عملة التقارير الجديدة",
+        "targetLabel": "عملة التقارير المستهدفة",
+        "statusLabel": "الحالة",
+        "stepOneMessagePrimary": "سيستخدم Smart Pocket {{currency}} لإجماليات لوحة المعلومات والتقارير وكعملة افتراضية للحسابات الجديدة.",
+        "stepOneMessageSecondary": "لن تتغير حساباتك الحالية حتى تراجع وتؤكد طريقة التعامل مع كل حساب.",
+        "noAccounts": "لا توجد حسابات شخصية نشطة تحتاج إلى مراجعة.",
+        "noRateApplied": "لا يوجد سعر صرف مطبق",
+        "notRequired": "غير مطلوب",
+        "emptyAccountNotice": "هذا الحساب فارغ. يمكن تغيير عملته مباشرة بدون تحويل أو أرشفة.",
+        "correctionCheckbox": "أؤكد أن جميع المبالغ المؤهلة في هذا الحساب أُدخلت أصلاً بعملة {{currency}}.",
+        "confirmAction": "تأكيد التغييرات",
+        "doneAction": "تم",
+        "viewAccountsAction": "عرض الحسابات",
+        "viewHistoryAction": "عرض سجل العملة",
+        "summaryTitle": "أنت على وشك:",
+        "successToast": "تم تغيير عملة التقارير إلى {{currency}} وتطبيق اختيارات حساباتك بنجاح.",
+        "resultTitle": "اكتمل تحديث العملة",
+        "resultMessage": "تم تغيير عملة التقارير من {{from}} إلى {{to}}.",
+        "resultConverted": "تم تحويل {{count}} من الحسابات إلى {{currency}}",
+        "resultKept": "احتفظ {{count}} من الحسابات بعملاتها الأصلية",
+        "resultCorrected": "تم تصحيح {{count}} من الحسابات بدون تحويل",
+        "resultArchived": "تمت أرشفة {{count}} من الإصدارات السابقة للحسابات",
+        "actionLabels": {
+          "convert": "تحويل",
+          "keep": "الاحتفاظ بالعملة الحالية",
+          "correct": "تصحيح العملة"
+        },
+        "options": {
+          "convertTitle": "تحويل هذا الحساب",
+          "convertDescription": "استخدم سعر اليوم. سيتم أرشفة الحساب الحالي وستصبح نسخة جديدة بعملة {{currency}} نشطة.",
+          "convertEmptyDescription": "هذا الحساب فارغ. يمكن تغيير عملته مباشرة بدون تحويل أو أرشفة.",
+          "keepTitle": "الاحتفاظ بالعملة الحالية",
+          "correctTitle": "تصحيح عملة خاطئة",
+          "correctDescription": "لن يتم تطبيق سعر صرف. ستبقى الأرقام كما هي، لكن ستتغير العملة."
+        },
+        "bulk": {
+          "convertEligible": "تحويل جميع الحسابات المؤهلة إلى {{currency}}",
+          "keepAll": "الاحتفاظ بجميع الحسابات بعملاتها الحالية",
+          "convertEligibleConfirm": "تحويل جميع الحسابات المؤهلة وترك الحسابات المحظورة دون تغيير؟",
+          "keepAllConfirm": "الاحتفاظ بجميع الحسابات بعملاتها الحالية؟"
+        },
+        "summary": {
+          "reportingChange": "تغيير عملة التقارير من {{from}} إلى {{to}}",
+          "converted": "تحويل {{count}} من الحسابات إلى {{currency}}",
+          "kept": "الاحتفاظ بـ {{count}} من الحسابات بعملاتها الحالية",
+          "corrected": "تصحيح {{count}} من الحسابات بدون سعر صرف"
+        }
+      }
     },
     "planning": {
       "title": "الدخل وجدول التخطيط",

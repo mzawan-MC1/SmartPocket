@@ -1636,12 +1636,70 @@
       "title": "Langue et devise",
       "description": "Choisissez les valeurs par défaut utilisées dans Smart Pocket.",
       "language": "Langue",
-      "defaultCurrency": "Devise par défaut",
-      "recommendedCurrency": "Recommandée pour {{country}} : {{currency}} ({{code}})",
+      "defaultCurrency": "Devise de reporting",
+      "recommendedCurrency": "Recommandée pour votre pays : {{currency}} ({{code}})",
       "useRecommended": "Utiliser la devise recommandée {{code}}",
-      "defaultCurrencyPlaceholder": "Choisissez votre devise par défaut",
+      "defaultCurrencyPlaceholder": "Choisissez votre devise de reporting",
+      "reportingCurrencyHelper": "Utilisée pour les totaux du tableau de bord, les rapports et comme devise par défaut pour les nouveaux comptes.",
       "inactiveCurrency": "Cette devise enregistrée est inactive et conservée pour compatibilité.",
-      "legacyMonthStartHelper": "Le jour de début du mois est conservé dans votre profil uniquement pour compatibilité historique et n'est pas utilisé par le moteur partagé de planification."
+      "legacyMonthStartHelper": "Le jour de début du mois est conservé dans votre profil uniquement pour compatibilité historique et n'est pas utilisé par le moteur partagé de planification.",
+      "reportingCurrencyWizard": {
+        "title": "Changer la devise et revoir les comptes",
+        "steps": {
+          "reportingCurrency": "Devise de reporting",
+          "reviewAccounts": "Revoir les comptes",
+          "confirmChanges": "Confirmer les changements",
+          "result": "Résultat"
+        },
+        "currentLabel": "Devise de reporting actuelle",
+        "newLabel": "Nouvelle devise de reporting",
+        "targetLabel": "Devise de reporting cible",
+        "statusLabel": "Statut",
+        "stepOneMessagePrimary": "Smart Pocket utilisera {{currency}} pour les totaux du tableau de bord, les rapports et comme devise par défaut pour les nouveaux comptes.",
+        "stepOneMessageSecondary": "Vos comptes existants ne changeront pas tant que vous n'aurez pas revu et confirmé la façon de traiter chacun d'eux.",
+        "noAccounts": "Aucun compte personnel actif n'a besoin d'être revu.",
+        "noRateApplied": "Aucun taux de change appliqué",
+        "notRequired": "Non requis",
+        "emptyAccountNotice": "Ce compte est vide. Sa devise peut être modifiée directement sans conversion ni archivage.",
+        "correctionCheckbox": "Je confirme que tous les montants éligibles de ce compte ont été saisis à l'origine en {{currency}}.",
+        "confirmAction": "Confirmer les changements",
+        "doneAction": "Terminer",
+        "viewAccountsAction": "Voir les comptes",
+        "viewHistoryAction": "Voir l'historique des devises",
+        "summaryTitle": "Vous êtes sur le point de :",
+        "successToast": "La devise de reporting a été changée en {{currency}} et vos choix de compte ont été appliqués avec succès.",
+        "resultTitle": "Mise à jour de la devise terminée",
+        "resultMessage": "La devise de reporting est passée de {{from}} à {{to}}.",
+        "resultConverted": "{{count}} comptes convertis en {{currency}}",
+        "resultKept": "{{count}} comptes ont conservé leur devise d'origine",
+        "resultCorrected": "{{count}} comptes corrigés sans conversion",
+        "resultArchived": "{{count}} anciennes versions de compte archivées",
+        "actionLabels": {
+          "convert": "Convertir",
+          "keep": "Conserver la devise actuelle",
+          "correct": "Corriger la devise"
+        },
+        "options": {
+          "convertTitle": "Convertir ce compte",
+          "convertDescription": "Utiliser le taux du jour. Le compte actuel sera archivé et une nouvelle version en {{currency}} deviendra active.",
+          "convertEmptyDescription": "Ce compte est vide. Sa devise peut être modifiée directement sans conversion ni archivage.",
+          "keepTitle": "Conserver la devise actuelle",
+          "correctTitle": "Corriger une mauvaise devise",
+          "correctDescription": "Aucun taux de change ne sera appliqué. Les chiffres resteront identiques, seule la devise changera."
+        },
+        "bulk": {
+          "convertEligible": "Convertir tous les comptes éligibles en {{currency}}",
+          "keepAll": "Conserver tous les comptes dans leurs devises actuelles",
+          "convertEligibleConfirm": "Convertir tous les comptes éligibles et laisser les comptes bloqués inchangés ?",
+          "keepAllConfirm": "Conserver tous les comptes dans leurs devises actuelles ?"
+        },
+        "summary": {
+          "reportingChange": "Changer la devise de reporting de {{from}} à {{to}}",
+          "converted": "Convertir {{count}} comptes en {{currency}}",
+          "kept": "Conserver {{count}} comptes dans leurs devises actuelles",
+          "corrected": "Corriger {{count}} comptes sans taux de change"
+        }
+      }
     },
     "planning": {
       "title": "Revenus et calendrier de planification",

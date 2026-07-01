@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, ArrowUpDown } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -159,6 +160,7 @@ type SummaryMetric =
 
 export default function AccountsGrid() {
   const { t } = useTranslation('portal');
+  const searchParams = useSearchParams();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [summary, setSummary] = useState<AccountsSummaryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -185,6 +187,15 @@ export default function AccountsGrid() {
   }, [t]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const focusAccountId = searchParams.get('focusAccountId');
+    if (!focusAccountId || accounts.length === 0) return;
+    const matchingAccount = accounts.find((account) => account.id === focusAccountId);
+    if (matchingAccount) {
+      setSelectedAccount(matchingAccount);
+    }
+  }, [accounts, searchParams]);
 
   useSmartPocketDataChanged(['financial_accounts', 'transactions', 'dashboard'], 'AccountsGrid', () => {
     load();

@@ -27,6 +27,9 @@ import type {
   AccountCurrencyHistoryItem,
   ApplyAccountCurrencyChangeInput,
   ApplyAccountCurrencyChangeResult,
+  ReportingCurrencyWizardApplyResult,
+  ReportingCurrencyWizardPreview,
+  ReportingCurrencyWizardSelectionInput,
 } from '@/lib/financial-account-currency-change';
 import { getMonthContext, shiftMonthKey } from '@/lib/financial-periods';
 import {
@@ -1627,6 +1630,73 @@ export async function getAccountCurrencyHistory(accountId: string): Promise<Acco
   });
   const body = await parseFinancialAccountResponse(response);
   return (body.items as AccountCurrencyHistoryItem[]) || [];
+}
+
+export async function previewReportingCurrencyWizard(payload: {
+  newReportingCurrency: string;
+  selections?: ReportingCurrencyWizardSelectionInput[];
+}): Promise<ReportingCurrencyWizardPreview> {
+  const response = await fetch('/api/settings/reporting-currency-wizard', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      intent: 'preview',
+      ...payload,
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(
+      typeof body?.error === 'string'
+        ? body.error
+        : 'Reporting currency review failed'
+    ) as Error & { code?: string; preview?: ReportingCurrencyWizardPreview };
+    if (typeof body?.code === 'string') {
+      error.code = body.code;
+    }
+    if (body?.preview) {
+      error.preview = body.preview as ReportingCurrencyWizardPreview;
+    }
+    throw error;
+  }
+  return body.preview as ReportingCurrencyWizardPreview;
+}
+
+export async function applyReportingCurrencyWizard(payload: {
+  newReportingCurrency: string;
+  selections: ReportingCurrencyWizardSelectionInput[];
+  batchPreviewToken: string;
+}): Promise<ReportingCurrencyWizardApplyResult> {
+  const response = await fetch('/api/settings/reporting-currency-wizard', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify({
+      intent: 'apply',
+      ...payload,
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(
+      typeof body?.error === 'string'
+        ? body.error
+        : 'Reporting currency update failed'
+    ) as Error & { code?: string; preview?: ReportingCurrencyWizardPreview };
+    if (typeof body?.code === 'string') {
+      error.code = body.code;
+    }
+    if (body?.preview) {
+      error.preview = body.preview as ReportingCurrencyWizardPreview;
+    }
+    throw error;
+  }
+  return body.result as ReportingCurrencyWizardApplyResult;
 }
 
 export async function archiveAccount(id: string): Promise<void> {
