@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import AppLayout from '@/components/AppLayout';
 import { useTranslation } from 'react-i18next';
@@ -64,9 +65,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import FinancialAccountForm from '@/app/financial-accounts/components/FinancialAccountForm';
-import AddTransactionModal from '@/app/transactions/components/AddTransactionModal';
-import RecurringTransactionForm from '@/app/recurring/components/RecurringTransactionForm';
 import {
   getFieldErrorTextClassName,
   getFieldInputClassName,
@@ -76,6 +74,21 @@ import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 import { getSpaceOwnedFinancialAccounts } from '@/lib/financial-account-utils';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import type { HistoricalReportConvertedMetric } from '@/lib/finance';
+
+const FinancialAccountForm = dynamic(() => import('@/app/financial-accounts/components/FinancialAccountForm'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+});
+
+const AddTransactionModal = dynamic(() => import('@/app/transactions/components/AddTransactionModal'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const RecurringTransactionForm = dynamic(() => import('@/app/recurring/components/RecurringTransactionForm'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+});
 
 const ROLE_COLORS: Record<SpaceRole, string> = {
   owner: 'bg-accent/10 text-accent',
@@ -1999,13 +2012,13 @@ function SpacesPageContent() {
         </div>
       )}
 
-      <Modal
-        isOpen={showSpaceAccountModal && !!activeSpace}
-        onClose={() => setShowSpaceAccountModal(false)}
-        title={t('spaces.ui.accounts.add', { ns: 'portal' })}
-        size="md"
-      >
-        {activeSpace ? (
+      {showSpaceAccountModal && activeSpace ? (
+        <Modal
+          isOpen={showSpaceAccountModal}
+          onClose={() => setShowSpaceAccountModal(false)}
+          title={t('spaces.ui.accounts.add', { ns: 'portal' })}
+          size="md"
+        >
           <FinancialAccountForm
             onSuccess={() => {
               setShowSpaceAccountModal(false);
@@ -2020,29 +2033,30 @@ function SpacesPageContent() {
             initialSpaceId={activeSpace.id}
             hideScopeControls
           />
-        ) : null}
-      </Modal>
+        </Modal>
+      ) : null}
 
-      <AddTransactionModal
-        isOpen={showSpaceTransactionModal && !!activeSpace}
-        onClose={() => setShowSpaceTransactionModal(false)}
-        spaceId={activeSpace?.id || null}
-        spaceName={activeSpace?.name || null}
-        spaceMembers={members}
-        onSaved={async () => {
-          if (!activeSpace) return;
-          setShowSpaceTransactionModal(false);
-          await loadSpaceFinance(activeSpace.id);
-        }}
-      />
+      {showSpaceTransactionModal && activeSpace ? (
+        <AddTransactionModal
+          isOpen={showSpaceTransactionModal}
+          onClose={() => setShowSpaceTransactionModal(false)}
+          spaceId={activeSpace.id}
+          spaceName={activeSpace.name}
+          spaceMembers={members}
+          onSaved={async () => {
+            setShowSpaceTransactionModal(false);
+            await loadSpaceFinance(activeSpace.id);
+          }}
+        />
+      ) : null}
 
-      <Modal
-        isOpen={showSpaceRecurringModal && !!activeSpace}
-        onClose={() => setShowSpaceRecurringModal(false)}
-        title={t('spaces.ui.quickActions.recurring', { ns: 'portal' })}
-        size="md"
-      >
-        {activeSpace ? (
+      {showSpaceRecurringModal && activeSpace ? (
+        <Modal
+          isOpen={showSpaceRecurringModal}
+          onClose={() => setShowSpaceRecurringModal(false)}
+          title={t('spaces.ui.quickActions.recurring', { ns: 'portal' })}
+          size="md"
+        >
           <RecurringTransactionForm
             accounts={financeAccounts}
             spaceId={activeSpace.id}
@@ -2053,8 +2067,8 @@ function SpacesPageContent() {
             }}
             onCancel={() => setShowSpaceRecurringModal(false)}
           />
-        ) : null}
-      </Modal>
+        </Modal>
+      ) : null}
     </>
   );
 }

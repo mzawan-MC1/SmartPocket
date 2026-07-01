@@ -2,7 +2,7 @@
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     // Get initial session
@@ -168,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return data;
   };
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     loading,
@@ -176,8 +176,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     getCurrentUser,
     isEmailVerified,
-    getUserProfile
-  };
+    getUserProfile,
+  }), [loading, session, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

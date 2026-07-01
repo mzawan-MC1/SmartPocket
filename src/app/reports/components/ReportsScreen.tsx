@@ -1,5 +1,6 @@
 'use client';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import {
@@ -673,6 +674,7 @@ export default function ReportsScreen() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
   const [loading, setLoading] = useState(true);
+  const latestReportRequestRef = useRef(0);
 
   useEffect(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
@@ -753,6 +755,8 @@ export default function ReportsScreen() {
 
   const loadReportData = useCallback(async () => {
     if (!activeRange) return;
+    const requestId = latestReportRequestRef.current + 1;
+    latestReportRequestRef.current = requestId;
     setLoading(true);
     try {
       const data = await getReportViewData({
@@ -763,11 +767,17 @@ export default function ReportsScreen() {
         spaceId: scopeType === 'space' ? selectedSpaceId || null : null,
         locale,
       });
-      setReportData(data);
+      if (latestReportRequestRef.current === requestId) {
+        setReportData(data);
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t('reports.loadError'));
+      if (latestReportRequestRef.current === requestId) {
+        toast.error(error instanceof Error ? error.message : t('reports.loadError'));
+      }
     } finally {
-      setLoading(false);
+      if (latestReportRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [activeRange, locale, scopeType, selectedAccount, selectedSpaceId, t]);
 

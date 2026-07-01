@@ -241,18 +241,17 @@ export function LanguageProvider({
     }
   }, [isAdminRoute, user?.id]);
 
-  const dir = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
+  const dir: LanguageContextValue['dir'] = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
+  const value = useMemo(() => ({
+    language: effectiveLanguage,
+    setLanguage,
+    dir,
+    isRTL: isRTL(effectiveLanguage),
+    supportedLanguages,
+  }), [dir, effectiveLanguage, setLanguage, supportedLanguages]);
 
   return (
-    <LanguageContext.Provider
-      value={{
-        language: effectiveLanguage,
-        setLanguage,
-        dir,
-        isRTL: isRTL(effectiveLanguage),
-        supportedLanguages,
-      }}
-    >
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

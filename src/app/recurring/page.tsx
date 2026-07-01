@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { Repeat, Plus, Play, Pause, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
@@ -18,7 +19,11 @@ import {
   type RecurringTransaction, type FinancialAccount, type Category,
 } from '@/lib/finance';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import RecurringTransactionForm from './components/RecurringTransactionForm';
+
+const RecurringTransactionForm = dynamic(() => import('./components/RecurringTransactionForm'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+});
 
 export default function RecurringPage() {
   const { t } = useTranslation('portal');
@@ -306,17 +311,19 @@ export default function RecurringPage() {
       </div>
 
       {/* Add Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('recurring.addModalTitle')} size="md">
-        <RecurringTransactionForm
-          accounts={accounts}
-          categories={categories}
-          onSuccess={() => {
-            setShowAddModal(false);
-            load();
-          }}
-          onCancel={() => { setShowAddModal(false); }}
-        />
-      </Modal>
+      {showAddModal ? (
+        <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('recurring.addModalTitle')} size="md">
+          <RecurringTransactionForm
+            accounts={accounts}
+            categories={categories}
+            onSuccess={() => {
+              setShowAddModal(false);
+              load();
+            }}
+            onCancel={() => { setShowAddModal(false); }}
+          />
+        </Modal>
+      ) : null}
     </AppLayout>
   );
 }

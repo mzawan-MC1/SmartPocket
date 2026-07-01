@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
@@ -16,9 +17,7 @@ import {
   type FinancialAccount,
 } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
-import AccountDetailPanel from './AccountDetailPanel';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import FinancialAccountForm from './FinancialAccountForm';
 import AccountsHeader from './AccountsHeader';
 import {
   getAccountsSharedWithSpaces,
@@ -30,6 +29,16 @@ import {
 } from '@/lib/financial-account-utils';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { KPICardSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
+
+const AccountDetailPanel = dynamic(() => import('./AccountDetailPanel'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const FinancialAccountForm = dynamic(() => import('./FinancialAccountForm'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+});
 
 const GRADIENT_MAP: Record<string, string> = {
   bank: 'from-primary to-navy-600',
@@ -599,18 +608,20 @@ export default function AccountsGrid() {
       )}
 
       {/* Add/Edit Modal */}
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title={editingAccount ? t('accounts.editAccount') : t('accounts.addAccount')}
-        size="md"
-      >
-        <FinancialAccountForm
-          account={editingAccount}
-          onSuccess={() => setShowAddModal(false)}
-          onCancel={() => setShowAddModal(false)}
-        />
-      </Modal>
+      {showAddModal ? (
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title={editingAccount ? t('accounts.editAccount') : t('accounts.addAccount')}
+          size="md"
+        >
+          <FinancialAccountForm
+            account={editingAccount}
+            onSuccess={() => setShowAddModal(false)}
+            onCancel={() => setShowAddModal(false)}
+          />
+        </Modal>
+      ) : null}
 
       <ConfirmationModal
         open={!!showArchiveConfirm}

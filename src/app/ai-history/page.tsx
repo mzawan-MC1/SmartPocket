@@ -20,18 +20,20 @@ interface AIRequest {
   status: string;
   overall_intent: string | null;
   raw_text: string | null;
+  confirmation_status: string | null;
+  total_duration_ms: number | null;
+  created_at: string;
+}
+
+interface AIRequestDetail {
   transcript: string | null;
   transcript_retained: boolean;
   input_language: string;
   language_provider_used: string | null;
   fallback_used: boolean;
   confidence: number | null;
-  parsed_result: Record<string, unknown> | null;
   executed_record_ids: unknown[] | null;
-  confirmation_status: string | null;
   error_message: string | null;
-  total_duration_ms: number | null;
-  created_at: string;
 }
 
 interface AIFeedback {
@@ -73,6 +75,8 @@ export default function AIHistoryPage() {
   const [requests, setRequests] = useState<AIRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [requestDetails, setRequestDetails] = useState<Record<string, AIRequestDetail>>({});
+  const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
   const [feedbackMap, setFeedbackMap] = useState<Record<string, AIFeedback>>({});
   const [submittingFeedback, setSubmittingFeedback] = useState<string | null>(null);
   const [feedbackForm, setFeedbackForm] = useState<{
@@ -93,12 +97,13 @@ export default function AIHistoryPage() {
       const supabase = createClient();
       const { data, error } = await supabase
         .from('ai_requests')
-        .select('*')
+        .select('id,request_type,status,overall_intent,raw_text,confirmation_status,total_duration_ms,created_at')
         .order('created_at', { ascending: false })
         .limit(50);
 
       if (error) throw error;
       setRequests((data || []) as AIRequest[]);
+      setRequestDetails({});
 
       // Load existing feedback
       if (data && data.length > 0) {
@@ -123,6 +128,29 @@ export default function AIHistoryPage() {
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
+  const loadRequestDetail = useCallback(async (requestId: string) => {
+    if (requestDetails[requestId]) return;
+    setDetailLoadingId(requestId);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('ai_requests')
+        .select('transcript,transcript_retained,input_language,language_provider_used,fallback_used,confidence,executed_record_ids,error_message')
+        .eq('id', requestId)
+        .single();
+
+      if (error) throw error;
+      setRequestDetails((current) => ({
+        ...current,
+        [requestId]: data as AIRequestDetail,
+      }));
+    } catch {
+      toast.error(t('aiHistory.loadFailed'));
+    } finally {
+      setDetailLoadingId((current) => (current === requestId ? null : current));
+    }
+  }, [requestDetails, t]);
+
   const handleDeleteTranscript = async (requestId: string) => {
     try {
       const supabase = createClient();
@@ -130,8 +158,17 @@ export default function AIHistoryPage() {
         .from('ai_requests')
         .update({ transcript: null, transcript_retained: false })
         .eq('id', requestId);
+      setRequestDetails((current) => current[requestId]
+        ? {
+          ...current,
+          [requestId]: {
+            ...current[requestId],
+            transcript: null,
+            transcript_retained: false,
+          },
+        }
+        : current);
       toast.success(t('aiHistory.transcriptDeleted'));
-      loadHistory();
     } catch {
       toast.error(t('aiHistory.deleteTranscriptFailed'));
     }
@@ -280,7 +317,6 @@ export default function AIHistoryPage() {
 
   const getSummary = (req: AIRequest): string => {
     if (req.raw_text) return req.raw_text.slice(0, 80) + (req.raw_text.length > 80 ? '...' : '');
-    if (req.transcript) return req.transcript.slice(0, 80) + (req.transcript.length > 80 ? '...' : '');
     if (req.overall_intent) return getIntentLabel(req.overall_intent);
     return t('aiHistory.requestFallback');
   };
@@ -334,12 +370,21 @@ export default function AIHistoryPage() {
               {requests.map(req => {
               const isExpanded = expandedId === req.id;
               const existingFeedback = feedbackMap[req.id];
+              const detail = requestDetails[req.id];
+              const detailLoading = detailLoadingId === req.id && !detail;
 
               return (
                 <div key={req.id} className="card overflow-hidden">
                   {/* Row */}
                   <button
-                    onClick={() => setExpandedId(isExpanded ? null : req.id)}
+                    onClick={() => {
+                      if (isExpanded) {
+                        setExpandedId(null);
+                        return;
+                      }
+                      setExpandedId(req.id);
+                      void loadRequestDetail(req.id);
+                    }}
                     className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-muted/30 max-[480px]:items-start max-[480px]:p-3"
                   >
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
@@ -374,12 +419,18 @@ export default function AIHistoryPage() {
                   {/* Expanded detail */}
                   {isExpanded && (
                     <div className="space-y-4 border-t border-border p-4 max-[480px]:p-3">
+                      {detailLoading ? (
+                        <div className="flex min-h-[8rem] items-center justify-center">
+                          <Loader2 size={20} className="animate-spin text-accent" />
+                        </div>
+                      ) : detail ? (
+                        <>
                       {/* Transcript */}
-                      {req.transcript && (
+                      {detail.transcript && (
                         <div>
                           <div className="flex items-center justify-between mb-1">
                             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wider">{t('aiHistory.transcript')}</p>
-                            {req.transcript_retained && (
+                            {detail.transcript_retained && (
                               <button
                                 onClick={() => handleDeleteTranscript(req.id)}
                                 className="flex items-center gap-1 text-xs text-negative hover:text-negative/80 transition-colors"
@@ -389,38 +440,38 @@ export default function AIHistoryPage() {
                               </button>
                             )}
                           </div>
-                          <p className="text-sm text-foreground italic">"{req.transcript}"</p>
+                          <p className="text-sm text-foreground italic">"{detail.transcript}"</p>
                         </div>
                       )}
 
                       {/* Provider info */}
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        {req.language_provider_used && (
-                          <span>{t('aiHistory.provider', { value: req.language_provider_used })}</span>
+                        {detail.language_provider_used && (
+                          <span>{t('aiHistory.provider', { value: detail.language_provider_used })}</span>
                         )}
-                        {req.fallback_used && (
+                        {detail.fallback_used && (
                           <span className="text-warning">{t('aiHistory.fallbackUsed')}</span>
                         )}
-                        {req.confidence && (
-                          <span>{t('aiHistory.confidence', { value: Math.round(req.confidence * 100) })}</span>
+                        {detail.confidence && (
+                          <span>{t('aiHistory.confidence', { value: Math.round(detail.confidence * 100) })}</span>
                         )}
-                        <span>{t('aiHistory.language', { value: req.input_language })}</span>
+                        <span>{t('aiHistory.language', { value: detail.input_language })}</span>
                       </div>
 
                       {/* Error */}
-                      {req.error_message && (
+                      {detail.error_message && (
                         <div className="p-3 bg-negative-soft rounded-xl flex items-start gap-2">
                           <AlertTriangle size={14} className="text-negative mt-0.5 flex-shrink-0" />
-                          <p className="text-xs text-negative">{req.error_message}</p>
+                          <p className="text-xs text-negative">{detail.error_message}</p>
                         </div>
                       )}
 
                       {/* Executed records */}
-                      {req.executed_record_ids && Array.isArray(req.executed_record_ids) && req.executed_record_ids.length > 0 && (
+                      {detail.executed_record_ids && Array.isArray(detail.executed_record_ids) && detail.executed_record_ids.length > 0 && (
                         <div>
                           <p className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-2">{t('aiHistory.createdRecords')}</p>
                           <div className="space-y-1">
-                            {(req.executed_record_ids as Array<{ actionType: string; recordTable: string; recordId: string }>).map((r, i) => (
+                            {(detail.executed_record_ids as Array<{ actionType: string; recordTable: string; recordId: string }>).map((r, i) => (
                               <div key={i} className="flex items-center gap-2 text-xs text-foreground">
                                 <CheckCircle size={12} className="text-positive" />
                                 <span>{getActionTypeLabel(r.actionType)}</span>
@@ -514,6 +565,8 @@ export default function AIHistoryPage() {
                           )}
                         </div>
                       )}
+                        </>
+                      ) : null}
                     </div>
                   )}
                 </div>

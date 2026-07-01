@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Filter, ChevronUp, ChevronDown, ChevronsUpDown, ChevronLeft, ChevronRight, Paperclip, Trash2, X, Edit2, Loader2, ArrowUpDown, Users, CalendarRange, MoreHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Badge from '@/components/ui/Badge';
@@ -14,8 +15,6 @@ import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib
 import { getManagedPeople, type ManagedPerson } from '@/lib/people';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
-import AddTransactionModal from './AddTransactionModal';
-import TransactionDetailsModal from '@/components/transactions/TransactionDetailsModal';
 import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { formatFinancialPeriodLabel, getMonthContext, getNextFinancialPeriod, getPreviousFinancialPeriod, shiftMonthKey } from '@/lib/financial-periods';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
@@ -32,6 +31,16 @@ import Modal from '@/components/ui/Modal';
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
 type QuickDateFilterMode = 'pay_cycle' | 'month' | 'all_time' | 'custom';
+
+const AddTransactionModal = dynamic(() => import('./AddTransactionModal'), {
+  ssr: false,
+  loading: () => null,
+});
+
+const TransactionDetailsModal = dynamic(() => import('@/components/transactions/TransactionDetailsModal'), {
+  ssr: false,
+  loading: () => null,
+});
 
 function downloadCSV(filename: string, csv: string) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1234,23 +1243,27 @@ export default function TransactionsTable({
         )}
       </div>
 
-      <AddTransactionModal
-        isOpen={isAddTransactionOpen}
-        onClose={() => {
-          setEditingTxn(null);
-          onCloseAddTransaction();
-        }}
-        editingTransaction={editingTxn}
-        accounts={accounts}
-        categories={categories}
-        people={people}
-        initialMode="single"
-      />
-      <TransactionDetailsModal
-        isOpen={!!detailsTransactionId}
-        transactionId={detailsTransactionId}
-        onClose={() => setDetailsTransactionId(null)}
-      />
+      {isAddTransactionOpen ? (
+        <AddTransactionModal
+          isOpen={isAddTransactionOpen}
+          onClose={() => {
+            setEditingTxn(null);
+            onCloseAddTransaction();
+          }}
+          editingTransaction={editingTxn}
+          accounts={accounts}
+          categories={categories}
+          people={people}
+          initialMode="single"
+        />
+      ) : null}
+      {detailsTransactionId ? (
+        <TransactionDetailsModal
+          isOpen={!!detailsTransactionId}
+          transactionId={detailsTransactionId}
+          onClose={() => setDetailsTransactionId(null)}
+        />
+      ) : null}
       <Modal
         isOpen={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
