@@ -277,7 +277,7 @@ export default function ReimbursementsPage() {
     return matchStatus && matchSearch;
   }), [filterStatus, getParticipantName, scopedReimbursements, search]);
 
-  const totalPendingByCurrency = Array.from(
+  const totalPendingByCurrency = useMemo(() => Array.from(
     scopedReimbursements
       .filter((r) => r.status === 'pending' || r.status === 'partially_paid')
       .reduce((map, reimbursement) => {
@@ -288,7 +288,7 @@ export default function ReimbursementsPage() {
         map.set(currency, (map.get(currency) || 0) + (Number(reimbursement.amount) - Number(reimbursement.amount_paid)));
         return map;
       }, new Map<string, number>())
-  ).map(([currency, amount]) => ({ currency, amount }));
+  ).map(([currency, amount]) => ({ currency, amount })), [fallbackCurrency, scopedReimbursements]);
 
   const selectedSpace = selectedSpaceId ? spacesById.get(selectedSpaceId) || null : null;
 

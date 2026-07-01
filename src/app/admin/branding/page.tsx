@@ -1,13 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Check, Loader2, Palette } from 'lucide-react';
 import { toast } from 'sonner';
-import MediaUploadCard from '@/components/ui/MediaUploadCard';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
+
+const MediaUploadCard = dynamic(() => import('@/components/ui/MediaUploadCard'), {
+  ssr: false,
+  loading: () => <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">Loading media uploader...</div>,
+});
 
 type BrandingUploadField =
   | 'logo_url'

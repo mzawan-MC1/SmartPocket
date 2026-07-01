@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { CalendarClock, CreditCard, Edit2, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -36,7 +37,11 @@ import {
   type PersonalSubscription,
 } from '@/lib/personal-subscriptions-shared';
 import PersonalSubscriptionWarningBadge from './components/PersonalSubscriptionWarningBadge';
-import CancellationRequestModal from './components/CancellationRequestModal';
+
+const CancellationRequestModal = dynamic(() => import('./components/CancellationRequestModal'), {
+  ssr: false,
+  loading: () => null,
+});
 
 type SummaryState = Awaited<ReturnType<typeof getPersonalSubscriptionsSummary>>;
 
@@ -652,33 +657,34 @@ export default function PersonalSubscriptionsPage() {
         </SectionCard>
       </div>
 
-      <CancellationRequestModal
-        isOpen={Boolean(cancellationTarget)}
-        onClose={() => setCancellationTarget(null)}
-        title={t('personalSubscriptions.cancellation.modalTitle', {
-          ns: 'portal',
-          name: cancellationTarget?.name || '',
-        })}
-        defaultValues={{
-          effective_cancellation_date: cancellationTarget?.cancel_effective_date || cancellationTarget?.next_billing_date || '',
-          confirmation_reference: cancellationTarget?.cancel_confirmation_reference || '',
-        }}
-        onSubmit={async (values) => {
-          if (!cancellationTarget) return;
-          setProcessingId(cancellationTarget.id);
-          try {
-            await requestPersonalSubscriptionCancellation(cancellationTarget.id, values);
-            notifyChange(['personal_subscriptions', 'dashboard', 'recurring_transactions', 'notifications']);
-            toast.success(t('personalSubscriptions.cancellation.requestedSuccess', { ns: 'portal', name: cancellationTarget.name }));
-            await load();
-          } catch (error) {
-            toast.error(error instanceof Error ? error.message : t('personalSubscriptions.cancellation.requestFailed', { ns: 'portal' }));
-            throw error;
-          } finally {
-            setProcessingId(null);
-          }
-        }}
-      />
+      {cancellationTarget ? (
+        <CancellationRequestModal
+          isOpen={Boolean(cancellationTarget)}
+          onClose={() => setCancellationTarget(null)}
+          title={t('personalSubscriptions.cancellation.modalTitle', {
+            ns: 'portal',
+            name: cancellationTarget.name || '',
+          })}
+          defaultValues={{
+            effective_cancellation_date: cancellationTarget.cancel_effective_date || cancellationTarget.next_billing_date || '',
+            confirmation_reference: cancellationTarget.cancel_confirmation_reference || '',
+          }}
+          onSubmit={async (values) => {
+            setProcessingId(cancellationTarget.id);
+            try {
+              await requestPersonalSubscriptionCancellation(cancellationTarget.id, values);
+              notifyChange(['personal_subscriptions', 'dashboard', 'recurring_transactions', 'notifications']);
+              toast.success(t('personalSubscriptions.cancellation.requestedSuccess', { ns: 'portal', name: cancellationTarget.name }));
+              await load();
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : t('personalSubscriptions.cancellation.requestFailed', { ns: 'portal' }));
+              throw error;
+            } finally {
+              setProcessingId(null);
+            }
+          }}
+        />
+      ) : null}
 
       {openMenuId ? (
         <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />

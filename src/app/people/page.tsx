@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -105,11 +105,11 @@ export default function ManagedPeoplePage() {
     await loadPeople();
   });
 
-  const filtered = people.filter((p) => {
+  const filtered = useMemo(() => people.filter((p) => {
     const matchSearch = !search || p.full_name.toLowerCase().includes(search.toLowerCase());
     const matchRel = filterRelationship === 'all' || p.relationship === filterRelationship;
     return matchSearch && matchRel;
-  });
+  }), [filterRelationship, people, search]);
 
   const handleArchive = async (id: string, name: string) => {
     try {
@@ -122,9 +122,9 @@ export default function ManagedPeoplePage() {
     setOpenMenuId(null);
   };
 
-  const totalHeld = groupPeopleTotals(people, 'money_held');
-  const totalOwedToMe = groupPeopleTotals(people, 'person_owes_user');
-  const totalIOwe = groupPeopleTotals(people, 'user_owes_person');
+  const totalHeld = useMemo(() => groupPeopleTotals(people, 'money_held'), [people]);
+  const totalOwedToMe = useMemo(() => groupPeopleTotals(people, 'person_owes_user'), [people]);
+  const totalIOwe = useMemo(() => groupPeopleTotals(people, 'user_owes_person'), [people]);
 
   return (
     <AppLayout activeRoute="/people">

@@ -989,7 +989,7 @@ export default function SettlementsPage() {
     return matchPerson && matchSearch;
   }), [filterPerson, getParticipantLabel, scope, scopedSettlements, search]);
 
-  const totalSettledByCurrency = Array.from(
+  const totalSettledByCurrency = useMemo(() => Array.from(
     scopedSettlements.reduce((map, settlement) => {
       const currency = normalizeCurrencyCode(settlement.currency) || fallbackCurrency;
       if (!currency) {
@@ -998,7 +998,7 @@ export default function SettlementsPage() {
       map.set(currency, (map.get(currency) || 0) + Number(settlement.amount || 0));
       return map;
     }, new Map<string, number>())
-  ).map(([currency, amount]) => ({ currency, amount }));
+  ).map(([currency, amount]) => ({ currency, amount })), [fallbackCurrency, scopedSettlements]);
 
   const selectedSpaceRole = selectedSpaceId ? spaceRoles[selectedSpaceId] : null;
 

@@ -674,6 +674,7 @@ export default function ReportsScreen() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionInFlight, setActionInFlight] = useState<'csv' | 'print' | null>(null);
   const latestReportRequestRef = useRef(0);
 
   useEffect(() => {
@@ -891,6 +892,9 @@ export default function ReportsScreen() {
   };
 
   const handleDownloadCSV = useCallback(() => {
+    if (actionInFlight) return;
+    setActionInFlight('csv');
+    try {
     if (!reportData || !activeRange) {
       toast.error(t('reports.noDataToExport'));
       return;
@@ -916,9 +920,20 @@ export default function ReportsScreen() {
       buildTransactionsCsv(reportData, t)
     );
     toast.success(t('reports.csvExportedTransactions', { count: reportData.transactions.length }));
-  }, [activeRange, activeReport, reportData, t]);
+    } finally {
+      setActionInFlight(null);
+    }
+  }, [actionInFlight, activeRange, activeReport, reportData, t]);
 
-  const handlePrint = useCallback(() => window.print(), []);
+  const handlePrint = useCallback(() => {
+    if (actionInFlight) return;
+    setActionInFlight('print');
+    try {
+      window.print();
+    } finally {
+      setActionInFlight(null);
+    }
+  }, [actionInFlight]);
 
   const handlePresetChange = useCallback((preset: ReportPeriodPreset) => {
     if (!periodContext) return;
@@ -979,12 +994,12 @@ export default function ReportsScreen() {
               <BarChart3 size={15} />
               {t('itemInsights.title')}
             </Link>
-            <button onClick={handlePrint} className="btn-secondary h-9 px-3 text-sm gap-1.5">
-              <Printer size={15} />
+            <button onClick={handlePrint} disabled={actionInFlight !== null} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+              {actionInFlight === 'print' ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
               <span className="hidden sm:inline">{t('reports.print')}</span>
             </button>
-            <button onClick={handleDownloadCSV} className="btn-secondary h-9 px-3 text-sm gap-1.5">
-              <FileDown size={15} />
+            <button onClick={handleDownloadCSV} disabled={actionInFlight !== null} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+              {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
               {t('reports.csv')}
             </button>
           </div>
@@ -1426,12 +1441,15 @@ export default function ReportsScreen() {
                   <button
                     key={option.id}
                     onClick={option.action}
+                    disabled={actionInFlight !== null}
                     className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
                       option.primary ? 'border-accent/40 bg-accent/8 hover:bg-accent/15' : 'border-border hover:border-accent/30 hover:bg-muted/40'
-                    }`}
+                    } disabled:opacity-60`}
                   >
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${option.primary ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      <Icon size={16} />
+                      {actionInFlight === (option.id === 'dl-csv' ? 'csv' : 'print')
+                        ? <Loader2 size={16} className="animate-spin" />
+                        : <Icon size={16} />}
                     </div>
                     <div>
                       <p className="text-sm font-600 text-foreground">{option.label}</p>

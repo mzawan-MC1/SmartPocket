@@ -15,7 +15,6 @@ import {
   type BudgetTrackingItem,
   type BudgetTrackingOverview,
 } from '@/lib/finance';
-import AddBudgetForm from './components/AddBudgetForm';
 import dynamic from 'next/dynamic';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -31,6 +30,10 @@ import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import { ChartSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const BudgetRadialChart = dynamic(() => import('./components/charts/BudgetRadialChart'), { ssr: false });
+const AddBudgetForm = dynamic(() => import('./components/AddBudgetForm'), {
+  ssr: false,
+  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+});
 
 function getBarClass(status: BudgetTrackingItem['status']) {
   if (status === 'over_budget') return 'budget-bar-red';
@@ -614,40 +617,42 @@ export default function BudgetsPage() {
         </div>
       </div>
 
-      <Modal
-        isOpen={showAddModal}
-        onClose={() => {
-          setShowAddModal(false);
-          setEditingBudget(null);
-        }}
-        title={t('budgets.setCategoryBudget')}
-        size="md"
-      >
-        <AddBudgetForm
-          spaceId={scopeType === 'space' ? selectedSpaceId || null : null}
-          spaceName={scopeType === 'space'
-            ? spaces.find((space) => space.id === selectedSpaceId)?.name || null
-            : null}
-          onSuccess={() => { setShowAddModal(false); setEditingBudget(null); toast.success(t('budgets.saved')); load(); }}
-          onCancel={() => {
+      {showAddModal ? (
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => {
             setShowAddModal(false);
             setEditingBudget(null);
           }}
-        />
-      </Modal>
-      <Modal
-        isOpen={!!editingBudget && !showAddModal}
-        onClose={() => setEditingBudget(null)}
-        title={t('budgets.editBudget', {
-          name: editingBudget?.category?.name
-            ? translateSystemCategoryName(editingBudget.category.name, (key, options) =>
-                t(key, { ...(options || {}), ns: 'common' })
-              )
-            : editingBudget?.name || t('budgets.budgetFallback'),
-        })}
-        size="md"
-      >
-        {editingBudget ? (
+          title={t('budgets.setCategoryBudget')}
+          size="md"
+        >
+          <AddBudgetForm
+            spaceId={scopeType === 'space' ? selectedSpaceId || null : null}
+            spaceName={scopeType === 'space'
+              ? spaces.find((space) => space.id === selectedSpaceId)?.name || null
+              : null}
+            onSuccess={() => { setShowAddModal(false); setEditingBudget(null); toast.success(t('budgets.saved')); load(); }}
+            onCancel={() => {
+              setShowAddModal(false);
+              setEditingBudget(null);
+            }}
+          />
+        </Modal>
+      ) : null}
+      {editingBudget && !showAddModal ? (
+        <Modal
+          isOpen={!!editingBudget && !showAddModal}
+          onClose={() => setEditingBudget(null)}
+          title={t('budgets.editBudget', {
+            name: editingBudget?.category?.name
+              ? translateSystemCategoryName(editingBudget.category.name, (key, options) =>
+                  t(key, { ...(options || {}), ns: 'common' })
+                )
+              : editingBudget?.name || t('budgets.budgetFallback'),
+          })}
+          size="md"
+        >
           <AddBudgetForm
             budget={editingBudget}
             spaceId={editingBudget.space_id || null}
@@ -657,8 +662,8 @@ export default function BudgetsPage() {
             onSuccess={() => { setEditingBudget(null); toast.success(t('budgets.updated')); load(); }}
             onCancel={() => setEditingBudget(null)}
           />
-        ) : null}
-      </Modal>
+        </Modal>
+      ) : null}
       <Modal
         isOpen={!!detailBudget}
         onClose={() => {

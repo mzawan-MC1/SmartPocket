@@ -38,6 +38,7 @@ export default function SupportPage() {
   const [priority, setPriority] = React.useState('');
   const [page, setPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
   const getStatusLabel = React.useCallback(
     (value: string) => t(`support.badges.status.${value}`, { defaultValue: toTitleLabel(value) }),
     [t]
@@ -51,11 +52,21 @@ export default function SupportPage() {
     [t]
   );
 
+  React.useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 250);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [search]);
+
   const loadTickets = React.useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (search) params.set('q', search);
+      if (debouncedSearch) params.set('q', debouncedSearch);
       if (status) params.set('status', status);
       if (category) params.set('category', category);
       if (priority) params.set('priority', priority);
@@ -75,7 +86,7 @@ export default function SupportPage() {
     } finally {
       setLoading(false);
     }
-  }, [category, page, priority, search, status, t]);
+  }, [category, debouncedSearch, page, priority, status, t]);
 
   React.useEffect(() => {
     void loadTickets();

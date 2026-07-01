@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
 import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard } from 'lucide-react';
 import { useForm } from 'react-hook-form';
@@ -13,16 +14,11 @@ import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import Tabs from '@/components/ui/Tabs';
 import StatusBadge from '@/components/ui/StatusBadge';
-import CountrySelector from '@/components/country/CountrySelector';
-import CurrencySelector from '@/components/CurrencySelector';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { formatPlatformBillingAmount } from '@/lib/subscription/billing-currency';
 import { getCountryByCode, getCurrencyByCode, getDefaultCurrencyForCountry } from '@/lib/reference-data/lookups';
 import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
-import IncomeFrequencySelector from '@/components/financial-periods/IncomeFrequencySelector';
-import PayScheduleFields from '@/components/financial-periods/PayScheduleFields';
-import PlanningPreferencesFields from '@/components/financial-periods/PlanningPreferencesFields';
 import type { FinancialPeriodFieldErrors } from '@/lib/financial-periods';
 import {
   buildFinancialPeriodFormValues,
@@ -44,6 +40,31 @@ import { getIntlLocale } from '@/lib/locale';
 import { buildPasswordResetUrl } from '@/lib/auth/urls';
 import { fetchSubscriptionSummary } from '@/lib/subscription/client';
 import type { SubscriptionSummary } from '@/lib/subscription/types';
+
+const CountrySelector = dynamic(() => import('@/components/country/CountrySelector'), {
+  ssr: false,
+  loading: () => <div className="input-base h-[42px] animate-pulse bg-muted" />,
+});
+
+const CurrencySelector = dynamic(() => import('@/components/CurrencySelector'), {
+  ssr: false,
+  loading: () => <div className="input-base h-[42px] animate-pulse bg-muted" />,
+});
+
+const IncomeFrequencySelector = dynamic(() => import('@/components/financial-periods/IncomeFrequencySelector'), {
+  ssr: false,
+  loading: () => <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">Loading...</div>,
+});
+
+const PayScheduleFields = dynamic(() => import('@/components/financial-periods/PayScheduleFields'), {
+  ssr: false,
+  loading: () => <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">Loading...</div>,
+});
+
+const PlanningPreferencesFields = dynamic(() => import('@/components/financial-periods/PlanningPreferencesFields'), {
+  ssr: false,
+  loading: () => <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">Loading...</div>,
+});
 
 
 interface ProfileFormData {
@@ -124,6 +145,8 @@ export default function SettingsPage() {
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const notificationsLoadedForUserRef = useRef<string | null>(null);
+  const subscriptionLoadedForUserRef = useRef<string | null>(null);
   const { user } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
   const { data: referenceData } = useClientReferenceData();
@@ -215,7 +238,7 @@ export default function SettingsPage() {
     loadProfile();
   }, [referenceData?.platformDefaultCurrency, reset, user]);
 
-  const loadNotificationPreferences = async () => {
+  const loadNotificationPreferences = useCallback(async () => {
     setNotificationsLoading(true);
     setNotificationsError(null);
     try {
@@ -228,14 +251,21 @@ export default function SettingsPage() {
     } finally {
       setNotificationsLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) {
+      notificationsLoadedForUserRef.current = null;
+      setNotificationPreferences(DEFAULT_NOTIFICATION_PREFERENCES);
+      return;
+    }
+    if (activeTab !== 'notifications') return;
+    if (notificationsLoadedForUserRef.current === user.id) return;
+    notificationsLoadedForUserRef.current = user.id;
     void loadNotificationPreferences();
-  }, [user]);
+  }, [activeTab, loadNotificationPreferences, user?.id]);
 
-  const loadSubscriptionSummary = async () => {
+  const loadSubscriptionSummary = useCallback(async () => {
     setSubscriptionLoading(true);
     try {
       const payload = await fetchSubscriptionSummary();
@@ -245,12 +275,19 @@ export default function SettingsPage() {
     } finally {
       setSubscriptionLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) {
+      subscriptionLoadedForUserRef.current = null;
+      setSubscriptionSummary(null);
+      return;
+    }
+    if (activeTab !== 'subscription') return;
+    if (subscriptionLoadedForUserRef.current === user.id) return;
+    subscriptionLoadedForUserRef.current = user.id;
     void loadSubscriptionSummary();
-  }, [user]);
+  }, [activeTab, loadSubscriptionSummary, user?.id]);
 
   const setFinancialField = <K extends keyof FinancialPeriodFormValues>(field: K, value: FinancialPeriodFormValues[K]) => {
     setFinancialPeriodErrors((current) => ({ ...current, [financialFieldErrorMap[field]]: undefined }));
