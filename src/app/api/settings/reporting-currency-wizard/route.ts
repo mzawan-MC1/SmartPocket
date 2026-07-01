@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readFileSync } from 'node:fs';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { logFinancialAccountsServerError } from '@/lib/financial-accounts-server';
@@ -13,6 +14,7 @@ import {
 import {
   buildConversionPreview,
   createReportingCurrencyBatchPreviewToken,
+  getConfigurationErrorMessage,
   getCorrectionConflictMessage,
   getPreviewTokenMaxAgeMs,
   inspectAccountCurrencyChange,
@@ -28,8 +30,21 @@ import {
 export const runtime = 'nodejs';
 const PREVIEW_UNAVAILABLE_CODE = 'preview_unavailable';
 const PREVIEW_UNAVAILABLE_MESSAGE = 'We couldn’t load your accounts for review. Please try again.';
+const PREVIEW_OUTDATED_CODE = 'preview_outdated';
+const PREVIEW_OUTDATED_MESSAGE =
+  'Some account details changed while you were reviewing them. Please review the updated values and confirm again.';
 const APPLY_FAILED_CODE = 'apply_failed';
-const APPLY_FAILED_MESSAGE = 'We couldn’t apply your reporting currency changes. Please try again.';
+const APPLY_FAILED_MESSAGE = 'We couldn’t apply your changes. Nothing was changed. Please try again.';
+const ACCOUNT_LIST_CHANGED_CODE = 'account_list_changed';
+const ACCOUNT_NOT_ELIGIBLE_CODE = 'account_not_eligible';
+const BALANCE_CHANGED_CODE = 'balance_changed';
+const RATE_CHANGED_CODE = 'rate_changed';
+const DEFAULT_ACCOUNT_CONFLICT_CODE = 'default_account_conflict';
+const CONFIGURATION_ERROR_CODE = 'configuration_error';
+const CONFIGURATION_ERROR_MESSAGE = 'Reporting currency changes are temporarily unavailable. Please try again.';
+const APPLY_DEBUG_ENV_FILE = '.dbg/reporting-currency-apply.env';
+const APPLY_DEBUG_FALLBACK_URL = 'http://127.0.0.1:7777/event';
+const APPLY_DEBUG_FALLBACK_SESSION_ID = 'reporting-currency-apply';
 
 type PreviewBody = {
   intent: 'preview';
@@ -48,6 +63,62 @@ type RouteCookieMutations = Awaited<ReturnType<typeof createRouteHandlerSupabase
 const ACCOUNT_LIST_CHANGED_MESSAGE =
   'Your accounts changed while you were reviewing them. Please review the updated account list before confirming again.';
 
+type ApplyStageDiagnostic = {
+  userId?: string;
+  stage: string;
+  selectedActionCount?: number;
+  accountIds?: string[];
+  actionNames?: string[];
+  rpcName?: string;
+  supabaseErrorCode?: string | null;
+  supabaseErrorMessage?: string | null;
+  supabaseErrorDetails?: string | null;
+  supabaseErrorHint?: string | null;
+  previewOutdated?: boolean;
+  balanceValidationFailed?: boolean;
+  rateValidationFailed?: boolean;
+  accountListValidationFailed?: boolean;
+  accountEligibilityFailed?: boolean;
+  defaultAccountConflict?: boolean;
+};
+
+function getApplyDebugServerConfig() {
+  try {
+    const file = readFileSync(APPLY_DEBUG_ENV_FILE, 'utf8');
+    return {
+      url: file.match(/^DEBUG_SERVER_URL=(.+)$/m)?.[1]?.trim() || APPLY_DEBUG_FALLBACK_URL,
+      sessionId: file.match(/^DEBUG_SESSION_ID=(.+)$/m)?.[1]?.trim() || APPLY_DEBUG_FALLBACK_SESSION_ID,
+    };
+  } catch {
+    return {
+      url: APPLY_DEBUG_FALLBACK_URL,
+      sessionId: APPLY_DEBUG_FALLBACK_SESSION_ID,
+    };
+  }
+}
+
+function reportApplyDebugStage(hypothesisId: string, diagnostic: ApplyStageDiagnostic) {
+  const config = getApplyDebugServerConfig();
+  logFinancialAccountsServerError('reporting-currency-wizard-apply-stage', new Error(diagnostic.stage), diagnostic);
+  // #region debug-point A:apply-route-stage
+  void fetch(config.url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sessionId: config.sessionId,
+      runId: 'pre-fix',
+      hypothesisId,
+      location: 'src/app/api/settings/reporting-currency-wizard/route.ts',
+      msg: `[DEBUG] ${diagnostic.stage}`,
+      data: diagnostic,
+      ts: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
+
 function routeError(
   error: string,
   message: string,
@@ -57,7 +128,7 @@ function routeError(
 ) {
   return applySupabaseCookies(
     NextResponse.json(
-      preview ? { error, message, preview } : { error, message },
+      preview ? { error, code: error, message, preview } : { error, code: error, message },
       { status }
     ),
     cookieMutations
@@ -69,11 +140,140 @@ function previewOutdatedResponse(
   preview: ReportingCurrencyWizardPreview,
   cookieMutations: RouteCookieMutations
 ) {
-  return routeError('preview_outdated', message, cookieMutations, 409, preview);
+  return routeError(PREVIEW_OUTDATED_CODE, message, cookieMutations, 409, preview);
 }
 
 function badRequest(message: string, cookieMutations: RouteCookieMutations, status = 400) {
   return routeError('invalid_request', message, cookieMutations, status);
+}
+
+type ApplyErrorDescriptor = {
+  code: string;
+  message: string;
+  status: number;
+  refreshPreview: boolean;
+  previewOutdated?: boolean;
+  balanceValidationFailed?: boolean;
+  rateValidationFailed?: boolean;
+  accountListValidationFailed?: boolean;
+  accountEligibilityFailed?: boolean;
+  defaultAccountConflict?: boolean;
+};
+
+function describeApplyError(error: {
+  message?: string | null;
+} | null | undefined): ApplyErrorDescriptor {
+  const rawMessage = (error?.message || '').trim();
+  const message = rawMessage.toLowerCase();
+  const configurationMessage = getConfigurationErrorMessage().toLowerCase();
+
+  if (
+    message.includes('updated account list')
+    || message.includes('accounts changed while you were reviewing')
+    || message.includes('reviewed more than once')
+  ) {
+    return {
+      code: ACCOUNT_LIST_CHANGED_CODE,
+      message: ACCOUNT_LIST_CHANGED_MESSAGE,
+      status: 409,
+      refreshPreview: true,
+      previewOutdated: true,
+      accountListValidationFailed: true,
+    };
+  }
+
+  if (
+    message.includes('balance changed')
+    || message.includes('currency changed after the preview')
+    || message.includes('reporting currency changed after the preview')
+  ) {
+    return {
+      code: BALANCE_CHANGED_CODE,
+      message: PREVIEW_OUTDATED_MESSAGE,
+      status: 409,
+      refreshPreview: true,
+      previewOutdated: true,
+      balanceValidationFailed: true,
+    };
+  }
+
+  if (
+    message.includes('exchange rate')
+    || message.includes('latest conversion preview')
+    || message.includes('rate snapshot')
+  ) {
+    return {
+      code: RATE_CHANGED_CODE,
+      message: PREVIEW_OUTDATED_MESSAGE,
+      status: 409,
+      refreshPreview: true,
+      previewOutdated: true,
+      rateValidationFailed: true,
+    };
+  }
+
+  if (
+    message.includes('review the updated account choices before confirming')
+    || message.includes('confirm that the eligible amounts')
+    || message.includes('confirm that the existing amounts')
+    || message.includes('linked records')
+    || message.includes('recurring')
+    || message.includes('subscription')
+    || message.includes('cannot be converted yet')
+  ) {
+    return {
+      code: ACCOUNT_NOT_ELIGIBLE_CODE,
+      message: 'This account can’t be changed yet because it is used by an active recurring item or subscription.',
+      status: 409,
+      refreshPreview: true,
+      accountEligibilityFailed: true,
+    };
+  }
+
+  if (message.includes('default')) {
+    return {
+      code: DEFAULT_ACCOUNT_CONFLICT_CODE,
+      message: 'A default account conflict blocked these changes. Review the affected account and confirm again.',
+      status: 409,
+      refreshPreview: true,
+      defaultAccountConflict: true,
+    };
+  }
+
+  if (
+    message.includes(configurationMessage)
+    || message.includes('temporarily unavailable')
+    || message.includes('admin client unavailable')
+  ) {
+    return {
+      code: CONFIGURATION_ERROR_CODE,
+      message: CONFIGURATION_ERROR_MESSAGE,
+      status: 500,
+      refreshPreview: false,
+    };
+  }
+
+  return {
+    code: APPLY_FAILED_CODE,
+    message: APPLY_FAILED_MESSAGE,
+    status: 500,
+    refreshPreview: false,
+  };
+}
+
+async function buildRefreshedPreviewForApply(args: {
+  supabase: Awaited<ReturnType<typeof createRouteHandlerSupabaseClient>>['supabase'];
+  userId: string;
+  currentReportingCurrency: string;
+  newReportingCurrency: string;
+  selections: ReportingCurrencyWizardSelectionInput[];
+}) {
+  try {
+    const refreshed = await buildWizardPreview(args);
+    return refreshed.preview;
+  } catch {
+    return null;
+  }
 }
 
 async function requireRouteUser() {
@@ -364,14 +564,14 @@ function buildRpcAccountActions(preview: ReportingCurrencyWizardPreview) {
     account_id: review.accountId,
     action: review.selectedAction,
     source_currency: review.currentCurrency,
-    target_currency: review.targetCurrency,
+    target_currency: review.selectedAction === 'keep' ? review.currentCurrency : review.targetCurrency,
     expected_source_balance: review.currentBalance,
     expected_converted_amount: review.selectedAction === 'conversion'
       ? review.conversion.convertedBalance
-      : review.selectedAction === 'correction'
-        ? review.correction.correctedBalance
-        : null,
-    exchange_rate_snapshot_id: review.selectedAction === 'conversion' ? review.conversion.snapshotId : null,
+      : null,
+    exchange_rate_snapshot_id: review.selectedAction === 'conversion' && !review.conversion.directUpdateAllowed
+      ? review.conversion.snapshotId
+      : null,
     confirmation_checked: review.selectedAction === 'correction' ? review.correction.confirmationChecked : false,
     direct_update_allowed: review.selectedAction === 'conversion' ? review.conversion.directUpdateAllowed : false,
   }));
@@ -423,8 +623,12 @@ export async function POST(request: Request) {
           hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
         });
         return routeError(
-          PREVIEW_UNAVAILABLE_CODE,
-          PREVIEW_UNAVAILABLE_MESSAGE,
+          error instanceof Error && error.message === getConfigurationErrorMessage()
+            ? CONFIGURATION_ERROR_CODE
+            : PREVIEW_UNAVAILABLE_CODE,
+          error instanceof Error && error.message === getConfigurationErrorMessage()
+            ? CONFIGURATION_ERROR_MESSAGE
+            : PREVIEW_UNAVAILABLE_MESSAGE,
           cookieMutations,
           500
         );
@@ -436,10 +640,34 @@ export async function POST(request: Request) {
       return badRequest('Review the latest account changes before confirming', cookieMutations);
     }
 
+    reportApplyDebugStage('A', {
+      userId: user.id,
+      stage: 'apply-request-received',
+      selectedActionCount: Array.isArray(applyBody.selections) ? applyBody.selections.length : 0,
+      accountIds: Array.isArray(applyBody.selections) ? applyBody.selections.map((selection) => selection.accountId) : [],
+      actionNames: Array.isArray(applyBody.selections) ? applyBody.selections.map((selection) => selection.action) : [],
+    });
+
     const tokenPayload = verifyReportingCurrencyBatchPreviewToken(applyBody.batchPreviewToken, user.id);
     if (!tokenPayload) {
+      reportApplyDebugStage('B', {
+        userId: user.id,
+        stage: 'apply-token-invalid',
+        selectedActionCount: Array.isArray(applyBody.selections) ? applyBody.selections.length : 0,
+        accountIds: Array.isArray(applyBody.selections) ? applyBody.selections.map((selection) => selection.accountId) : [],
+        actionNames: Array.isArray(applyBody.selections) ? applyBody.selections.map((selection) => selection.action) : [],
+        previewOutdated: true,
+      });
       return badRequest('Review the latest account changes before confirming', cookieMutations);
     }
+
+    reportApplyDebugStage('B', {
+      userId: user.id,
+      stage: 'apply-token-verified',
+      selectedActionCount: tokenPayload.accounts.length,
+      accountIds: tokenPayload.accounts.map((account) => account.accountId),
+      actionNames: tokenPayload.accounts.map((account) => account.action),
+    });
 
     if (
       tokenPayload.previousReportingCurrency !== currentReportingCurrency
@@ -451,6 +679,14 @@ export async function POST(request: Request) {
         currentReportingCurrency,
         newReportingCurrency,
         selections: applyBody.selections,
+      });
+      reportApplyDebugStage('B', {
+        userId: user.id,
+        stage: 'apply-token-preview-currency-mismatch',
+        selectedActionCount: preview.accounts.length,
+        accountIds: preview.accounts.map((account) => account.accountId),
+        actionNames: preview.accounts.map((account) => account.selectedAction),
+        previewOutdated: true,
       });
       return previewOutdatedResponse(
         'Some account balances or exchange rates changed after your review. Please review the updated values before confirming again.',
@@ -467,8 +703,27 @@ export async function POST(request: Request) {
       selections: applyBody.selections,
     });
 
+    reportApplyDebugStage('C', {
+      userId: user.id,
+      stage: 'apply-preview-rebuilt',
+      selectedActionCount: preview.accounts.length,
+      accountIds: preview.accounts.map((account) => account.accountId),
+      actionNames: preview.accounts.map((account) => account.selectedAction),
+    });
+
     const hasSelectionErrors = preview.accounts.some((review) => Boolean(review.selectionError));
     if (hasSelectionErrors) {
+      reportApplyDebugStage('C', {
+        userId: user.id,
+        stage: 'apply-selection-validation-failed',
+        selectedActionCount: preview.accounts.length,
+        accountIds: preview.accounts.filter((account) => Boolean(account.selectionError)).map((account) => account.accountId),
+        actionNames: preview.accounts.filter((account) => Boolean(account.selectionError)).map((account) => account.selectedAction),
+        previewOutdated: true,
+        balanceValidationFailed: preview.accounts.some((account) => account.selectionError?.toLowerCase().includes('balance')),
+        rateValidationFailed: preview.accounts.some((account) => account.selectionError?.toLowerCase().includes('rate')),
+        accountEligibilityFailed: true,
+      });
       return previewOutdatedResponse(
         'Review the highlighted account choices before confirming.',
         preview,
@@ -477,6 +732,14 @@ export async function POST(request: Request) {
     }
 
     if (!previewMatchesToken(preview, tokenPayload)) {
+      reportApplyDebugStage('C', {
+        userId: user.id,
+        stage: 'apply-preview-token-mismatch',
+        selectedActionCount: preview.accounts.length,
+        accountIds: preview.accounts.map((account) => account.accountId),
+        actionNames: preview.accounts.map((account) => account.selectedAction),
+        previewOutdated: true,
+      });
       return previewOutdatedResponse(
         'Some account balances or exchange rates changed after your review. Please review the updated values before confirming again.',
         preview,
@@ -492,49 +755,91 @@ export async function POST(request: Request) {
         hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
         hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
       });
-      return routeError(APPLY_FAILED_CODE, APPLY_FAILED_MESSAGE, cookieMutations, 500);
+      reportApplyDebugStage('D', {
+        userId: user.id,
+        stage: 'apply-admin-client-unavailable',
+        selectedActionCount: preview.accounts.length,
+        accountIds: preview.accounts.map((account) => account.accountId),
+        actionNames: preview.accounts.map((account) => account.selectedAction),
+        rpcName: 'rpc_change_reporting_currency_with_account_review',
+      });
+      return routeError(CONFIGURATION_ERROR_CODE, CONFIGURATION_ERROR_MESSAGE, cookieMutations, 500);
     }
+
+    const rpcAccountActions = buildRpcAccountActions(preview);
+    reportApplyDebugStage('D', {
+      userId: user.id,
+      stage: 'apply-rpc-payload-built',
+      selectedActionCount: rpcAccountActions.length,
+      accountIds: rpcAccountActions.map((account) => String(account.account_id)),
+      actionNames: rpcAccountActions.map((account) => String(account.action)),
+      rpcName: 'rpc_change_reporting_currency_with_account_review',
+    });
 
     const { data, error } = await admin.rpc('rpc_change_reporting_currency_with_account_review', {
       p_actor_user_id: user.id,
       p_previous_reporting_currency: currentReportingCurrency,
       p_new_reporting_currency: newReportingCurrency,
-      p_account_actions: buildRpcAccountActions(preview),
+      p_account_actions: rpcAccountActions,
     });
 
     if (error) {
-      if (
-        error.message?.includes('balance changed')
-        || error.message?.includes('exchange rates changed')
-        || error.message?.includes('Review the latest')
-        || error.message?.includes('reporting currency changed')
-        || error.message?.includes('updated account list')
-        || error.message?.includes('Choose a different reporting currency')
-      ) {
-        const refreshed = await buildWizardPreview({
+      const descriptor = describeApplyError(error);
+      reportApplyDebugStage('E', {
+        userId: user.id,
+        stage: 'apply-rpc-error',
+        selectedActionCount: rpcAccountActions.length,
+        accountIds: rpcAccountActions.map((account) => String(account.account_id)),
+        actionNames: rpcAccountActions.map((account) => String(account.action)),
+        rpcName: 'rpc_change_reporting_currency_with_account_review',
+        supabaseErrorCode: 'code' in error ? error.code : null,
+        supabaseErrorMessage: error.message || null,
+        supabaseErrorDetails: 'details' in error ? error.details || null : null,
+        supabaseErrorHint: 'hint' in error ? error.hint || null : null,
+        previewOutdated: error.message?.includes('preview') || error.message?.includes('changed') || error.message?.includes('updated'),
+        balanceValidationFailed: error.message?.toLowerCase().includes('balance changed'),
+        rateValidationFailed: error.message?.toLowerCase().includes('exchange rate'),
+        accountListValidationFailed: error.message?.toLowerCase().includes('updated account list'),
+        accountEligibilityFailed: error.message?.toLowerCase().includes('subscription') || error.message?.toLowerCase().includes('recurring'),
+        defaultAccountConflict: error.message?.toLowerCase().includes('default'),
+      });
+      logFinancialAccountsServerError('reporting-currency-wizard-apply', error, {
+        userId: user.id,
+        routeStep: 'apply-rpc',
+        newReportingCurrency,
+        selectedActionCount: rpcAccountActions.length,
+        accountIds: rpcAccountActions.map((account) => String(account.account_id)),
+        actionNames: rpcAccountActions.map((account) => String(account.action)),
+        rpcName: 'rpc_change_reporting_currency_with_account_review',
+        supabaseErrorCode: 'code' in error ? error.code : undefined,
+        supabaseErrorMessage: error.message || 'Unknown Supabase RPC error',
+        supabaseErrorDetails: 'details' in error ? error.details : undefined,
+        supabaseErrorHint: 'hint' in error ? error.hint : undefined,
+        previewOutdated: descriptor.previewOutdated === true,
+        balanceValidationFailed: descriptor.balanceValidationFailed === true,
+        rateValidationFailed: descriptor.rateValidationFailed === true,
+        accountListValidationFailed: descriptor.accountListValidationFailed === true,
+        accountEligibilityFailed: descriptor.accountEligibilityFailed === true,
+        defaultAccountConflict: descriptor.defaultAccountConflict === true,
+      });
+      if (descriptor.refreshPreview) {
+        const refreshedPreview = await buildRefreshedPreviewForApply({
           supabase,
           userId: user.id,
           currentReportingCurrency: await loadUserReportingCurrency(supabase, user.id),
           newReportingCurrency,
           selections: applyBody.selections,
         });
-        return previewOutdatedResponse(
-          error.message?.includes('updated account list')
-            ? ACCOUNT_LIST_CHANGED_MESSAGE
-            : 'Some account balances or exchange rates changed after your review. Please review the updated values before confirming again.',
-          refreshed.preview,
-          cookieMutations
+        return routeError(
+          descriptor.code,
+          descriptor.message,
+          cookieMutations,
+          descriptor.status,
+          refreshedPreview || undefined
         );
       }
 
-      logFinancialAccountsServerError('reporting-currency-wizard-apply', error, {
-        userId: user.id,
-        routeStep: 'apply-rpc',
-        newReportingCurrency,
-        hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-        hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
-      });
-      return routeError(APPLY_FAILED_CODE, APPLY_FAILED_MESSAGE, cookieMutations, 500);
+      return routeError(descriptor.code, descriptor.message, cookieMutations, descriptor.status);
     }
 
     const rpcResult = (Array.isArray(data) ? data[0] : data) as Omit<ReportingCurrencyWizardApplyResult, 'blockedAccountsCount'> | null;
@@ -551,14 +856,34 @@ export async function POST(request: Request) {
         } satisfies ReportingCurrencyWizardApplyResult)
       : null;
     if (!result) {
+      reportApplyDebugStage('E', {
+        userId: user.id,
+        stage: 'apply-result-missing',
+        selectedActionCount: rpcAccountActions.length,
+        accountIds: rpcAccountActions.map((account) => String(account.account_id)),
+        actionNames: rpcAccountActions.map((account) => String(account.action)),
+        rpcName: 'rpc_change_reporting_currency_with_account_review',
+      });
       return badRequest('The reporting currency update did not return a result', cookieMutations, 500);
     }
+
+    reportApplyDebugStage('E', {
+      userId: user.id,
+      stage: 'apply-result-parsed',
+      selectedActionCount: rpcAccountActions.length,
+      accountIds: rpcAccountActions.map((account) => String(account.account_id)),
+      actionNames: rpcAccountActions.map((account) => String(account.action)),
+      rpcName: 'rpc_change_reporting_currency_with_account_review',
+    });
 
     return applySupabaseCookies(
       NextResponse.json({ result }, { status: 200 }),
       cookieMutations
     );
   } catch (error) {
+    const descriptor = requestIntent === 'apply'
+      ? describeApplyError(error instanceof Error ? error : null)
+      : null;
     logFinancialAccountsServerError('reporting-currency-wizard-route', error, {
       userId: user.id,
       requestIntent,
@@ -566,10 +891,18 @@ export async function POST(request: Request) {
       hasPreviewSecret: Boolean(process.env.ACCOUNT_CURRENCY_PREVIEW_SECRET),
     });
     return routeError(
-      requestIntent === 'preview' ? PREVIEW_UNAVAILABLE_CODE : APPLY_FAILED_CODE,
-      requestIntent === 'preview' ? PREVIEW_UNAVAILABLE_MESSAGE : APPLY_FAILED_MESSAGE,
+      requestIntent === 'preview'
+        ? (error instanceof Error && error.message === getConfigurationErrorMessage()
+            ? CONFIGURATION_ERROR_CODE
+            : PREVIEW_UNAVAILABLE_CODE)
+        : descriptor?.code || APPLY_FAILED_CODE,
+      requestIntent === 'preview'
+        ? (error instanceof Error && error.message === getConfigurationErrorMessage()
+            ? CONFIGURATION_ERROR_MESSAGE
+            : PREVIEW_UNAVAILABLE_MESSAGE)
+        : descriptor?.message || APPLY_FAILED_MESSAGE,
       cookieMutations,
-      500
+      requestIntent === 'apply' ? descriptor?.status || 500 : 500
     );
   }
 }
