@@ -137,6 +137,17 @@ function getResultActionTone(action: ReportingCurrencyWizardAccountAction) {
   }
 }
 
+function getOptionChipClasses(action: ReportingCurrencyWizardAccountAction) {
+  switch (action) {
+    case 'conversion':
+      return 'border-sky-200/80 bg-sky-50 text-sky-900 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-100';
+    case 'correction':
+      return 'border-violet-200/80 bg-violet-50 text-violet-900 dark:border-violet-900/40 dark:bg-violet-950/20 dark:text-violet-100';
+    default:
+      return 'border-slate-200/90 bg-slate-50 text-slate-900 dark:border-slate-800 dark:bg-slate-950/20 dark:text-slate-100';
+  }
+}
+
 export default function ReportingCurrencyWizard({
   isOpen,
   currentReportingCurrency,
@@ -347,17 +358,10 @@ export default function ReportingCurrencyWizard({
       setResult(appliedResult);
       await onApplied?.(appliedResult);
       toast.success(
-        appliedResult.convertedAccountsCount > 0 || appliedResult.correctedAccountsCount > 0
-          ? t('settings.preferences.reportingCurrencyWizard.successToast', {
-              ns: 'portal',
-              defaultValue: 'Reporting currency changed to {{currency}} and your account choices were applied successfully.',
-              currency: newReportingCurrency,
-            })
-          : t('settings.preferences.reportingCurrencyChangedNotice', {
-              ns: 'portal',
-              defaultValue: 'Reporting currency changed to {{currency}}. Existing account currencies were not changed.',
-              currency: newReportingCurrency,
-            })
+        t('settings.preferences.reportingCurrencyWizard.successToastCompact', {
+          ns: 'portal',
+          defaultValue: 'Currency update completed successfully.',
+        })
       );
       setStep(4);
     } catch (error) {
@@ -406,9 +410,9 @@ export default function ReportingCurrencyWizard({
         onClick={() => setAccountAction(review.accountId, action)}
         className={`rounded-[20px] border px-4 py-3 text-left transition-colors ${
           selected
-            ? 'border-accent bg-accent/8 shadow-sm'
-            : 'border-border bg-card hover:bg-muted/20'
-        } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
+            ? 'border-accent bg-accent/10 shadow-[0_12px_26px_-18px_rgba(59,130,246,0.48)] ring-1 ring-accent/15'
+            : 'border-border/80 bg-card hover:bg-muted/20'
+        } ${disabled ? 'cursor-not-allowed opacity-85' : ''}`}
         aria-pressed={selected}
       >
         <div className="flex items-start gap-3">
@@ -453,9 +457,9 @@ export default function ReportingCurrencyWizard({
     }
 
     if (review.conversion.directUpdateAllowed) {
-      return t('settings.preferences.reportingCurrencyWizard.emptyDirectChange', {
+      return t('settings.preferences.reportingCurrencyWizard.emptyDirectChangeReview', {
         ns: 'portal',
-        defaultValue: 'No exchange rate needed because this account is empty.',
+        defaultValue: 'Empty account changed directly. No exchange rate required.',
       });
     }
 
@@ -615,52 +619,82 @@ export default function ReportingCurrencyWizard({
       size="xl"
       mobileLayout="fullscreen"
       stickyFooter
+      contentClassName="max-w-[72rem] border-border/80 shadow-[0_30px_90px_-45px_rgba(15,23,42,0.45)]"
+      headerClassName="border-b border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] px-6 py-5 max-[480px]:px-4 max-[480px]:py-4"
+      bodyClassName="p-0"
+      footerClassName="border-t border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))]"
       closeOnBackdrop={!applying}
       closeOnEscape={!applying}
       footer={wizardFooter}
     >
-      <div className="space-y-5">
+      <div className="space-y-6 px-6 py-6 max-[480px]:space-y-5 max-[480px]:px-4 max-[480px]:py-4">
+        <div className="rounded-[28px] border border-sky-200/70 bg-[linear-gradient(135deg,rgba(248,250,255,0.98),rgba(239,246,255,0.95))] px-5 py-4 shadow-[0_16px_38px_-26px_rgba(59,130,246,0.35)] dark:border-sky-900/30 dark:bg-[linear-gradient(135deg,rgba(8,47,73,0.28),rgba(15,23,42,0.88))]">
+          <div className="flex items-start gap-4">
+            <div className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-sky-200/80 bg-white/90 text-sky-700 shadow-sm dark:border-sky-800/50 dark:bg-slate-950/40 dark:text-sky-200">
+              <Wallet size={22} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-800 uppercase tracking-[0.18em] text-sky-700/80 dark:text-sky-200/80">
+                {t('settings.preferences.reportingCurrencyWizard.headerEyebrow', {
+                  ns: 'portal',
+                  defaultValue: 'Reporting Currency Review',
+                })}
+              </p>
+              <p className="mt-1 text-base font-800 text-foreground sm:text-lg">
+                {t('settings.preferences.reportingCurrencyWizard.title', {
+                  ns: 'portal',
+                  defaultValue: 'Change currency and review accounts',
+                })}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t('settings.preferences.reportingCurrencyWizard.headerDescription', {
+                  ns: 'portal',
+                  defaultValue: 'Review each active personal account before Smart Pocket updates your reporting currency.',
+                })}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-x-auto pb-1">
-          <div className="flex min-w-[34rem] items-start gap-2 sm:min-w-0 sm:gap-3">
-            {STEPS.map((wizardStep, index) => {
+          <div className="relative flex min-w-[34rem] items-start justify-between gap-4 px-1 sm:min-w-0 sm:gap-6">
+            <div className="pointer-events-none absolute start-[3.25rem] end-[3.25rem] top-5 h-[2px] bg-border/80 max-[480px]:start-[2.65rem] max-[480px]:end-[2.65rem]" />
+            {STEPS.map((wizardStep) => {
               const active = step === wizardStep.id;
               const completed = step > wizardStep.id;
               return (
-                <React.Fragment key={wizardStep.id}>
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <span
-                      aria-current={active ? 'step' : undefined}
-                      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-sm font-800 ${
-                        active
-                          ? 'border-accent bg-accent text-accent-foreground'
-                          : completed
-                            ? 'border-positive bg-positive text-positive-foreground'
-                            : 'border-border bg-muted/20 text-muted-foreground'
-                      }`}
-                    >
-                      {completed ? <Check size={16} /> : wizardStep.id}
-                    </span>
-                    <span className={`min-w-0 text-sm font-700 ${active || completed ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {t(wizardStep.labelKey, { ns: 'portal', defaultValue: wizardStep.fallback })}
-                    </span>
+                <div key={wizardStep.id} className="relative z-[1] flex min-w-[7rem] flex-1 flex-col items-center text-center">
+                  <div
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-full border text-sm font-800 transition-colors max-[480px]:h-9 max-[480px]:w-9 ${
+                      active
+                        ? 'border-accent bg-accent text-accent-foreground shadow-[0_14px_26px_-18px_rgba(59,130,246,0.55)]'
+                        : completed
+                          ? 'border-positive bg-positive text-positive-foreground'
+                          : 'border-border bg-card text-muted-foreground'
+                    }`}
+                    aria-current={active ? 'step' : undefined}
+                  >
+                    {completed ? <Check size={16} /> : wizardStep.id}
                   </div>
-                  {index < STEPS.length - 1 ? (
-                    <div className={`mt-4 h-px flex-1 ${step > wizardStep.id ? 'bg-positive/40' : 'bg-border'}`} />
-                  ) : null}
-                </React.Fragment>
+                  <span
+                    className={`mt-3 max-w-[7.5rem] text-xs font-700 leading-4 sm:text-sm ${
+                      active || completed ? 'text-foreground' : 'text-muted-foreground'
+                    }`}
+                  >
+                    {t(wizardStep.labelKey, { ns: 'portal', defaultValue: wizardStep.fallback })}
+                  </span>
+                </div>
               );
             })}
           </div>
         </div>
 
         {inlineError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-foreground dark:border-red-900/40 dark:bg-red-950/30">
+          <div className="rounded-[24px] border border-red-200 bg-red-50 px-4 py-4 text-sm text-foreground shadow-[0_10px_26px_-22px_rgba(220,38,38,0.45)] dark:border-red-900/40 dark:bg-red-950/30">
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 shrink-0 text-red-600 dark:text-red-300" size={18} />
               <div className="min-w-0 flex-1">
-                <p className="font-700 text-foreground">
-                  {inlineError.message}
-                </p>
+                <p className="font-700 text-foreground">{inlineError.message}</p>
                 {step === 1 ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -689,77 +723,100 @@ export default function ReportingCurrencyWizard({
         ) : null}
 
         {step === 1 ? (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-[24px] border border-border bg-muted/15 p-5">
-                <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                  {t('settings.preferences.reportingCurrencyWizard.currentLabel', {
-                    ns: 'portal',
-                    defaultValue: 'Current reporting currency',
-                  })}
-                </p>
-                <p className="mt-2 text-xl font-800 text-foreground">{currentReportingCurrency}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{currentCurrencyRecord?.name || currentReportingCurrency}</p>
+              <div className="rounded-[26px] border border-slate-200/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-5 shadow-[0_12px_32px_-28px_rgba(15,23,42,0.28)] dark:border-slate-800 dark:bg-slate-950/30">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                    <Wallet size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                      {t('settings.preferences.reportingCurrencyWizard.currentLabel', {
+                        ns: 'portal',
+                        defaultValue: 'Current reporting currency',
+                      })}
+                    </p>
+                    <p className="mt-2 text-xl font-800 text-foreground">{currentReportingCurrency}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{currentCurrencyRecord?.name || currentReportingCurrency}</p>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-[24px] border border-accent/20 bg-accent/6 p-5">
-                <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                  {t('settings.preferences.reportingCurrencyWizard.newLabel', {
-                    ns: 'portal',
-                    defaultValue: 'New reporting currency',
-                  })}
-                </p>
-                <p className="mt-2 text-xl font-800 text-foreground">{newReportingCurrency}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{newCurrencyRecord?.name || newReportingCurrency}</p>
+              <div className="rounded-[26px] border border-accent/20 bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(219,234,254,0.88))] p-5 shadow-[0_16px_36px_-28px_rgba(59,130,246,0.38)] dark:border-sky-900/40 dark:bg-sky-950/20">
+                <div className="flex items-start gap-3">
+                  <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/90 text-sky-700 dark:bg-slate-950/40 dark:text-sky-200">
+                    <ArrowRight size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                      {t('settings.preferences.reportingCurrencyWizard.newLabel', {
+                        ns: 'portal',
+                        defaultValue: 'New reporting currency',
+                      })}
+                    </p>
+                    <p className="mt-2 text-xl font-800 text-foreground">{newReportingCurrency}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{newCurrencyRecord?.name || newReportingCurrency}</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="rounded-[24px] border border-sky-200 bg-sky-50 p-5 dark:border-sky-900/40 dark:bg-sky-950/25">
+            <div className="rounded-[28px] border border-sky-200 bg-[linear-gradient(180deg,rgba(248,250,255,0.98),rgba(239,246,255,0.92))] p-5 shadow-[0_18px_38px_-30px_rgba(59,130,246,0.35)] dark:border-sky-900/40 dark:bg-sky-950/20">
               <div className="flex items-start gap-3">
                 <Info className="mt-0.5 shrink-0 text-sky-600 dark:text-sky-300" size={18} />
                 <div className="min-w-0">
-                  <p className="text-sm font-800 text-foreground">
+                  <p className="text-base font-800 text-foreground">
                     {t('settings.preferences.reportingCurrencyWizard.stepOneInfoHeading', {
                       ns: 'portal',
                       defaultValue: 'What will happen?',
                     })}
                   </p>
-                  <ul className="mt-3 space-y-2 text-sm leading-relaxed text-foreground/90">
-                    <li>
-                      {t('settings.preferences.reportingCurrencyWizard.stepOneBulletOne', {
-                        ns: 'portal',
-                        defaultValue: '{{currency}} will become your reporting currency for totals and reports.',
-                        currency: targetCurrencyDisplay,
-                      })}
+                  <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-foreground/90">
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-positive" />
+                      <span>
+                        {t('settings.preferences.reportingCurrencyWizard.stepOneBulletOne', {
+                          ns: 'portal',
+                          defaultValue: '{{currency}} will become your reporting currency for totals and reports.',
+                          currency: targetCurrencyDisplay,
+                        })}
+                      </span>
                     </li>
-                    <li>
-                      {t('settings.preferences.reportingCurrencyWizard.stepOneBulletTwo', {
-                        ns: 'portal',
-                        defaultValue: 'You will review each active personal account before anything changes.',
-                      })}
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-positive" />
+                      <span>
+                        {t('settings.preferences.reportingCurrencyWizard.stepOneBulletTwo', {
+                          ns: 'portal',
+                          defaultValue: 'You will review each active personal account before anything changes.',
+                        })}
+                      </span>
                     </li>
-                    <li>
-                      {t('settings.preferences.reportingCurrencyWizard.stepOneBulletThree', {
-                        ns: 'portal',
-                        defaultValue: 'Nothing will be changed until you click Confirm changes.',
-                      })}
+                    <li className="flex items-start gap-2.5">
+                      <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-positive" />
+                      <span>
+                        {t('settings.preferences.reportingCurrencyWizard.stepOneBulletThree', {
+                          ns: 'portal',
+                          defaultValue: 'Nothing will be changed until you click Confirm changes.',
+                        })}
+                      </span>
                     </li>
                   </ul>
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-700 text-foreground">
+            <div className="flex flex-wrap gap-2.5">
+              <span className={`rounded-full border px-3.5 py-2 text-xs font-700 ${getOptionChipClasses('conversion')}`}>
                 {t('settings.preferences.reportingCurrencyWizard.stepOneChipConvert', {
                   ns: 'portal',
                   defaultValue: 'Convert balance',
                 })}
               </span>
-              <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-700 text-foreground">
+              <span className={`rounded-full border px-3.5 py-2 text-xs font-700 ${getOptionChipClasses('keep')}`}>
                 {t('settings.preferences.reportingCurrencyWizard.stepOneChipKeep', {
                   ns: 'portal',
                   defaultValue: 'Keep current currency',
                 })}
               </span>
-              <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-700 text-foreground">
+              <span className={`rounded-full border px-3.5 py-2 text-xs font-700 ${getOptionChipClasses('correction')}`}>
                 {t('settings.preferences.reportingCurrencyWizard.stepOneChipCorrect', {
                   ns: 'portal',
                   defaultValue: 'Correct wrong currency',
@@ -790,89 +847,79 @@ export default function ReportingCurrencyWizard({
               };
               const secondaryRateLine = review.conversion.rateProvider || review.conversion.rateTimestamp
                 ? `${review.conversion.rateProvider || '—'} · ${formatRateTimestamp(review.conversion.rateTimestamp, locale)}`
-                : t('settings.preferences.reportingCurrencyWizard.notRequired', {
-                    ns: 'portal',
-                    defaultValue: 'Not required',
-                  });
+                : null;
 
               return (
-                <div key={review.accountId} className="rounded-[24px] border border-border bg-card p-4 sm:p-5">
+                <div key={review.accountId} className="rounded-[28px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.94))] p-4 shadow-[0_16px_38px_-32px_rgba(15,23,42,0.28)] sm:p-5 dark:bg-slate-950/25">
                   <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/20 text-muted-foreground">
-                          <AccountIcon size={20} />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-base font-800 text-foreground">{review.accountName}</p>
-                          <p className="text-sm text-muted-foreground">{accountTypeLabel}</p>
-                        </div>
+                    <div className="flex items-start gap-3">
+                      <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-muted/20 text-muted-foreground shadow-inner">
+                        <AccountIcon size={20} />
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[34rem] lg:grid-cols-4">
-                        <div className="rounded-[20px] border border-border bg-muted/12 p-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-800 text-foreground">{review.accountName}</p>
+                        <p className="text-sm text-muted-foreground">{accountTypeLabel}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[22px] bg-muted/10 px-4 py-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                        <div className="min-w-0">
                           <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                             {t('accounts.currentBalance', { ns: 'portal' })}
                           </p>
-                          <div className="mt-2">
-                            <FormattedCurrencyAmount amount={review.currentBalance} currencyCode={review.currentCurrency} className="text-sm font-700 text-foreground" />
-                          </div>
+                          <FormattedCurrencyAmount amount={review.currentBalance} currencyCode={review.currentCurrency} className="mt-1 text-sm font-700 text-foreground" />
                         </div>
-                        <div className="rounded-[20px] border border-border bg-muted/12 p-3">
-                          <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                            {t('settings.preferences.reportingCurrencyWizard.currentCurrencyLabel', {
-                              ns: 'portal',
-                              defaultValue: 'Current currency',
-                            })}
-                          </p>
-                          <p className="mt-2 text-sm font-700 text-foreground">{review.currentCurrency}</p>
+                        <div className="text-sm font-700 text-muted-foreground">{review.currentCurrency}</div>
+                        <div className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm">
+                          <ArrowRight size={16} />
                         </div>
-                        <div className="rounded-[20px] border border-border bg-muted/12 p-3">
-                          <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
-                            {t('settings.preferences.reportingCurrencyWizard.newCurrencyLabel', {
-                              ns: 'portal',
-                              defaultValue: 'New currency',
-                            })}
-                          </p>
-                          <p className="mt-2 text-sm font-700 text-foreground">{review.targetCurrency}</p>
-                        </div>
-                        <div className="rounded-[20px] border border-border bg-muted/12 p-3">
+                        <div className="text-sm font-700 text-muted-foreground">{review.targetCurrency}</div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                             {t('accounts.currencyChange.convertedBalanceLabel', {
                               ns: 'portal',
                               defaultValue: 'Converted balance',
                             })}
                           </p>
-                          <div className="mt-2">
-                            <FormattedCurrencyAmount
-                              amount={review.conversion.convertedBalance ?? review.currentBalance}
-                              currencyCode={review.targetCurrency}
-                              className="text-sm font-700 text-foreground"
-                            />
-                          </div>
+                          <FormattedCurrencyAmount
+                            amount={review.conversion.convertedBalance ?? review.currentBalance}
+                            currencyCode={review.targetCurrency}
+                            className="mt-1 text-sm font-700 text-foreground"
+                          />
                         </div>
                       </div>
                     </div>
-                    <div className="rounded-[20px] border border-border bg-muted/10 px-4 py-3">
+
+                    <div className="rounded-[22px] bg-muted/10 px-4 py-3">
                       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                        <p className="text-sm font-600 text-foreground">
-                          {review.conversion.exchangeRate !== null
-                            ? t('settings.preferences.reportingCurrencyWizard.rateLine', {
-                                ns: 'portal',
-                                defaultValue: 'Rate today: 1 {{from}} = {{rate}} {{to}}',
-                                from: review.currentCurrency,
-                                rate: formatRateValue(review.conversion.exchangeRate, locale),
-                                to: review.targetCurrency,
-                              })
-                            : review.conversion.directUpdateAllowed
-                              ? t('settings.preferences.reportingCurrencyWizard.emptyDirectChange', {
+                        <div className="min-w-0">
+                          <p className="text-sm font-700 text-foreground">
+                            {review.conversion.blockedReason && !review.conversion.eligible
+                              ? t('settings.preferences.reportingCurrencyWizard.blockedConversionSummary', {
                                   ns: 'portal',
-                                  defaultValue: 'Empty account — can be changed directly.',
+                                  defaultValue: 'Used by an active recurring item or subscription. Conversion is not available yet.',
                                 })
-                              : t('settings.preferences.reportingCurrencyWizard.noRateApplied', {
-                                  ns: 'portal',
-                                  defaultValue: 'No exchange rate applied',
-                                })}
-                        </p>
+                              : review.conversion.exchangeRate !== null
+                                ? t('settings.preferences.reportingCurrencyWizard.rateLine', {
+                                    ns: 'portal',
+                                    defaultValue: 'Rate today: 1 {{from}} = {{rate}} {{to}}',
+                                    from: review.currentCurrency,
+                                    rate: formatRateValue(review.conversion.exchangeRate, locale),
+                                    to: review.targetCurrency,
+                                  })
+                                : review.conversion.directUpdateAllowed
+                                  ? t('settings.preferences.reportingCurrencyWizard.emptyRateLine', {
+                                      ns: 'portal',
+                                      defaultValue: 'Empty account — no exchange rate is needed.',
+                                    })
+                                  : t('settings.preferences.reportingCurrencyWizard.noRateApplied', {
+                                      ns: 'portal',
+                                      defaultValue: 'No exchange rate applied',
+                                    })}
+                          </p>
+                          {secondaryRateLine ? <p className="mt-1 text-xs text-muted-foreground">{secondaryRateLine}</p> : null}
+                        </div>
                         <StatusBadge
                           status={review.selectionError ? 'warning' : getAccountActionTone(selection.action)}
                           label={review.selectionError
@@ -887,103 +934,84 @@ export default function ReportingCurrencyWizard({
                                 : t('settings.preferences.reportingCurrencyWizard.actionLabels.keep', { ns: 'portal', defaultValue: 'Keep Current Currency' })}
                         />
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{secondaryRateLine}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {review.statusMessage || t('status.ready', { ns: 'common', defaultValue: 'Ready' })}
-                      </p>
                     </div>
 
                     <div className="grid gap-3 lg:grid-cols-3">
-                    {renderActionButton(
-                      review,
-                      'conversion',
-                      t('settings.preferences.reportingCurrencyWizard.reviewConvertToCurrency', {
-                        ns: 'portal',
-                        defaultValue: 'Convert to {{currency}}',
-                        currency: review.targetCurrency,
-                      }),
-                      review.conversion.directUpdateAllowed
-                        ? t('settings.preferences.reportingCurrencyWizard.options.convertEmptyDescription', {
-                            ns: 'portal',
-                            defaultValue: 'This account is empty. Its currency can be changed directly without conversion or archiving.',
-                          })
-                        : t('settings.preferences.reportingCurrencyWizard.options.convertDescription', {
-                            ns: 'portal',
-                            defaultValue: 'Use today’s rate. The current account will be archived and a new version in {{currency}} will become active.',
-                            currency: review.targetCurrency,
-                          }),
-                      !review.conversion.eligible
-                    )}
-                    {renderActionButton(
-                      review,
-                      'keep',
-                      t('settings.preferences.reportingCurrencyWizard.options.keepTitle', {
-                        ns: 'portal',
-                        defaultValue: 'Keep current currency',
-                      }),
-                      review.keepMessage,
-                      false
-                    )}
-                    {renderActionButton(
-                      review,
-                      'correction',
-                      t('settings.preferences.reportingCurrencyWizard.options.correctTitle', {
-                        ns: 'portal',
-                        defaultValue: 'Correct wrong currency',
-                      }),
-                      t('settings.preferences.reportingCurrencyWizard.options.correctDescription', {
-                        ns: 'portal',
-                        defaultValue: 'No exchange rate will be applied. The numbers will stay the same, but the currency will change.',
-                      }),
-                      !review.correction.eligible
-                    )}
-                  </div>
-
-                  {selection.action === 'correction' ? (
-                    <label className="flex items-start gap-2 rounded-[20px] border border-border bg-muted/12 px-3 py-3">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
-                        checked={selection.confirmationChecked === true}
-                        onChange={(event) => setCorrectionConfirmed(review.accountId, event.target.checked)}
-                      />
-                      <span className="text-sm text-foreground">
-                        {t('settings.preferences.reportingCurrencyWizard.correctionCheckbox', {
+                      {renderActionButton(
+                        review,
+                        'keep',
+                        t('settings.preferences.reportingCurrencyWizard.options.keepTitle', {
                           ns: 'portal',
-                          defaultValue: 'I confirm that all eligible amounts in this account were originally entered in {{currency}}.',
+                          defaultValue: 'Keep current currency',
+                        }),
+                        review.keepMessage,
+                        false
+                      )}
+                      {renderActionButton(
+                        review,
+                        'conversion',
+                        t('settings.preferences.reportingCurrencyWizard.reviewConvertToCurrency', {
+                          ns: 'portal',
+                          defaultValue: 'Convert to {{currency}}',
                           currency: review.targetCurrency,
-                        })}
-                      </span>
-                    </label>
-                  ) : null}
-
-                  {selection.action === 'conversion' && review.conversion.directUpdateAllowed ? (
-                    <div className="rounded-[20px] border border-accent/20 bg-accent/6 px-3 py-3 text-sm text-foreground">
-                      {t('settings.preferences.reportingCurrencyWizard.emptyAccountNotice', {
-                        ns: 'portal',
-                        defaultValue: 'This account is empty. Its currency can be changed directly without conversion or archiving.',
-                      })}
+                        }),
+                        review.conversion.directUpdateAllowed
+                          ? t('settings.preferences.reportingCurrencyWizard.convertEmptyCompact', {
+                              ns: 'portal',
+                              defaultValue: 'Change the currency directly because this account is empty.',
+                            })
+                          : t('settings.preferences.reportingCurrencyWizard.options.convertDescription', {
+                              ns: 'portal',
+                              defaultValue: 'Use today’s rate. The current account will be archived and a new version in {{currency}} will become active.',
+                              currency: review.targetCurrency,
+                            }),
+                        !review.conversion.eligible
+                      )}
+                      {renderActionButton(
+                        review,
+                        'correction',
+                        t('settings.preferences.reportingCurrencyWizard.options.correctTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Correct wrong currency',
+                        }),
+                        t('settings.preferences.reportingCurrencyWizard.options.correctDescription', {
+                          ns: 'portal',
+                          defaultValue: 'No exchange rate will be applied. The numbers will stay the same, but the currency will change.',
+                        }),
+                        !review.correction.eligible
+                      )}
                     </div>
-                  ) : null}
 
-                  {review.selectionError && selection.action === review.selectedAction ? (
-                    <div className="rounded-[20px] border border-warning/30 bg-warning-soft/20 px-3 py-3 text-sm text-foreground">
-                      {review.selectionError}
-                    </div>
-                  ) : null}
+                    {selection.action === 'correction' ? (
+                      <label className="flex items-start gap-2 rounded-[20px] border border-border bg-muted/12 px-3 py-3">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
+                          checked={selection.confirmationChecked === true}
+                          onChange={(event) => setCorrectionConfirmed(review.accountId, event.target.checked)}
+                        />
+                        <span className="text-sm text-foreground">
+                          {t('settings.preferences.reportingCurrencyWizard.correctionCheckbox', {
+                            ns: 'portal',
+                            defaultValue: 'I confirm that all eligible amounts in this account were originally entered in {{currency}}.',
+                            currency: review.targetCurrency,
+                          })}
+                        </span>
+                      </label>
+                    ) : null}
 
-                  {selection.action === 'conversion' && review.conversion.blockedReason ? (
-                    <div className="rounded-[20px] border border-warning/30 bg-warning-soft/20 px-3 py-3 text-sm text-foreground">
-                      {review.conversion.blockedReason}
-                    </div>
-                  ) : null}
+                    {review.selectionError && selection.action === review.selectedAction ? (
+                      <div className="rounded-[20px] border border-warning/30 bg-warning-soft/20 px-3 py-3 text-sm text-foreground">
+                        {review.selectionError}
+                      </div>
+                    ) : null}
 
-                  {selection.action === 'correction' && review.correction.blockedReason ? (
-                    <div className="rounded-[20px] border border-warning/30 bg-warning-soft/20 px-3 py-3 text-sm text-foreground">
-                      {review.correction.blockedReason}
-                    </div>
-                  ) : null}
-                </div>
+                    {selection.action === 'correction' && review.correction.blockedReason ? (
+                      <div className="rounded-[20px] border border-warning/30 bg-warning-soft/20 px-3 py-3 text-sm text-foreground">
+                        {review.correction.blockedReason}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               );
             })}
@@ -992,14 +1020,27 @@ export default function ReportingCurrencyWizard({
 
         {step === 3 && preview ? (
           <div className="space-y-4">
-            <div className="rounded-[24px] border border-border bg-muted/15 p-5">
-              <p className="text-sm font-800 text-foreground">
-                {t('settings.preferences.reportingCurrencyWizard.summaryTitle', {
-                  ns: 'portal',
-                  defaultValue: 'You are about to:',
-                })}
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-[28px] border border-sky-200/70 bg-[linear-gradient(180deg,rgba(248,250,255,0.98),rgba(239,246,255,0.92))] p-5 shadow-[0_18px_38px_-30px_rgba(59,130,246,0.32)] dark:border-sky-900/30 dark:bg-sky-950/20">
+              <div className="flex items-start gap-3">
+                <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/85 text-sky-700 shadow-sm dark:bg-slate-950/40 dark:text-sky-200">
+                  <Info size={18} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-800 uppercase tracking-wide text-sky-700/80 dark:text-sky-200/80">
+                    {t('settings.preferences.reportingCurrencyWizard.confirmationSummaryEyebrow', {
+                      ns: 'portal',
+                      defaultValue: 'Review Summary',
+                    })}
+                  </p>
+                  <p className="mt-1 text-base font-800 text-foreground">
+                    {t('settings.preferences.reportingCurrencyWizard.summaryTitle', {
+                      ns: 'portal',
+                      defaultValue: 'You are about to:',
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-[20px] border border-border bg-card p-3">
                   <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                     {t('settings.preferences.reportingCurrencyWizard.steps.reportingCurrency', {
@@ -1050,10 +1091,13 @@ export default function ReportingCurrencyWizard({
             </div>
 
             {preview.accounts.map((review) => (
-              <div key={review.accountId} className="rounded-[24px] border border-border bg-card p-4">
+              <div key={review.accountId} className="rounded-[24px] border border-border/80 bg-card p-4 shadow-[0_14px_32px_-30px_rgba(15,23,42,0.24)]">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-muted/15 text-muted-foreground">
+                        {React.createElement(getAccountTypeIcon(review.accountType), { size: 16 })}
+                      </span>
                       <p className="text-base font-800 text-foreground">{review.accountName}</p>
                       <StatusBadge
                         status={getAccountActionTone(review.selectedAction)}
@@ -1095,9 +1139,9 @@ export default function ReportingCurrencyWizard({
 
         {step === 4 && result ? (
           <div className="space-y-4">
-            <div className="rounded-[28px] border border-positive/30 bg-positive-soft/25 p-6">
+            <div className="rounded-[30px] border border-positive/30 bg-[linear-gradient(180deg,rgba(240,253,244,0.98),rgba(220,252,231,0.9))] p-6 shadow-[0_20px_42px_-30px_rgba(34,197,94,0.35)] dark:border-emerald-900/30 dark:bg-emerald-950/20">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 text-positive" size={22} />
+                <CheckCircle2 className="mt-0.5 text-positive" size={24} />
                 <div>
                   <p className="text-lg font-800 text-foreground">
                     {t('settings.preferences.reportingCurrencyWizard.resultTitle', {
@@ -1116,7 +1160,7 @@ export default function ReportingCurrencyWizard({
                 </div>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-[20px] border border-border bg-card p-4 text-sm">
                 <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                   {t('settings.preferences.reportingCurrencyWizard.newLabel', {

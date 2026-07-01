@@ -8,6 +8,8 @@ import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConverte
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 interface DashboardMetricCard {
   id: string;
@@ -27,6 +29,225 @@ interface DashboardMetricCard {
   valueContent?: React.ReactNode;
 }
 
+function formatCompactDate(value: string | null, locale: string) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(parsed);
+}
+
+function formatCompactDateTime(value: string | null, locale: string) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
+}
+
+function formatCompactRate(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatProviderName(provider: string | null) {
+  if (!provider) return null;
+  return provider.replace(/_/g, ' ');
+}
+
+function OriginalCurrencyDisclosure({
+  metric,
+  locale,
+  t,
+}: {
+  metric: DashboardConvertedMetric;
+  locale: string;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [showRateDetails, setShowRateDetails] = useState(false);
+
+  const shouldShowDisclosure =
+    metric.reportingAmount !== null
+    && (!metric.allOriginalInReportingCurrency || metric.originalTotals.length > 1 || Boolean(metric.unavailableReason));
+
+  if (!shouldShowDisclosure) {
+    return null;
+  }
+
+  const singleOriginal = metric.originalTotals.length === 1 ? metric.originalTotals[0] : null;
+  const hasConvertibleSingleOriginal = Boolean(
+    singleOriginal
+    && metric.reportingAmount !== null
+    && singleOriginal.currency !== metric.reportingCurrency
+    && Math.abs(Number(singleOriginal.amount || 0)) > 0.000001
+  );
+  const derivedRate = hasConvertibleSingleOriginal && singleOriginal
+    ? Math.abs(metric.reportingAmount as number) / Math.abs(singleOriginal.amount)
+    : null;
+  const rateDate = formatCompactDate(metric.rateDate, locale);
+  const providerTimestamp = formatCompactDateTime(metric.providerTimestamp, locale);
+  const fetchedAt = formatCompactDateTime(metric.fetchedAt, locale);
+  const providerName = formatProviderName(metric.provider);
+  const showHistoricalStatus = metric.lookupMode === 'previous_available';
+
+  return (
+    <div className="mt-2 rounded-2xl border border-border/70 bg-muted/15 px-3 py-2.5 max-[480px]:mt-1.5">
+      <button
+        type="button"
+        className="text-xs font-700 text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => {
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (!nextOpen) {
+            setShowRateDetails(false);
+          }
+        }}
+        aria-expanded={isOpen}
+      >
+        {t('dashboardMetrics.viewOriginalCurrencies', {
+          defaultValue: 'View original currencies',
+        })}
+      </button>
+
+      {isOpen ? (
+        <div className="mt-3 space-y-2.5 text-xs text-muted-foreground">
+          <div className="flex items-start justify-between gap-3">
+            <span className="font-700 text-foreground/90">
+              {t('dashboardMetrics.originalAmountLabel', {
+                defaultValue: metric.originalTotals.length > 1 ? 'Original amounts' : 'Original amount',
+              })}
+            </span>
+            <div className="text-right">
+              {metric.originalTotals.map((row) => (
+                <FormattedCurrencyAmount
+                  key={`${row.currency}-${row.amount}`}
+                  amount={row.amount}
+                  currencyCode={row.currency}
+                  textOnly
+                  className="text-xs font-700 text-foreground"
+                />
+              ))}
+            </div>
+          </div>
+
+          {derivedRate !== null && singleOriginal ? (
+            <div className="flex items-start justify-between gap-3">
+              <span className="font-700 text-foreground/90">
+                {t('dashboardMetrics.conversionLabel', {
+                  defaultValue: 'Conversion',
+                })}
+              </span>
+              <span className="text-right text-foreground/90">
+                {t('dashboardMetrics.conversionValue', {
+                  defaultValue: '1 {{from}} = {{rate}} {{to}}',
+                  from: singleOriginal.currency,
+                  rate: formatCompactRate(derivedRate, locale),
+                  to: metric.reportingCurrency,
+                })}
+              </span>
+            </div>
+          ) : null}
+
+          {rateDate ? (
+            <div className="flex items-start justify-between gap-3">
+              <span className="font-700 text-foreground/90">
+                {t('dashboardMetrics.rateDateLabel', {
+                  defaultValue: 'Rate date',
+                })}
+              </span>
+              <span className="text-right text-foreground/90">{rateDate}</span>
+            </div>
+          ) : null}
+
+          {showHistoricalStatus ? (
+            <p className="rounded-xl bg-muted/40 px-2.5 py-2 text-foreground/90">
+              {t('dashboardMetrics.historicalRateUsed', {
+                defaultValue: 'Historical exchange rate used',
+              })}
+            </p>
+          ) : null}
+
+          {metric.stale ? (
+            <p className="rounded-xl bg-warning-soft/20 px-2.5 py-2 text-warning">
+              {t('dashboardMetrics.staleRatesCompact', {
+                defaultValue: 'A recent rate was unavailable, so Smart Pocket used the latest available historical rate.',
+              })}
+            </p>
+          ) : null}
+
+          {metric.unavailableReason ? (
+            <p className="rounded-xl bg-warning-soft/20 px-2.5 py-2 text-warning">{metric.unavailableReason}</p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center gap-3 pt-0.5">
+            <button
+              type="button"
+              className="text-xs font-700 text-accent transition-colors hover:text-accent/80"
+              onClick={() => setShowRateDetails((current) => !current)}
+              aria-expanded={showRateDetails}
+            >
+              {t('dashboardMetrics.rateDetails', {
+                defaultValue: 'Rate details',
+              })}
+            </button>
+            <button
+              type="button"
+              className="text-xs font-700 text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => {
+                setIsOpen(false);
+                setShowRateDetails(false);
+              }}
+            >
+              {t('dashboardMetrics.hideOriginalCurrencies', {
+                defaultValue: 'Hide',
+              })}
+            </button>
+          </div>
+
+          {showRateDetails ? (
+            <div className="rounded-xl border border-border/70 bg-card px-3 py-2.5">
+              <div className="space-y-1.5 text-xs text-muted-foreground">
+                {providerName ? (
+                  <p>
+                    {t('dashboardMetrics.provider', { value: providerName })}
+                  </p>
+                ) : null}
+                {providerTimestamp ? (
+                  <p>
+                    {t('dashboardMetrics.providerTimestampCompact', {
+                      defaultValue: 'Provider timestamp: {{value}}',
+                      value: providerTimestamp,
+                    })}
+                  </p>
+                ) : null}
+                {fetchedAt ? (
+                  <p>
+                    {t('dashboardMetrics.fetchedAtCompact', {
+                      defaultValue: 'Fetched: {{value}}',
+                      value: fetchedAt,
+                    })}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function DashboardMetrics({
   activePeriod,
   hasConfigurationWarning = false,
@@ -35,6 +256,8 @@ export default function DashboardMetrics({
   hasConfigurationWarning?: boolean;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -208,34 +431,7 @@ export default function DashboardMetrics({
   };
 
   const renderMetricDetails = (metric: DashboardConvertedMetric) => {
-    const metaLabel = renderMetricMeta(metric);
-    const shouldShowDetails =
-      metric.originalTotals.length > 1 ||
-      !metric.allOriginalInReportingCurrency ||
-      Boolean(metric.provider) ||
-      Boolean(metric.unavailableReason);
-
-    if (!shouldShowDetails) {
-      return null;
-    }
-
-    return (
-      <details className="mt-2 rounded-xl border border-border/70 bg-muted/20 px-3 py-2 max-[480px]:mt-1.5">
-        <summary className="cursor-pointer text-xs font-600 text-muted-foreground">
-          {t('dashboardMetrics.viewOriginalCurrencies')}
-        </summary>
-        <div className="mt-2 space-y-2 text-xs text-muted-foreground">
-          <div>{renderOriginalCurrencyRows(metric.originalTotals, 'xs')}</div>
-          {metaLabel ? <p>{metaLabel}</p> : null}
-          {metric.rateDate ? <p>{t('dashboardMetrics.rateDate', { value: metric.rateDate })}</p> : null}
-          {metric.providerTimestamp ? <p>{t('dashboardMetrics.providerTimestamp', { value: metric.providerTimestamp })}</p> : null}
-          {metric.fetchedAt ? <p>{t('dashboardMetrics.fetchedAt', { value: metric.fetchedAt })}</p> : null}
-          {metric.provider ? <p>{t('dashboardMetrics.provider', { value: metric.provider })}</p> : null}
-          {metric.unavailableReason ? <p className="text-warning">{metric.unavailableReason}</p> : null}
-          {metric.stale && metric.provider ? <p className="text-warning">{t('dashboardMetrics.staleRates')}</p> : null}
-        </div>
-      </details>
-    );
+    return <OriginalCurrencyDisclosure metric={metric} locale={locale} t={t} />;
   };
 
   const isZeroAmount = (amount: number | null | undefined) => Math.abs(Number(amount || 0)) < 0.000001;
