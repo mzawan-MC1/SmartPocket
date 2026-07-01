@@ -138,6 +138,7 @@ export function formatCurrencyValue(
     ? Math.max(0, resolvedCurrency.minorUnits)
     : 2;
   const sign = amount < 0 ? '-' : '';
+  const signText = sign ? '\u2212' : '';
   const numberText = formatNumber(
     amount,
     options.locale,
@@ -147,11 +148,13 @@ export function formatCurrencyValue(
     options.maximumFractionDigits
   );
   const { token, usesCodeToken } = pickDisplayToken(resolvedCurrency, options);
-  const rawText = usesCodeToken
-    ? `${sign}${token} ${numberText}`.trim()
-    : shouldUseSpacing(token, usesCodeToken)
-      ? `${sign}${token} ${numberText}`
-      : `${sign}${token}${numberText}`;
+  const needsTokenSpacing = shouldUseSpacing(token, usesCodeToken);
+  const signPrefix = signText
+    ? needsTokenSpacing ? `${signText} ` : signText
+    : '';
+  const rawText = needsTokenSpacing
+    ? `${signPrefix}${token} ${numberText}`.trim()
+    : `${signPrefix}${token}${numberText}`;
   const text = `\u2066${rawText}\u2069`;
 
   return {

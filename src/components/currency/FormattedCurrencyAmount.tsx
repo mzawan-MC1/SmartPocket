@@ -45,7 +45,9 @@ export default function FormattedCurrencyAmount({
   fallbackCurrencyCode,
   className = '',
   numberClassName = '',
+  codeClassName = '',
   symbolClassName = '',
+  showCode = false,
 }: FormattedCurrencyAmountProps) {
   const { data } = useClientReferenceData();
   const currencies = data?.snapshot.currencies ?? [];
@@ -56,6 +58,7 @@ export default function FormattedCurrencyAmount({
   );
   const resolvedSize = size || (compact ? 'sm' : 'md');
   const layoutStyles = SIZE_STYLES[resolvedSize];
+  const resolvedDisplayMode: CurrencyDisplayMode = showCode ? 'code' : displayMode;
 
   if (textOnly) {
     return (
@@ -83,7 +86,7 @@ export default function FormattedCurrencyAmount({
     fallbackCurrencyCode,
     locale,
     compact,
-    displayMode,
+    displayMode: resolvedDisplayMode,
   });
 
   if (!currency || formatted.usesCodeToken) {
@@ -93,7 +96,7 @@ export default function FormattedCurrencyAmount({
         className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
         style={{ unicodeBidi: 'isolate' }}
       >
-        {formatted.text}
+        <span className={codeClassName}>{formatted.text}</span>
       </span>
     );
   }
@@ -106,7 +109,7 @@ export default function FormattedCurrencyAmount({
     >
       {formatted.sign ? (
         <span className={numberClassName} style={{ lineHeight: 1 }}>
-          -
+          −
         </span>
       ) : null}
       <CurrencySymbol currency={currency} size={resolvedSize} className={symbolClassName} />

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import EmptyState from '@/components/ui/EmptyState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import {
@@ -1054,7 +1055,7 @@ export default function SettlementsPage() {
           </div>
           <div className="card p-4 max-[480px]:p-3">
             <p className="text-xs font-600 text-muted-foreground uppercase tracking-wide mb-1">{t('settlements.totalAmount')}</p>
-            <div className="text-lg font-700 text-positive">
+            <div className="flex flex-col items-end gap-1 text-lg font-700 text-positive">
               {totalSettledByCurrency.length === 0 ? (
                 t('settlements.noData')
               ) : (
@@ -1063,7 +1064,7 @@ export default function SettlementsPage() {
                     key={row.currency}
                     amount={row.amount}
                     currencyCode={row.currency}
-                    className="text-lg font-700 text-positive"
+                    className="text-lg font-700 text-positive leading-tight"
                     showCode
                   />
                 ))
@@ -1130,12 +1131,16 @@ export default function SettlementsPage() {
             {[1, 2, 3].map((i) => <div key={i} className="card p-4 h-20 animate-pulse bg-muted" />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="card p-12 text-center">
-            <DollarSign size={40} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">{t('settlements.emptyTitle')}</p>
-            <button onClick={() => setShowModal(true)} className="mt-4 text-accent text-sm font-600 hover:underline">
-              {t('settlements.recordFirstSettlement')}
-            </button>
+          <div className="card">
+            <EmptyState
+              icon={DollarSign}
+              title={t('settlements.emptyTitle')}
+              description={t('settlements.emptyDescription', { defaultValue: 'Record your first settlement to keep shared balances accurate.' })}
+              action={{ label: t('settlements.recordFirstSettlement'), onClick: () => setShowModal(true) }}
+              variant="compact"
+              tone="neutral"
+              className="py-10 max-[480px]:py-8"
+            />
           </div>
         ) : (
           <div className="space-y-3">
@@ -1159,8 +1164,8 @@ export default function SettlementsPage() {
 
               return (
                 <div key={settlement.id} className="card p-4 max-[480px]:p-3">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr),auto] md:items-start">
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-600 text-foreground">{settlement.description}</p>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-500 ${
@@ -1205,7 +1210,7 @@ export default function SettlementsPage() {
                         </>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <FormattedCurrencyAmount
                         amount={Number(settlement.amount)}
                         currencyCode={settlement.currency}

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CalendarClock, CreditCard, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
+import { CalendarClock, CreditCard, Edit2, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
@@ -130,6 +130,13 @@ export default function PersonalSubscriptionsPage() {
   const [cancellationTarget, setCancellationTarget] = useState<PersonalSubscription | null>(null);
   const [showFilters, setShowFilters] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia('(max-width: 1023px)').matches) {
+      setShowFilters(false);
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -397,7 +404,7 @@ export default function PersonalSubscriptionsPage() {
           bodyClassName="p-0"
         >
           {upcomingCharges.length === 0 ? (
-            <div className="px-5 py-6 text-sm text-muted-foreground">{t('personalSubscriptions.upcomingChargesEmpty', { ns: 'portal' })}</div>
+            <div className="px-5 py-4 text-xs text-muted-foreground">{t('personalSubscriptions.upcomingChargesEmpty', { ns: 'portal' })}</div>
           ) : (
             <div className="divide-y divide-border">
               {upcomingCharges.map((subscription) => (
@@ -427,13 +434,12 @@ export default function PersonalSubscriptionsPage() {
 
         <SectionCard
           className={showFilters ? '' : 'hidden'}
-          bodyClassName="space-y-4"
+          bodyClassName="space-y-3 p-4"
           title={t('personalSubscriptions.filters.title', { ns: 'portal' })}
-          description={t('personalSubscriptions.filters.description', { ns: 'portal' })}
         >
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label htmlFor="subscription-filter-status" className="mb-1.5 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="subscription-filter-status" className="mb-1 block text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                 {t('personalSubscriptions.filters.quickFilter', { ns: 'portal' })}
               </label>
               <select id="subscription-filter-status" className="input-base" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}>
@@ -445,7 +451,7 @@ export default function PersonalSubscriptionsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="subscription-filter-category" className="mb-1.5 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="subscription-filter-category" className="mb-1 block text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                 {t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
               </label>
               <select id="subscription-filter-category" className="input-base" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
@@ -458,7 +464,7 @@ export default function PersonalSubscriptionsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="subscription-filter-account" className="mb-1.5 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="subscription-filter-account" className="mb-1 block text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                 {t('personalSubscriptions.form.fields.financialAccount', { ns: 'portal' })}
               </label>
               <select id="subscription-filter-account" className="input-base" value={accountFilter} onChange={(event) => setAccountFilter(event.target.value)}>
@@ -471,7 +477,7 @@ export default function PersonalSubscriptionsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="subscription-filter-frequency" className="mb-1.5 block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+              <label htmlFor="subscription-filter-frequency" className="mb-1 block text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                 {t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}
               </label>
               <select id="subscription-filter-frequency" className="input-base" value={frequencyFilter} onChange={(event) => setFrequencyFilter(event.target.value)}>
@@ -518,7 +524,7 @@ export default function PersonalSubscriptionsPage() {
           ) : (
             <div className="divide-y divide-border">
               {filteredSubscriptions.map((subscription) => (
-                <article key={subscription.id} className="space-y-4 px-5 py-5">
+                <article key={subscription.id} className="space-y-3 px-5 py-4">
                   <div className={`flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
                     <div className="min-w-0 flex-1 space-y-2">
                       <div className="flex flex-wrap items-center gap-2">
@@ -531,7 +537,7 @@ export default function PersonalSubscriptionsPage() {
                       <p className="text-sm text-muted-foreground">
                         {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
                       </p>
-                      <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-3">
+                      <div className="grid grid-cols-1 gap-1.5 text-[11px] text-muted-foreground sm:grid-cols-2 xl:grid-cols-3">
                         <p>{t('personalSubscriptions.labels.frequency', { ns: 'portal' })}: {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}</p>
                         <p>{t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}: {formatDateValue(subscription.next_billing_date) || notAvailableLabel}</p>
                         <p>{t('personalSubscriptions.labels.paymentAccount', { ns: 'portal' })}: {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</p>
@@ -551,18 +557,6 @@ export default function PersonalSubscriptionsPage() {
                         <Link href={`/personal-subscriptions/${subscription.id}`} className="btn-secondary px-3 py-2 text-xs">
                           {t('actions.view', { ns: 'common' })}
                         </Link>
-                        <Link href={`/personal-subscriptions/${subscription.id}/edit`} className="btn-secondary px-3 py-2 text-xs">
-                          {t('actions.edit', { ns: 'common' })}
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => void handleMarkPaid(subscription)}
-                          disabled={processingId === subscription.id || !subscription.financial_account_id}
-                          className="btn-secondary px-3 py-2 text-xs"
-                        >
-                          {processingId === subscription.id ? <Loader2 size={12} className="animate-spin" /> : null}
-                          {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
-                        </button>
                         <div className="relative">
                           <button
                             type="button"
@@ -579,6 +573,25 @@ export default function PersonalSubscriptionsPage() {
                               role="menu"
                               className={`absolute top-full z-20 mt-2 flex min-w-[13rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}
                             >
+                              <Link
+                                href={`/personal-subscriptions/${subscription.id}/edit`}
+                                role="menuitem"
+                                onClick={() => setOpenMenuId(null)}
+                                className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-foreground transition-colors hover:bg-muted/70"
+                              >
+                                <Edit2 size={14} className="text-muted-foreground" />
+                                {t('actions.edit', { ns: 'common' })}
+                              </Link>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => void handleMarkPaid(subscription)}
+                                disabled={processingId === subscription.id || !subscription.financial_account_id}
+                                className="inline-flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-start text-sm font-600 text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
+                              >
+                                {processingId === subscription.id ? <Loader2 size={14} className="animate-spin text-muted-foreground" /> : <CreditCard size={14} className="text-muted-foreground" />}
+                                {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
+                              </button>
                               {canPauseOrResumePersonalSubscription(subscription.status) ? (
                                 <button
                                   type="button"

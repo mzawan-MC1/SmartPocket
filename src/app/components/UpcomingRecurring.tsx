@@ -14,6 +14,7 @@ import {
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { toast } from 'sonner';
 import SectionCard from '@/components/ui/SectionCard';
+import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { getCurrentBusinessDate } from '@/lib/financial-periods';
@@ -123,19 +124,16 @@ export default function UpcomingRecurring({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center px-6 py-6 text-center">
-          <div className="mb-3 flex h-20 w-20 items-center justify-center rounded-[24px] bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.22),rgba(255,255,255,0.95)_65%)] shadow-[0_22px_46px_-30px_rgba(147,51,234,0.7)]">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-violet-500/12 text-violet-600">
-              <CalendarClock size={30} />
-            </div>
-          </div>
-          <p className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('recurring.noUpcomingTitle', { ns: 'portal' })}</p>
-          <p className="mt-2 max-w-[16rem] text-[12.5px] leading-5 text-muted-foreground">
-            {activePeriod.mode === 'month'
-              ? t('recurring.noUpcomingDescriptionMonth', { ns: 'portal', period: activePeriod.label })
-              : t('recurring.noUpcomingDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarClock}
+          title={t('recurring.noUpcomingTitle', { ns: 'portal' })}
+          description={activePeriod.mode === 'month'
+            ? t('recurring.noUpcomingDescriptionMonth', { ns: 'portal', period: activePeriod.label })
+            : t('recurring.noUpcomingDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
+          variant="compact"
+          tone="neutral"
+          className="py-6"
+        />
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">

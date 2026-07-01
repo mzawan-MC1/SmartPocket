@@ -8,11 +8,11 @@ import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const IncomeExpenseChart = dynamic(() => import('./charts/IncomeExpenseChart'), {
   ssr: false,
-  loading: () => <ChartSkeleton height={320} />,
+  loading: () => <ChartSkeleton height={300} />,
 });
 const SpendingCategoryChart = dynamic(() => import('./charts/SpendingCategoryChart'), {
   ssr: false,
-  loading: () => <ChartSkeleton height={320} />,
+  loading: () => <ChartSkeleton height={300} />,
 });
 
 function useDeferredChartMount(rootMargin = '300px 0px') {
@@ -106,7 +106,7 @@ export default function DashboardCharts({
             ? (activeTab === 'trend'
               ? <IncomeExpenseChart activePeriod={activePeriod} />
               : <SpendingCategoryChart activePeriod={activePeriod} />)
-            : <ChartSkeleton height={320} />
+            : <ChartSkeleton height={300} />
           }
         </div>
       </div>

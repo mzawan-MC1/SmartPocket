@@ -233,7 +233,7 @@ export default function AccountsGrid() {
     { id: 'sum-count', label: t('accounts.summary.activeAccounts'), isCount: true },
   ] satisfies SummaryMetric[];
 
-  const renderAccountCards = (sectionAccounts: FinancialAccount[], gridClassName = 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3') => (
+  const renderAccountCards = (sectionAccounts: FinancialAccount[], gridClassName = 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4') => (
     <div className={gridClassName}>
       {sectionAccounts.map((acct) => {
         const Icon = getIcon(acct.account_type);
@@ -469,9 +469,6 @@ export default function AccountsGrid() {
       <div>
         <div className="mb-3 flex items-center justify-between gap-3 max-[480px]:mb-2">
           <h2 className="text-base font-700 text-foreground">{t('accounts.activeAccounts')}</h2>
-          <button onClick={openAdd} className="btn-primary text-sm max-[480px]:hidden">
-            <Plus size={14} /> {t('accounts.addAccount')}
-          </button>
         </div>
 
         {activeAccounts.length === 0 ? (
@@ -480,7 +477,8 @@ export default function AccountsGrid() {
               icon={Wallet}
               title={t('accounts.emptyTitle')}
               description={t('accounts.emptyDescription')}
-              action={{ label: t('accounts.addAccount'), onClick: openAdd }}
+              variant="compact"
+              tone="neutral"
             />
           </div>
         ) : (
@@ -558,16 +556,6 @@ export default function AccountsGrid() {
                 {renderAccountCards(spaceAccounts)}
               </div>
             ) : null}
-
-            <button
-              onClick={openAdd}
-              className="group flex min-h-[180px] w-full flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-8 transition-all duration-200 hover:border-accent hover:bg-accent/5 card-elevated max-[480px]:min-h-[140px] max-[480px]:p-5"
-            >
-              <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
-                <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
-              </div>
-              <p className="text-sm font-600 text-muted-foreground group-hover:text-accent transition-colors">{t('accounts.addAccount')}</p>
-            </button>
           </div>
         )}
       </div>

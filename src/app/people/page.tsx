@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AppLayout from '@/components/AppLayout';
 import Link from 'next/link';
-import { Users, Plus, Archive, MoreVertical, TrendingUp, TrendingDown, Wallet, ChevronRight, UserPlus, RefreshCw } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Users, Plus, Archive, MoreVertical, TrendingUp, TrendingDown, Wallet, ChevronLeft, ChevronRight, UserPlus, RefreshCw } from 'lucide-react';
 import { getManagedPeople, archiveManagedPerson, type ManagedPerson } from '@/lib/people';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -12,6 +13,7 @@ import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const RELATIONSHIPS = [
   'spouse',
@@ -26,15 +28,15 @@ const RELATIONSHIPS = [
 ] as const;
 
 const RELATIONSHIP_COLORS: Record<string, string> = {
-  spouse: 'bg-pink-100 text-pink-700',
-  child: 'bg-blue-100 text-blue-700',
-  parent: 'bg-purple-100 text-purple-700',
-  sibling: 'bg-indigo-100 text-indigo-700',
-  friend: 'bg-green-100 text-green-700',
-  relative: 'bg-orange-100 text-orange-700',
-  colleague: 'bg-yellow-100 text-yellow-700',
-  client: 'bg-teal-100 text-teal-700',
-  other: 'bg-gray-100 text-gray-700',
+  spouse: 'bg-violet-100 text-violet-700',
+  child: 'bg-cyan-100 text-cyan-700',
+  parent: 'bg-indigo-100 text-indigo-700',
+  sibling: 'bg-blue-100 text-blue-700',
+  friend: 'bg-teal-100 text-teal-700',
+  relative: 'bg-slate-100 text-slate-700',
+  colleague: 'bg-sky-100 text-sky-700',
+  client: 'bg-purple-100 text-purple-700',
+  other: 'bg-muted text-muted-foreground',
 };
 
 function groupPeopleTotals(people: ManagedPerson[], field: 'money_held' | 'person_owes_user' | 'user_owes_person') {
@@ -75,12 +77,15 @@ function getAvatarColor(name: string) {
 
 export default function ManagedPeoplePage() {
   const { t } = useTranslation('portal');
+  const router = useRouter();
+  const { isRTL } = useLanguage();
   const [people, setPeople] = useState<ManagedPerson[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterRelationship, setFilterRelationship] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const ChevronIcon = isRTL ? ChevronLeft : ChevronRight;
 
   const loadPeople = useCallback(async () => {
     setLoading(true);
@@ -251,7 +256,26 @@ export default function ManagedPeoplePage() {
         ) : (
           <div className="space-y-3">
             {filtered.map((person) => (
-              <div key={person.id} className="card p-4 transition-shadow hover:shadow-card-md max-[480px]:p-3">
+              <div
+                key={person.id}
+                role="link"
+                tabIndex={0}
+                aria-label={`${t('people.view')}: ${person.full_name}`}
+                onClick={(event) => {
+                  const target = event.target as HTMLElement | null;
+                  if (target?.closest('a,button,[role="menu"],[role="menuitem"],[data-row-interactive="true"]')) {
+                    return;
+                  }
+                  router.push(`/people/${person.id}`);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    router.push(`/people/${person.id}`);
+                  }
+                }}
+                className="card cursor-pointer p-4 transition-shadow hover:shadow-card-md focus:outline-none focus:ring-2 focus:ring-accent/30 max-[480px]:p-3"
+              >
                 <div className="flex items-center gap-4 max-[480px]:items-start max-[480px]:gap-3">
                   {/* Avatar */}
                   <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarColor(person.full_name)} text-sm font-700 text-white max-[480px]:h-11 max-[480px]:w-11`}>
@@ -301,46 +325,68 @@ export default function ManagedPeoplePage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 self-start flex-shrink-0">
-                    <Link
-                      href={`/people/${person.id}`}
-                      className="flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5 text-xs font-600 text-accent transition-colors hover:bg-accent/20"
-                    >
-                      {t('people.view')}
-                      <ChevronRight size={13} />
-                    </Link>
+                    <ChevronIcon size={16} className="text-muted-foreground" aria-hidden="true" />
                     <div className="relative">
                       <button
-                        onClick={() => setOpenMenuId(openMenuId === person.id ? null : person.id)}
+                        type="button"
+                        data-row-interactive="true"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setOpenMenuId(openMenuId === person.id ? null : person.id);
+                        }}
                         className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                        aria-label={t('actions.more', { ns: 'common', defaultValue: 'More' })}
                       >
                         <MoreVertical size={16} />
                       </button>
                       {openMenuId === person.id && (
-                        <div className="absolute right-0 top-8 z-20 bg-card border border-border rounded-xl shadow-card-md min-w-[160px] py-1">
+                        <div
+                          className={`absolute top-8 z-20 bg-card border border-border rounded-xl shadow-card-md min-w-[160px] py-1 ${isRTL ? 'left-0' : 'right-0'}`}
+                          role="menu"
+                          data-row-interactive="true"
+                          onClick={(event) => event.stopPropagation()}
+                        >
                           <Link
                             href={`/people/${person.id}/edit`}
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                            onClick={() => setOpenMenuId(null)}
+                            role="menuitem"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenMenuId(null);
+                            }}
                           >
                             {t('people.editProfile')}
                           </Link>
                           <Link
                             href={`/people/${person.id}?tab=ledger`}
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
-                            onClick={() => setOpenMenuId(null)}
+                            role="menuitem"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenMenuId(null);
+                            }}
                           >
                             {t('people.viewLedger')}
                           </Link>
                           <Link
                             href={`/people/new?quick=money_received&person=${person.id}`}
                             className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-positive"
-                            onClick={() => setOpenMenuId(null)}
+                            role="menuitem"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setOpenMenuId(null);
+                            }}
                           >
                             {t('people.recordMoneyReceived')}
                           </Link>
                           {!person.is_archived && (
                             <button
-                              onClick={() => handleArchive(person.id, person.full_name)}
+                              type="button"
+                              role="menuitem"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void handleArchive(person.id, person.full_name);
+                              }}
                               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-muted-foreground"
                             >
                               {t('people.archive')}

@@ -171,7 +171,7 @@ export default function SpendingCategoryChart({
   });
 
   if (loading) {
-    return <div className="flex h-[320px] items-center justify-center max-[480px]:h-[260px]"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
+    return <div className="flex h-[300px] items-center justify-center max-[480px]:h-[240px]"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
   }
 
   if (!data.length) {

@@ -197,12 +197,14 @@ export default function RecurringPage() {
               ))}
             </div>
           ) : activeItems.length === 0 ? (
-            <div className="p-12">
+            <div className="p-6 max-[480px]:p-4">
               <EmptyState
                 icon={Repeat}
                 title={t('recurring.emptyTitle')}
                 description={t('recurring.emptyDescription')}
                 action={{ label: t('recurring.add'), onClick: () => setShowAddModal(true) }}
+                variant="compact"
+                tone="neutral"
               />
             </div>
           ) : (
@@ -239,17 +241,28 @@ export default function RecurringPage() {
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id || !canMarkPaid}
-                        className="flex items-center gap-0.5 text-[10px] font-600 text-accent hover:text-teal-600 transition-colors disabled:opacity-50"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-700 text-accent transition-colors hover:bg-muted/40 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50"
                         aria-label={t('recurring.markAsPaid')}
+                        title={t('recurring.markAsPaid')}
                       >
-                        {markingId === item.id ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+                        {markingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                         {t('recurring.paid')}
                       </button>
-                      <button onClick={() => handleTogglePause(item)} className="w-6 h-6 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.pause')}>
-                        <Pause size={12} className="text-warning" />
+                      <button
+                        onClick={() => handleTogglePause(item)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                        aria-label={t('recurring.pause')}
+                        title={t('recurring.pause')}
+                      >
+                        <Pause size={14} className="text-warning" />
                       </button>
-                      <button onClick={() => handleDelete(item)} className="w-6 h-6 rounded hover:bg-negative-soft flex items-center justify-center" aria-label={t('common:actions.delete')}>
-                        <Trash2 size={12} className="text-negative" />
+                      <button
+                        onClick={() => handleDelete(item)}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-negative-soft focus:outline-none focus:ring-2 focus:ring-negative/30"
+                        aria-label={t('common:actions.delete')}
+                        title={t('common:actions.delete')}
+                      >
+                        <Trash2 size={14} className="text-negative" />
                       </button>
                     </div>
                   </div>
@@ -276,8 +289,13 @@ export default function RecurringPage() {
                     <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.paused')}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => handleTogglePause(item)} className="w-7 h-7 rounded hover:bg-muted flex items-center justify-center" aria-label={t('recurring.resume')}>
-                      <Play size={13} className="text-positive" />
+                    <button
+                      onClick={() => handleTogglePause(item)}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-accent/30"
+                      aria-label={t('recurring.resume')}
+                      title={t('recurring.resume')}
+                    >
+                      <Play size={14} className="text-positive" />
                     </button>
                   </div>
                 </div>

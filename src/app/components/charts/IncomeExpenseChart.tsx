@@ -311,7 +311,7 @@ export default function IncomeExpenseChart({
   }
 
   return (
-    <div className="h-[320px] max-[480px]:h-[260px] md:h-[340px]">
+    <div className="h-[300px] max-[480px]:h-[240px] md:h-[310px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
         <defs>

@@ -314,7 +314,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="section-card-body">
-                    <ChartSkeleton height={320} />
+                    <ChartSkeleton height={300} />
                   </div>
                 </div>
               </div>

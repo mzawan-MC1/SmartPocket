@@ -248,12 +248,12 @@ export default function BudgetsPage() {
             </div>
           }
         />
-        <div className="flex flex-wrap gap-2 max-[480px]:gap-1.5">
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-[480px]:gap-1.5 sm:flex-wrap">
           <button
             type="button"
             aria-pressed={scopeType === 'personal'}
             onClick={() => setScopeType('personal')}
-            className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+            className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
               scopeType === 'personal'
                 ? 'border-accent bg-accent text-accent-foreground'
                 : 'border-border bg-card text-foreground hover:border-accent/40'
@@ -266,7 +266,7 @@ export default function BudgetsPage() {
             aria-pressed={scopeType === 'space'}
             onClick={() => setScopeType('space')}
             disabled={spaces.length === 0}
-            className={`rounded-xl border px-3 py-2 text-xs font-600 disabled:opacity-50 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+            className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 disabled:opacity-50 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
               scopeType === 'space'
                 ? 'border-accent bg-accent text-accent-foreground'
                 : 'border-border bg-card text-foreground hover:border-accent/40'
@@ -282,7 +282,7 @@ export default function BudgetsPage() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setPeriodFilter(filterValue)}
-                className={`rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
+                className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
               >
                 {filterValue === 'all' ? t('budgets.allBudgets') : getBudgetPeriodTypeLabel(filterValue, t)}
               </button>
@@ -476,12 +476,6 @@ export default function BudgetsPage() {
         <div className="space-y-3 max-[480px]:space-y-3 sm:space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-700 text-foreground">{t('budgets.categoryBudgets')}</h2>
-            <button onClick={() => {
-              setEditingBudget(null);
-              setShowAddModal(true);
-            }} className="btn-ghost h-9 px-2.5 text-sm text-accent">
-              <Plus size={14} /> {t('budgets.addCategoryBudget')}
-            </button>
           </div>
 
           {loading ? (
@@ -491,18 +485,13 @@ export default function BudgetsPage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="card-elevated p-12 max-[480px]:p-5">
+            <div className="card-elevated p-6 max-[480px]:p-4">
               <EmptyState
                 icon={Plus}
                 title={t('budgets.emptyTitle')}
                 description={t('budgets.emptyDescription')}
-                action={{
-                  label: t('budgets.addCategoryBudget'),
-                  onClick: () => {
-                    setEditingBudget(null);
-                    setShowAddModal(true);
-                  },
-                }}
+                variant="compact"
+                tone="neutral"
               />
             </div>
           ) : (
@@ -620,19 +609,6 @@ export default function BudgetsPage() {
                   </div>
                 );
               })}
-
-              <button
-                onClick={() => {
-                  setEditingBudget(null);
-                  setShowAddModal(true);
-                }}
-                className="card-elevated group flex min-h-[160px] flex-col items-center justify-center gap-2 border-2 border-dashed border-border p-6 transition-all duration-200 hover:border-accent hover:bg-accent/5 max-[480px]:min-h-[140px] max-[480px]:p-5"
-              >
-                <div className="w-10 h-10 rounded-full bg-muted group-hover:bg-accent/10 flex items-center justify-center transition-colors">
-                  <Plus size={20} className="text-muted-foreground group-hover:text-accent transition-colors" />
-                </div>
-                <p className="text-sm font-600 text-muted-foreground group-hover:text-accent transition-colors">{t('budgets.addCategoryBudget')}</p>
-              </button>
             </div>
           )}
         </div>

@@ -298,7 +298,7 @@ export default function AIHistoryPage() {
   return (
     <AppLayout activeRoute={pathname}>
       <SubscriptionFeatureGate feature="ai_history">
-        <div className="page-shell-readable page-section">
+        <div className="page-shell page-section">
           <PageHeader
             title={t('aiHistory.title')}
             description={t('aiHistory.description')}
@@ -353,19 +353,19 @@ export default function AIHistoryPage() {
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-600 text-foreground truncate">{getSummary(req)}</p>
-                      <div className="mt-0.5 flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">{formatDate(req.created_at)}</span>
-                        <span className="text-xs text-muted-foreground">· {getRequestTypeLabel(req.request_type)}</span>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>{formatDate(req.created_at)}</span>
+                        <span>· {getRequestTypeLabel(req.request_type)}</span>
                         {req.overall_intent && (
-                          <span className="text-xs text-muted-foreground">· {getIntentLabel(req.overall_intent)}</span>
+                          <span>· {getIntentLabel(req.overall_intent)}</span>
                         )}
                         {req.total_duration_ms && (
-                          <span className="text-xs text-muted-foreground">· {t('aiHistory.durationMs', { value: req.total_duration_ms })}</span>
+                          <span>· {t('aiHistory.durationMs', { value: req.total_duration_ms })}</span>
                         )}
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center justify-end gap-2 flex-shrink-0">
                       <AIHistoryStatusBadge status={req.confirmation_status || req.status} t={t} />
                       {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                     </div>
