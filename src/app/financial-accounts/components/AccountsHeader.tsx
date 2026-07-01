@@ -19,7 +19,7 @@ export default function AccountsHeader({ onAddAccount }: AccountsHeaderProps) {
       description={t('accounts.description')}
       badge={<StatusBadge status="info" label={t('accounts.badge')} />}
       compact
-      className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+      hideDescriptionOnMobile
       actionsClassName="w-full sm:w-auto"
       actions={
         <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">

@@ -180,7 +180,7 @@ export default function CategoriesPage() {
           description={t('categories.description')}
           badge={<StatusBadge status="info" label={t('categories.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"
           actions={
             <button onClick={() => { setEditCategory(null); reset(); setShowAddModal(true); }} className="btn-primary max-[480px]:w-full">

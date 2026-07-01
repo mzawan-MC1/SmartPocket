@@ -7,6 +7,7 @@ interface PageHeaderProps {
   actions?: React.ReactNode;
   align?: 'start' | 'center';
   compact?: boolean;
+  hideDescriptionOnMobile?: boolean;
   className?: string;
   actionsClassName?: string;
 }
@@ -18,11 +19,12 @@ export default function PageHeader({
   actions,
   align = 'start',
   compact = false,
+  hideDescriptionOnMobile = false,
   className = '',
   actionsClassName = '',
 }: PageHeaderProps) {
   return (
-    <div className={`page-header ${compact ? 'page-header-compact' : ''} ${align === 'center' ? 'text-center justify-center' : ''} ${className}`}>
+    <div className={`page-header ${compact ? 'page-header-compact' : ''} ${hideDescriptionOnMobile ? 'page-header-hide-subtitle-mobile' : ''} ${align === 'center' ? 'text-center justify-center' : ''} ${className}`.trim()}>
       <div className={`page-header-main ${compact ? 'page-header-main-compact' : ''} ${align === 'center' ? 'w-full flex flex-col items-center' : ''}`}>
         <div className={`flex flex-wrap items-center ${compact ? 'gap-2' : 'gap-3'}`}>
           <h1 className="page-title">{title}</h1>

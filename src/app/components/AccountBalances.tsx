@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, ArrowRight, Landmark } from 'lucide-react';
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -94,7 +95,7 @@ export default function AccountBalances() {
       description={t('accounts.dashboardDescription', { ns: 'portal' })}
       className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
       action={
-        <Link href="/financial-accounts" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
+        <Link href="/financial-accounts" className="link-accent text-sm">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
@@ -115,15 +116,14 @@ export default function AccountBalances() {
           ))}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-4 py-6">
-          <div className="flex max-w-[15rem] flex-col items-center text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
-              <Wallet size={22} />
-            </div>
-            <p className="text-sm font-700 text-foreground">{t('accounts.emptyTitle', { ns: 'portal' })}</p>
-            <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{t('accounts.emptyDescription', { ns: 'portal' })}</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Wallet}
+          title={t('accounts.emptyTitle', { ns: 'portal' })}
+          description={t('accounts.emptyDescription', { ns: 'portal' })}
+          variant="compact"
+          tone="neutral"
+          className="flex flex-1 items-center justify-center px-4 py-6"
+        />
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">

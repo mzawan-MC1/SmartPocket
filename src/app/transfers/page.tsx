@@ -74,7 +74,7 @@ export default function TransfersPage() {
           description={t('transfers.description')}
           badge={<StatusBadge status="info" label={t('transfers.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
           actions={
             <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
               <Plus size={16} /> {t('transfers.newTransfer')}

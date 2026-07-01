@@ -837,6 +837,19 @@
     max-width: 52rem;
   }
 
+  .link-accent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    transition: color 150ms ease;
+  }
+
+  .link-accent:hover {
+    color: rgba(var(--accent-rgb), 0.85);
+  }
+
   .section-card {
     background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(250,252,253,0.98) 100%);
     border: 1px solid var(--border);
@@ -876,6 +889,27 @@
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--muted-foreground);
+  }
+
+  @media (max-width: 480px) {
+    .page-header-compact {
+      gap: 0.5rem 1rem;
+    }
+
+    .page-header-compact .page-title {
+      font-size: 1.45rem;
+      line-height: 1.08;
+    }
+
+    .page-header-compact .page-subtitle {
+      margin-top: 0.125rem;
+      font-size: 0.8125rem;
+      line-height: 1.25rem;
+    }
+
+    .page-header-hide-subtitle-mobile .page-subtitle {
+      display: none;
+    }
   }
 
   .settings-row {

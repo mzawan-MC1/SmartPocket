@@ -91,7 +91,7 @@ export default function RecentTransactions() {
       description={t('recentTransactions.description', { ns: 'portal' })}
       className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
       action={
-        <Link href="/transactions" className="inline-flex items-center gap-1 text-sm font-700 text-accent transition-colors hover:text-teal-600">
+        <Link href="/transactions" className="link-accent text-sm">
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
@@ -112,15 +112,14 @@ export default function RecentTransactions() {
           ))}
         </div>
       ) : transactions.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-4 py-6">
-          <div className="flex max-w-[15rem] flex-col items-center text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/55 text-muted-foreground">
-              <Receipt size={22} />
-            </div>
-            <p className="text-sm font-700 text-foreground">{t('empty.noTransactions', { ns: 'common' })}</p>
-            <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">{t('recentTransactions.emptyDescription', { ns: 'portal' })}</p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Receipt}
+          title={t('empty.noTransactions', { ns: 'common' })}
+          description={t('recentTransactions.emptyDescription', { ns: 'portal' })}
+          variant="compact"
+          tone="neutral"
+          className="flex flex-1 items-center justify-center px-4 py-6"
+        />
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">

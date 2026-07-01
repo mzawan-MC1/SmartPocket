@@ -130,7 +130,7 @@ export default function ManagedPeoplePage() {
           description={t('people.description')}
           badge={<StatusBadge status="info" label={t('people.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"
           actions={
             <Link

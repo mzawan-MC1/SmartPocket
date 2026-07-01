@@ -1036,7 +1036,7 @@ export default function SettlementsPage() {
           description={t('settlements.description')}
           badge={<StatusBadge status="info" label={t('settlements.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"
           actions={
             <button onClick={() => setShowModal(true)} className="btn-primary max-[480px]:w-full">

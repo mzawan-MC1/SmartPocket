@@ -300,7 +300,7 @@ export default function ReimbursementsPage() {
           description={t('reimbursements.description')}
           badge={<StatusBadge status="info" label={t('reimbursements.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
         />
 
         {/* Summary */}

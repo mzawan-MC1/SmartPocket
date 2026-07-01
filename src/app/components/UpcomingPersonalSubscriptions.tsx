@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { CalendarClock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import EmptyState from '@/components/ui/EmptyState';
 import SectionCard from '@/components/ui/SectionCard';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -82,7 +83,7 @@ export default function UpcomingPersonalSubscriptions({
           : 'border-border/80 bg-card'
       }`}
       action={(
-        <Link href="/personal-subscriptions" className={`font-700 text-accent transition-colors hover:text-teal-600 ${compact ? 'text-xs' : 'text-sm'}`}>
+        <Link href="/personal-subscriptions" className={`link-accent ${compact ? 'text-xs' : 'text-sm'}`.trim()}>
           {t('actions.viewAll', { ns: 'common' })}
         </Link>
       )}
@@ -100,17 +101,14 @@ export default function UpcomingPersonalSubscriptions({
           ))}
         </div>
       ) : subscriptions.length === 0 ? (
-        <div className={`flex flex-1 flex-col items-center justify-center text-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}>
-          <div className={`mb-3 flex items-center justify-center text-accent ${compact ? 'h-12 w-12 rounded-[18px] bg-violet-500/10' : 'h-16 w-16 rounded-[22px] bg-accent/10'}`}>
-            <CalendarClock size={compact ? 22 : 28} />
-          </div>
-          <p className={`${compact ? 'text-[15px]' : 'text-base'} font-800 text-foreground`}>
-            {t('personalSubscriptions.widget.emptyTitle', { ns: 'portal' })}
-          </p>
-          <p className={`mt-2 max-w-[18rem] text-muted-foreground ${compact ? 'text-[12px] leading-5' : 'text-sm'}`}>
-            {t('personalSubscriptions.widget.emptyDescription', { ns: 'portal' })}
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarClock}
+          title={t('personalSubscriptions.widget.emptyTitle', { ns: 'portal' })}
+          description={t('personalSubscriptions.widget.emptyDescription', { ns: 'portal' })}
+          variant={compact ? 'compact' : 'default'}
+          tone={compact ? 'secondary' : 'accent'}
+          className={`flex flex-1 items-center justify-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}
+        />
       ) : (
         <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
           {subscriptions.map((subscription) => (

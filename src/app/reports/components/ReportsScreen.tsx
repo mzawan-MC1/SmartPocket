@@ -961,7 +961,7 @@ export default function ReportsScreen() {
         description={t('reports.pageDescription')}
         badge={<StatusBadge status="info" label={t('reports.pageBadge')} />}
         compact
-        className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+        hideDescriptionOnMobile
         actionsClassName="w-full sm:w-auto !min-w-0"
         actions={
           <div className="flex flex-wrap gap-2 sm:flex-nowrap print:hidden">

@@ -236,7 +236,6 @@ export default function BudgetsPage() {
           description={t('budgets.description')}
           badge={<StatusBadge status="info" label={t('budgets.badge')} />}
           compact
-          className="max-[480px]:gap-1.5 [&_.page-title]:max-[480px]:text-[1.45rem] [&_.page-subtitle]:max-[480px]:mt-0.5 [&_.page-subtitle]:max-[480px]:text-[13px] [&_.page-subtitle]:max-[480px]:leading-4"
           actionsClassName="w-full sm:w-auto"
           actions={
             <div className="flex w-full sm:w-auto">

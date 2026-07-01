@@ -130,7 +130,7 @@ export default function RecurringPage() {
           description={t('recurring.description')}
           badge={<StatusBadge status="info" label={t('recurring.badge')} />}
           compact
-          className="max-[480px]:gap-2 [&_.page-subtitle]:max-[480px]:hidden"
+          hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"
           actions={
             <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
