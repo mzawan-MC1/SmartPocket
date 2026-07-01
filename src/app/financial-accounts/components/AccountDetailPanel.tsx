@@ -13,14 +13,39 @@ import {
   isDefaultCashAccount,
 } from '@/lib/financial-account-utils';
 import type { AccountCurrencyHistoryItem } from '@/lib/financial-account-currency-change';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 interface AccountDetailPanelProps {
   account: FinancialAccount;
   onClose: () => void;
 }
 
+function formatExchangeRateValue(value: number, locale: string) {
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+}
+
+function formatHistoryDateTime(value: string | null | undefined, locale: string) {
+  if (!value) return '—';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '—';
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(parsed);
+}
+
 export default function AccountDetailPanel({ account, onClose }: AccountDetailPanelProps) {
   const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [currencyHistory, setCurrencyHistory] = useState<AccountCurrencyHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,35 +222,39 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
                     <span>{item.newCurrency}</span>
                   </div>
                   <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 max-[480px]:grid-cols-1">
                       <span>{t('accounts.currencyChange.previousBalanceLabel', {
                         ns: 'portal',
                         defaultValue: 'Previous balance',
                       })}</span>
-                      <FormattedCurrencyAmount amount={item.previousBalance} currencyCode={item.previousCurrency} textOnly className="text-xs text-muted-foreground" />
+                      <FormattedCurrencyAmount amount={item.previousBalance} currencyCode={item.previousCurrency} textOnly className="text-right text-xs text-muted-foreground max-[480px]:text-left" />
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 max-[480px]:grid-cols-1">
                       <span>{t('accounts.currencyChange.resultingBalanceLabel', {
                         ns: 'portal',
                         defaultValue: 'Resulting balance',
                       })}</span>
-                      <FormattedCurrencyAmount amount={item.resultingBalance} currencyCode={item.newCurrency} textOnly className="text-xs text-muted-foreground" />
+                      <FormattedCurrencyAmount amount={item.resultingBalance} currencyCode={item.newCurrency} textOnly className="text-right text-xs text-muted-foreground max-[480px]:text-left" />
                     </div>
                     {item.exchangeRate !== null ? (
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 max-[480px]:grid-cols-1">
                         <span>{t('accounts.currencyChange.exchangeRateLabel', {
                           ns: 'portal',
                           defaultValue: 'Exchange rate',
                         })}</span>
-                        <span>{item.exchangeRate}</span>
+                        <span className="text-right text-foreground max-[480px]:text-left">
+                          {formatExchangeRateValue(item.exchangeRate, locale)}
+                        </span>
                       </div>
                     ) : null}
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 max-[480px]:grid-cols-1">
                       <span>{t('accounts.currencyChange.changeDateLabel', {
                         ns: 'portal',
                         defaultValue: 'Change date',
                       })}</span>
-                      <span>{item.confirmedAt || item.createdAt}</span>
+                      <span className="text-right text-foreground max-[480px]:text-left">
+                        {formatHistoryDateTime(item.confirmedAt || item.createdAt, locale)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -277,7 +306,13 @@ export default function AccountDetailPanel({ account, onClose }: AccountDetailPa
                         ? translateSystemCategoryName(txn.category.name, (key, options) =>
                             t(key, { ...(options || {}), ns: 'common' })
                           )
-                        : t('reports.chartLabels.uncategorized', { ns: 'portal' })} · {txn.transaction_date}
+                        : t('categories.uncategorized', {
+                            ns: 'portal',
+                            defaultValue: t('common.uncategorized', {
+                              ns: 'common',
+                              defaultValue: 'Uncategorized',
+                            }),
+                          })} · {txn.transaction_date}
                     </p>
                   </div>
                   <span className={`text-sm font-700 font-tabular flex-shrink-0 ${txn.transaction_type === 'income' ? 'text-positive' : 'text-foreground'}`}>
