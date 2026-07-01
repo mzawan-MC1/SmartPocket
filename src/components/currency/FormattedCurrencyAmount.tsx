@@ -58,7 +58,8 @@ export default function FormattedCurrencyAmount({
   );
   const resolvedSize = size || (compact ? 'sm' : 'md');
   const layoutStyles = SIZE_STYLES[resolvedSize];
-  const resolvedDisplayMode: CurrencyDisplayMode = showCode ? 'code' : displayMode;
+  const resolvedDisplayMode: CurrencyDisplayMode = displayMode;
+  const resolvedCodeClassName = showCode && !codeClassName ? numberClassName : codeClassName;
 
   if (textOnly) {
     return (
@@ -96,7 +97,7 @@ export default function FormattedCurrencyAmount({
         className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
         style={{ unicodeBidi: 'isolate' }}
       >
-        <span className={codeClassName}>{formatted.text}</span>
+        <span className={resolvedCodeClassName}>{formatted.text}</span>
       </span>
     );
   }
