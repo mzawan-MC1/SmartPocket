@@ -13,6 +13,7 @@ import { useQuickActions } from '@/components/quick-actions/QuickActionsContext'
 import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { PlanCode, PublicSubscriptionPlan, SubscriptionSummary } from '@/lib/subscription/types';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -23,7 +24,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activePlans, setActivePlans] = useState<PublicSubscriptionPlan[]>([]);
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const { summary: subscriptionSummary } = useSubscriptionSummary();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -31,8 +32,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const aiButtonLabel = t('topbar.smartEntry', { ns: 'portal' });
   const aiMobileLabel = t('topbar.smartEntryShort', { ns: 'portal', defaultValue: 'AI' });
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
-  const initials = displayName.charAt(0).toUpperCase();
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
   const isAdmin = user?.app_metadata?.role === 'admin';
 
   useEffect(() => {
@@ -172,18 +172,33 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
               aria-label={t('topbar.userMenu', { ns: 'portal' })}
               aria-expanded={userMenuOpen}
             >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full gradient-teal text-xs font-700 text-white max-[480px]:h-7 max-[480px]:w-7">
-                {initials}
-              </div>
+              <UserAvatar
+                fullName={displayName}
+                email={user?.email}
+                avatarUrl={profile?.avatar_url}
+                className="h-7 w-7 text-xs max-[480px]:h-7 max-[480px]:w-7"
+                textClassName="text-xs"
+                iconClassName="h-3.5 w-3.5"
+              />
               <span className="hidden max-w-[120px] truncate text-sm font-600 text-foreground lg:block">{displayName}</span>
               <ChevronDown size={14} className={`hidden text-muted-foreground transition-transform duration-150 lg:block ${userMenuOpen ? 'rotate-180' : ''}`} />
             </button>
 
             {userMenuOpen && (
               <div className="absolute end-0 top-full z-50 mt-2 w-52 max-w-[calc(100vw-1rem)] scale-in rounded-xl border border-border bg-card py-1 shadow-card-lg">
-                <div className="border-b border-border px-3 py-2">
-                  <p className="truncate text-sm font-600 text-foreground">{displayName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                <div className="flex items-center gap-2.5 border-b border-border px-3 py-2">
+                  <UserAvatar
+                    fullName={displayName}
+                    email={user?.email}
+                    avatarUrl={profile?.avatar_url}
+                    className="h-9 w-9 text-sm"
+                    textClassName="text-sm"
+                    iconClassName="h-4 w-4"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-600 text-foreground">{displayName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
                 </div>
                 {showUpgradePackage ? (
                   <Link

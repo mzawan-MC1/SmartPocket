@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
-import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard } from 'lucide-react';
+import { Settings, User, Globe, Bell, Shield, Check, Loader2, CreditCard, Upload, Trash2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -40,6 +40,8 @@ import { getIntlLocale } from '@/lib/locale';
 import { buildPasswordResetUrl } from '@/lib/auth/urls';
 import { fetchSubscriptionSummary } from '@/lib/subscription/client';
 import type { SubscriptionSummary } from '@/lib/subscription/types';
+import UserAvatar from '@/components/ui/UserAvatar';
+import { removeCurrentUserAvatar, uploadCurrentUserAvatar } from '@/lib/profile-avatar';
 
 const CountrySelector = dynamic(() => import('@/components/country/CountrySelector'), {
   ssr: false,
@@ -96,6 +98,7 @@ interface ProfileFormData {
 
 const SETTINGS_PROFILE_SELECT = [
   'full_name',
+  'avatar_url',
   'country',
   'monthly_income',
   'month_start_day',
@@ -153,9 +156,15 @@ export default function SettingsPage() {
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [subscriptionSummary, setSubscriptionSummary] = useState<SubscriptionSummary | null>(null);
   const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarUploadProgress, setAvatarUploadProgress] = useState(0);
+  const [avatarRemoving, setAvatarRemoving] = useState(false);
+  const [showAvatarRemoveConfirm, setShowAvatarRemoveConfirm] = useState(false);
   const notificationsLoadedForUserRef = useRef<string | null>(null);
   const subscriptionLoadedForUserRef = useRef<string | null>(null);
-  const { user } = useAuth();
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const { user, profile, refreshUserProfile, patchUserProfile } = useAuth();
   const { language, setLanguage, isRTL } = useLanguage();
   const { data: referenceData } = useClientReferenceData();
   const snapshot = referenceData?.snapshot;
@@ -216,12 +225,17 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    setAvatarUrl(profile?.avatar_url || null);
+  }, [profile?.avatar_url]);
+
+  useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
       const supabase = createClient();
       const { data } = await supabase.from('user_profiles').select(SETTINGS_PROFILE_SELECT).eq('id', user.id).single();
       if (data) {
         const nextDefaultCurrency = data.default_currency || referenceData?.platformDefaultCurrency || '';
+        setAvatarUrl(data.avatar_url || null);
         reset({
           full_name: data.full_name || '',
           country: data.country || '',
@@ -378,6 +392,11 @@ export default function SettingsPage() {
         }),
       });
       setSavedDefaultCurrency(nextDefaultCurrency);
+      setAvatarUrl(savedProfile.avatar_url || null);
+      patchUserProfile({
+        full_name: savedProfile.full_name || null,
+        avatar_url: savedProfile.avatar_url || null,
+      });
       if (!options?.preserveReportingCurrencyWizard) {
         setPendingProfileData(null);
         setShowReportingCurrencyWizard(false);
@@ -404,7 +423,7 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
-  }, [getCurrencyDisplayName, getValues, referenceData?.platformDefaultCurrency, reset, setLanguage, t, user]);
+  }, [getCurrencyDisplayName, getValues, patchUserProfile, referenceData?.platformDefaultCurrency, reset, setLanguage, t, user]);
 
   const onSubmit = async (data: ProfileFormData) => {
     const previousCurrency = (savedDefaultCurrency || '').trim().toUpperCase();
@@ -418,6 +437,66 @@ export default function SettingsPage() {
     }
 
     await persistProfile(data);
+  };
+
+  const handleAvatarInputClick = () => {
+    if (avatarUploading || avatarRemoving) return;
+    avatarInputRef.current?.click();
+  };
+
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user?.id || avatarUploading || avatarRemoving) return;
+
+    setAvatarUploading(true);
+    setAvatarUploadProgress(0);
+    try {
+      const result = await uploadCurrentUserAvatar({
+        file,
+        onProgress: setAvatarUploadProgress,
+      });
+      setAvatarUrl(result.avatarUrl);
+      patchUserProfile({ avatar_url: result.avatarUrl });
+      await refreshUserProfile(user.id);
+      setShowAvatarRemoveConfirm(false);
+      toast.success(t('settings.profile.avatarUploadSuccess', {
+        ns: 'portal',
+        defaultValue: 'Profile photo updated successfully.',
+      }));
+    } catch (error: any) {
+      toast.error(error?.message || t('settings.profile.avatarUploadFailed', {
+        ns: 'portal',
+        defaultValue: 'We could not upload your profile photo.',
+      }));
+    } finally {
+      setAvatarUploading(false);
+      setAvatarUploadProgress(0);
+    }
+  };
+
+  const confirmRemoveAvatar = async () => {
+    if (!user?.id || avatarUploading || avatarRemoving) return;
+
+    setAvatarRemoving(true);
+    try {
+      await removeCurrentUserAvatar();
+      setAvatarUrl(null);
+      patchUserProfile({ avatar_url: null });
+      await refreshUserProfile(user.id);
+      setShowAvatarRemoveConfirm(false);
+      toast.success(t('settings.profile.avatarRemoveSuccess', {
+        ns: 'portal',
+        defaultValue: 'Profile photo removed.',
+      }));
+    } catch (error: any) {
+      toast.error(error?.message || t('settings.profile.avatarRemoveFailed', {
+        ns: 'portal',
+        defaultValue: 'We could not remove your profile photo.',
+      }));
+    } finally {
+      setAvatarRemoving(false);
+    }
   };
 
   const toggleNotificationPreference = (key: keyof NotificationPreferences) => {
@@ -537,33 +616,152 @@ export default function SettingsPage() {
               description={t('settings.profile.description', { ns: 'portal' })}
             >
               <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settings.profile.fullName', { ns: 'portal' })}</label>
-                <input
-                  type="text"
-                  className={`input-base ${errors.full_name ? 'input-error' : ''}`}
-                  {...register('full_name', { required: t('settings.profile.errors.fullNameRequired', { ns: 'portal' }) })}
-                />
-                {errors.full_name && <p className="mt-1.5 text-xs text-negative font-500">{errors.full_name.message}</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settings.profile.email', { ns: 'portal' })}</label>
-                <input type="email" className="input-base opacity-60" value={user?.email || ''} disabled />
-                <p className="text-xs text-muted-foreground mt-1">{t('settings.profile.emailHelper', { ns: 'portal' })}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settings.profile.country', { ns: 'portal' })}</label>
-                <CountrySelector
-                  value={selectedCountry}
-                  onChange={(countryCode) => setValue('country', countryCode, { shouldDirty: true })}
-                  placeholder={t('settings.profile.countryPlaceholder', { ns: 'portal' })}
-                />
-                <input type="hidden" {...register('country')} />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">{t('settings.profile.monthlyIncome', { ns: 'portal' })}</label>
-                <input type="number" step="0.01" min="0" className="input-base font-tabular" placeholder={t('settings.profile.monthlyIncomePlaceholder', { ns: 'portal' })} {...register('monthly_income')} />
-              </div>
+                <div className="rounded-2xl border border-border bg-muted/15 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <UserAvatar
+                        fullName={watch('full_name') || profile?.full_name || user?.email || ''}
+                        email={user?.email}
+                        avatarUrl={avatarUrl}
+                        className="h-20 w-20 text-xl"
+                        textClassName="text-xl"
+                        iconClassName="h-8 w-8"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-700 text-foreground">
+                          {t('settings.profile.photoTitle', {
+                            ns: 'portal',
+                            defaultValue: 'Profile photo',
+                          })}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {t('settings.profile.photoHelper', {
+                            ns: 'portal',
+                            defaultValue: 'JPG, PNG or WebP. Maximum 5 MB.',
+                          })}
+                        </p>
+                        {(avatarUploading || avatarRemoving) ? (
+                          <p className="mt-2 text-xs font-700 text-accent">
+                            {avatarUploading
+                              ? t('settings.profile.photoUploading', {
+                                  ns: 'portal',
+                                  defaultValue: 'Uploading {{progress}}%',
+                                  progress: Math.max(10, avatarUploadProgress),
+                                })
+                              : t('settings.profile.photoRemoving', {
+                                  ns: 'portal',
+                                  defaultValue: 'Removing photo...',
+                                })}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <input
+                        ref={avatarInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(event) => void handleAvatarFileChange(event)}
+                      />
+                      <button
+                        type="button"
+                        className="btn-secondary text-sm"
+                        onClick={handleAvatarInputClick}
+                        disabled={avatarUploading || avatarRemoving}
+                      >
+                        <Upload size={15} />
+                        {t('actions.upload', { ns: 'common' })} {t('settings.profile.photoAction', {
+                          ns: 'portal',
+                          defaultValue: 'photo',
+                        })}
+                      </button>
+                      {avatarUrl ? (
+                        <button
+                          type="button"
+                          className="btn-secondary text-sm text-negative border-negative/20"
+                          onClick={() => setShowAvatarRemoveConfirm((current) => !current)}
+                          disabled={avatarUploading || avatarRemoving}
+                        >
+                          <Trash2 size={15} />
+                          {t('actions.remove', { ns: 'common' })} {t('settings.profile.photoAction', {
+                            ns: 'portal',
+                            defaultValue: 'photo',
+                          })}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {showAvatarRemoveConfirm && avatarUrl ? (
+                    <div className="mt-4 rounded-xl border border-negative/20 bg-negative-soft/20 p-3">
+                      <p className="text-sm text-foreground">
+                        {t('settings.profile.photoRemoveConfirm', {
+                          ns: 'portal',
+                          defaultValue: 'Remove your current profile photo?',
+                        })}
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="btn-secondary text-sm text-negative border-negative/20"
+                          onClick={() => void confirmRemoveAvatar()}
+                          disabled={avatarRemoving}
+                        >
+                          {t('actions.remove', { ns: 'common' })}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-secondary text-sm"
+                          onClick={() => setShowAvatarRemoveConfirm(false)}
+                          disabled={avatarRemoving}
+                        >
+                          {t('actions.cancel', { ns: 'common' })}
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settings.profile.fullName', { ns: 'portal' })}</label>
+                  <input
+                    type="text"
+                    className={`input-base ${errors.full_name ? 'input-error' : ''}`}
+                    {...register('full_name', { required: t('settings.profile.errors.fullNameRequired', { ns: 'portal' }) })}
+                  />
+                  {errors.full_name && <p className="mt-1.5 text-xs text-negative font-500">{errors.full_name.message}</p>}
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settings.profile.email', { ns: 'portal' })}</label>
+                  <input type="email" className="input-base opacity-60" value={user?.email || ''} disabled />
+                  <p className="mt-1 text-xs text-muted-foreground">{t('settings.profile.emailHelper', { ns: 'portal' })}</p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settings.profile.country', { ns: 'portal' })}</label>
+                  <CountrySelector
+                    value={selectedCountry}
+                    onChange={(countryCode) => setValue('country', countryCode, { shouldDirty: true })}
+                    placeholder={t('settings.profile.countryPlaceholder', { ns: 'portal' })}
+                  />
+                  <input type="hidden" {...register('country')} />
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {t('settings.profile.countryHelperPrefix', {
+                      ns: 'portal',
+                      defaultValue: 'Country is used for regional settings and phone details. Change your reporting currency in',
+                    })}{' '}
+                    <button
+                      type="button"
+                      className="font-700 text-accent transition-colors hover:text-accent/80"
+                      onClick={() => setActiveTab('preferences')}
+                    >
+                      {t('settings.tabs.preferences', { ns: 'portal' })}
+                    </button>
+                    .
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settings.profile.monthlyIncome', { ns: 'portal' })}</label>
+                  <input type="number" step="0.01" min="0" className="input-base font-tabular" placeholder={t('settings.profile.monthlyIncomePlaceholder', { ns: 'portal' })} {...register('monthly_income')} />
+                </div>
               </div>
             </SectionCard>
           )}

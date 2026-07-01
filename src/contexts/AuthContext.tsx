@@ -2,7 +2,7 @@
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -50,6 +50,12 @@ export type SignUpResult = {
   requiresEmailVerification: boolean;
 };
 
+export type AuthUserProfile = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+};
+
 const AuthContext = createContext<any>({});
 
 export const useAuth = () => {
@@ -63,15 +69,68 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [session, setSession] = useState<any>(null);
+  const [profile, setProfile] = useState<AuthUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabase] = useState(() => createClient());
+
+  const refreshUserProfile = useCallback(async (userId?: string | null) => {
+    const nextUserId = userId || user?.id;
+    if (!nextUserId) {
+      setProfile(null);
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, avatar_url')
+      .eq('id', nextUserId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    const nextProfile = data
+      ? {
+          id: data.id,
+          full_name: data.full_name || null,
+          avatar_url: data.avatar_url || null,
+        }
+      : null;
+
+    setProfile(nextProfile);
+    return nextProfile;
+  }, [supabase, user?.id]);
+
+  const patchUserProfile = useCallback((patch: Partial<AuthUserProfile>) => {
+    setProfile((current) => {
+      if (!current && !user?.id) return current;
+      return {
+        id: current?.id || user?.id || '',
+        full_name: patch.full_name !== undefined ? patch.full_name ?? null : current?.full_name || null,
+        avatar_url: patch.avatar_url !== undefined ? patch.avatar_url ?? null : current?.avatar_url || null,
+      };
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession()
-      .then(({ data: { session } }: { data: { session: Session | null } }) => {
+      .then(async ({ data: { session } }: { data: { session: Session | null } }) => {
         setSession(session);
         setUser(session?.user ?? null);
+        try {
+          if (session?.user?.id) {
+            await refreshUserProfile(session.user.id);
+          } else {
+            setProfile(null);
+          }
+        } catch (error: unknown) {
+          reportHomeFirstVisitBlankEvent({
+            point: 'loadUserProfile',
+            errorName: error instanceof Error ? error.name : 'unknown',
+            errorMessage: error instanceof Error ? error.message : String(error),
+          });
+          setProfile(null);
+        }
         setLoading(false);
       })
       .catch((error: unknown) => {
@@ -82,20 +141,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
         setSession(null);
         setUser(null);
+        setProfile(null);
         setLoading(false);
       });
 
     // Listen for auth changes
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
+    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
+      try {
+        if (session?.user?.id) {
+          await refreshUserProfile(session.user.id);
+        } else {
+          setProfile(null);
+        }
+      } catch {
+        setProfile(null);
+      }
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [refreshUserProfile, supabase.auth]);
 
   // Email/Password Sign Up
   const signUp = async (
@@ -171,13 +240,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const value = useMemo(() => ({
     user,
     session,
+    profile,
     loading,
     signUp,
     signOut,
     getCurrentUser,
     isEmailVerified,
     getUserProfile,
-  }), [loading, session, user]);
+    refreshUserProfile,
+    patchUserProfile,
+  }), [getCurrentUser, getUserProfile, isEmailVerified, loading, patchUserProfile, profile, refreshUserProfile, session, signOut, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

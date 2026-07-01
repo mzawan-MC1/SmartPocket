@@ -3570,7 +3570,7 @@ export function generateCSV(transactions: Transaction[]): string {
     t.currency,
     `"${formatCurrencyText(
       t.transaction_type === 'expense' ? -Number(t.amount) : Number(t.amount),
-      { currencyCode: t.currency }
+      { currencyCode: t.currency, displayMode: 'code' }
     ).replace(/"/g, '""')}"`,
     `"${(t.tags || []).join(', ')}"`,
     `"${(t.notes || '').replace(/"/g, '""')}"`,

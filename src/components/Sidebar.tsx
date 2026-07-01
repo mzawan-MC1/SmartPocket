@@ -12,6 +12,7 @@ import { usePendingNavigation } from '@/lib/pending-navigation';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import UserAvatar from '@/components/ui/UserAvatar';
 import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
 
 
@@ -39,7 +40,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const { dir } = useLanguage();
   const isRTL = dir === 'rtl';
   const { t } = useTranslation(['common', 'portal']);
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const router = useRouter();
   const { pathname, isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const { branding } = usePlatformSettings();
@@ -129,9 +130,8 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     ? (collapsed ? ChevronLeft : ChevronRight)
     : (collapsed ? ChevronRight : ChevronLeft);
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
   const displayEmail = user?.email || '';
-  const initials = displayName.charAt(0).toUpperCase();
 
   const reportsOverviewItem: NavItem = {
     id: 'nav-reports-overview',
@@ -378,17 +378,29 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         {collapsed ? (
           <button
             onClick={handleSignOut}
-            className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white transition-opacity hover:opacity-80 ${isMobileDrawer ? 'h-10 w-10' : 'h-9 w-9'}`}
+            className="transition-opacity hover:opacity-80"
             title={t('sidebar.signOut', { ns: 'portal' })}
           >
-            {initials}
+            <UserAvatar
+              fullName={displayName}
+              email={displayEmail}
+              avatarUrl={profile?.avatar_url}
+              className={isMobileDrawer ? 'h-10 w-10 text-sm' : 'h-9 w-9 text-[13px]'}
+              textClassName={isMobileDrawer ? 'text-sm' : 'text-[13px]'}
+              iconClassName={isMobileDrawer ? 'h-4.5 w-4.5' : 'h-4 w-4'}
+            />
           </button>
         ) : (
           <div className={`border border-border/80 bg-secondary/35 shadow-card-sm ${isMobileDrawer ? 'rounded-2xl p-3' : 'rounded-[22px] p-3'}`}>
             <div className={`flex items-center ${isMobileDrawer ? 'gap-3' : 'gap-2.5'}`}>
-              <div className={`flex items-center justify-center rounded-full gradient-teal text-sm font-700 text-white ${isMobileDrawer ? 'h-10 w-10' : 'h-8.5 w-8.5 text-[13px]'}`}>
-                {initials}
-              </div>
+              <UserAvatar
+                fullName={displayName}
+                email={displayEmail}
+                avatarUrl={profile?.avatar_url}
+                className={isMobileDrawer ? 'h-10 w-10 text-sm' : 'h-8.5 w-8.5 text-[13px]'}
+                textClassName={isMobileDrawer ? 'text-sm' : 'text-[13px]'}
+                iconClassName={isMobileDrawer ? 'h-4.5 w-4.5' : 'h-4 w-4'}
+              />
               <div className="min-w-0 flex-1">
                 <p className={`truncate font-700 text-foreground ${isMobileDrawer ? 'text-sm' : 'text-[13px]'}`}>{displayName}</p>
                 <p className="truncate text-xs text-muted-foreground">{displayEmail}</p>

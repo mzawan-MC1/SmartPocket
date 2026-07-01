@@ -7,7 +7,6 @@ import SearchField from '@/components/ui/SearchField';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getSelectableActiveCountries } from '@/lib/reference-data/collections';
 import {
-  buildCurrencyCodesByCountry,
   getCountryByCode,
   normalizeCountryCode,
   normalizeSearchValue,
@@ -46,11 +45,6 @@ export default function CountrySelector({
   const selectedCountry = getCountryByCode(countries, value);
   const normalizedValue = normalizeCountryCode(value);
 
-  const currencyCodesByCountry = useMemo(
-    () => buildCurrencyCodesByCountry(snapshot?.countries ?? [], snapshot?.countryCurrencies ?? []),
-    [snapshot?.countries, snapshot?.countryCurrencies]
-  );
-
   const orderedCountries = useMemo(
     () => getSelectableActiveCountries(countries),
     [countries]
@@ -62,27 +56,16 @@ export default function CountrySelector({
     return orderedCountries.filter((country) => {
       if (!query) return true;
 
-      const currencyCodes = currencyCodesByCountry.get(country.isoAlpha2) ?? [];
       return [
         country.name,
         country.isoAlpha2,
         country.isoAlpha3,
         country.callingCode,
-        country.defaultCurrencyCode,
-        ...currencyCodes,
       ].some((entry) => normalizeSearchValue(entry).includes(query));
     });
-  }, [currencyCodesByCountry, orderedCountries, search]);
+  }, [orderedCountries, search]);
 
-  const selectedCountryMeta = selectedCountry
-    ? [
-        selectedCountry.isoAlpha2,
-        selectedCountry.callingCode,
-        selectedCountry.defaultCurrencyCode,
-      ]
-        .filter(Boolean)
-        .join(' · ')
-    : '';
+  const selectedCountryMeta = selectedCountry?.callingCode || '';
 
   useEffect(() => {
     if (!open) return;
@@ -165,7 +148,9 @@ export default function CountrySelector({
             <div className="flex flex-wrap items-center gap-2">
               <span className="selector-value-primary text-sm font-700">{selectedCountry.name}</span>
             </div>
-            <p className="selector-value-secondary whitespace-nowrap text-sm">{selectedCountryMeta}</p>
+            {selectedCountryMeta ? (
+              <p className="selector-value-secondary whitespace-nowrap text-sm">{selectedCountryMeta}</p>
+            ) : null}
           </div>
         ) : (
           <span className="selector-placeholder text-sm">
@@ -219,11 +204,12 @@ export default function CountrySelector({
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-sm font-700 ${country.isoAlpha2 === normalizedValue ? 'selector-value-primary' : 'text-foreground'}`}>{country.name}</span>
-                        <span className={`text-xs font-600 ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>{country.isoAlpha2}</span>
                       </div>
-                    <p className={`whitespace-nowrap text-sm ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
-                      {[country.callingCode, country.defaultCurrencyCode].filter(Boolean).join(' • ')}
-                      </p>
+                      {country.callingCode ? (
+                        <p className={`whitespace-nowrap text-sm ${country.isoAlpha2 === normalizedValue ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
+                          {country.callingCode}
+                        </p>
+                      ) : null}
                     </div>
                     {country.isoAlpha2 === normalizedValue ? (
                       <Check size={14} className="selector-check shrink-0" />

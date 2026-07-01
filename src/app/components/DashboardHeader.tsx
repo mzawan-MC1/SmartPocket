@@ -56,7 +56,7 @@ export default function DashboardHeader({
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const { t } = useTranslation('portal');
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { dir, language } = useLanguage();
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
@@ -77,7 +77,7 @@ export default function DashboardHeader({
   const description = t('dashboardHeader.description', {
     period: activePeriod.label,
   });
-  const registeredName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
+  const registeredName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
   const firstName = getFirstName(registeredName) || registeredName;
   const currentHour = Number(new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',

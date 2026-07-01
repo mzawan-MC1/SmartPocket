@@ -5,7 +5,6 @@ import CurrencySymbol, { type CurrencySymbolSize } from '@/components/currency/C
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 import {
-  formatCurrencyText,
   formatCurrencyValue,
   type CurrencyDisplayMode,
 } from '@/lib/currency-formatting';
@@ -59,23 +58,27 @@ export default function FormattedCurrencyAmount({
   const resolvedSize = size || (compact ? 'sm' : 'md');
   const layoutStyles = SIZE_STYLES[resolvedSize];
   const resolvedDisplayMode: CurrencyDisplayMode = displayMode;
+  const resolvedTextDisplayMode: CurrencyDisplayMode = showCode ? 'code' : resolvedDisplayMode;
   const resolvedCodeClassName = showCode && !codeClassName ? numberClassName : codeClassName;
 
   if (textOnly) {
+    const formattedText = formatCurrencyValue(amount, {
+      currency,
+      currencies,
+      currencyCode,
+      fallbackCurrencyCode,
+      locale,
+      compact,
+      displayMode: resolvedTextDisplayMode,
+    });
+
     return (
       <span
         dir="ltr"
         className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
         style={{ unicodeBidi: 'isolate' }}
       >
-        {formatCurrencyText(amount, {
-          currency,
-          currencies,
-          currencyCode,
-          fallbackCurrencyCode,
-          locale,
-          compact,
-        })}
+        {formattedText.text}
       </span>
     );
   }

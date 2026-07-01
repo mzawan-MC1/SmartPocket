@@ -175,7 +175,6 @@ export function formatCurrencyText(
   return formatCurrencyValue(amount, {
     ...options,
     textOnly: true,
-    displayMode: 'code',
   }).text;
 }
 
