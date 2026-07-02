@@ -1,6 +1,6 @@
 'use client';
 import { createClient } from '@/lib/supabase/client';
-import { formatCurrencyText } from '@/lib/currency-formatting';
+import { buildCsvRow } from '@/lib/reports-export';
 import {
   getFinancialAccountScopeType,
   getFinancialAccountOwnershipType,
@@ -3558,25 +3558,150 @@ export async function buildHistoricalReportConvertedMetric(args: {
   });
 }
 
-export function generateCSV(transactions: Transaction[]): string {
-  const headers = ['Date', 'Description', 'Merchant', 'Category', 'Account', 'Type', 'Amount Value', 'Currency Code', 'Formatted Amount', 'Tags', 'Notes'];
-  const rows = transactions.map((t) => [
-    t.transaction_date,
-    `"${(t.description || '').replace(/"/g, '""')}"`,
-    `"${(t.merchant || '').replace(/"/g, '""')}"`,
-    `"${(t.category?.name || '').replace(/"/g, '""')}"`,
-    `"${(t.account?.name || '').replace(/"/g, '""')}"`,
-    t.transaction_type,
-    t.transaction_type === 'expense' ? `-${t.amount}` : `${t.amount}`,
-    t.currency,
-    `"${formatCurrencyText(
-      t.transaction_type === 'expense' ? -Number(t.amount) : Number(t.amount),
-      { currencyCode: t.currency, displayMode: 'code' }
-    ).replace(/"/g, '""')}"`,
-    `"${(t.tags || []).join(', ')}"`,
-    `"${(t.notes || '').replace(/"/g, '""')}"`,
-  ]);
-  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+type TransactionCsvSource = 'manual' | 'personal_subscription' | 'recurring_transaction' | 'transfer';
+
+const INTERNAL_TRANSACTION_TAG_PREFIXES = [
+  'personal_subscription',
+  'recurring_transaction',
+  'system:',
+  'link:',
+  'linked_',
+  'subscription:',
+  'recurring:',
+] as const;
+const UUID_LIKE_TAG_PATTERN = /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/i;
+
+function formatTransactionCsvAmount(transaction: Transaction) {
+  const amount = Number(transaction.amount);
+  if (!Number.isFinite(amount)) {
+    return '';
+  }
+  const signedAmount = transaction.transaction_type === 'expense' ? -Math.abs(amount) : amount;
+  return signedAmount.toFixed(2);
+}
+
+function normalizeTransactionCsvDate(value: string | null | undefined) {
+  if (!value) return '';
+  return value.split('T')[0] || value;
+}
+
+function isInternalTransactionTag(tag: string) {
+  const normalized = tag.trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+  if (UUID_LIKE_TAG_PATTERN.test(normalized)) {
+    return true;
+  }
+  return INTERNAL_TRANSACTION_TAG_PREFIXES.some((prefix) => normalized === prefix || normalized.startsWith(`${prefix}:`));
+}
+
+function getUserFacingTransactionTags(tags: string[] | null | undefined) {
+  return Array.from(
+    new Set(
+      (tags || [])
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0 && !isInternalTransactionTag(tag))
+    )
+  );
+}
+
+function getTransactionCsvSource(transaction: Transaction): TransactionCsvSource {
+  if (transaction.transaction_type === 'transfer' || transaction.transfer_pair_id) {
+    return 'transfer';
+  }
+
+  const normalizedTags = (transaction.tags || []).map((tag) => tag.trim().toLowerCase());
+  if (normalizedTags.some((tag) => tag === 'personal_subscription' || tag.startsWith('personal_subscription:'))) {
+    return 'personal_subscription';
+  }
+  if (transaction.recurring_id || normalizedTags.some((tag) => tag === 'recurring_transaction' || tag.startsWith('recurring_transaction:'))) {
+    return 'recurring_transaction';
+  }
+  return 'manual';
+}
+
+function getTransactionCsvSourceLabel(
+  source: TransactionCsvSource,
+  formatSourceLabel?: (source: TransactionCsvSource) => string
+) {
+  if (formatSourceLabel) {
+    return formatSourceLabel(source);
+  }
+
+  switch (source) {
+    case 'personal_subscription':
+      return 'Personal Subscription';
+    case 'recurring_transaction':
+      return 'Recurring Transaction';
+    case 'transfer':
+      return 'Transfer';
+    case 'manual':
+    default:
+      return 'Manual';
+  }
+}
+
+export function generateCSV(
+  transactions: Transaction[],
+  options?: {
+    personNamesById?: Record<string, string>;
+    formatCategoryName?: (categoryName: string) => string;
+    formatTypeLabel?: (type: Transaction['transaction_type']) => string;
+    formatSourceLabel?: (source: TransactionCsvSource) => string;
+  }
+): string {
+  const includeTagsColumn = transactions.some((transaction) => getUserFacingTransactionTags(transaction.tags).length > 0);
+  const headers = [
+    'Date',
+    'Description',
+    'Merchant / Source',
+    'Category',
+    'Account',
+    'Type',
+    'Amount',
+    'Currency',
+    'Person',
+    'Source',
+    'Notes',
+  ];
+
+  if (includeTagsColumn) {
+    headers.push('Tags');
+  }
+
+  const rows = transactions.map((transaction) => {
+    const sanitizedTags = getUserFacingTransactionTags(transaction.tags);
+    const source = getTransactionCsvSource(transaction);
+    const sourceLabel = getTransactionCsvSourceLabel(source, options?.formatSourceLabel);
+    const categoryName = transaction.category?.name
+      ? options?.formatCategoryName?.(transaction.category.name) || transaction.category.name
+      : '';
+    const typeLabel = options?.formatTypeLabel?.(transaction.transaction_type)
+      || (transaction.transaction_type.charAt(0).toUpperCase() + transaction.transaction_type.slice(1));
+    const merchantOrSource = transaction.merchant || (source === 'manual' ? '' : sourceLabel);
+    const row = [
+      normalizeTransactionCsvDate(transaction.transaction_date),
+      transaction.description || '',
+      merchantOrSource,
+      categoryName,
+      transaction.account?.name || '',
+      typeLabel,
+      formatTransactionCsvAmount(transaction),
+      transaction.currency || '',
+      (transaction.paid_by_person_id && options?.personNamesById?.[transaction.paid_by_person_id]) || '',
+      sourceLabel,
+      transaction.notes || '',
+    ];
+
+    if (includeTagsColumn) {
+      row.push(sanitizedTags.join(', '));
+    }
+
+    return buildCsvRow(row);
+  });
+
+  return [buildCsvRow(headers), ...rows].join('\n');
 }
 
 export async function getReportBudgets(dateFrom: string, dateTo: string): Promise<BudgetReportRow[]> {

@@ -27,6 +27,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import Modal from '@/components/ui/Modal';
+import { downloadCsvFile } from '@/lib/reports-export';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -41,16 +42,6 @@ const TransactionDetailsModal = dynamic(() => import('@/components/transactions/
   ssr: false,
   loading: () => null,
 });
-
-function downloadCSV(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 function getPayPeriodForOffset(context: UserFinancialPeriodContext, offset: number) {
   let period = context.currentFinancialPeriod;
@@ -401,6 +392,14 @@ export default function TransactionsTable({
     () => (tabletDetailsTransaction ? getTransactionDocumentMeta(tabletDetailsTransaction) : null),
     [getTransactionDocumentMeta, tabletDetailsTransaction]
   );
+  const personNamesById = useMemo(
+    () =>
+      people.reduce<Record<string, string>>((map, person) => {
+        map[person.id] = person.full_name;
+        return map;
+      }, {}),
+    [people]
+  );
 
   const formatMetaDateTime = useCallback((value?: string | null) => {
     if (!value) return '—';
@@ -445,9 +444,49 @@ export default function TransactionsTable({
       toast.error(t('transactionsHeader.exportEmpty', { ns: 'portal' }));
       return;
     }
-    downloadCSV(`smart-pocket-transactions-${activeDateFilter.dateFrom || 'all'}-${activeDateFilter.dateTo || 'all'}.csv`, generateCSV(filtered));
+    const csv = generateCSV(filtered, {
+      personNamesById,
+      formatCategoryName: (categoryName) =>
+        translateSystemCategoryName(categoryName, (key, options) =>
+          t(key, { ...(options || {}), ns: 'common' })
+        ),
+      formatTypeLabel: (type) =>
+        t(`transactions.types.${type}` as const, {
+          ns: 'portal',
+          defaultValue: type.charAt(0).toUpperCase() + type.slice(1),
+        }),
+      formatSourceLabel: (source) => {
+        switch (source) {
+          case 'personal_subscription':
+            return t('transactions.csv.source.personalSubscription', {
+              ns: 'portal',
+              defaultValue: 'Personal Subscription',
+            });
+          case 'recurring_transaction':
+            return t('transactions.csv.source.recurringTransaction', {
+              ns: 'portal',
+              defaultValue: 'Recurring Transaction',
+            });
+          case 'transfer':
+            return t('transactions.csv.source.transfer', {
+              ns: 'portal',
+              defaultValue: 'Transfer',
+            });
+          case 'manual':
+          default:
+            return t('transactions.csv.source.manual', {
+              ns: 'portal',
+              defaultValue: 'Manual',
+            });
+        }
+      },
+    });
+    downloadCsvFile(
+      `smart-pocket-transactions-${activeDateFilter.dateFrom || 'all'}-to-${activeDateFilter.dateTo || 'all'}.csv`,
+      csv
+    );
     toast.success(t('reports.csvExportedTransactions', { ns: 'portal', count: filtered.length }));
-  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filtered, t]);
+  }, [activeDateFilter.dateFrom, activeDateFilter.dateTo, filtered, personNamesById, t]);
 
   useEffect(() => {
     onExportReady(() => exportFilteredTransactions);
