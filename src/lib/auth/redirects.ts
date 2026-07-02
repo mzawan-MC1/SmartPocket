@@ -15,11 +15,11 @@ export async function getPostAuthDestination(
   const safeNext = getSafeNextPath(next);
   const { data: profile, error } = await supabase
     .from('user_profiles')
-    .select('country')
+    .select('onboarding_completed_at')
     .eq('id', userId)
     .maybeSingle();
 
-  const hasCompletedOnboarding = Boolean(profile?.country);
+  const hasCompletedOnboarding = Boolean(profile?.onboarding_completed_at);
 
   if (error) {
     return {

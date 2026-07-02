@@ -1911,7 +1911,9 @@
       "title": "كيف تستلم دخلك عادة؟",
       "description": "اضبط إرشادات الدخل الاختيارية وجدول دخلك المعتاد.",
       "monthlyIncome": "الدخل الشهري",
-      "monthlyIncomeHelp": "اتركه فارغًا إذا أردت التخطي. يمكنك ضبطه لاحقًا في الإعدادات."
+      "monthlyIncomeHelp": "اتركه فارغًا إذا أردت التخطي. يمكنك ضبطه لاحقًا في الإعدادات.",
+      "anchorTitle": "مطلوب يوم راتب مرجعي",
+      "anchorDescription": "اختر يوم راتب حديثًا أو قادمًا حتى يتمكن Smart Pocket من ضبط فترات قبضك بدقة."
     },
     "planning": {
       "title": "تفضيلات التخطيط",
@@ -1920,7 +1922,36 @@
     "validation": {
       "fullName": "يرجى إدخال اسمك",
       "country": "يرجى اختيار دولتك",
-      "currency": "يرجى اختيار عملتك"
+      "currency": "يرجى اختيار عملتك",
+      "step4": {
+        "genericAnchor": "اختر يوم راتب حديثًا أو قادمًا للمتابعة.",
+        "weeklyAnchor": "اختر يوم راتب أسبوعي حديثًا أو قادمًا للمتابعة.",
+        "biweeklyAnchor": "اختر يوم راتب حديثًا أو قادمًا حتى يتمكن Smart Pocket من حساب فترات الدفع كل 14 يومًا."
+      }
+    },
+    "progress": {
+      "label": "تقدم الإعداد",
+      "stepCounter": "الخطوة {{current}} من {{total}}"
+    },
+    "actions": {
+      "finishSetup": "إنهاء الإعداد"
+    },
+    "summary": {
+      "title": "راجع إعدادك",
+      "description": "تحقق من هذه الاختيارات قبل إنهاء الإعداد.",
+      "fullName": "الاسم",
+      "country": "الدولة",
+      "language": "اللغة",
+      "reportingCurrency": "عملة التقارير",
+      "monthlyIncome": "الدخل الشهري",
+      "incomeSchedule": "جدول الدخل",
+      "paydayAnchor": "تاريخ يوم الراتب المرجعي",
+      "dashboardView": "العرض الافتراضي للوحة التحكم",
+      "defaultBudgetPeriod": "الفترة الافتراضية للميزانية",
+      "weekStart": "بداية الأسبوع",
+      "timezone": "المنطقة الزمنية",
+      "notProvided": "غير متوفر",
+      "notNeeded": "غير مطلوب"
     },
     "toasts": {
       "reviewPlanningSettings": "يرجى مراجعة إعدادات الدخل والتخطيط.",

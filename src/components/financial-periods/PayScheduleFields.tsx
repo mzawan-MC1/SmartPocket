@@ -6,7 +6,7 @@ import type { FinancialPeriodFieldErrors, MonthlyPaydayRule, WeekStartsOn, Weekl
 import type { FinancialPeriodFormValues } from '@/lib/financial-periods/profile';
 
 function FieldError({ message }: { message?: string }) {
-  return message ? <p className="mt-1.5 text-xs font-500 text-negative">{message}</p> : null;
+  return message ? <p role="alert" className="mt-1.5 text-xs font-500 text-negative">{message}</p> : null;
 }
 
 function translateFinancialPeriodError(
@@ -54,10 +54,22 @@ export default function PayScheduleFields({
   values,
   errors,
   onChange,
+  highlightAnchorRequirement = false,
+  anchorIntroTitle,
+  anchorIntroDescription,
+  anchorContainerRef,
+  anchorInputRef,
+  anchorErrorId,
 }: {
   values: FinancialPeriodFormValues;
   errors: FinancialPeriodFieldErrors;
   onChange: <K extends keyof FinancialPeriodFormValues>(field: K, value: FinancialPeriodFormValues[K]) => void;
+  highlightAnchorRequirement?: boolean;
+  anchorIntroTitle?: string;
+  anchorIntroDescription?: string;
+  anchorContainerRef?: React.RefObject<HTMLDivElement | null>;
+  anchorInputRef?: React.RefObject<HTMLInputElement | null>;
+  anchorErrorId?: string;
 }) {
   const { t } = useTranslation('portal');
   const weekdayOptions: Array<{ value: WeeklyPayday; label: string }> = [
@@ -81,23 +93,39 @@ export default function PayScheduleFields({
     }),
     { value: '0', label: t('financialPeriods.paySchedule.lastDayOfMonth') },
   ];
+  const anchorFieldDescriptionId = anchorErrorId ? `${anchorErrorId}-description` : undefined;
+  const anchorFieldHelpIds = [anchorFieldDescriptionId, anchorErrorId].filter(Boolean).join(' ') || undefined;
+  const anchorCardClassName = highlightAnchorRequirement
+    ? 'rounded-2xl border border-accent/20 bg-accent/5 p-4'
+    : '';
 
   return (
     <div className="space-y-4">
       {values.income_frequency === 'weekly' && (
-        <>
+        <div ref={anchorContainerRef} className={anchorCardClassName}>
+          {highlightAnchorRequirement && (anchorIntroTitle || anchorIntroDescription) ? (
+            <div className="mb-3 space-y-1">
+              {anchorIntroTitle ? <p className="text-sm font-700 text-foreground">{anchorIntroTitle}</p> : null}
+              {anchorIntroDescription ? <p className="text-xs text-muted-foreground">{anchorIntroDescription}</p> : null}
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('financialPeriods.paySchedule.weekly.anchorDate')}</label>
             <input
+              ref={anchorInputRef}
               type="date"
               className={`input-base ${errors.payCycleAnchorDate ? 'input-error' : ''}`}
               value={values.pay_cycle_anchor_date}
               onChange={(event) => onChange('pay_cycle_anchor_date', event.target.value)}
+              aria-invalid={errors.payCycleAnchorDate ? 'true' : 'false'}
+              aria-describedby={anchorFieldHelpIds}
             />
-            <p className="mt-1.5 text-xs text-muted-foreground">{t('financialPeriods.paySchedule.weekly.anchorDateHelp')}</p>
-            <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+            <p id={anchorFieldDescriptionId} className="mt-1.5 text-xs text-muted-foreground">{t('financialPeriods.paySchedule.weekly.anchorDateHelp')}</p>
+            <div id={anchorErrorId}>
+              <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+            </div>
           </div>
-          <div>
+          <div className="mt-4">
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('financialPeriods.paySchedule.weekly.weekdayFallback')}</label>
             <select
               className={`input-base ${errors.weeklyPayday ? 'input-error' : ''}`}
@@ -112,20 +140,31 @@ export default function PayScheduleFields({
             <p className="mt-1.5 text-xs text-muted-foreground">{t('financialPeriods.paySchedule.weekly.weekdayFallbackHelp')}</p>
             <FieldError message={translateFinancialPeriodError(errors.weeklyPayday, t)} />
           </div>
-        </>
+        </div>
       )}
 
       {values.income_frequency === 'biweekly' && (
-        <div>
+        <div ref={anchorContainerRef} className={anchorCardClassName}>
+          {highlightAnchorRequirement && (anchorIntroTitle || anchorIntroDescription) ? (
+            <div className="mb-3 space-y-1">
+              {anchorIntroTitle ? <p className="text-sm font-700 text-foreground">{anchorIntroTitle}</p> : null}
+              {anchorIntroDescription ? <p className="text-xs text-muted-foreground">{anchorIntroDescription}</p> : null}
+            </div>
+          ) : null}
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('financialPeriods.paySchedule.biweekly.anchorDate')}</label>
           <input
+            ref={anchorInputRef}
             type="date"
             className={`input-base ${errors.payCycleAnchorDate ? 'input-error' : ''}`}
             value={values.pay_cycle_anchor_date}
             onChange={(event) => onChange('pay_cycle_anchor_date', event.target.value)}
+            aria-invalid={errors.payCycleAnchorDate ? 'true' : 'false'}
+            aria-describedby={anchorFieldHelpIds}
           />
-          <p className="mt-1.5 text-xs text-muted-foreground">{t('financialPeriods.paySchedule.biweekly.anchorDateHelp')}</p>
-          <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+          <p id={anchorFieldDescriptionId} className="mt-1.5 text-xs text-muted-foreground">{t('financialPeriods.paySchedule.biweekly.anchorDateHelp')}</p>
+          <div id={anchorErrorId}>
+            <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+          </div>
         </div>
       )}
 
@@ -216,16 +255,30 @@ export default function PayScheduleFields({
       )}
 
       {values.income_frequency === 'custom' && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div ref={anchorContainerRef} className={`${anchorCardClassName} grid grid-cols-1 gap-4 sm:grid-cols-2`}>
+          {highlightAnchorRequirement && (anchorIntroTitle || anchorIntroDescription) ? (
+            <div className="space-y-1 sm:col-span-2">
+              {anchorIntroTitle ? <p className="text-sm font-700 text-foreground">{anchorIntroTitle}</p> : null}
+              {anchorIntroDescription ? <p className="text-xs text-muted-foreground">{anchorIntroDescription}</p> : null}
+            </div>
+          ) : null}
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('financialPeriods.paySchedule.custom.anchorDate')}</label>
             <input
+              ref={anchorInputRef}
               type="date"
               className={`input-base ${errors.payCycleAnchorDate ? 'input-error' : ''}`}
               value={values.pay_cycle_anchor_date}
               onChange={(event) => onChange('pay_cycle_anchor_date', event.target.value)}
+              aria-invalid={errors.payCycleAnchorDate ? 'true' : 'false'}
+              aria-describedby={anchorFieldHelpIds}
             />
-            <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+            <p id={anchorFieldDescriptionId} className="mt-1.5 text-xs text-muted-foreground">
+              {anchorIntroDescription || t('financialPeriods.paySchedule.custom.anchorDate')}
+            </p>
+            <div id={anchorErrorId}>
+              <FieldError message={translateFinancialPeriodError(errors.payCycleAnchorDate, t)} />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">{t('financialPeriods.paySchedule.custom.daysPerCycle')}</label>

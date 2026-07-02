@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { getCanonicalCountryCallingCode } from '@/lib/phone';
 import type {
@@ -245,5 +245,30 @@ export function useClientReferenceData(forceRefreshOnMount = false) {
     };
   }, [forceRefreshOnMount]);
 
-  return state;
+  const refetch = useCallback(async () => {
+    setState((current) => ({
+      data: current.data,
+      loading: true,
+      error: null,
+    }));
+
+    try {
+      const data = await getClientReferenceData(true);
+      setState({ data, loading: false, error: null });
+      return data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to load reference data.';
+      setState({
+        data: null,
+        loading: false,
+        error: message,
+      });
+      return null;
+    }
+  }, []);
+
+  return {
+    ...state,
+    refetch,
+  };
 }

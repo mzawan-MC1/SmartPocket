@@ -1891,7 +1891,9 @@
       "title": "Comment recevez-vous habituellement vos revenus ?",
       "description": "Definissez des indications facultatives sur vos revenus et votre rythme habituel.",
       "monthlyIncome": "Revenu mensuel",
-      "monthlyIncomeHelp": "Laissez vide pour ignorer. Vous pourrez le definir plus tard dans les Parametres."
+      "monthlyIncomeHelp": "Laissez vide pour ignorer. Vous pourrez le definir plus tard dans les Parametres.",
+      "anchorTitle": "Ancrage de paie requis",
+      "anchorDescription": "Choisissez une paie recente ou a venir afin que Smart Pocket aligne correctement vos periodes de revenu."
     },
     "planning": {
       "title": "Preferences de planification",
@@ -1900,7 +1902,36 @@
     "validation": {
       "fullName": "Veuillez saisir votre nom",
       "country": "Veuillez selectionner votre pays",
-      "currency": "Veuillez selectionner votre devise"
+      "currency": "Veuillez selectionner votre devise",
+      "step4": {
+        "genericAnchor": "Choisissez une paie recente ou a venir pour continuer.",
+        "weeklyAnchor": "Choisissez une paie hebdomadaire recente ou a venir pour continuer.",
+        "biweeklyAnchor": "Choisissez une paie recente ou a venir afin que Smart Pocket calcule vos periodes de 14 jours."
+      }
+    },
+    "progress": {
+      "label": "Progression de l onboarding",
+      "stepCounter": "Etape {{current}} sur {{total}}"
+    },
+    "actions": {
+      "finishSetup": "Terminer la configuration"
+    },
+    "summary": {
+      "title": "Verifiez votre configuration",
+      "description": "Confirmez ces choix avant de terminer l onboarding.",
+      "fullName": "Nom",
+      "country": "Pays",
+      "language": "Langue",
+      "reportingCurrency": "Devise de reference",
+      "monthlyIncome": "Revenu mensuel",
+      "incomeSchedule": "Rythme de revenu",
+      "paydayAnchor": "Date d ancrage de paie",
+      "dashboardView": "Vue par defaut du tableau de bord",
+      "defaultBudgetPeriod": "Periode budgetaire par defaut",
+      "weekStart": "Debut de semaine",
+      "timezone": "Fuseau horaire",
+      "notProvided": "Non renseigne",
+      "notNeeded": "Non requis"
     },
     "toasts": {
       "reviewPlanningSettings": "Veuillez verifier vos parametres de revenus et de planification.",

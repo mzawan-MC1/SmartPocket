@@ -143,7 +143,10 @@
     "search": "Search countries...",
     "searchPhone": "Search country or phone code...",
     "loading": "Loading countries...",
-    "noneFound": "No countries found"
+    "noneFound": "No countries found",
+    "loadFailed": "Couldn't load countries right now.",
+    "loadFailedHelp": "Check your connection and try again.",
+    "retry": "Try again"
   },
   "validation": {
     "validAmount": "Enter a valid amount"

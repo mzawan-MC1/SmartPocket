@@ -143,7 +143,10 @@
     "search": "Rechercher des pays...",
     "searchPhone": "Rechercher un pays ou un indicatif...",
     "loading": "Chargement des pays...",
-    "noneFound": "Aucun pays trouvé"
+    "noneFound": "Aucun pays trouvé",
+    "loadFailed": "Impossible de charger les pays pour le moment.",
+    "loadFailedHelp": "Verifiez votre connexion puis reessayez.",
+    "retry": "Reessayer"
   },
   "validation": {
     "validAmount": "Saisissez un montant valide"

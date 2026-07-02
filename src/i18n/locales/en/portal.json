@@ -2621,7 +2621,9 @@
       "title": "How do you usually receive income?",
       "description": "Set optional income guidance and your usual income schedule.",
       "monthlyIncome": "Monthly income",
-      "monthlyIncomeHelp": "Leave this blank to skip. You can set it later in Settings."
+      "monthlyIncomeHelp": "Leave this blank to skip. You can set it later in Settings.",
+      "anchorTitle": "Payday anchor needed",
+      "anchorDescription": "Choose one recent or upcoming payday so Smart Pocket can line up your pay periods correctly."
     },
     "planning": {
       "title": "Planning preferences",
@@ -2630,7 +2632,36 @@
     "validation": {
       "fullName": "Please enter your name",
       "country": "Please select your country",
-      "currency": "Please select your currency"
+      "currency": "Please select your currency",
+      "step4": {
+        "genericAnchor": "Choose one recent or upcoming payday to continue.",
+        "weeklyAnchor": "Choose a recent or upcoming weekly payday to continue.",
+        "biweeklyAnchor": "Choose a recent or upcoming payday so Smart Pocket can calculate your 14-day pay periods."
+      }
+    },
+    "progress": {
+      "label": "Onboarding progress",
+      "stepCounter": "Step {{current}} of {{total}}"
+    },
+    "actions": {
+      "finishSetup": "Finish setup"
+    },
+    "summary": {
+      "title": "Review your setup",
+      "description": "Check these choices before you finish onboarding.",
+      "fullName": "Name",
+      "country": "Country",
+      "language": "Language",
+      "reportingCurrency": "Reporting currency",
+      "monthlyIncome": "Monthly income",
+      "incomeSchedule": "Income schedule",
+      "paydayAnchor": "Payday anchor date",
+      "dashboardView": "Dashboard default view",
+      "defaultBudgetPeriod": "Default budget period",
+      "weekStart": "Week start",
+      "timezone": "Timezone",
+      "notProvided": "Not provided",
+      "notNeeded": "Not needed"
     },
     "toasts": {
       "reviewPlanningSettings": "Please review your income and planning settings.",

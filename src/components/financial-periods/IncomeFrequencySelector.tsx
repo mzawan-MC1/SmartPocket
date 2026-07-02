@@ -58,7 +58,11 @@ export default function IncomeFrequencySelector({
         <h3 className="text-base font-700 text-foreground">{t('financialPeriods.incomeFrequency.title')}</h3>
         <p className="text-sm text-muted-foreground">{t('financialPeriods.incomeFrequency.description')}</p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div
+        className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-3"
+        role="radiogroup"
+        aria-label={t('financialPeriods.incomeFrequency.title')}
+      >
         {options.map((option) => {
           const selected = value === option.value;
           return (
@@ -66,20 +70,21 @@ export default function IncomeFrequencySelector({
               key={option.value}
               type="button"
               onClick={() => onChange(option.value)}
-              className={`rounded-2xl border p-4 text-left transition-all ${
+              className={`h-full rounded-2xl border p-3.5 text-left transition-all ${
                 selected
                   ? 'border-accent bg-accent/5 shadow-card-sm'
                   : 'border-border hover:border-accent/40 hover:bg-muted/20'
               }`}
-              aria-pressed={selected}
+              role="radio"
+              aria-checked={selected}
             >
               <div className="flex items-start gap-3">
                 <div className={`mt-0.5 shrink-0 ${selected ? 'text-accent' : 'text-muted-foreground'}`}>
                   <CheckCircle2 size={18} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-700 text-foreground">{option.label}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">{option.description}</p>
+                  <p className="mt-1 text-xs leading-4.5 text-muted-foreground">{option.description}</p>
                 </div>
               </div>
             </button>
