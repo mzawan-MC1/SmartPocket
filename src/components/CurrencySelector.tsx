@@ -282,8 +282,10 @@ export default function CurrencySelector({
         aria-haspopup="listbox"
       >
         {selectedCurrency ? (
-          <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-            <CurrencySymbol currency={selectedCurrency} size="xs" />
+          <div className="grid min-w-0 grid-cols-[1.25rem_auto] items-center gap-x-2 whitespace-nowrap">
+            <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden leading-none">
+              <CurrencySymbol currency={selectedCurrency} size="xs" alignment="center" />
+            </span>
             <span className="selector-value-primary shrink-0 text-sm font-700">{selectedCurrency.code}</span>
           </div>
         ) : (

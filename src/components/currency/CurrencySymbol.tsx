@@ -5,6 +5,7 @@ import type { CurrencyReference } from '@/lib/reference-data/types';
 import { getRichCurrencyToken } from '@/lib/currency-formatting';
 
 export type CurrencySymbolSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+export type CurrencySymbolAlignment = 'baseline' | 'center';
 
 interface CurrencySymbolProps {
   currency: Pick<
@@ -16,6 +17,7 @@ interface CurrencySymbolProps {
   className?: string;
   textClassName?: string;
   ariaLabel?: string;
+  alignment?: CurrencySymbolAlignment;
 }
 
 const SIZE_STYLES: Record<
@@ -76,6 +78,7 @@ export default function CurrencySymbol({
   className = '',
   textClassName = '',
   ariaLabel,
+  alignment = 'baseline',
 }: CurrencySymbolProps) {
   const [assetFailed, setAssetFailed] = useState(false);
 
@@ -101,12 +104,12 @@ export default function CurrencySymbol({
   if (shouldRenderAsset) {
     return (
       <span
-        className={`inline-flex shrink-0 self-baseline items-end justify-center leading-none ${className}`.trim()}
+        className={`inline-flex shrink-0 justify-center leading-none ${alignment === 'center' ? 'items-center self-center' : 'items-end self-baseline'} ${className}`.trim()}
         role="img"
         aria-label={accessibleLabel}
         style={{
           minWidth: `${styles.minWidthEm}em`,
-          transform: `translateY(${styles.baselineNudgeEm}em)`,
+          transform: alignment === 'center' ? undefined : `translateY(${styles.baselineNudgeEm}em)`,
         }}
       >
         <img
@@ -127,12 +130,12 @@ export default function CurrencySymbol({
 
   return (
     <span
-      className={`inline-flex shrink-0 self-baseline items-end justify-center leading-none ${className}`.trim()}
+      className={`inline-flex shrink-0 justify-center leading-none ${alignment === 'center' ? 'items-center self-center' : 'items-end self-baseline'} ${className}`.trim()}
       role="img"
       aria-label={accessibleLabel}
       style={{
         minWidth: `${styles.minWidthEm}em`,
-        transform: `translateY(${styles.baselineNudgeEm}em)`,
+        transform: alignment === 'center' ? undefined : `translateY(${styles.baselineNudgeEm}em)`,
       }}
     >
       <span

@@ -26,14 +26,18 @@ export default function CurrencyOptionRow({
 }: CurrencyOptionRowProps) {
   const content = (
     <>
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-          <CurrencySymbol currency={currency} size="xs" />
-          <span className={`text-sm font-700 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>{currency.code}</span>
+      <div className="grid min-w-0 flex-1 grid-cols-[1.5rem_3.5rem_minmax(0,1fr)] items-center gap-x-2.5">
+        <div className="inline-flex h-5 w-6 items-center justify-center overflow-hidden leading-none">
+          <CurrencySymbol currency={currency} size="xs" alignment="center" />
         </div>
-        <span className={`min-w-0 flex-1 truncate text-sm ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
+        <span className={`whitespace-nowrap text-left text-sm font-700 leading-5 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>
+          {currency.code}
+        </span>
+        <span className={`min-w-0 truncate text-sm leading-5 ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
           {currency.name}
         </span>
+      </div>
+      <div className="ms-2 flex shrink-0 items-center gap-2">
         {showFeaturedBadge && currency.isFeatured ? <StatusBadge status="info" label="Featured" /> : null}
         {showActiveStatus ? (
           <StatusBadge
@@ -41,8 +45,8 @@ export default function CurrencyOptionRow({
             label={currency.isActive ? 'Active' : 'Inactive'}
           />
         ) : null}
+        {trailing ? <div className="flex shrink-0 items-center">{trailing}</div> : null}
       </div>
-      {trailing ? <div className="ms-2 flex shrink-0 items-center">{trailing}</div> : null}
     </>
   );
 
