@@ -2091,6 +2091,15 @@
     "modeText": "Text",
     "modeVoice": "Voice",
     "languageLabel": "Input language",
+    "language": {
+      "autoDetect": "Auto detect",
+      "spokenLabel": "I am speaking",
+      "optionsTitle": "Language options",
+      "displayDefault": "Show the text in Smart Pocket language - {{language}}",
+      "displayOverride": "Show the text in {{language}}",
+      "displayLabel": "Show the text in",
+      "useSmartPocketDefault": "Smart Pocket language"
+    },
     "describeLabel": "Describe your transaction",
     "placeholderExample": "For example: I spent AED 85 on groceries today from cash, or Ahmed gave me AED 2,300 today.",
     "submitHint": "Press Ctrl+Enter to submit",
@@ -2246,6 +2255,10 @@
       },
       "maxDuration": "Max {{duration}}",
       "transcribing": "Preparing your transcript...",
+      "translationFailed": "We transcribed your audio, but could not translate it. You can still edit the text or try again.",
+      "viewOriginalTranscription": "View original transcription",
+      "originalLanguageLabel": "Spoken language: {{language}}",
+      "wrongLanguageHint": "Wrong language? Change spoken language and try again.",
       "actions": {
         "start": "Start recording",
         "pause": "Pause recording",

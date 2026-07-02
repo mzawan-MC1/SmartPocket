@@ -1365,6 +1365,15 @@
     "modeText": "Texte",
     "modeVoice": "Voix",
     "languageLabel": "Langue d'entree",
+    "language": {
+      "autoDetect": "Détection automatique",
+      "spokenLabel": "Je parle",
+      "optionsTitle": "Options de langue",
+      "displayDefault": "Afficher le texte dans la langue Smart Pocket - {{language}}",
+      "displayOverride": "Afficher le texte en {{language}}",
+      "displayLabel": "Afficher le texte en",
+      "useSmartPocketDefault": "Langue Smart Pocket"
+    },
     "describeLabel": "Decrivez votre transaction",
     "placeholderExample": "Par exemple : j'ai dépensé 85 AED en courses aujourd'hui depuis mes espèces, ou Ahmed m'a remis 2 300 AED aujourd'hui.",
     "submitHint": "Appuyez sur Ctrl+Entree pour envoyer",
@@ -1520,6 +1529,10 @@
       },
       "maxDuration": "Max {{duration}}",
       "transcribing": "Transcription et analyse...",
+      "translationFailed": "Nous avons transcrit votre audio, mais nous n'avons pas pu le traduire. Vous pouvez quand même modifier le texte ou réessayer.",
+      "viewOriginalTranscription": "Voir la transcription originale",
+      "originalLanguageLabel": "Langue parlée : {{language}}",
+      "wrongLanguageHint": "Mauvaise langue ? Changez la langue parlée et réessayez.",
       "actions": {
         "start": "Démarrer l'enregistrement",
         "pause": "Mettre en pause",

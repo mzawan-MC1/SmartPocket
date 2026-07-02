@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { AIErrorPayload, AIErrorResponse } from '@/lib/ai-types';
-import { transcribeAudioWithOpenRouter } from '@/lib/ai-gateway';
+import { rewriteTextWithOpenRouter, transcribeAudioWithOpenRouter } from '@/lib/ai-gateway';
 import { ensureUserSubscriptionSummary } from '@/lib/subscription/server';
 import {
   getOpenRouterAudioFormat,
@@ -37,6 +37,68 @@ function parsePositiveNumber(value: FormDataEntryValue | null) {
 
 function toSpeechDurationMs(durationSeconds: number) {
   return Math.max(1, Math.ceil(durationSeconds * 1000));
+}
+
+const SUPPORTED_SPOKEN_LANGUAGES = new Set(['auto', 'en', 'ur', 'ar', 'fr', 'ru']);
+const SUPPORTED_DISPLAY_LANGUAGES = new Set(['en', 'ar', 'fr', 'ru']);
+
+type SpokenLanguageCode = 'auto' | 'en' | 'ur' | 'ar' | 'fr' | 'ru';
+type DisplayLanguageCode = 'en' | 'ar' | 'fr' | 'ru';
+
+function normalizeSpokenLanguage(value: FormDataEntryValue | null): SpokenLanguageCode {
+  if (typeof value !== 'string') {
+    return 'auto';
+  }
+  const normalized = value.trim().toLowerCase();
+  return SUPPORTED_SPOKEN_LANGUAGES.has(normalized) ? normalized as SpokenLanguageCode : 'auto';
+}
+
+function normalizeDisplayLanguage(value: FormDataEntryValue | null): DisplayLanguageCode {
+  if (typeof value !== 'string') {
+    return 'en';
+  }
+  const normalized = value.trim().toLowerCase();
+  return SUPPORTED_DISPLAY_LANGUAGES.has(normalized) ? normalized as DisplayLanguageCode : 'en';
+}
+
+function getLanguageDisplayName(language: SpokenLanguageCode | DisplayLanguageCode) {
+  switch (language) {
+    case 'ar':
+      return 'Arabic';
+    case 'fr':
+      return 'French';
+    case 'ru':
+      return 'Russian';
+    case 'ur':
+      return 'Urdu';
+    case 'auto':
+      return 'Auto detect';
+    case 'en':
+    default:
+      return 'English';
+  }
+}
+
+function buildTranscriptionPrompt(language: SpokenLanguageCode) {
+  const instructions = [
+    'Transcribe the spoken audio accurately.',
+    'Return only the transcript.',
+    'Preserve names, amounts, currency codes, dates, and account names.',
+    'Do not interpret the transaction and do not add commentary.',
+  ];
+
+  if (language === 'ur') {
+    instructions.push(
+      'The spoken language is Urdu.',
+      'Write Urdu in Urdu Perso-Arabic script.',
+      'Do not transliterate it.',
+      'Do not substitute Hindi or Devanagari.'
+    );
+  } else if (language !== 'auto') {
+    instructions.push(`The spoken language is ${getLanguageDisplayName(language)}.`);
+  }
+
+  return instructions.join(' ');
 }
 
 function buildError(
@@ -232,9 +294,8 @@ export async function POST(req: NextRequest) {
       ? String(formData.get('idempotencyKey')).trim()
       : createClientId();
     const idempotencyKey = idempotencyKeyRaw.replace(/[^a-zA-Z0-9\-_]/g, '').slice(0, 128) || createClientId();
-    const language = typeof formData.get('language') === 'string'
-      ? String(formData.get('language')).trim().toLowerCase()
-      : 'en';
+    const spokenLanguage = normalizeSpokenLanguage(formData.get('spokenLanguage') ?? formData.get('language'));
+    const displayLanguage = normalizeDisplayLanguage(formData.get('displayLanguage'));
 
     if (!(fileEntry instanceof File)) {
       return NextResponse.json(buildError('empty_audio', 'validation', 'Please record audio before transcribing.', requestId), { status: 400 });
@@ -271,6 +332,11 @@ export async function POST(req: NextRequest) {
           success: true,
           requestId: existingRequest.data.id,
           transcript: existingRequest.data.transcript,
+          originalTranscript: existingRequest.data.transcript,
+          spokenLanguage,
+          displayLanguage,
+          translationApplied: false,
+          translationFailed: false,
           duplicate: true,
         });
       }
@@ -451,17 +517,53 @@ export async function POST(req: NextRequest) {
         mimeType,
         format: openRouterAudioFormat,
         model: runtimeConfig.model,
-        language,
-        prompt: 'Transcribe the spoken audio accurately. Return only the transcript. Preserve names, amounts, currencies, dates, and account names. Do not interpret the transaction and do not add commentary.',
+        language: spokenLanguage,
+        prompt: buildTranscriptionPrompt(spokenLanguage),
         timeoutMs: 20000,
       });
+      const originalTranscript = openRouterResult.transcript.trim();
+      let displayTranscript = originalTranscript;
+      let translationApplied = false;
+      let translationFailed = false;
+      let translationErrorMessage: string | null = null;
+
+      const shouldTranslate =
+        originalTranscript.length > 0
+        && (spokenLanguage === 'auto' || spokenLanguage !== displayLanguage);
+
+      if (shouldTranslate) {
+        try {
+          const translatedResult = await rewriteTextWithOpenRouter({
+            model: runtimeConfig.model,
+            prompt: [
+              `Translate the following financial transaction description into ${getLanguageDisplayName(displayLanguage)}.`,
+              'If the text is already in that language, return it unchanged.',
+              'Preserve meaning, transaction intent, numbers, amounts, currency codes, names, merchants, dates, and account names exactly.',
+              'Do not summarize, explain, add commentary, or add assumptions.',
+              'Output only the translated transaction description.',
+              '',
+              originalTranscript,
+            ].join('\n'),
+            timeoutMs: 20000,
+          });
+          const translatedTranscript = translatedResult.text.trim();
+          if (translatedTranscript) {
+            displayTranscript = translatedTranscript;
+            translationApplied = displayTranscript !== originalTranscript;
+          }
+        } catch {
+          translationFailed = true;
+          translationErrorMessage = 'We transcribed your audio, but could not translate it. You can still edit the text or try again.';
+        }
+      }
       const persistedRequest = await persistVoiceRequest({
         supabase,
         userId: user.id,
         idempotencyKey,
-        transcript: openRouterResult.transcript,
+        transcript: originalTranscript,
         transcriptRetained: runtimeConfig.enableTranscriptRetention,
-        language,
+        language: spokenLanguage,
+        detectedLanguage: spokenLanguage === 'auto' ? undefined : spokenLanguage,
         providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationMs,
@@ -515,7 +617,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           idempotencyKey,
           transcriptRetained: false,
-          language,
+          language: spokenLanguage,
           providerUsed: runtimeConfig.gateway,
           modelUsed: runtimeConfig.model,
           durationMs,
@@ -537,7 +639,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         requestId: persistedRequest?.id || requestId,
-        transcript: openRouterResult.transcript,
+        transcript: displayTranscript,
+        originalTranscript,
+        spokenLanguage,
+        detectedLanguage: spokenLanguage === 'auto' ? null : spokenLanguage,
+        displayLanguage,
+        translationApplied,
+        translationFailed,
+        translationErrorMessage,
         providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationSeconds,
@@ -564,7 +673,7 @@ export async function POST(req: NextRequest) {
         userId: user.id,
         idempotencyKey,
         transcriptRetained: false,
-        language,
+        language: spokenLanguage,
         providerUsed: runtimeConfig.gateway,
         modelUsed: runtimeConfig.model,
         durationMs: toSpeechDurationMs(durationSeconds),

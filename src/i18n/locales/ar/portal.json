@@ -1385,6 +1385,15 @@
     "modeText": "نص",
     "modeVoice": "صوت",
     "languageLabel": "لغة الإدخال",
+    "language": {
+      "autoDetect": "اكتشاف تلقائي",
+      "spokenLabel": "أنا أتحدث",
+      "optionsTitle": "خيارات اللغة",
+      "displayDefault": "أظهر النص بلغة Smart Pocket - {{language}}",
+      "displayOverride": "أظهر النص باللغة {{language}}",
+      "displayLabel": "أظهر النص باللغة",
+      "useSmartPocketDefault": "لغة Smart Pocket"
+    },
     "describeLabel": "صف معاملتك",
     "placeholderExample": "مثال: دفعت 85 درهما للبقالة اليوم من حساب النقد، أو استلمت من أحمد 2300 درهم اليوم.",
     "submitHint": "اضغط Ctrl+Enter للإرسال",
@@ -1540,6 +1549,10 @@
       },
       "maxDuration": "الحد الأقصى {{duration}}",
       "transcribing": "جار التفريغ والتحليل...",
+      "translationFailed": "تم نسخ الصوت، لكن تعذر ترجمته. لا يزال بإمكانك تعديل النص أو المحاولة مرة أخرى.",
+      "viewOriginalTranscription": "عرض النسخ الأصلي",
+      "originalLanguageLabel": "اللغة المنطوقة: {{language}}",
+      "wrongLanguageHint": "لغة غير صحيحة؟ غيّر لغة التحدث وحاول مرة أخرى.",
       "actions": {
         "start": "بدء التسجيل",
         "pause": "إيقاف التسجيل مؤقتا",

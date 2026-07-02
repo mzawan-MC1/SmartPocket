@@ -1365,6 +1365,15 @@
     "modeText": "Текст",
     "modeVoice": "Голос",
     "languageLabel": "Язык ввода",
+    "language": {
+      "autoDetect": "Определять автоматически",
+      "spokenLabel": "Я говорю на",
+      "optionsTitle": "Языковые параметры",
+      "displayDefault": "Показывать текст на языке Smart Pocket - {{language}}",
+      "displayOverride": "Показывать текст на языке {{language}}",
+      "displayLabel": "Показывать текст на",
+      "useSmartPocketDefault": "Язык Smart Pocket"
+    },
     "describeLabel": "Опишите вашу операцию",
     "placeholderExample": "Например: я потратил 85 AED на продукты сегодня из наличных, или Ахмед дал мне сегодня 2 300 AED.",
     "submitHint": "Нажмите Ctrl+Enter для отправки",
@@ -1520,6 +1529,10 @@
       },
       "maxDuration": "Макс. {{duration}}",
       "transcribing": "Расшифровка и анализ...",
+      "translationFailed": "Мы расшифровали ваше аудио, но не смогли перевести его. Вы все равно можете отредактировать текст или попробовать еще раз.",
+      "viewOriginalTranscription": "Показать исходную расшифровку",
+      "originalLanguageLabel": "Разговорный язык: {{language}}",
+      "wrongLanguageHint": "Неверный язык? Измените язык речи и попробуйте снова.",
       "actions": {
         "start": "Начать запись",
         "pause": "Поставить на паузу",

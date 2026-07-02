@@ -105,7 +105,18 @@ type VoiceStatusResponse = {
   usage?: AIUsageSummary;
 };
 
+type SmartEntryDisplayLanguage = 'en' | 'ar' | 'fr' | 'ru';
+type SmartEntrySpokenLanguage = 'auto' | SmartEntryDisplayLanguage | 'ur';
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeDisplayLanguage(value: string | null | undefined): SmartEntryDisplayLanguage {
+  return value === 'ar' || value === 'fr' || value === 'ru' ? value : 'en';
+}
+
+function getLanguageDirection(value: string | null | undefined): 'rtl' | 'ltr' {
+  return value === 'ar' || value === 'ur' ? 'rtl' : 'ltr';
+}
 
 function normalizeSubscriptionBillingFrequencyInput(
   value: string | undefined
@@ -563,42 +574,51 @@ function isReceiptInsightQuestion(value: string) {
 
  export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { t } = useTranslation(['portal', 'common']);
-   const { isRTL, language: uiLanguage } = useLanguage();
-   const router = useRouter();
-   const dialogRef = useRef<HTMLDivElement>(null);
-   const closeButtonRef = useRef<HTMLButtonElement>(null);
-   const lastFocusedRef = useRef<HTMLElement | null>(null);
-   const subscriptionDefaultAppliedRef = useRef<string | null>(null);
-   const [mounted, setMounted] = useState(false);
-   const [step, setStep] = useState<AssistantStep>('entry');
-   const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
-   const [textInput, setTextInput] = useState('');
-   const [language, setLanguage] = useState<'en' | 'ar' | 'fr' | 'ru'>('en');
-   const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
-   const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
-   const [transcript, setTranscript] = useState('');
-   const [errorMessage, setErrorMessage] = useState('');
-   const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
-   const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
-   const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
+  const { isRTL, language: uiLanguage } = useLanguage();
+  const router = useRouter();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const subscriptionDefaultAppliedRef = useRef<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [step, setStep] = useState<AssistantStep>('entry');
+  const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
+  const [textInput, setTextInput] = useState('');
+  const [spokenLanguage, setSpokenLanguage] = useState<SmartEntrySpokenLanguage>('auto');
+  const [displayLanguageOverride, setDisplayLanguageOverride] = useState<SmartEntryDisplayLanguage | null>(null);
+  const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
+  const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
+  const [transcript, setTranscript] = useState('');
+  const [originalTranscript, setOriginalTranscript] = useState('');
+  const [originalTranscriptLanguage, setOriginalTranscriptLanguage] = useState<string | null>(null);
+  const [translationNotice, setTranslationNotice] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
+  const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
+  const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
   const [receiptInsightAnswer, setReceiptInsightAnswer] = useState<ReceiptInsightAnswer | null>(null);
-   const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
+  const [isAIConfigured, setIsAIConfigured] = useState<boolean | null>(null);
   const [voiceMaxSeconds, setVoiceMaxSeconds] = useState(120);
-   const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
-   const [accountDraftTarget, setAccountDraftTarget] = useState<'account' | 'destinationAccount' | null>(null);
-   const [accountDraft, setAccountDraft] = useState<{
-     field: 'account' | 'destinationAccount';
-     name: string;
-     type: SuggestedAccount['type'];
-     currency: string;
-     includeInTotal: boolean;
-   } | null>(null);
-   const [personDraft, setPersonDraft] = useState<{
-     name: string;
-     relationship: NonNullable<NonNullable<SmartEntryReview['person']>['relationship']>;
-     notes: string;
-   } | null>(null);
-   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
+  const [contextSnapshot, setContextSnapshot] = useState<FinancialContext | null>(null);
+  const [accountDraftTarget, setAccountDraftTarget] = useState<'account' | 'destinationAccount' | null>(null);
+  const [accountDraft, setAccountDraft] = useState<{
+    field: 'account' | 'destinationAccount';
+    name: string;
+    type: SuggestedAccount['type'];
+    currency: string;
+    includeInTotal: boolean;
+  } | null>(null);
+  const [personDraft, setPersonDraft] = useState<{
+    name: string;
+    relationship: NonNullable<NonNullable<SmartEntryReview['person']>['relationship']>;
+    notes: string;
+  } | null>(null);
+  const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
+  const defaultDisplayLanguage = useMemo<SmartEntryDisplayLanguage>(
+    () => normalizeDisplayLanguage(uiLanguage),
+    [uiLanguage]
+  );
+  const displayLanguage = displayLanguageOverride || defaultDisplayLanguage;
 
   // Check AI configuration on mount
   useEffect(() => {
@@ -622,14 +642,6 @@ function isReceiptInsightQuestion(value: string) {
     setMounted(true);
     return () => setMounted(false);
   }, []);
-
-  useEffect(() => {
-    if (uiLanguage === 'ar' || uiLanguage === 'fr' || uiLanguage === 'ru' || uiLanguage === 'en') {
-      setLanguage(uiLanguage);
-    } else {
-      setLanguage('en');
-    }
-  }, [uiLanguage]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -1349,10 +1361,18 @@ function isReceiptInsightQuestion(value: string) {
      return nextSelection;
   }, [accounts, people]);
 
-  const resetRequestState = useCallback((options?: { preserveInput?: boolean; preserveMode?: boolean; preserveLanguage?: boolean }) => {
+  const resetRequestState = useCallback((options?: {
+    preserveInput?: boolean;
+    preserveMode?: boolean;
+    preserveLanguage?: boolean;
+    preserveTranscriptArtifacts?: boolean;
+  }) => {
     setStep('entry');
     setTextInput(options?.preserveInput ? textInput : '');
     setTranscript('');
+    setOriginalTranscript(options?.preserveTranscriptArtifacts ? originalTranscript : '');
+    setOriginalTranscriptLanguage(options?.preserveTranscriptArtifacts ? originalTranscriptLanguage : null);
+    setTranslationNotice(options?.preserveTranscriptArtifacts ? translationNotice : '');
     setParsed(null);
     setReviewState(null);
     setErrorMessage('');
@@ -1368,9 +1388,10 @@ function isReceiptInsightQuestion(value: string) {
       setMode(defaultMode);
     }
     if (!options?.preserveLanguage) {
-      setLanguage('en');
+      setSpokenLanguage('auto');
+      setDisplayLanguageOverride(null);
     }
-  }, [defaultMode, textInput]);
+  }, [defaultMode, originalTranscript, originalTranscriptLanguage, textInput, translationNotice]);
 
    const handlePurposeChange = useCallback((purpose: SmartEntryPurpose) => {
      updateReview((current) => {
@@ -1673,9 +1694,11 @@ function isReceiptInsightQuestion(value: string) {
       preserveInput: false,
       preserveMode: true,
       preserveLanguage: true,
+      preserveTranscriptArtifacts: true,
     });
     setStep('processing');
     setTranscript(text);
+    setTranslationNotice('');
     setErrorMessage('');
     setApiError(null);
     setUsageSummary(null);
@@ -1687,7 +1710,7 @@ function isReceiptInsightQuestion(value: string) {
 
       const body: Record<string, unknown> = {
         inputType: 'text',
-        language,
+        language: displayLanguage,
         context,
         idempotencyKey: nextFlowId,
         text,
@@ -1765,13 +1788,14 @@ function isReceiptInsightQuestion(value: string) {
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [language, handleApiFailure, resetRequestState, t]);
+  }, [displayLanguage, handleApiFailure, resetRequestState, t]);
 
   const callReceiptInsightAPI = useCallback(async (question: string) => {
     resetRequestState({
       preserveInput: true,
       preserveMode: true,
       preserveLanguage: true,
+      preserveTranscriptArtifacts: true,
     });
     setStep('processing');
     setTranscript(question);
@@ -1786,8 +1810,9 @@ function isReceiptInsightQuestion(value: string) {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
+          'x-smart-pocket-language': displayLanguage,
         },
-        body: JSON.stringify({ question, language }),
+        body: JSON.stringify({ question, language: displayLanguage }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data?.success !== true) {
@@ -1803,7 +1828,7 @@ function isReceiptInsightQuestion(value: string) {
       setErrorMessage(err instanceof Error ? err.message : t('errors.network', { ns: 'common' }));
       setStep('failed');
     }
-  }, [language, resetRequestState, t]);
+  }, [displayLanguage, resetRequestState, t]);
 
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
@@ -1819,6 +1844,7 @@ function isReceiptInsightQuestion(value: string) {
       preserveInput: true,
       preserveMode: true,
       preserveLanguage: true,
+      preserveTranscriptArtifacts: false,
     });
     setStep('processing');
     setErrorMessage('');
@@ -1830,7 +1856,8 @@ function isReceiptInsightQuestion(value: string) {
       const formData = new FormData();
       formData.append('audio', submission.file);
       formData.append('durationSeconds', String(submission.durationSeconds));
-      formData.append('language', language);
+      formData.append('spokenLanguage', spokenLanguage);
+      formData.append('displayLanguage', displayLanguage);
       formData.append('idempotencyKey', createClientId());
 
       const response = await fetch('/api/ai/transcribe', {
@@ -1859,8 +1886,23 @@ function isReceiptInsightQuestion(value: string) {
         return;
       }
 
+      const nextOriginalTranscript =
+        typeof data.originalTranscript === 'string' && data.originalTranscript.trim()
+          ? data.originalTranscript.trim()
+          : nextTranscript;
       setTranscript(nextTranscript);
       setTextInput(nextTranscript);
+      setOriginalTranscript(nextOriginalTranscript);
+      setOriginalTranscriptLanguage(
+        typeof data.detectedLanguage === 'string' && data.detectedLanguage.trim()
+          ? data.detectedLanguage.trim().toLowerCase()
+          : spokenLanguage
+      );
+      setTranslationNotice(
+        data.translationFailed === true
+          ? t('smartEntryModal.voice.translationFailed', { ns: 'portal' })
+          : ''
+      );
       setMode('text');
       setStep('entry');
       setApiError(null);
@@ -1880,7 +1922,7 @@ function isReceiptInsightQuestion(value: string) {
         },
       }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
     }
-  }, [getAuthToken, handleVoiceFailure, language, resetRequestState, router, t]);
+  }, [displayLanguage, getAuthToken, handleVoiceFailure, resetRequestState, router, spokenLanguage, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!parsed || !reviewState || unresolvedReviewFields.length > 0) return;
@@ -2068,12 +2110,59 @@ function isReceiptInsightQuestion(value: string) {
     return t('smartEntryModal.errors.confirmFailed', { ns: 'portal' });
   };
 
-  const LANGUAGES: Array<{ code: 'en' | 'ar' | 'fr' | 'ru'; label: string }> = [
+  const SPOKEN_LANGUAGES: Array<{ code: SmartEntrySpokenLanguage; label: string }> = [
+    { code: 'auto', label: t('smartEntryModal.language.autoDetect', { ns: 'portal' }) },
+    { code: 'en', label: t('language.en', { ns: 'common' }) },
+    { code: 'ur', label: t('language.ur', { ns: 'common' }) },
+    { code: 'ar', label: t('language.ar', { ns: 'common' }) },
+    { code: 'fr', label: t('language.fr', { ns: 'common' }) },
+    { code: 'ru', label: t('language.ru', { ns: 'common' }) },
+  ];
+  const DISPLAY_LANGUAGES: Array<{ code: SmartEntryDisplayLanguage; label: string }> = [
     { code: 'en', label: t('language.en', { ns: 'common' }) },
     { code: 'ar', label: t('language.ar', { ns: 'common' }) },
     { code: 'fr', label: t('language.fr', { ns: 'common' }) },
     { code: 'ru', label: t('language.ru', { ns: 'common' }) },
   ];
+  const displayLanguageLabel = DISPLAY_LANGUAGES.find((entry) => entry.code === displayLanguage)?.label
+    || t('language.en', { ns: 'common' });
+  const originalTranscriptLanguageLabel = (() => {
+    const value = (originalTranscriptLanguage || '').toLowerCase();
+    if (value === 'ur') return t('language.ur', { ns: 'common' });
+    if (value === 'ar') return t('language.ar', { ns: 'common' });
+    if (value === 'fr') return t('language.fr', { ns: 'common' });
+    if (value === 'ru') return t('language.ru', { ns: 'common' });
+    if (value === 'en') return t('language.en', { ns: 'common' });
+    return t('smartEntryModal.language.autoDetect', { ns: 'portal' });
+  })();
+  const translationNoticeBanner = translationNotice ? (
+    <div className="rounded-xl border border-warning/30 bg-warning-soft px-3 py-2 text-sm text-foreground">
+      {translationNotice}
+    </div>
+  ) : null;
+  const originalTranscriptDisclosure = originalTranscript ? (
+    <details className="rounded-xl border border-border bg-muted/30 p-3">
+      <summary className="cursor-pointer list-none text-sm font-700 text-foreground">
+        {t('smartEntryModal.voice.viewOriginalTranscription', { ns: 'portal' })}
+      </summary>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {t('smartEntryModal.voice.originalLanguageLabel', {
+          ns: 'portal',
+          language: originalTranscriptLanguageLabel,
+        })}
+      </p>
+      <p
+        className="mt-2 text-sm text-foreground"
+        dir={getLanguageDirection(originalTranscriptLanguage)}
+        lang={originalTranscriptLanguage || undefined}
+      >
+        {originalTranscript}
+      </p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {t('smartEntryModal.voice.wrongLanguageHint', { ns: 'portal' })}
+      </p>
+    </details>
+  ) : null;
 
   const examplePlaceholder = t('smartEntryModal.placeholderExample', { ns: 'portal' });
   const exampleItems = [
@@ -2184,27 +2273,84 @@ function isReceiptInsightQuestion(value: string) {
                 </button>
               </div>
 
-              {/* Language selector */}
-              <div className="mb-4">
-                <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                  {t('smartEntryModal.languageLabel', { ns: 'portal' })}
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {LANGUAGES.map(l => (
-                    <button
-                      key={l.code}
-                      onClick={() => setLanguage(l.code)}
-                      dir={l.code === 'ar' ? 'rtl' : 'ltr'}
-                      lang={l.code}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-600 transition-colors ${
-                        language === l.code
-                          ? 'bg-accent/10 text-accent border border-accent/30' :'bg-muted text-muted-foreground hover:bg-muted/80'
-                      }`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
+              <div className="mb-4 space-y-3">
+                <div>
+                  <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                    {t('smartEntryModal.language.spokenLabel', { ns: 'portal' })}
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {SPOKEN_LANGUAGES.map((entry) => (
+                      <button
+                        key={entry.code}
+                        type="button"
+                        onClick={() => setSpokenLanguage(entry.code)}
+                        dir={getLanguageDirection(entry.code)}
+                        lang={entry.code === 'auto' ? undefined : entry.code}
+                        aria-pressed={spokenLanguage === entry.code}
+                        className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
+                          spokenLanguage === entry.code
+                            ? 'border border-accent/30 bg-accent/10 text-accent'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {entry.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
+
+                <details className="rounded-2xl border border-border bg-secondary/30 p-3">
+                  <summary className="cursor-pointer list-none text-sm font-700 text-foreground">
+                    {t('smartEntryModal.language.optionsTitle', { ns: 'portal' })}
+                  </summary>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {displayLanguageOverride
+                      ? t('smartEntryModal.language.displayOverride', {
+                          ns: 'portal',
+                          language: displayLanguageLabel,
+                        })
+                      : t('smartEntryModal.language.displayDefault', {
+                          ns: 'portal',
+                          language: displayLanguageLabel,
+                        })}
+                  </p>
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-xs font-600 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.language.displayLabel', { ns: 'portal' })}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDisplayLanguageOverride(null)}
+                        aria-pressed={displayLanguageOverride === null}
+                        className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
+                          displayLanguageOverride === null
+                            ? 'border border-accent/30 bg-accent/10 text-accent'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {t('smartEntryModal.language.useSmartPocketDefault', { ns: 'portal' })}
+                      </button>
+                      {DISPLAY_LANGUAGES.map((entry) => (
+                        <button
+                          key={entry.code}
+                          type="button"
+                          onClick={() => setDisplayLanguageOverride(entry.code)}
+                          dir={getLanguageDirection(entry.code)}
+                          lang={entry.code}
+                          aria-pressed={displayLanguageOverride === entry.code}
+                          className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
+                            displayLanguageOverride === entry.code
+                              ? 'border border-accent/30 bg-accent/10 text-accent'
+                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }`}
+                        >
+                          {entry.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </details>
               </div>
 
               <div className="mb-5 rounded-2xl border border-border bg-secondary/30 p-4">
@@ -2274,11 +2420,14 @@ function isReceiptInsightQuestion(value: string) {
                     onChange={e => setTextInput(e.target.value)}
                     placeholder={examplePlaceholder}
                     className="input-base w-full min-h-[8.5rem] resize-y text-sm"
-                    dir={language === 'ar' ? 'rtl' : 'ltr'}
+                    dir={getLanguageDirection(displayLanguage)}
+                    lang={displayLanguage}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleTextSubmit();
                     }}
                   />
+                  {translationNoticeBanner ? <div className="mt-3">{translationNoticeBanner}</div> : null}
+                  {originalTranscriptDisclosure ? <div className="mt-3">{originalTranscriptDisclosure}</div> : null}
                   <p className="text-xs text-muted-foreground mt-1.5">
                     {t('smartEntryModal.submitHint', { ns: 'portal' })}
                   </p>
@@ -2306,7 +2455,7 @@ function isReceiptInsightQuestion(value: string) {
                   onCancel={() => setMode('text')}
                   onSwitchToText={() => setMode('text')}
                   maxSeconds={voiceMaxSeconds}
-                  language={language}
+                  language={spokenLanguage}
                 />
               )}
 
@@ -2352,9 +2501,17 @@ function isReceiptInsightQuestion(value: string) {
                   <p className="text-xs font-600 text-muted-foreground mb-1">
                     {t('smartEntryModal.transcriptLabel', { ns: 'portal' })}:
                   </p>
-                  <p className="text-sm text-foreground italic">"{transcript}"</p>
+                  <p
+                    className="text-sm text-foreground italic"
+                    dir={getLanguageDirection(displayLanguage)}
+                    lang={displayLanguage}
+                  >
+                    "{transcript}"
+                  </p>
                 </div>
               )}
+              {translationNoticeBanner}
+              {originalTranscriptDisclosure}
             </div>
           )}
 
@@ -2438,9 +2595,25 @@ function isReceiptInsightQuestion(value: string) {
                   <p className="text-xs text-muted-foreground">
                     {t('smartEntryModal.inputLabel', { ns: 'portal' })}:
                   </p>
-                  <p className="text-sm text-foreground mt-0.5 italic">"{transcript || textInput}"</p>
+                  <p
+                    className="text-sm text-foreground mt-0.5 italic"
+                    dir={getLanguageDirection(displayLanguage)}
+                    lang={displayLanguage}
+                  >
+                    "{transcript || textInput}"
+                  </p>
                 </div>
               )}
+              {translationNoticeBanner ? (
+                <div className={isSubscriptionFlow ? 'mb-3' : 'mb-4'}>
+                  {translationNoticeBanner}
+                </div>
+              ) : null}
+              {originalTranscriptDisclosure ? (
+                <div className={isSubscriptionFlow ? 'mb-3' : 'mb-4'}>
+                  {originalTranscriptDisclosure}
+                </div>
+              ) : null}
 
               {errorMessage && (
                 <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>

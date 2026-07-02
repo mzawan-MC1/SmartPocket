@@ -1034,6 +1034,22 @@ export interface OpenRouterAudioTranscriptionResponse {
   estimatedCostUsd?: number | null;
 }
 
+export interface OpenRouterTextRewriteRequest {
+  model: string;
+  prompt: string;
+  timeoutMs?: number;
+}
+
+export interface OpenRouterTextRewriteResponse {
+  text: string;
+  modelUsed: string;
+  rawOutput: unknown;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  estimatedCostUsd?: number | null;
+}
+
 export function getOpenRouterBaseUrl() {
   return process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1';
 }
@@ -1143,6 +1159,56 @@ export async function transcribeAudioWithOpenRouter(
 
     return {
       transcript,
+      modelUsed: input.model,
+      rawOutput,
+      ...usageDetails,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function rewriteTextWithOpenRouter(
+  input: OpenRouterTextRewriteRequest
+): Promise<OpenRouterTextRewriteResponse> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), input.timeoutMs || 20000);
+
+  try {
+    const response = await fetch(`${getOpenRouterBaseUrl()}/chat/completions`, {
+      method: 'POST',
+      headers: getOpenRouterHeaders(),
+      body: JSON.stringify({
+        model: input.model,
+        messages: [
+          {
+            role: 'user',
+            content: input.prompt,
+          },
+        ],
+        temperature: 0,
+        max_tokens: 1200,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`OpenRouter error ${response.status}: ${sanitizeError(errText)}`);
+    }
+
+    const rawOutput = await response.json();
+    const usageDetails = extractProviderUsageDetails(rawOutput);
+    const content = rawOutput?.choices?.[0]?.message?.content;
+    const text = stripTranscriptFormatting(extractOpenRouterTextContent(content));
+
+    if (!text) {
+      throw new Error('Empty text rewrite response from OpenRouter');
+    }
+
+    return {
+      text,
       modelUsed: input.model,
       rawOutput,
       ...usageDetails,
