@@ -54,8 +54,8 @@ export default function Modal({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const mobileContentClassName = mobileLayout === 'fullscreen'
-    ? 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[24px]'
-    : 'max-[480px]:max-h-[calc(100dvh-2rem)] max-[480px]:rounded-[22px]';
+    ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-[480px]:rounded-[24px]'
+    : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-[480px]:rounded-[22px]';
 
   useEffect(() => {
     if (isVisible) {
@@ -106,7 +106,7 @@ export default function Modal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 py-4 sm:items-center sm:p-5">
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:items-center sm:p-5">
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={handleBackdropClick} />
       <div
         ref={dialogRef}
@@ -115,7 +115,7 @@ export default function Modal({
         aria-labelledby={headingId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`relative box-border flex w-full max-h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
         <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-4 ${headerClassName}`}>
           <div>

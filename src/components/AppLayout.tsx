@@ -28,8 +28,8 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
   return (
     <SubscriptionSummaryProvider>
       <QuickActionsProvider>
-        <div className="min-h-screen overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden" dir={dir}>
-          <div className="flex min-h-screen w-full items-stretch lg:h-screen lg:flex-row lg:overflow-hidden">
+        <div className="min-h-screen min-h-[100dvh] overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden" dir={dir}>
+          <div className="flex min-h-screen min-h-[100dvh] w-full items-stretch lg:h-screen lg:flex-row lg:overflow-hidden">
             {/* Desktop Sidebar — left for LTR, right for RTL */}
             <div
               className={`print:hidden hidden self-stretch bg-card lg:flex lg:h-screen lg:flex-shrink-0 lg:overflow-hidden ${
@@ -76,10 +76,10 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
                 style={{ background: 'var(--background)' }}
               >
                 <div className="flex min-h-full flex-col">
-                  <div className="page-shell page-shell-authenticated flex-1 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9">
+                  <div className="page-shell page-shell-authenticated flex-1 pb-[calc(6.25rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6.75rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9">
                     {children}
                   </div>
-                  <div className="print:hidden pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+                  <div className="print:hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0">
                     <PortalFooter />
                   </div>
                 </div>

@@ -1295,40 +1295,43 @@ export default function AddTransactionModal({
       size="xl"
       mobileLayout="fullscreen"
       contentClassName="sm:max-w-[42rem] lg:max-w-[46rem] sm:max-h-[88vh]"
-      headerClassName="sm:px-4 sm:py-3"
+      headerClassName="max-[480px]:px-3 max-[480px]:py-2.5 sm:px-4 sm:py-3"
       bodyClassName="overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
-        <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4 sm:px-3.5 sm:py-3">
-          <div className="grid grid-cols-1 gap-2">
+        <div className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3 pb-24 sm:px-3.5 sm:py-3 sm:pb-24">
+          <div className="grid grid-cols-1 gap-1.5 sm:gap-2">
             {!editingTransaction ? (
-              <div className="rounded-2xl border border-border bg-card p-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <p className="text-sm font-700 text-foreground">
+              <div className="rounded-xl border border-border bg-card px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+                      <Upload size={14} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-700 text-foreground">
                         {t('transactions.documentReview.entryTitle', {
                           ns: 'portal',
                           defaultValue: 'Receipt / Document',
-                        })}
+                        })}{' '}
+                        <span className="font-600 text-muted-foreground">
+                          {t('transactions.documentReview.optionalLabel', {
+                            ns: 'portal',
+                            defaultValue: '(Optional)',
+                          })}
+                        </span>
                       </p>
-                      <span className="text-xs text-muted-foreground">
-                        ({t('transactions.documentReview.entryMetaCompact', {
+                      <p className="hidden truncate text-[11px] text-muted-foreground sm:block">
+                        {t('transactions.documentReview.entryMetaCompact', {
                           ns: 'portal',
                           supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
                           maxSize: getTransactionDocumentMaxSizeLabel(),
                           defaultValue: '{{supportedTypes}} · Max {{maxSize}}',
-                        })})
-                      </span>
+                        })}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('transactions.documentReview.entryDescription', {
-                        ns: 'portal',
-                        defaultValue: 'Upload a receipt or invoice to prepare transaction details for review.',
-                      })}
-                    </p>
                   </div>
-                  <div className="sm:shrink-0">
+                  <div className="shrink-0">
                     <input
                       type="file"
                       id="transaction-document-review-upload"
@@ -1342,9 +1345,8 @@ export default function AddTransactionModal({
                     />
                     <label
                       htmlFor="transaction-document-review-upload"
-                      className="btn-secondary inline-flex cursor-pointer items-center justify-center"
+                      className="btn-secondary inline-flex h-9 min-h-9 cursor-pointer items-center justify-center px-2.5 text-sm sm:min-h-10 sm:px-3"
                     >
-                      <Upload size={14} />
                       {t('transactions.documentReview.openAction', {
                         ns: 'portal',
                         defaultValue: 'Review Document',
@@ -1355,11 +1357,11 @@ export default function AddTransactionModal({
               </div>
             ) : null}
             {transactionMode === 'single' ? (
-              <div className="flex flex-wrap items-stretch gap-2.5">
+              <div className="flex flex-col gap-1.5 sm:gap-2">
                 <div
-                  className={`grid w-full min-w-0 basis-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 ${
+                  className={`grid w-full min-w-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/20 p-1 ${
                     spaceId ? 'sm:grid-cols-2' : 'sm:grid-cols-4'
-                  } md:basis-auto md:flex-[1_1_32rem]`}
+                  }`}
                   role="group"
                   aria-label={t('transactions.form.transactionType', { ns: 'portal' })}
                 >
@@ -1413,7 +1415,7 @@ export default function AddTransactionModal({
                             showMoreOptions: option.kind === 'loan_repayment',
                           }));
                         }}
-                        className={`flex min-h-10 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-center text-[12px] font-700 leading-tight transition-colors sm:min-h-11 sm:py-2.5 sm:text-[13px] ${
+                        className={`flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-center text-[11px] font-700 leading-tight transition-colors sm:min-h-10 sm:py-2 sm:text-[12px] ${
                           isActive
                             ? option.type === 'income'
                               ? 'border-positive bg-positive-soft text-positive'
@@ -1422,22 +1424,22 @@ export default function AddTransactionModal({
                         }`}
                       >
                         {isLoanRepaymentOption ? (
-                          <Users size={13} />
+                          <Users size={11} />
                         ) : isSubscriptionPaymentOption ? (
-                          <RefreshCw size={13} />
+                          <RefreshCw size={11} />
                         ) : option.type === 'income' ? (
-                          <TrendingUp size={13} />
+                          <TrendingUp size={11} />
                         ) : (
-                          <TrendingDown size={13} />
+                          <TrendingDown size={11} />
                         )}
                         <span className="block whitespace-normal break-words">{label}</span>
                       </button>
                     );
                   })}
                 </div>
-                <div className="flex w-full basis-full flex-col gap-2 sm:flex-row sm:items-stretch sm:justify-between md:w-auto md:basis-auto md:flex-[0_0_22rem]">
+                <div className="flex w-full flex-col gap-1.5 sm:gap-2 md:flex-row md:items-stretch md:justify-between">
                   {!spaceId ? (
-                    <div className="grid w-full grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/20 p-1 sm:w-auto sm:flex-[0_0_13rem]">
+                    <div className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-muted/20 p-1 md:w-auto md:min-w-[13rem]">
                       {(['single', 'multiple'] as const).map((mode) => (
                         <button
                           key={mode}
@@ -1446,7 +1448,7 @@ export default function AddTransactionModal({
                           aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
                           onClick={() => handleModeChange(mode)}
                           disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
-                          className={`min-h-11 min-w-0 rounded-xl border px-2.5 py-2 text-center text-[13px] font-600 leading-tight transition-colors ${
+                          className={`min-h-10 min-w-0 rounded-lg border px-2 py-1.5 text-center text-[12px] font-600 leading-tight transition-colors ${
                             transactionMode === mode
                               ? 'border-border bg-card text-foreground shadow-sm'
                               : 'border-transparent bg-transparent text-muted-foreground hover:border-border/80 hover:bg-card hover:text-foreground'
@@ -1459,7 +1461,7 @@ export default function AddTransactionModal({
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
                       {t('transactions.form.spaceTransactionsSingleOnly', {
                         ns: 'portal',
                         defaultValue: 'Space transactions are available in Single mode only.',
@@ -1470,7 +1472,7 @@ export default function AddTransactionModal({
                   {isSubscriptionPaymentMode ? (
                     <Link
                       href="/personal-subscriptions/new"
-                      className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-nowrap sm:w-auto"
+                      className="btn-secondary inline-flex min-h-10 w-full items-center justify-center gap-2 whitespace-nowrap md:w-auto"
                     >
                       <Plus size={14} />
                       {t('transactions.form.addNewSubscription', { ns: 'portal' })}
@@ -1479,29 +1481,33 @@ export default function AddTransactionModal({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
-                <span>{t('transactions.form.batchHelper', { ns: 'portal', count: MAX_BATCH_ROWS })}</span>
-                <span className="font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-muted/20 px-3 py-2 text-sm text-muted-foreground">
+                <div className="min-w-0">
+                  <span>{t('transactions.form.batchHelper', { ns: 'portal', count: MAX_BATCH_ROWS })}</span>
+                  <span className="ml-2 font-600 text-foreground">{draftRows.length} / {MAX_BATCH_ROWS}</span>
+                </div>
+                {!spaceId ? (
+                  <div className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-card/70 p-1">
+                    {(['single', 'multiple'] as const).map((mode) => (
+                      <button
+                        key={`compact-mode-${mode}`}
+                        type="button"
+                        aria-pressed={transactionMode === mode}
+                        aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
+                        onClick={() => handleModeChange(mode)}
+                        disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
+                        className={`min-h-9 rounded-lg px-2.5 py-1.5 text-xs font-700 transition-colors ${
+                          transactionMode === mode
+                            ? 'bg-card text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
-            )}
-            {transactionMode === 'single' || spaceId ? null : (
-            <div className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/20 p-1">
-              {(['single', 'multiple'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  aria-pressed={transactionMode === mode}
-                  aria-label={t('transactions.form.entryModeAria', { ns: 'portal', mode: t(`transactions.form.modes.${mode}` as const, { ns: 'portal' }) })}
-                  onClick={() => handleModeChange(mode)}
-                  disabled={(editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')}
-                  className={`rounded-lg px-2.5 py-1.5 text-sm font-600 transition-colors ${
-                    transactionMode === mode ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  } ${((editingTransaction !== null && mode === 'multiple') || ((isLoanRepaymentMode || isSubscriptionPaymentMode) && mode === 'multiple')) ? 'cursor-not-allowed opacity-60' : ''}`}
-                >
-                  {t(`transactions.form.modes.${mode}` as const, { ns: 'portal' })}
-                </button>
-              ))}
-            </div>
             )}
           </div>
 
@@ -1555,9 +1561,10 @@ export default function AddTransactionModal({
                         <Trash2 size={14} />
                       </button>
                     ) : null}
-                    bodyClassName="p-3 pt-2.5 max-[480px]:space-y-4 max-[480px]:px-3.5"
+                    headerClassName="max-[480px]:px-3 max-[480px]:py-2.5"
+                    bodyClassName="p-3 pt-2 sm:px-3 max-[480px]:px-3 max-[480px]:py-2.5"
                   >
-                    <div className="flex flex-col space-y-2 max-[480px]:space-y-4">
+                    <div className="flex flex-col space-y-2.5 max-[480px]:space-y-3">
                       {transactionMode === 'multiple' && !editingTransaction ? (
                         <div>
                           <div>
@@ -1715,15 +1722,54 @@ export default function AddTransactionModal({
                         </>
                       ) : (
                         <>
-                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-2">
-                            <div>
+                          <div className="order-1 md:order-2">
+                            <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-sm font-600 max-[480px]:text-[11px] max-[480px]:font-700 max-[480px]:uppercase max-[480px]:tracking-[0.16em]')}>
+                              {t('transactions.amount', { ns: 'portal' })} *
+                            </label>
+                            <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-[minmax(0,1.58fr)_minmax(0,1fr)] md:grid-cols-2">
+                              <div className="min-w-0">
+                                <input
+                                  ref={index === 0 ? firstAmountFieldRef : undefined}
+                                  type="number"
+                                  step="0.01"
+                                  min="0.01"
+                                  inputMode="decimal"
+                                  className={getFieldInputClassName('input-base h-11 text-base font-tabular max-[480px]:h-12 max-[480px]:text-[1.35rem] max-[480px]:font-800', hasFieldError('amount'))}
+                                  placeholder="0.00"
+                                  value={row.amount}
+                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
+                                />
+                                {getFieldError('amount') ? (
+                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('amount')}</p>
+                                ) : null}
+                              </div>
+                              <div className="min-w-0">
+                                <div className={hasFieldError('currency') ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
+                                  <CurrencySelector
+                                    className="min-w-0 [&>button]:h-11 [&>button]:min-h-11 [&>button]:gap-2 [&>button]:px-3 [&>button]:py-2 max-[480px]:[&>button]:h-12 max-[480px]:[&>button]:min-h-12 [&>button>div]:min-w-0 [&>button>div]:grid-cols-[1rem_auto] [&>button>div]:gap-x-1.5 [&>button>div>span:first-child]:h-4 [&>button>div>span:first-child]:w-4 [&>button>div>span:last-child]:text-sm [&>p]:mt-1 [&>p]:text-[11px] [&>p]:leading-4"
+                                    value={row.currency}
+                                    onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
+                                    placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
+                                    disabled={Boolean(account)}
+                                    helperText={getFieldError('currency')
+                                      || (account
+                                        ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency })
+                                        : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' }))}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="order-2 grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 md:order-1 md:grid-cols-2">
+                            <div className="min-w-0 min-[360px]:col-span-2 md:col-span-1">
                               <label className={getFieldLabelClassName(hasFieldError('account_id'), 'mb-1 block text-sm font-600')}>
                                 {row.transaction_type === 'income'
                                   ? t('transactions.form.receivedInto', { ns: 'portal', defaultValue: 'Received into' })
                                   : t('transactions.form.paidFrom', { ns: 'portal', defaultValue: 'Paid from' })} *
                               </label>
                               <select
-                                className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('account_id'))}
+                                className={getFieldInputClassName('h-9 min-w-0 text-sm input-base', hasFieldError('account_id'))}
                                 value={row.account_id}
                                 onChange={(event) => {
                                   const nextAccountId = event.target.value;
@@ -1750,12 +1796,12 @@ export default function AddTransactionModal({
                               ) : null}
                             </div>
                             {isLoanRepaymentRow ? (
-                              <div>
+                              <div className="min-w-0">
                                 <label className={getFieldLabelClassName(hasFieldError('person_id'), 'mb-1 block text-sm font-600')}>
                                   {t('settlements.person', { ns: 'portal', defaultValue: 'Person' })} *
                                 </label>
                                 <select
-                                  className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('person_id'))}
+                                  className={getFieldInputClassName('h-9 min-w-0 text-sm input-base', hasFieldError('person_id'))}
                                   value={row.person_id}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, person_id: event.target.value }))}
                                 >
@@ -1769,12 +1815,12 @@ export default function AddTransactionModal({
                                 ) : null}
                               </div>
                             ) : (
-                              <div>
+                              <div className="min-w-0">
                                 <label className={getFieldLabelClassName(hasFieldError('category_id'), 'mb-1 block text-sm font-600')}>
                                   {t('transactions.category', { ns: 'portal' })}
                                 </label>
                                 <select
-                                  className={getFieldInputClassName('h-9 text-sm input-base', hasFieldError('category_id'))}
+                                  className={getFieldInputClassName('h-9 min-w-0 text-sm input-base', hasFieldError('category_id'))}
                                   value={row.category_id}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, category_id: event.target.value }))}
                                 >
@@ -1792,70 +1838,24 @@ export default function AddTransactionModal({
                                 ) : null}
                               </div>
                             )}
-                          </div>
-
-                          <div className="rounded-2xl border border-border bg-card p-2 max-[480px]:order-1 max-[480px]:space-y-3">
-                            <div className="max-[480px]:hidden">
-                              <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-sm font-600')}>
-                                {t('transactions.amount', { ns: 'portal' })} *
+                            <div className="min-w-0">
+                              <label className={getFieldLabelClassName(hasFieldError('transaction_date'), 'mb-1 block text-sm font-600')}>
+                                {t('transactions.date', { ns: 'portal' })} *
                               </label>
+                              <input
+                                type="date"
+                                className={getFieldInputClassName('input-base h-9 min-w-0 text-sm', hasFieldError('transaction_date'))}
+                                value={row.transaction_date}
+                                onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
+                              />
+                              {getFieldError('transaction_date') ? (
+                                <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('transaction_date')}</p>
+                              ) : null}
                             </div>
-                            <div className="hidden max-[480px]:block">
-                              <label className={getFieldLabelClassName(hasFieldError('amount'), 'mb-1 block text-[11px] font-700 uppercase tracking-[0.16em]')}>
-                                {t('transactions.amount', { ns: 'portal' })}
-                              </label>
-                            </div>
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-                              <div>
-                                <input
-                                  ref={index === 0 ? firstAmountFieldRef : undefined}
-                                  type="number"
-                                  step="0.01"
-                                  min="0.01"
-                                  inputMode="decimal"
-                                  className={getFieldInputClassName('input-base h-11 text-base font-tabular max-[480px]:h-14 max-[480px]:text-2xl max-[480px]:font-800', hasFieldError('amount'))}
-                                  placeholder="0.00"
-                                  value={row.amount}
-                                  onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
-                                />
-                                {getFieldError('amount') ? (
-                                  <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('amount')}</p>
-                                ) : null}
-                              </div>
-                              <div>
-                                <div className={hasFieldError('currency') ? 'rounded-xl border border-negative/40 bg-negative-soft/40 p-1' : ''}>
-                                  <CurrencySelector
-                                    value={row.currency}
-                                    onChange={(currencyCode) => updateDraftRow(row.id, (draft) => ({ ...draft, currency: currencyCode }))}
-                                    placeholder={t('settlements.chooseCurrency', { ns: 'portal' })}
-                                    disabled={Boolean(account)}
-                                    helperText={getFieldError('currency')
-                                      || (account
-                                        ? t('transactions.form.usesAccountCurrency', { ns: 'portal', currency: account.currency })
-                                        : t('transactions.form.chooseTransactionCurrency', { ns: 'portal' }))}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="max-[480px]:order-4">
-                            <label className={getFieldLabelClassName(hasFieldError('transaction_date'), 'mb-1 block text-sm font-600')}>
-                              {t('transactions.date', { ns: 'portal' })} *
-                            </label>
-                            <input
-                              type="date"
-                              className={getFieldInputClassName('input-base h-9 text-sm', hasFieldError('transaction_date'))}
-                              value={row.transaction_date}
-                              onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, transaction_date: event.target.value }))}
-                            />
-                            {getFieldError('transaction_date') ? (
-                              <p className={getFieldErrorTextClassName('mt-1 text-xs')}>{getFieldError('transaction_date')}</p>
-                            ) : null}
                           </div>
 
                           {isLoanRepaymentRow ? (
-                            <div className="max-[480px]:order-5">
+                            <div className="order-3">
                               <label className={getFieldLabelClassName(hasFieldError('notes'), 'mb-1 block text-sm font-600')}>
                                 {t('reimbursements.notes', { ns: 'portal' })} *
                               </label>
@@ -1871,7 +1871,7 @@ export default function AddTransactionModal({
                               ) : null}
                             </div>
                           ) : (
-                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 max-[480px]:order-5">
+                            <div className="order-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                               <div className="min-w-0">
                                 <label className={getFieldLabelClassName(hasFieldError('merchant'), 'mb-1 block text-sm font-600')}>
                                   {t('transactions.form.merchantLabel', { ns: 'portal' })}
@@ -1912,10 +1912,11 @@ export default function AddTransactionModal({
                           variant="secondary"
                           title={t('transactions.form.moreDetails', { ns: 'portal' })}
                           className="max-[480px]:order-6"
+                          headerClassName="max-[480px]:px-3 max-[480px]:py-2.5"
                           collapsible
                           expanded={row.showMoreOptions}
                           onExpandedChange={(expanded) => updateDraftRow(row.id, (draft) => ({ ...draft, showMoreOptions: expanded }))}
-                          bodyClassName="space-y-2"
+                          bodyClassName="space-y-2 max-[480px]:px-3 max-[480px]:py-2.5"
                         >
                           {row.showMoreOptions ? (
                             <>
@@ -2392,9 +2393,9 @@ export default function AddTransactionModal({
           ) : null}
         </div>
 
-        <div className="sticky bottom-0 z-10 mt-2 border-t border-border bg-card/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 backdrop-blur sm:px-3.5 sm:pb-3">
+        <div className="sticky bottom-0 z-10 border-t border-border bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-1.5 backdrop-blur sm:px-3.5 sm:pb-3 sm:pt-2">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs text-muted-foreground sm:text-sm">
               {isSaving && saveProgress
                 ? t('transactions.form.savingProgress', { ns: 'portal', completed: saveProgress.completed, total: saveProgress.total })
                 : activeDraftRows.filter(isDraftRowPopulated).length > 1

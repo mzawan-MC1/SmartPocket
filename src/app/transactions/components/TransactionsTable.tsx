@@ -95,7 +95,6 @@ export default function TransactionsTable({
   const [customDateTo, setCustomDateTo] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('transaction_date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [perPage] = useState(10);
   const [showFilters, setShowFilters] = useState(false);
@@ -496,10 +495,6 @@ export default function TransactionsTable({
   const totalPages = Math.ceil(filtered.length / perPage);
   const paginated = filtered.slice((page - 1) * perPage, page * perPage);
 
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
-  };
-
   const SortIcon = ({ col }: { col: SortKey }) => {
     if (sortKey !== col || !sortDir) return <ChevronsUpDown size={12} className="text-muted-foreground" />;
     return sortDir === 'asc' ? <ChevronUp size={12} className="text-accent" /> : <ChevronDown size={12} className="text-accent" />;
@@ -816,15 +811,6 @@ export default function TransactionsTable({
         </div>
       </div>
 
-      {selectedIds.size > 0 && (
-        <div className="section-card flex items-center gap-3 border-accent/40 bg-accent/5 px-4 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
-          <span className="text-sm font-600 text-foreground">{t('transactions.selectedCount', { ns: 'portal', count: selectedIds.size })}</span>
-          <div className="flex items-center gap-2 ml-auto">
-            <button onClick={() => setSelectedIds(new Set())} className="btn-ghost text-xs py-1.5 px-2"><X size={13} /></button>
-          </div>
-        </div>
-      )}
-
       <div className="data-table-shell overflow-hidden">
         {loading ? (
           <TableSkeleton rows={7} cols={8} />
@@ -841,7 +827,7 @@ export default function TransactionsTable({
           </div>
         ) : (
           <>
-            <div className="space-y-3 p-3 sm:hidden">
+            <div className="space-y-3 p-3 pb-5 sm:hidden">
               {paginated.map((txn) => {
                 const catColor = txn.category?.color || '#6b7280';
                 const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
@@ -852,16 +838,8 @@ export default function TransactionsTable({
                   reportingPreview.reportingAmount !== null &&
                   reportingPreview.originalCurrency !== reportingPreview.reportingCurrency;
                 return (
-                  <div key={`mobile-${txn.id}`} className={`rounded-2xl border border-border bg-card p-3 shadow-card-sm ${selectedIds.has(txn.id) ? 'border-accent/40 bg-accent/5' : ''}`}>
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-4 w-4 rounded border-border accent-accent"
-                        checked={selectedIds.has(txn.id)}
-                        onChange={() => toggleSelect(txn.id)}
-                        aria-label={t('transactions.selectTransaction', { ns: 'portal' })}
-                      />
-                      <div className="min-w-0 flex-1">
+                  <div key={`mobile-${txn.id}`} className="rounded-2xl border border-border bg-card p-3 shadow-card-sm">
+                    <div className="min-w-0">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-700 text-foreground">{title}</p>
@@ -941,7 +919,6 @@ export default function TransactionsTable({
                             </button>
                           </div>
                         </div>
-                      </div>
                     </div>
                   </div>
                 );
@@ -949,16 +926,7 @@ export default function TransactionsTable({
             </div>
             <div className="hidden md:block lg:hidden">
               <div className="rounded-[28px] border border-border bg-card shadow-card-sm">
-                <div className="grid grid-cols-[40px_92px_minmax(0,2.35fr)_minmax(0,1.15fr)_140px_44px] items-center gap-3 border-b border-border/80 px-4 py-3 text-[11px] font-700 text-muted-foreground">
-                  <div>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 cursor-pointer rounded border-border accent-accent"
-                      checked={selectedIds.size === paginated.length && paginated.length > 0}
-                      onChange={() => selectedIds.size === paginated.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(paginated.map((t) => t.id)))}
-                      aria-label={t('transactions.selectAll', { ns: 'portal' })}
-                    />
-                  </div>
+                <div className="grid grid-cols-[92px_minmax(0,2.45fr)_minmax(0,1.15fr)_140px_44px] items-center gap-3 border-b border-border/80 px-4 py-3 text-[11px] font-700 text-muted-foreground">
                   <button type="button" className="flex items-center gap-1 text-left hover:text-foreground" onClick={() => handleSort('transaction_date')}>
                     {t('transactions.date', { ns: 'portal' })}
                     <SortIcon col="transaction_date" />
@@ -998,17 +966,8 @@ export default function TransactionsTable({
                             openTabletDetails(txn.id);
                           }
                         }}
-                        className={`grid cursor-pointer grid-cols-[40px_92px_minmax(0,2.35fr)_minmax(0,1.15fr)_140px_44px] items-center gap-3 px-4 py-4 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 ${selectedIds.has(txn.id) ? 'bg-accent/5' : 'hover:bg-muted/10'}`}
+                        className="grid cursor-pointer grid-cols-[92px_minmax(0,2.45fr)_minmax(0,1.15fr)_140px_44px] items-center gap-3 px-4 py-4 transition-colors hover:bg-muted/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                       >
-                        <div className="pt-0.5">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 cursor-pointer rounded border-border accent-accent"
-                            checked={selectedIds.has(txn.id)}
-                            onChange={() => toggleSelect(txn.id)}
-                            aria-label={t('transactions.selectRow', { ns: 'portal' })}
-                          />
-                        </div>
                         <div className="truncate text-sm text-muted-foreground">
                           {txn.transaction_date}
                         </div>
@@ -1080,7 +1039,10 @@ export default function TransactionsTable({
                                 type="button"
                                 disabled
                                 className="flex w-full items-center justify-between px-4 py-3 text-sm font-600 text-muted-foreground opacity-50"
-                                title="Duplicate requires CRUD changes and is intentionally not implemented in this tablet-only redesign."
+                                title={t('transactions.duplicateUnavailableHint', {
+                                  ns: 'portal',
+                                  defaultValue: 'Duplicate is not available in this view yet.',
+                                })}
                               >
                                 <span>{t('common:actions.duplicate', { defaultValue: 'Duplicate' })}</span>
                               </button>
@@ -1109,13 +1071,6 @@ export default function TransactionsTable({
               <table className="w-full min-w-[760px]">
                 <thead className="data-table-head sticky top-0 z-[1]">
                   <tr className="border-b border-border">
-                    <th className="w-10 px-4 py-3">
-                      <input type="checkbox" className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
-                        checked={selectedIds.size === paginated.length && paginated.length > 0}
-                        onChange={() => selectedIds.size === paginated.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(paginated.map((t) => t.id)))}
-                        aria-label={t('transactions.selectAll', { ns: 'portal' })}
-                      />
-                    </th>
                     {[
                       { key: 'transaction_date' as SortKey, label: t('transactions.date', { ns: 'portal' }) },
                       { key: 'merchant' as SortKey, label: t('transactions.merchantSource', { ns: 'portal' }) },
@@ -1144,12 +1099,7 @@ export default function TransactionsTable({
                       reportingPreview.reportingAmount !== null &&
                       reportingPreview.originalCurrency !== reportingPreview.reportingCurrency;
                     return (
-                      <tr key={txn.id} className={`data-table-row transition-colors ${selectedIds.has(txn.id) ? 'bg-accent/5' : ''}`}>
-                        <td className="px-4 py-3">
-                          <input type="checkbox" className="w-4 h-4 rounded border-border accent-accent cursor-pointer"
-                            checked={selectedIds.has(txn.id)} onChange={() => toggleSelect(txn.id)} aria-label={t('transactions.selectRow', { ns: 'portal' })}
-                          />
-                        </td>
+                      <tr key={txn.id} className="data-table-row transition-colors">
                         <td className="px-4 py-4 text-sm text-muted-foreground whitespace-nowrap">{txn.transaction_date}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
@@ -1333,7 +1283,7 @@ export default function TransactionsTable({
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-700 text-foreground">
-              {t('transactions.filters.month', { ns: 'portal', defaultValue: 'Period' })}
+              {t('transactions.filters.period', { ns: 'portal', defaultValue: 'Period' })}
             </h3>
             <span className="text-xs text-muted-foreground">{activeDateFilter.label}</span>
           </div>
@@ -1475,7 +1425,7 @@ export default function TransactionsTable({
       >
         <section className="space-y-3">
           <h3 className="text-sm font-700 text-foreground">
-            {t('transactions.filters.month', { ns: 'portal', defaultValue: 'Period' })}
+            {t('transactions.filters.period', { ns: 'portal', defaultValue: 'Period' })}
           </h3>
           <div className="flex flex-wrap gap-2">
             {periodModeOptions.map((option) => (
