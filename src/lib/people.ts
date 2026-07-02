@@ -215,6 +215,19 @@ export interface PersonBalance {
   user_owes_person: number;
 }
 
+export interface PersonLoanReportItem {
+  person_id: string;
+  person_name: string;
+  currency: string;
+  original_loan_amount: number;
+  outstanding_balance: number;
+  amount_repaid: number;
+  repayment_count: number;
+  last_repayment_date: string | null;
+  latest_activity_date: string | null;
+  status: 'outstanding' | 'repaid';
+}
+
 async function resolveFallbackCurrency(preferredCurrency?: string | null) {
   return resolveUserDefaultCurrency(preferredCurrency);
 }
@@ -1305,6 +1318,85 @@ export async function getPersonReport(personId: string, dateFrom?: string, dateT
     settlements: (settlementsData || []) as Settlement[],
     balance: balanceData as PersonBalance | null,
   };
+}
+
+export async function getPersonLoanReportItems() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from('person_ledger_entries')
+    .select(`
+      person_id,
+      amount,
+      currency,
+      entry_type,
+      entry_date,
+      reference_type,
+      person:managed_people!person_ledger_entries_person_id_fkey(full_name)
+    `)
+    .eq('is_deleted', false)
+    .eq('reference_type', 'loan')
+    .order('entry_date', { ascending: false });
+
+  if (error) throw error;
+
+  type LoanLedgerReportRow = {
+    person_id: string;
+    amount: number | string;
+    currency: string;
+    entry_type: string;
+    entry_date: string;
+    reference_type: string | null;
+    person?: { full_name?: string | null } | Array<{ full_name?: string | null }> | null;
+  };
+
+  const grouped = new Map<string, PersonLoanReportItem>();
+  for (const row of (data || []) as LoanLedgerReportRow[]) {
+    const personRelation = Array.isArray(row.person) ? row.person[0] : row.person;
+    const personName = personRelation?.full_name || 'Unknown person';
+    const key = `${row.person_id}::${row.currency}`;
+    const current = grouped.get(key) || {
+      person_id: row.person_id,
+      person_name: personName,
+      currency: row.currency,
+      original_loan_amount: 0,
+      outstanding_balance: 0,
+      amount_repaid: 0,
+      repayment_count: 0,
+      last_repayment_date: null,
+      latest_activity_date: row.entry_date,
+      status: 'outstanding' as const,
+    };
+    const amount = Number(row.amount || 0);
+
+    if (row.entry_type === 'reimbursement_due_to_person') {
+      current.original_loan_amount += amount;
+      current.outstanding_balance += amount;
+    } else if (row.entry_type === 'reimbursement_paid') {
+      current.amount_repaid += amount;
+      current.outstanding_balance = Math.max(0, current.outstanding_balance - amount);
+      current.repayment_count += 1;
+      if (!current.last_repayment_date || row.entry_date > current.last_repayment_date) {
+        current.last_repayment_date = row.entry_date;
+      }
+    }
+
+    if (!current.latest_activity_date || row.entry_date > current.latest_activity_date) {
+      current.latest_activity_date = row.entry_date;
+    }
+
+    current.status = current.outstanding_balance > 0 ? 'outstanding' : 'repaid';
+    grouped.set(key, current);
+  }
+
+  return Array.from(grouped.values()).sort((left, right) => {
+    if (left.status !== right.status) {
+      return left.status === 'outstanding' ? -1 : 1;
+    }
+    if (left.outstanding_balance !== right.outstanding_balance) {
+      return right.outstanding_balance - left.outstanding_balance;
+    }
+    return left.person_name.localeCompare(right.person_name);
+  });
 }
 
 // ─── Dashboard Summary ────────────────────────────────────────────────────────

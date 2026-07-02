@@ -46,6 +46,8 @@ type JoinedTransactionRow = {
   category_id?: string | null;
   account_id?: string | null;
   amount?: number | string | null;
+  space_id?: string | null;
+  transaction_context?: 'personal' | 'space' | null;
   account?: JoinedAccountRow | JoinedAccountRow[] | null;
 };
 
@@ -91,6 +93,8 @@ export interface TransactionItemInsightFilters {
   categoryId?: string | null;
   accountId?: string;
   currency?: string;
+  scopeType?: 'personal' | 'space';
+  spaceId?: string | null;
   includeNonRegular?: boolean;
   limit?: number;
   supabaseClient?: SupabaseClient;
@@ -119,6 +123,8 @@ export interface TransactionItemInsightRow {
   currency: string;
   accountId: string | null;
   accountName: string | null;
+  spaceId: string | null;
+  transactionContext: 'personal' | 'space' | null;
   parentCategoryId: string | null;
   parentTransactionAmount: number | null;
 }
@@ -581,6 +587,8 @@ export async function getTransactionItemInsightRows(filters: TransactionItemInsi
           category_id,
           account_id,
           amount,
+          space_id,
+          transaction_context,
           account:financial_accounts(name)
         ),
         item_category:categories(name)
@@ -647,6 +655,8 @@ export async function getTransactionItemInsightRows(filters: TransactionItemInsi
         currency: normalizeText(transaction.currency).toUpperCase() || DEFAULT_CURRENCY,
         accountId: transaction.account_id || null,
         accountName: normalizeText(account?.name) || null,
+        spaceId: transaction.space_id || null,
+        transactionContext: transaction.transaction_context || null,
         parentCategoryId: transaction.category_id || null,
         parentTransactionAmount: normalizeNumeric(transaction.amount),
       } satisfies Omit<TransactionItemInsightRow, 'effectiveUnitPrice'>;
@@ -669,6 +679,14 @@ export async function getTransactionItemInsightRows(filters: TransactionItemInsi
     .filter((row) => !normalizedItemFilter || row.normalizedItemName.includes(normalizedItemFilter) || normalizeReceiptItemName(row.itemName).includes(normalizedItemFilter))
     .filter((row) => !filters.categoryId || row.categoryId === filters.categoryId || row.parentCategoryId === filters.categoryId)
     .filter((row) => !filters.accountId || row.accountId === filters.accountId)
+    .filter((row) => {
+      if (!filters.scopeType) return true;
+      if (filters.scopeType === 'space') {
+        if (!filters.spaceId) return false;
+        return row.spaceId === filters.spaceId || row.transactionContext === 'space';
+      }
+      return !row.spaceId && row.transactionContext !== 'space';
+    })
     .filter((row) => !normalizedCurrencyFilter || row.currency === normalizedCurrencyFilter);
 
   const sortedRows = sortByNewestDate(rows);

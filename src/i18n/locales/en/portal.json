@@ -362,14 +362,16 @@
       "spendingCategory": "Spending by Category",
       "trends": "Trends",
       "budgetPerformance": "Budget Performance",
-      "accountStatement": "Account Statement"
+      "accountStatement": "Account Statement",
+      "fullFinancial": "Full Financial Report"
     },
     "descriptions": {
       "incomeExpense": "Compare income and expenses for the active report range.",
       "spendingCategory": "Review category spending for the active range.",
       "trends": "See daily, weekly, or monthly trend buckets based on the selected range.",
       "budgetPerformance": "Track only budgets that apply to the active report range.",
-      "accountStatement": "Keep original transaction dates, currencies, and amounts as the primary statement values."
+      "accountStatement": "Keep original transaction dates, currencies, and amounts as the primary statement values.",
+      "fullFinancial": "Build one organized financial report for the selected period, scope, and filters using the existing reporting data."
     },
     "presets": {
       "currentPayPeriod": "Current pay period",
@@ -516,7 +518,287 @@
     "spent": "Spent",
     "remaining": "Remaining",
     "progress": "Progress",
-    "unavailable": "Unavailable"
+    "unavailable": "Unavailable",
+    "amount": "Amount",
+    "observations": "Observation",
+    "scopeLabel": "Scope",
+    "personalScope": "Personal",
+    "spaceScope": "Space",
+    "controls": {
+      "scopeLabel": "Scope",
+      "category": "Category",
+      "allCategories": "All categories",
+      "person": "Person",
+      "allPeople": "All people",
+      "transactionType": "Transaction type",
+      "allTransactionTypes": "All transaction types",
+      "currencyMode": "Currency mode",
+      "currencyModeBoth": "Reporting and original values",
+      "currencyModeReporting": "Reporting values first",
+      "fullReportPanelTitle": "Full Financial Report",
+      "fullReportPanelDescription": "Preview one organized report using the selected period, scope, and filters without changing underlying calculations.",
+      "hideMoreOptions": "Hide more report options",
+      "moreOptions": "More report options",
+      "includeTransactionDetails": "Include transaction details",
+      "includeCharts": "Include charts",
+      "includeItemInsights": "Include item insights",
+      "includeUpcomingCommitments": "Include upcoming commitments",
+      "includeArchivedAccounts": "Include archived or versioned accounts when relevant",
+      "preview": "Preview report",
+      "exportCsvPackage": "Export CSV package",
+      "reset": "Reset",
+      "previewPrompt": "Choose your filters and preview the report to build the full financial document.",
+      "previewStatus": "Preview status",
+      "ready": "Ready",
+      "summaryOnlyTransactions": "Transaction summary only"
+    },
+    "fullReport": {
+      "csvPackageExported": "Exported the full report CSV package.",
+      "largeReportWarning": "This report contains a large number of transactions and may take longer to generate.",
+      "metadata": {
+        "reportType": "Report type",
+        "scope": "Scope",
+        "period": "Selected period",
+        "reportingCurrency": "Reporting currency",
+        "currencyMode": "Currency mode",
+        "filters": "Selected filters",
+        "transactions": "Transaction details"
+      },
+      "header": {
+        "preparedFor": "Prepared for",
+        "userFallback": "Smart Pocket user"
+      },
+      "footer": {
+        "tagline": "Personal finance made simple",
+        "poweredBy": "Powered by MCS Consultancy",
+        "page": "Page"
+      },
+      "sections": {
+        "executiveSummary": "Executive Summary",
+        "incomeExpenses": "Income and Expenses",
+        "accounts": "Financial Accounts",
+        "transactions": "Transaction Details",
+        "categoryAnalysis": "Category Analysis",
+        "budgets": "Budget Performance",
+        "people": "People, Reimbursements and Settlements",
+        "subscriptions": "Personal Subscriptions",
+        "recurring": "Recurring Transactions",
+        "loans": "Loans and Repayments",
+        "commitments": "Upcoming Financial Commitments",
+        "itemInsights": "Item Insights",
+        "currency": "Currency Summary",
+        "observations": "Key Observations"
+      },
+      "shared": {
+        "yes": "Yes",
+        "no": "No",
+        "active": "Active",
+        "inactive": "Inactive",
+        "archived": "Archived",
+        "versioned": "Versioned",
+        "overdue": "Overdue",
+        "scheduled": "Scheduled",
+        "outstanding": "Outstanding",
+        "repaid": "Repaid"
+      },
+      "executive": {
+        "spaceBalance": "Space balance",
+        "personalBalance": "Personal balance",
+        "budgetRemaining": "Budget remaining",
+        "receivables": "Outstanding receivables",
+        "payables": "Outstanding payables",
+        "loans": "Outstanding loans",
+        "loanRepayments": "Loan repayments",
+        "upcomingPayments": "Upcoming payments",
+        "commitmentsHelper": "Due within the next 30 days",
+        "activeSubscriptions": "Active subscriptions",
+        "spentMore": "You spent {{amount}} more than you earned in this period.",
+        "savedAmount": "You kept {{amount}} after income and expenses in this period.",
+        "topCategory": "Your largest spending category was {{category}}.",
+        "upcomingDue": "{{count}} payments are due within the next 7 days."
+      },
+      "incomeExpenses": {
+        "comparisonSummary": "Income changed {{incomeChange}} and expenses changed {{expenseChange}} compared with the previous comparable period.",
+        "source": "Source",
+        "change": "Change",
+        "helper": "Largest",
+        "noIncomeSources": "No income sources match the selected report filters.",
+        "noExpenseCategories": "No expense categories match the selected report filters.",
+        "largestIncome": "Largest income transaction",
+        "largestExpense": "Largest expense transaction",
+        "averageTransaction": "Average transaction amount",
+        "absoluteAverage": "Uses absolute transaction amounts",
+        "topIncomeSources": "Top income sources",
+        "topExpenseCategories": "Top expense categories"
+      },
+      "accounts": {
+        "personal": "Personal accounts",
+        "shared": "Shared accounts",
+        "spaces": "Space accounts",
+        "personalTotalLabel": "Personal total",
+        "empty": "No accounts match the selected report filters.",
+        "columns": {
+          "name": "Account",
+          "type": "Type",
+          "scope": "Scope",
+          "currency": "Currency",
+          "opening": "Opening balance",
+          "inflow": "Inflow",
+          "outflow": "Outflow",
+          "transfersIn": "Transfers in",
+          "transfersOut": "Transfers out",
+          "current": "Closing / current",
+          "reportingEquivalent": "Reporting equivalent",
+          "personalTotal": "Included in personal total",
+          "status": "Status"
+        },
+        "types": {
+          "bank": "Bank",
+          "credit_card": "Credit card",
+          "savings": "Savings",
+          "cash": "Cash",
+          "digital_wallet": "Digital wallet",
+          "investment": "Investment",
+          "other": "Other"
+        }
+      },
+      "transactions": {
+        "summaryTitle": "Transaction summary",
+        "detailTitle": "Complete transaction table",
+        "summaryOnly": "Transaction detail export is turned off for this report preview.",
+        "averageAmount": "Average amount",
+        "empty": "No transactions match the selected report filters.",
+        "status": {
+          "recorded": "Recorded",
+          "recurring": "Recurring",
+          "personLinked": "Linked to person"
+        },
+        "columns": {
+          "date": "Date",
+          "description": "Description",
+          "merchant": "Merchant / source",
+          "type": "Type",
+          "category": "Category",
+          "account": "Account",
+          "person": "Person",
+          "originalAmount": "Original amount",
+          "originalCurrency": "Original currency",
+          "reportingAmount": "Reporting amount",
+          "status": "Payment / status",
+          "notes": "Notes",
+          "receipt": "Receipt"
+        }
+      },
+      "categoryAnalysis": {
+        "spending": "Spending by category",
+        "income": "Income by category",
+        "category": "Category",
+        "average": "Average",
+        "largest": "Largest",
+        "empty": "No spending categories match the selected report filters.",
+        "emptyIncome": "No income categories match the selected report filters."
+      },
+      "budgets": {
+        "onTrack": "On track",
+        "nearLimit": "Near limit",
+        "exceeded": "Exceeded"
+      },
+      "people": {
+        "peopleCount": "People covered",
+        "pendingReimbursements": "Open reimbursements",
+        "paidOnBehalf": "Paid on their behalf",
+        "receivedFromThem": "Received from them",
+        "reimbursements": "Reimbursements",
+        "settlements": "Settlements",
+        "lastActivity": "Last activity",
+        "currencies": "Currency totals",
+        "empty": "No people data matches the selected report filters."
+      },
+      "subscriptions": {
+        "active": "Subscriptions",
+        "upcoming": "Upcoming renewals",
+        "monthlyEquivalent": "Monthly equivalent",
+        "yearlyEquivalent": "Yearly equivalent",
+        "name": "Subscription",
+        "currency": "Currency",
+        "frequency": "Billing frequency",
+        "account": "Payment account",
+        "nextBilling": "Next billing date",
+        "autoRenew": "Auto-renew",
+        "state": "State",
+        "empty": "No subscriptions are available for this report.",
+        "noUpcoming": "No upcoming subscription renewals were found."
+      },
+      "recurring": {
+        "name": "Name",
+        "nextDue": "Next due date",
+        "status": "Status",
+        "empty": "No recurring transactions are active for this report."
+      },
+      "loans": {
+        "openLoans": "Open loans",
+        "repaidLoans": "Repaid loans",
+        "person": "Lender / person",
+        "originalAmount": "Original loan amount",
+        "outstandingBalance": "Outstanding balance",
+        "repaid": "Amount repaid",
+        "repaymentCount": "Repayments",
+        "nextExpected": "Next expected repayment",
+        "empty": "No loan records match the selected report filters."
+      },
+      "commitments": {
+        "overdue": "Overdue",
+        "next7Days": "Next 7 days",
+        "next30Days": "Next 30 days",
+        "later": "Later",
+        "subscription": "Subscription",
+        "recurring": "Recurring",
+        "reimbursement": "Reimbursement",
+        "empty": "No items in this group.",
+        "columns": {
+          "name": "Name",
+          "due": "Due"
+        }
+      },
+      "itemInsights": {
+        "topItemsBySpend": "Top purchased items",
+        "topItemsByFrequency": "Frequently purchased items",
+        "priceChanges": "Price changes",
+        "merchantComparison": "Merchant comparison",
+        "recurringSuggestions": "Recurring item suggestions",
+        "itemCategories": "Top spending by item category",
+        "daysLabel": "{{count}} days",
+        "columns": {
+          "item": "Item",
+          "total": "Total",
+          "count": "Count",
+          "purchases": "Purchases",
+          "lastPrice": "Last price",
+          "merchant": "Merchant",
+          "frequency": "Frequency",
+          "lastBought": "Last bought"
+        }
+      },
+      "currency": {
+        "originalTotals": "Original totals by currency",
+        "reportingTotals": "Reporting-currency totals",
+        "noteConvertedView": "Reporting values are converted views based on stored exchange-rate snapshots for the selected period.",
+        "noteOriginalTotals": "Original AED, USD, CAD, GBP and other currencies remain separated so mixed-currency totals are not misleading.",
+        "columns": {
+          "metric": "Metric",
+          "originalTotals": "Original totals",
+          "reportingTotal": "Reporting total"
+        }
+      },
+      "observations": {
+        "empty": "No additional observations are available for the selected report filters.",
+        "highestCategory": "Highest spending category: {{category}}.",
+        "highestExpense": "Largest expense: {{description}}.",
+        "expensiveSubscription": "Most expensive subscription: {{name}}.",
+        "budgetAtRisk": "Budget closest to its limit: {{name}}.",
+        "busiestDay": "Busiest spending day: {{date}}."
+      }
+    }
   },
   "dashboardMetrics": {
     "monthly": "Monthly",

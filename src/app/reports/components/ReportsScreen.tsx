@@ -11,9 +11,17 @@ import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import {
   buildHistoricalRateUnavailableMessage,
+  buildHistoricalReportConvertedMetricFromSnapshots,
+  getAccounts,
+  getCategories,
+  getDashboardMetrics,
+  getRecurringTransactions,
+  getTransfers,
   convertHistoricalAmountWithSnapshots,
   getReportViewData,
+  type Category,
   type HistoricalReportConvertedMetric,
+  type FinancialAccount,
   type ReportBudgetPerformanceChartRow,
   type ReportBudgetPerformanceItem,
   type ReportViewData,
@@ -26,7 +34,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
-import { downloadCsvFile, escapeCsvValue } from '@/lib/reports-export';
+import { buildCsvRow, downloadCsvFile, escapeCsvValue } from '@/lib/reports-export';
 import {
   formatReportPeriodLabel,
   getInitialReportPreset,
@@ -41,13 +49,28 @@ import { getIntlLocale } from '@/lib/locale';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 import { getMySpaceMemberships, type Space } from '@/lib/spaces';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { getManagedPeople, getPersonLoanReportItems, getReimbursements, getSettlements, getSpaceSettlements, type ManagedPerson, type PersonLoanReportItem, type Reimbursement, type Settlement } from '@/lib/people';
+import { getPersonalSubscriptions } from '@/lib/personal-subscriptions';
+import type { PersonalSubscription } from '@/lib/personal-subscriptions-shared';
+import { getItemInsightsSnapshot, type ItemInsightsSnapshot } from '@/lib/transaction-item-insights';
+import FullFinancialReport, { type FullFinancialReportData, type FullReportChartState, type FullReportSummaryTable } from './FullFinancialReport';
+import { buildFullFinancialReportData, type FullReportFilters, type FullReportSupplementalData } from './full-report-builder';
+import type { PrintableReportIdentity, ReportMetadataItem } from './full-report-types';
 
 const IncomeExpenseReportChart = dynamic(() => import('./charts/IncomeExpenseReportChart'), { ssr: false });
 const SpendingCategoryReportChart = dynamic(() => import('./charts/SpendingCategoryReportChart'), { ssr: false });
 const MonthlyTrendsChart = dynamic(() => import('./charts/MonthlyTrendsChart'), { ssr: false });
 const BudgetPerformanceChart = dynamic(() => import('./charts/BudgetPerformanceChart'), { ssr: false });
 
-type ReportType = 'income-expense' | 'spending-category' | 'monthly-trends' | 'budget-performance' | 'account-statement';
+type ReportType =
+  | 'full-financial'
+  | 'income-expense'
+  | 'spending-category'
+  | 'monthly-trends'
+  | 'budget-performance'
+  | 'account-statement';
 type IncomeExpenseChartRow = { month: string; income: number; expenses: number; net: number };
 type SpendingCategoryChartRow = { id: string; category: string; amount: number; color: string };
 type ChartState<T> = {
@@ -55,9 +78,11 @@ type ChartState<T> = {
   unavailableReason: string | null;
   emptyReason: string | null;
 };
+type DashboardReportMode = 'month' | 'pay_cycle';
 type ReportGrouping = 'day' | 'week' | 'month';
 
 const reportTypes = [
+  { id: 'full-financial' as ReportType, icon: FileText },
   { id: 'income-expense' as ReportType, icon: TrendingUp },
   { id: 'spending-category' as ReportType, icon: PieChart },
   { id: 'monthly-trends' as ReportType, icon: BarChart3 },
@@ -518,6 +543,8 @@ function getReportTitle(
 ) {
   if (activeReport !== 'monthly-trends') {
     switch (activeReport) {
+      case 'full-financial':
+        return t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' });
       case 'income-expense':
         return t('reports.types.incomeExpense');
       case 'spending-category':
@@ -642,9 +669,103 @@ function buildCsvFilename(activeReport: ReportType, range: ReportPeriodRange) {
   return `smart-pocket-${activeReport}-${range.startDate}-to-${range.endDate}.csv`;
 }
 
+function getReportTypeLabel(
+  reportType: ReportType,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (reportType) {
+    case 'full-financial':
+      return t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' });
+    case 'income-expense':
+      return t('reports.types.incomeExpense');
+    case 'spending-category':
+      return t('reports.types.spendingCategory');
+    case 'monthly-trends':
+      return t('reports.types.trends');
+    case 'budget-performance':
+      return t('reports.types.budgetPerformance');
+    case 'account-statement':
+      return t('reports.types.accountStatement');
+    default:
+      return t('reports.titles.report');
+  }
+}
+
+function getReportTypeDescription(
+  reportType: ReportType,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (reportType) {
+    case 'full-financial':
+      return t('reports.descriptions.fullFinancial', {
+        defaultValue: 'Create one organized financial document with summary, accounts, budgets, commitments, item insights, and transaction details.',
+      });
+    case 'income-expense':
+      return t('reports.descriptions.incomeExpense');
+    case 'spending-category':
+      return t('reports.descriptions.spendingCategory');
+    case 'monthly-trends':
+      return t('reports.descriptions.trends');
+    case 'budget-performance':
+      return t('reports.descriptions.budgetPerformance');
+    case 'account-statement':
+      return t('reports.descriptions.accountStatement');
+    default:
+      return '';
+  }
+}
+
+function getDashboardModeFromPreset(preset: ReportPeriodPreset): DashboardReportMode {
+  return preset === 'current_pay_period' || preset === 'previous_pay_period' ? 'pay_cycle' : 'month';
+}
+
+function buildTableCsv(table: FullReportSummaryTable) {
+  return [
+    buildCsvRow(table.headers),
+    ...table.rows.map((row) => buildCsvRow(row)),
+  ].join('\n');
+}
+
+function buildFullReportSummaryCsv(
+  report: FullFinancialReportData,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const rows: string[] = [];
+  rows.push(buildCsvRow(['Section', 'Label', 'Value', 'Notes']));
+  for (const item of report.metadata) {
+    rows.push(buildCsvRow(['Metadata', item.label, item.value, '']));
+  }
+  for (const item of report.executiveSummary.metrics) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.executiveSummary', { defaultValue: 'Executive Summary' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.incomeExpenses.metrics) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.incomeExpenses', { defaultValue: 'Income and Expenses' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.accounts.summary) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.accounts', { defaultValue: 'Financial Accounts' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.budgets.summary) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.budgets', { defaultValue: 'Budget Performance' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.people.summary) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.people', { defaultValue: 'People, Reimbursements and Settlements' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.subscriptions.summary) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.subscriptions', { defaultValue: 'Personal Subscriptions' }), item.label, item.value, item.helper || '']));
+  }
+  for (const item of report.loans.summary) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.loans', { defaultValue: 'Loans and Repayments' }), item.label, item.value, item.helper || '']));
+  }
+  for (const observation of report.observations) {
+    rows.push(buildCsvRow([t('reports.fullReport.sections.observations', { defaultValue: 'Key Observations' }), t('reports.observations', { defaultValue: 'Observation' }), observation, '']));
+  }
+  return rows.join('\n');
+}
+
 export default function ReportsScreen() {
   const { t } = useTranslation('portal');
   const { dir, language } = useLanguage();
+  const { user, profile } = useAuth();
   const locale = getIntlLocale(language);
   const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
@@ -658,10 +779,28 @@ export default function ReportsScreen() {
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('all');
+  const [selectedPersonId, setSelectedPersonId] = useState('all');
+  const [selectedTransactionType, setSelectedTransactionType] = useState<'all' | 'income' | 'expense'>('all');
+  const [currencyMode, setCurrencyMode] = useState<'reporting' | 'both'>('both');
+  const [includeTransactionDetails, setIncludeTransactionDetails] = useState(true);
+  const [includeCharts, setIncludeCharts] = useState(true);
+  const [includeItemInsights, setIncludeItemInsights] = useState(true);
+  const [includeUpcomingCommitments, setIncludeUpcomingCommitments] = useState(true);
+  const [includeArchivedAccounts, setIncludeArchivedAccounts] = useState(false);
+  const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
+  const [allAccounts, setAllAccounts] = useState<FinancialAccount[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [availablePeople, setAvailablePeople] = useState<ManagedPerson[]>([]);
+  const [profileCountry, setProfileCountry] = useState<string | null>(null);
+  const [fullReportData, setFullReportData] = useState<FullFinancialReportData | null>(null);
+  const [fullReportLoading, setFullReportLoading] = useState(false);
+  const [fullReportError, setFullReportError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionInFlight, setActionInFlight] = useState<'csv' | 'print' | null>(null);
   const latestReportRequestRef = useRef(0);
+  const latestFullReportRequestRef = useRef(0);
 
   useEffect(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
@@ -776,6 +915,54 @@ export default function ReportsScreen() {
     await loadReportData();
   });
 
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.all([
+      getAccounts(),
+      getCategories(),
+      getManagedPeople(),
+    ])
+      .then(([accounts, categories, people]) => {
+        if (cancelled) return;
+        setAllAccounts(accounts);
+        setAvailableCategories(categories);
+        setAvailablePeople(people);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error(error instanceof Error ? error.message : t('reports.loadError'));
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) {
+      setProfileCountry(null);
+      return;
+    }
+    const supabase = createClient();
+    void supabase
+      .from('user_profiles')
+      .select('country')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data, error }: { data: { country: string | null } | null; error: Error | null }) => {
+        if (cancelled) return;
+        if (error) {
+          setProfileCountry(null);
+          return;
+        }
+        setProfileCountry(data?.country || null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   const grouping = useMemo(() => activeRange ? determineGrouping(activeRange) : 'month', [activeRange]);
   const incomeExpenseChartState = useMemo(() => {
     if (!reportData || !activeRange) {
@@ -805,6 +992,239 @@ export default function ReportsScreen() {
       locale,
     });
   }, [locale, reportData, t]);
+
+  const fullReportFilters = useMemo<FullReportFilters>(() => ({
+    categoryId: selectedCategoryId,
+    personId: selectedPersonId,
+    transactionType: selectedTransactionType,
+    currencyMode,
+    includeArchivedAccounts,
+  }), [currencyMode, includeArchivedAccounts, selectedCategoryId, selectedPersonId, selectedTransactionType]);
+
+  useEffect(() => {
+    if (activeReport !== 'full-financial' || !activeRange || !reportData || !generatedAtLabel) {
+      setFullReportData(null);
+      setFullReportError(null);
+      setFullReportLoading(false);
+      return;
+    }
+
+    const requestId = latestFullReportRequestRef.current + 1;
+    latestFullReportRequestRef.current = requestId;
+    setFullReportLoading(true);
+    setFullReportError(null);
+
+    const selectedCategoryLabel = selectedCategoryId === 'all'
+      ? t('reports.controls.allCategories', { defaultValue: 'All categories' })
+      : availableCategories.find((category) => category.id === selectedCategoryId)?.name
+        || t('reports.controls.allCategories', { defaultValue: 'All categories' });
+    const selectedPersonLabel = selectedPersonId === 'all'
+      ? t('reports.controls.allPeople', { defaultValue: 'All people' })
+      : availablePeople.find((person) => person.id === selectedPersonId)?.full_name
+        || t('reports.controls.allPeople', { defaultValue: 'All people' });
+    const selectedAccountLabel = selectedAccount === 'all'
+      ? t('reports.allAccounts')
+      : getFinancialAccountDisplayLabel(
+          (allAccounts.find((account) => account.id === selectedAccount) || reportData.accounts.find((account) => account.id === selectedAccount) || {
+            name: selectedAccount,
+            currency: '',
+            is_system_default: false,
+            system_default_type: null,
+          }) as FinancialAccount,
+          { includeCurrency: true, includeDefaultLabel: true }
+        );
+    const selectedScopeLabel = scopeType === 'space'
+      ? spaces.find((space) => space.id === selectedSpaceId)?.name || t('reports.spaceScope', { defaultValue: 'Space' })
+      : t('reports.personalScope', { defaultValue: 'Personal' });
+    const transactionTypeLabel = selectedTransactionType === 'all'
+      ? t('reports.controls.allTransactionTypes', { defaultValue: 'All transaction types' })
+      : t(`transactions.types.${selectedTransactionType}`);
+    const currencyModeLabel = currencyMode === 'both'
+      ? t('reports.controls.currencyModeBoth', { defaultValue: 'Reporting and original values' })
+      : t('reports.controls.currencyModeReporting', { defaultValue: 'Reporting values first' });
+    const includeDetailsLabel = includeTransactionDetails
+      ? t('reports.controls.includeTransactionDetails', { defaultValue: 'Complete transaction details' })
+      : t('reports.controls.summaryOnlyTransactions', { defaultValue: 'Transaction summary only' });
+
+    const metadata: ReportMetadataItem[] = [
+      { label: t('reports.fullReport.metadata.reportType', { defaultValue: 'Report type' }), value: getReportTypeLabel(activeReport, t) },
+      { label: t('reports.fullReport.metadata.scope', { defaultValue: 'Scope' }), value: selectedScopeLabel },
+      { label: t('reports.fullReport.metadata.period', { defaultValue: 'Selected period' }), value: formatReportPeriodLabel(activeRange) },
+      { label: t('reports.fullReport.metadata.reportingCurrency', { defaultValue: 'Reporting currency' }), value: reportData.reportingCurrency },
+      { label: t('reports.fullReport.metadata.currencyMode', { defaultValue: 'Currency mode' }), value: currencyModeLabel },
+      {
+        label: t('reports.fullReport.metadata.filters', { defaultValue: 'Selected filters' }),
+        value: [selectedAccountLabel, selectedCategoryLabel, selectedPersonLabel, transactionTypeLabel].join(' | '),
+      },
+      { label: t('reports.fullReport.metadata.transactions', { defaultValue: 'Transaction details' }), value: includeDetailsLabel },
+      { label: t('reports.generated'), value: generatedAtLabel },
+    ];
+
+    const previousRange = periodContext && activePreset !== 'custom'
+      ? getPreviousComparableReportPeriod({
+          preset: activePreset,
+          config: periodContext.effectiveConfig,
+          locale,
+          startDate: activeRange.startDate,
+          endDate: activeRange.endDate,
+        })
+      : null;
+
+    void Promise.all([
+      scopeType === 'personal'
+        ? getDashboardMetrics({
+            startDate: activeRange.startDate,
+            endDate: activeRange.endDate,
+            mode: getDashboardModeFromPreset(activePreset),
+          })
+        : Promise.resolve(null),
+      previousRange
+        ? getReportViewData({
+            startDate: previousRange.startDate,
+            endDate: previousRange.endDate,
+            accountId: selectedAccount,
+            scopeType,
+            spaceId: scopeType === 'space' ? selectedSpaceId || null : null,
+            locale,
+          })
+        : Promise.resolve(null),
+      scopeType === 'space'
+        ? getReimbursements({ spaceId: selectedSpaceId || undefined })
+        : getReimbursements().then((rows) => rows.filter((row) => !row.space_id)),
+      scopeType === 'space'
+        ? (selectedSpaceId ? getSpaceSettlements(selectedSpaceId, { includeReversed: true }) : Promise.resolve([]))
+        : getSettlements(undefined, { includeReversed: true }).then((rows) => rows.filter((row) => !row.space_id)),
+      scopeType === 'personal' ? getPersonalSubscriptions() : Promise.resolve([] as PersonalSubscription[]),
+      getRecurringTransactions().then((rows) => rows.filter((row) =>
+        scopeType === 'space' ? row.space_id === selectedSpaceId : !row.space_id
+      )),
+      scopeType === 'personal' ? getPersonLoanReportItems() : Promise.resolve([] as PersonLoanReportItem[]),
+      getTransfers({
+        scopeType,
+        spaceId: scopeType === 'space' ? selectedSpaceId || undefined : undefined,
+      }),
+      includeItemInsights && selectedTransactionType !== 'income'
+        ? getItemInsightsSnapshot({
+            startDate: activeRange.startDate,
+            endDate: activeRange.endDate,
+            accountId: selectedAccount !== 'all' ? selectedAccount : undefined,
+            categoryId: selectedCategoryId !== 'all' ? selectedCategoryId : null,
+            scopeType,
+            spaceId: scopeType === 'space' ? selectedSpaceId || null : null,
+          })
+        : Promise.resolve(null),
+    ])
+      .then(([
+        dashboardMetrics,
+        previousReportData,
+        reimbursements,
+        settlements,
+        subscriptions,
+        recurringItems,
+        loanItems,
+        transfers,
+        itemInsightsSnapshot,
+      ]) => {
+        if (latestFullReportRequestRef.current !== requestId) return;
+
+        const identity: PrintableReportIdentity = {
+          fullName: profile?.full_name || user?.user_metadata?.full_name || user?.email || null,
+          email: user?.email || null,
+          country: profileCountry,
+          avatarUrl: profile?.avatar_url || user?.user_metadata?.avatar_url || null,
+        };
+
+        const fullData = buildFullFinancialReportData({
+          title: t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' }),
+          identity,
+          generatedAtLabel,
+          metadata,
+          reportData,
+          activeRange,
+          scopeType,
+          locale,
+          todayIso: periodContext?.currentBusinessDate || new Date().toISOString().slice(0, 10),
+          t,
+          filters: fullReportFilters,
+          supplemental: {
+            dashboardMetrics,
+            previousReportData,
+            allAccounts,
+            people: availablePeople,
+            reimbursements,
+            settlements,
+            subscriptions,
+            recurringItems,
+            loanItems,
+            transfers,
+            itemInsightsSnapshot,
+          } satisfies FullReportSupplementalData,
+          includeCharts,
+          includeTransactionDetails,
+          incomeExpenseChartState: {
+            data: incomeExpenseChartState.data,
+            unavailableReason: incomeExpenseChartState.unavailableReason,
+            emptyReason: incomeExpenseChartState.emptyReason === 'NO_TRANSACTIONS'
+              ? t('reports.noTransactionsInPeriod')
+              : incomeExpenseChartState.emptyReason,
+          } satisfies FullReportChartState<IncomeExpenseChartRow>,
+          spendingCategoryChartState: {
+            data: spendingCategoryChartState.data,
+            unavailableReason: spendingCategoryChartState.unavailableReason,
+            emptyReason: spendingCategoryChartState.emptyReason === 'NO_EXPENSES'
+              ? t('reports.noExpensesInPeriod')
+              : spendingCategoryChartState.emptyReason,
+          } satisfies FullReportChartState<SpendingCategoryChartRow>,
+        });
+        setFullReportData(fullData);
+      })
+      .catch((error) => {
+        if (latestFullReportRequestRef.current !== requestId) return;
+        const message = error instanceof Error ? error.message : t('reports.loadError');
+        setFullReportError(message);
+      })
+      .finally(() => {
+        if (latestFullReportRequestRef.current === requestId) {
+          setFullReportLoading(false);
+        }
+      });
+  }, [
+    activePreset,
+    activeRange,
+    activeReport,
+    allAccounts,
+    availableCategories,
+    availablePeople,
+    currencyMode,
+    fullReportFilters,
+    generatedAtLabel,
+    includeCharts,
+    includeItemInsights,
+    includeTransactionDetails,
+    incomeExpenseChartState.data,
+    incomeExpenseChartState.emptyReason,
+    incomeExpenseChartState.unavailableReason,
+    locale,
+    periodContext,
+    profile?.avatar_url,
+    profile?.full_name,
+    profileCountry,
+    reportData,
+    scopeType,
+    selectedAccount,
+    selectedCategoryId,
+    selectedPersonId,
+    selectedSpaceId,
+    selectedTransactionType,
+    spaces,
+    spendingCategoryChartState.data,
+    spendingCategoryChartState.emptyReason,
+    spendingCategoryChartState.unavailableReason,
+    t,
+    user?.email,
+    user?.user_metadata?.avatar_url,
+    user?.user_metadata?.full_name,
+  ]);
 
   const previousRangeLabel = activeRange?.navigationLabel
     ? t(activeRange.navigationLabel, { ns: 'portal' })
@@ -845,6 +1265,38 @@ export default function ReportsScreen() {
     sub?: string;
     positive?: boolean;
   }>> = {
+    'full-financial': [
+      {
+        id: 'rpt-ff-scope',
+        label: t('reports.controls.scopeLabel', { defaultValue: 'Scope' }),
+        value: scopeType === 'space'
+          ? spaces.find((space) => space.id === selectedSpaceId)?.name || t('reports.spaceScope', { defaultValue: 'Space' })
+          : t('reports.personalScope', { defaultValue: 'Personal' }),
+        sub: activeRange?.label,
+      },
+      {
+        id: 'rpt-ff-currency',
+        label: t('reports.reportingCurrencyLabel'),
+        value: reportData?.reportingCurrency || t('reports.loading'),
+        sub: currencyMode === 'both'
+          ? t('reports.controls.currencyModeBoth', { defaultValue: 'Reporting and original values' })
+          : t('reports.controls.currencyModeReporting', { defaultValue: 'Reporting values first' }),
+      },
+      {
+        id: 'rpt-ff-transactions',
+        label: t('reports.summary.totalTransactions'),
+        value: String(reportData?.transactions.length || 0),
+        sub: includeTransactionDetails
+          ? t('reports.controls.includeTransactionDetails', { defaultValue: 'Complete transaction details' })
+          : t('reports.controls.summaryOnlyTransactions', { defaultValue: 'Transaction summary only' }),
+      },
+      {
+        id: 'rpt-ff-status',
+        label: t('reports.controls.previewStatus', { defaultValue: 'Preview status' }),
+        value: fullReportLoading ? t('reports.loading') : fullReportError ? t('reports.unavailable') : t('reports.controls.ready', { defaultValue: 'Ready' }),
+        sub: fullReportError || generatedAtLabel || t('reports.loading'),
+      },
+    ],
     'income-expense': [
       { id: 'rpt-ie-income', label: t('reports.summary.totalIncome'), convertedMetric: incomeMetric, sub: activeRange?.label, positive: true },
       { id: 'rpt-ie-expenses', label: t('reports.summary.totalExpenses'), convertedMetric: expensesMetric, sub: activeRange?.comparisonLabel ? t('reports.comparedWith', { value: activeRange.comparisonLabel }) : undefined, positive: false },
@@ -877,39 +1329,95 @@ export default function ReportsScreen() {
     ],
   };
 
+  const selectedAccountLabel = selectedAccount === 'all'
+    ? t('reports.allAccounts')
+    : getFinancialAccountDisplayLabel(
+        (allAccounts.find((account) => account.id === selectedAccount) || reportData?.accounts.find((account) => account.id === selectedAccount) || {
+          name: selectedAccount,
+          currency: '',
+          is_system_default: false,
+          system_default_type: null,
+        }) as FinancialAccount,
+        { includeCurrency: true, includeDefaultLabel: true }
+      );
+  const selectedCategoryLabel = selectedCategoryId === 'all'
+    ? t('reports.controls.allCategories', { defaultValue: 'All categories' })
+    : availableCategories.find((category) => category.id === selectedCategoryId)?.name
+      || t('reports.controls.allCategories', { defaultValue: 'All categories' });
+  const selectedPersonLabel = selectedPersonId === 'all'
+    ? t('reports.controls.allPeople', { defaultValue: 'All people' })
+    : availablePeople.find((person) => person.id === selectedPersonId)?.full_name
+      || t('reports.controls.allPeople', { defaultValue: 'All people' });
+  const selectedScopeLabel = scopeType === 'space'
+    ? spaces.find((space) => space.id === selectedSpaceId)?.name || t('reports.spaceScope', { defaultValue: 'Space' })
+    : t('reports.personalScope', { defaultValue: 'Personal' });
+  const selectedTransactionTypeLabel = selectedTransactionType === 'all'
+    ? t('reports.controls.allTransactionTypes', { defaultValue: 'All transaction types' })
+    : t(`transactions.types.${selectedTransactionType}`);
+  const selectedFilterSummary = [
+    selectedScopeLabel,
+    selectedAccountLabel,
+    selectedCategoryLabel,
+    selectedPersonLabel,
+    selectedTransactionTypeLabel,
+  ].join(' | ');
+
   const handleDownloadCSV = useCallback(() => {
     if (actionInFlight) return;
     setActionInFlight('csv');
     try {
-    if (!reportData || !activeRange) {
-      toast.error(t('reports.noDataToExport'));
-      return;
-    }
-    if (activeReport === 'budget-performance') {
-      if (reportData.budgetPerformance.items.length === 0) {
-        toast.error(t('reports.noBudgetsApply'));
+      if (!reportData || !activeRange) {
+        toast.error(t('reports.noDataToExport'));
+        return;
+      }
+      if (activeReport === 'full-financial') {
+        if (!fullReportData) {
+          toast.error(fullReportError || t('reports.noDataToExport'));
+          return;
+        }
+        const baseName = `smart-pocket-full-financial-${activeRange.startDate}-to-${activeRange.endDate}`;
+        const accountHeaders = ['Group', ...fullReportData.accounts.personal.headers];
+        const accountRows = [
+          ...fullReportData.accounts.personal.rows.map((row) => ['Personal', ...row]),
+          ...fullReportData.accounts.shared.rows.map((row) => ['Shared', ...row]),
+          ...fullReportData.accounts.spaces.rows.map((row) => ['Space', ...row]),
+        ];
+        downloadCsvFile(`${baseName}-summary.csv`, buildFullReportSummaryCsv(fullReportData, t));
+        downloadCsvFile(`${baseName}-transactions.csv`, buildTransactionsCsv(reportData, t));
+        downloadCsvFile(`${baseName}-accounts.csv`, [buildCsvRow(accountHeaders), ...accountRows.map((row) => buildCsvRow(row))].join('\n'));
+        downloadCsvFile(`${baseName}-categories.csv`, buildTableCsv(fullReportData.categories.expenseTable));
+        downloadCsvFile(`${baseName}-budgets.csv`, buildTableCsv(fullReportData.budgets.table));
+        downloadCsvFile(`${baseName}-people.csv`, buildTableCsv(fullReportData.people.table));
+        downloadCsvFile(`${baseName}-subscriptions.csv`, buildTableCsv(fullReportData.subscriptions.table));
+        downloadCsvFile(`${baseName}-recurring.csv`, buildTableCsv(fullReportData.recurring.table));
+        toast.success(t('reports.fullReport.csvPackageExported', { defaultValue: 'Exported the full report CSV package.' }));
+        return;
+      }
+      if (activeReport === 'budget-performance') {
+        if (reportData.budgetPerformance.items.length === 0) {
+          toast.error(t('reports.noBudgetsApply'));
+          return;
+        }
+        downloadCsvFile(
+          buildCsvFilename(activeReport, activeRange),
+          buildBudgetPerformanceCsv(reportData.budgetPerformance.items, t)
+        );
+        toast.success(t('reports.csvExportedBudgets', { count: reportData.budgetPerformance.items.length }));
+        return;
+      }
+      if (reportData.transactions.length === 0) {
+        toast.error(t('reports.noDataToExport'));
         return;
       }
       downloadCsvFile(
         buildCsvFilename(activeReport, activeRange),
-        buildBudgetPerformanceCsv(reportData.budgetPerformance.items, t)
+        buildTransactionsCsv(reportData, t)
       );
-      toast.success(t('reports.csvExportedBudgets', { count: reportData.budgetPerformance.items.length }));
-      return;
-    }
-    if (reportData.transactions.length === 0) {
-      toast.error(t('reports.noDataToExport'));
-      return;
-    }
-    downloadCsvFile(
-      buildCsvFilename(activeReport, activeRange),
-      buildTransactionsCsv(reportData, t)
-    );
-    toast.success(t('reports.csvExportedTransactions', { count: reportData.transactions.length }));
+      toast.success(t('reports.csvExportedTransactions', { count: reportData.transactions.length }));
     } finally {
       setActionInFlight(null);
     }
-  }, [actionInFlight, activeRange, activeReport, reportData, t]);
+  }, [actionInFlight, activeRange, activeReport, fullReportData, fullReportError, reportData, t]);
 
   const handlePrint = useCallback(() => {
     if (actionInFlight) return;
@@ -920,6 +1428,35 @@ export default function ReportsScreen() {
       setActionInFlight(null);
     }
   }, [actionInFlight]);
+
+  const handlePreviewReport = useCallback(() => {
+    setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date()));
+    void loadReportData();
+  }, [loadReportData, locale]);
+
+  const handleResetReportOptions = useCallback(() => {
+    if (!periodContext) return;
+    setActivePreset('current_month');
+    setPeriodCursor(periodContext.currentBusinessDate);
+    setCustomDateFrom(periodContext.currentMonthlyPeriod.startDate);
+    setCustomDateTo(periodContext.currentBusinessDate);
+    setScopeType('personal');
+    setSelectedSpaceId(spaces[0]?.id || '');
+    setSelectedAccount('all');
+    setSelectedCategoryId('all');
+    setSelectedPersonId('all');
+    setSelectedTransactionType('all');
+    setCurrencyMode('both');
+    setIncludeTransactionDetails(true);
+    setIncludeCharts(true);
+    setIncludeItemInsights(true);
+    setIncludeUpcomingCommitments(true);
+    setIncludeArchivedAccounts(false);
+    setShowMoreOptions(false);
+  }, [periodContext, spaces]);
 
   const handlePresetChange = useCallback((preset: ReportPeriodPreset) => {
     if (!periodContext) return;
@@ -980,63 +1517,29 @@ export default function ReportsScreen() {
               <BarChart3 size={15} />
               {t('itemInsights.title')}
             </Link>
-            <button onClick={handlePrint} disabled={actionInFlight !== null} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
-              {actionInFlight === 'print' ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
-              <span className="hidden sm:inline">{t('reports.print')}</span>
-            </button>
-            <button onClick={handleDownloadCSV} disabled={actionInFlight !== null} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
-              {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
-              {t('reports.csv')}
-            </button>
           </div>
         }
       />
 
-      <div className="hidden print:block rounded-xl border border-border p-4">
-        <p className="text-lg font-700 text-foreground">{activeTitle}</p>
-        <p className="text-sm text-muted-foreground">{t('reports.range')}: {activeRange ? formatReportPeriodLabel(activeRange) : t('reports.loading')}</p>
-        <p className="text-sm text-muted-foreground">
-          {t('reports.accountFilter')}: {selectedAccount === 'all'
-            ? t('reports.allAccounts')
-            : getFinancialAccountDisplayLabel(
-                (reportData?.accounts || []).find((account) => account.id === selectedAccount) || {
-                  name: selectedAccount,
-                  currency: '',
-                  is_system_default: false,
-                  system_default_type: null,
-                },
-                { includeDefaultLabel: true }
-              )}
-        </p>
-        <p className="text-sm text-muted-foreground">{t('reports.reportingCurrencyLabel')}: {reportData?.reportingCurrency || t('reports.loading')}</p>
-        <p className="text-sm text-muted-foreground">{t('reports.generated')}: {generatedAtLabel || t('reports.loading')}</p>
-      </div>
+      {activeReport !== 'full-financial' ? (
+        <div className="hidden print:block rounded-xl border border-border p-4">
+          <p className="text-lg font-700 text-foreground">{activeTitle}</p>
+          <p className="text-sm text-muted-foreground">{t('reports.range')}: {activeRange ? formatReportPeriodLabel(activeRange) : t('reports.loading')}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('reports.accountFilter')}: {selectedAccountLabel}
+          </p>
+          <p className="text-sm text-muted-foreground">{t('reports.reportingCurrencyLabel')}: {reportData?.reportingCurrency || t('reports.loading')}</p>
+          <p className="text-sm text-muted-foreground">{t('reports.generated')}: {generatedAtLabel || t('reports.loading')}</p>
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
         <div className="space-y-2 xl:col-span-1 print:hidden">
           <p className="mb-2 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('reports.reportType')}</p>
           {reportTypes.map((rt) => {
             const Icon = rt.icon;
-            const label =
-              rt.id === 'income-expense'
-                ? t('reports.types.incomeExpense')
-                : rt.id === 'spending-category'
-                  ? t('reports.types.spendingCategory')
-                  : rt.id === 'monthly-trends'
-                    ? t('reports.types.trends')
-                    : rt.id === 'budget-performance'
-                      ? t('reports.types.budgetPerformance')
-                      : t('reports.types.accountStatement');
-            const description =
-              rt.id === 'income-expense'
-                ? t('reports.descriptions.incomeExpense')
-                : rt.id === 'spending-category'
-                  ? t('reports.descriptions.spendingCategory')
-                  : rt.id === 'monthly-trends'
-                    ? t('reports.descriptions.trends')
-                    : rt.id === 'budget-performance'
-                      ? t('reports.descriptions.budgetPerformance')
-                      : t('reports.descriptions.accountStatement');
+            const label = getReportTypeLabel(rt.id, t);
+            const description = getReportTypeDescription(rt.id, t);
             return (
               <button
                 key={rt.id}
@@ -1062,7 +1565,7 @@ export default function ReportsScreen() {
 
         <div className="space-y-4 xl:col-span-3">
           <div className="card-elevated p-3 print:hidden max-[480px]:p-2.5">
-            <div className="space-y-2">
+            <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-1.5 lg:flex-nowrap lg:gap-1 lg:overflow-hidden">
                 {visibleReportPresets.map((preset) => (
                   <button
@@ -1212,29 +1715,144 @@ export default function ReportsScreen() {
               <p className="min-w-0 truncate text-xs text-muted-foreground">
                 <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
                 {' · '}
-                {scopeType === 'space'
-                  ? (
-                    <>
-                      {spaces.find((space) => space.id === selectedSpaceId)?.name || t('reports.spaceScope', { defaultValue: 'Space' })}
-                      {' · '}
-                    </>
-                  )
-                  : null}
+                {selectedFilterSummary}
+                {' · '}
                 {activeRange?.comparisonLabel
                   ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
                   : activePreset === 'custom'
                     ? t('reports.customRange')
                     : t('reports.sharedBoundaries')}
               </p>
+
+              {activeReport === 'full-financial' ? (
+                <div className="grid grid-cols-1 gap-2 lg:grid-cols-4">
+                  <div>
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.category', { defaultValue: 'Category' })}</span>
+                    <select
+                      value={selectedCategoryId}
+                      onChange={(event) => setSelectedCategoryId(event.target.value)}
+                      className="input-base h-9 w-full px-3 text-sm"
+                    >
+                      <option value="all">{t('reports.controls.allCategories', { defaultValue: 'All categories' })}</option>
+                      {availableCategories.map((category) => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.person', { defaultValue: 'Person' })}</span>
+                    <select
+                      value={selectedPersonId}
+                      onChange={(event) => setSelectedPersonId(event.target.value)}
+                      className="input-base h-9 w-full px-3 text-sm"
+                    >
+                      <option value="all">{t('reports.controls.allPeople', { defaultValue: 'All people' })}</option>
+                      {availablePeople.map((person) => (
+                        <option key={person.id} value={person.id}>{person.full_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.transactionType', { defaultValue: 'Transaction type' })}</span>
+                    <select
+                      value={selectedTransactionType}
+                      onChange={(event) => setSelectedTransactionType(event.target.value as 'all' | 'income' | 'expense')}
+                      className="input-base h-9 w-full px-3 text-sm"
+                    >
+                      <option value="all">{t('reports.controls.allTransactionTypes', { defaultValue: 'All transaction types' })}</option>
+                      <option value="income">{t('transactions.types.income')}</option>
+                      <option value="expense">{t('transactions.types.expense')}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.currencyMode', { defaultValue: 'Currency mode' })}</span>
+                    <select
+                      value={currencyMode}
+                      onChange={(event) => setCurrencyMode(event.target.value as 'reporting' | 'both')}
+                      className="input-base h-9 w-full px-3 text-sm"
+                    >
+                      <option value="both">{t('reports.controls.currencyModeBoth', { defaultValue: 'Reporting and original values' })}</option>
+                      <option value="reporting">{t('reports.controls.currencyModeReporting', { defaultValue: 'Reporting values first' })}</option>
+                    </select>
+                  </div>
+                </div>
+              ) : null}
+
+              {activeReport === 'full-financial' ? (
+                <div className="rounded-2xl border border-border/80 bg-muted/15 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-700 text-foreground">{t('reports.controls.fullReportPanelTitle', { defaultValue: 'Full Financial Report' })}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t('reports.controls.fullReportPanelDescription', {
+                          defaultValue: 'Preview one organized report using the selected period, scope, and filters without changing underlying calculations.',
+                        })}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMoreOptions((current) => !current)}
+                      className="text-xs font-600 text-accent"
+                    >
+                      {showMoreOptions
+                        ? t('reports.controls.hideMoreOptions', { defaultValue: 'Hide more report options' })
+                        : t('reports.controls.moreOptions', { defaultValue: 'More report options' })}
+                    </button>
+                  </div>
+
+                  {showMoreOptions ? (
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={includeTransactionDetails} onChange={(event) => setIncludeTransactionDetails(event.target.checked)} />
+                        {t('reports.controls.includeTransactionDetails', { defaultValue: 'Include transaction details' })}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={includeCharts} onChange={(event) => setIncludeCharts(event.target.checked)} />
+                        {t('reports.controls.includeCharts', { defaultValue: 'Include charts' })}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={includeItemInsights} onChange={(event) => setIncludeItemInsights(event.target.checked)} />
+                        {t('reports.controls.includeItemInsights', { defaultValue: 'Include item insights' })}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={includeUpcomingCommitments} onChange={(event) => setIncludeUpcomingCommitments(event.target.checked)} />
+                        {t('reports.controls.includeUpcomingCommitments', { defaultValue: 'Include upcoming commitments' })}
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-foreground">
+                        <input type="checkbox" checked={includeArchivedAccounts} onChange={(event) => setIncludeArchivedAccounts(event.target.checked)} />
+                        {t('reports.controls.includeArchivedAccounts', { defaultValue: 'Include archived or versioned accounts when relevant' })}
+                      </label>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button onClick={handlePreviewReport} disabled={loading || fullReportLoading} className="btn-primary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                      {(loading || fullReportLoading) ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+                      {t('reports.controls.preview', { defaultValue: 'Preview report' })}
+                    </button>
+                    <button onClick={handlePrint} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                      {actionInFlight === 'print' ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
+                      {t('reports.print')}
+                    </button>
+                    <button onClick={handleDownloadCSV} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                      {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
+                      {t('reports.controls.exportCsvPackage', { defaultValue: 'Export CSV package' })}
+                    </button>
+                    <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary h-9 px-3 text-sm disabled:opacity-60">
+                      {t('reports.controls.reset', { defaultValue: 'Reset' })}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4 print:hidden">
             {summaryByType[activeReport].map((item) => (
               <div key={item.id} className="card-elevated p-4 max-[480px]:p-3">
                 <p className="mb-1.5 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{item.label}</p>
                 <div className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
-                  {loading || periodLoading ? (
+                  {(loading || periodLoading || (activeReport === 'full-financial' && fullReportLoading)) ? (
                     <span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
                   ) : item.convertedMetric ? (
                     renderConvertedMetric(item.convertedMetric, item.positive)
@@ -1269,7 +1887,7 @@ export default function ReportsScreen() {
                   </p>
                 ) : null}
               </div>
-              {(loading || periodLoading) ? <Loader2 size={16} className="animate-spin text-accent" /> : null}
+              {(loading || periodLoading || (activeReport === 'full-financial' && fullReportLoading)) ? <Loader2 size={16} className="animate-spin text-accent" /> : null}
             </div>
 
             {loading || periodLoading ? (
@@ -1279,6 +1897,39 @@ export default function ReportsScreen() {
                   <p className="text-sm text-muted-foreground">{t('reports.loadingData')}</p>
                 </div>
               </div>
+            ) : activeReport === 'full-financial' ? (
+              fullReportLoading ? (
+                <div className="flex h-[300px] items-center justify-center">
+                  <div className="text-center">
+                    <Loader2 size={24} className="mx-auto mb-2 animate-spin text-accent" />
+                    <p className="text-sm text-muted-foreground">{t('reports.loadingData')}</p>
+                  </div>
+                </div>
+              ) : fullReportError ? (
+                <div className="flex min-h-[300px] items-center justify-center">
+                  <EmptyState
+                    icon={FileText}
+                    title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
+                    description={fullReportError}
+                  />
+                </div>
+              ) : fullReportData ? (
+                <FullFinancialReport
+                  data={fullReportData}
+                  includeCharts={includeCharts}
+                  includeTransactionDetails={includeTransactionDetails}
+                  includeItemInsights={includeItemInsights}
+                  includeUpcomingCommitments={includeUpcomingCommitments}
+                />
+              ) : (
+                <div className="flex min-h-[300px] items-center justify-center">
+                  <EmptyState
+                    icon={FileText}
+                    title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
+                    description={t('reports.controls.previewPrompt', { defaultValue: 'Choose your filters and preview the report to build the full financial document.' })}
+                  />
+                </div>
+              )
             ) : activeReport === 'account-statement' ? (
               <AccountStatementTable
                 transactions={reportData?.transactions || []}
@@ -1399,53 +2050,55 @@ export default function ReportsScreen() {
             )}
           </div>
 
-          <div className="card-elevated p-4 print:hidden max-[480px]:p-3">
-            <p className="mb-3 text-sm font-700 text-foreground">{t('reports.downloadOptions')}</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {[
-                {
-                  id: 'dl-csv',
-                  icon: FileDown,
-                  label: t('reports.downloads.csvExport'),
-                  desc: activeReport === 'budget-performance'
-                    ? t('reports.downloads.applicableBudgetsInRange', { count: reportData?.budgetPerformance.items.length || 0 })
-                    : t('reports.downloads.transactionsInRange', { count: reportData?.transactions.length || 0 }),
-                  action: handleDownloadCSV,
-                  primary: true,
-                },
-                {
-                  id: 'dl-print',
-                  icon: Printer,
-                  label: t('reports.downloads.printPdf'),
-                  desc: t('reports.downloads.printPdfDescription'),
-                  action: handlePrint,
-                  primary: false,
-                },
-              ].map((option) => {
-                const Icon = option.icon;
-                return (
-                  <button
-                    key={option.id}
-                    onClick={option.action}
-                    disabled={actionInFlight !== null}
-                    className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
-                      option.primary ? 'border-accent/40 bg-accent/8 hover:bg-accent/15' : 'border-border hover:border-accent/30 hover:bg-muted/40'
-                    } disabled:opacity-60`}
-                  >
-                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${option.primary ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      {actionInFlight === (option.id === 'dl-csv' ? 'csv' : 'print')
-                        ? <Loader2 size={16} className="animate-spin" />
-                        : <Icon size={16} />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-600 text-foreground">{option.label}</p>
-                      <p className="text-[11px] text-muted-foreground">{option.desc}</p>
-                    </div>
-                  </button>
-                );
-              })}
+          {activeReport !== 'full-financial' ? (
+            <div className="card-elevated p-4 print:hidden max-[480px]:p-3">
+              <p className="mb-3 text-sm font-700 text-foreground">{t('reports.downloadOptions')}</p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    id: 'dl-csv',
+                    icon: FileDown,
+                    label: t('reports.downloads.csvExport'),
+                    desc: activeReport === 'budget-performance'
+                      ? t('reports.downloads.applicableBudgetsInRange', { count: reportData?.budgetPerformance.items.length || 0 })
+                      : t('reports.downloads.transactionsInRange', { count: reportData?.transactions.length || 0 }),
+                    action: handleDownloadCSV,
+                    primary: true,
+                  },
+                  {
+                    id: 'dl-print',
+                    icon: Printer,
+                    label: t('reports.downloads.printPdf'),
+                    desc: t('reports.downloads.printPdfDescription'),
+                    action: handlePrint,
+                    primary: false,
+                  },
+                ].map((option) => {
+                  const Icon = option.icon;
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={option.action}
+                      disabled={actionInFlight !== null}
+                      className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
+                        option.primary ? 'border-accent/40 bg-accent/8 hover:bg-accent/15' : 'border-border hover:border-accent/30 hover:bg-muted/40'
+                      } disabled:opacity-60`}
+                    >
+                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${option.primary ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                        {actionInFlight === (option.id === 'dl-csv' ? 'csv' : 'print')
+                          ? <Loader2 size={16} className="animate-spin" />
+                          : <Icon size={16} />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-600 text-foreground">{option.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{option.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

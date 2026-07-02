@@ -2265,6 +2265,292 @@
       "reportingAmount": "Сумма бюджета в валюте отчетности",
       "reportingSpent": "Потрачено в валюте отчетности",
       "reportingRemaining": "Остаток в валюте отчетности"
+    },
+    "amount": "Сумма",
+    "observations": "Наблюдение",
+    "scopeLabel": "Охват",
+    "personalScope": "Личное",
+    "spaceScope": "Пространство",
+    "types": {
+      "fullFinancial": "Полный финансовый отчет"
+    },
+    "descriptions": {
+      "fullFinancial": "Соберите один полный финансовый отчет за выбранный период, охват и фильтры, используя существующие данные отчетности."
+    },
+    "controls": {
+      "scopeLabel": "Охват",
+      "category": "Категория",
+      "allCategories": "Все категории",
+      "person": "Человек",
+      "allPeople": "Все люди",
+      "transactionType": "Тип транзакции",
+      "allTransactionTypes": "Все типы транзакций",
+      "currencyMode": "Режим валют",
+      "currencyModeBoth": "Отчетные и исходные значения",
+      "currencyModeReporting": "Сначала отчетные значения",
+      "fullReportPanelTitle": "Полный финансовый отчет",
+      "fullReportPanelDescription": "Предпросмотрите один структурированный отчет с выбранным периодом, охватом и фильтрами без изменения существующих расчетов.",
+      "hideMoreOptions": "Скрыть дополнительные параметры отчета",
+      "moreOptions": "Дополнительные параметры отчета",
+      "includeTransactionDetails": "Включить детали транзакций",
+      "includeCharts": "Включить диаграммы",
+      "includeItemInsights": "Включить аналитику товаров",
+      "includeUpcomingCommitments": "Включить ближайшие обязательства",
+      "includeArchivedAccounts": "Включать архивные или версионные счета, если это уместно",
+      "preview": "Предпросмотр отчета",
+      "exportCsvPackage": "Экспортировать пакет CSV",
+      "reset": "Сбросить",
+      "previewPrompt": "Выберите фильтры и создайте предпросмотр, чтобы собрать полный финансовый документ.",
+      "previewStatus": "Статус предпросмотра",
+      "ready": "Готово",
+      "summaryOnlyTransactions": "Только сводка по транзакциям"
+    },
+    "fullReport": {
+      "csvPackageExported": "Пакет CSV для полного отчета экспортирован.",
+      "largeReportWarning": "Этот отчет содержит большое количество транзакций и может создаваться дольше обычного.",
+      "metadata": {
+        "reportType": "Тип отчета",
+        "scope": "Охват",
+        "period": "Выбранный период",
+        "reportingCurrency": "Валюта отчетности",
+        "currencyMode": "Режим валют",
+        "filters": "Выбранные фильтры",
+        "transactions": "Детали транзакций"
+      },
+      "header": {
+        "preparedFor": "Подготовлено для",
+        "userFallback": "Пользователь Smart Pocket"
+      },
+      "footer": {
+        "tagline": "Личные финансы без лишней сложности",
+        "poweredBy": "Работает на MCS Consultancy",
+        "page": "Страница"
+      },
+      "sections": {
+        "executiveSummary": "Итоговая сводка",
+        "incomeExpenses": "Доходы и расходы",
+        "accounts": "Финансовые счета",
+        "transactions": "Детали транзакций",
+        "categoryAnalysis": "Анализ категорий",
+        "budgets": "Выполнение бюджетов",
+        "people": "Люди, возмещения и расчеты",
+        "subscriptions": "Личные подписки",
+        "recurring": "Регулярные транзакции",
+        "loans": "Займы и погашения",
+        "commitments": "Ближайшие финансовые обязательства",
+        "itemInsights": "Аналитика товаров",
+        "currency": "Сводка по валютам",
+        "observations": "Ключевые наблюдения"
+      },
+      "shared": {
+        "yes": "Да",
+        "no": "Нет",
+        "active": "Активно",
+        "inactive": "Неактивно",
+        "archived": "Архивировано",
+        "versioned": "Версионное",
+        "overdue": "Просрочено",
+        "scheduled": "Запланировано",
+        "outstanding": "Не погашено",
+        "repaid": "Погашено"
+      },
+      "executive": {
+        "spaceBalance": "Баланс пространства",
+        "personalBalance": "Личный баланс",
+        "budgetRemaining": "Остаток бюджета",
+        "receivables": "Суммы, которые должны вам",
+        "payables": "Суммы, которые должны вы",
+        "loans": "Непогашенные займы",
+        "loanRepayments": "Погашения займов",
+        "upcomingPayments": "Ближайшие платежи",
+        "commitmentsHelper": "Срок в ближайшие 30 дней",
+        "activeSubscriptions": "Активные подписки",
+        "spentMore": "Вы потратили на {{amount}} больше, чем заработали за этот период.",
+        "savedAmount": "После доходов и расходов за этот период у вас осталось {{amount}}.",
+        "topCategory": "Самая крупная категория расходов: {{category}}.",
+        "upcomingDue": "В ближайшие 7 дней нужно оплатить {{count}} платежей."
+      },
+      "incomeExpenses": {
+        "comparisonSummary": "Доход изменился на {{incomeChange}}, а расходы на {{expenseChange}} по сравнению с предыдущим сопоставимым периодом.",
+        "source": "Источник",
+        "change": "Изменение",
+        "helper": "Максимум",
+        "noIncomeSources": "Нет источников дохода, соответствующих выбранным фильтрам.",
+        "noExpenseCategories": "Нет категорий расходов, соответствующих выбранным фильтрам.",
+        "largestIncome": "Крупнейшая доходная транзакция",
+        "largestExpense": "Крупнейшая расходная транзакция",
+        "averageTransaction": "Средняя сумма транзакции",
+        "absoluteAverage": "Используются абсолютные суммы транзакций",
+        "topIncomeSources": "Крупнейшие источники дохода",
+        "topExpenseCategories": "Крупнейшие категории расходов"
+      },
+      "accounts": {
+        "personal": "Личные счета",
+        "shared": "Общие счета",
+        "spaces": "Счета пространств",
+        "personalTotalLabel": "Личный итог",
+        "empty": "Нет счетов, соответствующих выбранным фильтрам.",
+        "columns": {
+          "name": "Счет",
+          "type": "Тип",
+          "scope": "Охват",
+          "currency": "Валюта",
+          "opening": "Начальный баланс",
+          "inflow": "Поступления",
+          "outflow": "Списания",
+          "transfersIn": "Переводы входящие",
+          "transfersOut": "Переводы исходящие",
+          "current": "Конечный / текущий",
+          "reportingEquivalent": "Эквивалент в валюте отчетности",
+          "personalTotal": "Входит в личный итог",
+          "status": "Статус"
+        },
+        "types": {
+          "bank": "Банк",
+          "credit_card": "Кредитная карта",
+          "savings": "Сбережения",
+          "cash": "Наличные",
+          "digital_wallet": "Цифровой кошелек",
+          "investment": "Инвестиции",
+          "other": "Другое"
+        }
+      },
+      "transactions": {
+        "summaryTitle": "Сводка транзакций",
+        "detailTitle": "Полная таблица транзакций",
+        "summaryOnly": "Подробный список транзакций отключен для этого предпросмотра отчета.",
+        "averageAmount": "Средняя сумма",
+        "empty": "Нет транзакций, соответствующих выбранным фильтрам.",
+        "status": {
+          "recorded": "Учтено",
+          "recurring": "Регулярно",
+          "personLinked": "Связано с человеком"
+        },
+        "columns": {
+          "date": "Дата",
+          "description": "Описание",
+          "merchant": "Продавец / источник",
+          "type": "Тип",
+          "category": "Категория",
+          "account": "Счет",
+          "person": "Человек",
+          "originalAmount": "Исходная сумма",
+          "originalCurrency": "Исходная валюта",
+          "reportingAmount": "Сумма в отчетности",
+          "status": "Оплата / статус",
+          "notes": "Заметки",
+          "receipt": "Чек"
+        }
+      },
+      "categoryAnalysis": {
+        "spending": "Расходы по категориям",
+        "income": "Доходы по категориям",
+        "category": "Категория",
+        "average": "Среднее",
+        "largest": "Максимум",
+        "empty": "Нет категорий расходов, соответствующих выбранным фильтрам.",
+        "emptyIncome": "Нет категорий доходов, соответствующих выбранным фильтрам."
+      },
+      "budgets": {
+        "onTrack": "В пределах плана",
+        "nearLimit": "Близко к лимиту",
+        "exceeded": "Превышено"
+      },
+      "people": {
+        "peopleCount": "Охвачено людей",
+        "pendingReimbursements": "Открытые возмещения",
+        "paidOnBehalf": "Оплачено за них",
+        "receivedFromThem": "Получено от них",
+        "reimbursements": "Возмещения",
+        "settlements": "Расчеты",
+        "lastActivity": "Последняя активность",
+        "currencies": "Итоги по валютам",
+        "empty": "Нет данных по людям для выбранных фильтров."
+      },
+      "subscriptions": {
+        "active": "Подписки",
+        "upcoming": "Ближайшие продления",
+        "monthlyEquivalent": "Месячный эквивалент",
+        "yearlyEquivalent": "Годовой эквивалент",
+        "name": "Подписка",
+        "currency": "Валюта",
+        "frequency": "Частота списаний",
+        "account": "Счет оплаты",
+        "nextBilling": "Следующая дата списания",
+        "autoRenew": "Автопродление",
+        "state": "Состояние",
+        "empty": "Для этого отчета нет доступных подписок.",
+        "noUpcoming": "Ближайших продлений подписок не найдено."
+      },
+      "recurring": {
+        "name": "Название",
+        "nextDue": "Следующая дата",
+        "status": "Статус",
+        "empty": "Для этого отчета нет активных регулярных транзакций."
+      },
+      "loans": {
+        "openLoans": "Открытые займы",
+        "repaidLoans": "Погашенные займы",
+        "person": "Кредитор / человек",
+        "originalAmount": "Исходная сумма займа",
+        "outstandingBalance": "Остаток долга",
+        "repaid": "Погашено",
+        "repaymentCount": "Погашения",
+        "nextExpected": "Следующее ожидаемое погашение",
+        "empty": "Нет записей по займам для выбранных фильтров."
+      },
+      "commitments": {
+        "overdue": "Просрочено",
+        "next7Days": "Следующие 7 дней",
+        "next30Days": "Следующие 30 дней",
+        "later": "Позже",
+        "subscription": "Подписка",
+        "recurring": "Регулярно",
+        "reimbursement": "Возмещение",
+        "empty": "В этой группе нет элементов.",
+        "columns": {
+          "name": "Название",
+          "due": "Срок"
+        }
+      },
+      "itemInsights": {
+        "topItemsBySpend": "Товары с наибольшими тратами",
+        "topItemsByFrequency": "Часто покупаемые товары",
+        "priceChanges": "Изменения цен",
+        "merchantComparison": "Сравнение продавцов",
+        "recurringSuggestions": "Подсказки по регулярным товарам",
+        "itemCategories": "Наибольшие траты по категориям товаров",
+        "daysLabel": "{{count}} дн.",
+        "columns": {
+          "item": "Товар",
+          "total": "Итого",
+          "count": "Кол-во",
+          "purchases": "Покупки",
+          "lastPrice": "Последняя цена",
+          "merchant": "Продавец",
+          "frequency": "Частота",
+          "lastBought": "Последняя покупка"
+        }
+      },
+      "currency": {
+        "originalTotals": "Исходные итоги по валютам",
+        "reportingTotals": "Итоги в валюте отчетности",
+        "noteConvertedView": "Значения отчетности являются конвертированным представлением на основе сохраненных снимков курсов за выбранный период.",
+        "noteOriginalTotals": "Исходные AED, USD, CAD, GBP и другие валюты остаются разделенными, чтобы смешанные итоги не вводили в заблуждение.",
+        "columns": {
+          "metric": "Показатель",
+          "originalTotals": "Исходные итоги",
+          "reportingTotal": "Отчетный итог"
+        }
+      },
+      "observations": {
+        "empty": "Для выбранных фильтров нет дополнительных наблюдений.",
+        "highestCategory": "Самая крупная категория расходов: {{category}}.",
+        "highestExpense": "Крупнейший расход: {{description}}.",
+        "expensiveSubscription": "Самая дорогая подписка: {{name}}.",
+        "budgetAtRisk": "Бюджет ближе всего к лимиту: {{name}}.",
+        "busiestDay": "Самый загруженный день расходов: {{date}}."
+      }
     }
   },
   "subscriptionBilling": {

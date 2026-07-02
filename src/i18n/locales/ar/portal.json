@@ -2285,6 +2285,292 @@
       "reportingAmount": "مبلغ الميزانية بعملة التقارير",
       "reportingSpent": "المنفق بعملة التقارير",
       "reportingRemaining": "المتبقي بعملة التقارير"
+    },
+    "amount": "المبلغ",
+    "observations": "ملاحظة",
+    "scopeLabel": "النطاق",
+    "personalScope": "شخصي",
+    "spaceScope": "مساحة",
+    "types": {
+      "fullFinancial": "التقرير المالي الكامل"
+    },
+    "descriptions": {
+      "fullFinancial": "أنشئ تقريرًا ماليًا كاملًا ومنظمًا للفترة والنطاق وعوامل التصفية المحددة باستخدام بيانات التقارير الحالية."
+    },
+    "controls": {
+      "scopeLabel": "النطاق",
+      "category": "الفئة",
+      "allCategories": "كل الفئات",
+      "person": "الشخص",
+      "allPeople": "كل الأشخاص",
+      "transactionType": "نوع المعاملة",
+      "allTransactionTypes": "كل أنواع المعاملات",
+      "currencyMode": "وضع العملة",
+      "currencyModeBoth": "قيم التقارير والقيم الأصلية",
+      "currencyModeReporting": "عرض قيم التقارير أولًا",
+      "fullReportPanelTitle": "التقرير المالي الكامل",
+      "fullReportPanelDescription": "عاين تقريرًا واحدًا منظمًا باستخدام الفترة والنطاق وعوامل التصفية المحددة من دون تغيير الحسابات الحالية.",
+      "hideMoreOptions": "إخفاء المزيد من خيارات التقرير",
+      "moreOptions": "مزيد من خيارات التقرير",
+      "includeTransactionDetails": "تضمين تفاصيل المعاملات",
+      "includeCharts": "تضمين الرسوم البيانية",
+      "includeItemInsights": "تضمين تحليلات العناصر",
+      "includeUpcomingCommitments": "تضمين الالتزامات القادمة",
+      "includeArchivedAccounts": "تضمين الحسابات المؤرشفة أو المرقمة إصداريًا عند الحاجة",
+      "preview": "معاينة التقرير",
+      "exportCsvPackage": "تصدير حزمة CSV",
+      "reset": "إعادة تعيين",
+      "previewPrompt": "اختر عوامل التصفية ثم عاين التقرير لبناء المستند المالي الكامل.",
+      "previewStatus": "حالة المعاينة",
+      "ready": "جاهز",
+      "summaryOnlyTransactions": "ملخص المعاملات فقط"
+    },
+    "fullReport": {
+      "csvPackageExported": "تم تصدير حزمة CSV الخاصة بالتقرير الكامل.",
+      "largeReportWarning": "يحتوي هذا التقرير على عدد كبير من المعاملات وقد يستغرق وقتًا أطول في الإنشاء.",
+      "metadata": {
+        "reportType": "نوع التقرير",
+        "scope": "النطاق",
+        "period": "الفترة المحددة",
+        "reportingCurrency": "عملة التقارير",
+        "currencyMode": "وضع العملة",
+        "filters": "عوامل التصفية المحددة",
+        "transactions": "تفاصيل المعاملات"
+      },
+      "header": {
+        "preparedFor": "مُعد لـ",
+        "userFallback": "مستخدم Smart Pocket"
+      },
+      "footer": {
+        "tagline": "المالية الشخصية ببساطة",
+        "poweredBy": "بدعم من MCS Consultancy",
+        "page": "الصفحة"
+      },
+      "sections": {
+        "executiveSummary": "الملخص التنفيذي",
+        "incomeExpenses": "الدخل والمصروفات",
+        "accounts": "الحسابات المالية",
+        "transactions": "تفاصيل المعاملات",
+        "categoryAnalysis": "تحليل الفئات",
+        "budgets": "أداء الميزانيات",
+        "people": "الأشخاص والسداد والتسويات",
+        "subscriptions": "الاشتراكات الشخصية",
+        "recurring": "المعاملات المتكررة",
+        "loans": "القروض والسداد",
+        "commitments": "الالتزامات المالية القادمة",
+        "itemInsights": "تحليلات العناصر",
+        "currency": "ملخص العملات",
+        "observations": "الملاحظات الأساسية"
+      },
+      "shared": {
+        "yes": "نعم",
+        "no": "لا",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "archived": "مؤرشف",
+        "versioned": "مؤرشف بإصدار",
+        "overdue": "متأخر",
+        "scheduled": "مجدول",
+        "outstanding": "مستحق",
+        "repaid": "مسدد"
+      },
+      "executive": {
+        "spaceBalance": "رصيد المساحة",
+        "personalBalance": "الرصيد الشخصي",
+        "budgetRemaining": "المتبقي من الميزانية",
+        "receivables": "المبالغ المستحقة لك",
+        "payables": "المبالغ المستحقة عليك",
+        "loans": "القروض المستحقة",
+        "loanRepayments": "سداد القروض",
+        "upcomingPayments": "المدفوعات القادمة",
+        "commitmentsHelper": "مستحقة خلال الثلاثين يومًا القادمة",
+        "activeSubscriptions": "الاشتراكات النشطة",
+        "spentMore": "أنفقت {{amount}} أكثر مما كسبت خلال هذه الفترة.",
+        "savedAmount": "تبقى لديك {{amount}} بعد الدخل والمصروفات خلال هذه الفترة.",
+        "topCategory": "أكبر فئة إنفاق لديك كانت {{category}}.",
+        "upcomingDue": "هناك {{count}} مدفوعات مستحقة خلال الأيام السبعة القادمة."
+      },
+      "incomeExpenses": {
+        "comparisonSummary": "تغير الدخل بمقدار {{incomeChange}} وتغيرت المصروفات بمقدار {{expenseChange}} مقارنة بالفترة المماثلة السابقة.",
+        "source": "المصدر",
+        "change": "التغير",
+        "helper": "الأكبر",
+        "noIncomeSources": "لا توجد مصادر دخل تطابق عوامل التصفية المحددة.",
+        "noExpenseCategories": "لا توجد فئات مصروفات تطابق عوامل التصفية المحددة.",
+        "largestIncome": "أكبر معاملة دخل",
+        "largestExpense": "أكبر معاملة مصروف",
+        "averageTransaction": "متوسط مبلغ المعاملة",
+        "absoluteAverage": "يستخدم القيم المطلقة لمبالغ المعاملات",
+        "topIncomeSources": "أهم مصادر الدخل",
+        "topExpenseCategories": "أهم فئات المصروفات"
+      },
+      "accounts": {
+        "personal": "الحسابات الشخصية",
+        "shared": "الحسابات المشتركة",
+        "spaces": "حسابات المساحات",
+        "personalTotalLabel": "الإجمالي الشخصي",
+        "empty": "لا توجد حسابات تطابق عوامل التصفية المحددة.",
+        "columns": {
+          "name": "الحساب",
+          "type": "النوع",
+          "scope": "النطاق",
+          "currency": "العملة",
+          "opening": "الرصيد الافتتاحي",
+          "inflow": "التدفقات الداخلة",
+          "outflow": "التدفقات الخارجة",
+          "transfersIn": "التحويلات الواردة",
+          "transfersOut": "التحويلات الصادرة",
+          "current": "الرصيد الختامي / الحالي",
+          "reportingEquivalent": "القيمة بعملة التقارير",
+          "personalTotal": "مضمن في الإجمالي الشخصي",
+          "status": "الحالة"
+        },
+        "types": {
+          "bank": "بنك",
+          "credit_card": "بطاقة ائتمان",
+          "savings": "ادخار",
+          "cash": "نقد",
+          "digital_wallet": "محفظة رقمية",
+          "investment": "استثمار",
+          "other": "أخرى"
+        }
+      },
+      "transactions": {
+        "summaryTitle": "ملخص المعاملات",
+        "detailTitle": "جدول المعاملات الكامل",
+        "summaryOnly": "تم إيقاف تفاصيل المعاملات الكاملة في معاينة هذا التقرير.",
+        "averageAmount": "متوسط المبلغ",
+        "empty": "لا توجد معاملات تطابق عوامل التصفية المحددة.",
+        "status": {
+          "recorded": "مسجلة",
+          "recurring": "متكررة",
+          "personLinked": "مرتبطة بشخص"
+        },
+        "columns": {
+          "date": "التاريخ",
+          "description": "الوصف",
+          "merchant": "التاجر / المصدر",
+          "type": "النوع",
+          "category": "الفئة",
+          "account": "الحساب",
+          "person": "الشخص",
+          "originalAmount": "المبلغ الأصلي",
+          "originalCurrency": "العملة الأصلية",
+          "reportingAmount": "المبلغ بعملة التقارير",
+          "status": "الدفع / الحالة",
+          "notes": "ملاحظات",
+          "receipt": "إيصال"
+        }
+      },
+      "categoryAnalysis": {
+        "spending": "الإنفاق حسب الفئة",
+        "income": "الدخل حسب الفئة",
+        "category": "الفئة",
+        "average": "المتوسط",
+        "largest": "الأكبر",
+        "empty": "لا توجد فئات إنفاق تطابق عوامل التصفية المحددة.",
+        "emptyIncome": "لا توجد فئات دخل تطابق عوامل التصفية المحددة."
+      },
+      "budgets": {
+        "onTrack": "ضمن المسار",
+        "nearLimit": "قريب من الحد",
+        "exceeded": "تم تجاوزه"
+      },
+      "people": {
+        "peopleCount": "الأشخاص المشمولون",
+        "pendingReimbursements": "المطالبات المفتوحة",
+        "paidOnBehalf": "مدفوع بالنيابة عنهم",
+        "receivedFromThem": "مستلم منهم",
+        "reimbursements": "الاستردادات",
+        "settlements": "التسويات",
+        "lastActivity": "آخر نشاط",
+        "currencies": "الإجماليات حسب العملة",
+        "empty": "لا توجد بيانات أشخاص تطابق عوامل التصفية المحددة."
+      },
+      "subscriptions": {
+        "active": "الاشتراكات",
+        "upcoming": "التجديدات القادمة",
+        "monthlyEquivalent": "المعادل الشهري",
+        "yearlyEquivalent": "المعادل السنوي",
+        "name": "الاشتراك",
+        "currency": "العملة",
+        "frequency": "وتيرة الفوترة",
+        "account": "حساب الدفع",
+        "nextBilling": "تاريخ الفوترة القادم",
+        "autoRenew": "تجديد تلقائي",
+        "state": "الحالة",
+        "empty": "لا توجد اشتراكات متاحة لهذا التقرير.",
+        "noUpcoming": "لم يتم العثور على تجديدات اشتراك قادمة."
+      },
+      "recurring": {
+        "name": "الاسم",
+        "nextDue": "تاريخ الاستحقاق القادم",
+        "status": "الحالة",
+        "empty": "لا توجد معاملات متكررة نشطة لهذا التقرير."
+      },
+      "loans": {
+        "openLoans": "القروض المفتوحة",
+        "repaidLoans": "القروض المسددة",
+        "person": "المُقرض / الشخص",
+        "originalAmount": "مبلغ القرض الأصلي",
+        "outstandingBalance": "الرصيد المستحق",
+        "repaid": "المبلغ المسدد",
+        "repaymentCount": "عدد السدادات",
+        "nextExpected": "السداد المتوقع التالي",
+        "empty": "لا توجد سجلات قروض تطابق عوامل التصفية المحددة."
+      },
+      "commitments": {
+        "overdue": "متأخر",
+        "next7Days": "الأيام السبعة القادمة",
+        "next30Days": "الثلاثون يومًا القادمة",
+        "later": "لاحقًا",
+        "subscription": "اشتراك",
+        "recurring": "متكرر",
+        "reimbursement": "استرداد",
+        "empty": "لا توجد عناصر في هذه المجموعة.",
+        "columns": {
+          "name": "الاسم",
+          "due": "الاستحقاق"
+        }
+      },
+      "itemInsights": {
+        "topItemsBySpend": "أكثر العناصر شراءً",
+        "topItemsByFrequency": "العناصر الأكثر تكرارًا في الشراء",
+        "priceChanges": "تغيرات الأسعار",
+        "merchantComparison": "مقارنة التجار",
+        "recurringSuggestions": "اقتراحات العناصر المتكررة",
+        "itemCategories": "أعلى الإنفاق حسب فئة العنصر",
+        "daysLabel": "{{count}} يوم",
+        "columns": {
+          "item": "العنصر",
+          "total": "الإجمالي",
+          "count": "العدد",
+          "purchases": "المشتريات",
+          "lastPrice": "آخر سعر",
+          "merchant": "التاجر",
+          "frequency": "التكرار",
+          "lastBought": "آخر شراء"
+        }
+      },
+      "currency": {
+        "originalTotals": "الإجماليات الأصلية حسب العملة",
+        "reportingTotals": "الإجماليات بعملة التقارير",
+        "noteConvertedView": "قيم التقارير هي عرض محول يعتمد على لقطات أسعار الصرف المخزنة للفترة المحددة.",
+        "noteOriginalTotals": "تبقى العملات الأصلية مثل AED وUSD وCAD وGBP وغيرها منفصلة حتى لا تكون الإجماليات المختلطة مضللة.",
+        "columns": {
+          "metric": "المؤشر",
+          "originalTotals": "الإجماليات الأصلية",
+          "reportingTotal": "إجمالي التقارير"
+        }
+      },
+      "observations": {
+        "empty": "لا توجد ملاحظات إضافية متاحة لعوامل التصفية المحددة.",
+        "highestCategory": "أعلى فئة إنفاق: {{category}}.",
+        "highestExpense": "أكبر مصروف: {{description}}.",
+        "expensiveSubscription": "أغلى اشتراك: {{name}}.",
+        "budgetAtRisk": "الميزانية الأقرب إلى حدها: {{name}}.",
+        "busiestDay": "أكثر أيام الإنفاق ازدحامًا: {{date}}."
+      }
     }
   },
   "subscriptionBilling": {

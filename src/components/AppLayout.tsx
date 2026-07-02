@@ -32,7 +32,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
           <div className="flex min-h-screen w-full items-stretch lg:h-screen lg:flex-row lg:overflow-hidden">
             {/* Desktop Sidebar — left for LTR, right for RTL */}
             <div
-              className={`hidden self-stretch bg-card lg:flex lg:h-screen lg:flex-shrink-0 lg:overflow-hidden ${
+              className={`print:hidden hidden self-stretch bg-card lg:flex lg:h-screen lg:flex-shrink-0 lg:overflow-hidden ${
                 isRTL ? 'border-l border-border' : 'border-r border-border'
               }`}
               style={{ width: sidebarCollapsed ? '60px' : '244px' }}
@@ -45,7 +45,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
             </div>
 
             {mobileSidebarOpen && (
-              <div className="fixed inset-0 z-40 lg:hidden">
+              <div className="fixed inset-0 z-40 print:hidden lg:hidden">
                 <button
                   type="button"
                   className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
@@ -65,9 +65,11 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
 
             {/* Main Content Area */}
             <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:h-screen lg:min-h-0 lg:overflow-hidden">
-              <Topbar
-                onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
-              />
+              <div className="print:hidden">
+                <Topbar
+                  onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
+                />
+              </div>
 
               <main
                 className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin lg:h-full"
@@ -77,7 +79,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
                   <div className="page-shell page-shell-authenticated flex-1 pb-[calc(5.75rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9">
                     {children}
                   </div>
-                  <div className="pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+                  <div className="print:hidden pb-[calc(5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
                     <PortalFooter />
                   </div>
                 </div>
@@ -85,7 +87,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
             </div>
 
             {/* Mobile Bottom Nav */}
-            <div className="lg:hidden">
+            <div className="print:hidden lg:hidden">
               <BottomNav activeRoute={activeRoute} />
             </div>
           </div>

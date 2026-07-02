@@ -3393,7 +3393,8 @@ export async function getReportDataWithContext(
     .select(`
       *,
       account:financial_accounts(name, currency),
-      category:categories(name, color)
+      category:categories(name, color),
+      receipt_attachments(*)
     `)
     .gte('transaction_date', dateFrom)
     .lte('transaction_date', dateTo)

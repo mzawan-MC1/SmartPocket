@@ -2265,6 +2265,292 @@
       "reportingAmount": "Montant budgetaire de reporting",
       "reportingSpent": "Depense de reporting",
       "reportingRemaining": "Restant de reporting"
+    },
+    "amount": "Montant",
+    "observations": "Observation",
+    "scopeLabel": "Portee",
+    "personalScope": "Personnel",
+    "spaceScope": "Espace",
+    "types": {
+      "fullFinancial": "Rapport financier complet"
+    },
+    "descriptions": {
+      "fullFinancial": "Creez un rapport financier complet pour la periode, la portee et les filtres selectionnes en reutilisant les donnees de reporting existantes."
+    },
+    "controls": {
+      "scopeLabel": "Portee",
+      "category": "Categorie",
+      "allCategories": "Toutes les categories",
+      "person": "Personne",
+      "allPeople": "Toutes les personnes",
+      "transactionType": "Type de transaction",
+      "allTransactionTypes": "Tous les types de transaction",
+      "currencyMode": "Mode de devise",
+      "currencyModeBoth": "Valeurs de reporting et d origine",
+      "currencyModeReporting": "Valeurs de reporting d abord",
+      "fullReportPanelTitle": "Rapport financier complet",
+      "fullReportPanelDescription": "Previsualisez un rapport organise avec la periode, la portee et les filtres selectionnes sans modifier les calculs existants.",
+      "hideMoreOptions": "Masquer plus d options du rapport",
+      "moreOptions": "Plus d options du rapport",
+      "includeTransactionDetails": "Inclure les details des transactions",
+      "includeCharts": "Inclure les graphiques",
+      "includeItemInsights": "Inclure les analyses d articles",
+      "includeUpcomingCommitments": "Inclure les engagements a venir",
+      "includeArchivedAccounts": "Inclure les comptes archives ou versionnes lorsque c est pertinent",
+      "preview": "Previsualiser le rapport",
+      "exportCsvPackage": "Exporter le package CSV",
+      "reset": "Reinitialiser",
+      "previewPrompt": "Choisissez vos filtres puis previsualisez le rapport pour construire le document financier complet.",
+      "previewStatus": "Etat de la previsualisation",
+      "ready": "Pret",
+      "summaryOnlyTransactions": "Resume des transactions seulement"
+    },
+    "fullReport": {
+      "csvPackageExported": "Le package CSV du rapport complet a ete exporte.",
+      "largeReportWarning": "Ce rapport contient un grand nombre de transactions et peut prendre plus de temps a generer.",
+      "metadata": {
+        "reportType": "Type de rapport",
+        "scope": "Portee",
+        "period": "Periode selectionnee",
+        "reportingCurrency": "Devise de reporting",
+        "currencyMode": "Mode de devise",
+        "filters": "Filtres selectionnes",
+        "transactions": "Details des transactions"
+      },
+      "header": {
+        "preparedFor": "Prepare pour",
+        "userFallback": "Utilisateur Smart Pocket"
+      },
+      "footer": {
+        "tagline": "La finance personnelle simplifiee",
+        "poweredBy": "Propulse par MCS Consultancy",
+        "page": "Page"
+      },
+      "sections": {
+        "executiveSummary": "Resume executif",
+        "incomeExpenses": "Revenus et depenses",
+        "accounts": "Comptes financiers",
+        "transactions": "Details des transactions",
+        "categoryAnalysis": "Analyse par categorie",
+        "budgets": "Performance des budgets",
+        "people": "Personnes, remboursements et reglements",
+        "subscriptions": "Abonnements personnels",
+        "recurring": "Transactions recurrentes",
+        "loans": "Prets et remboursements",
+        "commitments": "Engagements financiers a venir",
+        "itemInsights": "Analyses d articles",
+        "currency": "Resume des devises",
+        "observations": "Observations cles"
+      },
+      "shared": {
+        "yes": "Oui",
+        "no": "Non",
+        "active": "Actif",
+        "inactive": "Inactif",
+        "archived": "Archive",
+        "versioned": "Versionne",
+        "overdue": "En retard",
+        "scheduled": "Planifie",
+        "outstanding": "En attente",
+        "repaid": "Rembourse"
+      },
+      "executive": {
+        "spaceBalance": "Solde de l espace",
+        "personalBalance": "Solde personnel",
+        "budgetRemaining": "Budget restant",
+        "receivables": "Creances en attente",
+        "payables": "Paiements en attente",
+        "loans": "Prets en attente",
+        "loanRepayments": "Remboursements de pret",
+        "upcomingPayments": "Paiements a venir",
+        "commitmentsHelper": "Dus dans les 30 prochains jours",
+        "activeSubscriptions": "Abonnements actifs",
+        "spentMore": "Vous avez depense {{amount}} de plus que vos revenus sur cette periode.",
+        "savedAmount": "Il vous reste {{amount}} apres revenus et depenses sur cette periode.",
+        "topCategory": "Votre plus grande categorie de depense est {{category}}.",
+        "upcomingDue": "{{count}} paiements sont dus dans les 7 prochains jours."
+      },
+      "incomeExpenses": {
+        "comparisonSummary": "Les revenus ont change de {{incomeChange}} et les depenses de {{expenseChange}} par rapport a la periode comparable precedente.",
+        "source": "Source",
+        "change": "Variation",
+        "helper": "Plus important",
+        "noIncomeSources": "Aucune source de revenu ne correspond aux filtres selectionnes.",
+        "noExpenseCategories": "Aucune categorie de depense ne correspond aux filtres selectionnes.",
+        "largestIncome": "Plus grande transaction de revenu",
+        "largestExpense": "Plus grande transaction de depense",
+        "averageTransaction": "Montant moyen par transaction",
+        "absoluteAverage": "Utilise les montants absolus des transactions",
+        "topIncomeSources": "Principales sources de revenu",
+        "topExpenseCategories": "Principales categories de depense"
+      },
+      "accounts": {
+        "personal": "Comptes personnels",
+        "shared": "Comptes partages",
+        "spaces": "Comptes d espace",
+        "personalTotalLabel": "Total personnel",
+        "empty": "Aucun compte ne correspond aux filtres selectionnes.",
+        "columns": {
+          "name": "Compte",
+          "type": "Type",
+          "scope": "Portee",
+          "currency": "Devise",
+          "opening": "Solde d ouverture",
+          "inflow": "Entrees",
+          "outflow": "Sorties",
+          "transfersIn": "Transferts entrants",
+          "transfersOut": "Transferts sortants",
+          "current": "Cloture / courant",
+          "reportingEquivalent": "Equivalent en reporting",
+          "personalTotal": "Inclus dans le total personnel",
+          "status": "Statut"
+        },
+        "types": {
+          "bank": "Banque",
+          "credit_card": "Carte de credit",
+          "savings": "Epargne",
+          "cash": "Especes",
+          "digital_wallet": "Portefeuille numerique",
+          "investment": "Investissement",
+          "other": "Autre"
+        }
+      },
+      "transactions": {
+        "summaryTitle": "Resume des transactions",
+        "detailTitle": "Table complete des transactions",
+        "summaryOnly": "Le detail complet des transactions est desactive pour cette previsualisation du rapport.",
+        "averageAmount": "Montant moyen",
+        "empty": "Aucune transaction ne correspond aux filtres selectionnes.",
+        "status": {
+          "recorded": "Enregistree",
+          "recurring": "Recurrente",
+          "personLinked": "Liee a une personne"
+        },
+        "columns": {
+          "date": "Date",
+          "description": "Description",
+          "merchant": "Marchand / source",
+          "type": "Type",
+          "category": "Categorie",
+          "account": "Compte",
+          "person": "Personne",
+          "originalAmount": "Montant d origine",
+          "originalCurrency": "Devise d origine",
+          "reportingAmount": "Montant de reporting",
+          "status": "Paiement / statut",
+          "notes": "Notes",
+          "receipt": "Recu"
+        }
+      },
+      "categoryAnalysis": {
+        "spending": "Depenses par categorie",
+        "income": "Revenus par categorie",
+        "category": "Categorie",
+        "average": "Moyenne",
+        "largest": "Plus important",
+        "empty": "Aucune categorie de depense ne correspond aux filtres selectionnes.",
+        "emptyIncome": "Aucune categorie de revenu ne correspond aux filtres selectionnes."
+      },
+      "budgets": {
+        "onTrack": "Sur la bonne voie",
+        "nearLimit": "Pres de la limite",
+        "exceeded": "Depasse"
+      },
+      "people": {
+        "peopleCount": "Personnes couvertes",
+        "pendingReimbursements": "Remboursements ouverts",
+        "paidOnBehalf": "Paye pour eux",
+        "receivedFromThem": "Recu d eux",
+        "reimbursements": "Remboursements",
+        "settlements": "Reglements",
+        "lastActivity": "Derniere activite",
+        "currencies": "Totaux par devise",
+        "empty": "Aucune donnee personne ne correspond aux filtres selectionnes."
+      },
+      "subscriptions": {
+        "active": "Abonnements",
+        "upcoming": "Renouvellements a venir",
+        "monthlyEquivalent": "Equivalent mensuel",
+        "yearlyEquivalent": "Equivalent annuel",
+        "name": "Abonnement",
+        "currency": "Devise",
+        "frequency": "Frequence de facturation",
+        "account": "Compte de paiement",
+        "nextBilling": "Prochaine date de facturation",
+        "autoRenew": "Renouvellement automatique",
+        "state": "Etat",
+        "empty": "Aucun abonnement n est disponible pour ce rapport.",
+        "noUpcoming": "Aucun renouvellement d abonnement a venir n a ete trouve."
+      },
+      "recurring": {
+        "name": "Nom",
+        "nextDue": "Prochaine echeance",
+        "status": "Statut",
+        "empty": "Aucune transaction recurrente n est active pour ce rapport."
+      },
+      "loans": {
+        "openLoans": "Prets ouverts",
+        "repaidLoans": "Prets rembourses",
+        "person": "Preteur / personne",
+        "originalAmount": "Montant initial du pret",
+        "outstandingBalance": "Solde restant",
+        "repaid": "Montant rembourse",
+        "repaymentCount": "Remboursements",
+        "nextExpected": "Prochain remboursement attendu",
+        "empty": "Aucun pret ne correspond aux filtres selectionnes."
+      },
+      "commitments": {
+        "overdue": "En retard",
+        "next7Days": "7 prochains jours",
+        "next30Days": "30 prochains jours",
+        "later": "Plus tard",
+        "subscription": "Abonnement",
+        "recurring": "Recurrent",
+        "reimbursement": "Remboursement",
+        "empty": "Aucun element dans ce groupe.",
+        "columns": {
+          "name": "Nom",
+          "due": "Echeance"
+        }
+      },
+      "itemInsights": {
+        "topItemsBySpend": "Articles les plus achetes",
+        "topItemsByFrequency": "Articles achetes le plus souvent",
+        "priceChanges": "Variations de prix",
+        "merchantComparison": "Comparaison des marchands",
+        "recurringSuggestions": "Suggestions d articles recurrents",
+        "itemCategories": "Depenses principales par categorie d article",
+        "daysLabel": "{{count}} jours",
+        "columns": {
+          "item": "Article",
+          "total": "Total",
+          "count": "Nombre",
+          "purchases": "Achats",
+          "lastPrice": "Dernier prix",
+          "merchant": "Marchand",
+          "frequency": "Frequence",
+          "lastBought": "Dernier achat"
+        }
+      },
+      "currency": {
+        "originalTotals": "Totaux d origine par devise",
+        "reportingTotals": "Totaux en devise de reporting",
+        "noteConvertedView": "Les valeurs de reporting sont des vues converties basees sur les instantanes de taux de change stockes pour la periode selectionnee.",
+        "noteOriginalTotals": "Les devises d origine comme AED, USD, CAD, GBP et les autres restent separees afin d eviter des totaux mixtes trompeurs.",
+        "columns": {
+          "metric": "Mesure",
+          "originalTotals": "Totaux d origine",
+          "reportingTotal": "Total de reporting"
+        }
+      },
+      "observations": {
+        "empty": "Aucune observation supplementaire n est disponible pour les filtres selectionnes.",
+        "highestCategory": "Categorie de depense la plus elevee : {{category}}.",
+        "highestExpense": "Plus grande depense : {{description}}.",
+        "expensiveSubscription": "Abonnement le plus couteux : {{name}}.",
+        "budgetAtRisk": "Budget le plus proche de sa limite : {{name}}.",
+        "busiestDay": "Jour de depense le plus charge : {{date}}."
+      }
     }
   },
   "subscriptionBilling": {

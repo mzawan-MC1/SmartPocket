@@ -1132,3 +1132,125 @@
     background: var(--muted);
   }
 }
+
+@page {
+  size: A4 portrait;
+  margin: 14mm 12mm 16mm;
+}
+
+@media print {
+  :root {
+    --background: #ffffff;
+    --card: #ffffff;
+    --card-foreground: #111827;
+    --foreground: #111827;
+    --muted: #f3f4f6;
+    --muted-foreground: #4b5563;
+    --border: #d1d5db;
+    --warning: #92400e;
+    --positive: #166534;
+    --negative: #b91c1c;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  body * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body [data-sonner-toaster],
+  body [role='dialog'],
+  body [role='alertdialog'],
+  body [role='tooltip'],
+  body [data-radix-popper-content-wrapper],
+  body .print-hidden-global {
+    display: none !important;
+  }
+
+  .page-shell,
+  .page-shell-authenticated,
+  .page-section {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .card-elevated,
+  .section-card,
+  .card,
+  .metric-card {
+    background: #ffffff !important;
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+  }
+
+  .report-document {
+    max-width: none !important;
+    color: #111827 !important;
+  }
+
+  .report-header,
+  .report-footer,
+  .report-section,
+  .report-print-section,
+  .report-chart-shell {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .report-major-section {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .report-chart {
+    height: 128mm !important;
+    min-height: 128mm !important;
+    max-height: 128mm !important;
+    overflow: hidden !important;
+  }
+
+  .report-print-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+
+  .report-print-table thead {
+    display: table-header-group;
+  }
+
+  .report-print-table tr,
+  .report-print-table td,
+  .report-print-table th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    vertical-align: top;
+  }
+
+  .report-print-table th,
+  .report-print-table td {
+    background: #ffffff !important;
+    color: #111827 !important;
+  }
+
+  .report-page-number::after {
+    content: counter(page);
+  }
+
+  .report-page-counter {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  a[href]:after {
+    content: '' !important;
+  }
+}

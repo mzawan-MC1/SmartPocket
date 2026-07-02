@@ -22,6 +22,8 @@ function parseFilters(request: NextRequest) {
     mode: valueOrUndefined(searchParams.get('mode')) || 'page',
     startDate: valueOrUndefined(searchParams.get('startDate')),
     endDate: valueOrUndefined(searchParams.get('endDate')),
+    scopeType: valueOrUndefined(searchParams.get('scopeType')) as 'personal' | 'space' | undefined,
+    spaceId: valueOrUndefined(searchParams.get('spaceId')) || null,
     transactionType: valueOrUndefined(searchParams.get('transactionType')) as 'expense' | 'income' | undefined,
     merchant: valueOrUndefined(searchParams.get('merchant')),
     itemName: valueOrUndefined(searchParams.get('item')),
