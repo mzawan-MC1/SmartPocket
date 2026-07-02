@@ -17,8 +17,6 @@ interface CurrencyOptionRowProps {
 
 export default function CurrencyOptionRow({
   currency,
-  countryCount,
-  showCountryCount = false,
   showFeaturedBadge = false,
   showActiveStatus = false,
   selected = false,
@@ -28,32 +26,23 @@ export default function CurrencyOptionRow({
 }: CurrencyOptionRowProps) {
   const content = (
     <>
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-muted/70">
-          <CurrencySymbol currency={currency} />
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+          <CurrencySymbol currency={currency} size="xs" />
+          <span className={`text-sm font-700 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>{currency.code}</span>
         </div>
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`text-sm font-700 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>{currency.code}</span>
-            {showFeaturedBadge && currency.isFeatured ? <StatusBadge status="info" label="Featured" /> : null}
-            {showActiveStatus ? (
-              <StatusBadge
-                status={currency.isActive ? 'ready' : 'warning'}
-                label={currency.isActive ? 'Active' : 'Inactive'}
-              />
-            ) : null}
-          </div>
-          <p className={`truncate text-sm ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>{currency.name}</p>
-        </div>
-      </div>
-      <div className="ms-auto flex shrink-0 items-center gap-3">
-        {showCountryCount ? (
-          <span className={`text-xs font-600 ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
-            {typeof countryCount === 'number' ? `${countryCount} countries` : 'No countries'}
-          </span>
+        <span className={`min-w-0 flex-1 truncate text-sm ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
+          {currency.name}
+        </span>
+        {showFeaturedBadge && currency.isFeatured ? <StatusBadge status="info" label="Featured" /> : null}
+        {showActiveStatus ? (
+          <StatusBadge
+            status={currency.isActive ? 'ready' : 'warning'}
+            label={currency.isActive ? 'Active' : 'Inactive'}
+          />
         ) : null}
-        {trailing}
       </div>
+      {trailing ? <div className="ms-2 flex shrink-0 items-center">{trailing}</div> : null}
     </>
   );
 
@@ -62,7 +51,7 @@ export default function CurrencyOptionRow({
       <button
         type="button"
         onClick={onClick}
-        className={`selector-option flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ${
+        className={`selector-option flex w-full min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
           selected
             ? 'selector-option-selected'
             : ''
@@ -75,7 +64,7 @@ export default function CurrencyOptionRow({
 
   return (
     <div
-      className={`selector-option flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+      className={`selector-option flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5 ${
         selected ? 'selector-option-selected' : ''
       } ${className}`.trim()}
     >

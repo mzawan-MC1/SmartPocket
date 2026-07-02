@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { createPortal } from 'react-dom';
 import SearchField from '@/components/ui/SearchField';
 import CurrencyOptionRow from '@/components/currency/CurrencyOptionRow';
 import CurrencySymbol from '@/components/currency/CurrencySymbol';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getSelectableActiveCurrencies } from '@/lib/reference-data/collections';
 import {
@@ -39,12 +41,16 @@ export default function CurrencySelector({
   helperText = null,
 }: CurrencySelectorProps) {
   const { t } = useTranslation('common');
+  const { dir } = useLanguage();
   const { data, loading } = useClientReferenceData();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number; placement: 'top' | 'bottom' } | null>(null);
 
   const snapshot = data?.snapshot;
   const resolvedPlaceholder = placeholder ?? t('currency.select');
@@ -111,10 +117,20 @@ export default function CurrencySelector({
   ]);
 
   useEffect(() => {
+    if (!open) {
+      setMenuPosition(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
     if (!open) return;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (menuRef.current && menuRef.current.contains(target)) return;
+      if (containerRef.current && containerRef.current.contains(target)) return;
+      if (triggerRef.current && triggerRef.current.contains(target)) return;
+      {
         setOpen(false);
         setSearch('');
       }
@@ -140,7 +156,80 @@ export default function CurrencySelector({
     onChange(code);
     setOpen(false);
     setSearch('');
+    setMenuPosition(null);
   };
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    setSearch('');
+    setMenuPosition(null);
+    window.requestAnimationFrame(() => {
+      triggerRef.current?.focus();
+    });
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    if (!open) return;
+    if (typeof window === 'undefined') return;
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportPadding = 8;
+    const sideOffset = 8;
+    const minWidth = 280;
+    const width = Math.min(
+      Math.max(rect.width, minWidth),
+      window.innerWidth - viewportPadding * 2
+    );
+
+    const measuredHeight = menuRef.current?.offsetHeight ?? 360;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const placement: 'top' | 'bottom' =
+      spaceBelow < measuredHeight + sideOffset && spaceAbove > spaceBelow
+        ? 'top'
+        : 'bottom';
+
+    const unclampedTop = placement === 'top'
+      ? rect.top - measuredHeight - sideOffset
+      : rect.bottom + sideOffset;
+    const top = Math.min(
+      Math.max(unclampedTop, viewportPadding),
+      window.innerHeight - measuredHeight - viewportPadding
+    );
+
+    const unclampedLeft = dir === 'rtl'
+      ? rect.right - width
+      : rect.left;
+    const left = Math.min(
+      Math.max(unclampedLeft, viewportPadding),
+      window.innerWidth - width - viewportPadding
+    );
+
+    setMenuPosition({ top, left, width, placement });
+  }, [dir, open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const update = () => updateMenuPosition();
+    const frameId = window.requestAnimationFrame(() => {
+      update();
+      window.requestAnimationFrame(() => {
+        searchRef.current?.focus();
+      });
+    });
+
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [open, updateMenuPosition]);
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (disabled) return;
@@ -155,8 +244,7 @@ export default function CurrencySelector({
 
     if (event.key === 'Escape') {
       event.preventDefault();
-      setOpen(false);
-      setSearch('');
+      closeMenu();
       return;
     }
 
@@ -182,35 +270,24 @@ export default function CurrencySelector({
     <div ref={containerRef} className={`relative ${className}`.trim()}>
       {label ? <label className="mb-1.5 block text-sm font-600 text-foreground">{label}</label> : null}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`input-base selector-trigger flex w-full items-center gap-3 px-3 py-2.5 text-left ${
+        className={`input-base selector-trigger flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2.5 text-left ${
           disabled ? 'cursor-not-allowed opacity-60' : ''
         }`}
         aria-expanded={open}
         aria-haspopup="listbox"
       >
         {selectedCurrency ? (
-          <>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted/60">
-              <CurrencySymbol currency={selectedCurrency} size="sm" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className="selector-value-primary text-sm font-700">{selectedCurrency.code}</span>
-                {!selectedCurrency.isActive ? (
-                  <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
-                    {t('currency.inactive')}
-                  </span>
-                ) : null}
-              </div>
-              <p className="selector-value-secondary truncate text-sm">{selectedCurrency.name}</p>
-            </div>
-          </>
+          <div className="flex min-w-0 items-center gap-2 whitespace-nowrap">
+            <CurrencySymbol currency={selectedCurrency} size="xs" />
+            <span className="selector-value-primary shrink-0 text-sm font-700">{selectedCurrency.code}</span>
+          </div>
         ) : (
-          <span className="selector-placeholder text-sm">
+          <span className="selector-placeholder min-w-0 truncate text-sm">
             {loading ? t('currency.loading') : resolvedPlaceholder}
           </span>
         )}
@@ -226,53 +303,64 @@ export default function CurrencySelector({
       </button>
       {helperText ? <p className="mt-1.5 text-xs text-muted-foreground">{helperText}</p> : null}
 
-      {open ? (
-        <div className="selector-menu absolute inset-x-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border shadow-card-lg">
-          <div className="border-b border-border p-3">
-            <SearchField
-              ref={searchRef}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('currency.searchDetailed')}
-              inputClassName="h-9 text-sm"
-            />
-          </div>
-          <div className="max-h-80 overflow-y-auto p-2">
-            {filteredCurrencies.length === 0 ? (
-              <div className="px-4 py-5 text-center text-sm text-muted-foreground">
-                {t('currency.noneFound')}
+      {open && menuPosition
+        ? createPortal(
+            <>
+              <div className="fixed inset-0 z-40" onClick={closeMenu} />
+              <div
+                ref={menuRef}
+                className="selector-menu fixed z-50 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg"
+                style={{
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  width: menuPosition.width,
+                  transformOrigin: menuPosition.placement === 'top' ? 'bottom' : 'top',
+                }}
+              >
+                <div className="border-b border-border p-3">
+                  <SearchField
+                    ref={searchRef}
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={t('currency.searchDetailed')}
+                    inputClassName="h-9 text-sm"
+                  />
+                </div>
+                <div className="max-h-80 overflow-y-auto p-2">
+                  {filteredCurrencies.length === 0 ? (
+                    <div className="px-4 py-5 text-center text-sm text-muted-foreground">
+                      {t('currency.noneFound')}
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {filteredCurrencies.map((currency, index) => (
+                        <CurrencyOptionRow
+                          key={currency.code}
+                          currency={currency}
+                          showCountryCount={showCountryCount}
+                          selected={currency.code === normalizedValue}
+                          className={index === highlightedIndex ? 'selector-option-highlighted' : ''}
+                          trailing={
+                            currency.code === normalizedValue ? (
+                              <Check size={14} className="selector-check" />
+                            ) : !currency.isActive ? (
+                              <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
+                                {t('currency.inactive')}
+                              </span>
+                            ) : null
+                          }
+                          onClick={() => handleSelect(currency.code)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {filteredCurrencies.map((currency, index) => {
-                  const countryCount = countryNamesByCurrency.get(currency.code)?.length ?? 0;
-                  return (
-                    <CurrencyOptionRow
-                      key={currency.code}
-                      currency={currency}
-                      countryCount={countryCount}
-                      showCountryCount={showCountryCount}
-                      selected={currency.code === normalizedValue}
-                      className={index === highlightedIndex ? 'selector-option-highlighted' : ''}
-                      trailing={
-                        currency.code === normalizedValue ? (
-                          <Check size={14} className="selector-check" />
-                        ) : !currency.isActive ? (
-                          <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-600 text-warning">
-                            {t('currency.inactive')}
-                          </span>
-                        ) : null
-                      }
-                      onClick={() => handleSelect(currency.code)}
-                    />
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      ) : null}
+            </>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
