@@ -223,7 +223,12 @@
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Загрузка периода планирования",
-    "loadingPlanningPeriodDescription": "Smart Pocket загружает сохраненные настройки цикла выплат и часового пояса."
+    "loadingPlanningPeriodDescription": "Smart Pocket загружает ваши сохраненные настройки платежного цикла и часового пояса.",
+    "dashboardSlowLoadTitle": "Загрузка панели занимает больше времени, чем ожидалось.",
+    "dashboardSlowLoadDescription": "Smart Pocket все еще повторно подключает вашу панель. Не нужно обновлять страницу вручную.",
+    "dashboardLoadFailedTitle": "Сейчас не удалось загрузить панель.",
+    "dashboardLoadFailedDescription": "Попробуйте загрузить панель еще раз.",
+    "tryAgain": "Попробовать снова"
   },
   "transactionsHeader": {
     "title": "Транзакции",

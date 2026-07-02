@@ -223,7 +223,12 @@
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Chargement de la période de planification",
-    "loadingPlanningPeriodDescription": "Smart Pocket charge vos paramètres enregistrés de cycle de paie et de fuseau horaire."
+    "loadingPlanningPeriodDescription": "Smart Pocket charge vos reglages enregistres de cycle de paie et de fuseau horaire.",
+    "dashboardSlowLoadTitle": "Le tableau de bord met plus de temps que prevu a se charger.",
+    "dashboardSlowLoadDescription": "Smart Pocket est encore en train de reconnecter votre tableau de bord. Vous n avez pas besoin d actualiser la page manuellement.",
+    "dashboardLoadFailedTitle": "Le tableau de bord n a pas pu etre charge pour le moment.",
+    "dashboardLoadFailedDescription": "Essayez de recharger le tableau de bord.",
+    "tryAgain": "Reessayer"
   },
   "transactionsHeader": {
     "title": "Transactions",

@@ -228,7 +228,12 @@
   },
   "shared": {
     "loadingPlanningPeriodTitle": "جار تحميل فترة التخطيط",
-    "loadingPlanningPeriodDescription": "يقوم Smart Pocket بتحميل إعدادات دورة الدفع والمنطقة الزمنية المحفوظة لديك."
+    "loadingPlanningPeriodDescription": "يقوم Smart Pocket بتحميل إعدادات دورة الدفع والمنطقة الزمنية المحفوظة.",
+    "dashboardSlowLoadTitle": "يستغرق تحميل لوحة التحكم وقتًا أطول من المتوقع.",
+    "dashboardSlowLoadDescription": "لا يزال Smart Pocket يعيد الاتصال بلوحة التحكم. لا تحتاج إلى تحديث الصفحة يدويًا.",
+    "dashboardLoadFailedTitle": "تعذر تحميل لوحة التحكم الآن.",
+    "dashboardLoadFailedDescription": "حاول تحميل لوحة التحكم مرة أخرى.",
+    "tryAgain": "إعادة المحاولة"
   },
   "transactionsHeader": {
     "title": "المعاملات",

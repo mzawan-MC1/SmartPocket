@@ -2,6 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslation } from 'react-i18next';
+import { RotateCcw } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import DashboardHeader from '@/app/components/DashboardHeader';
 import DashboardMetrics from '@/app/components/DashboardMetrics';
@@ -17,10 +18,16 @@ import {
   getPeriodContainingDate,
   type DashboardPeriodPreference,
 } from '@/lib/financial-periods';
-import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
+import {
+  clearFinancialPeriodProfileCache,
+  loadUserFinancialPeriodContext,
+  type UserFinancialPeriodContext,
+} from '@/lib/financial-periods/profile';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { useAuth } from '@/contexts/AuthContext';
 import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
+
 
 const AIUsageCardLazy = dynamic(() => import('@/app/components/AIUsageCard'), {
   loading: () => <SectionCardSkeleton lines={3} className="h-full" />,
@@ -97,6 +104,30 @@ function DashboardQuickActionFallback() {
   );
 }
 
+const DASHBOARD_VIEW_STORAGE_KEY = 'smartpocket.dashboard.view';
+const DASHBOARD_MONTH_STORAGE_KEY = 'smartpocket.dashboard.month';
+const DASHBOARD_PAY_PERIOD_STORAGE_KEY = 'smartpocket.dashboard.pay-period-start';
+const DASHBOARD_REVALIDATE_DEBOUNCE_MS = 1500;
+const DASHBOARD_SLOW_LOAD_MS = 5000;
+
+function readDashboardSessionStorage(key: string) {
+  if (typeof window === 'undefined') return null;
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeDashboardSessionStorage(key: string, value: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Ignore sessionStorage failures so the dashboard can still render.
+  }
+}
+
 function useMinWidth(minWidth: number) {
   const [matches, setMatches] = useState<boolean | null>(null);
 
@@ -158,9 +189,12 @@ function useDeferredMount(enabled = true, rootMargin = '700px 0px') {
 export default function DashboardPage() {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
+  const { loading: authLoading, user } = useAuth();
   const dashboardLocale = getIntlLocale(language);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
+  const [periodLoadError, setPeriodLoadError] = useState<string | null>(null);
+  const [showSlowLoadState, setShowSlowLoadState] = useState(false);
   const [viewMode, setViewMode] = useState<DashboardPeriodPreference | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedPayPeriodStart, setSelectedPayPeriodStart] = useState('');
@@ -170,46 +204,120 @@ export default function DashboardPage() {
   const isXlUp = useMinWidth(1280);
   const firstLowerGrid = useDeferredMount(true, '650px 0px');
   const secondLowerGrid = useDeferredMount(true, '900px 0px');
+  const latestPeriodRequestRef = useRef(0);
+  const lastLifecycleRevalidationRef = useRef(0);
 
-  const loadPeriodContext = useCallback(async () => {
+  const loadPeriodContext = useCallback(async (options?: { forceRefresh?: boolean; surfaceToast?: boolean }) => {
+    const requestId = latestPeriodRequestRef.current + 1;
+    latestPeriodRequestRef.current = requestId;
     setPeriodLoading(true);
+    setPeriodLoadError(null);
+    setShowSlowLoadState(false);
+
+    const slowLoadTimer = window.setTimeout(() => {
+      if (latestPeriodRequestRef.current === requestId) {
+        setShowSlowLoadState(true);
+      }
+    }, DASHBOARD_SLOW_LOAD_MS);
+
     try {
+      if (options?.forceRefresh) {
+        clearFinancialPeriodProfileCache();
+      }
       const nextContext = await loadUserFinancialPeriodContext();
+      if (latestPeriodRequestRef.current !== requestId) return;
       setPeriodContext(nextContext);
     } catch (error) {
+      if (latestPeriodRequestRef.current !== requestId) return;
       console.error(error);
-      toast.error(t('shared.loadingPlanningPeriodDescription'));
+      setPeriodLoadError(t('shared.dashboardLoadFailedDescription'));
+      if (options?.surfaceToast) {
+        toast.error(t('shared.dashboardLoadFailedDescription'));
+      }
     } finally {
-      setPeriodLoading(false);
+      window.clearTimeout(slowLoadTimer);
+      if (latestPeriodRequestRef.current === requestId) {
+        setPeriodLoading(false);
+      }
     }
   }, [t]);
 
   useEffect(() => {
-    void loadPeriodContext();
-  }, [loadPeriodContext]);
+    if (authLoading) return;
+    void loadPeriodContext({ forceRefresh: true });
+  }, [authLoading, user?.id, loadPeriodContext]);
 
   useEffect(() => {
+    if (authLoading || !user?.id) return;
     void fetch('/api/financial-accounts/ensure-defaults', {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});
-  }, []);
+  }, [authLoading, user?.id]);
 
   useSmartPocketDataChanged(['profile'], 'DashboardPagePeriodContext', async () => {
-    await loadPeriodContext();
+    await loadPeriodContext({ forceRefresh: true });
   });
+
+  const revalidateFromLifecycle = useCallback((forceRefresh = false) => {
+    if (authLoading) return;
+
+    const coreReady = Boolean(periodContext && viewMode);
+    if (coreReady && !periodLoadError && !showSlowLoadState && !periodLoading && !forceRefresh) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastLifecycleRevalidationRef.current < DASHBOARD_REVALIDATE_DEBOUNCE_MS) {
+      return;
+    }
+    lastLifecycleRevalidationRef.current = now;
+    void loadPeriodContext({ forceRefresh: true });
+  }, [authLoading, loadPeriodContext, periodContext, periodLoadError, periodLoading, showSlowLoadState, viewMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted || !periodContext || !viewMode || periodLoadError) {
+        revalidateFromLifecycle(true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && (!periodContext || !viewMode || periodLoadError || periodLoading)) {
+        revalidateFromLifecycle();
+      }
+    };
+
+    const handleFocus = () => {
+      if (!document.hidden && (!periodContext || !viewMode || periodLoadError || periodLoading)) {
+        revalidateFromLifecycle();
+      }
+    };
+
+    window.addEventListener('pageshow', handlePageShow);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [periodContext, periodLoadError, periodLoading, revalidateFromLifecycle, viewMode]);
 
   useEffect(() => {
     if (!periodContext) return;
 
-    const savedMode = window.sessionStorage.getItem('smartpocket.dashboard.view');
+    const savedMode = readDashboardSessionStorage(DASHBOARD_VIEW_STORAGE_KEY);
     const nextViewMode = savedMode === 'pay_cycle' || savedMode === 'month'
       ? savedMode
       : periodContext.defaultDashboardPeriod;
     const currentMonthKey = getMonthContext(undefined, periodContext.timezone).monthKey;
-    const storedMonthKey = window.sessionStorage.getItem('smartpocket.dashboard.month') || currentMonthKey;
+    const storedMonthKey = readDashboardSessionStorage(DASHBOARD_MONTH_STORAGE_KEY) || currentMonthKey;
     const normalizedMonthKey = getMonthContext(storedMonthKey, periodContext.timezone).monthKey;
-    const storedPayPeriodStart = window.sessionStorage.getItem('smartpocket.dashboard.pay-period-start') || periodContext.currentFinancialPeriod.startDate;
+    const storedPayPeriodStart = readDashboardSessionStorage(DASHBOARD_PAY_PERIOD_STORAGE_KEY) || periodContext.currentFinancialPeriod.startDate;
     const normalizedPayPeriod = buildPayPeriodActivePeriod(storedPayPeriodStart, periodContext, dashboardLocale);
 
     setViewMode((current) => current || nextViewMode);
@@ -219,17 +327,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!viewMode) return;
-    window.sessionStorage.setItem('smartpocket.dashboard.view', viewMode);
+    writeDashboardSessionStorage(DASHBOARD_VIEW_STORAGE_KEY, viewMode);
   }, [viewMode]);
 
   useEffect(() => {
     if (!selectedMonth) return;
-    window.sessionStorage.setItem('smartpocket.dashboard.month', selectedMonth);
+    writeDashboardSessionStorage(DASHBOARD_MONTH_STORAGE_KEY, selectedMonth);
   }, [selectedMonth]);
 
   useEffect(() => {
     if (!selectedPayPeriodStart) return;
-    window.sessionStorage.setItem('smartpocket.dashboard.pay-period-start', selectedPayPeriodStart);
+    writeDashboardSessionStorage(DASHBOARD_PAY_PERIOD_STORAGE_KEY, selectedPayPeriodStart);
   }, [selectedPayPeriodStart]);
 
   const closeQuickAction = useCallback(() => {
@@ -284,11 +392,45 @@ export default function DashboardPage() {
   }, [dashboardLocale, periodContext]);
 
   const showDesktopRightRail = isXlUp === true;
+  const coreReady = Boolean(periodContext && activePeriod && viewMode);
+  const showLoadFallback = !authLoading && !coreReady && (!periodLoading || showSlowLoadState);
+  const readyPeriodContext = coreReady ? periodContext : null;
+  const readyActivePeriod = coreReady ? activePeriod : null;
+  const readyViewMode = coreReady ? viewMode : null;
 
   return (
     <AppLayout activeRoute="/dashboard">
       <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3">
-        {periodLoading || !periodContext || !activePeriod || !viewMode ? (
+        {!coreReady ? (
+          showLoadFallback ? (
+            <div className="section-card">
+              <div className="section-card-body flex min-h-[260px] flex-col items-center justify-center gap-3 text-center">
+                <div className="space-y-2">
+                  <h2 className="text-lg font-800 text-foreground">
+                    {showSlowLoadState
+                      ? t('shared.dashboardSlowLoadTitle')
+                      : t('shared.dashboardLoadFailedTitle')}
+                  </h2>
+                  <p className="mx-auto max-w-md text-sm text-muted-foreground">
+                    {showSlowLoadState
+                      ? t('shared.dashboardSlowLoadDescription')
+                      : periodLoadError || t('shared.dashboardLoadFailedDescription')}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn-secondary h-10 px-4 text-sm"
+                  onClick={() => {
+                    setShowSlowLoadState(false);
+                    void loadPeriodContext({ forceRefresh: true, surfaceToast: true });
+                  }}
+                >
+                  <RotateCcw size={15} />
+                  {t('shared.tryAgain')}
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
             <SectionCardSkeleton lines={2} />
             <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
@@ -341,22 +483,23 @@ export default function DashboardPage() {
               <SectionCardSkeleton lines={4} className="h-full" />
             </div>
           </div>
+          )
         ) : (
           <>
             <DashboardHeader
-              activePeriod={activePeriod}
-              viewMode={viewMode}
+              activePeriod={readyActivePeriod!}
+              viewMode={readyViewMode!}
               onViewModeChange={handleViewModeChange}
               onSelectedMonthChange={handleSelectedMonthChange}
               onSelectedPayPeriodChange={handlePayPeriodChange}
               onQuickAction={openQuickAction}
               activeQuickAction={activeQuickAction}
-              financialPeriodContext={periodContext}
+              financialPeriodContext={readyPeriodContext!}
             />
             <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
               <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
                 <div className="md:col-span-12 xl:col-[1]">
-                  <DashboardMetrics activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
+                  <DashboardMetrics activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
                 </div>
                 <div className="hidden md:block md:col-span-12 xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
                   <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
@@ -365,12 +508,12 @@ export default function DashboardPage() {
                       : <SectionCardSkeleton lines={3} className="h-full" />
                     }
                     {showDesktopRightRail ? (
-                      <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} compact />
+                      <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact />
                     ) : null}
                   </div>
                 </div>
                 <div className="md:col-span-12 xl:col-[1]">
-                  <DashboardCharts activePeriod={activePeriod} hasConfigurationWarning={periodContext.hasConfigurationWarning} />
+                  <DashboardCharts activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
                 </div>
               </div>
               <div ref={firstLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
@@ -380,7 +523,7 @@ export default function DashboardPage() {
                       <RecentTransactionsLazy />
                     </div>
                     <div>
-                      <UpcomingRecurringLazy activePeriod={activePeriod} />
+                      <UpcomingRecurringLazy activePeriod={readyActivePeriod!} />
                     </div>
                     <div>
                       <AccountBalancesLazy />
@@ -399,14 +542,14 @@ export default function DashboardPage() {
                   <>
                     {!showDesktopRightRail ? (
                       <div className="h-full md:col-span-2 lg:col-span-1 xl:hidden">
-                        <UpcomingPersonalSubscriptionsLazy activePeriod={activePeriod} />
+                        <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} />
                       </div>
                     ) : null}
                     <div className="h-full">
                       <PeopleDashboardWidgetLazy />
                     </div>
                     <div className="h-full">
-                      <ReceiptInsightsCardLazy activePeriod={activePeriod} />
+                      <ReceiptInsightsCardLazy activePeriod={readyActivePeriod!} />
                     </div>
                   </>
                 ) : (

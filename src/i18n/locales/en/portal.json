@@ -238,7 +238,12 @@
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Loading planning period",
-    "loadingPlanningPeriodDescription": "Smart Pocket is loading your saved pay-cycle and timezone settings."
+    "loadingPlanningPeriodDescription": "Smart Pocket is loading your saved pay-cycle and timezone settings.",
+    "dashboardSlowLoadTitle": "Dashboard is taking longer than expected to load.",
+    "dashboardSlowLoadDescription": "Smart Pocket is still reconnecting to your dashboard. You do not need to refresh the page manually.",
+    "dashboardLoadFailedTitle": "Dashboard could not load right now.",
+    "dashboardLoadFailedDescription": "Try loading the dashboard again.",
+    "tryAgain": "Try again"
   },
   "transactionsHeader": {
     "title": "Transactions",
