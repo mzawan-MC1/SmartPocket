@@ -7,6 +7,7 @@ import {
   BarChart3,
   BellRing,
   Calendar,
+  FileDown,
   Loader2,
   Package2,
   RefreshCw,
@@ -36,6 +37,7 @@ import { createNotificationIfEnabled } from '@/lib/notifications';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import { buildCsvRow, downloadCsvFile } from '@/lib/reports-export';
 
 type ItemInsightsApiResponse =
   | {
@@ -129,6 +131,212 @@ function formatUiDate(value: string | null | undefined, locale: string) {
   }).format(date);
 }
 
+function sanitizeFilenamePart(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+}
+
+function buildItemInsightsFilename(kind: 'summary' | 'rows' | 'detail', itemName?: string | null) {
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  const itemPart = itemName ? `-${sanitizeFilenamePart(itemName)}` : '';
+  return `item-insights-${kind}${itemPart}-${dateStamp}.csv`;
+}
+
+function buildCsvSection(title: string, headers: string[], rows: unknown[][]) {
+  return [
+    buildCsvRow([title]),
+    buildCsvRow(headers),
+    ...rows.map((row) => buildCsvRow(row)),
+    '',
+  ].join('\n');
+}
+
+function buildItemInsightsSummaryCsv(snapshot: ItemInsightsSnapshot) {
+  const sections = [
+    buildCsvSection('summary_metrics', ['metric', 'value', 'currency_or_context'], [
+      ['total_item_spending_groups', snapshot.totalsByCurrency.length, 'currency_groups'],
+      ['top_spend_item', snapshot.topItemsBySpend[0]?.itemName || '', snapshot.topItemsBySpend[0]?.currency || ''],
+      ['top_frequency_item', snapshot.topItemsByFrequency[0]?.itemName || '', snapshot.topItemsByFrequency[0]?.purchaseCount || 0],
+      ['top_recent_price_change_item', snapshot.recentPriceChanges[0]?.itemName || '', snapshot.recentPriceChanges[0]?.percentageChange || 0],
+    ]),
+    buildCsvSection('totals_by_currency', ['currency', 'total_spent'], snapshot.totalsByCurrency.map((row) => [
+      row.currency,
+      row.total,
+    ])),
+    buildCsvSection('top_items_by_spend', [
+      'item_name',
+      'normalized_item_name',
+      'currency',
+      'total_spent',
+      'purchase_count',
+      'average_unit_price',
+      'lowest_price',
+      'highest_price',
+      'last_purchased_at',
+      'merchants',
+    ], snapshot.topItemsBySpend.map((item) => [
+      item.itemName,
+      item.normalizedItemName,
+      item.currency,
+      item.totalSpent,
+      item.purchaseCount,
+      item.averageUnitPrice,
+      item.lowestPrice,
+      item.highestPrice,
+      item.lastPurchasedAt,
+      item.merchants.join(' | '),
+    ])),
+    buildCsvSection('recent_price_changes', [
+      'item_name',
+      'merchant',
+      'currency',
+      'latest_date',
+      'latest_price',
+      'previous_price',
+      'average_price',
+      'percentage_change',
+    ], snapshot.recentPriceChanges.map((change) => [
+      change.itemName,
+      change.merchant,
+      change.currency,
+      change.latestDate,
+      change.latestPrice,
+      change.previousPrice,
+      change.averagePrice,
+      change.percentageChange,
+    ])),
+    buildCsvSection('recurring_purchase_suggestions', [
+      'item_name',
+      'merchant',
+      'currency',
+      'purchase_count',
+      'average_interval_days',
+      'last_purchased_at',
+      'next_likely_purchase_date',
+      'average_price',
+      'latest_price',
+      'latest_price_vs_average_pct',
+      'due_soon',
+      'insight_type',
+    ], snapshot.recurringSuggestions.map((suggestion) => [
+      suggestion.itemName,
+      suggestion.merchant,
+      suggestion.currency,
+      suggestion.purchaseCount,
+      suggestion.averageIntervalDays,
+      suggestion.lastPurchasedAt,
+      suggestion.nextLikelyPurchaseDate,
+      suggestion.averagePrice,
+      suggestion.latestPrice,
+      suggestion.latestPriceVsAveragePct,
+      suggestion.dueSoon,
+      suggestion.insightType,
+    ])),
+    buildCsvSection('merchant_insights', [
+      'merchant',
+      'currency',
+      'total_spent',
+      'visit_count',
+      'average_receipt_value',
+      'last_visit',
+      'most_purchased_items',
+    ], snapshot.merchantInsights.map((merchant) => [
+      merchant.merchant,
+      merchant.currency,
+      merchant.totalSpent,
+      merchant.visitCount,
+      merchant.averageReceiptValue,
+      merchant.lastVisit,
+      merchant.mostPurchasedItems.map((item) => `${item.itemName} (${item.purchaseCount})`).join(' | '),
+    ])),
+    buildCsvSection('spending_by_item_category', [
+      'category_id',
+      'category_name',
+      'currency',
+      'total_spent',
+      'purchase_count',
+      'item_count',
+    ], snapshot.spendingByCategory.map((category) => [
+      category.categoryId,
+      category.categoryName,
+      category.currency,
+      category.totalSpent,
+      category.purchaseCount,
+      category.itemCount,
+    ])),
+  ];
+
+  return sections.join('\n');
+}
+
+function buildItemInsightsRowsCsv(snapshot: ItemInsightsSnapshot) {
+  return [
+    buildCsvRow([
+      'transaction_date',
+      'item_name',
+      'canonical_item_name',
+      'normalized_item_name',
+      'merchant',
+      'currency',
+      'quantity',
+      'unit_price',
+      'effective_unit_price',
+      'line_total',
+      'transaction_type',
+      'account_name',
+      'category_name',
+      'transaction_description',
+    ]),
+    ...snapshot.rows.map((row) => buildCsvRow([
+      row.transactionDate,
+      row.itemName,
+      row.canonicalItemName,
+      row.normalizedItemName,
+      row.merchant,
+      row.currency,
+      row.quantity,
+      row.unitPrice,
+      row.effectiveUnitPrice,
+      row.lineTotal,
+      row.transactionType,
+      row.accountName,
+      row.categoryName,
+      row.transactionDescription,
+    ])),
+  ].join('\n');
+}
+
+function buildItemHistoryCsv(historyGroups: ItemInsightsSnapshot['selectedItemHistory']) {
+  return [
+    buildCsvRow([
+      'item_name',
+      'currency',
+      'transaction_date',
+      'merchant',
+      'quantity',
+      'unit_price',
+      'line_total',
+      'percentage_change_from_previous',
+    ]),
+    ...historyGroups.flatMap((history) =>
+      history.entries.map((entry) => buildCsvRow([
+        history.itemName,
+        history.currency,
+        entry.transactionDate,
+        entry.merchant,
+        entry.quantity,
+        entry.unitPrice,
+        entry.lineTotal,
+        entry.percentageChangeFromPrevious,
+      ]))
+    ),
+  ].join('\n');
+}
+
 export default function ItemInsightsScreen() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
@@ -154,6 +362,7 @@ export default function ItemInsightsScreen() {
   const [savingIdentity, setSavingIdentity] = useState(false);
   const [dismissedSuggestionIds, setDismissedSuggestionIds] = useState<string[]>([]);
   const [recurringSuggestion, setRecurringSuggestion] = useState<RecurringPurchaseSuggestion | null>(null);
+  const [exporting, setExporting] = useState<'summary' | 'rows' | 'detail' | null>(null);
 
   const loadSnapshot = useCallback(async (nextFilters: Partial<FiltersState> = {}) => {
     const resolvedFilters = { ...filters, ...nextFilters };
@@ -358,6 +567,80 @@ export default function ItemInsightsScreen() {
   const summaryTopSpend = snapshot?.topItemsBySpend[0] || null;
   const summaryTopFrequency = snapshot?.topItemsByFrequency[0] || null;
   const summaryTopPriceChange = snapshot?.recentPriceChanges[0] || null;
+  const canExportSnapshot = Boolean(snapshot && snapshot.rows.length > 0);
+  const canExportDetails = Boolean(selectedItemDetails && selectedItemDetails.selectedItemHistory.length > 0);
+
+  const handleExportSummaryCsv = useCallback(() => {
+    if (!snapshot || snapshot.rows.length === 0 || exporting) {
+      toast.error(t('itemInsights.exportEmpty', {
+        ns: 'portal',
+        defaultValue: 'No item insights are ready to export yet.',
+      }));
+      return;
+    }
+
+    setExporting('summary');
+    try {
+      downloadCsvFile(
+        buildItemInsightsFilename('summary'),
+        buildItemInsightsSummaryCsv(snapshot)
+      );
+      toast.success(t('itemInsights.exportSummarySuccess', {
+        ns: 'portal',
+        defaultValue: 'Item insights summary exported to CSV.',
+      }));
+    } finally {
+      setExporting(null);
+    }
+  }, [exporting, snapshot, t]);
+
+  const handleExportRowsCsv = useCallback(() => {
+    if (!snapshot || snapshot.rows.length === 0 || exporting) {
+      toast.error(t('itemInsights.exportEmpty', {
+        ns: 'portal',
+        defaultValue: 'No item insights are ready to export yet.',
+      }));
+      return;
+    }
+
+    setExporting('rows');
+    try {
+      downloadCsvFile(
+        buildItemInsightsFilename('rows'),
+        buildItemInsightsRowsCsv(snapshot)
+      );
+      toast.success(t('itemInsights.exportRowsSuccess', {
+        ns: 'portal',
+        defaultValue: 'Filtered item rows exported to CSV.',
+      }));
+    } finally {
+      setExporting(null);
+    }
+  }, [exporting, snapshot, t]);
+
+  const handleExportDetailCsv = useCallback(() => {
+    if (!selectedItemDetails || selectedItemDetails.selectedItemHistory.length === 0 || exporting) {
+      toast.error(t('itemInsights.exportDetailEmpty', {
+        ns: 'portal',
+        defaultValue: 'No item history is ready to export yet.',
+      }));
+      return;
+    }
+
+    setExporting('detail');
+    try {
+      downloadCsvFile(
+        buildItemInsightsFilename('detail', selectedItemName),
+        buildItemHistoryCsv(selectedItemDetails.selectedItemHistory)
+      );
+      toast.success(t('itemInsights.exportDetailSuccess', {
+        ns: 'portal',
+        defaultValue: 'Item history exported to CSV.',
+      }));
+    } finally {
+      setExporting(null);
+    }
+  }, [exporting, selectedItemDetails, selectedItemName, t]);
 
   return (
     <div className="page-section">
@@ -372,6 +655,24 @@ export default function ItemInsightsScreen() {
               <BarChart3 size={14} />
               {t('itemInsights.backToReports', { ns: 'portal', defaultValue: 'Back to Reports' })}
             </Link>
+            <button
+              type="button"
+              onClick={handleExportSummaryCsv}
+              className="btn-secondary"
+              disabled={!canExportSnapshot || exporting !== null}
+            >
+              {exporting === 'summary' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+              {t('itemInsights.exportSummary', { ns: 'portal', defaultValue: 'Export summary CSV' })}
+            </button>
+            <button
+              type="button"
+              onClick={handleExportRowsCsv}
+              className="btn-secondary"
+              disabled={!canExportSnapshot || exporting !== null}
+            >
+              {exporting === 'rows' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+              {t('itemInsights.exportRows', { ns: 'portal', defaultValue: 'Export item rows CSV' })}
+            </button>
             <button type="button" onClick={() => void loadSnapshot()} className="btn-secondary">
               <RefreshCw size={14} />
               {t('actions.refresh', { ns: 'common', defaultValue: 'Refresh' })}
@@ -752,6 +1053,17 @@ export default function ItemInsightsScreen() {
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex flex-wrap justify-end gap-2">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleExportDetailCsv}
+                disabled={!canExportDetails || exporting !== null}
+              >
+                {exporting === 'detail' ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+                {t('itemInsights.exportDetail', { ns: 'portal', defaultValue: 'Export item history CSV' })}
+              </button>
+            </div>
             {selectedItemDetails.selectedItemHistory.map((history) => (
               <div key={`${history.normalizedItemName}:${history.currency}`} className="rounded-2xl border border-border p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

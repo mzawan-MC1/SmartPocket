@@ -26,6 +26,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import { downloadCsvFile, escapeCsvValue } from '@/lib/reports-export';
 import {
   formatReportPeriodLabel,
   getInitialReportPreset,
@@ -160,21 +161,6 @@ function formatBucketLabel(grouping: ReportGrouping, bucketStart: string, bucket
     return `${formatDayLabel(bucketStart, locale)} – ${formatDayLabel(bucketEnd, locale)}`;
   }
   return formatMonthLabel(bucketStart, locale);
-}
-
-function escapeCsvValue(value: unknown) {
-  const text = value === null || value === undefined ? '' : String(value);
-  return `"${text.replace(/"/g, '""')}"`;
-}
-
-function downloadCsv(filename: string, csv: string) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 function renderOriginalCurrencyRows(
@@ -904,7 +890,7 @@ export default function ReportsScreen() {
         toast.error(t('reports.noBudgetsApply'));
         return;
       }
-      downloadCsv(
+      downloadCsvFile(
         buildCsvFilename(activeReport, activeRange),
         buildBudgetPerformanceCsv(reportData.budgetPerformance.items, t)
       );
@@ -915,7 +901,7 @@ export default function ReportsScreen() {
       toast.error(t('reports.noDataToExport'));
       return;
     }
-    downloadCsv(
+    downloadCsvFile(
       buildCsvFilename(activeReport, activeRange),
       buildTransactionsCsv(reportData, t)
     );
