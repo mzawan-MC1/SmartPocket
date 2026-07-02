@@ -1134,6 +1134,31 @@
         "databaseConflict": "Ce document n'a pas pu être enregistré à cause d'un conflit de données. Actualisez puis réessayez.",
         "databaseUnavailable": "L'enregistrement du reçu est temporairement indisponible. Réessayez bientôt.",
         "saveFailed": "Impossible d'enregistrer les transactions vérifiées du document."
+      },
+      "processingStages": {
+        "preparingFile": "Préparation du fichier",
+        "uploadingDocument": "Téléversement du document",
+        "readingReceipt": "Lecture du reçu",
+        "extractingDetails": "Extraction des détails de la transaction",
+        "checkingResults": "Vérification des totaux et des doublons",
+        "preparingReview": "Préparation de votre vérification"
+      },
+      "processingStageReady": "Prêt",
+      "processingSlowNotice": "Ce reçu prend un peu plus de temps à être lu, mais le traitement est toujours en cours.",
+      "processingElapsed": "Temps écoulé : {{elapsed}}",
+      "processingKeepOpen": "Gardez cette fenêtre ouverte pendant que nous préparons votre vérification.",
+      "cancelProcessing": "Annuler",
+      "processingCancelled": "Le traitement du reçu a été annulé. Vous pouvez réessayer quand vous êtes prêt.",
+      "progressMessages": {
+        "preparingFile": "Préparation de votre fichier pour une vérification plus rapide",
+        "uploadingSecurely": "Téléversement sécurisé de votre reçu",
+        "readingMerchantDateTotals": "Lecture du commerçant, de la date et des totaux",
+        "scanningReceiptStructure": "Analyse de la structure du reçu pour repérer les détails importants",
+        "detectingItems": "Détection des articles achetés",
+        "extractingDetails": "Extraction des détails de la transaction depuis votre document",
+        "checkingAmounts": "Vérification des montants extraits",
+        "reviewingDuplicates": "Vérification des doublons possibles",
+        "preparingReview": "Préparation de tout pour votre vérification"
       }
     },
     "documentDetails": {

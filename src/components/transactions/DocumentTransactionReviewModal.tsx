@@ -29,11 +29,19 @@ import {
   type TransactionDocumentSaveResponse,
   type TransactionDocumentSourceSurface,
 } from '@/lib/transaction-documents';
-import { prepareTransactionDocumentUpload } from '@/lib/transaction-documents-client';
+import {
+  prepareTransactionDocumentUpload,
+  submitTransactionDocumentExtraction,
+} from '@/lib/transaction-documents-client';
 import {
   getFinancialAccountDisplayLabel,
   getPreferredDocumentAccount,
 } from '@/lib/financial-account-utils';
+import {
+  clampTransactionDocumentProgress,
+  getTransactionDocumentStageProgress,
+  type TransactionDocumentProcessingStage,
+} from '@/lib/transaction-document-processing';
 import { createClientId } from '@/lib/uuid';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
@@ -213,6 +221,22 @@ type ReviewValidationState = {
   footerMessage: string;
 };
 
+type TransactionDocumentExtractErrorBody = {
+  success?: false;
+  errorCode?: string;
+  errorMessage?: string;
+  referenceId?: string;
+  message?: string;
+};
+
+type TransactionDocumentProcessingState = {
+  active: boolean;
+  stage: TransactionDocumentProcessingStage;
+  progress: number;
+  startedAt: number | null;
+  completedAt: number | null;
+};
+
 function getTransactionFieldElementId(transactionId: string, field: TransactionFieldKey) {
   return `document-review-${transactionId}-${field}`;
 }
@@ -282,6 +306,52 @@ function createTransactionDocumentUiError(
   error.code = code;
   error.referenceId = referenceId;
   return error;
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isTransactionDocumentExtractResponseBody(
+  value: unknown
+): value is TransactionDocumentExtractResponse {
+  return isRecord(value)
+    && value.success === true
+    && typeof value.jobId === 'string'
+    && typeof value.documentId === 'string'
+    && typeof value.previewUrl === 'string'
+    && isRecord(value.extraction)
+    && isRecord(value.options);
+}
+
+function getTransactionDocumentExtractErrorBody(
+  value: unknown
+): TransactionDocumentExtractErrorBody {
+  if (!isRecord(value)) {
+    return {};
+  }
+
+  return {
+    success: value.success === false ? false : undefined,
+    errorCode: typeof value.errorCode === 'string' ? value.errorCode : undefined,
+    errorMessage: typeof value.errorMessage === 'string' ? value.errorMessage : undefined,
+    referenceId: typeof value.referenceId === 'string' ? value.referenceId : undefined,
+    message: typeof value.message === 'string' ? value.message : undefined,
+  };
+}
+
+function formatElapsedDuration(seconds: number) {
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}m ${remainingSeconds}s`;
 }
 
 function getLocalizedTransactionDocumentError(args: {
@@ -477,8 +547,20 @@ export default function DocumentTransactionReviewModal({
   const [expandedTransactionDetails, setExpandedTransactionDetails] = useState<Record<string, boolean>>({});
   const [expandedLineItems, setExpandedLineItems] = useState<Record<string, number | null>>({});
   const [showOnlyInvalidItems, setShowOnlyInvalidItems] = useState<Record<string, boolean>>({});
+  const [processingState, setProcessingState] = useState<TransactionDocumentProcessingState>({
+    active: false,
+    stage: 'preparing_file',
+    progress: 0,
+    startedAt: null,
+    completedAt: null,
+  });
+  const [processingMessageIndex, setProcessingMessageIndex] = useState(0);
+  const [processingNow, setProcessingNow] = useState(() => Date.now());
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const replaceFileInputRef = useRef<HTMLInputElement | null>(null);
   const lineItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const extractionAbortControllerRef = useRef<AbortController | null>(null);
+  const extractionRequestSequenceRef = useRef(0);
 
   const parseReceiptAllowanceSummary = (value: unknown): ReceiptAllowanceSummary | null => {
     if (!value || typeof value !== 'object') return null;
@@ -552,6 +634,126 @@ export default function DocumentTransactionReviewModal({
     return nextAllowance;
   }, [t]);
 
+  const resetProcessingState = useCallback(() => {
+    setProcessingState({
+      active: false,
+      stage: 'preparing_file',
+      progress: 0,
+      startedAt: null,
+      completedAt: null,
+    });
+    setProcessingMessageIndex(0);
+  }, []);
+
+  const updateProcessingState = useCallback((
+    stage: TransactionDocumentProcessingStage,
+    options?: {
+      ratio?: number;
+      progress?: number;
+      active?: boolean;
+      completedAt?: number | null;
+    }
+  ) => {
+    setProcessingState((current) => {
+      const nextProgress = clampTransactionDocumentProgress(
+        Math.max(
+          current.progress,
+          typeof options?.progress === 'number'
+            ? options.progress
+            : getTransactionDocumentStageProgress(stage, options?.ratio)
+        ),
+        0,
+        stage === 'ready' ? 100 : 99
+      );
+
+      return {
+        active: options?.active ?? true,
+        stage,
+        progress: nextProgress,
+        startedAt: current.startedAt ?? Date.now(),
+        completedAt: options?.completedAt ?? (stage === 'ready' ? Date.now() : null),
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const applyPreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    applyPreference();
+    mediaQuery.addEventListener('change', applyPreference);
+    return () => {
+      mediaQuery.removeEventListener('change', applyPreference);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isExtracting || !processingState.active) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      setProcessingNow(Date.now());
+    }, 250);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [isExtracting, processingState.active]);
+
+  useEffect(() => {
+    setProcessingMessageIndex(0);
+  }, [processingState.stage]);
+
+  useEffect(() => {
+    if (!isExtracting || !processingState.active || prefersReducedMotion) {
+      return undefined;
+    }
+
+    const stageSoftCaps: Partial<Record<TransactionDocumentProcessingStage, number>> = {
+      reading_receipt: getTransactionDocumentStageProgress('reading_receipt', 0.92),
+      extracting_details: getTransactionDocumentStageProgress('extracting_details', 0.95),
+      checking_results: getTransactionDocumentStageProgress('checking_results', 0.9),
+      preparing_review: getTransactionDocumentStageProgress('preparing_review', 0.85),
+    };
+    const incrementByStage: Partial<Record<TransactionDocumentProcessingStage, number>> = {
+      reading_receipt: 1,
+      extracting_details: 1,
+      checking_results: 1,
+      preparing_review: 1,
+    };
+    const cap = stageSoftCaps[processingState.stage];
+    const increment = incrementByStage[processingState.stage];
+    if (typeof cap !== 'number' || typeof increment !== 'number') {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      setProcessingState((current) => {
+        if (!current.active || current.stage !== processingState.stage) {
+          return current;
+        }
+        if (current.progress >= cap) {
+          return current;
+        }
+        return {
+          ...current,
+          progress: Math.min(cap, current.progress + increment),
+        };
+      });
+    }, processingState.stage === 'extracting_details' ? 700 : 900);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [isExtracting, prefersReducedMotion, processingState.active, processingState.stage]);
+
   useEffect(() => {
     if (!isOpen) {
       setActiveFile(null);
@@ -563,6 +765,8 @@ export default function DocumentTransactionReviewModal({
 
   useEffect(() => {
     if (!isOpen || !activeFile) {
+      extractionAbortControllerRef.current?.abort();
+      extractionAbortControllerRef.current = null;
       setIsExtracting(false);
       setIsSaving(false);
       setExtractError('');
@@ -585,13 +789,18 @@ export default function DocumentTransactionReviewModal({
       setExpandedTransactionDetails({});
       setExpandedLineItems({});
       setShowOnlyInvalidItems({});
+      resetProcessingState();
       return;
     }
 
     let cancelled = false;
     const controller = new AbortController();
+    extractionAbortControllerRef.current = controller;
+    const requestSequence = extractionRequestSequenceRef.current + 1;
+    extractionRequestSequenceRef.current = requestSequence;
 
     const runExtraction = async () => {
+      const extractionStartedAt = Date.now();
       setIsExtracting(true);
       setExtractError('');
       setExtractErrorCode(null);
@@ -612,7 +821,17 @@ export default function DocumentTransactionReviewModal({
       setExpandedTransactionDetails({});
       setExpandedLineItems({});
       setShowOnlyInvalidItems({});
+      setProcessingNow(extractionStartedAt);
+      setProcessingMessageIndex(0);
+      setProcessingState({
+        active: true,
+        stage: 'preparing_file',
+        progress: 0,
+        startedAt: extractionStartedAt,
+        completedAt: null,
+      });
       try {
+        updateProcessingState('preparing_file', { ratio: 0.25 });
         const preparedUpload = await prepareTransactionDocumentUpload(activeFile);
         if (!preparedUpload.ok) {
           const message = (() => {
@@ -649,20 +868,45 @@ export default function DocumentTransactionReviewModal({
           throw createTransactionDocumentUiError(preparedUpload.errorCode, message);
         }
 
-        await refreshReceiptAllowanceSummary(controller.signal);
+        updateProcessingState('preparing_file', { ratio: preparedUpload.optimized ? 1 : 0.75 });
 
-        setIsCheckingAllowance(false);
+        void refreshReceiptAllowanceSummary(controller.signal)
+          .catch(() => undefined)
+          .finally(() => {
+            if (!cancelled && extractionRequestSequenceRef.current === requestSequence) {
+              setIsCheckingAllowance(false);
+            }
+          });
 
-        const formData = new FormData();
-        formData.set('file', preparedUpload.file);
-        formData.set('sourceSurface', sourceSurface);
-        formData.set('language', i18n.resolvedLanguage || i18n.language || 'en');
-        formData.set('idempotencyKey', createClientId());
-
-        const response = await fetch('/api/transaction-documents/extract', {
-          method: 'POST',
-          body: formData,
+        updateProcessingState('uploading_document', { progress: 10 });
+        const response = await submitTransactionDocumentExtraction({
+          request: {
+            file: preparedUpload.file,
+            sourceSurface,
+            language: i18n.resolvedLanguage || i18n.language || 'en',
+            idempotencyKey: createClientId(),
+          },
           signal: controller.signal,
+          onUploadProgress: (progress) => {
+            if (cancelled || extractionRequestSequenceRef.current !== requestSequence) {
+              return;
+            }
+            updateProcessingState('uploading_document', { ratio: progress.progress });
+          },
+          onUploadFinished: () => {
+            if (cancelled || extractionRequestSequenceRef.current !== requestSequence) {
+              return;
+            }
+            updateProcessingState('reading_receipt', { progress: 30 });
+            window.setTimeout(() => {
+              if (cancelled || extractionRequestSequenceRef.current !== requestSequence) {
+                return;
+              }
+              updateProcessingState('extracting_details', {
+                progress: getTransactionDocumentStageProgress('extracting_details', 0.2),
+              });
+            }, prefersReducedMotion ? 500 : 900);
+          },
         });
         if (response.status === 413) {
           throw createTransactionDocumentUiError('document_too_large', t('transactions.documentReview.errors.uploadTooLarge', {
@@ -671,28 +915,25 @@ export default function DocumentTransactionReviewModal({
             defaultValue: 'The selected file exceeds the upload limit. Choose a file smaller than {{maxSize}}.',
           }));
         }
-
-        const result = await response.json().catch(() => ({}));
-        if (!response.ok || !result?.success) {
-          const errorCode = typeof result?.errorCode === 'string'
-            ? result.errorCode as TransactionDocumentErrorCode
-            : classifyTransactionDocumentError(result?.errorMessage);
-          const referenceId = typeof result?.referenceId === 'string' ? result.referenceId : '';
-          const safeMessage = typeof result?.message === 'string'
-            ? result.message
-            : typeof result?.errorMessage === 'string'
-              ? result.errorMessage
-              : '';
+        const responseBody = response.body;
+        if (response.status < 200 || response.status >= 300 || !isTransactionDocumentExtractResponseBody(responseBody)) {
+          const errorBody = getTransactionDocumentExtractErrorBody(responseBody);
+          const errorCode = errorBody.errorCode
+            ? errorBody.errorCode as TransactionDocumentErrorCode
+            : classifyTransactionDocumentError(errorBody.errorMessage);
+          const referenceId = errorBody.referenceId || '';
+          const safeMessage = errorBody.message || errorBody.errorMessage || '';
           throw createTransactionDocumentUiError(errorCode, safeMessage || getLocalizedTransactionDocumentError({
             t,
             errorCode,
-            errorMessage: safeMessage || result?.errorMessage,
+            errorMessage: safeMessage || errorBody.errorMessage,
             fallbackKey: 'extractFailed',
           }), referenceId);
         }
 
-        if (cancelled) return;
-        const payload = result as TransactionDocumentExtractResponse;
+        if (cancelled || extractionRequestSequenceRef.current !== requestSequence) return;
+        const payload = responseBody;
+        updateProcessingState('checking_results', { progress: 82 });
         setJobId(payload.jobId);
         setSaveError('');
         setSaveErrorCode(null);
@@ -758,10 +999,38 @@ export default function DocumentTransactionReviewModal({
           } satisfies EditableDocumentTransaction;
         });
 
+        updateProcessingState('preparing_review', { progress: 93 });
         setReviewTransactions(mappedTransactions);
-        await refreshReceiptAllowanceSummary(controller.signal).catch(() => undefined);
+        void refreshReceiptAllowanceSummary(controller.signal).catch(() => undefined);
+        const readyStartedAt = Date.now();
+        updateProcessingState('ready', { progress: 100, completedAt: readyStartedAt });
+        const visibleDelayMs = readyStartedAt - extractionStartedAt < 500
+          ? 500 - (readyStartedAt - extractionStartedAt)
+          : 0;
+        if (visibleDelayMs > 0) {
+          await new Promise((resolve) => window.setTimeout(resolve, visibleDelayMs));
+        } else {
+          await new Promise((resolve) => window.setTimeout(resolve, 450));
+        }
       } catch (error) {
-        if (cancelled) return;
+        if (cancelled || extractionRequestSequenceRef.current !== requestSequence) return;
+        if (isAbortError(error)) {
+          setExtractError(t('transactions.documentReview.processingCancelled', {
+            ns: 'portal',
+            defaultValue: 'Receipt processing was cancelled. You can retry when you are ready.',
+          }));
+          setExtractErrorCode(null);
+          setExtractReferenceId('');
+          setJobId('');
+          setPreviewUrl('');
+          setDuplicates([]);
+          setExtractionWarnings([]);
+          setAccounts([]);
+          setCategories([]);
+          setReviewTransactions([]);
+          resetProcessingState();
+          return;
+        }
         const errorCode = typeof error === 'object' && error !== null && 'code' in error && typeof (error as { code?: unknown }).code === 'string'
           ? (error as { code: TransactionDocumentErrorCode }).code
           : classifyTransactionDocumentError(error);
@@ -781,9 +1050,11 @@ export default function DocumentTransactionReviewModal({
         setAccounts([]);
         setCategories([]);
         setReviewTransactions([]);
-        await refreshReceiptAllowanceSummary().catch(() => undefined);
+        resetProcessingState();
+        void refreshReceiptAllowanceSummary().catch(() => undefined);
       } finally {
-        if (!cancelled) {
+        if (!cancelled && extractionRequestSequenceRef.current === requestSequence) {
+          extractionAbortControllerRef.current = null;
           setIsCheckingAllowance(false);
           setIsExtracting(false);
         }
@@ -796,7 +1067,18 @@ export default function DocumentTransactionReviewModal({
       cancelled = true;
       controller.abort();
     };
-  }, [activeFile, isOpen, refreshReceiptAllowanceSummary, retryKey, sourceSurface, t]);
+  }, [
+    activeFile,
+    i18n.language,
+    i18n.resolvedLanguage,
+    isOpen,
+    refreshReceiptAllowanceSummary,
+    resetProcessingState,
+    retryKey,
+    sourceSurface,
+    t,
+    updateProcessingState,
+  ]);
 
   const allowanceUsed = receiptAllowance ? receiptAllowance.used + receiptAllowance.reserved : 0;
   const isPlanRestrictedError = extractErrorCode === 'receipt_feature_unavailable' || extractErrorCode === 'receipt_no_documents_included';
@@ -824,6 +1106,133 @@ export default function DocumentTransactionReviewModal({
     && !isSelectionError
     && !isPlanRestrictedError
     && !isReceiptLimitError;
+  const processingElapsedSeconds = processingState.startedAt
+    ? Math.max(0, Math.floor((processingNow - processingState.startedAt) / 1000))
+    : 0;
+  const showProcessingElapsed = isExtracting && processingElapsedSeconds >= 2;
+  const isSlowProcessing = isExtracting && processingElapsedSeconds >= 7;
+  const processingMessagesByStage: Record<TransactionDocumentProcessingStage, string[]> = {
+    preparing_file: [
+      t('transactions.documentReview.progressMessages.preparingFile', {
+        ns: 'portal',
+        defaultValue: 'Preparing your file for a faster review',
+      }),
+    ],
+    uploading_document: [
+      t('transactions.documentReview.progressMessages.uploadingSecurely', {
+        ns: 'portal',
+        defaultValue: 'Uploading your receipt securely',
+      }),
+    ],
+    reading_receipt: [
+      t('transactions.documentReview.progressMessages.readingMerchantDateTotals', {
+        ns: 'portal',
+        defaultValue: 'Reading merchant, date, and totals',
+      }),
+      t('transactions.documentReview.progressMessages.scanningReceiptStructure', {
+        ns: 'portal',
+        defaultValue: 'Scanning the receipt layout for key details',
+      }),
+    ],
+    extracting_details: [
+      t('transactions.documentReview.progressMessages.detectingItems', {
+        ns: 'portal',
+        defaultValue: 'Detecting purchased items',
+      }),
+      t('transactions.documentReview.progressMessages.extractingDetails', {
+        ns: 'portal',
+        defaultValue: 'Extracting transaction details from your document',
+      }),
+    ],
+    checking_results: [
+      t('transactions.documentReview.progressMessages.checkingAmounts', {
+        ns: 'portal',
+        defaultValue: 'Checking the extracted amounts',
+      }),
+      t('transactions.documentReview.progressMessages.reviewingDuplicates', {
+        ns: 'portal',
+        defaultValue: 'Checking for possible duplicates',
+      }),
+    ],
+    preparing_review: [
+      t('transactions.documentReview.progressMessages.preparingReview', {
+        ns: 'portal',
+        defaultValue: 'Preparing everything for your review',
+      }),
+    ],
+    ready: [
+      t('transactions.documentReview.processingStageReady', {
+        ns: 'portal',
+        defaultValue: 'Ready',
+      }),
+    ],
+  };
+  const currentProcessingMessages = processingMessagesByStage[processingState.stage];
+  const currentProcessingMessage = currentProcessingMessages[
+    Math.min(processingMessageIndex, Math.max(currentProcessingMessages.length - 1, 0))
+  ];
+  const processingStageTitle = (() => {
+    switch (processingState.stage) {
+      case 'preparing_file':
+        return t('transactions.documentReview.processingStages.preparingFile', {
+          ns: 'portal',
+          defaultValue: 'Preparing file',
+        });
+      case 'uploading_document':
+        return t('transactions.documentReview.processingStages.uploadingDocument', {
+          ns: 'portal',
+          defaultValue: 'Uploading document',
+        });
+      case 'reading_receipt':
+        return t('transactions.documentReview.processingStages.readingReceipt', {
+          ns: 'portal',
+          defaultValue: 'Reading receipt',
+        });
+      case 'extracting_details':
+        return t('transactions.documentReview.processingStages.extractingDetails', {
+          ns: 'portal',
+          defaultValue: 'Extracting transaction details',
+        });
+      case 'checking_results':
+        return t('transactions.documentReview.processingStages.checkingResults', {
+          ns: 'portal',
+          defaultValue: 'Checking totals and duplicates',
+        });
+      case 'preparing_review':
+        return t('transactions.documentReview.processingStages.preparingReview', {
+          ns: 'portal',
+          defaultValue: 'Preparing your review',
+        });
+      case 'ready':
+      default:
+        return t('transactions.documentReview.processingStageReady', {
+          ns: 'portal',
+          defaultValue: 'Ready',
+        });
+    }
+  })();
+  const processingDescription = isSlowProcessing
+    ? t('transactions.documentReview.processingSlowNotice', {
+        ns: 'portal',
+        defaultValue: 'This receipt is taking a little longer to read, but processing is still active.',
+      })
+    : currentProcessingMessage;
+  const handleCancelExtraction = useCallback(() => {
+    extractionAbortControllerRef.current?.abort();
+  }, []);
+  useEffect(() => {
+    if (!isExtracting || currentProcessingMessages.length <= 1 || prefersReducedMotion) {
+      return undefined;
+    }
+
+    const interval = window.setInterval(() => {
+      setProcessingMessageIndex((current) => (current + 1) % currentProcessingMessages.length);
+    }, 2200);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [currentProcessingMessages.length, isExtracting, prefersReducedMotion, processingState.stage]);
   const extractErrorTitle = (() => {
     if (extractErrorCode === 'document_too_large') {
       return t('transactions.documentReview.fileTooLargeTitle', {
@@ -1084,6 +1493,8 @@ export default function DocumentTransactionReviewModal({
   });
   const footerHelpText = extractError
     ? (receiptLimitHint || extractError)
+    : isExtracting
+      ? processingDescription
     : saveError
       ? saveError
       : footerMessage;
@@ -1368,11 +1779,16 @@ export default function DocumentTransactionReviewModal({
           <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <button
               type="button"
-              onClick={onClose}
-              disabled={isSaving || isExtracting}
+              onClick={isExtracting ? handleCancelExtraction : onClose}
+              disabled={isSaving}
               className="btn-secondary min-h-10 w-full sm:w-auto"
             >
-              {t('actions.cancel', { ns: 'common' })}
+              {isExtracting
+                ? t('transactions.documentReview.cancelProcessing', {
+                    ns: 'portal',
+                    defaultValue: 'Cancel',
+                  })
+                : t('actions.cancel', { ns: 'common' })}
             </button>
             {extractError ? (
               isSelectionError ? (
@@ -1406,7 +1822,7 @@ export default function DocumentTransactionReviewModal({
                   })}
                 </Link>
               ) : null
-            ) : (
+            ) : isExtracting ? null : (
               <button
                 type="button"
                 onClick={handleSave}
@@ -1523,32 +1939,80 @@ export default function DocumentTransactionReviewModal({
             </div>
           ) : null}
           {isExtracting ? (
-            <div className="flex min-h-[22rem] flex-col items-center justify-center gap-4 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/10 text-accent">
-                <Loader2 size={26} className="animate-spin" />
-              </div>
-              <div>
-                <p className="text-sm font-700 text-foreground">
-                  {t('transactions.documentReview.extractingTitle', {
-                    ns: 'portal',
-                    defaultValue: 'Extracting draft transactions',
-                  })}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {t('transactions.documentReview.extractingDescription', {
-                    ns: 'portal',
-                    defaultValue: 'Validating the file, checking your allowance, reading the document, and preparing a review draft.',
-                  })}
-                </p>
-                {isCheckingAllowance ? (
-                  <p className="mt-2 text-xs font-600 text-muted-foreground">
-                    {t('transactions.documentReview.checkingAllowance', {
-                      ns: 'portal',
-                      defaultValue: 'Checking remaining Receipt Intelligence documents...',
-                    })}
-                  </p>
-                ) : null}
-              </div>
+            <div className="flex min-h-[22rem] items-center justify-center">
+              <section className="w-full max-w-2xl rounded-3xl border border-accent/20 bg-gradient-to-b from-accent/5 to-card p-4 shadow-sm sm:p-5">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                    <FileText size={22} className="motion-safe:animate-pulse motion-reduce:animate-none" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="flex min-w-0 items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-700 text-foreground">
+                          {processingStageTitle}
+                        </p>
+                        <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                          {processingDescription}
+                        </p>
+                        {showProcessingElapsed ? (
+                          <p className="mt-2 text-xs font-600 text-muted-foreground">
+                            {t('transactions.documentReview.processingElapsed', {
+                              ns: 'portal',
+                              elapsed: formatElapsedDuration(processingElapsedSeconds),
+                              defaultValue: 'Elapsed: {{elapsed}}',
+                            })}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="shrink-0 whitespace-nowrap text-sm font-800 text-foreground">
+                        {processingState.progress}%
+                      </span>
+                    </div>
+                    <div
+                      className="mt-4"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={processingState.progress}
+                      aria-valuetext={`${processingStageTitle} ${processingState.progress}%`}
+                    >
+                      <div className="h-2.5 overflow-hidden rounded-full bg-accent/10">
+                        <div
+                          className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out motion-reduce:transition-none"
+                          style={{ width: `${processingState.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-xs text-muted-foreground">
+                        {isCheckingAllowance
+                          ? t('transactions.documentReview.checkingAllowance', {
+                              ns: 'portal',
+                              defaultValue: 'Checking remaining Receipt Intelligence documents...',
+                            })
+                          : t('transactions.documentReview.processingKeepOpen', {
+                              ns: 'portal',
+                              defaultValue: 'Keep this window open while we prepare your review.',
+                            })}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleCancelExtraction}
+                        className="btn-secondary min-h-10 w-full justify-center sm:w-auto"
+                      >
+                        {t('transactions.documentReview.cancelProcessing', {
+                          ns: 'portal',
+                          defaultValue: 'Cancel',
+                        })}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           ) : extractError ? (
             <div className="rounded-2xl border border-negative/20 bg-negative-soft p-4">

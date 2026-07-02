@@ -8,11 +8,11 @@ import {
   type TransactionDocumentErrorCode,
 } from '@/lib/transaction-documents';
 
-const TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES = 4 * 1024 * 1024;
-const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 3200;
-const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE = 4200;
-const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH = 1100;
-const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.94;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES = 2.5 * 1024 * 1024;
+const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 2200;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE = 2800;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH = 900;
+const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.9;
 
 export type PreparedTransactionDocumentUpload =
   | {
@@ -26,6 +26,24 @@ export type PreparedTransactionDocumentUpload =
       errorCode: TransactionDocumentErrorCode;
       errorMessage: string;
     };
+
+export type TransactionDocumentExtractionRequest = {
+  file: File;
+  sourceSurface: string;
+  language: string;
+  idempotencyKey: string;
+};
+
+export type TransactionDocumentExtractionUploadProgress = {
+  loaded: number;
+  total: number;
+  progress: number;
+};
+
+export type TransactionDocumentExtractionClientResponse = {
+  status: number;
+  body: unknown;
+};
 
 function renameWithExtension(fileName: string, nextExtension: string) {
   const sanitized = sanitizeTransactionDocumentFilename(fileName);
@@ -219,4 +237,92 @@ export async function prepareTransactionDocumentUpload(
       errorMessage: error instanceof Error ? error.message : 'This file appears to be empty or unreadable.',
     };
   }
+}
+
+export function submitTransactionDocumentExtraction(args: {
+  request: TransactionDocumentExtractionRequest;
+  signal?: AbortSignal;
+  onUploadProgress?: (progress: TransactionDocumentExtractionUploadProgress) => void;
+  onUploadFinished?: () => void;
+}): Promise<TransactionDocumentExtractionClientResponse> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    let settled = false;
+
+    const settle = (callback: () => void) => {
+      if (settled) return;
+      settled = true;
+      callback();
+    };
+
+    const abortHandler = () => {
+      xhr.abort();
+    };
+
+    if (args.signal) {
+      if (args.signal.aborted) {
+        reject(new DOMException('The receipt request was aborted.', 'AbortError'));
+        return;
+      }
+      args.signal.addEventListener('abort', abortHandler, { once: true });
+    }
+
+    const cleanup = () => {
+      if (args.signal) {
+        args.signal.removeEventListener('abort', abortHandler);
+      }
+    };
+
+    xhr.open('POST', '/api/transaction-documents/extract');
+    xhr.responseType = 'text';
+
+    xhr.upload.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      args.onUploadProgress?.({
+        loaded: event.loaded,
+        total: event.total,
+        progress: event.total > 0 ? event.loaded / event.total : 0,
+      });
+    };
+
+    xhr.upload.onload = () => {
+      args.onUploadFinished?.();
+    };
+
+    xhr.onerror = () => {
+      cleanup();
+      settle(() => reject(new Error('Failed to upload the selected document.')));
+    };
+
+    xhr.onabort = () => {
+      cleanup();
+      settle(() => reject(new DOMException('The receipt request was aborted.', 'AbortError')));
+    };
+
+    xhr.onload = () => {
+      cleanup();
+      settle(() => {
+        const rawResponse = typeof xhr.responseText === 'string' ? xhr.responseText : '';
+        let body: unknown = {};
+        if (rawResponse.trim()) {
+          try {
+            body = JSON.parse(rawResponse);
+          } catch {
+            body = {};
+          }
+        }
+        resolve({
+          status: xhr.status,
+          body,
+        });
+      });
+    };
+
+    const formData = new FormData();
+    formData.set('file', args.request.file);
+    formData.set('sourceSurface', args.request.sourceSurface);
+    formData.set('language', args.request.language);
+    formData.set('idempotencyKey', args.request.idempotencyKey);
+    xhr.send(formData);
+  });
 }

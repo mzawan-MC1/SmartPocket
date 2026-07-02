@@ -1142,7 +1142,32 @@
       "itemCountLabel_few": "{{count}} позиции",
       "itemCountLabel_many": "{{count}} позиций",
       "showAllItems_few": "Показать все {{count}} позиции",
-      "showAllItems_many": "Показать все {{count}} позиций"
+      "showAllItems_many": "Показать все {{count}} позиций",
+      "processingStages": {
+        "preparingFile": "Подготовка файла",
+        "uploadingDocument": "Загрузка документа",
+        "readingReceipt": "Чтение чека",
+        "extractingDetails": "Извлечение данных транзакции",
+        "checkingResults": "Проверка итогов и дублей",
+        "preparingReview": "Подготовка проверки"
+      },
+      "processingStageReady": "Готово",
+      "processingSlowNotice": "Этот чек обрабатывается немного дольше, но обработка все еще выполняется.",
+      "processingElapsed": "Прошло: {{elapsed}}",
+      "processingKeepOpen": "Не закрывайте это окно, пока мы готовим проверку.",
+      "cancelProcessing": "Отменить",
+      "processingCancelled": "Обработка чека была отменена. Вы можете повторить попытку, когда будете готовы.",
+      "progressMessages": {
+        "preparingFile": "Подготавливаем файл для более быстрой проверки",
+        "uploadingSecurely": "Безопасно загружаем ваш чек",
+        "readingMerchantDateTotals": "Считываем продавца, дату и итоги",
+        "scanningReceiptStructure": "Анализируем структуру чека, чтобы найти ключевые детали",
+        "detectingItems": "Определяем купленные позиции",
+        "extractingDetails": "Извлекаем данные транзакции из документа",
+        "checkingAmounts": "Проверяем извлеченные суммы",
+        "reviewingDuplicates": "Проверяем возможные дубли",
+        "preparingReview": "Подготавливаем все для вашей проверки"
+      }
     },
     "documentDetails": {
       "title": "Детали операции",

@@ -1842,6 +1842,31 @@
         "databaseConflict": "This document could not be saved because of a data conflict. Please refresh and try again.",
         "databaseUnavailable": "Receipt saving is temporarily unavailable. Please try again shortly.",
         "saveFailed": "Failed to save the reviewed document transactions."
+      },
+      "processingStages": {
+        "preparingFile": "Preparing file",
+        "uploadingDocument": "Uploading document",
+        "readingReceipt": "Reading receipt",
+        "extractingDetails": "Extracting transaction details",
+        "checkingResults": "Checking totals and duplicates",
+        "preparingReview": "Preparing your review"
+      },
+      "processingStageReady": "Ready",
+      "processingSlowNotice": "This receipt is taking a little longer to read, but processing is still active.",
+      "processingElapsed": "Elapsed: {{elapsed}}",
+      "processingKeepOpen": "Keep this window open while we prepare your review.",
+      "cancelProcessing": "Cancel",
+      "processingCancelled": "Receipt processing was cancelled. You can retry when you are ready.",
+      "progressMessages": {
+        "preparingFile": "Preparing your file for a faster review",
+        "uploadingSecurely": "Uploading your receipt securely",
+        "readingMerchantDateTotals": "Reading merchant, date, and totals",
+        "scanningReceiptStructure": "Scanning the receipt layout for key details",
+        "detectingItems": "Detecting purchased items",
+        "extractingDetails": "Extracting transaction details from your document",
+        "checkingAmounts": "Checking the extracted amounts",
+        "reviewingDuplicates": "Checking for possible duplicates",
+        "preparingReview": "Preparing everything for your review"
       }
     },
     "documentDetails": {

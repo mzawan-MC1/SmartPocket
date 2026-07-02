@@ -102,8 +102,29 @@ class TransactionDocumentGatewayError extends Error {
 }
 
 function getTransactionDocumentTimeoutMs() {
-  const parsed = Number.parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '45000', 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 45000;
+  const parsed = Number.parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '22000', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 22000;
+}
+
+function getTransactionDocumentMaxTokens(mimeType: string) {
+  return mimeType === 'application/pdf' ? 2200 : 1400;
+}
+
+function shouldFallbackTransactionDocumentRequest(
+  error: unknown,
+  primaryProvider: string,
+  fallbackProvider: string,
+  enableFallback: boolean
+) {
+  if (!enableFallback || primaryProvider === fallbackProvider) {
+    return false;
+  }
+
+  if (!(error instanceof TransactionDocumentGatewayError)) {
+    return false;
+  }
+
+  return error.code === 'openrouter_not_configured' || error.code === 'unsupported_multimodal_model';
 }
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
@@ -1654,6 +1675,11 @@ export async function processTransactionDocumentAIRequest(
   config: AIGatewayConfig
 ): Promise<TransactionDocumentAIResponse> {
   const startTime = Date.now();
+  const timings = {
+    providerMs: 0,
+    validationMs: 0,
+    totalMs: 0,
+  };
 
   if (!config.aiEnabled) {
     return {
@@ -1676,11 +1702,21 @@ export async function processTransactionDocumentAIRequest(
       pageCount: request.pageCount ?? null,
     });
     const [primaryLang, fallbackLang] = getProviderOrder(config);
-    const { result, fallbackUsed } = await withFallback(
-      () => parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId }),
-      () => parseTransactionDocumentWithProvider(fallbackLang, { ...request, requestId }),
-      config.enableAutoFallback
-    );
+    let result;
+    let fallbackUsed = false;
+    try {
+      const providerStartedAt = Date.now();
+      result = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
+      timings.providerMs = Date.now() - providerStartedAt;
+    } catch (primaryError) {
+      if (!shouldFallbackTransactionDocumentRequest(primaryError, primaryLang, fallbackLang, config.enableAutoFallback)) {
+        throw primaryError;
+      }
+      const providerStartedAt = Date.now();
+      result = await parseTransactionDocumentWithProvider(fallbackLang, { ...request, requestId });
+      timings.providerMs = Date.now() - providerStartedAt;
+      fallbackUsed = true;
+    }
 
     logTransactionDocumentGateway('info', 'document-ai.parse_response.start', {
       requestId,
@@ -1690,7 +1726,9 @@ export async function processTransactionDocumentAIRequest(
     });
     let validated;
     try {
+      const validationStartedAt = Date.now();
       validated = validateTransactionDocumentExtraction(result.parsed);
+      timings.validationMs = Date.now() - validationStartedAt;
     } catch (error) {
       throw new TransactionDocumentGatewayError(
         classifyTransactionDocumentError(error) || 'invalid_extraction_response',
@@ -1715,6 +1753,15 @@ export async function processTransactionDocumentAIRequest(
       fallbackUsed,
       durationMs: Date.now() - startTime,
     });
+    timings.totalMs = Date.now() - startTime;
+    if (process.env.NODE_ENV !== 'production') {
+      logTransactionDocumentGateway('info', 'document-ai.timing', {
+        requestId,
+        providerUsed: result.providerUsed,
+        modelUsed: result.modelUsed || null,
+        timings,
+      });
+    }
     return {
       requestId: validated.requestId,
       status: 'parsed',
@@ -1753,6 +1800,14 @@ export async function processTransactionDocumentAIRequest(
       durationMs: Date.now() - startTime,
       internalError: error instanceof Error ? sanitizeError(error.message) : 'Unknown error',
     });
+    timings.totalMs = Date.now() - startTime;
+    if (process.env.NODE_ENV !== 'production') {
+      logTransactionDocumentGateway('info', 'document-ai.timing', {
+        requestId,
+        error: true,
+        timings,
+      });
+    }
     return {
       requestId,
       status: 'failed',
@@ -1909,8 +1964,8 @@ async function parseTransactionDocumentWithOpenRouter(
                 },
               ]
             : undefined,
-        temperature: 0.1,
-        max_tokens: 4000,
+        temperature: 0,
+        max_tokens: getTransactionDocumentMaxTokens(input.fileMimeType),
         response_format: { type: 'json_object' },
       }),
     });
@@ -2061,8 +2116,8 @@ async function parseTransactionDocumentWithVps(
             content: buildTransactionDocumentUserContent(input),
           },
         ],
-        temperature: 0.1,
-        max_tokens: 4000,
+        temperature: 0,
+        max_tokens: getTransactionDocumentMaxTokens(input.fileMimeType),
         response_format: { type: 'json_object' },
       }),
     });

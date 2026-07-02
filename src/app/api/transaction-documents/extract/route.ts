@@ -67,6 +67,39 @@ function logExtractionStage(
   console.info(payload);
 }
 
+function isDevelopmentTimingEnabled() {
+  return process.env.NODE_ENV !== 'production';
+}
+
+function createStageTimer() {
+  return {
+    startedAt: Date.now(),
+    stages: {} as Record<string, number>,
+    measure<T>(stage: string, promise: PromiseLike<T> | T) {
+      const stageStartedAt = Date.now();
+      return Promise.resolve(promise).finally(() => {
+        this.stages[stage] = Date.now() - stageStartedAt;
+      });
+    },
+    finish() {
+      this.stages.totalMs = Date.now() - this.startedAt;
+      return this.stages;
+    },
+  };
+}
+
+function logExtractionTimings(extractRequestId: string, meta: Record<string, unknown>) {
+  if (!isDevelopmentTimingEnabled()) {
+    return;
+  }
+
+  console.info({
+    scope: 'transaction-document-extract-timing',
+    extractRequestId,
+    ...meta,
+  });
+}
+
 function getSafeExtractErrorCode(error: unknown): TransactionDocumentErrorCode {
   if (isErrorWithCode(error) && error.code === '42P01') {
     return 'migration_missing';
@@ -308,6 +341,7 @@ export async function POST(request: NextRequest) {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
   const extractRequestId = crypto.randomUUID();
   const referenceId = buildExtractReferenceId(extractRequestId);
+  const stageTimer = createStageTimer();
   let admin: ReturnType<typeof requireAdminClient> | null = null;
   let storagePath = '';
   let documentId = '';
@@ -362,7 +396,7 @@ export async function POST(request: NextRequest) {
     });
     currentUserId = user.id;
 
-    const formData = await request.formData();
+    const formData = await stageTimer.measure('formDataMs', request.formData());
     const fileEntry = formData.get('file');
     if (!(fileEntry instanceof File)) {
       logExtractionStage('error', 'file.validation.failed', {
@@ -394,7 +428,7 @@ export async function POST(request: NextRequest) {
     });
     let validation: Awaited<ReturnType<typeof validateTransactionDocumentFile>>;
     try {
-      validation = await validateTransactionDocumentFile(fileEntry);
+      validation = await stageTimer.measure('validationMs', validateTransactionDocumentFile(fileEntry));
     } catch (error) {
       logExtractionStage('error', 'file.validation.failed', {
         extractRequestId,
@@ -406,8 +440,8 @@ export async function POST(request: NextRequest) {
       });
       throw error;
     }
-    const fileBuffer = await fileEntry.arrayBuffer();
-    const fileHash = await sha256HexFromArrayBuffer(fileBuffer);
+    const fileBuffer = await stageTimer.measure('bufferMs', fileEntry.arrayBuffer());
+    const fileHash = await stageTimer.measure('hashMs', sha256HexFromArrayBuffer(fileBuffer));
     documentId = crypto.randomUUID();
     jobId = crypto.randomUUID();
     storagePath = buildTransactionDocumentStoragePath({
@@ -427,50 +461,17 @@ export async function POST(request: NextRequest) {
 
     admin = requireAdminClient();
     const config = loadAIConfig();
-
-    logExtractionStage('info', 'storage.upload.start', {
-      extractRequestId,
+    const contextPromise = stageTimer.measure('contextMs', loadExecutionContextServer({
       userId: user.id,
-      documentId,
-      jobId,
-      bucket: TRANSACTION_DOCUMENT_BUCKET,
-      storagePath,
-    });
-    const { error: uploadError } = await admin.storage
-      .from(TRANSACTION_DOCUMENT_BUCKET)
-      .upload(storagePath, fileBuffer, {
-        contentType: fileEntry.type,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      logExtractionStage('error', 'storage.upload.failed', {
-        extractRequestId,
-        userId: user.id,
-        documentId,
-        jobId,
-        bucket: TRANSACTION_DOCUMENT_BUCKET,
-        storagePath,
-        internalError: uploadError.message,
-      });
-      throw Object.assign(new Error(uploadError.message), {
-        code: 'storage_bucket_failure' as const,
-      });
-    }
-    uploadedFile = true;
-    logExtractionStage('info', 'storage.upload.success', {
-      extractRequestId,
-      userId: user.id,
-      documentId,
-      jobId,
-      bucket: TRANSACTION_DOCUMENT_BUCKET,
-      storagePath,
-    });
-
-    const { data: accessError, error: accessRpcError } = await admin.rpc('check_ai_access', {
+      supabase: admin,
+    }));
+    void contextPromise.catch(() => undefined);
+    const accessCheckPromise = stageTimer.measure('accessCheckMs', admin.rpc('check_ai_access', {
       p_user_id: user.id,
       p_request_type: 'receipt_extraction',
-    });
+    }));
+
+    const { data: accessError, error: accessRpcError } = await accessCheckPromise;
 
     if (accessRpcError) {
       logExtractionStage('error', 'receipt_allowance.check.failed', {
@@ -497,6 +498,21 @@ export async function POST(request: NextRequest) {
       }, accessErrorCode === 'receipt_allowance_exhausted' ? 429 : 403, cookieMutations);
     }
 
+    logExtractionStage('info', 'storage.upload.start', {
+      extractRequestId,
+      userId: user.id,
+      documentId,
+      jobId,
+      bucket: TRANSACTION_DOCUMENT_BUCKET,
+      storagePath,
+    });
+    const uploadPromise = stageTimer.measure('uploadMs', admin.storage
+      .from(TRANSACTION_DOCUMENT_BUCKET)
+      .upload(storagePath, fileBuffer, {
+        contentType: fileEntry.type,
+        upsert: false,
+      }));
+
     logExtractionStage('info', 'receipt_allowance.reserve.start', {
       extractRequestId,
       userId: user.id,
@@ -504,10 +520,38 @@ export async function POST(request: NextRequest) {
       jobId,
       idempotencyKey,
     });
-    const { data: reserveData, error: reserveError } = await admin.rpc('reserve_ai_credits', {
+    const reservePromise = stageTimer.measure('reserveMs', admin.rpc('reserve_ai_credits', {
       p_user_id: user.id,
       p_request_type: 'receipt_extraction',
       p_idempotency_key: idempotencyKey,
+    }));
+    const [{ error: uploadError }, { data: reserveData, error: reserveError }] = await Promise.all([
+      uploadPromise,
+      reservePromise,
+    ]);
+
+    if (uploadError) {
+      logExtractionStage('error', 'storage.upload.failed', {
+        extractRequestId,
+        userId: user.id,
+        documentId,
+        jobId,
+        bucket: TRANSACTION_DOCUMENT_BUCKET,
+        storagePath,
+        internalError: uploadError.message,
+      });
+      throw Object.assign(new Error(uploadError.message), {
+        code: 'storage_bucket_failure' as const,
+      });
+    }
+    uploadedFile = true;
+    logExtractionStage('info', 'storage.upload.success', {
+      extractRequestId,
+      userId: user.id,
+      documentId,
+      jobId,
+      bucket: TRANSACTION_DOCUMENT_BUCKET,
+      storagePath,
     });
 
     const reserveResult = (reserveData as ReceiptCreditReservationResult | null) ?? null;
@@ -562,7 +606,9 @@ export async function POST(request: NextRequest) {
       duplicate: reserveResult.duplicate || false,
     });
 
-    const { error: documentInsertError } = await admin.from('transaction_documents').insert({
+    const { error: documentInsertError } = await stageTimer.measure(
+      'documentInsertMs',
+      admin.from('transaction_documents').insert({
       id: documentId,
       user_id: user.id,
       storage_bucket: TRANSACTION_DOCUMENT_BUCKET,
@@ -574,14 +620,17 @@ export async function POST(request: NextRequest) {
       sha256_hash: fileHash,
       source_surface: sourceSurface,
       status: 'uploaded',
-    });
+      })
+    );
 
     if (documentInsertError) {
       throw documentInsertError;
     }
     createdDocumentRow = true;
 
-    const { error: jobInsertError } = await admin.from('document_extraction_jobs').insert({
+    const { error: jobInsertError } = await stageTimer.measure(
+      'jobInsertMs',
+      admin.from('document_extraction_jobs').insert({
       id: jobId,
       user_id: user.id,
       document_id: documentId,
@@ -595,7 +644,8 @@ export async function POST(request: NextRequest) {
       error_message: null,
       idempotency_key: idempotencyKey,
       credit_ledger_id: creditLedgerId || null,
-    });
+      })
+    );
 
     if (jobInsertError) {
       throw jobInsertError;
@@ -609,16 +659,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const context = await loadExecutionContextServer({
-      userId: user.id,
-      supabase: admin,
-    });
+    const context = await contextPromise;
     const options = mapDocumentOptionsFromContext(context);
-
-    previewUrl = await createSignedTransactionDocumentPreview({
+    previewUrl = await stageTimer.measure('signedUrlMs', createSignedTransactionDocumentPreview({
       admin,
       path: storagePath,
-    });
+    }));
 
     if (request.signal.aborted) {
       throw new Error('Client cancelled receipt extraction before provider call.');
@@ -633,7 +679,7 @@ export async function POST(request: NextRequest) {
       mimeType: fileEntry.type,
       sourceSurface,
     });
-    const extractionResponse = await processTransactionDocumentAIRequest({
+    const extractionResponse = await stageTimer.measure('providerMs', processTransactionDocumentAIRequest({
       requestId: jobId,
       fileName: fileEntry.name,
       fileMimeType: fileEntry.type,
@@ -658,7 +704,7 @@ export async function POST(request: NextRequest) {
           })),
         defaultCurrency: context.defaultCurrency,
       },
-    }, config);
+    }, config));
     providerAttempted = true;
     providerUsed = extractionResponse.providerUsed || null;
     modelUsed = extractionResponse.modelUsed || extractionResponse.parsed?.modelUsed || null;
@@ -778,7 +824,7 @@ export async function POST(request: NextRequest) {
     const primaryDraft = extractionResponse.parsed.transactions[0];
     let duplicates;
     try {
-      duplicates = await findDuplicateTransactionDocuments({
+      duplicates = await stageTimer.measure('duplicateLookupMs', findDuplicateTransactionDocuments({
         admin,
         userId: user.id,
         fileHash,
@@ -790,7 +836,7 @@ export async function POST(request: NextRequest) {
           currency: transaction.currency,
           receiptNumber: transaction.receiptNumber,
         })),
-      });
+      }));
     } catch (error) {
       logExtractionStage('error', 'duplicate_lookup.failed', {
         extractRequestId,
@@ -811,7 +857,10 @@ export async function POST(request: NextRequest) {
     });
     duplicateMatches = duplicates;
 
-    const { error: documentUpdateError } = await admin.from('transaction_documents').update({
+    const [documentUpdateResult, jobUpdateResult] = await stageTimer.measure(
+      'persistenceMs',
+      Promise.all([
+        admin.from('transaction_documents').update({
       status: 'review_ready',
       merchant_name: primaryDraft?.merchant || null,
       document_date: primaryDraft?.date || null,
@@ -819,8 +868,20 @@ export async function POST(request: NextRequest) {
       tax_amount: typeof primaryDraft?.tax === 'number' ? primaryDraft.tax : null,
       currency_code: primaryDraft?.currency || null,
       receipt_number: primaryDraft?.receiptNumber || null,
-    }).eq('id', documentId);
-
+        }).eq('id', documentId),
+        admin.from('document_extraction_jobs').update({
+          source_surface: sourceSurface,
+          status: 'parsed',
+          provider_used: providerUsed,
+          model_used: modelUsed,
+          parsed_result: extractionResponse.parsed,
+          duplicate_matches: duplicates,
+          raw_ai_output: rawAiOutput,
+          error_message: null,
+        }).eq('id', jobId),
+      ])
+    );
+    const documentUpdateError = documentUpdateResult.error;
     if (documentUpdateError) {
       logExtractionStage('error', 'document_job.insert.document_failed', {
         extractRequestId,
@@ -832,17 +893,7 @@ export async function POST(request: NextRequest) {
       });
       throw documentUpdateError;
     }
-    const { error: jobUpdateError } = await admin.from('document_extraction_jobs').update({
-      source_surface: sourceSurface,
-      status: 'parsed',
-      provider_used: providerUsed,
-      model_used: modelUsed,
-      parsed_result: extractionResponse.parsed,
-      duplicate_matches: duplicates,
-      raw_ai_output: rawAiOutput,
-      error_message: null,
-    }).eq('id', jobId);
-
+    const jobUpdateError = jobUpdateResult.error;
     if (jobUpdateError) {
       logExtractionStage('error', 'document_job.insert.job_failed', {
         extractRequestId,
@@ -908,6 +959,14 @@ export async function POST(request: NextRequest) {
       durationMs: extractDurationMs,
     });
     dailyUsageLogged = true;
+    logExtractionTimings(extractRequestId, {
+      result: 'success',
+      timings: stageTimer.finish(),
+      providerUsed,
+      modelUsed,
+      draftCount: extractionResponse.parsed.transactions.length,
+      duplicateCount: duplicates.length,
+    });
 
     return jsonWithCookies({
       success: true,
@@ -1018,6 +1077,14 @@ export async function POST(request: NextRequest) {
         durationMs: extractDurationMs,
       }).catch(() => undefined);
     }
+    logExtractionTimings(extractRequestId, {
+      result: 'error',
+      errorCode,
+      providerAttempted,
+      providerUsed,
+      modelUsed,
+      timings: stageTimer.finish(),
+    });
 
     return jsonWithCookies({
       success: false,

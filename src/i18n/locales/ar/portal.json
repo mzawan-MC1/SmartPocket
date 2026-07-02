@@ -1154,6 +1154,31 @@
         "databaseConflict": "تعذر حفظ هذا المستند بسبب تعارض في البيانات. حدّث الصفحة ثم حاول مرة أخرى.",
         "databaseUnavailable": "حفظ الإيصال غير متاح مؤقتًا. يرجى المحاولة بعد قليل.",
         "saveFailed": "فشل حفظ معاملات المستند التي تمت مراجعتها."
+      },
+      "processingStages": {
+        "preparingFile": "تهيئة الملف",
+        "uploadingDocument": "جارٍ رفع المستند",
+        "readingReceipt": "جارٍ قراءة الإيصال",
+        "extractingDetails": "جارٍ استخراج تفاصيل المعاملة",
+        "checkingResults": "جارٍ التحقق من الإجماليات والتكرارات",
+        "preparingReview": "جارٍ تجهيز المراجعة"
+      },
+      "processingStageReady": "جاهز",
+      "processingSlowNotice": "يستغرق هذا الإيصال وقتًا أطول قليلًا في القراءة، لكن المعالجة ما تزال مستمرة.",
+      "processingElapsed": "الوقت المنقضي: {{elapsed}}",
+      "processingKeepOpen": "أبقِ هذه النافذة مفتوحة بينما نجهز المراجعة.",
+      "cancelProcessing": "إلغاء",
+      "processingCancelled": "تم إلغاء معالجة الإيصال. يمكنك إعادة المحاولة عندما تكون جاهزًا.",
+      "progressMessages": {
+        "preparingFile": "جارٍ تهيئة الملف لمراجعة أسرع",
+        "uploadingSecurely": "جارٍ رفع الإيصال بشكل آمن",
+        "readingMerchantDateTotals": "جارٍ قراءة التاجر والتاريخ والإجماليات",
+        "scanningReceiptStructure": "جارٍ فحص بنية الإيصال لاستخراج التفاصيل المهمة",
+        "detectingItems": "جارٍ اكتشاف العناصر المشتراة",
+        "extractingDetails": "جارٍ استخراج تفاصيل المعاملة من المستند",
+        "checkingAmounts": "جارٍ التحقق من المبالغ المستخرجة",
+        "reviewingDuplicates": "جارٍ التحقق من التكرارات المحتملة",
+        "preparingReview": "جارٍ تجهيز كل شيء للمراجعة"
       }
     },
     "documentDetails": {
