@@ -521,6 +521,8 @@
       "tagAllLabel": "All tags",
       "emptyTitle": "No posts match your filters",
       "emptyDescription": "Try a different keyword, category, or tag.",
+      "emptyPublishedTitle": "No blog posts published yet.",
+      "emptyPublishedDescription": "Check back soon.",
       "ctaEyebrow": "Start with Smart Pocket",
       "ctaTitle": "Ready to turn money notes, receipts, and shared spending into a cleaner routine?",
       "ctaDescription": "Use Smart Pocket to review AI-assisted suggestions, stay on top of budgets, and keep daily money tasks simple.",

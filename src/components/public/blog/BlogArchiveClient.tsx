@@ -20,6 +20,8 @@ export default function BlogArchiveClient({
   tagAllLabel,
   emptyTitle,
   emptyDescription,
+  emptyPublishedTitle,
+  emptyPublishedDescription,
   readTimeLabel,
   readArticleLabel,
 }: {
@@ -39,6 +41,8 @@ export default function BlogArchiveClient({
   tagAllLabel: string;
   emptyTitle: string;
   emptyDescription: string;
+  emptyPublishedTitle: string;
+  emptyPublishedDescription: string;
   readTimeLabel: (minutes: number) => string;
   readArticleLabel: string;
 }) {
@@ -59,21 +63,34 @@ export default function BlogArchiveClient({
     const normalizedQuery = query.trim().toLowerCase();
     const normalizedCategory = category.trim().toLowerCase();
     const normalizedTag = tag.trim().toLowerCase();
+    const safePosts = Array.isArray(posts) ? posts : [];
 
-    return posts.filter((post) => {
+    return safePosts.filter((post) => {
+      const title = typeof post.title === 'string' ? post.title : '';
+      const excerpt = typeof post.excerpt === 'string' ? post.excerpt : '';
+      const safeCategory = typeof post.category === 'string' ? post.category : '';
+      const safeTags = Array.isArray(post.tags)
+        ? post.tags.map((entry) => (typeof entry === 'string' ? entry : '')).filter(Boolean)
+        : [];
+
       const matchesQuery =
         !normalizedQuery ||
-        post.title.toLowerCase().includes(normalizedQuery) ||
-        post.excerpt.toLowerCase().includes(normalizedQuery) ||
-        (post.category || '').toLowerCase().includes(normalizedQuery) ||
-        (post.tags || []).some((entry) => entry.toLowerCase().includes(normalizedQuery));
+        title.toLowerCase().includes(normalizedQuery) ||
+        excerpt.toLowerCase().includes(normalizedQuery) ||
+        safeCategory.toLowerCase().includes(normalizedQuery) ||
+        safeTags.some((entry) => entry.toLowerCase().includes(normalizedQuery));
 
-      const matchesCategory = !normalizedCategory || (post.category || '').toLowerCase() === normalizedCategory;
-      const matchesTag = !normalizedTag || (post.tags || []).some((entry) => entry.toLowerCase() === normalizedTag);
+      const matchesCategory = !normalizedCategory || safeCategory.toLowerCase() === normalizedCategory;
+      const matchesTag = !normalizedTag || safeTags.some((entry) => entry.toLowerCase() === normalizedTag);
 
       return matchesQuery && matchesCategory && matchesTag;
     });
   }, [category, posts, query, tag]);
+
+  const hasActiveFilters = Boolean(query.trim() || category.trim() || tag.trim());
+  const emptyStateTitle = !hasActiveFilters && posts.length === 0 ? emptyPublishedTitle : emptyTitle;
+  const emptyStateDescription =
+    !hasActiveFilters && posts.length === 0 ? emptyPublishedDescription : emptyDescription;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
@@ -129,8 +146,8 @@ export default function BlogArchiveClient({
 
       {filteredPosts.length === 0 ? (
         <div className="mt-10 rounded-[28px] border border-dashed border-white/15 bg-white/5 px-6 py-14 text-center">
-          <h2 className="text-xl font-700 text-white">{emptyTitle}</h2>
-          <p className="mt-3 text-sm text-slate-300">{emptyDescription}</p>
+          <h2 className="text-xl font-700 text-white">{emptyStateTitle}</h2>
+          <p className="mt-3 text-sm text-slate-300">{emptyStateDescription}</p>
         </div>
       ) : (
         <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-3">

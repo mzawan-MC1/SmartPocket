@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import BlogArchiveClient from '@/components/public/blog/BlogArchiveClient';
-import { listPublicBlogPosts } from '@/lib/cms-pages-server';
+import { listPublicBlogPosts, type PublicCmsPage } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildBreadcrumbStructuredData, buildPageMetadata, resolveMetadataLanguage } from '@/lib/site-metadata';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
@@ -14,6 +14,20 @@ type BlogArchivePageProps = {
 
 function getBlogText(publicText: Record<string, any>) {
   return publicText.blog || {};
+}
+
+function normalizeArchiveText(value: unknown, fallback = '') {
+  return typeof value === 'string' ? value.trim() || fallback : fallback;
+}
+
+function normalizeArchiveTags(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => (typeof entry === 'string' ? entry.trim() : ''))
+    .filter(Boolean);
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,16 +42,30 @@ export async function generateMetadata(): Promise<Metadata> {
     language,
     pathname: '/blog',
     canonicalPath: '/blog',
-    title: listing.seoTitle || listing.title || 'Smart Pocket Blog',
+    title:
+      listing.seoTitle ||
+      'Smart Pocket Blog | Personal Finance, Budgeting & AI Expense Tracking',
     description:
       listing.seoDescription ||
-      listing.description ||
-      'Read practical Smart Pocket guides on receipts, budgeting, subscriptions, and shared expenses.',
-    openGraphTitle: listing.ogTitle || listing.seoTitle || listing.title,
-    openGraphDescription: listing.ogDescription || listing.seoDescription || listing.description,
-    twitterTitle: listing.twitterTitle || listing.ogTitle || listing.seoTitle || listing.title,
+      'Read Smart Pocket guides about budgeting, subscriptions, receipts, AI expense tracking, shared money, and smarter personal finance.',
+    openGraphTitle:
+      listing.ogTitle ||
+      listing.seoTitle ||
+      'Smart Pocket Blog | Personal Finance, Budgeting & AI Expense Tracking',
+    openGraphDescription:
+      listing.ogDescription ||
+      listing.seoDescription ||
+      'Read Smart Pocket guides about budgeting, subscriptions, receipts, AI expense tracking, shared money, and smarter personal finance.',
+    twitterTitle:
+      listing.twitterTitle ||
+      listing.ogTitle ||
+      listing.seoTitle ||
+      'Smart Pocket Blog | Personal Finance, Budgeting & AI Expense Tracking',
     twitterDescription:
-      listing.twitterDescription || listing.ogDescription || listing.seoDescription || listing.description,
+      listing.twitterDescription ||
+      listing.ogDescription ||
+      listing.seoDescription ||
+      'Read Smart Pocket guides about budgeting, subscriptions, receipts, AI expense tracking, shared money, and smarter personal finance.',
   });
 }
 
@@ -49,7 +77,13 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
   const listing = blogText.listing || {};
   const common = blogText.common || {};
   const params = searchParams ? await searchParams : {};
-  const posts = await listPublicBlogPosts();
+  let posts: PublicCmsPage[] = [];
+
+  try {
+    posts = await listPublicBlogPosts();
+  } catch {
+    posts = [];
+  }
 
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
@@ -59,16 +93,25 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
   ];
 
   const mappedPosts = posts.map((post) => ({
-    slug: post.slug,
-    title: post.title,
-    excerpt: post.excerpt_resolved,
-    coverImageUrl: post.cover_image_url,
-    coverImageAlt: post.cover_image_alt,
-    category: post.category,
-    authorName: post.author_name,
-    publishedAt: post.published_at || post.updated_at,
-    readingTimeMinutes: post.reading_time_minutes,
-    tags: post.tags || [],
+    slug: normalizeArchiveText(post.slug),
+    title: normalizeArchiveText(post.title, 'Untitled post'),
+    excerpt: normalizeArchiveText(
+      post.excerpt_resolved,
+      normalizeArchiveText(
+        post.seo_description_resolved,
+        listing.cardExcerptFallback || 'Read the latest Smart Pocket guide on budgeting, receipts, and everyday money habits.'
+      )
+    ),
+    coverImageUrl: normalizeArchiveText(post.cover_image_url, ''),
+    coverImageAlt: normalizeArchiveText(post.cover_image_alt, ''),
+    category: normalizeArchiveText(post.category, ''),
+    authorName: normalizeArchiveText(post.author_name, ''),
+    publishedAt: normalizeArchiveText(post.published_at || post.updated_at, ''),
+    readingTimeMinutes:
+      typeof post.reading_time_minutes === 'number' && Number.isFinite(post.reading_time_minutes)
+        ? post.reading_time_minutes
+        : null,
+    tags: normalizeArchiveTags(post.tags),
   }));
 
   const query = Array.isArray(params.q) ? params.q[0] : params.q || '';
@@ -88,7 +131,7 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
         title={listing.title || 'Smart Pocket Blog'}
         description={
           listing.description ||
-          'Simple, practical guides for budgeting, receipts, subscriptions, and everyday money habits.'
+          'Read Smart Pocket guides about personal finance, budgeting, AI expense tracking, receipts, and smarter money management.'
         }
         searchPlaceholder={listing.searchPlaceholder || 'Search articles'}
         searchLabel={listing.searchLabel || 'Search'}
@@ -98,6 +141,8 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
         tagAllLabel={listing.tagAllLabel || 'All tags'}
         emptyTitle={listing.emptyTitle || 'No posts match your filters'}
         emptyDescription={listing.emptyDescription || 'Try a different keyword, category, or tag.'}
+        emptyPublishedTitle={listing.emptyPublishedTitle || 'No blog posts published yet.'}
+        emptyPublishedDescription={listing.emptyPublishedDescription || 'Check back soon.'}
         readTimeLabel={(minutes) =>
           common.readTime?.replace('{{count}}', String(minutes)) || `${minutes} min read`
         }
