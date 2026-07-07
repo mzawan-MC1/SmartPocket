@@ -990,9 +990,10 @@ class OpenRouterLanguageProvider implements LanguageProvider {
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error('Empty response from OpenRouter');
+      const normalizedContent = stripTranscriptFormatting(extractOpenRouterTextContent(content));
+      if (!normalizedContent) throw new Error('Empty response from OpenRouter');
 
-      const parsed = safeParseJSON(content);
+      const parsed = safeParseJSON(normalizedContent);
       if (!parsed) throw new Error('Invalid JSON from OpenRouter');
 
       const validated = validateParsedInstruction(parsed);
@@ -1284,9 +1285,10 @@ class VPSLanguageProvider implements LanguageProvider {
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error('Empty response from VPS AI');
+      const normalizedContent = stripTranscriptFormatting(extractOpenRouterTextContent(content));
+      if (!normalizedContent) throw new Error('Empty response from VPS AI');
 
-      const parsed = safeParseJSON(content);
+      const parsed = safeParseJSON(normalizedContent);
       if (!parsed) throw new Error('Invalid JSON from VPS AI');
 
       const validated = validateParsedInstruction(parsed);

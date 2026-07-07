@@ -252,6 +252,17 @@ export async function POST(req: NextRequest) {
       error: getFriendlyParseFailureMessage(requestType, response.errorCategory, response.errorMessage),
     };
 
+    if (process.env.NODE_ENV !== 'production' && responseBody.status === 'failed') {
+      console.warn('[AI Parse] Gateway failure', {
+        requestType: `smart-entry/${requestType}`,
+        requestId: responseBody.requestId,
+        providerUsed: typeof responseBody.providerUsed === 'string' ? responseBody.providerUsed : null,
+        providerStatus: extractProviderStatusCode(response.errorMessage),
+        errorCode: response.errorCategory || 'unknown',
+        durationMs: duration,
+      });
+    }
+
     if (responseBody.parsed) {
       const review = buildInitialSmartEntryReview({
         instruction: responseBody.parsed,
@@ -799,6 +810,16 @@ function getFriendlyParseFailureMessage(
     return 'AI text processing is temporarily unavailable. Please try again.';
   }
   return 'The AI provider did not respond. Your credits were not charged.';
+}
+
+function extractProviderStatusCode(rawErrorMessage: string | undefined): number | null {
+  if (!rawErrorMessage) return null;
+
+  const match = rawErrorMessage.match(/\berror\s+(\d{3})\b/i);
+  if (!match) return null;
+
+  const parsed = Number.parseInt(match[1], 10);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 async function persistAIRequest(args: {
