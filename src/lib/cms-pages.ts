@@ -7,6 +7,12 @@ export const RESERVED_CMS_SLUGS = [
   'about',
   'features',
   'pricing',
+  'ai-receipt-scanner',
+  'ai-voice-expense-tracker',
+  'family-budget-app',
+  'shared-expenses',
+  'multi-currency-expense-tracker',
+  'expense-tracker-uae',
   'dashboard',
   'admin',
   'sign-up-login',
@@ -32,6 +38,12 @@ export const SITEMAP_EXCLUDED_CMS_SLUGS = [
   'about',
   'features',
   'pricing',
+  'ai-receipt-scanner',
+  'ai-voice-expense-tracker',
+  'family-budget-app',
+  'shared-expenses',
+  'multi-currency-expense-tracker',
+  'expense-tracker-uae',
 ] as const;
 
 export type CmsPageRecord = {

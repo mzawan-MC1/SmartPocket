@@ -480,5 +480,434 @@
     "seoDescription": "Parcourez les FAQ Smart Pocket sur la configuration, les transactions, les budgets, les abonnements et le support.",
     "ogTitle": "FAQ Smart Pocket",
     "ogDescription": "Trouvez des réponses sur les fonctionnalités Smart Pocket, le support et les workflows financiers du quotidien."
+  },
+  "landingPages": {
+    "shared": {
+      "primaryCta": "Commencer l'essai gratuit",
+      "secondaryCta": "Voir comment ça marche",
+      "benefitsTitle": "Pourquoi c'est utile",
+      "benefitsIntro": "Conçu pour simplifier la gestion de l'argent au quotidien",
+      "howItWorksTitle": "Comment ça marche",
+      "howItWorksIntro": "Un parcours simple, de la capture à la vérification",
+      "useCasesTitle": "Idéal pour",
+      "useCasesIntro": "Pensé pour des situations de la vie réelle",
+      "faqTitle": "FAQ",
+      "faqIntro": "Les questions les plus courantes avant de commencer",
+      "relatedTitle": "Aller plus loin",
+      "relatedIntro": "Découvrez comment Smart Pocket s'adapte à différents besoins",
+      "homepageLinkLabel": "Accueil",
+      "faqLinkLabel": "FAQ",
+      "contactLinkLabel": "Contact",
+      "reviewNote": "L'IA lit et prépare les détails pour vérification",
+      "allowanceNote": "La lecture des reçus et les usages IA peuvent dépendre de votre forfait"
+    },
+    "aiReceiptScanner": {
+      "linkLabel": "Scanner de reçus IA",
+      "seoTitle": "Scanner de reçus IA pour les dépenses du quotidien | Smart Pocket",
+      "seoDescription": "Téléversez des reçus, factures ou justificatifs. Smart Pocket lit les détails essentiels, prépare la dépense pour vérification et vous aide à l'enregistrer plus vite.",
+      "ogTitle": "Scanner de reçus IA | Smart Pocket",
+      "ogDescription": "Utilisez Smart Pocket pour lire des reçus et factures, puis vérifiez la dépense préparée avant l'enregistrement.",
+      "hero": {
+        "eyebrow": "Scanner de reçus IA",
+        "title": "Transformez les reçus en dépenses prêtes à vérifier",
+        "subtitle": "Téléversez un reçu, une facture ou un justificatif. Smart Pocket lit les détails clés, prépare la transaction et vous laisse tout vérifier avant l'enregistrement."
+      },
+      "benefits": [
+        {
+          "title": "Moins de saisie manuelle",
+          "description": "Le commerçant, la date, les totaux et les lignes principales sont préparés pour vous."
+        },
+        {
+          "title": "Vérification avant enregistrement",
+          "description": "Vous gardez le contrôle grâce à une étape de vérification avant d'ajouter la dépense."
+        },
+        {
+          "title": "Conservez le justificatif avec la transaction",
+          "description": "Attachez le reçu à la dépense pour le retrouver plus facilement plus tard."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Téléversez le reçu ou la facture",
+          "description": "Ajoutez une photo nette ou un PDF depuis votre téléphone ou votre ordinateur."
+        },
+        {
+          "title": "Laissez Smart Pocket préparer les détails",
+          "description": "L'IA lit le document et remplit les principales informations de dépense."
+        },
+        {
+          "title": "Vérifiez puis enregistrez",
+          "description": "Contrôlez les détails préparés, corrigez si besoin, puis enregistrez."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Dépenses quotidiennes",
+          "description": "Capturez les courses, le carburant, le café et les achats du quotidien sans accumuler les reçus."
+        },
+        {
+          "title": "Factures et justificatifs",
+          "description": "Gardez les factures de services et autres documents ponctuels dans un seul endroit."
+        },
+        {
+          "title": "Dépenses de voyage",
+          "description": "Conservez les reçus d'hôtel, taxi, repas ou aéroport pendant que les détails sont encore frais."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket enregistre-t-il automatiquement le reçu ?",
+          "answer": "Non. Smart Pocket prépare d'abord les détails pour vérification, puis vous choisissez de les enregistrer ou non."
+        },
+        {
+          "question": "Puis-je téléverser des PDF en plus des images ?",
+          "answer": "Oui. Les images nettes et les fichiers PDF pris en charge peuvent être utilisés pour la vérification des reçus."
+        },
+        {
+          "question": "La lecture des reçus est-elle illimitée ?",
+          "answer": "La disponibilité de Receipt Intelligence et ses limites d'usage peuvent varier selon votre forfait."
+        }
+      ]
+    },
+    "aiVoiceExpenseTracker": {
+      "linkLabel": "Suivi vocal des dépenses IA",
+      "seoTitle": "Suivi vocal des dépenses IA pour une saisie rapide | Smart Pocket",
+      "seoDescription": "Décrivez vos dépenses naturellement. Smart Pocket prépare la transaction pour vérification afin que vous puissiez l'enregistrer plus vite avec moins de saisie.",
+      "ogTitle": "Suivi vocal des dépenses IA | Smart Pocket",
+      "ogDescription": "Utilisez votre voix pour préparer des dépenses dans Smart Pocket, puis vérifiez et enregistrez la transaction en quelques gestes.",
+      "hero": {
+        "eyebrow": "Suivi vocal des dépenses IA",
+        "title": "Parlez de la dépense puis vérifiez le résultat",
+        "subtitle": "Expliquez simplement ce qui s'est passé. Smart Pocket prépare la transaction, le compte et la catégorie afin que vous puissiez vérifier et enregistrer rapidement."
+      },
+      "benefits": [
+        {
+          "title": "Enregistrez vos dépenses en mouvement",
+          "description": "Ajoutez une dépense après un achat, un trajet ou un repas sans ouvrir un grand formulaire."
+        },
+        {
+          "title": "Restez naturel",
+          "description": "Décrivez ce qui s'est passé avec vos propres mots au lieu d'un format rigide."
+        },
+        {
+          "title": "Gardez la main",
+          "description": "Vous vérifiez toujours la transaction préparée avant l'enregistrement."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Parlez de votre transaction",
+          "description": "Enregistrez une courte note vocale sur ce que vous avez dépensé ou reçu."
+        },
+        {
+          "title": "Laissez Smart Pocket préparer le brouillon",
+          "description": "L'application transforme vos mots en brouillon de transaction avec les détails clés."
+        },
+        {
+          "title": "Confirmez puis enregistrez",
+          "description": "Vérifiez le brouillon, corrigez si nécessaire, puis enregistrez quand tout est bon."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Journées chargées",
+          "description": "Ajoutez rapidement des dépenses entre les réunions, les trajets et les courses."
+        },
+        {
+          "title": "Suivi en déplacement",
+          "description": "Enregistrez des dépenses en marchant, en voiture ou en voyage sans taper de longues notes."
+        },
+        {
+          "title": "Notes rapides sur les rentrées d'argent",
+          "description": "Capturez virements entrants, revenus annexes et autres mouvements dès qu'ils arrivent."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Dois-je toujours vérifier la transaction ?",
+          "answer": "Oui. Smart Pocket prépare le brouillon, puis vous le vérifiez avant l'enregistrement."
+        },
+        {
+          "question": "Puis-je utiliser du texte au lieu de la voix ?",
+          "answer": "Oui. Smart Entry prend aussi en charge le texte quand parler n'est pas pratique."
+        },
+        {
+          "question": "La saisie vocale est-elle incluse dans tous les forfaits ?",
+          "answer": "Les usages IA peuvent varier selon le forfait, donc le nombre de demandes vocales disponibles dépend de votre abonnement."
+        }
+      ]
+    },
+    "familyBudgetApp": {
+      "linkLabel": "Application budget familial",
+      "seoTitle": "Application de budget familial pour un foyer plus clair | Smart Pocket",
+      "seoDescription": "Gérez les dépenses familiales, les factures, les abonnements, les budgets et l'argent partagé dans une seule application simple.",
+      "ogTitle": "Application budget familial | Smart Pocket",
+      "ogDescription": "Suivez l'argent du foyer, les factures, les abonnements et les dépenses du quotidien au même endroit.",
+      "hero": {
+        "eyebrow": "Application budget familial",
+        "title": "Simplifiez l'argent du foyer semaine après semaine",
+        "subtitle": "Smart Pocket rassemble dépenses du foyer, budgets, factures, abonnements et responsabilités partagées dans une vue claire pour les décisions du quotidien."
+      },
+      "benefits": [
+        {
+          "title": "Une vue complète du foyer",
+          "description": "Regroupez comptes, dépenses, factures récurrentes et objectifs de budget dans une seule application."
+        },
+        {
+          "title": "Moins d'incertitude",
+          "description": "Sachez où en est le mois avant la prochaine facture ou le prochain passage au supermarché."
+        },
+        {
+          "title": "Des routines plus simples à gérer",
+          "description": "Suivez les paiements réguliers et les dépenses qui structurent la vie familiale."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ajoutez vos comptes et catégories principales",
+          "description": "Commencez avec les comptes et postes de dépenses réellement utilisés par votre foyer."
+        },
+        {
+          "title": "Suivez dépenses, factures et abonnements",
+          "description": "Ajoutez les transactions du quotidien et gardez les coûts récurrents bien visibles."
+        },
+        {
+          "title": "Vérifiez l'avancement du budget",
+          "description": "Utilisez le tableau de bord et les rapports pour comprendre où va votre argent."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Organisation mensuelle du foyer",
+          "description": "Suivez loyer, courses, transport, école et factures de maison."
+        },
+        {
+          "title": "Responsabilités partagées",
+          "description": "Voyez qui a payé, ce qui reste à venir et comment évoluent les coûts réguliers."
+        },
+        {
+          "title": "Contrôle des abonnements",
+          "description": "Gardez vos services de streaming, téléphone, logiciels et adhésions familiales visibles."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket sert-il seulement aux budgets très stricts ?",
+          "answer": "Non. Vous pouvez l'utiliser pour un suivi léger ou pour une routine budgétaire familiale plus détaillée."
+        },
+        {
+          "question": "Puis-je suivre les coûts récurrents du foyer ?",
+          "answer": "Oui. Smart Pocket aide à garder les abonnements, les factures et les dépenses récurrentes sous contrôle."
+        },
+        {
+          "question": "L'application gère-t-elle les dépenses partagées du foyer ?",
+          "answer": "Oui. Smart Pocket inclut des flux de dépenses partagées et de remboursements adaptés aux situations familiales courantes."
+        }
+      ]
+    },
+    "sharedExpenses": {
+      "linkLabel": "Dépenses partagées",
+      "seoTitle": "Suivi des dépenses partagées et remboursements | Smart Pocket",
+      "seoDescription": "Suivez qui a payé, qui doit, les remboursements et les règlements dans un seul endroit pour garder l'argent partagé clair.",
+      "ogTitle": "Dépenses partagées | Smart Pocket",
+      "ogDescription": "Suivez les dépenses partagées, remboursements et règlements sans notes dispersées ni confusion.",
+      "hero": {
+        "eyebrow": "Dépenses partagées",
+        "title": "Suivez l'argent partagé sans confusion",
+        "subtitle": "Des repas et loyers aux achats en groupe et remboursements, Smart Pocket vous aide à voir qui a payé, qui doit et ce qu'il reste à régler."
+      },
+      "benefits": [
+        {
+          "title": "Sachez qui a avancé quoi",
+          "description": "Gardez un historique clair des achats partagés au lieu de dépendre de la mémoire ou des messages."
+        },
+        {
+          "title": "Suivez les remboursements clairement",
+          "description": "Voyez ce qui a été remboursé, ce qui reste en attente et ce qui mérite un rappel."
+        },
+        {
+          "title": "Moins de relances gênantes",
+          "description": "Utilisez un seul système pour lever le doute sur les soldes et règlements."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ajoutez une dépense partagée",
+          "description": "Enregistrez le montant, la personne qui a payé et les personnes concernées par le partage."
+        },
+        {
+          "title": "Vérifiez la répartition",
+          "description": "Contrôlez la façon dont le montant doit être partagé avant d'enregistrer la transaction."
+        },
+        {
+          "title": "Suivez remboursement et règlement",
+          "description": "Gardez les remboursements visibles et clôturez la situation quand tout est réglé."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Couples et foyers",
+          "description": "Gérez courses, factures, transport et achats de maison dans des routines partagées."
+        },
+        {
+          "title": "Voyages et week-ends",
+          "description": "Suivez hôtels, repas, transport et billets partagés pendant que tout le monde est encore ensemble."
+        },
+        {
+          "title": "Amis et colocataires",
+          "description": "Gardez le loyer, les fournitures et les achats collectifs plus clairs au quotidien."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Puis-je voir qui doit encore de l'argent ?",
+          "answer": "Oui. Smart Pocket garde les dépenses partagées et les remboursements visibles pour rendre les soldes en attente plus faciles à comprendre."
+        },
+        {
+          "question": "Dois-je répartir chaque dépense à parts égales ?",
+          "answer": "Non. Le partage peut être vérifié afin que le résultat final reflète la situation réelle."
+        },
+        {
+          "question": "Les dépenses partagées peuvent-elles coexister avec mes dépenses personnelles ?",
+          "answer": "Oui. Smart Pocket garde votre vue globale de l'argent dans un seul endroit tout en gérant les scénarios partagés."
+        }
+      ]
+    },
+    "multiCurrencyExpenseTracker": {
+      "linkLabel": "Suivi multi-devises",
+      "seoTitle": "Suivi des dépenses multi-devises pour expatriés et voyageurs | Smart Pocket",
+      "seoDescription": "Suivez vos dépenses sur plusieurs comptes et devises avec une seule application pensée pour les expatriés, voyageurs, freelances et familles internationales.",
+      "ogTitle": "Suivi des dépenses multi-devises | Smart Pocket",
+      "ogDescription": "Gérez vos dépenses sur plusieurs devises et comptes dans une seule application claire.",
+      "hero": {
+        "eyebrow": "Suivi des dépenses multi-devises",
+        "title": "Suivez votre argent sur plusieurs devises sans perdre en clarté",
+        "subtitle": "Smart Pocket vous aide à suivre les dépenses sur plusieurs comptes et devises pour que le suivi quotidien reste pratique pour les expatriés, voyageurs et familles internationales."
+      },
+      "benefits": [
+        {
+          "title": "Gardez chaque compte dans sa vraie devise",
+          "description": "Suivez chaque compte dans la devise qu'il utilise vraiment au lieu de tout forcer dans une seule feuille manuelle."
+        },
+        {
+          "title": "Restez organisé d'un pays à l'autre",
+          "description": "Continuez à suivre vos dépenses même lorsque votre argent est réparti entre banques, cartes et espèces."
+        },
+        {
+          "title": "Voyez l'ensemble plus facilement",
+          "description": "Analysez vos tendances et soldes sans perdre le contexte de la devise d'origine."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ajoutez vos comptes et devises",
+          "description": "Configurez les cartes, portefeuilles et comptes bancaires que vous utilisez réellement."
+        },
+        {
+          "title": "Enregistrez les transactions dans la devise d'origine",
+          "description": "Gardez chaque dépense ou revenu lié au bon compte et à la bonne devise."
+        },
+        {
+          "title": "Consultez votre tableau de bord et vos rapports",
+          "description": "Comprenez les totaux et tendances tout en conservant le contexte de la devise d'origine."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Expatriés",
+          "description": "Suivez la vie entre comptes du pays d'origine, cartes locales et dépenses de voyage."
+        },
+        {
+          "title": "Freelances avec clients internationaux",
+          "description": "Gardez les revenus entrants et les dépenses sortantes organisés sur plusieurs devises."
+        },
+        {
+          "title": "Voyageurs fréquents",
+          "description": "Capturez vos dépenses dans la devise réellement utilisée sans perdre le fil plus tard."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Puis-je conserver la devise d'origine sur chaque transaction ?",
+          "answer": "Oui. Smart Pocket est conçu pour garder ce contexte visible dans vos enregistrements."
+        },
+        {
+          "question": "Est-ce utile si je n'utilise que deux devises ?",
+          "answer": "Oui. L'application reste utile avec deux devises comme avec plusieurs comptes internationaux."
+        },
+        {
+          "question": "Smart Pocket est-il réservé aux expatriés ?",
+          "answer": "Non. Il convient aussi aux voyageurs, freelances et familles qui gèrent de l'argent sur plusieurs devises."
+        }
+      ]
+    },
+    "expenseTrackerUae": {
+      "linkLabel": "Suivi des dépenses UAE",
+      "seoTitle": "Suivi des dépenses aux UAE pour l'AED et le budget du quotidien | Smart Pocket",
+      "seoDescription": "Suivez dépenses, budgets, reçus, abonnements et argent partagé en AED et dans d'autres devises avec une application claire.",
+      "ogTitle": "Suivi des dépenses UAE | Smart Pocket",
+      "ogDescription": "Utilisez Smart Pocket comme application de suivi en AED pour les budgets, reçus, abonnements et dépenses partagées.",
+      "hero": {
+        "eyebrow": "Suivi des dépenses UAE",
+        "title": "Une application pratique pour suivre vos dépenses aux UAE",
+        "subtitle": "Suivez les dépenses quotidiennes, les budgets, les abonnements, les reçus et l'argent partagé en AED et dans d'autres devises avec une seule application simple."
+      },
+      "benefits": [
+        {
+          "title": "Pensé pour le suivi quotidien en AED",
+          "description": "Gardez vos dépenses, factures et décisions financières habituelles dans un seul endroit facile à utiliser."
+        },
+        {
+          "title": "Utile pour une vie en plusieurs devises",
+          "description": "Suivez l'AED avec d'autres devises quand le travail, les voyages ou la famille dépassent les frontières."
+        },
+        {
+          "title": "Simple pour tous les jours",
+          "description": "Utilisez Smart Entry et la lecture de reçus quand vous voulez aller vite, tout en gardant la vérification en main."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ajoutez vos comptes principaux",
+          "description": "Commencez avec les comptes bancaires, cartes, espèces et portefeuilles que vous utilisez le plus."
+        },
+        {
+          "title": "Suivez vos dépenses comme vous voulez",
+          "description": "Choisissez la saisie manuelle, Smart Entry ou la vérification de reçu selon ce qui est le plus rapide sur le moment."
+        },
+        {
+          "title": "Surveillez budgets et coûts récurrents",
+          "description": "Gardez un oeil sur les abonnements, les factures et les habitudes de dépense mensuelles."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Résidents qui gèrent leurs coûts du quotidien",
+          "description": "Suivez courses, transport, loyer, école et factures domestiques avec moins de friction."
+        },
+        {
+          "title": "Professionnels avec plusieurs devises",
+          "description": "Gérez les dépenses en AED tout en gardant une bonne visibilité sur les autres devises."
+        },
+        {
+          "title": "Familles et foyers partagés",
+          "description": "Suivez les dépenses partagées, remboursements et engagements récurrents dans une seule application."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Puis-je utiliser Smart Pocket pour suivre mes dépenses en AED ?",
+          "answer": "Oui. Smart Pocket prend en charge l'AED avec d'autres devises prises en charge."
+        },
+        {
+          "question": "L'application aide-t-elle aussi pour les reçus et abonnements ?",
+          "answer": "Oui. Smart Pocket inclut la vérification des reçus, le suivi récurrent et la visibilité sur les abonnements selon les fonctionnalités de votre forfait."
+        },
+        {
+          "question": "Est-ce réservé aux utilisateurs des UAE ?",
+          "answer": "Non. L'application peut servir à tout le monde, mais cette page se concentre sur des besoins courants aux UAE."
+        }
+      ]
+    }
   }
 }

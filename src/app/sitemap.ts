@@ -21,6 +21,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticRoutes: MetadataRoute.Sitemap = [
     '/',
+    '/ai-receipt-scanner',
+    '/ai-voice-expense-tracker',
+    '/family-budget-app',
+    '/shared-expenses',
+    '/multi-currency-expense-tracker',
+    '/expense-tracker-uae',
     '/faqs',
     '/contact',
     '/privacy',

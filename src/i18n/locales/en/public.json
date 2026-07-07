@@ -490,5 +490,434 @@
     "seoDescription": "Browse Smart Pocket FAQs about setup, transactions, budgets, subscriptions, support, and more.",
     "ogTitle": "Smart Pocket FAQs",
     "ogDescription": "Find answers about Smart Pocket features, support, and everyday financial workflows."
+  },
+  "landingPages": {
+    "shared": {
+      "primaryCta": "Start Free Trial",
+      "secondaryCta": "See How It Works",
+      "benefitsTitle": "Why it helps",
+      "benefitsIntro": "Designed to keep everyday money tasks simple",
+      "howItWorksTitle": "How it works",
+      "howItWorksIntro": "A simple flow from capture to review",
+      "useCasesTitle": "Best for",
+      "useCasesIntro": "Built for real everyday situations",
+      "faqTitle": "FAQs",
+      "faqIntro": "Common questions before you start",
+      "relatedTitle": "Explore more",
+      "relatedIntro": "See how Smart Pocket supports different money routines",
+      "homepageLinkLabel": "Homepage",
+      "faqLinkLabel": "FAQs",
+      "contactLinkLabel": "Contact",
+      "reviewNote": "AI reads and prepares details for review",
+      "allowanceNote": "Receipt Intelligence and AI usage limits may apply by plan"
+    },
+    "aiReceiptScanner": {
+      "linkLabel": "AI Receipt Scanner",
+      "seoTitle": "AI Receipt Scanner for Everyday Expenses | Smart Pocket",
+      "seoDescription": "Upload receipts, invoices, or bills. Smart Pocket reads the key details, prepares the expense for review, and helps you save it faster.",
+      "ogTitle": "AI Receipt Scanner | Smart Pocket",
+      "ogDescription": "Use Smart Pocket to scan receipts, invoices, and bills, then review the prepared expense before saving.",
+      "hero": {
+        "eyebrow": "AI Receipt Scanner",
+        "title": "Turn receipts into ready-to-review expenses",
+        "subtitle": "Upload a receipt, invoice, or bill. Smart Pocket reads the key details, prepares the transaction, and lets you review everything before saving."
+      },
+      "benefits": [
+        {
+          "title": "Spend less time typing",
+          "description": "Merchant, date, totals, and line items are prepared for you so manual entry takes far less effort."
+        },
+        {
+          "title": "Review before anything is saved",
+          "description": "You stay in control with a review step before the expense reaches your records."
+        },
+        {
+          "title": "Keep the source with the transaction",
+          "description": "Attach the receipt to the expense so it is easier to check later."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Upload a receipt or bill",
+          "description": "Add a clear image or PDF from your phone or computer."
+        },
+        {
+          "title": "Let Smart Pocket prepare the details",
+          "description": "AI reads the document and fills in the main expense information for you."
+        },
+        {
+          "title": "Review and save",
+          "description": "Check the prepared details, adjust anything you want, then save with confidence."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Daily spending",
+          "description": "Capture groceries, fuel, coffee, and other everyday purchases without backlogging receipts."
+        },
+        {
+          "title": "Bills and invoices",
+          "description": "Track utility bills, service invoices, and other one-off documents in one place."
+        },
+        {
+          "title": "Travel expenses",
+          "description": "Save hotel, taxi, dining, and airport receipts while the details are still fresh."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Does Smart Pocket save the receipt automatically?",
+          "answer": "No. Smart Pocket prepares the details for review first, and you choose whether to save them."
+        },
+        {
+          "question": "Can I upload PDFs as well as images?",
+          "answer": "Yes. Clear images and supported PDF files can both be used for receipt review."
+        },
+        {
+          "question": "Is receipt reading unlimited?",
+          "answer": "Receipt Intelligence availability and usage limits may vary by plan allowance."
+        }
+      ]
+    },
+    "aiVoiceExpenseTracker": {
+      "linkLabel": "AI Voice Expense Tracker",
+      "seoTitle": "AI Voice Expense Tracker for Fast Daily Logging | Smart Pocket",
+      "seoDescription": "Speak your spending naturally. Smart Pocket prepares the transaction for review so you can save expenses faster with less typing.",
+      "ogTitle": "AI Voice Expense Tracker | Smart Pocket",
+      "ogDescription": "Use voice to prepare expenses in Smart Pocket, then review and save the transaction in a few taps.",
+      "hero": {
+        "eyebrow": "AI Voice Expense Tracker",
+        "title": "Speak the expense and review the result",
+        "subtitle": "Tell Smart Pocket what happened in plain language. It prepares the transaction, account, and category details so you can review and save quickly."
+      },
+      "benefits": [
+        {
+          "title": "Log spending while you move",
+          "description": "Capture expenses after shopping, commuting, or dining without opening a full form first."
+        },
+        {
+          "title": "Keep it natural",
+          "description": "Say what happened in everyday words instead of memorizing a strict format."
+        },
+        {
+          "title": "Stay in control",
+          "description": "Review the prepared transaction before it is added to your records."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Speak your transaction",
+          "description": "Record a short voice note about what you spent or received."
+        },
+        {
+          "title": "Let Smart Pocket prepare the draft",
+          "description": "The app turns your words into a transaction draft with the main details filled in."
+        },
+        {
+          "title": "Confirm and save",
+          "description": "Review the draft, correct anything you need, and save when it looks right."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Busy weekdays",
+          "description": "Record spending quickly between meetings, school runs, and errands."
+        },
+        {
+          "title": "On-the-go tracking",
+          "description": "Add expenses while walking, driving, or travelling without typing long notes."
+        },
+        {
+          "title": "Quick income notes",
+          "description": "Capture transfers in, side income, and other money events as soon as they happen."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Do I still review the transaction?",
+          "answer": "Yes. Smart Pocket prepares the draft, and you review it before saving."
+        },
+        {
+          "question": "Can I use text instead of voice?",
+          "answer": "Yes. Smart Entry also supports typed text when speaking is not convenient."
+        },
+        {
+          "question": "Is voice entry included in every plan?",
+          "answer": "AI usage allowances may vary by plan, so available voice requests can depend on your subscription."
+        }
+      ]
+    },
+    "familyBudgetApp": {
+      "linkLabel": "Family Budget App",
+      "seoTitle": "Family Budget App for Household Money Clarity | Smart Pocket",
+      "seoDescription": "Manage family spending, bills, subscriptions, budgets, and shared money in one simple app built for everyday households.",
+      "ogTitle": "Family Budget App | Smart Pocket",
+      "ogDescription": "Track household money, bills, subscriptions, and everyday family spending in one clear place.",
+      "hero": {
+        "eyebrow": "Family Budget App",
+        "title": "Keep family money simpler every week",
+        "subtitle": "Smart Pocket brings household spending, budgets, bills, subscriptions, and shared responsibilities into one clear view for everyday decisions."
+      },
+      "benefits": [
+        {
+          "title": "See the full household picture",
+          "description": "Bring accounts, spending, recurring bills, and budget targets together in one app."
+        },
+        {
+          "title": "Reduce money guesswork",
+          "description": "Know where the month stands before the next bill or shopping trip arrives."
+        },
+        {
+          "title": "Keep routines easier to manage",
+          "description": "Track the regular payments and everyday costs that shape family life."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Set up your main accounts and categories",
+          "description": "Start with the accounts and spending areas your household uses most."
+        },
+        {
+          "title": "Track spending, bills, and subscriptions",
+          "description": "Add everyday transactions and keep recurring costs visible in one place."
+        },
+        {
+          "title": "Review your budget progress",
+          "description": "Use the dashboard and reports to understand where your money is going."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Monthly household planning",
+          "description": "Stay on top of rent, groceries, transport, school costs, and home bills."
+        },
+        {
+          "title": "Shared family responsibilities",
+          "description": "Track who paid, what is due, and how regular costs are changing."
+        },
+        {
+          "title": "Subscription control",
+          "description": "Keep streaming, phone, software, and family memberships visible instead of scattered."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Is Smart Pocket only for strict budgets?",
+          "answer": "No. You can use it for light tracking or for a more detailed family budgeting routine."
+        },
+        {
+          "question": "Can I track recurring household costs?",
+          "answer": "Yes. Smart Pocket helps you stay on top of subscriptions, bills, and recurring expenses."
+        },
+        {
+          "question": "Does it work if family spending is shared?",
+          "answer": "Yes. Smart Pocket includes shared expense and reimbursement workflows for common family money situations."
+        }
+      ]
+    },
+    "sharedExpenses": {
+      "linkLabel": "Shared Expenses",
+      "seoTitle": "Shared Expense Tracker and Reimbursement App | Smart Pocket",
+      "seoDescription": "Track who paid, who owes, reimbursements, and settlements in one place so shared money stays clear and organized.",
+      "ogTitle": "Shared Expenses App | Smart Pocket",
+      "ogDescription": "Track shared spending, reimbursements, and settlements without messy notes or confusion.",
+      "hero": {
+        "eyebrow": "Shared Expenses",
+        "title": "Track shared money without the confusion",
+        "subtitle": "From dinners and rent to group purchases and reimbursements, Smart Pocket helps you see who paid, who owes, and what still needs to be settled."
+      },
+      "benefits": [
+        {
+          "title": "Know who covered each cost",
+          "description": "Keep a clean record of shared purchases instead of relying on memory or chat messages."
+        },
+        {
+          "title": "Follow reimbursements clearly",
+          "description": "Track what has been repaid, what is still pending, and what needs a reminder."
+        },
+        {
+          "title": "Reduce awkward money follow-ups",
+          "description": "Use one shared system to remove uncertainty around balances and settlements."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Add a shared expense",
+          "description": "Record the amount, who paid, and who should share the cost."
+        },
+        {
+          "title": "Review the split",
+          "description": "Check how the amount should be shared before saving the transaction."
+        },
+        {
+          "title": "Track repayment and settlement",
+          "description": "Follow reimbursements and close the loop when balances are settled."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Couples and households",
+          "description": "Manage groceries, utility bills, transport, and home purchases across shared routines."
+        },
+        {
+          "title": "Trips and weekends away",
+          "description": "Track shared hotels, meals, transport, and tickets while everyone is still together."
+        },
+        {
+          "title": "Friends and flatmates",
+          "description": "Keep shared spending clear for rent, supplies, and everyday group purchases."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Can I see who still owes money?",
+          "answer": "Yes. Smart Pocket keeps shared expenses and reimbursements visible so pending balances are easier to understand."
+        },
+        {
+          "question": "Do I have to split every expense equally?",
+          "answer": "No. Shared expense workflows can be reviewed so the final split matches the real situation."
+        },
+        {
+          "question": "Can shared expenses live beside personal spending?",
+          "answer": "Yes. Smart Pocket keeps your overall money view in one place while still handling shared scenarios."
+        }
+      ]
+    },
+    "multiCurrencyExpenseTracker": {
+      "linkLabel": "Multi-Currency Expense Tracker",
+      "seoTitle": "Multi-Currency Expense Tracker for Expats and Travellers | Smart Pocket",
+      "seoDescription": "Track spending across accounts and currencies with one app built for expats, travellers, freelancers, and international families.",
+      "ogTitle": "Multi-Currency Expense Tracker | Smart Pocket",
+      "ogDescription": "Manage expenses across currencies and accounts with one clear personal finance app.",
+      "hero": {
+        "eyebrow": "Multi-Currency Expense Tracker",
+        "title": "Track money across currencies without losing clarity",
+        "subtitle": "Smart Pocket helps you follow spending across accounts and currencies so daily tracking stays practical for expats, travellers, and international households."
+      },
+      "benefits": [
+        {
+          "title": "Keep accounts in their real currencies",
+          "description": "Follow each account in the currency it actually uses instead of forcing everything into one manual sheet."
+        },
+        {
+          "title": "Stay organized while moving between countries",
+          "description": "Track everyday spending even when your money is split across banks, cards, and cash."
+        },
+        {
+          "title": "See the bigger picture",
+          "description": "Review spending patterns and balances without losing the original currency context."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Add your accounts and currencies",
+          "description": "Set up the cards, wallets, and bank accounts you actually use."
+        },
+        {
+          "title": "Track transactions in the original currency",
+          "description": "Keep expenses and income tied to the right account and currency."
+        },
+        {
+          "title": "Review your dashboard and reports",
+          "description": "Understand totals and spending trends while still keeping the original currency context available."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Expats",
+          "description": "Track life across home-country accounts, local cards, and travel spending."
+        },
+        {
+          "title": "Freelancers with international clients",
+          "description": "Keep incoming payments and outgoing expenses organized across different currencies."
+        },
+        {
+          "title": "Frequent travellers",
+          "description": "Capture spending in the currency you paid without losing track later."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Can I keep the original currency on each transaction?",
+          "answer": "Yes. Smart Pocket is designed to keep the original currency context visible for your records."
+        },
+        {
+          "question": "Is it useful if I only use two currencies?",
+          "answer": "Yes. It works whether you use two currencies or many more across different accounts."
+        },
+        {
+          "question": "Does Smart Pocket only work for expats?",
+          "answer": "No. It also suits travellers, freelancers, and families who move money across currencies."
+        }
+      ]
+    },
+    "expenseTrackerUae": {
+      "linkLabel": "Expense Tracker UAE",
+      "seoTitle": "Expense Tracker UAE for AED and Everyday Budgeting | Smart Pocket",
+      "seoDescription": "Track expenses, budgets, receipts, subscriptions, and shared money in AED and other currencies with one clear personal finance app.",
+      "ogTitle": "Expense Tracker UAE | Smart Pocket",
+      "ogDescription": "Use Smart Pocket as an AED-friendly expense tracker for budgets, receipts, subscriptions, and shared expenses.",
+      "hero": {
+        "eyebrow": "Expense Tracker UAE",
+        "title": "A practical expense tracker for life in the UAE",
+        "subtitle": "Track daily spending, budgets, subscriptions, receipts, and shared money in AED and other currencies with one simple app."
+      },
+      "benefits": [
+        {
+          "title": "Made for everyday AED tracking",
+          "description": "Keep your usual spending, bills, and routine money decisions in one easy place."
+        },
+        {
+          "title": "Useful for mixed-currency life",
+          "description": "Track AED alongside other currencies when work, travel, or family needs cross borders."
+        },
+        {
+          "title": "Simple enough for daily use",
+          "description": "Use AI-assisted receipt and Smart Entry tools when you want speed, while keeping review in your hands."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Set up your main accounts",
+          "description": "Start with the bank accounts, cards, cash, and wallets you use most."
+        },
+        {
+          "title": "Track expenses your way",
+          "description": "Use manual entry, Smart Entry, or receipt review based on what is fastest for the moment."
+        },
+        {
+          "title": "Monitor budgets and recurring costs",
+          "description": "Stay on top of subscriptions, bills, and monthly spending habits."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Residents managing daily costs",
+          "description": "Follow groceries, transport, rent, schooling, and household bills with less friction."
+        },
+        {
+          "title": "Professionals with mixed currencies",
+          "description": "Handle AED spending while also keeping visibility over other currencies."
+        },
+        {
+          "title": "Families and shared households",
+          "description": "Track shared spending, reimbursements, and recurring commitments in one app."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Can I use Smart Pocket for AED tracking?",
+          "answer": "Yes. Smart Pocket supports AED alongside other supported currencies."
+        },
+        {
+          "question": "Does it help with receipts and subscriptions too?",
+          "answer": "Yes. Smart Pocket includes receipt review, recurring tracking, and subscription visibility based on your plan features."
+        },
+        {
+          "question": "Is it only for UAE users?",
+          "answer": "No. It is useful for anyone, but this page focuses on common personal finance needs in the UAE."
+        }
+      ]
+    }
   }
 }

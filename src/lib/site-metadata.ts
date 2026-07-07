@@ -472,7 +472,7 @@ export async function buildSoftwareApplicationStructuredData(
       price: plan.priceAmount,
       priceCurrency: getPlatformBillingCurrencyCode(plan.currencyCode),
       availability: 'https://schema.org/InStock',
-      url: buildAbsoluteSiteUrl('/home#pricing', settings),
+      url: buildAbsoluteSiteUrl('/#pricing', settings),
       category: plan.billingInterval,
     }));
 
