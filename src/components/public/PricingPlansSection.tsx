@@ -55,16 +55,29 @@ function getPublicPlanFeatureRows(
       ? t('home.pricing.features.receiptIntelligence', {
           count: plan.monthlyReceiptExtractions,
         })
-      : t('home.pricing.features.receiptIntelligenceDisabled', {
-          defaultValue: 'Receipt Intelligence not included',
-        }),
+      : t('home.pricing.features.receiptIntelligenceDisabled'),
     plan.aiHistoryEnabled
       ? t('home.pricing.features.aiHistoryEnabled', {
           days: plan.aiHistoryRetentionDays,
         })
       : t('home.pricing.features.aiHistoryDisabled'),
-    ...plan.featureLimits.map((limit) => `${limit.featureKey}: ${limit.featureValue}`),
   ];
+}
+
+function getPlanAudienceLabel(
+  planCode: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (planCode) {
+    case 'free_trial':
+      return t('home.pricing.audience.free');
+    case 'personal':
+      return t('home.pricing.audience.personal');
+    case 'family':
+      return t('home.pricing.audience.family');
+    default:
+      return '';
+  }
 }
 
 export default function PricingPlansSection({
@@ -160,10 +173,19 @@ export default function PricingPlansSection({
     >
       <div className={`mx-auto ${isDark ? 'max-w-7xl' : 'max-w-5xl'}`}>
         <div className="text-center mb-14">
+          {freeTrialPlan?.trialDurationDays ? (
+            <div className={`mb-4 inline-flex rounded-full px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] ${
+              isDark ? 'border border-cyan-300/25 bg-cyan-300/10 text-cyan-200' : 'border border-accent/20 bg-accent/10 text-accent'
+            }`}>
+              {t('home.pricing.trialBadge', { days: freeTrialPlan.trialDurationDays })}
+            </div>
+          ) : null}
           <h2 className={`text-3xl sm:text-4xl font-800 mb-4 ${isDark ? 'text-white' : 'text-foreground'}`}>
             {t('home.sections.pricingTitle')}
           </h2>
-          <p className={isDark ? 'text-slate-300' : 'text-muted-foreground'}>{t('home.pricing.subtitle')}</p>
+          <p className={isDark ? 'text-slate-300' : 'text-muted-foreground'}>
+            {t('home.sections.pricingDescription')}
+          </p>
         </div>
         {availableIntervals.length > 1 ? (
           <div className="mb-8 flex justify-center">
@@ -281,6 +303,11 @@ export default function PricingPlansSection({
                       {plan.description ? (
                         <p className={isDark ? 'mt-3 text-sm text-slate-300' : 'mt-3 text-sm text-muted-foreground'}>{plan.description}</p>
                       ) : null}
+                      {getPlanAudienceLabel(plan.planCode, t) ? (
+                        <p className={isDark ? 'mt-3 text-sm font-600 text-cyan-200' : 'mt-3 text-sm font-600 text-accent'}>
+                          {getPlanAudienceLabel(plan.planCode, t)}
+                        </p>
+                      ) : null}
                     </div>
                     <ul className="space-y-2.5 mb-6 flex-1">
                       {featureRows.map((feature) => (
@@ -334,7 +361,7 @@ export default function PricingPlansSection({
         {showViewDetailsLink ? (
           <div className="text-center mt-4">
             <Link
-              href="/home#pricing"
+              href="/#pricing"
               className={`inline-flex items-center gap-1.5 text-sm font-600 ${isDark ? 'text-cyan-300 hover:text-cyan-200' : 'text-accent hover:underline'}`}
             >
               {t('home.pricing.viewDetails')} <ArrowRight size={14} />

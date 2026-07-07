@@ -2,13 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Apple,
   ArrowRight,
   BarChart3,
   Bot,
   CheckCircle2,
   FileText,
-  Languages,
   Lock,
   Mail,
   Monitor,
@@ -21,7 +19,6 @@ import {
   Tablet,
   TrendingUp,
   Wallet,
-  Zap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
@@ -45,7 +42,6 @@ const HOW_IT_WORKS = [
   { id: 'accounts', step: '02' },
   { id: 'transactions', step: '03' },
   { id: 'budgets', step: '04' },
-  { id: 'reports', step: '05' },
 ] as const;
 
 const LANGUAGES = [
@@ -53,6 +49,12 @@ const LANGUAGES = [
   { code: 'AR', nameKey: 'common:language.ar', dirKey: 'home.languages.rtl' },
   { code: 'FR', nameKey: 'common:language.fr', dirKey: 'home.languages.ltr' },
   { code: 'RU', nameKey: 'common:language.ru', dirKey: 'home.languages.ltr' },
+] as const;
+
+const HOME_DEVICES = [
+  { icon: Smartphone, labelKey: 'home.platform.mobileTitle' },
+  { icon: Monitor, labelKey: 'home.platform.desktopTitle' },
+  { icon: Tablet, labelKey: 'home.platform.tabletTitle' },
 ] as const;
 
 type IconComponent = React.ComponentType<{
@@ -325,7 +327,7 @@ function DashboardPreview() {
           </div>
           <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] text-slate-300 md:flex">
             <Sparkles size={11} className="text-cyan-300" />
-            {t('home.ai.badge', { defaultValue: 'AI-ready' })}
+            {t('home.ai.badge')}
           </div>
         </div>
 
@@ -354,7 +356,7 @@ function DashboardPreview() {
             <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-700 uppercase tracking-[0.2em] text-cyan-300/80">
-                  {t('home.preview.brandName', { defaultValue: 'Smart Pocket' })}
+                  {t('home.preview.brandName')}
                 </p>
                 <h3 className="mt-1.5 text-base font-700 text-white sm:text-lg">
                   {t('home.preview.balance')}
@@ -555,7 +557,7 @@ export default function HomePage({
           <div className="max-w-2xl py-5 lg:py-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-xs font-700 uppercase tracking-[0.22em] text-cyan-200">
               <Sparkles size={12} className="text-cyan-300" />
-              {t('home.hero.aiBadge', { defaultValue: 'AI-powered personal finance' })}
+              {t('home.hero.aiBadge')}
             </div>
             <h1 className="mt-6 text-4xl font-800 leading-[0.96] tracking-tight text-white sm:text-5xl lg:text-6xl xl:text-[4.15rem]">
               {heroTitleLines.map((line, index) => (
@@ -582,7 +584,7 @@ export default function HomePage({
                 <ArrowRight size={18} />
               </Link>
               <Link
-                href="/home#about"
+                href="/#features"
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-base font-700 text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#041229]"
               >
                 {heroCTASecondary}
@@ -612,7 +614,7 @@ export default function HomePage({
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-end">
             <div>
               <p className="text-xs font-800 uppercase tracking-[0.24em] text-cyan-600">
-                {t('home.sections.aboutEyebrow', { defaultValue: 'Everything in one place' })}
+                {t('home.sections.aboutEyebrow')}
               </p>
               <h2 className="mt-4 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
                 {t('home.sections.aboutTitle')}
@@ -621,6 +623,48 @@ export default function HomePage({
             <p className="max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
               {t('home.sections.aboutDescription')}
             </p>
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+              <p className="text-xs font-700 uppercase tracking-[0.2em] text-cyan-600">
+                {t('home.about.audienceEyebrow')}
+              </p>
+              <h3 className="mt-3 text-2xl font-800 tracking-tight text-slate-950">
+                {t('home.about.audienceTitle')}
+              </h3>
+              <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
+                {t('home.about.audienceDescription')}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {[
+                  t('home.about.audiences.ordinaryPeople'),
+                  t('home.about.audiences.families'),
+                  t('home.about.audiences.freelancers'),
+                  t('home.about.audiences.expats'),
+                  t('home.about.audiences.sharedMoney'),
+                ].map((audience) => (
+                  <span
+                    key={audience}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-700 text-slate-700"
+                  >
+                    {audience}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-cyan-100 bg-[linear-gradient(180deg,#ecfeff,#ffffff)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
+                <Sparkles size={20} />
+              </div>
+              <h3 className="mt-4 text-xl font-800 tracking-tight text-slate-950">
+                {t('home.about.noteTitle')}
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">
+                {t('home.about.noteDescription')}
+              </p>
+            </div>
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-12">
@@ -679,17 +723,17 @@ export default function HomePage({
                 {t('home.ai.badge')}
               </div>
               <h2 className="mt-5 text-3xl font-800 tracking-tight sm:text-5xl">
-                {t('home.ai.title', { defaultValue: 'Your finances, understood by AI' })}
+                {t('home.ai.title')}
               </h2>
               <p className="mt-5 max-w-xl text-base leading-7 text-slate-300">
                 {t('home.ai.description')}
               </p>
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {[
-                  t('home.benefits.balanceTitle'),
-                  t('home.benefits.reportsTitle'),
-                  t('home.security.rlsTitle'),
-                  t('home.sections.platformTitle'),
+                  t('home.ai.highlights.type'),
+                  t('home.ai.highlights.voice'),
+                  t('home.ai.highlights.receipts'),
+                  t('home.ai.highlights.review'),
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
                     <CheckCircle2 size={16} className="text-emerald-300" />
@@ -708,20 +752,20 @@ export default function HomePage({
                       <Bot size={21} className="text-cyan-300" />
                     </div>
                     <div>
-                      <p className="text-sm font-700 text-white">{t('home.ai.badge')}</p>
-                      <p className="text-xs text-slate-400">{t('home.ai.roadmap.previewLabel')}</p>
+                      <p className="text-sm font-700 text-white">{t('home.ai.panelTitle')}</p>
+                      <p className="text-xs text-slate-400">{t('home.ai.panelSubtitle')}</p>
                     </div>
                   </div>
-                  <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-cyan-200">
-                    {t('home.ai.planned')}
+                  <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.12em] text-emerald-200">
+                    {t('home.ai.reviewBadge')}
                   </span>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
-                    { icon: BarChart3, title: t('home.ai.features.1'), desc: t('home.ai.roadmap.descriptions.1') },
-                    { icon: Sparkles, title: t('home.ai.features.2'), desc: t('home.ai.roadmap.descriptions.2') },
-                    { icon: PieChart, title: t('home.ai.features.3'), desc: t('home.ai.roadmap.descriptions.3') },
-                    { icon: Shield, title: t('home.ai.features.4'), desc: t('home.ai.roadmap.descriptions.4') },
+                    { icon: Mail, title: t('home.ai.features.1'), desc: t('home.ai.roadmap.descriptions.1') },
+                    { icon: Smartphone, title: t('home.ai.features.2'), desc: t('home.ai.roadmap.descriptions.2') },
+                    { icon: FileText, title: t('home.ai.features.3'), desc: t('home.ai.roadmap.descriptions.3') },
+                    { icon: CheckCircle2, title: t('home.ai.features.4'), desc: t('home.ai.roadmap.descriptions.4') },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
@@ -730,8 +774,8 @@ export default function HomePage({
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400/12">
                             <Icon size={18} className="text-cyan-300" />
                           </div>
-                          <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-cyan-200">
-                            {t('home.ai.planned')}
+                          <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-slate-200">
+                            {t('home.ai.cardLabel')}
                           </span>
                         </div>
                         <p className="mt-4 text-sm font-700 text-white">{item.title}</p>
@@ -743,17 +787,9 @@ export default function HomePage({
                 <div className="mt-4 rounded-[1.35rem] border border-white/10 bg-[#07192d]/90 p-4">
                   <div className="flex items-center justify-between text-xs text-slate-400">
                     <span>{t('home.ai.roadmap.cashFlowSignal')}</span>
-                    <span className="text-emerald-300">{t('home.ai.badge')}</span>
+                    <span className="text-emerald-300">{t('home.ai.reviewBadge')}</span>
                   </div>
-                  <div className="mt-3 flex h-16 items-end gap-2">
-                    {[24, 34, 30, 42, 50, 46, 58, 52].map((height, index) => (
-                      <span
-                        key={index}
-                        className="flex-1 rounded-t-full bg-gradient-to-t from-cyan-600 to-cyan-300"
-                        style={{ height: `${height}%` }}
-                      />
-                    ))}
-                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">{t('home.ai.reviewNote')}</p>
                 </div>
               </div>
             </div>
@@ -781,32 +817,40 @@ export default function HomePage({
 
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
             <h3 className="text-xl font-800 text-slate-950">{t('home.sections.platformTitle')}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t('home.sections.platformDescription')}</p>
             <div className="mt-5 space-y-4">
-              {[
-                { icon: Smartphone, label: t('home.platform.mobileTitle') },
-                { icon: Monitor, label: t('home.platform.desktopTitle') },
-                { icon: Tablet, label: t('home.platform.tabletTitle') },
-              ].map((item) => {
+              {HOME_DEVICES.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.label} className="flex items-center gap-3">
+                  <div key={item.labelKey} className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50">
                       <Icon size={18} className="text-cyan-700" />
                     </div>
-                    <span className="text-sm font-600 text-slate-700">{item.label}</span>
+                    <span className="text-sm font-600 text-slate-700">{t(item.labelKey)}</span>
                   </div>
                 );
               })}
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {LANGUAGES.map((languageOption) => (
+                <span
+                  key={languageOption.code}
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-700 text-slate-700"
+                >
+                  {t(languageOption.nameKey)}
+                </span>
+              ))}
             </div>
           </article>
 
           <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
             <h3 className="text-xl font-800 text-slate-950">{t('home.security.heading')}</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{t('home.security.body')}</p>
             <div className="mt-5 space-y-3">
               {[
-                { icon: Lock, id: 'rls' },
-                { icon: Shield, id: 'rest' },
-                { icon: CheckCircle2, id: 'privacy' },
+                { icon: Lock, id: 'simplePrivacy' },
+                { icon: Shield, id: 'simpleReview' },
+                { icon: CheckCircle2, id: 'simpleControl' },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
@@ -822,88 +866,14 @@ export default function HomePage({
                 );
               })}
             </div>
+            <Link
+              href="/security"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-700 text-cyan-700 transition-colors hover:text-cyan-800"
+            >
+              {t('home.security.readSecurity')}
+              <ArrowRight size={15} />
+            </Link>
           </article>
-        </div>
-      </section>
-
-      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] text-cyan-700">
-                <Languages size={12} />
-                {t('home.languages.label')}
-              </div>
-              <h2 className="mt-5 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
-                {t('home.sections.languagesTitle')}
-              </h2>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600">
-                {t('home.sections.languagesDescription')}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                {LANGUAGES.map((languageOption) => (
-                  <div
-                    key={languageOption.code}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
-                  >
-                    <p className="text-sm font-700 text-slate-900">{t(languageOption.nameKey)}</p>
-                    <p className="mt-1 text-xs text-slate-500">{t(languageOption.dirKey)}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-[1.6rem] border border-slate-200 bg-slate-50 p-5 md:col-span-2">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-100">
-                    <Zap size={20} className="text-cyan-700" />
-                  </div>
-                  <div>
-                    <p className="text-lg font-700 text-slate-950">{t('home.platform.pwaTitle')}</p>
-                    <p className="text-sm text-slate-600">{t('home.platform.pwaDescription')}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
-                <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-500">
-                  {t('home.currency.title')}
-                </p>
-                <div className="mt-4 space-y-3">
-                  {[
-                    { code: 'USD', name: t('home.currency.usd'), sample: formatCurrencyText(1250, { currencyCode: 'USD' }) },
-                    { code: 'EUR', name: t('home.currency.eur'), sample: formatCurrencyText(1250, { currencyCode: 'EUR' }) },
-                    { code: 'AED', name: t('home.currency.aed'), sample: formatCurrencyText(1250, { currencyCode: 'AED' }) },
-                  ].map((currency) => (
-                    <div
-                      key={currency.code}
-                      className="flex items-center justify-between rounded-2xl bg-slate-50 px-3 py-2"
-                    >
-                      <span className="text-sm font-600 text-slate-900">{currency.name}</span>
-                      <span className="text-xs font-700 text-cyan-700">{currency.sample}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="rounded-[1.6rem] border border-slate-200 bg-white p-5">
-                <p className="text-xs font-700 uppercase tracking-[0.18em] text-slate-500">
-                  {t('home.sections.platformTitle')}
-                </p>
-                <div className="mt-5 flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <Apple size={22} className="text-slate-900" />
-                    <span className="text-sm font-600 text-slate-700">{t('home.auth.apple')}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-50 text-cyan-700">
-                      <Sparkles size={15} />
-                    </div>
-                    <span className="text-sm font-600 text-slate-700">{t('home.auth.google')}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -912,24 +882,17 @@ export default function HomePage({
       <FeaturedBlogSection
         posts={featuredBlogPosts}
         locale={language}
-        eyebrow={t('blog.home.eyebrow', { ns: 'public', defaultValue: 'Blog' })}
-        title={t('blog.home.title', {
-          ns: 'public',
-          defaultValue: 'Featured guides for receipts, budgets, and everyday money habits',
-        })}
-        description={t('blog.home.description', {
-          ns: 'public',
-          defaultValue: 'Explore the latest Smart Pocket advice on keeping money routines simple, readable, and review-friendly.',
-        })}
-        viewAllLabel={t('blog.home.viewAll', { ns: 'public', defaultValue: 'View all blog posts' })}
+        eyebrow={t('blog.home.eyebrow', { ns: 'public' })}
+        title={t('blog.home.title', { ns: 'public' })}
+        description={t('blog.home.description', { ns: 'public' })}
+        viewAllLabel={t('blog.home.viewAll', { ns: 'public' })}
         readTimeLabel={(minutes) =>
           t('blog.common.readTime', {
             ns: 'public',
-            defaultValue: '{{count}} min read',
             count: minutes,
           })
         }
-        readArticleLabel={t('blog.common.readArticleLabel', { ns: 'public', defaultValue: 'Read article' })}
+        readArticleLabel={t('blog.common.readArticleLabel', { ns: 'public' })}
       />
 
       <section className="px-4 py-8 sm:px-6 lg:px-8">
@@ -948,7 +911,7 @@ export default function HomePage({
               {t('home.cta.primary')}
             </Link>
             <Link
-              href="/home#about"
+              href="/#about"
               className="inline-flex items-center justify-center rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-700 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-600"
             >
               {t('home.learnMore')}
@@ -961,16 +924,13 @@ export default function HomePage({
         <div className="mx-auto max-w-3xl text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-700 uppercase tracking-[0.18em] text-slate-600">
             <Mail size={12} />
-            {t('home.contact.badge', { defaultValue: 'Get in touch' })}
+            {t('home.contact.badge')}
           </div>
           <h2 className="mt-5 text-3xl font-800 tracking-tight text-slate-950 sm:text-5xl">
-            {t('home.contact.title', { defaultValue: 'Have questions? We are here.' })}
+            {t('home.contact.title')}
           </h2>
           <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">
-            {t('home.contact.description', {
-              defaultValue:
-                'Whether you need help getting started, have a feature request, or want to discuss pricing, our team is ready to help.',
-            })}
+            {t('home.contact.description')}
           </p>
           <Link
             href="/contact"
@@ -1006,10 +966,10 @@ export default function HomePage({
                   <ArrowRight size={15} />
                 </Link>
                 <Link
-                  href="/home#pricing"
+                  href="/#pricing"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-700 text-white"
                 >
-                  {t('footer.linkPricing', { defaultValue: 'Pricing' })}
+                  {t('footer.linkPricing')}
                 </Link>
               </div>
               <div className="flex items-center justify-center gap-1.5 lg:justify-start">

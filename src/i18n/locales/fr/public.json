@@ -28,28 +28,49 @@
   },
   "home": {
     "hero": {
-      "title": "Vos finances,\nclairement visibles",
-      "subtitle": "Smart Pocket suit chaque compte, budget et transaction dans un tableau de bord clair avec des rapports professionnels, la prise en charge multi-devises et une sécurité de niveau bancaire.",
+      "title": "Votre compagnon IA\npour l'argent au quotidien",
+      "subtitle": "Smart Pocket est un compagnon du quotidien, alimenté par l'IA, qui vous aide à suivre vos dépenses, scanner vos reçus, gérer vos abonnements, planifier vos budgets, organiser l'argent partagé et garder une vue claire sur plusieurs devises.",
+      "aiBadge": "Votre compagnon IA pour l'argent au quotidien",
       "primaryCta": "Commencer gratuitement",
-      "secondaryCta": "Voir les fonctionnalités"
+      "secondaryCta": "Explorer les fonctionnalités"
+    },
+    "trust": {
+      "noCard": "Aucune carte bancaire requise",
+      "freePlan": "Offre gratuite disponible",
+      "oauthEnabled": "Connexion sécurisée avec les méthodes activées sur votre plateforme"
     },
     "sections": {
-      "aboutTitle": "Une seule application pour toute votre vie financière",
+      "aboutEyebrow": "Qu'est-ce que Smart Pocket ?",
+      "aboutTitle": "Une vision simple de votre argent au quotidien",
       "featuresTitle": "Conçu pour une vraie clarté financière",
-      "stepsTitle": "Prêt en quelques minutes",
-      "platformTitle": "Fonctionne partout où vous travaillez",
+      "stepsTitle": "Comment Smart Pocket vous aide au quotidien",
+      "platformTitle": "Conçu pour la vraie vie",
       "securityTitle": "Sécurité et confidentialité d'abord",
-      "pricingTitle": "Des tarifs simples et transparents",
+      "pricingTitle": "Des tarifs simples, une prochaine étape claire",
       "languagesTitle": "Disponible en quatre langues d'interface",
-      "ctaTitle": "Prêt à reprendre le contrôle de votre argent ?",
-      "aboutDescription": "Du café quotidien au loyer mensuel, chaque transaction, chaque compte et chaque budget restent au même endroit.",
+      "ctaTitle": "Prêt à vous sentir plus en contrôle de votre argent ?",
+      "aboutDescription": "Smart Pocket aide les gens ordinaires à comprendre ce qu'ils dépensent, ce qui arrive et ce qui mérite votre attention, sans tableurs compliqués ni logiciel comptable.",
       "featuresDescription": "Chaque fonctionnalité est conçue autour d'une seule question : vous aide-t-elle à mieux comprendre votre argent ?",
-      "stepsDescription": "Aucune connexion bancaire requise. Ajoutez vos comptes et commencez à suivre immédiatement.",
-      "platformDescription": "Smart Pocket est une application web progressive que vous pouvez installer sur n'importe quel appareil, utiliser dans n'importe quel navigateur moderne et garder disponible hors ligne.",
-      "securityDescription": "Vos données financières restent protégées grâce à l'isolation, au chiffrement et à des paramètres respectueux de la confidentialité.",
-      "pricingDescription": "Commencez gratuitement et passez à une offre supérieure seulement lorsque vous avez besoin de plus de capacité ou de collaboration.",
+      "stepsDescription": "Tapez une transaction comme un message, dictez-la à la voix, importez un reçu, puis vérifiez avant d'enregistrer.",
+      "platformDescription": "Utilisez Smart Pocket sur téléphone, tablette ou ordinateur et choisissez la langue d'interface qui vous convient.",
+      "securityDescription": "Votre compte reste protégé, vos données restent privées et les suggestions IA restent basées sur la relecture.",
+      "pricingDescription": "Commencez par un essai gratuit, puis choisissez l'offre adaptée à une personne ou à une famille.",
       "languagesDescription": "Choisissez l'anglais, l'arabe, le français ou le russe pour l'interface tout en gardant la langue d'entrée Smart Entry séparée.",
-      "ctaDescription": "Créez votre compte, ajoutez vos comptes, puis suivez revenus, dépenses, budgets et rapports en quelques minutes."
+      "ctaDescription": "Commencez votre essai gratuit, suivez l'essentiel au même endroit et laissez Smart Pocket vous aider à rester organisé jour après jour."
+    },
+    "about": {
+      "audienceEyebrow": "Conçu pour les gens, pas pour les comptables",
+      "audienceTitle": "Pour les particuliers, les familles, les freelances, les expatriés et tous ceux qui en ont assez de deviner où part leur argent",
+      "audienceDescription": "Utilisez Smart Pocket pour comprendre les dépenses du quotidien, l'argent partagé, les factures, les budgets, les abonnements et les reçus sans devoir apprendre un logiciel comptable.",
+      "noteTitle": "Une façon plus sereine de suivre son argent",
+      "noteDescription": "Smart Pocket est pensé pour rester simple, lisible et utile afin de vous aider à construire de meilleures habitudes sans stress.",
+      "audiences": {
+        "ordinaryPeople": "Particuliers",
+        "families": "Familles",
+        "freelancers": "Freelances",
+        "expats": "Expatriés",
+        "sharedMoney": "Argent partagé"
+      }
     },
     "benefits": {
       "balanceTitle": "Suivi des soldes en temps réel",
@@ -66,18 +87,18 @@
       "rlsDescription": "Vos données restent privées dans votre compte et séparées de celles des autres utilisateurs."
     },
     "features": {
-      "accountsTitle": "Gestion multi-comptes",
-      "accountsDescription": "Suivez comptes bancaires, cartes, espèces, épargne et portefeuilles numériques avec soldes à jour.",
-      "dashboardTitle": "Tableau de bord intelligent",
-      "dashboardDescription": "Analysez revenus, dépenses, catégories et flux nets depuis un seul écran.",
-      "budgetsTitle": "Gestion des budgets",
-      "budgetsDescription": "Créez des budgets par catégorie avec progression visuelle et alertes de dépassement.",
-      "exportsTitle": "Rapports et exports",
-      "exportsDescription": "Générez des synthèses mensuelles, performances budgétaires et détails revenus/dépenses en PDF ou CSV.",
-      "recurringTitle": "Transactions récurrentes",
-      "recurringDescription": "Automatisez abonnements, loyer et salaires.",
-      "securityTitle": "Sécurité de niveau bancaire",
-      "securityDescription": "L'isolation privée du compte et le chiffrement permettent de garantir que vous seul pouvez accéder à vos données."
+      "accountsTitle": "Sachez où part votre argent",
+      "accountsDescription": "Retrouvez comptes, soldes et dépenses quotidiennes dans une vue claire au lieu de jongler entre plusieurs applications.",
+      "dashboardTitle": "Suivez les dépenses partagées clairement",
+      "dashboardDescription": "Gardez une vue simple sur ce qui a été payé, ce qui reste dû et ce qui demande de l'attention.",
+      "budgetsTitle": "Planifiez vos budgets simplement",
+      "budgetsDescription": "Définissez des limites simples, suivez la progression visuellement et repérez les dépassements tôt.",
+      "exportsTitle": "Suivez les reçus plus vite",
+      "exportsDescription": "Gardez reçus, synthèses mensuelles et rapports partageables ensemble sans travail supplémentaire.",
+      "recurringTitle": "Gérez les abonnements clairement",
+      "recurringDescription": "Gardez un œil sur les factures récurrentes, les abonnements, le loyer et le salaire dans une seule routine.",
+      "securityTitle": "Gérez plusieurs devises facilement",
+      "securityDescription": "Gardez vos finances du quotidien organisées entre plusieurs devises lorsque vous voyagez, travaillez en freelance ou vivez à l'international."
     },
     "steps": {
       "createTitle": "Créez votre compte",
@@ -111,9 +132,16 @@
       "privacyTitle": "Aucune revente des données",
       "privacyDescription": "Smart Pocket ne vend, ne partage ni ne monétise vos données financières.",
       "label": "Sécurité et confidentialité",
-      "heading": "Vos données restent les vôtres",
-      "body": "Smart Pocket utilise des mesures de securite multicouches pour garder les informations de chaque client privees et inaccessibles aux autres utilisateurs.",
-      "readPrivacy": "Lire notre politique de confidentialité"
+      "heading": "Pourquoi faire confiance à Smart Pocket",
+      "body": "Vos données financières restent privées, la connexion reste protégée, les suggestions IA restent soumises à relecture et vous gardez le contrôle de ce qui est enregistré.",
+      "readPrivacy": "Lire notre politique de confidentialité",
+      "simplePrivacyTitle": "Privé et séparé",
+      "simplePrivacyDescription": "Vos données financières restent liées à votre propre compte et ne sont pas librement visibles par d'autres personnes.",
+      "simpleReviewTitle": "Relecture avant enregistrement",
+      "simpleReviewDescription": "L'IA peut préparer les détails, mais c'est vous qui confirmez ce qui doit être enregistré.",
+      "simpleControlTitle": "Vous gardez le contrôle",
+      "simpleControlDescription": "Si quelque chose semble incorrect, vous pouvez relire, corriger ou contacter le support.",
+      "readSecurity": "Voir Sécurité et confiance"
     },
     "pricing": {
       "aboutTitle": "Une seule application pour toute votre vie financière",
@@ -130,6 +158,7 @@
       "familyPeriod": "/mois",
       "familyCta": "Démarrer l'essai Famille",
       "subtitle": "Comparez les offres et quotas en direct depuis le catalogue d'abonnement actuel.",
+      "trialBadge": "Essai gratuit de {{days}} jours disponible",
       "mostPopular": "Le plus populaire",
       "trialHint": "{{planName}} inclut actuellement un essai de {{days}} jours selon la configuration active.",
       "viewDetails": "Comparer les offres",
@@ -153,8 +182,13 @@
         "3": "Budgets partagés",
         "4": "Rapports familiaux"
       },
-      "managePlanCta": "Gerer l'abonnement",
-      "guestPlanCta": "Se connecter pour choisir",
+      "managePlanCta": "Gérer l'abonnement",
+      "guestPlanCta": "Commencer l'essai gratuit",
+      "audience": {
+        "free": "Commencez gratuitement avec l'essentiel",
+        "personal": "Idéal pour une personne",
+        "family": "Idéal pour les familles et l'argent partagé"
+      },
       "providerUnavailable": "Le paiement en ligne n'est pas encore configure. Contactez {{email}} pour demander une mise a niveau.",
       "providerUnavailableNoEmail": "Le paiement en ligne n'est pas encore configure. Contactez le support pour demander une mise a niveau.",
       "intervals": {
@@ -163,9 +197,10 @@
         "yearly": "Annuel"
       },
       "features": {
-        "textAi": "IA texte : {{credits}} credits et {{requests}} requetes par jour",
+        "textAi": "IA texte : {{credits}} crédits et {{requests}} requêtes par jour",
         "voiceAi": "IA vocale : {{minutes}} minutes par cycle",
-        "receiptIntelligence": "Intelligence des recus : {{count}} documents par cycle",
+        "receiptIntelligence": "Lecture des reçus : {{count}} documents par cycle",
+        "receiptIntelligenceDisabled": "Lecture des reçus non incluse",
         "aiHistoryEnabled": "Historique IA : conservation pendant {{days}} jours",
         "aiHistoryDisabled": "Historique IA non inclus"
       },
@@ -303,31 +338,41 @@
       "chartsDescription": "Tendances revenus/dépenses, dépenses par catégorie et performance budgétaire sont interactives."
     },
     "ai": {
-      "badge": "Bientôt disponible",
-      "title": "Des analyses intelligentes sur la feuille de route",
-      "description": "Smart Pocket est conçu avec une architecture prête pour l'IA. Les prochaines versions incluront l'analyse intelligente des habitudes de dépense, la détection d'anomalies et des suggestions financières personnalisées, toujours sur vos propres données.",
-      "planned": "Prévu",
+      "badge": "Une aide IA toujours soumise à relecture",
+      "title": "Laissez l'IA aider sur les tâches répétitives, puis relisez avant d'enregistrer",
+      "description": "Smart Pocket vous aide à capturer l'activité financière du quotidien de façon simple pour passer moins de temps à saisir et plus de temps à comprendre.",
+      "panelTitle": "Comment l'IA vous aide",
+      "panelSubtitle": "Des entrées simples, une relecture claire",
+      "reviewBadge": "Vous confirmez",
+      "cardLabel": "Saisie simple",
+      "reviewNote": "Smart Pocket prépare les détails pour relecture, puis vous confirmez ce qui doit être enregistré.",
+      "highlights": {
+        "type": "Tapez une transaction comme un message",
+        "voice": "Dictez une transaction à la voix",
+        "receipts": "Importez un reçu et préparez les détails plus vite",
+        "review": "Relisez avant d'enregistrer"
+      },
       "features": {
-        "1": "Analyse des habitudes de dépense",
-        "2": "Détection des anomalies et frais inhabituels",
-        "3": "Suggestions d'épargne personnalisées",
-        "4": "Recommandations budgétaires prédictives"
+        "1": "Tapez comme un message",
+        "2": "Parlez avec votre voix",
+        "3": "Importez un reçu",
+        "4": "Relisez avant d'enregistrer"
       },
       "roadmap": {
-        "previewLabel": "Apercu de la feuille de route",
-        "cashFlowSignal": "Signal de tresorerie",
+        "previewLabel": "Aide financière du quotidien",
+        "cashFlowSignal": "IA assistée, toujours relisible",
         "descriptions": {
-          "1": "Reperez plus tot les habitudes recurrentes et les ecarts de categorie.",
-          "2": "Proposez des actions d'epargne concretes a partir de l'activite recente.",
-          "3": "Recommandez des ajustements budgetaires avant que le depassement ne progresse.",
-          "4": "Mettez en avant les activites inhabituelles et les pics soudains de depenses."
+          "1": "Écrivez ce qui s'est passé avec vos mots et laissez Smart Pocket préparer les détails.",
+          "2": "Capturez une dépense rapidement quand taper est trop lent ou peu pratique.",
+          "3": "Importez des reçus, des factures ou des documents puis relisez la transaction préparée.",
+          "4": "Rien n'est enregistré automatiquement. Vous gardez la main sur l'enregistrement final."
         }
       }
     },
     "contact": {
       "badge": "Nous joindre",
       "title": "Des questions ? Nous sommes là.",
-      "description": "Que vous ayez besoin d'aide pour commencer, d'une nouvelle fonctionnalité ou d'une offre entreprise, contactez-nous et nous répondrons sous 24 heures."
+      "description": "Que vous ayez besoin d'aide pour commencer, que vous vouliez comprendre les offres ou que vous ayez une question sur Smart Pocket, contactez-nous et nous répondrons sous 24 heures."
     }
   },
   "authScreen": {
@@ -485,14 +530,14 @@
     "common": {
       "homeLabel": "Accueil",
       "blogLabel": "Blog",
-      "readTime": "{{count}} min read",
-      "readArticleLabel": "Read article"
+      "readTime": "{{count}} min de lecture",
+      "readArticleLabel": "Lire l'article"
     },
     "home": {
       "eyebrow": "Blog",
-      "title": "Featured guides for receipts, budgets, and everyday money habits",
-      "description": "Explore the latest Smart Pocket advice on keeping money routines simple, readable, and review-friendly.",
-      "viewAll": "View all blog posts"
+      "title": "Des guides utiles sur les reçus, les budgets et les habitudes financières du quotidien",
+      "description": "Découvrez des articles Smart Pocket simples pour mieux comprendre les dépenses, l'argent partagé, les abonnements et les routines financières.",
+      "viewAll": "Voir tous les articles"
     },
     "listing": {
       "title": "Smart Pocket Blog",
