@@ -15,6 +15,7 @@ import { buildDefaultStructuredData, buildRootMetadata } from '@/lib/site-metada
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import AnalyticsScripts from '@/components/analytics/AnalyticsScripts';
 import MarketingEventBridge from '@/components/analytics/MarketingEventBridge';
+import RouteScrollManager from '@/components/navigation/RouteScrollManager';
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -96,6 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AuthProvider>
             <LanguageProvider initialLanguage={initialI18nState.language}>
               <I18nProvider>
+                <RouteScrollManager />
                 {children}
               </I18nProvider>
             </LanguageProvider>

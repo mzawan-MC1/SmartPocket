@@ -72,6 +72,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
               </div>
 
               <main
+                data-route-scroll-container="true"
                 className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin lg:h-full"
                 style={{ background: 'var(--background)' }}
               >

@@ -46,7 +46,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <AdminTopbar onToggleSidebar={() => setMobileNavOpen((v) => !v)} />
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin">
+          <main data-route-scroll-container="true" className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-thin">
             <div className="flex min-h-full flex-col">
               <div className="page-shell flex-1 pt-4 pb-8 sm:pt-5 sm:pb-10 lg:pt-5 lg:pb-10">
                 {!isAdmin ? (
