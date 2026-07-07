@@ -542,6 +542,107 @@
       "relatedAction": "Browse all posts"
     }
   },
+  "securityPage": {
+    "eyebrow": "Security & Trust",
+    "title": "Your money data stays private and under your control",
+    "description": "Smart Pocket is designed to help normal people manage money with confidence. We protect account access, keep personal data private, and use review-based AI flows so you stay in control before anything is saved.",
+    "breadcrumbLabel": "Security",
+    "primaryCta": "Start Free Trial",
+    "secondaryCta": "Contact Support",
+    "seoTitle": "Smart Pocket Security & Trust | Personal Finance Privacy and Account Protection",
+    "seoDescription": "Learn how Smart Pocket helps protect your private money data, secure your account, and keep AI-assisted actions review-based before anything is saved.",
+    "ogTitle": "Smart Pocket Security & Trust",
+    "ogDescription": "See how Smart Pocket helps protect your account, private data, receipts, and review-based AI actions.",
+    "twitterTitle": "Smart Pocket Security & Trust",
+    "twitterDescription": "Simple, clear information about how Smart Pocket helps protect your account and money data.",
+    "trustCards": [
+      {
+        "title": "Private by default",
+        "description": "Your accounts and money records are kept separate so other users cannot casually see your information."
+      },
+      {
+        "title": "Secure sign-in",
+        "description": "Smart Pocket uses secure login checks to help protect access to your account."
+      },
+      {
+        "title": "Review before saving",
+        "description": "AI features prepare details for review. You confirm what should be saved."
+      },
+      {
+        "title": "Careful document handling",
+        "description": "Receipts and documents are handled carefully to help prepare information for your review."
+      }
+    ],
+    "protectionEyebrow": "How Smart Pocket protects you",
+    "protectionTitle": "Built to protect your account, data, and decisions",
+    "protectionDescription": "Smart Pocket uses secure account controls behind the scenes, keeps each user account separate, and makes AI suggestions review-based so you stay in charge.",
+    "protectionCards": [
+      {
+        "title": "Your account stays protected",
+        "description": "Sign-in goes through secure authentication checks before access is granted."
+      },
+      {
+        "title": "Your data is not casually visible",
+        "description": "Admin or support access should only happen when a real support or system task requires it."
+      },
+      {
+        "title": "AI helps, you decide",
+        "description": "AI-assisted features prepare suggestions, but you review and confirm before saving."
+      },
+      {
+        "title": "Receipts are handled carefully",
+        "description": "Uploaded receipts and documents are used to help prepare details for review, not to expose your private information."
+      },
+      {
+        "title": "You stay in control",
+        "description": "You can review records, correct details, and decide what should be saved in your account."
+      },
+      {
+        "title": "Support is available",
+        "description": "If something looks wrong, contact Smart Pocket support so the team can help investigate."
+      }
+    ],
+    "checklistEyebrow": "Security checklist",
+    "checklistTitle": "Quick trust summary",
+    "checklistDescription": "A simple overview of the practical steps Smart Pocket takes to help protect you.",
+    "checklistItems": [
+      "Your account is protected with secure login checks.",
+      "Your data is kept separate from other users.",
+      "AI suggestions are review-based before anything is saved.",
+      "Receipts and documents are handled carefully.",
+      "You stay in control of your records and changes.",
+      "You can contact support quickly if something looks wrong."
+    ],
+    "supportNote": "If something looks wrong, contact Smart Pocket support as soon as possible so the team can help investigate.",
+    "faqEyebrow": "Common questions",
+    "faqTitle": "Security & trust FAQs",
+    "faqDescription": "Clear answers to common questions about privacy, account protection, AI review, and support.",
+    "faqs": [
+      {
+        "question": "Can other users see my money data?",
+        "answer": "No. Smart Pocket is designed to keep each user account and its records separate."
+      },
+      {
+        "question": "Can Smart Pocket staff casually view my data?",
+        "answer": "No. Personal data should not be casually viewed. Any support or admin access should only happen when a real support or system task requires it."
+      },
+      {
+        "question": "Does AI save transactions automatically?",
+        "answer": "No. AI features prepare details for review, and you confirm what should be saved."
+      },
+      {
+        "question": "How are receipts and documents handled?",
+        "answer": "Receipts and documents are handled carefully to help prepare details for your review."
+      },
+      {
+        "question": "What should I do if something looks wrong?",
+        "answer": "Contact Smart Pocket support as soon as possible so the team can review the issue with you."
+      }
+    ],
+    "ctaEyebrow": "Start with confidence",
+    "ctaTitle": "Ready to manage money with more confidence?",
+    "ctaDescription": "Use Smart Pocket to track budgets, receipts, subscriptions, and everyday spending with review-based AI assistance and clear account control."
+  },
   "landingPages": {
     "shared": {
       "primaryCta": "Start Free Trial",

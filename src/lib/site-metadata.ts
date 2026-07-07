@@ -530,6 +530,44 @@ export function buildBreadcrumbStructuredData(
   };
 }
 
+export function buildFaqStructuredData(args: {
+  pageUrl: string;
+  language: string;
+  items: Array<{ question: string; answerText: string }>;
+}): StructuredDataValue | null {
+  const deduped = new Map<string, { question: string; answerText: string }>();
+
+  for (const item of args.items) {
+    const question = typeof item.question === 'string' ? item.question.trim() : '';
+    const answerText = typeof item.answerText === 'string' ? item.answerText.trim() : '';
+    const key = question.toLowerCase();
+    if (!key || !answerText || deduped.has(key)) {
+      continue;
+    }
+    deduped.set(key, { question, answerText });
+  }
+
+  const entries = Array.from(deduped.values());
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    inLanguage: args.language,
+    url: args.pageUrl,
+    mainEntity: entries.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answerText,
+      },
+    })),
+  };
+}
+
 export function buildArticleStructuredData({
   settings,
   title,

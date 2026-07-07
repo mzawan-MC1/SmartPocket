@@ -8,50 +8,12 @@ import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import {
   buildBreadcrumbStructuredData,
+  buildFaqStructuredData,
   buildPageMetadata,
   buildAbsoluteSiteUrl,
   resolveMetadataLanguage,
   type StructuredDataValue,
 } from '@/lib/site-metadata';
-
-function buildFaqStructuredData(args: {
-  pageUrl: string;
-  language: string;
-  items: Array<{ question: string; answerText: string }>;
-}): StructuredDataValue | null {
-  const deduped = new Map<string, { question: string; answerText: string }>();
-
-  for (const item of args.items) {
-    const key = item.question.trim().toLowerCase();
-    if (!key || deduped.has(key)) {
-      continue;
-    }
-    deduped.set(key, item);
-  }
-
-  const entries = Array.from(deduped.values()).filter(
-    (item) => item.question.trim() && item.answerText.trim()
-  );
-
-  if (entries.length === 0) {
-    return null;
-  }
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    inLanguage: args.language,
-    url: args.pageUrl,
-    mainEntity: entries.map((item) => ({
-      '@type': 'Question',
-      name: item.question,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: item.answerText,
-      },
-    })),
-  };
-}
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();

@@ -532,6 +532,107 @@
       "relatedAction": "Browse all posts"
     }
   },
+  "securityPage": {
+    "eyebrow": "Sécurité et confiance",
+    "title": "Vos données financières restent privées et sous votre contrôle",
+    "description": "Smart Pocket est conçu pour aider les personnes ordinaires à gérer leur argent en toute confiance. Nous protégeons l’accès au compte, gardons les données personnelles privées et utilisons des flux d’IA avec relecture afin que vous gardiez le contrôle avant tout enregistrement.",
+    "breadcrumbLabel": "Sécurité",
+    "primaryCta": "Commencer l’essai gratuit",
+    "secondaryCta": "Contacter le support",
+    "seoTitle": "Sécurité et confiance Smart Pocket | Confidentialité financière et protection du compte",
+    "seoDescription": "Découvrez comment Smart Pocket aide à protéger vos données financières privées, sécuriser votre compte et garder les actions assistées par IA sous relecture avant tout enregistrement.",
+    "ogTitle": "Sécurité et confiance Smart Pocket",
+    "ogDescription": "Voyez comment Smart Pocket aide à protéger votre compte, vos données privées, vos reçus et les actions assistées par IA avec relecture.",
+    "twitterTitle": "Sécurité et confiance Smart Pocket",
+    "twitterDescription": "Des informations simples et claires sur la façon dont Smart Pocket aide à protéger votre compte et vos données financières.",
+    "trustCards": [
+      {
+        "title": "Privé par défaut",
+        "description": "Vos comptes et vos enregistrements financiers sont séparés afin que d’autres utilisateurs ne puissent pas voir vos informations librement."
+      },
+      {
+        "title": "Connexion sécurisée",
+        "description": "Smart Pocket utilise des vérifications de connexion sécurisées pour aider à protéger l’accès à votre compte."
+      },
+      {
+        "title": "Relecture avant enregistrement",
+        "description": "Les fonctions d’IA préparent les détails pour relecture. C’est vous qui confirmez ce qui doit être enregistré."
+      },
+      {
+        "title": "Documents traités avec soin",
+        "description": "Les reçus et documents sont traités avec soin pour aider à préparer les informations pour votre relecture."
+      }
+    ],
+    "protectionEyebrow": "Comment Smart Pocket vous protège",
+    "protectionTitle": "Conçu pour protéger votre compte, vos données et vos décisions",
+    "protectionDescription": "Smart Pocket utilise des contrôles de compte sécurisés en arrière-plan, garde chaque compte utilisateur séparé et rend les suggestions d’IA basées sur la relecture afin que vous restiez décisionnaire.",
+    "protectionCards": [
+      {
+        "title": "Votre compte reste protégé",
+        "description": "La connexion passe par des vérifications d’authentification sécurisées avant d’accorder l’accès."
+      },
+      {
+        "title": "Vos données ne sont pas visibles librement",
+        "description": "L’accès admin ou support ne doit avoir lieu que lorsqu’une vraie tâche de support ou de système l’exige."
+      },
+      {
+        "title": "L’IA aide, vous décidez",
+        "description": "Les fonctions assistées par IA préparent des suggestions, mais c’est vous qui relisez et confirmez avant l’enregistrement."
+      },
+      {
+        "title": "Les reçus sont traités avec soin",
+        "description": "Les reçus et documents envoyés servent à préparer des détails pour relecture, pas à exposer vos informations privées."
+      },
+      {
+        "title": "Vous gardez le contrôle",
+        "description": "Vous pouvez relire vos enregistrements, corriger les détails et décider de ce qui doit être enregistré dans votre compte."
+      },
+      {
+        "title": "Le support est disponible",
+        "description": "Si quelque chose vous semble anormal, contactez le support Smart Pocket afin que l’équipe puisse vérifier."
+      }
+    ],
+    "checklistEyebrow": "Checklist sécurité",
+    "checklistTitle": "Résumé de confiance rapide",
+    "checklistDescription": "Un aperçu simple des mesures concrètes que Smart Pocket prend pour aider à vous protéger.",
+    "checklistItems": [
+      "Votre compte est protégé par des vérifications de connexion sécurisées.",
+      "Vos données sont séparées de celles des autres utilisateurs.",
+      "Les suggestions d’IA sont relues avant tout enregistrement.",
+      "Les reçus et documents sont traités avec soin.",
+      "Vous gardez le contrôle sur vos enregistrements et vos modifications.",
+      "Vous pouvez contacter rapidement le support si quelque chose semble anormal."
+    ],
+    "supportNote": "Si quelque chose vous semble anormal, contactez le support Smart Pocket dès que possible afin que l’équipe puisse vérifier.",
+    "faqEyebrow": "Questions fréquentes",
+    "faqTitle": "FAQ sécurité et confiance",
+    "faqDescription": "Des réponses claires aux questions fréquentes sur la confidentialité, la protection du compte, la relecture de l’IA et le support.",
+    "faqs": [
+      {
+        "question": "D’autres utilisateurs peuvent-ils voir mes données financières ?",
+        "answer": "Non. Smart Pocket est conçu pour garder chaque compte utilisateur et ses enregistrements séparés."
+      },
+      {
+        "question": "L’équipe Smart Pocket peut-elle consulter mes données librement ?",
+        "answer": "Non. Les données personnelles ne doivent pas être consultées librement. Tout accès support ou admin ne doit avoir lieu que lorsqu’une vraie tâche de support ou de système l’exige."
+      },
+      {
+        "question": "L’IA enregistre-t-elle automatiquement les transactions ?",
+        "answer": "Non. Les fonctions d’IA préparent les détails pour relecture, et c’est vous qui confirmez ce qui doit être enregistré."
+      },
+      {
+        "question": "Comment les reçus et documents sont-ils traités ?",
+        "answer": "Les reçus et documents sont traités avec soin pour aider à préparer les détails pour votre relecture."
+      },
+      {
+        "question": "Que faire si quelque chose semble anormal ?",
+        "answer": "Contactez le support Smart Pocket dès que possible afin que l’équipe puisse examiner le problème avec vous."
+      }
+    ],
+    "ctaEyebrow": "Commencez en confiance",
+    "ctaTitle": "Prêt à gérer votre argent avec plus de confiance ?",
+    "ctaDescription": "Utilisez Smart Pocket pour suivre budgets, reçus, abonnements et dépenses du quotidien avec une aide IA basée sur la relecture et un contrôle clair du compte."
+  },
   "landingPages": {
     "shared": {
       "primaryCta": "Commencer l'essai gratuit",

@@ -15,6 +15,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
               '/',
               '/blog',
               '/blog/*',
+              '/security',
               '/ai-receipt-scanner',
               '/ai-voice-expense-tracker',
               '/family-budget-app',
