@@ -143,9 +143,7 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
         emptyDescription={listing.emptyDescription || 'Try a different keyword, category, or tag.'}
         emptyPublishedTitle={listing.emptyPublishedTitle || 'No blog posts published yet.'}
         emptyPublishedDescription={listing.emptyPublishedDescription || 'Check back soon.'}
-        readTimeLabel={(minutes) =>
-          common.readTime?.replace('{{count}}', String(minutes)) || `${minutes} min read`
-        }
+        readTimeTemplate={common.readTime || '{{count}} min read'}
         readArticleLabel={common.readArticleLabel || 'Read article'}
       />
 

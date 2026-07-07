@@ -22,7 +22,7 @@ export default function BlogArchiveClient({
   emptyDescription,
   emptyPublishedTitle,
   emptyPublishedDescription,
-  readTimeLabel,
+  readTimeTemplate,
   readArticleLabel,
 }: {
   posts: BlogCardData[];
@@ -43,7 +43,7 @@ export default function BlogArchiveClient({
   emptyDescription: string;
   emptyPublishedTitle: string;
   emptyPublishedDescription: string;
-  readTimeLabel: (minutes: number) => string;
+  readTimeTemplate: string;
   readArticleLabel: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
@@ -91,6 +91,8 @@ export default function BlogArchiveClient({
   const emptyStateTitle = !hasActiveFilters && posts.length === 0 ? emptyPublishedTitle : emptyTitle;
   const emptyStateDescription =
     !hasActiveFilters && posts.length === 0 ? emptyPublishedDescription : emptyDescription;
+  const renderReadTimeLabel = (minutes: number) =>
+    readTimeTemplate.replace('{{count}}', String(minutes)) || `${minutes} min read`;
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
@@ -156,7 +158,7 @@ export default function BlogArchiveClient({
               key={post.slug}
               post={post}
               locale={locale}
-              readTimeLabel={readTimeLabel}
+              readTimeLabel={renderReadTimeLabel}
               readArticleLabel={readArticleLabel}
             />
           ))}
