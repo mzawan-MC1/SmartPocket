@@ -5,6 +5,7 @@ import { unstable_noStore as noStore } from 'next/cache';
 import { createClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
+  deriveCmsExcerpt,
   deriveCmsOgDescription,
   deriveCmsOgTitle,
   deriveCmsSeoDescription,
@@ -14,11 +15,13 @@ import {
   deriveCmsTwitterTitle,
   getCmsPageNavigationLabel,
   sanitizeRichTextHtml,
+  type CmsContentType,
   type CmsPageRecord,
 } from '@/lib/cms-pages';
 
 export type PublicCmsPage = CmsPageRecord & {
   navigation_label_resolved: string;
+  excerpt_resolved: string;
   seo_title_resolved: string;
   seo_description_resolved: string;
   seo_keywords_resolved: string[];
@@ -53,6 +56,7 @@ function normalizePage(page: CmsPageRecord | null) {
   return {
     ...page,
     navigation_label_resolved: getCmsPageNavigationLabel(page),
+    excerpt_resolved: deriveCmsExcerpt(page),
     seo_title_resolved: deriveCmsSeoTitle(page),
     seo_description_resolved: deriveCmsSeoDescription(page),
     seo_keywords_resolved: deriveCmsSeoKeywords(page),
@@ -64,17 +68,24 @@ function normalizePage(page: CmsPageRecord | null) {
   } satisfies PublicCmsPage;
 }
 
-async function readPublicCmsPageWithAnonClient(slug: string) {
+async function readPublicCmsPageWithAnonClient(slug: string, contentType: CmsContentType) {
   const supabase = await createAnonClient();
   if (!supabase) {
     return null;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('cms_pages')
     .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
+    .eq('slug', slug);
+
+  if (contentType === 'blog') {
+    query = query.eq('content_type', 'blog');
+  } else if (contentType === 'page') {
+    query = query.eq('content_type', 'page');
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
     throw error;
@@ -83,17 +94,24 @@ async function readPublicCmsPageWithAnonClient(slug: string) {
   return (data as CmsPageRecord | null) || null;
 }
 
-async function readPublicCmsPageWithAdminClient(slug: string) {
+async function readPublicCmsPageWithAdminClient(slug: string, contentType: CmsContentType) {
   const admin = createAdminClient();
   if (!admin) {
     return null;
   }
 
-  const { data, error } = await admin
+  let query = admin
     .from('cms_pages')
     .select('*')
-    .eq('slug', slug)
-    .maybeSingle();
+    .eq('slug', slug);
+
+  if (contentType === 'blog') {
+    query = query.eq('content_type', 'blog');
+  } else if (contentType === 'page') {
+    query = query.eq('content_type', 'page');
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error && error.code !== 'PGRST116') {
     throw error;
@@ -107,19 +125,28 @@ async function readPublicCmsPageWithAdminClient(slug: string) {
   return page;
 }
 
-async function readPublicCmsPagesWithAnonClient() {
+async function readPublicCmsPagesWithAnonClient(contentType: CmsContentType) {
   const supabase = await createAnonClient();
   if (!supabase) {
     return null;
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('cms_pages')
     .select('*')
     .eq('status', 'published')
     .eq('is_enabled', true)
+    .order('published_at', { ascending: false, nullsFirst: false })
     .order('sort_order', { ascending: true })
     .order('title', { ascending: true });
+
+  if (contentType === 'blog') {
+    query = query.eq('content_type', 'blog');
+  } else if (contentType === 'page') {
+    query = query.eq('content_type', 'page');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;
@@ -128,19 +155,28 @@ async function readPublicCmsPagesWithAnonClient() {
   return (data as CmsPageRecord[] | null) || [];
 }
 
-async function readPublicCmsPagesWithAdminClient() {
+async function readPublicCmsPagesWithAdminClient(contentType: CmsContentType) {
   const admin = createAdminClient();
   if (!admin) {
     return null;
   }
 
-  const { data, error } = await admin
+  let query = admin
     .from('cms_pages')
     .select('*')
     .eq('status', 'published')
     .eq('is_enabled', true)
+    .order('published_at', { ascending: false, nullsFirst: false })
     .order('sort_order', { ascending: true })
     .order('title', { ascending: true });
+
+  if (contentType === 'blog') {
+    query = query.eq('content_type', 'blog');
+  } else if (contentType === 'page') {
+    query = query.eq('content_type', 'page');
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     throw error;
@@ -149,25 +185,36 @@ async function readPublicCmsPagesWithAdminClient() {
   return (data as CmsPageRecord[] | null) || [];
 }
 
-export const getPublicCmsPageBySlug = cache(async (slug: string): Promise<PublicCmsPage | null> => {
+async function getPublicCmsContentBySlugInternal(
+  slug: string,
+  contentType: CmsContentType
+): Promise<PublicCmsPage | null> {
   noStore();
 
   try {
-    const anonPage = await readPublicCmsPageWithAnonClient(slug);
+    const anonPage = await readPublicCmsPageWithAnonClient(slug, contentType);
     if (anonPage) {
       return normalizePage(anonPage);
     }
   } catch {}
 
   try {
-    const adminPage = await readPublicCmsPageWithAdminClient(slug);
+    const adminPage = await readPublicCmsPageWithAdminClient(slug, contentType);
     if (adminPage && adminPage.status === 'published' && adminPage.is_enabled) {
       return normalizePage(adminPage);
     }
   } catch {}
 
   return null;
-});
+}
+
+export const getPublicCmsPageBySlug = cache(async (slug: string): Promise<PublicCmsPage | null> =>
+  getPublicCmsContentBySlugInternal(slug, 'page')
+);
+
+export const getPublicBlogPostBySlug = cache(async (slug: string): Promise<PublicCmsPage | null> =>
+  getPublicCmsContentBySlugInternal(slug, 'blog')
+);
 
 export const getAnyCmsPageBySlug = cache(async (slug: string): Promise<CmsPageRecord | null> => {
   noStore();
@@ -190,22 +237,65 @@ export const getAnyCmsPageBySlug = cache(async (slug: string): Promise<CmsPageRe
   return (data as CmsPageRecord | null) || null;
 });
 
-export const listPublicCmsPages = cache(async (): Promise<PublicCmsPage[]> => {
+async function listPublicCmsContentInternal(contentType: CmsContentType): Promise<PublicCmsPage[]> {
   noStore();
 
   try {
-    const anonPages = await readPublicCmsPagesWithAnonClient();
+    const anonPages = await readPublicCmsPagesWithAnonClient(contentType);
     if (anonPages) {
       return anonPages.map((page) => normalizePage(page)!).filter(Boolean);
     }
   } catch {}
 
   try {
-    const adminPages = await readPublicCmsPagesWithAdminClient();
+    const adminPages = await readPublicCmsPagesWithAdminClient(contentType);
     if (adminPages) {
       return adminPages.map((page) => normalizePage(page)!).filter(Boolean);
     }
   } catch {}
 
   return [];
+}
+
+export const listPublicCmsPages = cache(async (): Promise<PublicCmsPage[]> =>
+  listPublicCmsContentInternal('page')
+);
+
+export const listPublicBlogPosts = cache(async (): Promise<PublicCmsPage[]> =>
+  listPublicCmsContentInternal('blog')
+);
+
+export const listFeaturedBlogPosts = cache(async (): Promise<PublicCmsPage[]> => {
+  const posts = await listPublicBlogPosts();
+  return posts.filter((post) => post.is_featured);
 });
+
+export async function listRelatedBlogPosts(
+  currentPost: Pick<PublicCmsPage, 'id' | 'category' | 'tags'>,
+  limit = 3
+): Promise<PublicCmsPage[]> {
+  const posts = await listPublicBlogPosts();
+  const currentTags = new Set((currentPost.tags || []).map((tag) => tag.toLowerCase()));
+
+  return posts
+    .filter((post) => post.id !== currentPost.id)
+    .map((post) => {
+      const sharedTagCount = (post.tags || []).reduce(
+        (count, tag) => count + (currentTags.has(tag.toLowerCase()) ? 1 : 0),
+        0
+      );
+      const sameCategory =
+        currentPost.category &&
+        post.category &&
+        currentPost.category.trim().toLowerCase() === post.category.trim().toLowerCase();
+
+      return {
+        post,
+        score: (sameCategory ? 5 : 0) + sharedTagCount,
+      };
+    })
+    .filter((entry) => entry.score > 0 || Boolean(entry.post.is_featured))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map((entry) => entry.post);
+}

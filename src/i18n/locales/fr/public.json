@@ -481,6 +481,55 @@
     "ogTitle": "FAQ Smart Pocket",
     "ogDescription": "Trouvez des réponses sur les fonctionnalités Smart Pocket, le support et les workflows financiers du quotidien."
   },
+  "blog": {
+    "common": {
+      "homeLabel": "Accueil",
+      "blogLabel": "Blog",
+      "readTime": "{{count}} min read",
+      "readArticleLabel": "Read article"
+    },
+    "home": {
+      "eyebrow": "Blog",
+      "title": "Featured guides for receipts, budgets, and everyday money habits",
+      "description": "Explore the latest Smart Pocket advice on keeping money routines simple, readable, and review-friendly.",
+      "viewAll": "View all blog posts"
+    },
+    "listing": {
+      "title": "Smart Pocket Blog",
+      "description": "Simple, practical guides for budgeting, receipts, subscriptions, and everyday money habits.",
+      "seoTitle": "Smart Pocket Blog | Money Guides, Receipt Tips, and Budgeting Advice",
+      "seoDescription": "Read Smart Pocket blog posts about receipts, subscriptions, shared expenses, budgeting, and cleaner money routines.",
+      "ogTitle": "Smart Pocket Blog",
+      "ogDescription": "Read practical Smart Pocket guides on receipts, budgeting, subscriptions, and shared expenses.",
+      "twitterTitle": "Smart Pocket Blog",
+      "twitterDescription": "Money guides from Smart Pocket on receipts, budgeting, subscriptions, and shared expenses.",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search articles",
+      "categoryLabel": "Category",
+      "categoryAllLabel": "All categories",
+      "tagLabel": "Tag",
+      "tagAllLabel": "All tags",
+      "emptyTitle": "No posts match your filters",
+      "emptyDescription": "Try a different keyword, category, or tag.",
+      "ctaEyebrow": "Start with Smart Pocket",
+      "ctaTitle": "Ready to turn money notes, receipts, and shared spending into a cleaner routine?",
+      "ctaDescription": "Use Smart Pocket to review AI-assisted suggestions, stay on top of budgets, and keep daily money tasks simple.",
+      "ctaPrimaryLabel": "Start Free Trial",
+      "ctaSecondaryLabel": "See Smart Pocket"
+    },
+    "detail": {
+      "breadcrumbLabel": "Breadcrumbs",
+      "shareTitle": "Share this article",
+      "ctaEyebrow": "Ready to review before you save?",
+      "ctaTitle": "Let Smart Pocket prepare the details, then stay in control.",
+      "ctaDescription": "Upload receipts, track subscriptions, and keep shared expenses simple with AI-assisted review flows.",
+      "ctaPrimaryLabel": "Start Free Trial",
+      "ctaSecondaryLabel": "See Smart Pocket",
+      "relatedEyebrow": "Keep reading",
+      "relatedTitle": "Related articles",
+      "relatedAction": "Browse all posts"
+    }
+  },
   "landingPages": {
     "shared": {
       "primaryCta": "Commencer l'essai gratuit",

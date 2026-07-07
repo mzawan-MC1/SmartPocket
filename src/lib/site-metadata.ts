@@ -538,6 +538,7 @@ export function buildArticleStructuredData({
   imageUrl,
   publishedAt,
   updatedAt,
+  authorName,
   language,
 }: {
   settings: PlatformSettingsSnapshot;
@@ -547,6 +548,7 @@ export function buildArticleStructuredData({
   imageUrl?: string;
   publishedAt?: string | null;
   updatedAt?: string | null;
+  authorName?: string | null;
   language: SupportedLanguage;
 }): StructuredDataValue {
   const blockedSources = [
@@ -573,10 +575,15 @@ export function buildArticleStructuredData({
     inLanguage: language,
     datePublished: publishedAt || undefined,
     dateModified: updatedAt || publishedAt || undefined,
-    author: {
-      '@type': 'Organization',
-      name: settings.seo.organizationName || settings.branding.appName,
-    },
+    author: authorName
+      ? {
+          '@type': 'Person',
+          name: authorName,
+        }
+      : {
+          '@type': 'Organization',
+          name: settings.seo.organizationName || settings.branding.appName,
+        },
     publisher: {
       '@type': 'Organization',
       name: settings.seo.organizationName || settings.branding.appName,

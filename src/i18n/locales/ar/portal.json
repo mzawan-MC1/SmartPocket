@@ -3575,5 +3575,133 @@
     "deleteCategoryCascadeDescription": "سيتم أيضاً حذف {{count}} سؤالاً شائعاً مرتبطاً. لا يمكن التراجع عن هذا الإجراء.",
     "deleteItemTitle": "حذف {{name}}؟",
     "deleteItemDescription": "ستتم إزالة هذا السؤال الشائع نهائياً."
+  },
+  "adminBlog": {
+    "navLabel": "المدونة",
+    "headerHint": "Blog content saves inside the Blog tab using the shared CMS and SEO pipeline.",
+    "sidebar": {
+      "title": "Blog Management",
+      "description": "Create, feature, and manage blog posts from the same CMS source of truth."
+    },
+    "editor": {
+      "createTitle": "Create Blog Post",
+      "editTitle": "Edit Blog Post",
+      "description": "Draft, publish, feature, optimize, and preview public blog content."
+    },
+    "notice": "Blog posts reuse the existing CMS table, metadata fields, and public SEO pipeline.",
+    "actions": {
+      "add": "Add Post",
+      "create": "Create Post",
+      "save": "Save Changes",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "enable": "Enable",
+      "disable": "Disable",
+      "feature": "Feature",
+      "unfeature": "Unfeature",
+      "showPreview": "Preview",
+      "hidePreview": "Hide Preview",
+      "delete": "Delete",
+      "openLive": "Open Live Post",
+      "openLiveHint": "Published and enabled posts open in a new tab.",
+      "confirmDelete": "Delete \"{{title}}\"? This cannot be undone."
+    },
+    "filters": {
+      "searchPlaceholder": "Search title, slug, author, category, or tag...",
+      "allStatuses": "All statuses",
+      "allVisibility": "All visibility",
+      "allFeatured": "All featured states"
+    },
+    "status": {
+      "published": "Published",
+      "draft": "Draft",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "featured": "Featured",
+      "standard": "Standard"
+    },
+    "empty": {
+      "title": "No blog posts found",
+      "description": "Adjust the filters or create your first blog post."
+    },
+    "fields": {
+      "title": "Title",
+      "slug": "Slug",
+      "author": "Author name",
+      "category": "Category",
+      "publishDate": "Publish date",
+      "readingTime": "Reading time (minutes)",
+      "readingTimeHint": "Leave blank to derive it automatically from the content.",
+      "excerpt": "Excerpt",
+      "tags": "Tags / hashtags",
+      "enabled": "Enabled",
+      "featured": "Featured on homepage",
+      "published": "Published",
+      "coverImage": "Cover image",
+      "coverImageHint": "The same image can also populate the social preview fields if they are blank.",
+      "coverImageAlt": "Cover image alt text",
+      "content": "Blog content"
+    },
+    "placeholders": {
+      "title": "How Smart Pocket helps you stay on top of spending",
+      "author": "Smart Pocket Team",
+      "category": "Budgeting",
+      "excerpt": "Summarize the key point in one or two short paragraphs.",
+      "tags": "budgeting, receipts, money habits",
+      "coverAlt": "A short description for readers and accessibility",
+      "content": "Write the blog post content..."
+    },
+    "seo": {
+      "title": "SEO & social metadata",
+      "description": "These fields reuse the existing metadata system for canonical, Open Graph, and Twitter output.",
+      "fields": {
+        "seoTitle": "SEO title",
+        "canonicalUrl": "Canonical URL",
+        "seoDescription": "SEO description",
+        "keywords": "SEO keywords",
+        "ogTitle": "Open Graph title",
+        "ogDescription": "Open Graph description",
+        "ogImage": "Open Graph image",
+        "twitterTitle": "Twitter title",
+        "twitterDescription": "Twitter description",
+        "twitterImage": "Twitter image"
+      },
+      "placeholders": {
+        "canonicalUrl": "Optional override"
+      }
+    },
+    "preview": {
+      "title": "Article preview",
+      "description": "Sanitized public output preview.",
+      "untitled": "Untitled blog post",
+      "descriptionFallback": "Write a clear summary that helps readers and search engines understand the post.",
+      "imageAltFallback": "Blog cover image",
+      "readingTime": "{{count}} min read",
+      "seoCardTitle": "SEO preview",
+      "seoCardDescription": "How the post is likely to appear in search and social contexts.",
+      "metaAuthor": "Author",
+      "metaCategory": "Category",
+      "metaTags": "Tags",
+      "metaCanonical": "Canonical",
+      "metaFallback": "Not set"
+    },
+    "toasts": {
+      "created": "Blog post created.",
+      "updated": "Blog post updated.",
+      "deleted": "Blog post deleted.",
+      "published": "Blog post published.",
+      "unpublished": "Blog post moved to draft.",
+      "enabled": "Blog post enabled.",
+      "disabled": "Blog post disabled.",
+      "featured": "Blog post featured on the homepage.",
+      "unfeatured": "Blog post removed from featured."
+    },
+    "errors": {
+      "load": "Failed to load blog posts.",
+      "save": "Failed to save the blog post.",
+      "update": "Failed to update the blog post.",
+      "delete": "Failed to delete the blog post.",
+      "coverUpload": "Failed to upload the cover image."
+    }
   }
 }

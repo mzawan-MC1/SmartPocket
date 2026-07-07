@@ -1,8 +1,10 @@
 import { normalizeSeoKeywordList } from '@/lib/platform-settings';
 
 export type CmsPageStatus = 'draft' | 'published';
+export type CmsContentType = 'page' | 'blog';
 
 export const RESERVED_CMS_SLUGS = [
+  'blog',
   'home',
   'about',
   'features',
@@ -31,6 +33,7 @@ export const FIXED_PUBLIC_PAGE_SLUGS = [
 ] as const;
 
 export const SITEMAP_EXCLUDED_CMS_SLUGS = [
+  'blog',
   'home',
   'contact',
   'privacy',
@@ -51,6 +54,14 @@ export type CmsPageRecord = {
   title: string;
   slug: string;
   content_html: string;
+  content_type: CmsContentType;
+  excerpt: string | null;
+  cover_image_url: string | null;
+  cover_image_alt: string | null;
+  author_name: string | null;
+  category: string | null;
+  tags: string[] | null;
+  is_featured: boolean;
   status: CmsPageStatus;
   is_enabled: boolean;
   seo_title: string | null;
@@ -72,6 +83,7 @@ export type CmsPageRecord = {
   is_protected_system_page: boolean;
   allow_delete: boolean;
   published_at: string | null;
+  reading_time_minutes: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -84,6 +96,14 @@ export type CmsPageInput = {
   title: string;
   slug: string;
   content_html: string;
+  content_type: CmsContentType;
+  excerpt: string;
+  cover_image_url: string;
+  cover_image_alt: string;
+  author_name: string;
+  category: string;
+  tags: string[];
+  is_featured: boolean;
   status: CmsPageStatus;
   is_enabled: boolean;
   show_in_header: boolean;
@@ -91,6 +111,8 @@ export type CmsPageInput = {
   navigation_label: string;
   sort_order: number;
   allow_delete: boolean;
+  published_at: string;
+  reading_time_minutes: number | null;
 };
 
 export type CmsPageSeoInput = {
@@ -107,6 +129,8 @@ export type CmsPageSeoInput = {
   robots_index: boolean | null;
   robots_follow: boolean | null;
 };
+
+export type CmsBlogAdminInput = CmsPageInput & CmsPageSeoInput;
 
 const ALLOWED_TAGS = new Set([
   'a',
@@ -221,6 +245,53 @@ export function stripHtmlToText(html: string) {
     .trim();
 }
 
+export function normalizeTagList(value: string[] | string | null | undefined) {
+  const source = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value.split(',')
+      : [];
+
+  const deduped = new Set<string>();
+  for (const entry of source) {
+    const normalized = String(entry || '')
+      .trim()
+      .replace(/^#+/, '')
+      .toLowerCase();
+    if (normalized) {
+      deduped.add(normalized);
+    }
+  }
+
+  return Array.from(deduped);
+}
+
+export function deriveReadingTimeMinutes(html: string, explicitValue?: number | null) {
+  if (Number.isFinite(explicitValue) && Number(explicitValue) > 0) {
+    return Math.max(1, Math.round(Number(explicitValue)));
+  }
+
+  const plainText = stripHtmlToText(html);
+  const wordCount = plainText ? plainText.split(/\s+/).filter(Boolean).length : 0;
+  return Math.max(1, Math.ceil(wordCount / 220));
+}
+
+export function deriveCmsExcerpt(
+  page: Pick<CmsPageRecord, 'excerpt' | 'seo_description' | 'content_html'>
+) {
+  const explicitExcerpt = page.excerpt?.trim();
+  if (explicitExcerpt) {
+    return explicitExcerpt;
+  }
+
+  const explicitSeoDescription = page.seo_description?.trim();
+  if (explicitSeoDescription) {
+    return explicitSeoDescription;
+  }
+
+  return stripHtmlToText(page.content_html).slice(0, 180);
+}
+
 export function slugifyCmsPageSlug(value: string) {
   return value
     .toLowerCase()
@@ -310,11 +381,23 @@ export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
   const slug = slugifyCmsPageSlug(input.slug || input.title || '');
   const navigationLabel = (input.navigation_label || '').trim();
   const contentHtml = sanitizeRichTextHtml(input.content_html || '');
+  const contentType = input.content_type === 'blog' ? 'blog' : 'page';
+  const tags = normalizeTagList(input.tags);
+  const publishedAt = typeof input.published_at === 'string' ? input.published_at.trim() : '';
+  const readingTimeMinutes = deriveReadingTimeMinutes(contentHtml, input.reading_time_minutes ?? null);
 
   return {
     title,
     slug,
     content_html: contentHtml,
+    content_type: contentType,
+    excerpt: (input.excerpt || '').trim(),
+    cover_image_url: (input.cover_image_url || '').trim(),
+    cover_image_alt: (input.cover_image_alt || '').trim(),
+    author_name: (input.author_name || '').trim(),
+    category: (input.category || '').trim(),
+    tags,
+    is_featured: Boolean(input.is_featured),
     status: input.status === 'published' ? 'published' : 'draft',
     is_enabled: input.is_enabled !== false,
     show_in_header: Boolean(input.show_in_header),
@@ -322,6 +405,8 @@ export function normalizeCmsPagePayload(input: Partial<CmsPageInput>) {
     navigation_label: navigationLabel,
     sort_order: Number.isFinite(input.sort_order) ? Number(input.sort_order) : 0,
     allow_delete: input.allow_delete !== false,
+    published_at: publishedAt,
+    reading_time_minutes: readingTimeMinutes,
   } satisfies CmsPageInput;
 }
 

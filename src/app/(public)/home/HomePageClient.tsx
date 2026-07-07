@@ -25,6 +25,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
+import FeaturedBlogSection from '@/components/public/blog/FeaturedBlogSection';
+import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
 import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
@@ -516,7 +518,11 @@ function DashboardPreview() {
   );
 }
 
-export default function HomePage() {
+export default function HomePage({
+  featuredBlogPosts = [],
+}: {
+  featuredBlogPosts?: BlogCardData[];
+}) {
   const { t } = useTranslation(['public', 'common']);
   const { language } = useLanguage();
   const [hero, setHero] = useState<HeroSettings>({});
@@ -902,6 +908,29 @@ export default function HomePage() {
       </section>
 
       <PricingPlansSection sectionId="pricing" showViewDetailsLink={true} variant="dark" />
+
+      <FeaturedBlogSection
+        posts={featuredBlogPosts}
+        locale={language}
+        eyebrow={t('blog.home.eyebrow', { ns: 'public', defaultValue: 'Blog' })}
+        title={t('blog.home.title', {
+          ns: 'public',
+          defaultValue: 'Featured guides for receipts, budgets, and everyday money habits',
+        })}
+        description={t('blog.home.description', {
+          ns: 'public',
+          defaultValue: 'Explore the latest Smart Pocket advice on keeping money routines simple, readable, and review-friendly.',
+        })}
+        viewAllLabel={t('blog.home.viewAll', { ns: 'public', defaultValue: 'View all blog posts' })}
+        readTimeLabel={(minutes) =>
+          t('blog.common.readTime', {
+            ns: 'public',
+            defaultValue: '{{count}} min read',
+            count: minutes,
+          })
+        }
+        readArticleLabel={t('blog.common.readArticleLabel', { ns: 'public', defaultValue: 'Read article' })}
+      />
 
       <section className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 rounded-[1.75rem] bg-gradient-to-r from-cyan-500 via-sky-500 to-violet-600 px-6 py-6 text-center text-white shadow-[0_18px_45px_rgba(14,116,144,0.22)] md:flex-row md:text-left">

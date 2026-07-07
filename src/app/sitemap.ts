@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { listPublicCmsPages } from '@/lib/cms-pages-server';
+import { listPublicBlogPosts, listPublicCmsPages } from '@/lib/cms-pages-server';
 import { isSitemapExcludedCmsSlug } from '@/lib/cms-pages';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildAbsoluteSiteUrl } from '@/lib/site-metadata';
@@ -17,10 +17,12 @@ function normalizeSitemapUrl(url: string) {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getPlatformSettingsSnapshot();
   const pages = await listPublicCmsPages();
+  const blogPosts = await listPublicBlogPosts();
   const lastModified = settings.updatedAt ? new Date(settings.updatedAt) : new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
     '/',
+    '/blog',
     '/ai-receipt-scanner',
     '/ai-voice-expense-tracker',
     '/family-budget-app',
@@ -47,8 +49,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
+  const blogRoutes: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: buildAbsoluteSiteUrl(`/blog/${post.slug}`, settings),
+    lastModified: new Date(post.published_at || post.updated_at || lastModified),
+    changeFrequency: 'monthly' as const,
+    priority: 0.7,
+  }));
+
   const deduped = new Map<string, MetadataRoute.Sitemap[number]>();
-  for (const entry of [...staticRoutes, ...cmsRoutes]) {
+  for (const entry of [...staticRoutes, ...cmsRoutes, ...blogRoutes]) {
     const key = normalizeSitemapUrl(entry.url);
     if (!deduped.has(key)) {
       deduped.set(key, entry);

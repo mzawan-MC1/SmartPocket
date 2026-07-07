@@ -3,12 +3,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getPlatformSettings } from '@/lib/finance';
 import { normalizePublicNavHref } from '@/lib/platform-settings';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 import { buildNormalizedPhoneParts, getPlatformContactPhoneCountryCode } from '@/lib/phone';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import BlogPostsTab from '@/app/admin/cms/components/BlogPostsTab';
 import CmsPagesTab from '@/app/admin/cms/components/CmsPagesTab';
 
 interface MenuItem {
@@ -23,9 +25,10 @@ interface FooterSection {
   links: { id: string; label: string; href: string }[];
 }
 
-type CmsAdminTab = 'header' | 'footer' | 'contact' | 'payment' | 'pages';
+type CmsAdminTab = 'header' | 'footer' | 'contact' | 'payment' | 'pages' | 'blog';
 
 export default function AdminCmsPage() {
+  const { t } = useTranslation('portal');
   const router = useRouter();
   const searchParams = useSearchParams();
   const [saved, setSaved] = useState(false);
@@ -37,7 +40,8 @@ export default function AdminCmsPage() {
     requestedTab === 'footer' ||
     requestedTab === 'contact' ||
     requestedTab === 'payment' ||
-    requestedTab === 'pages'
+    requestedTab === 'pages' ||
+    requestedTab === 'blog'
       ? requestedTab
       : 'header';
 
@@ -176,8 +180,9 @@ export default function AdminCmsPage() {
       { id: 'contact' as const, label: 'Contact Details' },
       { id: 'payment' as const, label: 'Payment Settings' },
       { id: 'pages' as const, label: 'Pages' },
+      { id: 'blog' as const, label: t('adminBlog.navLabel', { ns: 'portal', defaultValue: 'Blog' }) },
     ],
-    []
+    [t]
   );
 
   const setActiveTab = (tab: CmsAdminTab) => {
@@ -320,10 +325,15 @@ export default function AdminCmsPage() {
             Manage public navigation, contact details, payment flags, and database-backed CMS pages.
           </p>
         </div>
-        {activeTab === 'pages' ? (
+        {activeTab === 'pages' || activeTab === 'blog' ? (
           <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
             <FileText size={16} className="text-accent" />
-            Page content saves inside the Pages tab using secure admin APIs.
+            {activeTab === 'pages'
+              ? 'Page content saves inside the Pages tab using secure admin APIs.'
+              : t('adminBlog.headerHint', {
+                  ns: 'portal',
+                  defaultValue: 'Blog content saves inside the Blog tab using the shared CMS and SEO pipeline.',
+                })}
           </div>
         ) : (
           <button onClick={handleSave} disabled={isSaving} className={`btn-primary ${saved ? 'bg-positive' : ''}`}>
@@ -541,6 +551,8 @@ export default function AdminCmsPage() {
       ) : null}
 
       {activeTab === 'pages' ? <CmsPagesTab /> : null}
+
+      {activeTab === 'blog' ? <BlogPostsTab /> : null}
     </div>
   );
 }

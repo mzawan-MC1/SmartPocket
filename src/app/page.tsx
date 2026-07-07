@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { listFeaturedBlogPosts } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildPageMetadata, resolveMetadataLanguage } from '@/lib/site-metadata';
 import HomePageClient from './(public)/home/HomePageClient';
@@ -28,10 +29,25 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-export default function RootPage() {
+export default async function RootPage() {
+  const featuredBlogPosts = await listFeaturedBlogPosts();
+
   return (
     <PublicLayout>
-      <HomePageClient />
+      <HomePageClient
+        featuredBlogPosts={featuredBlogPosts.map((post) => ({
+          slug: post.slug,
+          title: post.title,
+          excerpt: post.excerpt_resolved,
+          coverImageUrl: post.cover_image_url,
+          coverImageAlt: post.cover_image_alt,
+          category: post.category,
+          authorName: post.author_name,
+          publishedAt: post.published_at || post.updated_at,
+          readingTimeMinutes: post.reading_time_minutes,
+          tags: post.tags || [],
+        }))}
+      />
     </PublicLayout>
   );
 }

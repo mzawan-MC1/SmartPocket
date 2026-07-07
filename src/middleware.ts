@@ -101,6 +101,7 @@ export async function middleware(request: NextRequest) {
     '/about',
     '/features',
     '/pricing',
+        '/blog',
     '/ai-receipt-scanner',
     '/ai-voice-expense-tracker',
     '/family-budget-app',

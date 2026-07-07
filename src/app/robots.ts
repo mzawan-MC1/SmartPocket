@@ -13,6 +13,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         allow: settings.seo.robotsIndex
           ? [
               '/',
+              '/blog',
+              '/blog/*',
               '/ai-receipt-scanner',
               '/ai-voice-expense-tracker',
               '/family-budget-app',
