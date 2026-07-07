@@ -111,27 +111,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [user?.id]);
 
+  const refreshUserProfileSafely = useCallback(async (userId?: string | null) => {
+    try {
+      if (userId) {
+        await refreshUserProfile(userId);
+      } else {
+        setProfile(null);
+      }
+    } catch (error: unknown) {
+      reportHomeFirstVisitBlankEvent({
+        point: 'loadUserProfile',
+        errorName: error instanceof Error ? error.name : 'unknown',
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      setProfile(null);
+    }
+  }, [refreshUserProfile]);
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession()
       .then(async ({ data: { session } }: { data: { session: Session | null } }) => {
         setSession(session);
         setUser(session?.user ?? null);
-        try {
-          if (session?.user?.id) {
-            await refreshUserProfile(session.user.id);
-          } else {
-            setProfile(null);
-          }
-        } catch (error: unknown) {
-          reportHomeFirstVisitBlankEvent({
-            point: 'loadUserProfile',
-            errorName: error instanceof Error ? error.name : 'unknown',
-            errorMessage: error instanceof Error ? error.message : String(error),
-          });
-          setProfile(null);
-        }
+        // Unblock app readiness as soon as auth session is known.
         setLoading(false);
+        await refreshUserProfileSafely(session?.user?.id ?? null);
       })
       .catch((error: unknown) => {
         reportHomeFirstVisitBlankEvent({
@@ -151,20 +156,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       setSession(session);
       setUser(session?.user ?? null);
-      try {
-        if (session?.user?.id) {
-          await refreshUserProfile(session.user.id);
-        } else {
-          setProfile(null);
-        }
-      } catch {
-        setProfile(null);
-      }
       setLoading(false);
+      await refreshUserProfileSafely(session?.user?.id ?? null);
     });
 
     return () => subscription.unsubscribe();
-  }, [refreshUserProfile, supabase.auth]);
+  }, [refreshUserProfileSafely, supabase.auth]);
 
   // Email/Password Sign Up
   const signUp = async (
