@@ -50,7 +50,13 @@ export default function CurrencySelector({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number; placement: 'top' | 'bottom' } | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+    placement: 'top' | 'bottom';
+  } | null>(null);
 
   const snapshot = data?.snapshot;
   const resolvedPlaceholder = placeholder ?? t('currency.select');
@@ -175,17 +181,23 @@ export default function CurrencySelector({
     if (!trigger) return;
 
     const rect = trigger.getBoundingClientRect();
+    const visualViewport = window.visualViewport;
+    const viewportWidth = visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = visualViewport?.height ?? window.innerHeight;
+    const viewportOffsetLeft = visualViewport?.offsetLeft ?? 0;
+    const viewportOffsetTop = visualViewport?.offsetTop ?? 0;
     const viewportPadding = 8;
     const sideOffset = 8;
     const minWidth = 280;
     const width = Math.min(
       Math.max(rect.width, minWidth),
-      window.innerWidth - viewportPadding * 2
+      viewportWidth - viewportPadding * 2
     );
 
-    const measuredHeight = menuRef.current?.offsetHeight ?? 360;
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const spaceAbove = rect.top;
+    const maxHeight = Math.max(240, Math.min(420, viewportHeight - viewportPadding * 2));
+    const measuredHeight = Math.min(menuRef.current?.offsetHeight ?? 360, maxHeight);
+    const spaceBelow = viewportOffsetTop + viewportHeight - rect.bottom;
+    const spaceAbove = rect.top - viewportOffsetTop;
     const placement: 'top' | 'bottom' =
       spaceBelow < measuredHeight + sideOffset && spaceAbove > spaceBelow
         ? 'top'
@@ -195,19 +207,19 @@ export default function CurrencySelector({
       ? rect.top - measuredHeight - sideOffset
       : rect.bottom + sideOffset;
     const top = Math.min(
-      Math.max(unclampedTop, viewportPadding),
-      window.innerHeight - measuredHeight - viewportPadding
+      Math.max(unclampedTop, viewportOffsetTop + viewportPadding),
+      viewportOffsetTop + viewportHeight - measuredHeight - viewportPadding
     );
 
     const unclampedLeft = dir === 'rtl'
       ? rect.right - width
       : rect.left;
     const left = Math.min(
-      Math.max(unclampedLeft, viewportPadding),
-      window.innerWidth - width - viewportPadding
+      Math.max(unclampedLeft, viewportOffsetLeft + viewportPadding),
+      viewportOffsetLeft + viewportWidth - width - viewportPadding
     );
 
-    setMenuPosition({ top, left, width, placement });
+    setMenuPosition({ top, left, width, maxHeight, placement });
   }, [dir, open]);
 
   useEffect(() => {
@@ -223,11 +235,15 @@ export default function CurrencySelector({
 
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
+    window.visualViewport?.addEventListener('resize', update);
+    window.visualViewport?.addEventListener('scroll', update);
 
     return () => {
       window.cancelAnimationFrame(frameId);
       window.removeEventListener('resize', update);
       window.removeEventListener('scroll', update, true);
+      window.visualViewport?.removeEventListener('resize', update);
+      window.visualViewport?.removeEventListener('scroll', update);
     };
   }, [open, updateMenuPosition]);
 
@@ -316,6 +332,7 @@ export default function CurrencySelector({
                   top: menuPosition.top,
                   left: menuPosition.left,
                   width: menuPosition.width,
+                  maxHeight: menuPosition.maxHeight,
                   transformOrigin: menuPosition.placement === 'top' ? 'bottom' : 'top',
                 }}
               >
@@ -329,7 +346,10 @@ export default function CurrencySelector({
                     inputClassName="h-9 text-sm"
                   />
                 </div>
-                <div className="max-h-80 overflow-y-auto p-2">
+                <div
+                  className="overflow-y-auto p-2"
+                  style={{ maxHeight: `calc(${menuPosition.maxHeight}px - 4.5rem)` }}
+                >
                   {filteredCurrencies.length === 0 ? (
                     <div className="px-4 py-5 text-center text-sm text-muted-foreground">
                       {t('currency.noneFound')}

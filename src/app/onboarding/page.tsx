@@ -236,6 +236,7 @@ export default function OnboardingPage() {
     { id: 4, title: t('onboarding.steps.incomeSchedule', { ns: 'portal' }), icon: TrendingUp },
     { id: 5, title: t('onboarding.steps.planning', { ns: 'portal' }), icon: CalendarDays },
   ];
+  const currentStep = steps.find((entry) => entry.id === step) ?? steps[0];
   const financialPeriodValues: FinancialPeriodFormValues = {
     income_frequency: incomeFrequency,
     pay_cycle_anchor_date: watch('pay_cycle_anchor_date'),
@@ -455,20 +456,21 @@ export default function OnboardingPage() {
   ];
 
   return (
-    <div className="min-h-screen min-h-[100dvh] overflow-x-hidden bg-background bg-[radial-gradient(circle_at_top_right,rgba(15,159,152,0.08),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,59,99,0.08),transparent_35%)] px-3 py-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-4 sm:py-8">
+    <div className="min-h-screen min-h-[100dvh] overflow-x-hidden bg-background bg-[radial-gradient(circle_at_top_right,rgba(15,159,152,0.08),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,59,99,0.08),transparent_35%)] px-3 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:px-4 sm:pt-8 sm:pb-8">
       <div className="mx-auto w-full max-w-2xl">
         {/* Header */}
-        <div className="mb-6 text-center sm:mb-8">
+        <div className="mb-5 text-center sm:mb-8">
           <AppLogo size={48} className="mx-auto mb-3" />
-          <h1 className="text-2xl font-800 text-foreground sm:text-3xl">{t('onboarding.title', { ns: 'portal' })}</h1>
-          <p className="mt-2 text-sm text-muted-foreground sm:text-base">{t('onboarding.description', { ns: 'portal' })}</p>
+          <h1 className="text-xl font-800 text-foreground sm:text-3xl">{t('onboarding.title', { ns: 'portal' })}</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">{t('onboarding.description', { ns: 'portal' })}</p>
         </div>
 
         {/* Progress */}
-        <div className="mb-6 space-y-3 sm:mb-8">
+        <div className="mb-5 space-y-3 rounded-[1.5rem] border border-border/70 bg-card/70 p-3.5 shadow-card-sm sm:mb-8 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
           <p className="text-center text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">
             {t('onboarding.progress.stepCounter', { ns: 'portal', current: step, total: steps.length })}
           </p>
+          <p className="text-center text-sm font-700 text-foreground sm:hidden">{currentStep.title}</p>
           <ol className="relative grid grid-cols-5 gap-2" aria-label={t('onboarding.progress.label', { ns: 'portal' })}>
             <div
               className="absolute top-4 h-0.5 rounded-full bg-muted"
@@ -497,7 +499,7 @@ export default function OnboardingPage() {
           </ol>
         </div>
 
-        <form onSubmit={handleSubmit(onFinish)} className="space-y-4">
+        <form onSubmit={handleSubmit(onFinish)} className="space-y-4 pb-24 sm:pb-0">
           <div className="section-card">
             <div className="section-card-body p-4 sm:p-6">
             {/* Step 1: Welcome */}
@@ -539,19 +541,19 @@ export default function OnboardingPage() {
                   <h2 className="text-lg font-700 text-foreground mb-1">{t('onboarding.language.title', { ns: 'portal' })}</h2>
                   <p className="text-sm text-muted-foreground">{t('onboarding.language.description', { ns: 'portal' })}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
                   {languages.map((lang) => (
                     <button
                       key={lang.code}
                       type="button"
                       onClick={() => setValue('preferredLanguage', lang.code)}
-                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all ${
+                      className={`flex min-h-[4.25rem] items-center gap-3 rounded-2xl border-2 p-3.5 text-start transition-all ${
                         selectedLanguage === lang.code
                           ? 'border-accent bg-accent/5' :'border-border hover:border-accent/40'
                       }`}
                     >
                       <span className="text-2xl">{lang.flag}</span>
-                      <div className="text-left">
+                      <div className="min-w-0 text-start">
                         <p className="text-sm font-600 text-foreground">{lang.name}</p>
                         <p className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</p>
                       </div>
@@ -609,7 +611,7 @@ export default function OnboardingPage() {
                     {t('onboarding.income.monthlyIncome', { ns: 'portal' })}
                   </label>
                   <div className="flex min-h-12 overflow-hidden rounded-2xl border border-border bg-card transition-shadow focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15">
-                    <div className="flex w-24 shrink-0 items-center gap-2 border-e border-border bg-muted/30 px-3 text-sm font-700 text-foreground">
+                    <div className="flex w-20 shrink-0 items-center gap-2 border-e border-border bg-muted/30 px-2.5 text-sm font-700 text-foreground min-[360px]:w-24 min-[360px]:px-3">
                       {selectedCurrencyRecord ? (
                         <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden">
                           <CurrencySymbol currency={selectedCurrencyRecord} size="xs" alignment="center" />
@@ -625,7 +627,7 @@ export default function OnboardingPage() {
                       step="0.01"
                       min="0"
                       inputMode="decimal"
-                      className="min-w-0 flex-1 border-0 bg-transparent px-3 py-3 text-sm font-tabular text-foreground outline-none placeholder:text-muted-foreground"
+                      className="min-w-0 flex-1 border-0 bg-transparent px-3 py-3 text-base font-tabular text-foreground outline-none placeholder:text-muted-foreground sm:text-sm"
                       placeholder="0.00"
                       {...register('monthlyIncome')}
                     />
@@ -705,42 +707,44 @@ export default function OnboardingPage() {
           <input type="hidden" {...register('custom_cycle_days')} />
 
           {/* Navigation */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setStep((s) => s - 1)}
-              disabled={step === 1}
-              className="btn-secondary min-h-11 justify-center disabled:opacity-40"
-            >
-              <ChevronLeft size={16} />
-              {t('actions.back', { ns: 'common' })}
-            </button>
-
-            {step < steps.length ? (
+          <div className="sticky bottom-0 z-20 -mx-3 border-t border-border/70 bg-background/95 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur supports-[backdrop-filter]:bg-background/85 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-0 sm:backdrop-blur-0">
+            <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
               <button
                 type="button"
-                onClick={handleContinue}
-                className="btn-primary min-h-11 justify-center"
+                onClick={() => setStep((s) => s - 1)}
+                disabled={step === 1}
+                className="btn-secondary min-h-12 justify-center disabled:opacity-40"
               >
-                {t('actions.continue', { ns: 'common' })}
-                <ChevronRight size={16} />
+                <ChevronLeft size={16} />
+                {t('actions.back', { ns: 'common' })}
               </button>
-            ) : (
-              <button type="submit" disabled={isLoading} className="btn-primary min-h-11 justify-center">
-                {isLoading ? (
-                  <><Loader2 size={16} className="animate-spin" />{t('status.saving', { ns: 'common' })}</>
-                ) : (
-                  <>{t('onboarding.actions.finishSetup', { ns: 'portal' })} <CheckCircle2 size={16} /></>
-                )}
-              </button>
-            )}
-          </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-4">
-            <button type="button" onClick={() => router.replace('/dashboard')} className="hover:text-accent transition-colors">
-              {t('onboarding.skipForNow', { ns: 'portal' })}
-            </button>
-          </p>
+              {step < steps.length ? (
+                <button
+                  type="button"
+                  onClick={handleContinue}
+                  className="btn-primary min-h-12 justify-center"
+                >
+                  {t('actions.continue', { ns: 'common' })}
+                  <ChevronRight size={16} />
+                </button>
+              ) : (
+                <button type="submit" disabled={isLoading} className="btn-primary min-h-12 justify-center">
+                  {isLoading ? (
+                    <><Loader2 size={16} className="animate-spin" />{t('status.saving', { ns: 'common' })}</>
+                  ) : (
+                    <>{t('onboarding.actions.finishSetup', { ns: 'portal' })} <CheckCircle2 size={16} /></>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              <button type="button" onClick={() => router.replace('/dashboard')} className="rounded-lg px-2 py-1 transition-colors hover:text-accent">
+                {t('onboarding.skipForNow', { ns: 'portal' })}
+              </button>
+            </p>
+          </div>
         </form>
       </div>
     </div>
