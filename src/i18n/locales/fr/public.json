@@ -416,15 +416,17 @@
     }
   },
   "authScreen": {
-    "brandSubtitle": "Un tableau de bord clair pour tous vos comptes, budgets et objectifs financiers.",
-    "featureTrack": "Suivez chaque montant sur tous vos comptes",
-    "featureBudget": "Définissez des budgets et recevez des alertes",
-    "featureReports": "Générez des rapports professionnels et des PDF",
-    "featureSecurity": "Protégez vos données avec un contrôle d'accès par ligne",
-    "footerNote": "Vos données restent les vôtres.",
+    "brandSubtitle": "Suivez vos dépenses, reçus, abonnements, budgets et dépenses partagées dans une seule application claire.",
+    "featureAdd": "Ajoutez des dépenses en écrivant, en parlant ou en important des reçus",
+    "featureReview": "Relisez les suggestions IA avant d'enregistrer quoi que ce soit",
+    "featureBudgets": "Suivez budgets, abonnements et paiements récurrents",
+    "featureShared": "Gérez les dépenses partagées avec les personnes, remboursements et Espaces",
+    "featureSecurity": "Gardez vos données d'argent privées et sous votre contrôle",
+    "footerNote": "Privé, simple et pensé pour l'argent du quotidien.",
     "unavailableTitle": "Authentification indisponible",
     "unavailableDescription": "Aucune méthode de connexion n'est actuellement activée. Veuillez contacter le support ou réessayer plus tard.",
-    "brandHeadline": "Vos finances, simplifiées"
+    "brandHeadline": "Le suivi d'argent par IA, en toute simplicité",
+    "signupNote": "Commencez avec un essai gratuit. Pensé pour l'argent du quotidien, pas pour la complexité comptable."
   },
   "contact": {
     "metadataTitle": "Contactez-nous",

@@ -4,7 +4,7 @@ import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
 import AppLogo from '@/components/ui/AppLogo';
-import { ShieldCheck, TrendingUp, PieChart, BarChart3 } from 'lucide-react';
+import { ShieldCheck, Sparkles, Mic, Repeat2, Users } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
@@ -68,9 +68,10 @@ export default function AuthScreen() {
   }, [router, searchParams]);
 
   const features = [
-    { id: 'feat-track', icon: TrendingUp, text: t('authScreen.featureTrack', { ns: 'public' }) },
-    { id: 'feat-budget', icon: PieChart, text: t('authScreen.featureBudget', { ns: 'public' }) },
-    { id: 'feat-reports', icon: BarChart3, text: t('authScreen.featureReports', { ns: 'public' }) },
+    { id: 'feat-add', icon: Sparkles, text: t('authScreen.featureAdd', { ns: 'public' }) },
+    { id: 'feat-review', icon: Mic, text: t('authScreen.featureReview', { ns: 'public' }) },
+    { id: 'feat-budgets', icon: Repeat2, text: t('authScreen.featureBudgets', { ns: 'public' }) },
+    { id: 'feat-shared', icon: Users, text: t('authScreen.featureShared', { ns: 'public' }) },
     { id: 'feat-secure', icon: ShieldCheck, text: t('authScreen.featureSecurity', { ns: 'public' }) },
   ];
 
@@ -108,9 +109,14 @@ export default function AuthScreen() {
             <p className="text-white/78 mt-4 text-lg leading-relaxed">
               {t('authScreen.brandSubtitle', { ns: 'public' })}
             </p>
+            {mode === 'signup' ? (
+              <p className="mt-4 inline-flex rounded-full border border-white/12 bg-white/8 px-4 py-2 text-sm font-600 text-white/88">
+                {t('authScreen.signupNote', { ns: 'public' })}
+              </p>
+            ) : null}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3.5">
             {features.map((f) => {
               const Icon = f.icon;
               return (

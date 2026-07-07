@@ -415,15 +415,17 @@
     }
   },
   "authScreen": {
-    "brandSubtitle": "One clean dashboard for all your accounts, budgets, and financial goals.",
-    "featureTrack": "Track every dollar across all accounts",
-    "featureBudget": "Set budgets and receive spending alerts",
-    "featureReports": "Generate professional reports and PDF statements",
-    "featureSecurity": "Protect your data with private account access controls",
-    "footerNote": "Your data stays yours.",
+    "brandSubtitle": "Track spending, receipts, subscriptions, budgets, and shared money in one clean app.",
+    "featureAdd": "Add expenses by typing, speaking, or uploading receipts",
+    "featureReview": "Review AI suggestions before saving anything",
+    "featureBudgets": "Track budgets, subscriptions, and recurring payments",
+    "featureShared": "Manage shared expenses with people, reimbursements, and Spaces",
+    "featureSecurity": "Keep your money data private and under your control",
+    "footerNote": "Private, simple, and built for everyday money.",
     "unavailableTitle": "Authentication unavailable",
     "unavailableDescription": "No sign-in methods are currently enabled. Please contact support or try again later.",
-    "brandHeadline": "Personal Finance, Simplified"
+    "brandHeadline": "AI-powered money tracking, made simple",
+    "signupNote": "Start with a free trial. Built for daily money, not accounting complexity."
   },
   "contact": {
     "metadataTitle": "Contact Us",
