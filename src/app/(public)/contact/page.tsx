@@ -135,7 +135,7 @@ export default async function ContactPage() {
   const englishContactText = englishPublicText.contact || {};
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
-      { name: settings.branding.appName, path: '/home' },
+      { name: settings.branding.appName, path: '/' },
       { name: contactText.titleFallback || englishContactText.titleFallback, path: '/contact' },
     ]),
   ];

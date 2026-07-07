@@ -115,7 +115,8 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/') {
     if (!user) {
-      return redirectWithCookies('/home');
+      // Unauthenticated users stay on public homepage
+      return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     const { destination, profileError } = await getPostAuthDestination(supabase, user.id, null);
@@ -123,6 +124,13 @@ export async function middleware(request: NextRequest) {
       console.error('[middleware] profile lookup failed:', profileError);
     }
     return redirectWithCookies(destination);
+  }
+
+  if (pathname === '/home') {
+    // /home permanently redirects to canonical homepage /
+    const canonicalUrl = new URL(request.nextUrl.href);
+    canonicalUrl.pathname = '/';
+    return NextResponse.redirect(canonicalUrl, 308);
   }
 
   if (!user && !isPublicRoute) {

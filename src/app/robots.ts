@@ -10,7 +10,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: [
       {
         userAgent: '*',
-        allow: settings.seo.robotsIndex ? ['/', '/home', '/contact', '/privacy', '/terms'] : [],
+        allow: settings.seo.robotsIndex ? ['/', '/faqs', '/contact', '/privacy', '/terms'] : [],
         disallow: [
           '/admin',
           '/admin/*',

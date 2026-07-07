@@ -57,7 +57,7 @@ async function LegacyTermsPage() {
   const sections = Array.isArray(legalText.sections) ? legalText.sections : [];
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
-      { name: settings.branding.appName, path: '/home' },
+      { name: settings.branding.appName, path: '/' },
       { name: legalText.title || 'Terms of Service', path: '/terms' },
     ]),
   ];

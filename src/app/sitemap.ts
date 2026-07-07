@@ -20,15 +20,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = settings.updatedAt ? new Date(settings.updatedAt) : new Date();
 
   const staticRoutes: MetadataRoute.Sitemap = [
-    '/home',
+    '/',
+    '/faqs',
     '/contact',
     '/privacy',
     '/terms',
   ].map((path) => ({
     url: buildAbsoluteSiteUrl(path, settings),
     lastModified,
-    changeFrequency: path === '/home' ? 'weekly' : 'monthly',
-    priority: path === '/home' ? 1 : 0.7,
+    changeFrequency: path === '/' ? 'weekly' : 'monthly',
+    priority: path === '/' ? 1 : 0.7,
   }));
 
   const cmsRoutes: MetadataRoute.Sitemap = pages

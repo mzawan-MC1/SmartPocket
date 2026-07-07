@@ -102,7 +102,7 @@ export default async function FaqPage() {
 
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
-      { name: settings.branding.appName, path: '/home' },
+      { name: settings.branding.appName, path: '/' },
       { name: faqText.title || 'Frequently Asked Questions', path: '/faqs' },
     ]),
     buildFaqStructuredData({
