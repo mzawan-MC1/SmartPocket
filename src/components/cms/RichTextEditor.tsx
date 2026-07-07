@@ -16,10 +16,16 @@ export default function RichTextEditor({
   value,
   onChange,
   placeholder = 'Write your page content...',
+  containerClassName = '',
+  toolbarClassName = '',
+  editorClassName = '',
 }: {
   value: string;
   onChange: (nextValue: string) => void;
   placeholder?: string;
+  containerClassName?: string;
+  toolbarClassName?: string;
+  editorClassName?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
   const safeValue = useMemo(() => value || '', [value]);
@@ -35,8 +41,8 @@ export default function RichTextEditor({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-3">
+    <div className={`rounded-2xl border border-border bg-card ${containerClassName}`.trim()}>
+      <div className={`flex flex-wrap items-center gap-2 border-b border-border px-3 py-3 ${toolbarClassName}`.trim()}>
         {EDITOR_ACTIONS.map((action) => (
           <button
             key={`${action.command}-${action.label}`}
@@ -52,7 +58,7 @@ export default function RichTextEditor({
         ref={editorRef}
         contentEditable
         suppressContentEditableWarning
-        className="min-h-[260px] px-4 py-4 text-sm text-foreground outline-none [&:empty:before]:text-muted-foreground [&:empty:before]:content-[attr(data-placeholder)]"
+        className={`min-h-[260px] px-4 py-4 text-sm text-foreground outline-none [&:empty:before]:text-muted-foreground [&:empty:before]:content-[attr(data-placeholder)] ${editorClassName}`.trim()}
         data-placeholder={placeholder}
         onInput={(event) => onChange((event.currentTarget as HTMLDivElement).innerHTML)}
         dangerouslySetInnerHTML={{ __html: safeValue }}

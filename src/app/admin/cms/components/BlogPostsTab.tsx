@@ -67,8 +67,45 @@ const EMPTY_FORM: CmsBlogAdminInput = {
   robots_follow: true,
 };
 
+function formatAdminDate(value: string | null, locale: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(parsed);
+}
+
+function BlogEditorSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-3xl border border-border bg-card p-5 shadow-card sm:p-6">
+      <div className="mb-5">
+        <h3 className="text-base font-700 text-foreground">{title}</h3>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 export default function BlogPostsTab() {
-  const { t } = useTranslation('portal');
+  const { t, i18n } = useTranslation('portal');
   const tp = React.useCallback(
     (key: string, defaultValue: string, options?: Record<string, unknown>) =>
       t(key, { ns: 'portal', defaultValue, ...options }),
@@ -399,24 +436,34 @@ export default function BlogPostsTab() {
     form.seo_description ||
     form.excerpt ||
     tp('adminBlog.preview.descriptionFallback', 'Write a clear summary that helps readers and search engines understand the post.');
+  const normalizedTags = useMemo(() => normalizeTagList(tagInput), [tagInput]);
+  const locale = i18n.resolvedLanguage || i18n.language || 'en';
+  const previewDateLabel = formatAdminDate(form.published_at || null, locale);
+  const postCountLabel = tp('adminBlog.sidebar.postCount', '{{count}} posts', { count: filteredPosts.length });
 
   return (
-    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <div className="space-y-4">
-        <div className="card-elevated space-y-4 p-4">
-          <div className="flex items-center justify-between gap-3">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[360px_minmax(0,1fr)] 2xl:grid-cols-[380px_minmax(0,1fr)]">
+      <div className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+        <div className="card-elevated space-y-4 p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-700 text-foreground">
                 {tp('adminBlog.sidebar.title', 'Blog Management')}
               </h2>
-              <p className="text-xs text-muted-foreground">
-                {tp('adminBlog.sidebar.description', 'Create, feature, and manage blog posts from the same CMS source of truth.')}
+              <p className="mt-1 text-sm text-muted-foreground">
+                {tp('adminBlog.sidebar.description', 'Create and manage blog posts for your public website.')}
               </p>
             </div>
-            <button type="button" onClick={startNewPost} className="btn-primary py-2 text-xs">
+            <button type="button" onClick={startNewPost} className="btn-primary whitespace-nowrap py-2 text-xs">
               <FilePlus2 size={14} />
-              {tp('adminBlog.actions.add', 'Add Post')}
+              {tp('adminBlog.actions.add', 'New Post')}
             </button>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-muted/30 px-3 py-3 text-xs text-muted-foreground">
+            <span className="font-700 text-foreground">{postCountLabel}</span>
+            <span className="mx-2 text-border">•</span>
+            {tp('adminBlog.sidebar.listHint', 'Filter by status, visibility, or featured placement.')}
           </div>
 
           <div className="relative">
@@ -430,47 +477,76 @@ export default function BlogPostsTab() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
-              className="input-base text-sm"
-            >
-              <option value="all">{tp('adminBlog.filters.allStatuses', 'All statuses')}</option>
-              <option value="published">{tp('adminBlog.status.published', 'Published')}</option>
-              <option value="draft">{tp('adminBlog.status.draft', 'Draft')}</option>
-            </select>
-            <select
-              value={enabledFilter}
-              onChange={(event) => setEnabledFilter(event.target.value as typeof enabledFilter)}
-              className="input-base text-sm"
-            >
-              <option value="all">{tp('adminBlog.filters.allVisibility', 'All visibility')}</option>
-              <option value="enabled">{tp('adminBlog.status.enabled', 'Enabled')}</option>
-              <option value="disabled">{tp('adminBlog.status.disabled', 'Disabled')}</option>
-            </select>
-            <select
-              value={featuredFilter}
-              onChange={(event) => setFeaturedFilter(event.target.value as typeof featuredFilter)}
-              className="input-base text-sm"
-            >
-              <option value="all">{tp('adminBlog.filters.allFeatured', 'All featured states')}</option>
-              <option value="featured">{tp('adminBlog.status.featured', 'Featured')}</option>
-              <option value="standard">{tp('adminBlog.status.standard', 'Standard')}</option>
-            </select>
+            <div>
+              <label className="mb-1.5 block text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                {tp('adminBlog.filters.statusLabel', 'Status')}
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+                className="input-base text-sm"
+              >
+                <option value="all">{tp('adminBlog.filters.allStatuses', 'All statuses')}</option>
+                <option value="published">{tp('adminBlog.status.published', 'Published')}</option>
+                <option value="draft">{tp('adminBlog.status.draft', 'Draft')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                {tp('adminBlog.filters.visibilityLabel', 'Visibility')}
+              </label>
+              <select
+                value={enabledFilter}
+                onChange={(event) => setEnabledFilter(event.target.value as typeof enabledFilter)}
+                className="input-base text-sm"
+              >
+                <option value="all">{tp('adminBlog.filters.allVisibility', 'All visibility')}</option>
+                <option value="enabled">{tp('adminBlog.status.enabled', 'Enabled')}</option>
+                <option value="disabled">{tp('adminBlog.status.disabled', 'Disabled')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                {tp('adminBlog.filters.featuredLabel', 'Featured')}
+              </label>
+              <select
+                value={featuredFilter}
+                onChange={(event) => setFeaturedFilter(event.target.value as typeof featuredFilter)}
+                className="input-base text-sm"
+              >
+                <option value="all">{tp('adminBlog.filters.allFeatured', 'All featured states')}</option>
+                <option value="featured">{tp('adminBlog.status.featured', 'Featured')}</option>
+                <option value="standard">{tp('adminBlog.status.standard', 'Standard')}</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="card-elevated space-y-3 p-3">
+          <div className="flex items-center justify-between px-1 pt-1">
+            <div>
+              <h3 className="text-sm font-700 text-foreground">
+                {tp('adminBlog.sidebar.listTitle', 'Posts')}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {tp('adminBlog.sidebar.listDescription', 'Select a post to edit its content, publishing settings, and SEO.')}
+              </p>
+            </div>
+          </div>
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 size={22} className="animate-spin text-accent" />
             </div>
           ) : filteredPosts.length === 0 ? (
-            <div className="py-12 text-center">
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-12 text-center">
               <p className="text-sm font-700 text-foreground">{tp('adminBlog.empty.title', 'No blog posts found')}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {tp('adminBlog.empty.description', 'Adjust the filters or create your first blog post.')}
               </p>
+              <button type="button" onClick={startNewPost} className="btn-secondary mt-4 py-2 text-xs">
+                <FilePlus2 size={14} />
+                {tp('adminBlog.empty.action', 'Create Post')}
+              </button>
             </div>
           ) : (
             filteredPosts.map((post) => (
@@ -485,9 +561,16 @@ export default function BlogPostsTab() {
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 space-y-1">
                     <p className="truncate text-sm font-700 text-foreground">{post.title}</p>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">{`/blog/${post.slug}`}</p>
+                    <p className="truncate text-xs text-muted-foreground">{`/blog/${post.slug}`}</p>
+                    {post.category || formatAdminDate(post.published_at || post.updated_at, locale) ? (
+                      <p className="truncate text-[11px] text-muted-foreground">
+                        {[post.category, formatAdminDate(post.published_at || post.updated_at, locale)]
+                          .filter(Boolean)
+                          .join(' • ')}
+                      </p>
+                    ) : null}
                   </div>
                   <span className={`rounded-full px-2 py-1 text-[10px] font-700 uppercase ${
                     post.status === 'published' ? 'bg-positive-soft text-positive' : 'bg-warning/10 text-warning'
@@ -509,6 +592,11 @@ export default function BlogPostsTab() {
                     </span>
                   ) : null}
                   {post.category ? <span className="rounded-full bg-muted px-2 py-0.5">{post.category}</span> : null}
+                  {formatAdminDate(post.published_at || post.updated_at, locale) ? (
+                    <span className="rounded-full bg-muted px-2 py-0.5">
+                      {formatAdminDate(post.published_at || post.updated_at, locale)}
+                    </span>
+                  ) : null}
                 </div>
               </button>
             ))
@@ -516,8 +604,9 @@ export default function BlogPostsTab() {
         </div>
       </div>
 
-      <div className="space-y-6">
-        <div className="card-elevated space-y-5 p-5">
+      <div className={showPreview ? 'grid grid-cols-1 gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]' : 'space-y-6'}>
+        <div className="space-y-6">
+          <div className="card-elevated space-y-5 p-5 sm:p-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h2 className="text-lg font-700 text-foreground">
@@ -526,7 +615,7 @@ export default function BlogPostsTab() {
                   : tp('adminBlog.editor.editTitle', 'Edit Blog Post')}
               </h2>
               <p className="text-sm text-muted-foreground">
-                {tp('adminBlog.editor.description', 'Draft, publish, feature, optimize, and preview public blog content.')}
+                {tp('adminBlog.editor.description', 'Organize the post details, publishing settings, content, and metadata in one place.')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -614,10 +703,15 @@ export default function BlogPostsTab() {
           </div>
 
           <div className="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
-            {tp('adminBlog.notice', 'Blog posts reuse the existing CMS table, metadata fields, and public SEO pipeline.')}
+            {tp('adminBlog.notice', 'Create and manage blog posts for your public website. Save drafts, schedule publishing details, and review the preview before sharing.')}
+          </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <BlogEditorSection
+            title={tp('adminBlog.sections.basic.title', 'Basic Details')}
+            description={tp('adminBlog.sections.basic.description', 'Set the core information readers and search engines will use to identify the post.')}
+          >
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.title', 'Title')}</label>
               <input
@@ -635,7 +729,9 @@ export default function BlogPostsTab() {
                 className="input-base font-mono"
                 placeholder="smart-pocket-blog-post"
               />
-              <p className="mt-1 text-xs text-muted-foreground">{slugPreview}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {tp('adminBlog.fields.slugPreview', 'Public URL')}: {slugPreview}
+              </p>
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.author', 'Author name')}</label>
@@ -655,6 +751,39 @@ export default function BlogPostsTab() {
                 placeholder={tp('adminBlog.placeholders.category', 'Budgeting')}
               />
             </div>
+            <div className="lg:col-span-2">
+              <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.excerpt', 'Excerpt')}</label>
+              <textarea
+                rows={4}
+                value={form.excerpt}
+                onChange={(event) => handleFieldChange('excerpt', event.target.value)}
+                className="input-base resize-none"
+                placeholder={tp('adminBlog.placeholders.excerpt', 'Summarize the key point in one or two short paragraphs.')}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.tags', 'Tags / hashtags')}</label>
+              <input
+                value={tagInput}
+                onChange={(event) => {
+                  setTagInput(event.target.value);
+                  handleFieldChange('tags', normalizeTagList(event.target.value));
+                }}
+                className="input-base"
+                placeholder={tp('adminBlog.placeholders.tags', 'budgeting, receipts, money habits')}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {tp('adminBlog.fields.tagsHint', 'Separate each tag with a comma.')}
+              </p>
+            </div>
+            </div>
+          </BlogEditorSection>
+
+          <BlogEditorSection
+            title={tp('adminBlog.sections.publishing.title', 'Publishing Settings')}
+            description={tp('adminBlog.sections.publishing.description', 'Control visibility, homepage featuring, timing, and reading time from one grouped panel.')}
+          >
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.publishDate', 'Publish date')}</label>
               <div className="relative">
@@ -681,101 +810,111 @@ export default function BlogPostsTab() {
                 {tp('adminBlog.fields.readingTimeHint', 'Leave blank to derive it automatically from the content.')}
               </p>
             </div>
-            <div className="lg:col-span-2">
-              <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.excerpt', 'Excerpt')}</label>
-              <textarea
-                rows={3}
-                value={form.excerpt}
-                onChange={(event) => handleFieldChange('excerpt', event.target.value)}
-                className="input-base resize-none"
-                placeholder={tp('adminBlog.placeholders.excerpt', 'Summarize the key point in one or two short paragraphs.')}
-              />
-            </div>
-            <div className="lg:col-span-2">
-              <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.tags', 'Tags / hashtags')}</label>
-              <input
-                value={tagInput}
-                onChange={(event) => {
-                  setTagInput(event.target.value);
-                  handleFieldChange('tags', normalizeTagList(event.target.value));
-                }}
-                className="input-base"
-                placeholder={tp('adminBlog.placeholders.tags', 'budgeting, receipts, money habits')}
-              />
-            </div>
-            <div className="flex flex-wrap items-center gap-5 pt-4 lg:col-span-2">
-              <label className="flex items-center gap-2 text-sm text-foreground">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:col-span-2">
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={form.is_enabled}
                   onChange={(event) => handleFieldChange('is_enabled', event.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-accent"
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
                 />
-                {tp('adminBlog.fields.enabled', 'Enabled')}
+                <span>
+                  <span className="block font-700">{tp('adminBlog.fields.enabled', 'Enabled')}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {tp('adminBlog.fields.enabledHint', 'Visible to the public when the post is published.')}
+                  </span>
+                </span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={form.is_featured}
                   onChange={(event) => handleFieldChange('is_featured', event.target.checked)}
-                  className="h-4 w-4 rounded border-border accent-accent"
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
                 />
-                {tp('adminBlog.fields.featured', 'Featured on homepage')}
+                <span>
+                  <span className="block font-700">{tp('adminBlog.fields.featured', 'Featured on homepage')}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {tp('adminBlog.fields.featuredHint', 'Show this post in the featured blog section on the homepage.')}
+                  </span>
+                </span>
               </label>
-              <label className="flex items-center gap-2 text-sm text-foreground">
+              <label className="flex items-start gap-3 rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-foreground">
                 <input
                   type="checkbox"
                   checked={form.status === 'published'}
                   onChange={(event) => handleFieldChange('status', event.target.checked ? 'published' : 'draft')}
-                  className="h-4 w-4 rounded border-border accent-accent"
+                  className="mt-0.5 h-4 w-4 rounded border-border accent-accent"
                 />
-                {tp('adminBlog.fields.published', 'Published')}
+                <span>
+                  <span className="block font-700">{tp('adminBlog.fields.published', 'Published')}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {tp('adminBlog.fields.publishedHint', 'Draft posts stay hidden until you publish them.')}
+                  </span>
+                </span>
               </label>
             </div>
-          </div>
+            </div>
+          </BlogEditorSection>
 
-          <MediaUploadCard
-            label={tp('adminBlog.fields.coverImage', 'Cover image')}
-            value={form.cover_image_url}
-            onValueChange={(value) => handleFieldChange('cover_image_url', value)}
-            selectedFile={coverImageFile}
-            onFileSelect={(file) => setCoverImageFile(file)}
-            accept={COVER_IMAGE_UPLOAD.accept}
-            acceptedFormatsLabel={COVER_IMAGE_UPLOAD.acceptedFormatsLabel}
-            maxSizeLabel={COVER_IMAGE_UPLOAD.maxSizeLabel}
-            isUploading={isSaving && Boolean(coverImageFile)}
-            uploadProgress={coverUploadProgress}
-            error={coverUploadError}
-            helperText={tp('adminBlog.fields.coverImageHint', 'The same image can also populate the social preview fields if they are blank.')}
-          />
+          <BlogEditorSection
+            title={tp('adminBlog.sections.cover.title', 'Cover Image')}
+            description={tp('adminBlog.sections.cover.description', 'Upload or paste the main article image and keep the alt text nearby for accessibility.')}
+          >
+            <div className="space-y-4">
+              <MediaUploadCard
+                label={tp('adminBlog.fields.coverImage', 'Cover image')}
+                value={form.cover_image_url}
+                onValueChange={(value) => handleFieldChange('cover_image_url', value)}
+                selectedFile={coverImageFile}
+                onFileSelect={(file) => setCoverImageFile(file)}
+                accept={COVER_IMAGE_UPLOAD.accept}
+                acceptedFormatsLabel={COVER_IMAGE_UPLOAD.acceptedFormatsLabel}
+                maxSizeLabel={COVER_IMAGE_UPLOAD.maxSizeLabel}
+                isUploading={isSaving && Boolean(coverImageFile)}
+                uploadProgress={coverUploadProgress}
+                error={coverUploadError}
+                helperText={tp('adminBlog.fields.coverImageHint', 'The same image can also populate the social preview fields if they are blank.')}
+              />
 
-          <div>
-            <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.coverImageAlt', 'Cover image alt text')}</label>
-            <input
-              value={form.cover_image_alt}
-              onChange={(event) => handleFieldChange('cover_image_alt', event.target.value)}
-              className="input-base"
-              placeholder={tp('adminBlog.placeholders.coverAlt', 'A short description for readers and accessibility')}
-            />
-          </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.coverImageAlt', 'Cover image alt text')}</label>
+                <input
+                  value={form.cover_image_alt}
+                  onChange={(event) => handleFieldChange('cover_image_alt', event.target.value)}
+                  className="input-base"
+                  placeholder={tp('adminBlog.placeholders.coverAlt', 'A short description for readers and accessibility')}
+                />
+              </div>
+            </div>
+          </BlogEditorSection>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.fields.content', 'Blog content')}</label>
+          <BlogEditorSection
+            title={tp('adminBlog.sections.content.title', 'Blog Content')}
+            description={tp('adminBlog.sections.content.description', 'Use headings, short paragraphs, bullets, and quotes for better readability.')}
+          >
             <RichTextEditor
               value={form.content_html}
               onChange={(nextValue) => handleFieldChange('content_html', nextValue)}
               placeholder={tp('adminBlog.placeholders.content', 'Write the blog post content...')}
+              toolbarClassName="gap-2.5 px-4 py-3"
+              editorClassName="min-h-[420px] px-5 py-5 leading-7"
             />
-          </div>
+          </BlogEditorSection>
 
-          <div className="space-y-4 rounded-2xl border border-border bg-muted/30 p-4">
-            <div>
-              <h3 className="text-base font-700 text-foreground">{tp('adminBlog.seo.title', 'SEO & social metadata')}</h3>
-              <p className="text-sm text-muted-foreground">
-                {tp('adminBlog.seo.description', 'These fields reuse the existing metadata system for canonical, Open Graph, and Twitter output.')}
-              </p>
-            </div>
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <BlogEditorSection
+            title={tp('adminBlog.seo.title', 'SEO & Social Metadata')}
+            description={tp('adminBlog.seo.description', 'Keep search metadata and social sharing details tidy and easy to review.')}
+          >
+            <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="mb-4">
+                  <h4 className="text-sm font-700 text-foreground">{tp('adminBlog.seo.groups.search.title', 'Search SEO')}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {tp('adminBlog.seo.groups.search.description', 'Use concise titles and descriptions to help search results stay clear and readable.')}
+                  </p>
+                </div>
+                <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.seo.fields.seoTitle', 'SEO title')}</label>
                 <input value={form.seo_title} onChange={(event) => handleFieldChange('seo_title', event.target.value)} className="input-base" />
@@ -797,6 +936,16 @@ export default function BlogPostsTab() {
                 <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.seo.fields.keywords', 'SEO keywords')}</label>
                 <input value={form.seo_keywords} onChange={(event) => handleFieldChange('seo_keywords', event.target.value)} className="input-base" />
               </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                <div className="mb-4">
+                  <h4 className="text-sm font-700 text-foreground">{tp('adminBlog.seo.groups.social.title', 'Social Sharing')}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {tp('adminBlog.seo.groups.social.description', 'Set the title, description, and images people will see when the post is shared.')}
+                  </p>
+                </div>
+                <div className="space-y-4">
               <div>
                 <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.seo.fields.ogTitle', 'Open Graph title')}</label>
                 <input value={form.og_title} onChange={(event) => handleFieldChange('og_title', event.target.value)} className="input-base" />
@@ -821,8 +970,10 @@ export default function BlogPostsTab() {
                 <label className="mb-1.5 block text-sm font-600 text-foreground">{tp('adminBlog.seo.fields.twitterImage', 'Twitter image')}</label>
                 <input value={form.twitter_image_url} onChange={(event) => handleFieldChange('twitter_image_url', event.target.value)} className="input-base" />
               </div>
+                </div>
+              </div>
             </div>
-          </div>
+          </BlogEditorSection>
 
           {!isNewPost && selectedPost?.status === 'published' && selectedPost.is_enabled ? (
             <div className="flex flex-wrap items-center gap-3">
@@ -838,34 +989,54 @@ export default function BlogPostsTab() {
         </div>
 
         {showPreview ? (
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
-            <div className="card-elevated p-5">
-              <div className="mb-4 flex items-center justify-between">
+          <aside className="space-y-4 2xl:sticky 2xl:top-6 2xl:self-start">
+            <div className="card-elevated space-y-4 p-5">
+              <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-700 text-foreground">{tp('adminBlog.preview.title', 'Article preview')}</h3>
-                  <p className="text-sm text-muted-foreground">{tp('adminBlog.preview.description', 'Sanitized public output preview.')}</p>
+                  <h3 className="text-base font-700 text-foreground">{tp('adminBlog.preview.title', 'Preview')}</h3>
+                  <p className="text-sm text-muted-foreground">{tp('adminBlog.preview.description', 'Review how the article and search snippets may look before publishing.')}</p>
                 </div>
                 <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{slugPreview}</span>
               </div>
-              <article className="mx-auto max-w-3xl">
+              <article className="overflow-hidden rounded-3xl border border-border bg-background">
                 {form.cover_image_url ? (
                   <img
                     src={form.cover_image_url}
                     alt={form.cover_image_alt || form.title || tp('adminBlog.preview.imageAltFallback', 'Blog cover image')}
-                    className="mb-6 aspect-[16/9] w-full rounded-3xl object-cover"
+                    className="aspect-[16/9] w-full object-cover"
                   />
                 ) : null}
-                <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {form.category ? <span className="rounded-full bg-muted px-2.5 py-1">{form.category}</span> : null}
-                  {form.author_name ? <span>{form.author_name}</span> : null}
-                  <span>{tp('adminBlog.preview.readingTime', '{{count}} min read', { count: liveReadingTime })}</span>
+                <div className="space-y-4 p-5">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    {form.category ? <span className="rounded-full bg-muted px-2.5 py-1">{form.category}</span> : null}
+                    {previewDateLabel ? <span>{previewDateLabel}</span> : null}
+                    <span>{tp('adminBlog.preview.readingTime', '{{count}} min read', { count: liveReadingTime })}</span>
+                  </div>
+                  <h4 className="text-2xl font-800 text-foreground">
+                    {form.title || tp('adminBlog.preview.untitled', 'Untitled blog post')}
+                  </h4>
+                  {form.excerpt ? <p className="text-sm leading-6 text-muted-foreground">{form.excerpt}</p> : null}
+                  {normalizedTags.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {normalizedTags.map((tag) => (
+                        <span key={tag} className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="rounded-2xl border border-border bg-muted/20 p-4">
+                    <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                      {tp('adminBlog.preview.articleCardTitle', 'Article Preview')}
+                    </p>
+                    <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                      <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaAuthor', 'Author')}:</span> {form.author_name || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
+                      <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaCategory', 'Category')}:</span> {form.category || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
+                      <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaPublishDate', 'Publish date')}:</span> {previewDateLabel || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
+                      <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaTags', 'Tags')}:</span> {normalizedTags.join(', ') || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
+                    </div>
+                  </div>
                 </div>
-                <h1 className="mb-3 text-3xl font-800 text-foreground">{form.title || tp('adminBlog.preview.untitled', 'Untitled blog post')}</h1>
-                {form.excerpt ? <p className="mb-6 text-lg text-muted-foreground">{form.excerpt}</p> : null}
-                <CmsHtml
-                  html={form.content_html}
-                  className="prose prose-slate max-w-none text-muted-foreground [&_a]:text-accent [&_blockquote]:border-l-4 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground [&_h4]:text-foreground [&_li]:my-1"
-                />
               </article>
             </div>
 
@@ -881,14 +1052,26 @@ export default function BlogPostsTab() {
                 <p className="mt-2 text-lg font-700 text-[#1a0dab]">{seoTitlePreview}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{seoDescriptionPreview}</p>
               </div>
+              <div className="rounded-2xl border border-border bg-background p-4">
+                <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {tp('adminBlog.preview.socialCardTitle', 'Social card preview')}
+                </p>
+                <div className="mt-3 rounded-2xl border border-border bg-muted/20 p-3">
+                  <p className="text-sm font-700 text-foreground">
+                    {form.og_title || form.twitter_title || seoTitlePreview}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {form.og_description || form.twitter_description || seoDescriptionPreview}
+                  </p>
+                </div>
+              </div>
               <div className="rounded-2xl border border-border bg-background p-4 text-sm text-muted-foreground">
-                <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaAuthor', 'Author')}:</span> {form.author_name || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
-                <p className="mt-2"><span className="font-700 text-foreground">{tp('adminBlog.preview.metaCategory', 'Category')}:</span> {form.category || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
-                <p className="mt-2"><span className="font-700 text-foreground">{tp('adminBlog.preview.metaTags', 'Tags')}:</span> {normalizeTagList(tagInput).join(', ') || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
-                <p className="mt-2"><span className="font-700 text-foreground">{tp('adminBlog.preview.metaCanonical', 'Canonical')}:</span> {form.canonical_url_override || slugPreview}</p>
+                <p><span className="font-700 text-foreground">{tp('adminBlog.preview.metaCanonical', 'Canonical')}:</span> {form.canonical_url_override || slugPreview}</p>
+                <p className="mt-2"><span className="font-700 text-foreground">{tp('adminBlog.preview.metaOgImage', 'Open Graph image')}:</span> {form.seo_image_url || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
+                <p className="mt-2"><span className="font-700 text-foreground">{tp('adminBlog.preview.metaTwitterImage', 'Twitter image')}:</span> {form.twitter_image_url || tp('adminBlog.preview.metaFallback', 'Not set')}</p>
               </div>
             </div>
-          </div>
+          </aside>
         ) : null}
       </div>
     </div>

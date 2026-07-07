@@ -3940,19 +3940,23 @@
   },
   "adminBlog": {
     "navLabel": "Blog",
-    "headerHint": "Blog content saves inside the Blog tab using the shared CMS and SEO pipeline.",
+    "headerHint": "Manage public blog content from the Blog tab.",
     "sidebar": {
       "title": "Blog Management",
-      "description": "Create, feature, and manage blog posts from the same CMS source of truth."
+      "description": "Create and manage blog posts for your public website.",
+      "postCount": "{{count}} posts",
+      "listHint": "Filter by status, visibility, or featured placement.",
+      "listTitle": "Posts",
+      "listDescription": "Select a post to edit its content, publishing settings, and SEO."
     },
     "editor": {
       "createTitle": "Create Blog Post",
       "editTitle": "Edit Blog Post",
-      "description": "Draft, publish, feature, optimize, and preview public blog content."
+      "description": "Organize the post details, publishing settings, content, and metadata in one place."
     },
-    "notice": "Blog posts reuse the existing CMS table, metadata fields, and public SEO pipeline.",
+    "notice": "Create and manage blog posts for your public website. Save drafts, schedule publishing details, and review the preview before sharing.",
     "actions": {
-      "add": "Add Post",
+      "add": "New Post",
       "create": "Create Post",
       "save": "Save Changes",
       "publish": "Publish",
@@ -3970,6 +3974,9 @@
     },
     "filters": {
       "searchPlaceholder": "Search title, slug, author, category, or tag...",
+      "statusLabel": "Status",
+      "visibilityLabel": "Visibility",
+      "featuredLabel": "Featured",
       "allStatuses": "All statuses",
       "allVisibility": "All visibility",
       "allFeatured": "All featured states"
@@ -3984,11 +3991,13 @@
     },
     "empty": {
       "title": "No blog posts found",
-      "description": "Adjust the filters or create your first blog post."
+      "description": "Adjust the filters or create your first blog post.",
+      "action": "Create Post"
     },
     "fields": {
       "title": "Title",
       "slug": "Slug",
+      "slugPreview": "Public URL",
       "author": "Author name",
       "category": "Category",
       "publishDate": "Publish date",
@@ -3996,9 +4005,13 @@
       "readingTimeHint": "Leave blank to derive it automatically from the content.",
       "excerpt": "Excerpt",
       "tags": "Tags / hashtags",
+      "tagsHint": "Separate each tag with a comma.",
       "enabled": "Enabled",
+      "enabledHint": "Visible to the public when the post is published.",
       "featured": "Featured on homepage",
+      "featuredHint": "Show this post in the featured blog section on the homepage.",
       "published": "Published",
+      "publishedHint": "Draft posts stay hidden until you publish them.",
       "coverImage": "Cover image",
       "coverImageHint": "The same image can also populate the social preview fields if they are blank.",
       "coverImageAlt": "Cover image alt text",
@@ -4013,9 +4026,37 @@
       "coverAlt": "A short description for readers and accessibility",
       "content": "Write the blog post content..."
     },
+    "sections": {
+      "basic": {
+        "title": "Basic Details",
+        "description": "Set the core information readers and search engines will use to identify the post."
+      },
+      "publishing": {
+        "title": "Publishing Settings",
+        "description": "Control visibility, homepage featuring, timing, and reading time from one grouped panel."
+      },
+      "cover": {
+        "title": "Cover Image",
+        "description": "Upload or paste the main article image and keep the alt text nearby for accessibility."
+      },
+      "content": {
+        "title": "Blog Content",
+        "description": "Use headings, short paragraphs, bullets, and quotes for better readability."
+      }
+    },
     "seo": {
-      "title": "SEO & social metadata",
-      "description": "These fields reuse the existing metadata system for canonical, Open Graph, and Twitter output.",
+      "title": "SEO & Social Metadata",
+      "description": "Keep search metadata and social sharing details tidy and easy to review.",
+      "groups": {
+        "search": {
+          "title": "Search SEO",
+          "description": "Use concise titles and descriptions to help search results stay clear and readable."
+        },
+        "social": {
+          "title": "Social Sharing",
+          "description": "Set the title, description, and images people will see when the post is shared."
+        }
+      },
       "fields": {
         "seoTitle": "SEO title",
         "canonicalUrl": "Canonical URL",
@@ -4033,18 +4074,23 @@
       }
     },
     "preview": {
-      "title": "Article preview",
-      "description": "Sanitized public output preview.",
+      "title": "Preview",
+      "description": "Review how the article and search snippets may look before publishing.",
+      "articleCardTitle": "Article Preview",
       "untitled": "Untitled blog post",
       "descriptionFallback": "Write a clear summary that helps readers and search engines understand the post.",
       "imageAltFallback": "Blog cover image",
       "readingTime": "{{count}} min read",
       "seoCardTitle": "SEO preview",
       "seoCardDescription": "How the post is likely to appear in search and social contexts.",
+      "socialCardTitle": "Social card preview",
       "metaAuthor": "Author",
       "metaCategory": "Category",
+      "metaPublishDate": "Publish date",
       "metaTags": "Tags",
       "metaCanonical": "Canonical",
+      "metaOgImage": "Open Graph image",
+      "metaTwitterImage": "Twitter image",
       "metaFallback": "Not set"
     },
     "toasts": {
