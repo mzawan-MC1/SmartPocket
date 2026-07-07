@@ -189,6 +189,46 @@
         "personal": "Idéal pour une personne",
         "family": "Idéal pour les familles et l'argent partagé"
       },
+      "descriptions": {
+        "free": "Idéal pour essayer Smart Pocket avant de passer à une offre payante et comprendre comment fonctionne le suivi d'argent avec l'IA.",
+        "personal": "Idéal pour une personne qui gère ses dépenses du quotidien avec un suivi financier personnel assisté par l'IA.",
+        "family": "Idéal pour les familles, les couples et l'argent partagé avec une gestion du foyer assistée par l'IA."
+      },
+      "ctaSupport": {
+        "free": "Essayez l'essentiel avant de choisir une offre payante.",
+        "personal": "Pratique pour le salaire, les factures, les reçus et les dépenses du quotidien.",
+        "family": "Le meilleur choix quand l'argent concerne plus d'une personne."
+      },
+      "sectionTitles": {
+        "aiIncluded": "IA incluse",
+        "moneyTools": "Outils d'argent",
+        "sharedTools": "Outils partagés",
+        "reports": "Rapports",
+        "trust": "Confiance"
+      },
+      "planItems": {
+        "accountsTransactions": "Comptes et transactions au même endroit",
+        "budgetsCategories": "Budgets et catégories",
+        "subscriptionsReminders": "Abonnements et rappels récurrents",
+        "basicReportsDashboard": "Tableau de bord et rapports de base",
+        "reviewBeforeSave": "Relire les résultats IA avant l'enregistrement",
+        "secureAccountAccess": "Accès sécurisé au compte",
+        "noCardRequired": "Aucune carte bancaire requise",
+        "personalSubscriptions": "Paiements récurrents et abonnements personnels",
+        "receiptReviewFlow": "Stockage des reçus et parcours de relecture",
+        "monthlyOverview": "Vue mensuelle des dépenses",
+        "categoryTrendInsights": "Tendances et analyses par catégorie",
+        "multiCurrencyTracking": "Suivi multi-devises",
+        "privateUserAccount": "Compte utilisateur privé",
+        "sharedSpaces": "Espaces pour les dépenses partagées",
+        "peopleReimbursements": "Personnes, remboursements et règlements",
+        "familyBudgets": "Budgets familiaux",
+        "householdSubscriptions": "Abonnements du foyer et paiements récurrents",
+        "sharedTracking": "Suivi partagé des voyages, événements et dépenses du foyer",
+        "householdSpendingView": "Vue des dépenses du foyer",
+        "categoryInsights": "Analyses par catégorie",
+        "clearWhoPaid": "Suivi clair de qui a payé et de qui doit quoi"
+      },
       "providerUnavailable": "Le paiement en ligne n'est pas encore configure. Contactez {{email}} pour demander une mise a niveau.",
       "providerUnavailableNoEmail": "Le paiement en ligne n'est pas encore configure. Contactez le support pour demander une mise a niveau.",
       "intervals": {

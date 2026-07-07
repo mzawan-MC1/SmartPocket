@@ -188,6 +188,46 @@
         "personal": "Best for one person",
         "family": "Best for families and shared money"
       },
+      "descriptions": {
+        "free": "Best for trying Smart Pocket before upgrading and learning how AI money tracking works.",
+        "personal": "Best for one person managing daily spending with full AI-powered personal finance tracking.",
+        "family": "Best for families, couples, and shared money with AI-assisted household finance management."
+      },
+      "ctaSupport": {
+        "free": "Try the basics before choosing a paid plan.",
+        "personal": "Good for salary, bills, receipts, and everyday spending.",
+        "family": "Best when more than one person is involved in money."
+      },
+      "sectionTitles": {
+        "aiIncluded": "AI included",
+        "moneyTools": "Money tools",
+        "sharedTools": "Shared tools",
+        "reports": "Reports",
+        "trust": "Trust"
+      },
+      "planItems": {
+        "accountsTransactions": "Accounts and transactions in one place",
+        "budgetsCategories": "Budgets and categories",
+        "subscriptionsReminders": "Subscriptions and recurring reminders",
+        "basicReportsDashboard": "Basic dashboard and reports",
+        "reviewBeforeSave": "Review before saving AI results",
+        "secureAccountAccess": "Secure account access",
+        "noCardRequired": "No credit card required",
+        "personalSubscriptions": "Recurring payments and personal subscriptions",
+        "receiptReviewFlow": "Receipt storage and review flow",
+        "monthlyOverview": "Monthly spending overview",
+        "categoryTrendInsights": "Category and trend insights",
+        "multiCurrencyTracking": "Multi-currency tracking",
+        "privateUserAccount": "Private user account",
+        "sharedSpaces": "Spaces for shared expenses",
+        "peopleReimbursements": "People, reimbursements, and settlements",
+        "familyBudgets": "Family budgets",
+        "householdSubscriptions": "Household subscriptions and recurring payments",
+        "sharedTracking": "Shared trip, event, and household tracking",
+        "householdSpendingView": "Household spending view",
+        "categoryInsights": "Category insights",
+        "clearWhoPaid": "Clear records for who paid and who owes"
+      },
       "providerUnavailable": "Online checkout is not configured yet. Contact {{email}} to request an upgrade.",
       "providerUnavailableNoEmail": "Online checkout is not configured yet. Contact support to request an upgrade.",
       "intervals": {

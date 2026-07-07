@@ -195,6 +195,46 @@
         "personal": "الأنسب لشخص واحد",
         "family": "الأنسب للعائلات والأموال المشتركة"
       },
+      "descriptions": {
+        "free": "الأنسب لتجربة Smart Pocket قبل الترقية وللتعرف على طريقة تتبع المال بالذكاء الاصطناعي.",
+        "personal": "الأنسب لشخص واحد يدير إنفاقه اليومي مع تتبع مالي شخصي مدعوم بالكامل بالذكاء الاصطناعي.",
+        "family": "الأنسب للعائلات والأزواج والأموال المشتركة مع إدارة منزلية مدعومة بالذكاء الاصطناعي."
+      },
+      "ctaSupport": {
+        "free": "جرّب الأساسيات قبل اختيار خطة مدفوعة.",
+        "personal": "مناسب للراتب والفواتير والإيصالات والمصروفات اليومية.",
+        "family": "الأفضل عندما يكون المال مشتركا بين أكثر من شخص."
+      },
+      "sectionTitles": {
+        "aiIncluded": "الذكاء الاصطناعي المتضمن",
+        "moneyTools": "أدوات المال",
+        "sharedTools": "أدوات المشاركة",
+        "reports": "التقارير",
+        "trust": "الثقة"
+      },
+      "planItems": {
+        "accountsTransactions": "الحسابات والمعاملات في مكان واحد",
+        "budgetsCategories": "الميزانيات والفئات",
+        "subscriptionsReminders": "الاشتراكات والتذكيرات المتكررة",
+        "basicReportsDashboard": "لوحة معلومات وتقارير أساسية",
+        "reviewBeforeSave": "راجع نتائج الذكاء الاصطناعي قبل الحفظ",
+        "secureAccountAccess": "وصول آمن إلى الحساب",
+        "noCardRequired": "لا حاجة إلى بطاقة ائتمان",
+        "personalSubscriptions": "المدفوعات المتكررة والاشتراكات الشخصية",
+        "receiptReviewFlow": "حفظ الإيصالات ومسار المراجعة",
+        "monthlyOverview": "نظرة شهرية على الإنفاق",
+        "categoryTrendInsights": "رؤى الفئات واتجاهات الإنفاق",
+        "multiCurrencyTracking": "تتبع العملات المتعددة",
+        "privateUserAccount": "حساب خاص بالمستخدم",
+        "sharedSpaces": "مساحات للمصروفات المشتركة",
+        "peopleReimbursements": "الأشخاص والتسويات وعمليات السداد",
+        "familyBudgets": "ميزانيات عائلية",
+        "householdSubscriptions": "اشتراكات ومدفوعات منزلية متكررة",
+        "sharedTracking": "متابعة مشتركة للرحلات والمناسبات والمنزل",
+        "householdSpendingView": "عرض إنفاق الأسرة",
+        "categoryInsights": "رؤى حسب الفئات",
+        "clearWhoPaid": "سجلات واضحة لمن دفع ومن عليه المبلغ"
+      },
       "providerUnavailable": "الدفع الإلكتروني غير مهيأ بعد. تواصل مع {{email}} لطلب الترقية.",
       "providerUnavailableNoEmail": "الدفع الإلكتروني غير مهيأ بعد. تواصل مع الدعم لطلب الترقية.",
       "intervals": {

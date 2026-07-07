@@ -17,6 +17,11 @@ import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { BillingAvailability, PublicSubscriptionPlan } from '@/lib/subscription/types';
 import { trackMarketingEvent } from '@/lib/analytics';
 
+type PricingCardSection = {
+  title: string;
+  items: string[];
+};
+
 function formatPublicPlanPrice(amount: number, currencyCode: string | null | undefined, locale: string) {
   if (amount <= 0) {
     return null;
@@ -64,6 +69,22 @@ function getPublicPlanFeatureRows(
   ];
 }
 
+function getPlanMarketingDescription(
+  planCode: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (planCode) {
+    case 'free_trial':
+      return t('home.pricing.descriptions.free');
+    case 'personal':
+      return t('home.pricing.descriptions.personal');
+    case 'family':
+      return t('home.pricing.descriptions.family');
+    default:
+      return '';
+  }
+}
+
 function getPlanAudienceLabel(
   planCode: string,
   t: (key: string, options?: Record<string, unknown>) => string
@@ -78,6 +99,120 @@ function getPlanAudienceLabel(
     default:
       return '';
   }
+}
+
+function getPlanCtaSupportLine(
+  planCode: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  switch (planCode) {
+    case 'free_trial':
+      return t('home.pricing.ctaSupport.free');
+    case 'personal':
+      return t('home.pricing.ctaSupport.personal');
+    case 'family':
+      return t('home.pricing.ctaSupport.family');
+    default:
+      return '';
+  }
+}
+
+function getPlanCardSections(
+  plan: PublicSubscriptionPlan,
+  t: (key: string, options?: Record<string, unknown>) => string
+): PricingCardSection[] {
+  const aiItems = getPublicPlanFeatureRows(plan, t);
+
+  if (plan.planCode === 'free_trial') {
+    return [
+      {
+        title: t('home.pricing.sectionTitles.aiIncluded'),
+        items: aiItems,
+      },
+      {
+        title: t('home.pricing.sectionTitles.moneyTools'),
+        items: [
+          t('home.pricing.planItems.accountsTransactions'),
+          t('home.pricing.planItems.budgetsCategories'),
+          t('home.pricing.planItems.subscriptionsReminders'),
+          t('home.pricing.planItems.basicReportsDashboard'),
+        ],
+      },
+      {
+        title: t('home.pricing.sectionTitles.trust'),
+        items: [
+          t('home.pricing.planItems.reviewBeforeSave'),
+          t('home.pricing.planItems.secureAccountAccess'),
+          t('home.pricing.planItems.noCardRequired'),
+        ],
+      },
+    ];
+  }
+
+  if (plan.planCode === 'personal') {
+    return [
+      {
+        title: t('home.pricing.sectionTitles.aiIncluded'),
+        items: aiItems,
+      },
+      {
+        title: t('home.pricing.sectionTitles.moneyTools'),
+        items: [
+          t('home.pricing.planItems.accountsTransactions'),
+          t('home.pricing.planItems.budgetsCategories'),
+          t('home.pricing.planItems.personalSubscriptions'),
+          plan.receiptIntelligenceEnabled ? t('home.pricing.planItems.receiptReviewFlow') : '',
+        ].filter(Boolean),
+      },
+      {
+        title: t('home.pricing.sectionTitles.reports'),
+        items: [
+          plan.standardReportsEnabled ? t('home.pricing.planItems.monthlyOverview') : '',
+          plan.standardReportsEnabled ? t('home.pricing.planItems.categoryTrendInsights') : '',
+          t('home.pricing.planItems.multiCurrencyTracking'),
+        ].filter(Boolean),
+      },
+      {
+        title: t('home.pricing.sectionTitles.trust'),
+        items: [
+          t('home.pricing.planItems.reviewBeforeSave'),
+          t('home.pricing.planItems.privateUserAccount'),
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      title: t('home.pricing.sectionTitles.aiIncluded'),
+      items: aiItems,
+    },
+    {
+      title: t('home.pricing.sectionTitles.sharedTools'),
+      items: [
+        plan.sharedSpacesEnabled ? t('home.pricing.planItems.sharedSpaces') : '',
+        plan.managedPeopleEnabled ? t('home.pricing.planItems.peopleReimbursements') : '',
+        t('home.pricing.planItems.familyBudgets'),
+        t('home.pricing.planItems.householdSubscriptions'),
+        t('home.pricing.planItems.sharedTracking'),
+      ].filter(Boolean),
+    },
+    {
+      title: t('home.pricing.sectionTitles.reports'),
+      items: [
+        plan.familyReportsEnabled ? t('home.pricing.planItems.householdSpendingView') : '',
+        plan.standardReportsEnabled ? t('home.pricing.planItems.categoryInsights') : '',
+        t('home.pricing.planItems.multiCurrencyTracking'),
+      ].filter(Boolean),
+    },
+    {
+      title: t('home.pricing.sectionTitles.trust'),
+      items: [
+        t('home.pricing.planItems.reviewBeforeSave'),
+        t('home.pricing.planItems.clearWhoPaid'),
+      ],
+    },
+  ];
 }
 
 export default function PricingPlansSection({
@@ -236,7 +371,7 @@ export default function PricingPlansSection({
                 </div>
               ))
             : visiblePlans.map((plan) => {
-                const featureRows = getPublicPlanFeatureRows(plan, t);
+                const cardSections = getPlanCardSections(plan, t);
                 const priceText = formatPublicPlanPrice(plan.priceAmount, plan.currencyCode, locale);
                 const equivalentMonthlyText = formatPublicPlanPrice(
                   plan.equivalentMonthlyPriceAmount,
@@ -250,6 +385,9 @@ export default function PricingPlansSection({
                   isAuthenticated
                 );
                 const accent = plan.planCode === 'personal';
+                const marketingDescription = getPlanMarketingDescription(plan.planCode, t);
+                const audienceLabel = getPlanAudienceLabel(plan.planCode, t);
+                const ctaSupportLine = getPlanCtaSupportLine(plan.planCode, t);
 
                 return (
                   <div
@@ -300,45 +438,82 @@ export default function PricingPlansSection({
                           ) : null}
                         </div>
                       ) : null}
-                      {plan.description ? (
-                        <p className={isDark ? 'mt-3 text-sm text-slate-300' : 'mt-3 text-sm text-muted-foreground'}>{plan.description}</p>
+                      {marketingDescription ? (
+                        <p className={isDark ? 'mt-3 text-sm leading-6 text-slate-300' : 'mt-3 text-sm leading-6 text-muted-foreground'}>
+                          {marketingDescription}
+                        </p>
                       ) : null}
-                      {getPlanAudienceLabel(plan.planCode, t) ? (
+                      {audienceLabel ? (
                         <p className={isDark ? 'mt-3 text-sm font-600 text-cyan-200' : 'mt-3 text-sm font-600 text-accent'}>
-                          {getPlanAudienceLabel(plan.planCode, t)}
+                          {audienceLabel}
                         </p>
                       ) : null}
                     </div>
-                    <ul className="space-y-2.5 mb-6 flex-1">
-                      {featureRows.map((feature) => (
-                        <li key={feature} className={`flex items-center gap-2 text-sm ${isDark ? 'text-slate-200' : 'text-muted-foreground'}`}>
-                          <CheckCircle2 size={14} className={`${isDark ? 'text-emerald-300' : 'text-positive'} flex-shrink-0`} />
-                          {feature}
-                        </li>
+                    <div className="flex-1 space-y-4">
+                      {cardSections.map((section) => (
+                        <div
+                          key={`${plan.id}-${section.title}`}
+                          className={`rounded-[1.35rem] p-4 ${
+                            isDark ? 'border border-white/10 bg-[#08192d]/85' : 'border border-border/70 bg-background/70'
+                          }`}
+                        >
+                          <p className={`text-[11px] font-700 uppercase tracking-[0.18em] ${
+                            isDark ? 'text-cyan-200' : 'text-accent'
+                          }`}>
+                            {section.title}
+                          </p>
+                          <ul className="mt-3 space-y-2.5">
+                            {section.items.map((item) => (
+                              <li
+                                key={`${section.title}-${item}`}
+                                className={`flex items-start gap-2 text-sm leading-6 ${
+                                  isDark ? 'text-slate-200' : 'text-muted-foreground'
+                                }`}
+                              >
+                                <CheckCircle2
+                                  size={14}
+                                  className={`${isDark ? 'text-emerald-300' : 'text-positive'} mt-1 flex-shrink-0`}
+                                />
+                                <span>{item}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       ))}
-                    </ul>
-                    <Link
-                      href={ctaHref}
-                      onClick={() =>
-                        trackMarketingEvent('plan_selected', {
-                          plan_code: plan.planCode,
-                          billing_interval: plan.billingInterval,
-                          authenticated: isAuthenticated,
-                        })
-                      }
-                      className={`w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-600 transition-all ${
-                        isDark
-                          ? accent
-                            ? 'bg-cyan-300 text-slate-950 hover:bg-cyan-200'
-                            : 'border border-white/15 bg-white/5 text-white hover:bg-white/10'
-                          : accent
-                            ? 'btn-primary'
-                            : 'btn-secondary'
-                      }`}
-                    >
-                      {isAuthenticated ? t('home.pricing.managePlanCta') : t('home.pricing.guestPlanCta')}
-                      <ArrowRight size={14} />
-                    </Link>
+                    </div>
+                    <div className={`mt-6 rounded-[1.35rem] p-4 ${
+                      isDark ? 'border border-white/10 bg-white/5' : 'border border-border/70 bg-background/80'
+                    }`}>
+                      <Link
+                        href={ctaHref}
+                        onClick={() =>
+                          trackMarketingEvent('plan_selected', {
+                            plan_code: plan.planCode,
+                            billing_interval: plan.billingInterval,
+                            authenticated: isAuthenticated,
+                          })
+                        }
+                        className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-600 transition-all ${
+                          isDark
+                            ? accent
+                              ? 'bg-cyan-300 text-slate-950 hover:bg-cyan-200'
+                              : 'border border-white/15 bg-white/5 text-white hover:bg-white/10'
+                            : accent
+                              ? 'btn-primary'
+                              : 'btn-secondary'
+                        }`}
+                      >
+                        {isAuthenticated ? t('home.pricing.managePlanCta') : t('home.pricing.guestPlanCta')}
+                        <ArrowRight size={14} />
+                      </Link>
+                      {ctaSupportLine ? (
+                        <p className={`mt-3 text-center text-xs leading-5 ${
+                          isDark ? 'text-slate-300' : 'text-muted-foreground'
+                        }`}>
+                          {ctaSupportLine}
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })}
