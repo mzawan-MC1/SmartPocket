@@ -178,6 +178,18 @@ function formatMonthLabel(dateString: string, locale: string) {
   }).format(toUtcNoonDate(dateString));
 }
 
+function formatSafeUtcDisplayDate(value: string | null | undefined, locale: string) {
+  if (!value) return '—';
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 function formatBucketLabel(grouping: ReportGrouping, bucketStart: string, bucketEnd: string, locale: string) {
   if (grouping === 'day') {
     return formatDayLabel(bucketStart, locale);
@@ -2247,12 +2259,7 @@ function AccountStatementTable(args: {
           const signedAmount = transaction.transaction_type === 'expense'
             ? -Math.abs(Number(transaction.amount || 0))
             : Number(transaction.amount || 0);
-          const formattedDate = new Intl.DateTimeFormat(args.locale, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            timeZone: 'UTC',
-          }).format(new Date(`${transaction.transaction_date}T12:00:00Z`));
+          const formattedDate = formatSafeUtcDisplayDate(transaction.transaction_date, args.locale);
           const conversion = convertHistoricalAmountWithSnapshots({
             amount: signedAmount,
             fromCurrency: transaction.currency || args.reportingCurrency,

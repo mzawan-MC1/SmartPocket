@@ -24,6 +24,18 @@ export interface ReportTransactionRow {
   hasReceipt: boolean;
 }
 
+function formatReportRowDate(value: string | null | undefined, locale: string) {
+  if (!value) return '—';
+  const date = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat(locale, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
 export default function ReportTransactionTable({
   rows,
 }: {
@@ -48,12 +60,7 @@ export default function ReportTransactionTable({
     <>
       <div className="space-y-3 sm:hidden">
         {rows.map((row) => {
-          const formattedDate = new Intl.DateTimeFormat(locale, {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            timeZone: 'UTC',
-          }).format(new Date(`${row.date}T12:00:00Z`));
+          const formattedDate = formatReportRowDate(row.date, locale);
 
           return (
             <div key={`mobile-${row.id}`} className="rounded-[24px] border border-border bg-card p-3.5 shadow-card-sm">
