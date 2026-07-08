@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type MonthlyTrendsChartRow = {
   month: string;
@@ -37,7 +38,7 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
         <div key={`mt-tt-${entry.name}`} className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-sm" style={{ background: entry.color }} />
-            <span className="text-xs text-muted-foreground capitalize">{entry.name}</span>
+            <span className="text-xs text-muted-foreground">{entry.name}</span>
           </div>
           <FormattedCurrencyAmount
             amount={entry.value}
@@ -59,6 +60,8 @@ export default function MonthlyTrendsChart({
   currencyCode: string;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -73,10 +76,10 @@ export default function MonthlyTrendsChart({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={3}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
+        <XAxis dataKey="month" minTickGap={isArabic ? 18 : 12} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+        <YAxis width={isArabic ? 52 : 46} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
-        <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
+        <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: isArabic ? '12px' : '11px', fontWeight: 500, paddingTop: '8px' }} />
         <Bar dataKey="income" name={t('reports.summary.totalIncome')} fill="var(--positive)" radius={[3, 3, 0, 0]} barSize={20} />
         <Bar dataKey="expenses" name={t('reports.summary.totalExpenses')} fill="var(--negative)" radius={[3, 3, 0, 0]} barSize={20} />
         <Bar dataKey="savings" name={t('reports.summary.netSavings')} fill="var(--accent)" radius={[3, 3, 0, 0]} barSize={20} />

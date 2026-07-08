@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type SpendingCategoryChartRow = {
   id: string;
@@ -20,6 +21,10 @@ type SpendingCategoryChartRow = {
   amount: number;
   color: string;
 };
+
+function formatCategoryAxisLabel(value: string) {
+  return value.length > 14 ? `${value.slice(0, 14)}…` : value;
+}
 
 function formatAxisValue(value: number, currencyCode: string) {
   return formatCurrencyValue(value, {
@@ -52,6 +57,8 @@ export default function SpendingCategoryReportChart({
   currencyCode: string;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -68,8 +75,8 @@ export default function SpendingCategoryReportChart({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barSize={32}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="category" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
+        <XAxis dataKey="category" interval={0} minTickGap={isArabic ? 18 : 12} tickFormatter={formatCategoryAxisLabel} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+        <YAxis width={isArabic ? 52 : 46} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} t={t} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
         <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
           {safeData.map((entry) => (

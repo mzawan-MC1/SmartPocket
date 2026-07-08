@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3, PieChart, TrendingUp, FileText, Target, FileDown, Printer,
-  Calendar, Filter, Loader2, ChevronLeft, ChevronRight,
+  Calendar, Filter, Loader2, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
@@ -763,10 +763,11 @@ function buildFullReportSummaryCsv(
 }
 
 export default function ReportsScreen() {
-  const { t } = useTranslation('portal');
+  const { t } = useTranslation(['portal', 'common']);
   const { dir, language } = useLanguage();
   const { user, profile } = useAuth();
   const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
@@ -789,6 +790,7 @@ export default function ReportsScreen() {
   const [includeUpcomingCommitments, setIncludeUpcomingCommitments] = useState(true);
   const [includeArchivedAccounts, setIncludeArchivedAccounts] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
+  const [mobileFiltersExpanded, setMobileFiltersExpanded] = useState(false);
   const [reportData, setReportData] = useState<ReportViewData | null>(null);
   const [allAccounts, setAllAccounts] = useState<FinancialAccount[]>([]);
   const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
@@ -1361,6 +1363,69 @@ export default function ReportsScreen() {
     selectedPersonLabel,
     selectedTransactionTypeLabel,
   ].join(' | ');
+  const activeMobileFilterSummaries = useMemo(() => {
+    const summaries = [
+      activeRange?.label || null,
+      selectedScopeLabel,
+      selectedAccountLabel,
+      scopeType === 'space' ? spaces.find((space) => space.id === selectedSpaceId)?.name || null : null,
+      selectedCategoryId !== 'all' ? selectedCategoryLabel : null,
+      selectedPersonId !== 'all' ? selectedPersonLabel : null,
+      selectedTransactionType !== 'all' ? selectedTransactionTypeLabel : null,
+      activeReport === 'full-financial'
+        ? (currencyMode === 'both'
+          ? t('reports.controls.currencyModeBoth', { defaultValue: 'Reporting and original values' })
+          : t('reports.controls.currencyModeReporting', { defaultValue: 'Reporting values first' }))
+        : null,
+    ].filter((value): value is string => Boolean(value));
+
+    return Array.from(new Set(summaries));
+  }, [
+    activeRange?.label,
+    activeReport,
+    currencyMode,
+    scopeType,
+    selectedAccountLabel,
+    selectedCategoryId,
+    selectedCategoryLabel,
+    selectedPersonId,
+    selectedPersonLabel,
+    selectedSpaceId,
+    selectedScopeLabel,
+    selectedTransactionType,
+    selectedTransactionTypeLabel,
+    spaces,
+    t,
+  ]);
+  const activeMobileFilterCount = useMemo(() => {
+    let count = 0;
+    if (activePreset !== 'current_month') count += 1;
+    if (scopeType !== 'personal') count += 1;
+    if (selectedAccount !== 'all') count += 1;
+    if (selectedCategoryId !== 'all') count += 1;
+    if (selectedPersonId !== 'all') count += 1;
+    if (selectedTransactionType !== 'all') count += 1;
+    if (currencyMode !== 'both') count += 1;
+    if (includeArchivedAccounts) count += 1;
+    if (!includeTransactionDetails) count += 1;
+    if (!includeCharts) count += 1;
+    if (!includeItemInsights) count += 1;
+    if (!includeUpcomingCommitments) count += 1;
+    return count;
+  }, [
+    activePreset,
+    currencyMode,
+    includeArchivedAccounts,
+    includeCharts,
+    includeItemInsights,
+    includeTransactionDetails,
+    includeUpcomingCommitments,
+    scopeType,
+    selectedAccount,
+    selectedCategoryId,
+    selectedPersonId,
+    selectedTransactionType,
+  ]);
 
   const handleDownloadCSV = useCallback(() => {
     if (actionInFlight) return;
@@ -1512,8 +1577,8 @@ export default function ReportsScreen() {
         hideDescriptionOnMobile
         actionsClassName="w-full sm:w-auto !min-w-0"
         actions={
-          <div className="flex flex-wrap gap-2 sm:flex-nowrap print:hidden">
-            <Link href="/reports/item-insights" className="btn-secondary h-9 px-3 text-sm gap-1.5">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap print:hidden">
+            <Link href="/reports/item-insights" className="btn-secondary inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl px-3 text-sm sm:h-9 sm:w-auto">
               <BarChart3 size={15} />
               {t('itemInsights.title')}
             </Link>
@@ -1534,204 +1599,256 @@ export default function ReportsScreen() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-        <div className="space-y-2 xl:col-span-1 print:hidden">
-          <p className="mb-2 px-1 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{t('reports.reportType')}</p>
-          {reportTypes.map((rt) => {
-            const Icon = rt.icon;
-            const label = getReportTypeLabel(rt.id, t);
-            const description = getReportTypeDescription(rt.id, t);
-            return (
-              <button
-                key={rt.id}
-                onClick={() => setActiveReport(rt.id)}
-                aria-pressed={activeReport === rt.id}
-                className={`w-full rounded-xl border p-3 text-left transition-all duration-150 max-[480px]:p-2.5 ${
-                  activeReport === rt.id ? 'border-accent bg-accent/8 shadow-sm' : 'border-border bg-card hover:border-accent/40 hover:bg-muted/40'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${activeReport === rt.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                    <Icon size={15} />
+        <div className="card-elevated p-3 xl:col-span-1 print:hidden sm:p-3.5">
+          <p className={`mb-3 px-1 font-600 text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.reportType')}</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-1">
+            {reportTypes.map((rt) => {
+              const Icon = rt.icon;
+              const label = getReportTypeLabel(rt.id, t);
+              const description = getReportTypeDescription(rt.id, t);
+              return (
+                <button
+                  key={rt.id}
+                  onClick={() => setActiveReport(rt.id)}
+                  aria-pressed={activeReport === rt.id}
+                  className={`w-full rounded-2xl border p-3 text-left transition-all duration-150 ${
+                    activeReport === rt.id ? 'border-accent bg-accent/8 shadow-sm' : 'border-border bg-card hover:border-accent/40 hover:bg-muted/40'
+                  }`}
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${activeReport === rt.id ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      <Icon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className={`text-sm font-700 leading-snug ${activeReport === rt.id ? 'text-accent' : 'text-foreground'} ${isArabic ? 'text-[14px] leading-6' : ''}`}>
+                        {label}
+                      </p>
+                      <p className="mt-1 hidden text-[11px] leading-tight text-muted-foreground xl:block">{description}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className={`truncate text-sm font-600 ${activeReport === rt.id ? 'text-accent' : 'text-foreground'}`}>{label}</p>
-                    <p className="mt-0.5 text-[11px] leading-tight text-muted-foreground max-[480px]:hidden">{description}</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-3 print:hidden max-[480px]:p-2.5">
+          <div className="card-elevated p-3 print:hidden sm:p-4">
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-1.5 lg:flex-nowrap lg:gap-1 lg:overflow-hidden">
-                {visibleReportPresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => handlePresetChange(preset)}
-                    aria-pressed={activePreset === preset}
-                    className={`inline-flex h-7 flex-none items-center justify-center whitespace-nowrap rounded-full border px-2 text-[11px] font-600 leading-none transition-all lg:px-1.5 xl:px-2 ${
-                      activePreset === preset
-                        ? 'border-accent bg-accent/10 text-accent'
-                        : 'border-border text-muted-foreground hover:border-accent/40 hover:bg-muted/40 hover:text-foreground'
-                    }`}
-                  >
-                    {getPresetButtonLabel(preset, periodContext, t)}
-                  </button>
-                ))}
+              <div className="rounded-2xl border border-border bg-muted/12 p-3 sm:hidden">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                      {getReportTypeLabel(activeReport, t)}
+                    </p>
+                    <p className={`mt-1 truncate font-700 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-sm'}`}>
+                      {activeRange?.label || t('reports.loadingPeriod')}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {activeRange?.comparisonLabel
+                        ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
+                        : activePreset === 'custom'
+                          ? t('reports.customRange')
+                          : t('reports.sharedBoundaries')}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {activeMobileFilterCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={handleResetReportOptions}
+                        disabled={loading || fullReportLoading}
+                        className="btn-ghost h-10 rounded-xl px-3 text-sm disabled:opacity-60"
+                      >
+                        {t('reports.controls.reset', { defaultValue: 'Reset' })}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => setMobileFiltersExpanded((current) => !current)}
+                      className={`btn-secondary inline-flex h-10 items-center gap-2 rounded-xl px-3 text-sm ${mobileFiltersExpanded ? 'border-accent text-accent' : ''}`}
+                    >
+                      <Filter size={15} />
+                      {t('actions.filter', { ns: 'common' })}
+                      {activeMobileFilterCount > 0 ? (
+                        <span className="rounded-full bg-accent px-1.5 py-0.5 text-[11px] font-700 text-accent-foreground">
+                          {activeMobileFilterCount}
+                        </span>
+                      ) : null}
+                      {mobileFiltersExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  </div>
+                </div>
+                {activeMobileFilterSummaries.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {activeMobileFilterSummaries.slice(0, 5).map((summary) => (
+                      <span
+                        key={`report-filter-summary-${summary}`}
+                        className="inline-flex max-w-full items-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-700 text-muted-foreground shadow-card-sm"
+                      >
+                        <span className="truncate">{summary}</span>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </div>
 
-              <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap lg:gap-2">
-                <div className="flex min-w-0 items-center gap-1.5 lg:w-[198px] lg:flex-none">
-                  <Calendar size={14} className="hidden text-muted-foreground sm:block" />
-                  <div className="min-w-0 flex-1">
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.from')}</span>
-                    <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
-                    <input
-                      id="report-date-from"
-                      type="date"
-                      value={activePreset === 'custom' ? customDateFrom : activeRange?.startDate || ''}
-                      onChange={(event) => {
-                        setActivePreset('custom');
-                        setCustomDateFrom(event.target.value);
-                      }}
-                      className="input-base h-9 min-w-0 w-full px-3 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-1.5 lg:w-[198px] lg:flex-none">
-                  <div className="min-w-0 flex-1">
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.to')}</span>
-                    <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
-                    <input
-                      id="report-date-to"
-                      type="date"
-                      value={activePreset === 'custom' ? customDateTo : activeRange?.endDate || ''}
-                      onChange={(event) => {
-                        setActivePreset('custom');
-                        setCustomDateTo(event.target.value);
-                      }}
-                      className="input-base h-9 min-w-0 w-full px-3 text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
-                  <Filter size={13} className="hidden text-muted-foreground sm:block" />
-                  <div className="min-w-0 flex-1">
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.scopeLabel', { defaultValue: 'Scope' })}</span>
-                    <select
-                      value={scopeType}
-                      onChange={(event) => setScopeType(event.target.value as 'personal' | 'space')}
-                      className="input-base h-9 min-w-[140px] max-w-full w-full px-3 text-sm"
-                    >
-                      <option value="personal">{t('reports.personalScope', { defaultValue: 'Personal' })}</option>
-                      <option value="space" disabled={spaces.length === 0}>
-                        {t('reports.spaceScope', { defaultValue: 'Space' })}
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
-                {scopeType === 'space' ? (
-                  <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
-                    <div className="min-w-0 flex-1">
-                      <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('spaces.title', { ns: 'portal', defaultValue: 'Spaces' })}</span>
-                      <select
-                        value={selectedSpaceId}
-                        onChange={(event) => setSelectedSpaceId(event.target.value)}
-                        className="input-base h-9 min-w-[180px] max-w-full w-full px-3 text-sm lg:max-w-[210px]"
+              <div className={`${mobileFiltersExpanded ? 'block' : 'hidden'} sm:block`}>
+                <div className="space-y-3">
+                  <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-thin sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+                    {visibleReportPresets.map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => handlePresetChange(preset)}
+                        aria-pressed={activePreset === preset}
+                        className={`inline-flex h-9 flex-none items-center justify-center whitespace-nowrap rounded-xl border px-3 text-sm font-600 leading-none transition-all ${
+                          activePreset === preset
+                            ? 'border-accent bg-accent/10 text-accent'
+                            : 'border-border text-muted-foreground hover:border-accent/40 hover:bg-muted/40 hover:text-foreground'
+                        }`}
                       >
-                        {spaces.map((space) => (
-                          <option key={space.id} value={space.id}>
-                            {space.name}
+                        {getPresetButtonLabel(preset, periodContext, t)}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2 xl:grid-cols-4">
+                    <div className="min-w-0">
+                      <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.from')}</span>
+                      <label className="sr-only" htmlFor="report-date-from">{t('reports.reportStartDate')}</label>
+                      <input
+                        id="report-date-from"
+                        type="date"
+                        value={activePreset === 'custom' ? customDateFrom : activeRange?.startDate || ''}
+                        onChange={(event) => {
+                          setActivePreset('custom');
+                          setCustomDateFrom(event.target.value);
+                        }}
+                        className="input-base h-10 min-w-0 w-full rounded-xl px-3 text-sm"
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.to')}</span>
+                      <label className="sr-only" htmlFor="report-date-to">{t('reports.reportEndDate')}</label>
+                      <input
+                        id="report-date-to"
+                        type="date"
+                        value={activePreset === 'custom' ? customDateTo : activeRange?.endDate || ''}
+                        onChange={(event) => {
+                          setActivePreset('custom');
+                          setCustomDateTo(event.target.value);
+                        }}
+                        className="input-base h-10 min-w-0 w-full rounded-xl px-3 text-sm"
+                      />
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.scopeLabel', { defaultValue: 'Scope' })}</span>
+                      <select
+                        value={scopeType}
+                        onChange={(event) => setScopeType(event.target.value as 'personal' | 'space')}
+                        className="input-base h-10 min-w-0 w-full rounded-xl px-3 text-sm"
+                      >
+                        <option value="personal">{t('reports.personalScope', { defaultValue: 'Personal' })}</option>
+                        <option value="space" disabled={spaces.length === 0}>
+                          {t('reports.spaceScope', { defaultValue: 'Space' })}
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="min-w-0">
+                      <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.account')}</span>
+                      <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
+                      <select
+                        id="report-account-filter"
+                        value={selectedAccount}
+                        onChange={(event) => setSelectedAccount(event.target.value)}
+                        className="input-base h-10 min-w-0 w-full rounded-xl px-3 text-sm"
+                      >
+                        <option value="all">{t('reports.allAccounts')}</option>
+                        {(reportData?.accounts || []).map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {getFinancialAccountDisplayLabel(account, {
+                              includeCurrency: true,
+                              includeDefaultLabel: true,
+                            })}
                           </option>
                         ))}
                       </select>
                     </div>
-                  </div>
-                ) : null}
 
-                <div className="flex min-w-0 items-center gap-1.5 lg:w-[210px] lg:flex-none">
-                  <Filter size={13} className="hidden text-muted-foreground sm:block" />
-                  <div className="min-w-0 flex-1">
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.account')}</span>
-                    <label className="sr-only" htmlFor="report-account-filter">{t('reports.filterByAccount')}</label>
-                    <select
-                      id="report-account-filter"
-                      value={selectedAccount}
-                      onChange={(event) => setSelectedAccount(event.target.value)}
-                      className="input-base h-9 min-w-[180px] max-w-full w-full px-3 text-sm lg:max-w-[210px]"
+                    {scopeType === 'space' ? (
+                      <div className="min-w-0 min-[390px]:col-span-2 xl:col-span-4">
+                        <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('spaces.title', { ns: 'portal', defaultValue: 'Spaces' })}</span>
+                        <select
+                          value={selectedSpaceId}
+                          onChange={(event) => setSelectedSpaceId(event.target.value)}
+                          className="input-base h-10 min-w-0 w-full rounded-xl px-3 text-sm"
+                        >
+                          {spaces.map((space) => (
+                            <option key={space.id} value={space.id}>
+                              {space.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={goToPreviousRange}
+                      disabled={activePreset === 'custom' || periodLoading}
+                      className="btn-secondary h-10 rounded-xl px-2 text-sm disabled:opacity-50"
+                      aria-label={`${t('reports.previous')} ${previousRangeLabel}`}
                     >
-                      <option value="all">{t('reports.allAccounts')}</option>
-                      {(reportData?.accounts || []).map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {getFinancialAccountDisplayLabel(account, {
-                            includeCurrency: true,
-                            includeDefaultLabel: true,
-                          })}
-                        </option>
-                      ))}
-                    </select>
+                      <PreviousIcon size={14} />
+                      <span className="truncate">{t('reports.previous')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
+                      disabled={periodLoading}
+                      className="btn-secondary h-10 rounded-xl px-2 text-sm disabled:opacity-50"
+                    >
+                      {t('reports.current')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goToNextRange}
+                      disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
+                      className="btn-secondary h-10 rounded-xl px-2 text-sm disabled:opacity-50"
+                      aria-label={`${t('reports.next')} ${previousRangeLabel}`}
+                    >
+                      <span className="truncate">{t('reports.next')}</span>
+                      <NextIcon size={14} />
+                    </button>
                   </div>
-                </div>
 
-                <div className={`inline-flex overflow-hidden rounded-xl border border-border bg-card lg:ms-auto ${dir === 'rtl' ? 'flex-row-reverse' : ''}`}>
-                  <button
-                    type="button"
-                    onClick={goToPreviousRange}
-                    disabled={activePreset === 'custom' || periodLoading}
-                    className="flex h-9 items-center gap-1.5 whitespace-nowrap px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label={`${t('reports.previous')} ${previousRangeLabel}`}
-                  >
-                    <PreviousIcon size={14} />
-                    {t('reports.previous')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => periodContext && setPeriodCursor(periodContext.currentBusinessDate)}
-                    disabled={periodLoading}
-                    className="flex h-9 items-center gap-1.5 whitespace-nowrap border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {t('reports.current')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={goToNextRange}
-                    disabled={activePreset === 'custom' || !activeRange?.canNavigateForward || periodLoading}
-                    className="flex h-9 items-center gap-1.5 whitespace-nowrap border-s border-border px-3 text-sm font-600 text-foreground transition-colors hover:bg-muted/40 disabled:cursor-not-allowed disabled:opacity-50"
-                    aria-label={`${t('reports.next')} ${previousRangeLabel}`}
-                  >
-                    {t('reports.next')}
-                    <NextIcon size={14} />
-                  </button>
+                  <div className="hidden sm:flex sm:flex-wrap sm:gap-2">
+                    {activeMobileFilterSummaries.map((summary) => (
+                      <span
+                        key={`report-filter-summary-desktop-${summary}`}
+                        className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1.5 text-xs font-700 text-muted-foreground shadow-card-sm"
+                      >
+                        {summary}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <p className="min-w-0 truncate text-xs text-muted-foreground">
-                <span className="font-600 text-foreground">{activeRange?.label || t('reports.loadingPeriod')}</span>
-                {' · '}
-                {selectedFilterSummary}
-                {' · '}
-                {activeRange?.comparisonLabel
-                  ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
-                  : activePreset === 'custom'
-                    ? t('reports.customRange')
-                    : t('reports.sharedBoundaries')}
-              </p>
-
               {activeReport === 'full-financial' ? (
-                <div className="grid grid-cols-1 gap-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.category', { defaultValue: 'Category' })}</span>
+                    <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.controls.category', { defaultValue: 'Category' })}</span>
                     <select
                       value={selectedCategoryId}
                       onChange={(event) => setSelectedCategoryId(event.target.value)}
-                      className="input-base h-9 w-full px-3 text-sm"
+                      className="input-base h-10 w-full rounded-xl px-3 text-sm"
                     >
                       <option value="all">{t('reports.controls.allCategories', { defaultValue: 'All categories' })}</option>
                       {availableCategories.map((category) => (
@@ -1740,11 +1857,11 @@ export default function ReportsScreen() {
                     </select>
                   </div>
                   <div>
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.person', { defaultValue: 'Person' })}</span>
+                    <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.controls.person', { defaultValue: 'Person' })}</span>
                     <select
                       value={selectedPersonId}
                       onChange={(event) => setSelectedPersonId(event.target.value)}
-                      className="input-base h-9 w-full px-3 text-sm"
+                      className="input-base h-10 w-full rounded-xl px-3 text-sm"
                     >
                       <option value="all">{t('reports.controls.allPeople', { defaultValue: 'All people' })}</option>
                       {availablePeople.map((person) => (
@@ -1753,11 +1870,11 @@ export default function ReportsScreen() {
                     </select>
                   </div>
                   <div>
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.transactionType', { defaultValue: 'Transaction type' })}</span>
+                    <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.controls.transactionType', { defaultValue: 'Transaction type' })}</span>
                     <select
                       value={selectedTransactionType}
                       onChange={(event) => setSelectedTransactionType(event.target.value as 'all' | 'income' | 'expense')}
-                      className="input-base h-9 w-full px-3 text-sm"
+                      className="input-base h-10 w-full rounded-xl px-3 text-sm"
                     >
                       <option value="all">{t('reports.controls.allTransactionTypes', { defaultValue: 'All transaction types' })}</option>
                       <option value="income">{t('transactions.types.income')}</option>
@@ -1765,11 +1882,11 @@ export default function ReportsScreen() {
                     </select>
                   </div>
                   <div>
-                    <span className="mb-1 block text-[11px] font-600 text-muted-foreground">{t('reports.controls.currencyMode', { defaultValue: 'Currency mode' })}</span>
+                    <span className={`mb-1 block font-600 text-muted-foreground ${isArabic ? 'text-xs' : 'text-[11px]'}`}>{t('reports.controls.currencyMode', { defaultValue: 'Currency mode' })}</span>
                     <select
                       value={currencyMode}
                       onChange={(event) => setCurrencyMode(event.target.value as 'reporting' | 'both')}
-                      className="input-base h-9 w-full px-3 text-sm"
+                      className="input-base h-10 w-full rounded-xl px-3 text-sm"
                     >
                       <option value="both">{t('reports.controls.currencyModeBoth', { defaultValue: 'Reporting and original values' })}</option>
                       <option value="reporting">{t('reports.controls.currencyModeReporting', { defaultValue: 'Reporting values first' })}</option>
@@ -1779,21 +1896,17 @@ export default function ReportsScreen() {
               ) : null}
 
               {activeReport === 'full-financial' ? (
-                <div className="rounded-2xl border border-border/80 bg-muted/15 p-3">
+                <div className="rounded-2xl border border-border/80 bg-muted/15 p-3 sm:p-3.5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-700 text-foreground">{t('reports.controls.fullReportPanelTitle', { defaultValue: 'Full Financial Report' })}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>
                         {t('reports.controls.fullReportPanelDescription', {
                           defaultValue: 'Preview one organized report using the selected period, scope, and filters without changing underlying calculations.',
                         })}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowMoreOptions((current) => !current)}
-                      className="text-xs font-600 text-accent"
-                    >
+                    <button type="button" onClick={() => setShowMoreOptions((current) => !current)} className="text-xs font-600 text-accent">
                       {showMoreOptions
                         ? t('reports.controls.hideMoreOptions', { defaultValue: 'Hide more report options' })
                         : t('reports.controls.moreOptions', { defaultValue: 'More report options' })}
@@ -1801,7 +1914,7 @@ export default function ReportsScreen() {
                   </div>
 
                   {showMoreOptions ? (
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="mt-3 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 xl:grid-cols-3">
                       <label className="flex items-center gap-2 text-sm text-foreground">
                         <input type="checkbox" checked={includeTransactionDetails} onChange={(event) => setIncludeTransactionDetails(event.target.checked)} />
                         {t('reports.controls.includeTransactionDetails', { defaultValue: 'Include transaction details' })}
@@ -1825,20 +1938,20 @@ export default function ReportsScreen() {
                     </div>
                   ) : null}
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <button onClick={handlePreviewReport} disabled={loading || fullReportLoading} className="btn-primary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                  <div className="mt-3 grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
+                    <button onClick={handlePreviewReport} disabled={loading || fullReportLoading} className="btn-primary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60 min-[390px]:col-span-2 sm:col-span-1">
                       {(loading || fullReportLoading) ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
                       {t('reports.controls.preview', { defaultValue: 'Preview report' })}
                     </button>
-                    <button onClick={handlePrint} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                    <button onClick={handlePrint} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60">
                       {actionInFlight === 'print' ? <Loader2 size={15} className="animate-spin" /> : <Printer size={15} />}
                       {t('reports.print')}
                     </button>
-                    <button onClick={handleDownloadCSV} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary h-9 px-3 text-sm gap-1.5 disabled:opacity-60">
+                    <button onClick={handleDownloadCSV} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60">
                       {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
                       {t('reports.controls.exportCsvPackage', { defaultValue: 'Export CSV package' })}
                     </button>
-                    <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary h-9 px-3 text-sm disabled:opacity-60">
+                    <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm disabled:opacity-60 min-[390px]:col-span-2">
                       {t('reports.controls.reset', { defaultValue: 'Reset' })}
                     </button>
                   </div>
@@ -1847,10 +1960,10 @@ export default function ReportsScreen() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4 print:hidden">
+          <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 md:grid-cols-4 print:hidden">
             {summaryByType[activeReport].map((item) => (
-              <div key={item.id} className="card-elevated p-4 max-[480px]:p-3">
-                <p className="mb-1.5 text-[11px] font-600 uppercase tracking-wider text-muted-foreground">{item.label}</p>
+              <div key={item.id} className="card-elevated p-3.5 sm:p-4">
+                <p className={`mb-1.5 font-600 text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{item.label}</p>
                 <div className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
                   {(loading || periodLoading || (activeReport === 'full-financial' && fullReportLoading)) ? (
                     <span className="inline-block h-5 w-20 animate-pulse rounded bg-muted" />
@@ -1860,22 +1973,22 @@ export default function ReportsScreen() {
                     item.value
                   )}
                 </div>
-                {item.sub ? <p className="mt-0.5 text-[11px] text-muted-foreground">{item.sub}</p> : null}
+                {item.sub ? <p className={`mt-0.5 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>{item.sub}</p> : null}
                 {!loading && item.convertedMetric ? renderConvertedMetricDetails(item.convertedMetric, t, locale) : null}
               </div>
             ))}
           </div>
 
-          <div className="card-elevated p-5 max-[480px]:p-3">
-            <div className="mb-4 flex items-center justify-between gap-3 max-[480px]:mb-3">
-              <div>
+          <div className="card-elevated p-4 sm:p-5">
+            <div className="mb-4 flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between max-[480px]:mb-3">
+              <div className="min-w-0">
                 <h2 className="text-base font-700 text-foreground">{activeTitle}</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
+                <p className={`mt-0.5 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>
                   {activeRange?.label || t('reports.loadingRange')}
                   {activeRange?.comparisonLabel ? ` · ${t('reports.comparedWith', { value: activeRange.comparisonLabel })}` : ''}
                 </p>
                 {activeReport === 'monthly-trends' ? (
-                  <p className="mt-1 text-[11px] text-muted-foreground">
+                  <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
                     {t('reports.groupedBy', {
                       value:
                         grouping === 'day'
@@ -1936,6 +2049,8 @@ export default function ReportsScreen() {
                 reportingCurrency={reportData?.reportingCurrency || ''}
                 snapshots={reportData?.snapshots || []}
                 t={t}
+                locale={locale}
+                isArabic={isArabic}
               />
             ) : activeReport === 'budget-performance' ? (
               reportData?.budgetPerformance.unavailableReason ? (
@@ -1948,7 +2063,7 @@ export default function ReportsScreen() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="h-[300px]">
+                  <div className="h-[260px] sm:h-[300px]">
                     <BudgetPerformanceChart
                       data={sanitizeBudgetPerformanceChartRows(reportData?.budgetPerformance.chartRows || [])}
                       currencyCode={reportData?.budgetPerformance.reportingCurrency || ''}
@@ -1956,7 +2071,7 @@ export default function ReportsScreen() {
                   </div>
                   <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {(reportData?.budgetPerformance.items || []).map((item) => (
-                      <div key={item.budget.id} className="rounded-xl border border-border p-4">
+                      <div key={item.budget.id} className="rounded-2xl border border-border p-3.5 sm:p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="text-sm font-700 text-foreground">
@@ -1966,20 +2081,20 @@ export default function ReportsScreen() {
                                   )
                                 : item.budget.name || t('reports.budget')}
                             </p>
-                            <p className="text-xs text-muted-foreground">{getBudgetPeriodTypeLabel(item.period.budgetPeriod, t)} · {item.period.label}</p>
+                            <p className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>{getBudgetPeriodTypeLabel(item.period.budgetPeriod, t)} · {item.period.label}</p>
                           </div>
                           <StatusBadge
                             status={item.status === 'over_budget' ? 'error' : item.status === 'near_limit' ? 'warning' : item.status === 'conversion_unavailable' ? 'pending' : 'info'}
                             label={getLocalizedBudgetStatusLabel(item, t)}
                           />
                         </div>
-                        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div className="mt-3 grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 text-sm">
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.budget')}</p>
+                            <p className={`text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.budget')}</p>
                             <FormattedCurrencyAmount amount={Number(item.budget.amount || 0)} currencyCode={item.budget.currency} className="font-700 text-foreground" showCode />
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.spent')}</p>
+                            <p className={`text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.spent')}</p>
                             {item.spentAmount === null ? (
                               <p className="font-700 text-warning">{t('reports.unavailable')}</p>
                             ) : (
@@ -1987,7 +2102,7 @@ export default function ReportsScreen() {
                             )}
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.remaining')}</p>
+                            <p className={`text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.remaining')}</p>
                             {item.remainingAmount === null ? (
                               <p className="font-700 text-warning">{t('reports.unavailable')}</p>
                             ) : (
@@ -1995,7 +2110,7 @@ export default function ReportsScreen() {
                             )}
                           </div>
                           <div>
-                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{t('reports.progress')}</p>
+                            <p className={`text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.progress')}</p>
                             <p className="font-700 text-foreground">{item.progressPct === null ? t('reports.unavailable') : `${item.progressPct.toFixed(1)}%`}</p>
                           </div>
                         </div>
@@ -2024,7 +2139,7 @@ export default function ReportsScreen() {
                 />
               </div>
             ) : (
-              <div className="h-[300px]">
+              <div className="h-[260px] sm:h-[300px]">
                 {activeReport === 'income-expense' ? (
                   <IncomeExpenseReportChart
                     data={sanitizeIncomeExpenseChartRows(incomeExpenseChartState.data)}
@@ -2051,7 +2166,7 @@ export default function ReportsScreen() {
           </div>
 
           {activeReport !== 'full-financial' ? (
-            <div className="card-elevated p-4 print:hidden max-[480px]:p-3">
+            <div className="card-elevated p-3.5 print:hidden sm:p-4">
               <p className="mb-3 text-sm font-700 text-foreground">{t('reports.downloadOptions')}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
@@ -2080,7 +2195,7 @@ export default function ReportsScreen() {
                       key={option.id}
                       onClick={option.action}
                       disabled={actionInFlight !== null}
-                      className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-150 ${
+                      className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition-all duration-150 ${
                         option.primary ? 'border-accent/40 bg-accent/8 hover:bg-accent/15' : 'border-border hover:border-accent/30 hover:bg-muted/40'
                       } disabled:opacity-60`}
                     >
@@ -2110,6 +2225,8 @@ function AccountStatementTable(args: {
   reportingCurrency: string;
   snapshots: ReportViewData['snapshots'];
   t: (key: string, options?: Record<string, unknown>) => string;
+  locale: string;
+  isArabic: boolean;
 }) {
   if (args.transactions.length === 0) {
     return (
@@ -2130,6 +2247,12 @@ function AccountStatementTable(args: {
           const signedAmount = transaction.transaction_type === 'expense'
             ? -Math.abs(Number(transaction.amount || 0))
             : Number(transaction.amount || 0);
+          const formattedDate = new Intl.DateTimeFormat(args.locale, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'UTC',
+          }).format(new Date(`${transaction.transaction_date}T12:00:00Z`));
           const conversion = convertHistoricalAmountWithSnapshots({
             amount: signedAmount,
             fromCurrency: transaction.currency || args.reportingCurrency,
@@ -2139,11 +2262,23 @@ function AccountStatementTable(args: {
           });
 
           return (
-            <div key={`mobile-${transaction.id}`} className="rounded-2xl border border-border p-3">
+            <div key={`mobile-${transaction.id}`} className="rounded-[24px] border border-border bg-card p-3.5 shadow-card-sm">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-700 text-foreground">{transaction.merchant || transaction.description || args.t('reports.accountStatement.entryFallback')}</p>
-                  <p className="text-xs text-muted-foreground">{transaction.transaction_date} · {getTransactionTypeLabel(transaction.transaction_type, args.t)}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full border border-border bg-muted/20 px-2.5 py-1 text-[11px] font-700 text-muted-foreground">
+                      {getTransactionTypeLabel(transaction.transaction_type, args.t)}
+                    </span>
+                    <span className="text-[11px] font-600 text-muted-foreground">{formattedDate}</span>
+                  </div>
+                  <p className={`mt-2 text-foreground ${args.isArabic ? 'text-[15px] leading-6 font-700' : 'text-sm font-700'}`}>
+                    {transaction.merchant || transaction.description || args.t('reports.accountStatement.entryFallback')}
+                  </p>
+                  {transaction.description && transaction.description !== transaction.merchant ? (
+                    <p className={`mt-1 text-muted-foreground ${args.isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>
+                      {transaction.description}
+                    </p>
+                  ) : null}
                 </div>
                 <FormattedCurrencyAmount
                   amount={signedAmount}
@@ -2152,10 +2287,10 @@ function AccountStatementTable(args: {
                   showCode
                 />
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+              <div className="mt-3 grid grid-cols-1 gap-2 min-[390px]:grid-cols-2 text-xs">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.category')}</p>
-                  <p className="text-foreground">
+                  <p className={`text-muted-foreground ${args.isArabic ? 'text-[11px] tracking-normal' : 'text-[10px] uppercase tracking-wider'}`}>{args.t('reports.accountStatement.columns.category')}</p>
+                  <p className={`text-foreground ${args.isArabic ? 'text-[13px] leading-5' : ''}`}>
                     {transaction.category?.name
                       ? translateSystemCategoryName(transaction.category.name, (key, options) =>
                           args.t(key, { ...(options || {}), ns: 'common' })
@@ -2164,15 +2299,11 @@ function AccountStatementTable(args: {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.account')}</p>
-                  <p className="text-foreground">{transaction.account?.name || '—'}</p>
+                  <p className={`text-muted-foreground ${args.isArabic ? 'text-[11px] tracking-normal' : 'text-[10px] uppercase tracking-wider'}`}>{args.t('reports.accountStatement.columns.account')}</p>
+                  <p className={`text-foreground ${args.isArabic ? 'text-[13px] leading-5' : ''}`}>{transaction.account?.name || '—'}</p>
                 </div>
                 <div className="col-span-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.description')}</p>
-                  <p className="text-foreground">{transaction.description || '—'}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{args.t('reports.accountStatement.columns.reportingEquivalent')}</p>
+                  <p className={`text-muted-foreground ${args.isArabic ? 'text-[11px] tracking-normal' : 'text-[10px] uppercase tracking-wider'}`}>{args.t('reports.accountStatement.columns.reportingEquivalent')}</p>
                   {conversion.convertedAmount === null ? (
                     <span className="text-warning">{args.t('reports.unavailable')}</span>
                   ) : (

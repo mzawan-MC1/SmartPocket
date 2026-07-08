@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type IncomeExpenseChartRow = {
   month: string;
@@ -70,6 +71,8 @@ export default function IncomeExpenseReportChart({
   currencyCode: string;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -94,10 +97,10 @@ export default function IncomeExpenseReportChart({
           </linearGradient>
         </defs>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
+        <XAxis dataKey="month" minTickGap={isArabic ? 18 : 12} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+        <YAxis width={isArabic ? 52 : 46} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} t={t} />} />
-        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
+        <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: isArabic ? '12px' : '11px', fontWeight: 500, paddingTop: '8px' }} />
         <Area type="monotone" dataKey="income" name={t('reports.summary.totalIncome')} stroke="var(--positive)" strokeWidth={2} fill="url(#rptIncomeGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
         <Area type="monotone" dataKey="expenses" name={t('reports.summary.totalExpenses')} stroke="var(--negative)" strokeWidth={2} fill="url(#rptExpenseGrad)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
       </AreaChart>

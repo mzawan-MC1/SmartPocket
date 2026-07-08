@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Cell, ResponsiveContainer,  } from 'recharts';
 import { formatCurrencyValue } from '@/lib/currency-formatting';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 type BudgetPerformanceChartRow = {
   id: string;
@@ -12,6 +13,10 @@ type BudgetPerformanceChartRow = {
   spent: number;
   color: string;
 };
+
+function formatCategoryAxisLabel(value: string) {
+  return value.length > 14 ? `${value.slice(0, 14)}…` : value;
+}
 
 function formatAxisValue(value: number, currencyCode: string) {
   return formatCurrencyValue(value, {
@@ -66,6 +71,8 @@ export default function BudgetPerformanceChart({
   currencyCode: string;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const safeData = Array.isArray(data)
     ? data.filter((row) =>
       row &&
@@ -83,10 +90,10 @@ export default function BudgetPerformanceChart({
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={safeData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }} barGap={2}>
         <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-        <XAxis dataKey="category" tick={{ fontSize: 10, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
+        <XAxis dataKey="category" interval={0} minTickGap={isArabic ? 18 : 12} tickFormatter={formatCategoryAxisLabel} tick={{ fontSize: isArabic ? 11 : 10, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} />
+        <YAxis width={isArabic ? 52 : 46} tick={{ fontSize: isArabic ? 12 : 11, fill: 'var(--muted-foreground)', fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(value) => formatAxisValue(Number(value), currencyCode)} />
         <Tooltip content={<CustomTooltip currencyCode={currencyCode} t={t} />} cursor={{ fill: 'var(--muted)', opacity: 0.3 }} />
-        <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', fontWeight: 500, paddingTop: '8px' }} />
+        <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: isArabic ? '12px' : '11px', fontWeight: 500, paddingTop: '8px' }} />
         <Bar dataKey="allocated" fill="var(--muted)" radius={[3, 3, 0, 0]} barSize={18} name={t('reports.chartLabels.allocated')}>
         </Bar>
         <Bar dataKey="spent" radius={[3, 3, 0, 0]} barSize={18} name={t('budgets.spent')}>
