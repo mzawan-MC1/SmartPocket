@@ -199,7 +199,7 @@ export default function CategoriesPage() {
             wrapperClassName="flex-1"
             inputClassName="h-10"
           />
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex flex-wrap gap-2">
             {(['all', 'income', 'expense', 'transfer'] as const).map((filterValue) => (
               <button
                 key={filterValue}
@@ -327,7 +327,7 @@ export default function CategoriesPage() {
                   key={color}
                   type="button"
                   onClick={() => setValue('color', color)}
-                  className={`w-8 h-8 rounded-lg transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
+                  className={`h-9 w-9 rounded-lg transition-all ${selectedColor === color ? 'ring-2 ring-offset-2 ring-accent scale-110' : 'hover:scale-105'}`}
                   style={{ backgroundColor: color }}
                   aria-label={t('categories.form.selectColor', { color })}
                 />
@@ -335,9 +335,9 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 justify-end pt-2 border-t border-border">
-            <button type="button" onClick={() => { setShowAddModal(false); setEditCategory(null); reset(); }} className="btn-secondary">{t('categories.cancel')}</button>
-            <button type="submit" disabled={isSaving} className="btn-primary">
+          <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
+            <button type="button" onClick={() => { setShowAddModal(false); setEditCategory(null); reset(); }} className="order-2 btn-secondary w-full sm:order-1 sm:w-auto">{t('categories.cancel')}</button>
+            <button type="submit" disabled={isSaving} className="order-1 btn-primary w-full sm:order-2 sm:w-auto">
               {isSaving ? <><Loader2 size={15} className="animate-spin" />{t('categories.saving')}</> : (editCategory ? t('categories.update') : t('categories.createCategory'))}
             </button>
           </div>

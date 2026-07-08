@@ -257,6 +257,7 @@
       "semimonthlyNeedsSettings": "Обновите Доход и планирование в Настройках перед созданием бюджета дважды в месяц.",
       "incompletePeriodConfig": "Конфигурация периода бюджета неполная.",
       "periodIsolationNotice": "Этот бюджет сохраняет собственный период. Изменение Настроек позже его не изменит.",
+      "spaceBudgetNotice": "Этот бюджет связан с пространством {{space}} и использует только операции этого пространства.",
       "category": "Категория",
       "selectCategory": "Выберите категорию",
       "name": "Название бюджета",
@@ -516,6 +517,7 @@
     "updateFailed": "Не удалось обновить повторяющийся элемент.",
     "markPaidFailed": "Не удалось отметить повторяющийся элемент как оплаченный.",
     "deleteFailed": "Не удалось удалить повторяющийся элемент.",
+    "deleteConfirm": "Удалить {{name}}?",
     "widgetDescriptionMonth": "Запланированная активность со сроком в {{period}}",
     "widgetDescriptionPeriod": "Запланированная активность в течение {{period}}",
     "noUpcomingTitle": "Нет предстоящей повторяющейся активности",
@@ -527,7 +529,12 @@
     "scheduleIncomplete": "График не завершен",
     "markItemAsPaid": "Отметить {{name}} как оплаченный",
     "totalScheduled": "Всего запланировано",
-    "totalDueThisPeriod": "Всего к оплате за этот период"
+    "totalDueThisPeriod": "Всего к оплате за этот период",
+    "form": {
+      "spaceRecurringNotice": "Этот повторяющийся элемент будет использовать участников, балансы и доступные счета пространства {{space}}.",
+      "spaceMember": "Участник пространства",
+      "managedPerson": "Подопечный"
+    }
   },
   "accounts": {
     "title": "Финансовые счета",
@@ -555,6 +562,16 @@
     "archiveConfirmDescription": "Этот счет будет скрыт из активных представлений. История операций сохранится.",
     "cancel": "Отмена",
     "archive": "Архивировать",
+    "personalOwnershipLabel": "Личный",
+    "sharedOwnershipLabel": "Общий",
+    "businessOwnershipLabel": "Бизнес",
+    "otherOwnershipLabel": "Другое",
+    "personalAccountsSection": "Личные счета",
+    "sharedWithSpacesSection": "Общие со Space",
+    "sharedWithSpacesHelper": "Эти личные счета доступны в одном или нескольких пространствах, чтобы участники могли использовать их при наличии разрешения.",
+    "sharedWithSpacesPrivacyHint": "Балансы по-прежнему зависят от правил видимости и разрешений каждого счета.",
+    "spaceAccountsSection": "Счета пространства",
+    "spaceAccountsHelper": "Эти счета принадлежат пространству и используются для общих балансов, переводов и активности.",
     "summary": {
       "totalNetWorth": "Общий капитал",
       "totalAssets": "Всего активов",
@@ -580,10 +597,24 @@
       "investment": "Инвестиции",
       "other": "Другое"
     },
+    "bankAccountTypes": {
+      "current": "Текущий",
+      "savings": "Сберегательный",
+      "creditCard": "Кредитная карта",
+      "wallet": "Кошелек",
+      "other": "Другое"
+    },
     "dashboardDescription": "Балансы ваших активных счетов.",
     "form": {
       "typeRequired": "Тип счета обязателен.",
-      "currency": "Валюта"
+      "currency": "Валюта",
+      "scopePersonal": "Личный счет",
+      "scopeSpace": "Счет пространства",
+      "maskedAccountNumber": "Маскированный номер счета",
+      "maskedAccountPlaceholder": "например •••• 1234",
+      "bankAccountType": "Тип банковского счета",
+      "spaceAccountFor": "Счет пространства {{space}}",
+      "spaceAccountHelper": "Этот счет принадлежит выбранному пространству и виден его участникам."
     }
   },
   "categories": {
@@ -2162,6 +2193,8 @@
     },
     "paySchedule": {
       "lastDayOfMonth": "Последний день месяца",
+      "dayOfMonth": "День {{day}} месяца",
+      "semimonthlyRange": "{{first}} и {{second}}",
       "weekly": {
         "anchorDate": "Выберите недавний или ближайший день выплаты",
         "anchorDateHelp": "Smart Pocket использует эту дату как опорную для каждого 7-дневного цикла выплат.",

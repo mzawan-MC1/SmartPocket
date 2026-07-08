@@ -141,6 +141,17 @@ function buildPlanningValues(data: Pick<ProfileFormData, keyof FinancialPeriodFo
   };
 }
 
+function formatSafeDisplayDate(value: string | null | undefined, locale: string) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+}
+
 export default function SettingsPage() {
   const { t } = useTranslation(['portal', 'common']);
   const [activeTab, setActiveTab] = useState('profile');
@@ -606,7 +617,7 @@ export default function SettingsPage() {
         />
 
         {/* Tabs */}
-        <Tabs items={TABS} activeId={activeTab} onChange={setActiveTab} />
+        <Tabs items={TABS} activeId={activeTab} onChange={setActiveTab} className="w-full" />
 
         <form onSubmit={handleSubmit(onSubmit)}>
           {/* Profile Tab */}
@@ -912,13 +923,8 @@ export default function SettingsPage() {
                         {t('settings.subscription.renewalDate', { ns: 'portal' })}
                       </p>
                       <p className="mt-2 text-sm font-700 text-foreground">
-                        {subscriptionSummary?.currentPeriodEnd
-                          ? new Intl.DateTimeFormat(locale, {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            }).format(new Date(subscriptionSummary.currentPeriodEnd))
-                          : t('settings.subscription.notAvailable', { ns: 'portal' })}
+                        {formatSafeDisplayDate(subscriptionSummary?.currentPeriodEnd, locale)
+                          || t('settings.subscription.notAvailable', { ns: 'portal' })}
                       </p>
                       {subscriptionPriceText ? (
                         <p className="mt-1 text-sm text-muted-foreground">{subscriptionPriceText}</p>
@@ -1058,8 +1064,8 @@ export default function SettingsPage() {
           <input type="hidden" {...register('custom_cycle_days')} />
 
           {(activeTab === 'profile' || activeTab === 'preferences' || activeTab === 'planning') && (
-            <div className="flex justify-end mt-4">
-              <button type="submit" disabled={isSaving} className={`btn-primary ${saved ? 'bg-positive' : ''}`}>
+            <div className="mt-4 flex justify-end">
+              <button type="submit" disabled={isSaving} className={`btn-primary w-full sm:w-auto ${saved ? 'bg-positive' : ''}`}>
                 {isSaving ? <><Loader2 size={15} className="animate-spin" />{t('status.saving', { ns: 'common' })}</> : saved ? <><Check size={15} />{t('settings.savedShort', { ns: 'portal' })}</> : t('settings.saveAction', { ns: 'portal' })}
               </button>
             </div>

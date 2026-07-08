@@ -464,8 +464,8 @@ export default function PersonalSubscriptionForm({
           {errors.name ? <p className={fieldErrorClassName}>{errors.name.message}</p> : null}
         </div>
 
-        <div className="grid grid-cols-12 gap-3 md:gap-4 lg:grid-cols-12">
-          <div className="col-span-5 min-w-0 lg:col-span-4">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-12 md:gap-4">
+          <div className="min-w-0 min-[420px]:col-span-5 lg:col-span-4">
             <label htmlFor="subscription-amount" className={compactFieldLabelClassName(Boolean(errors.amount))}>
               {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
@@ -485,7 +485,7 @@ export default function PersonalSubscriptionForm({
             {errors.amount ? <p className={fieldErrorClassName}>{errors.amount.message}</p> : null}
           </div>
 
-          <div className="col-span-7 min-w-0 lg:col-span-4">
+          <div className="min-w-0 min-[420px]:col-span-7 lg:col-span-4">
             <CurrencySelector
               label={t('personalSubscriptions.form.fields.currency', { ns: 'portal' })}
               value={watch('currency_code')}
@@ -494,7 +494,7 @@ export default function PersonalSubscriptionForm({
             />
           </div>
 
-          <div className="col-span-12 min-w-0 lg:col-span-4">
+          <div className="min-w-0 min-[420px]:col-span-12 lg:col-span-4">
             <label htmlFor="subscription-frequency" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}
               <span className={getRequiredMarkerClassName()}> *</span>
@@ -509,8 +509,8 @@ export default function PersonalSubscriptionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-3 md:gap-4 lg:grid-cols-12">
-          <div className="col-span-5 min-w-0 lg:col-span-6">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-12 md:gap-4">
+          <div className="min-w-0 min-[420px]:col-span-5 lg:col-span-6">
             <label htmlFor="subscription-next-billing" className={compactFieldLabelClassName(Boolean(errors.next_billing_date))}>
               {t('personalSubscriptions.form.fields.nextBillingDate', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}
@@ -527,7 +527,7 @@ export default function PersonalSubscriptionForm({
             {errors.next_billing_date ? <p className={fieldErrorClassName}>{errors.next_billing_date.message}</p> : null}
           </div>
 
-          <div className="col-span-7 min-w-0 lg:col-span-6">
+          <div className="min-w-0 min-[420px]:col-span-7 lg:col-span-6">
             <label htmlFor="subscription-account" className={compactFieldLabelClassName(Boolean(errors.financial_account_id))}>
               {t('personalSubscriptions.form.fields.financialAccount', { ns: 'portal' })}
               {!subscription?.id ? <span className={getRequiredMarkerClassName()}> *</span> : null}

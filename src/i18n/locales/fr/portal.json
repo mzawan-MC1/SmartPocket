@@ -257,6 +257,7 @@
       "semimonthlyNeedsSettings": "Mettez a jour Revenus et planification dans les Parametres avant de creer un budget deux fois par mois.",
       "incompletePeriodConfig": "La configuration de la periode de budget est incomplete.",
       "periodIsolationNotice": "Ce budget conserve sa propre periode. Modifier les Parametres plus tard ne la changera pas.",
+      "spaceBudgetNotice": "Ce budget est lié à l'espace {{space}} et utilise uniquement les transactions de cet espace.",
       "category": "Categorie",
       "selectCategory": "Selectionnez une categorie",
       "name": "Nom du budget",
@@ -516,6 +517,7 @@
     "updateFailed": "Impossible de mettre à jour l'élément récurrent.",
     "markPaidFailed": "Impossible de marquer l'élément récurrent comme payé.",
     "deleteFailed": "Impossible de supprimer l'élément récurrent.",
+    "deleteConfirm": "Supprimer {{name}} ?",
     "widgetDescriptionMonth": "Activité planifiée à échéance en {{period}}",
     "widgetDescriptionPeriod": "Activité planifiée pendant {{period}}",
     "noUpcomingTitle": "Aucune activité récurrente à venir",
@@ -527,7 +529,12 @@
     "scheduleIncomplete": "Planning incomplet",
     "markItemAsPaid": "Marquer {{name}} comme payé",
     "totalScheduled": "Total planifié",
-    "totalDueThisPeriod": "Total dû sur cette période"
+    "totalDueThisPeriod": "Total dû sur cette période",
+    "form": {
+      "spaceRecurringNotice": "Cet élément récurrent utilisera les membres, soldes et comptes d'espace éligibles de {{space}}.",
+      "spaceMember": "Membre de l'espace",
+      "managedPerson": "Personne gérée"
+    }
   },
   "accounts": {
     "title": "Comptes financiers",
@@ -555,6 +562,16 @@
     "archiveConfirmDescription": "Ce compte sera masqué des vues actives. L'historique des transactions sera conservé.",
     "cancel": "Annuler",
     "archive": "Archiver",
+    "personalOwnershipLabel": "Personnel",
+    "sharedOwnershipLabel": "Partagé",
+    "businessOwnershipLabel": "Professionnel",
+    "otherOwnershipLabel": "Autre",
+    "personalAccountsSection": "Comptes personnels",
+    "sharedWithSpacesSection": "Partagés avec des espaces",
+    "sharedWithSpacesHelper": "Ces comptes personnels sont partagés avec un ou plusieurs espaces afin que les membres puissent les utiliser quand c'est autorisé.",
+    "sharedWithSpacesPrivacyHint": "Les soldes respectent toujours les règles de visibilité et d'autorisation de chaque compte.",
+    "spaceAccountsSection": "Comptes d'espace",
+    "spaceAccountsHelper": "Ces comptes appartiennent à un espace et servent aux soldes partagés, transferts et activités.",
     "summary": {
       "totalNetWorth": "Patrimoine net total",
       "totalAssets": "Actifs totaux",
@@ -580,10 +597,24 @@
       "investment": "Investissement",
       "other": "Autre"
     },
+    "bankAccountTypes": {
+      "current": "Courant",
+      "savings": "Épargne",
+      "creditCard": "Carte de crédit",
+      "wallet": "Portefeuille",
+      "other": "Autre"
+    },
     "dashboardDescription": "Soldes de vos comptes actifs.",
     "form": {
       "typeRequired": "Le type de compte est obligatoire.",
-      "currency": "Devise"
+      "currency": "Devise",
+      "scopePersonal": "Compte personnel",
+      "scopeSpace": "Compte d'espace",
+      "maskedAccountNumber": "Numéro de compte masqué",
+      "maskedAccountPlaceholder": "ex. •••• 1234",
+      "bankAccountType": "Type de compte bancaire",
+      "spaceAccountFor": "Compte d'espace pour {{space}}",
+      "spaceAccountHelper": "Ce compte appartient à l'espace sélectionné et est visible par ses membres."
     }
   },
   "categories": {
@@ -2154,6 +2185,8 @@
     },
     "paySchedule": {
       "lastDayOfMonth": "Dernier jour du mois",
+      "dayOfMonth": "Jour {{day}} du mois",
+      "semimonthlyRange": "{{first}} et {{second}}",
       "weekly": {
         "anchorDate": "Selectionnez une date de paie recente ou a venir",
         "anchorDateHelp": "Smart Pocket utilise cette date comme ancrage pour chaque cycle de paie de 7 jours.",

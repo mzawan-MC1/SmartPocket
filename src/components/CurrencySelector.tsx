@@ -291,7 +291,9 @@ export default function CurrencySelector({
         onClick={() => !disabled && setOpen((current) => !current)}
         onKeyDown={handleKeyDown}
         disabled={disabled}
-        className={`input-base selector-trigger flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2.5 text-left ${
+        className={`input-base selector-trigger flex w-full min-w-0 items-center justify-between gap-3 px-3 py-2.5 ${
+          dir === 'rtl' ? 'text-right' : 'text-left'
+        } ${
           disabled ? 'cursor-not-allowed opacity-60' : ''
         }`}
         aria-expanded={open}
@@ -319,7 +321,7 @@ export default function CurrencySelector({
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-      {helperText ? <p className="mt-1.5 text-xs text-muted-foreground">{helperText}</p> : null}
+      {helperText ? <p className="mt-1.5 break-words text-xs text-muted-foreground">{helperText}</p> : null}
 
       {open && menuPosition
         ? createPortal(

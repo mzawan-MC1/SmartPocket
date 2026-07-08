@@ -426,11 +426,10 @@ export default function RecurringTransactionForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {spaceId ? (
-        <div className="rounded-xl border border-info/20 bg-info-soft/40 p-3 text-sm text-info">
+        <div className="rounded-xl border border-info/20 bg-info-soft/40 p-3 text-sm text-info max-[640px]:px-3 max-[640px]:py-2.5">
           {t('recurring.form.spaceRecurringNotice', {
             ns: 'portal',
-            defaultValue: `This recurring transaction will post into ${spaceName || 'the selected Space'} using the authoritative Space transaction save path.`,
-            space: spaceName || 'the selected Space',
+            space: spaceName || t('spaces.currentSpace.title', { ns: 'portal' }),
           })}
         </div>
       ) : null}
@@ -452,7 +451,7 @@ export default function RecurringTransactionForm({
         {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
         <div>
           <label htmlFor="rec-type-shared" className="block text-sm font-600 text-foreground mb-1.5">
             {t('categories.form.type', { ns: 'portal' })}
@@ -549,7 +548,7 @@ export default function RecurringTransactionForm({
           step="0.01"
           min="0.01"
           className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
-          placeholder="0.00"
+          placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
           value={form.amount}
           onChange={(event) => updateFormField('amount', event.target.value)}
           aria-invalid={fieldErrors.amount ? 'true' : 'false'}
@@ -558,7 +557,7 @@ export default function RecurringTransactionForm({
         {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
         <div>
           <label htmlFor="rec-merchant-shared" className="block text-sm font-600 text-foreground mb-1.5">
             {t('transactions.merchantSource', { ns: 'portal' })}
@@ -602,7 +601,7 @@ export default function RecurringTransactionForm({
           className={fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40' : ''}
           bodyClassName="space-y-4"
         >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
                 {t('recurring.form.payer', { ns: 'portal', defaultValue: 'Payer' })}
@@ -678,8 +677,8 @@ export default function RecurringTransactionForm({
                           type="number"
                           min="0"
                           step="0.01"
-                          className={getFieldInputClassName('input-base md:w-40', Boolean(fieldErrors.exact_allocations))}
-                          placeholder="0.00"
+                          className={getFieldInputClassName('input-base min-[420px]:w-40', Boolean(fieldErrors.exact_allocations))}
+                          placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
                           value={exactAllocationAmounts[option.key] || ''}
                           onChange={(event) => {
                             setSubmitError(null);
@@ -715,9 +714,9 @@ export default function RecurringTransactionForm({
         </div>
       ) : null}
 
-      <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="submit" disabled={isLoading} className="btn-primary">
+      <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="order-2 btn-secondary w-full sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
+        <button type="submit" disabled={isLoading} className="order-1 btn-primary w-full sm:order-2 sm:w-auto">
           {isLoading ? <><Loader2 size={15} className="animate-spin" /> {t('recurring.form.creating', { ns: 'portal' })}</> : t('recurring.add', { ns: 'portal' })}
         </button>
       </div>

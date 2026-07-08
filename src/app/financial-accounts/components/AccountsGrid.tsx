@@ -40,7 +40,7 @@ const AccountDetailPanel = dynamic(() => import('./AccountDetailPanel'), {
 
 const FinancialAccountForm = dynamic(() => import('./FinancialAccountForm'), {
   ssr: false,
-  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+  loading: () => null,
 });
 
 const GRADIENT_MAP: Record<string, string> = {
@@ -568,7 +568,7 @@ export default function AccountsGrid() {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-700 text-foreground">
-                  {t('accounts.personalAccountsSection', { defaultValue: 'Personal Accounts' })}
+                  {t('accounts.personalAccountsSection')}
                 </h3>
               </div>
               {personalAccounts.length > 0 ? (
@@ -580,12 +580,10 @@ export default function AccountsGrid() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-700 text-foreground">
-                    {t('accounts.sharedWithSpacesSection', { defaultValue: 'Shared With Spaces' })}
+                    {t('accounts.sharedWithSpacesSection')}
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {t('accounts.sharedWithSpacesHelper', {
-                      defaultValue: 'These personal accounts stay private by default and can fund Space-linked transactions where you enabled sharing.',
-                    })}
+                    {t('accounts.sharedWithSpacesHelper')}
                   </p>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -601,7 +599,7 @@ export default function AccountsGrid() {
                             </p>
                           </div>
                           <Badge variant="default">
-                            {t('accounts.sharedOwnershipLabel', { defaultValue: 'Shared' })}
+                            {t('accounts.sharedOwnershipLabel')}
                           </Badge>
                         </div>
                         <div className="mt-3 space-y-2">
@@ -611,9 +609,7 @@ export default function AccountsGrid() {
                             className="text-base font-700 text-foreground"
                           />
                           <p className="text-xs text-muted-foreground">
-                            {t('accounts.sharedWithSpacesPrivacyHint', {
-                              defaultValue: 'Balance and full history stay private unless you grant extra visibility.',
-                            })}
+                            {t('accounts.sharedWithSpacesPrivacyHint')}
                           </p>
                         </div>
                       </div>
@@ -627,12 +623,10 @@ export default function AccountsGrid() {
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-700 text-foreground">
-                    {t('accounts.spaceAccountsSection', { defaultValue: 'Space Accounts' })}
+                    {t('accounts.spaceAccountsSection')}
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {t('accounts.spaceAccountsHelper', {
-                      defaultValue: 'Shared space-owned balances live in the same finance engine and remain outside personal totals.',
-                    })}
+                    {t('accounts.spaceAccountsHelper')}
                   </p>
                 </div>
                 {renderAccountCards(spaceAccounts)}

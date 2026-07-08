@@ -169,7 +169,7 @@ export default function CreateReimbursementForm({
             step="0.01"
             min="0.01"
             className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
-            placeholder="0.00"
+            placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
             value={form.amount}
             onChange={(event) => updateField('amount', event.target.value)}
           />

@@ -83,13 +83,13 @@ function PaymentModal({ reimbursement, onClose, onSuccess }: PaymentModalProps) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
-      <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 p-4 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[min(88dvh,720px)] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5 shadow-card-md max-[480px]:rounded-[1.5rem] max-[480px]:px-4 max-[480px]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-700 text-foreground">{t('reimbursements.recordPayment')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
-        <div className="bg-muted rounded-xl p-3 text-sm">
+        <div className="mt-4 bg-muted rounded-xl p-3 text-sm">
           <p className="font-600 text-foreground">{reimbursement.description}</p>
           <div className="text-muted-foreground mt-0.5 inline-flex items-center gap-1">
             {t('reimbursements.outstanding')}:
@@ -123,10 +123,10 @@ function PaymentModal({ reimbursement, onClose, onSuccess }: PaymentModalProps) 
             {submitError}
           </div>
         ) : null}
-        <div className="flex gap-3 pt-1">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">{t('reimbursements.cancel')}</button>
+        <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row">
+          <button onClick={onClose} className="order-2 flex-1 rounded-xl border border-border py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted sm:order-1">{t('reimbursements.cancel')}</button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
+            className="order-1 flex-1 rounded-xl py-2.5 text-sm font-600 text-white shadow-teal-glow transition-opacity hover:opacity-90 disabled:opacity-60 sm:order-2 gradient-teal">
             {saving ? t('reimbursements.saving') : t('reimbursements.recordPayment')}
           </button>
         </div>
@@ -411,7 +411,7 @@ export default function ReimbursementsPage() {
               const originLabel = r.transaction?.description || r.description;
               return (
                 <div key={r.id} className="card p-4 max-[480px]:p-3">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3 min-[520px]:flex-row min-[520px]:items-start min-[520px]:justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-600 text-foreground">{r.description}</p>
@@ -462,7 +462,7 @@ export default function ReimbursementsPage() {
                         </>
                       )}
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="flex-shrink-0 min-[520px]:text-right">
                       <div className="text-xs text-muted-foreground">
                         {t('reimbursements.originalAmount', { defaultValue: 'Original' })}
                       </div>
@@ -487,7 +487,7 @@ export default function ReimbursementsPage() {
                       {canPay && (
                         <button
                           onClick={() => setPayingReimb(r)}
-                          className="mt-2 text-xs px-3 py-1.5 rounded-lg gradient-teal text-white font-600 hover:opacity-90 transition-opacity"
+                          className="mt-2 w-full rounded-lg px-3 py-2 text-xs font-600 text-white transition-opacity hover:opacity-90 min-[520px]:w-auto gradient-teal"
                         >
                           {t('reimbursements.recordPayment')}
                         </button>

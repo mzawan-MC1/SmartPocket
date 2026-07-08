@@ -314,6 +314,7 @@
       "semimonthlyNeedsSettings": "Update Income & Planning in Settings before creating a twice-a-month budget.",
       "incompletePeriodConfig": "Budget period configuration is incomplete.",
       "periodIsolationNotice": "This budget keeps its own period. Changing Settings later will not modify it.",
+      "spaceBudgetNotice": "This budget is linked to {{space}} and uses only that Space's transactions.",
       "category": "Category",
       "selectCategory": "Select a category",
       "name": "Budget name",
@@ -1045,6 +1046,7 @@
     "updateFailed": "Failed to update recurring item.",
     "markPaidFailed": "Failed to mark recurring item as paid.",
     "deleteFailed": "Failed to remove recurring item.",
+    "deleteConfirm": "Delete {{name}}?",
     "widgetDescriptionMonth": "Scheduled activity due in {{period}}",
     "widgetDescriptionPeriod": "Scheduled activity during {{period}}",
     "noUpcomingTitle": "No upcoming recurring activity",
@@ -1077,6 +1079,9 @@
       "frequencyHelper": "Twice-a-month and custom recurring schedules need dedicated recurrence fields and are not available yet.",
       "amountRequired": "Amount is required.",
       "amountMin": "Must be greater than 0.",
+      "spaceRecurringNotice": "This recurring item will use the members, balances, and eligible accounts from {{space}}.",
+      "spaceMember": "Space member",
+      "managedPerson": "Managed person",
       "merchantPlaceholder": "e.g. Netflix",
       "nextDueDate": "Next Due Date",
       "creating": "Creating..."
@@ -1108,6 +1113,16 @@
     "archiveConfirmDescription": "This account will be hidden from active views. Your transaction history will be preserved.",
     "cancel": "Cancel",
     "archive": "Archive",
+    "personalOwnershipLabel": "Personal",
+    "sharedOwnershipLabel": "Shared",
+    "businessOwnershipLabel": "Business",
+    "otherOwnershipLabel": "Other",
+    "personalAccountsSection": "Personal accounts",
+    "sharedWithSpacesSection": "Shared with Spaces",
+    "sharedWithSpacesHelper": "These personal accounts are shared with one or more Spaces so members can use them when allowed.",
+    "sharedWithSpacesPrivacyHint": "Balances still follow each account's visibility and permission rules.",
+    "spaceAccountsSection": "Space accounts",
+    "spaceAccountsHelper": "These accounts belong to a Space and are used for shared balances, transfers, and activity.",
     "summary": {
       "totalNetWorth": "Total Net Worth",
       "totalAssets": "Total Assets",
@@ -1133,6 +1148,13 @@
       "investment": "Investment",
       "other": "Other"
     },
+    "bankAccountTypes": {
+      "current": "Current",
+      "savings": "Savings",
+      "creditCard": "Credit card",
+      "wallet": "Wallet",
+      "other": "Other"
+    },
     "dashboardDescription": "Balances across your active accounts.",
     "form": {
       "nameRequired": "Account name is required.",
@@ -1146,6 +1168,13 @@
       "openingBalanceHelper": "Current balance of this account. Use negative for credit card debt.",
       "notesPlaceholder": "Optional notes...",
       "includeInTotal": "Include in total balance calculation",
+      "scopePersonal": "Personal account",
+      "scopeSpace": "Space account",
+      "maskedAccountNumber": "Masked account number",
+      "maskedAccountPlaceholder": "e.g. •••• 1234",
+      "bankAccountType": "Bank account type",
+      "spaceAccountFor": "Space account for {{space}}",
+      "spaceAccountHelper": "This account belongs to the selected Space and is visible to its members.",
       "updateAction": "Update Account",
       "typeRequired": "Account type is required.",
       "currency": "Currency"
@@ -2863,6 +2892,8 @@
     },
     "paySchedule": {
       "lastDayOfMonth": "Last day of the month",
+      "dayOfMonth": "Day {{day}} of the month",
+      "semimonthlyRange": "{{first}} and {{second}}",
       "weekly": {
         "anchorDate": "Select a recent or next payday",
         "anchorDateHelp": "Smart Pocket uses this as the anchor for each 7-day pay cycle.",

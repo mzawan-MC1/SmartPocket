@@ -529,7 +529,7 @@ export default function AddTransferForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 max-[480px]:space-y-3" noValidate>
-      <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
         <div>
           <label htmlFor="transfer-from-account" className={getFieldLabelClassName(Boolean(fieldErrors.from_account_id))}>
             {t('transfers.form.fromAccount', { ns: 'portal' })}
@@ -588,7 +588,7 @@ export default function AddTransferForm({
           description={getRouteLabel()}
           bodyClassName="space-y-3"
         >
-          <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {t('transfers.form.transferPurpose', {
@@ -625,7 +625,7 @@ export default function AddTransferForm({
           step="0.01"
           min="0.01"
           className={getFieldInputClassName('input-base h-12 text-base font-tabular max-[480px]:h-11', Boolean(fieldErrors.amount))}
-          placeholder="0.00"
+          placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
           value={form.amount}
           onChange={(event) => updateField('amount', event.target.value)}
           aria-invalid={fieldErrors.amount ? 'true' : 'false'}
@@ -660,7 +660,7 @@ export default function AddTransferForm({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })}</label>
           <input
@@ -711,7 +711,7 @@ export default function AddTransferForm({
       ) : null}
 
       <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
           <button type="button" onClick={onCancel} className="btn-secondary flex-1">
             {t('actions.cancel', { ns: 'common' })}
           </button>

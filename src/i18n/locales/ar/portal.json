@@ -277,6 +277,7 @@
       "semimonthlyNeedsSettings": "حدّث الدخل والتخطيط في الإعدادات قبل إنشاء ميزانية مرتين في الشهر.",
       "incompletePeriodConfig": "إعداد فترة الميزانية غير مكتمل.",
       "periodIsolationNotice": "تحتفظ هذه الميزانية بفترتها الخاصة. لن يؤدي تغيير الإعدادات لاحقًا إلى تعديلها.",
+      "spaceBudgetNotice": "هذه الميزانية مرتبطة بمساحة {{space}} وتستخدم معاملات هذه المساحة فقط.",
       "category": "الفئة",
       "selectCategory": "اختر فئة",
       "name": "اسم الميزانية",
@@ -536,6 +537,7 @@
     "updateFailed": "فشل تحديث العنصر المتكرر.",
     "markPaidFailed": "فشل تحديد العنصر المتكرر كمدفوع.",
     "deleteFailed": "فشل إزالة العنصر المتكرر.",
+    "deleteConfirm": "حذف {{name}}؟",
     "widgetDescriptionMonth": "النشاط المجدول المستحق في {{period}}",
     "widgetDescriptionPeriod": "النشاط المجدول خلال {{period}}",
     "noUpcomingTitle": "لا يوجد نشاط متكرر قادم",
@@ -547,7 +549,12 @@
     "scheduleIncomplete": "الجدول غير مكتمل",
     "markItemAsPaid": "تحديد {{name}} كمدفوع",
     "totalScheduled": "إجمالي المجدول",
-    "totalDueThisPeriod": "إجمالي المستحق هذه الفترة"
+    "totalDueThisPeriod": "إجمالي المستحق هذه الفترة",
+    "form": {
+      "spaceRecurringNotice": "سيستخدم هذا العنصر المتكرر أعضاء {{space}} وأرصدته وحساباته المؤهلة.",
+      "spaceMember": "عضو في المساحة",
+      "managedPerson": "شخص مُدار"
+    }
   },
   "accounts": {
     "title": "الحسابات المالية",
@@ -575,6 +582,16 @@
     "archiveConfirmDescription": "سيتم إخفاء هذا الحساب من العروض النشطة مع الاحتفاظ بسجل المعاملات.",
     "cancel": "إلغاء",
     "archive": "أرشفة",
+    "personalOwnershipLabel": "شخصي",
+    "sharedOwnershipLabel": "مشترك",
+    "businessOwnershipLabel": "أعمال",
+    "otherOwnershipLabel": "أخرى",
+    "personalAccountsSection": "الحسابات الشخصية",
+    "sharedWithSpacesSection": "الحسابات المشتركة مع المساحات",
+    "sharedWithSpacesHelper": "هذه الحسابات الشخصية مشتركة مع مساحة واحدة أو أكثر حتى يتمكن الأعضاء من استخدامها عند السماح لهم بذلك.",
+    "sharedWithSpacesPrivacyHint": "تظل الأرصدة خاضعة لقواعد الرؤية والصلاحيات الخاصة بكل حساب.",
+    "spaceAccountsSection": "حسابات المساحات",
+    "spaceAccountsHelper": "تنتمي هذه الحسابات إلى مساحة وتُستخدم للأرصدة المشتركة والتحويلات والنشاط.",
     "summary": {
       "totalNetWorth": "إجمالي صافي الثروة",
       "totalAssets": "إجمالي الأصول",
@@ -600,10 +617,24 @@
       "investment": "استثمار",
       "other": "أخرى"
     },
+    "bankAccountTypes": {
+      "current": "جاري",
+      "savings": "ادخار",
+      "creditCard": "بطاقة ائتمان",
+      "wallet": "محفظة",
+      "other": "أخرى"
+    },
     "dashboardDescription": "أرصدة حساباتك النشطة.",
     "form": {
       "typeRequired": "نوع الحساب مطلوب.",
-      "currency": "العملة"
+      "currency": "العملة",
+      "scopePersonal": "حساب شخصي",
+      "scopeSpace": "حساب مساحة",
+      "maskedAccountNumber": "رقم الحساب المقنّع",
+      "maskedAccountPlaceholder": "مثل •••• 1234",
+      "bankAccountType": "نوع الحساب البنكي",
+      "spaceAccountFor": "حساب مساحة {{space}}",
+      "spaceAccountHelper": "ينتمي هذا الحساب إلى المساحة المحددة ويكون مرئيًا لأعضائها."
     }
   },
   "categories": {
@@ -2174,6 +2205,8 @@
     },
     "paySchedule": {
       "lastDayOfMonth": "آخر يوم من الشهر",
+      "dayOfMonth": "اليوم {{day}} من الشهر",
+      "semimonthlyRange": "{{first}} و{{second}}",
       "weekly": {
         "anchorDate": "اختر آخر أو أقرب يوم قبض",
         "anchorDateHelp": "يستخدم Smart Pocket هذا كتاريخ مرجعي لكل دورة دفع مدتها 7 أيام.",

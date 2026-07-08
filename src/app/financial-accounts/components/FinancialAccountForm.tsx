@@ -557,7 +557,7 @@ export default function FinancialAccountForm({
     form.branch_name ||
     form.bank_account_type !== 'current'
   );
-  const compactInputClassName = 'input-base h-10 text-sm';
+  const compactInputClassName = 'input-base text-sm max-[640px]:min-h-[2.75rem] max-[640px]:px-3 max-[640px]:py-2.5';
   const compactCardClassName = 'rounded-xl border border-border bg-muted/15 p-3';
   const sharingSummary = hasEnabledSharing
     ? t('accounts.form.spaceSharingEnabledSummary', {
@@ -601,21 +601,19 @@ export default function FinancialAccountForm({
             <p className="text-sm font-600 text-foreground">
               {t('accounts.form.spaceAccountFor', {
                 ns: 'portal',
-                defaultValue: 'Space account for {{space}}',
                 space: selectedScopeSpace.name,
               })}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {t('accounts.form.spaceAccountHelper', {
                 ns: 'portal',
-                defaultValue: 'This account belongs to the selected Space and is visible to its members.',
               })}
             </p>
           </div>
         ) : null
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         {!hideScopeControls ? (
           <div className="min-w-0">
             <label className="mb-1.5 block text-sm font-600 text-foreground">
@@ -683,7 +681,7 @@ export default function FinancialAccountForm({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         {!isSpaceAccount ? (
           <div className="min-w-0">
             <label className="mb-1.5 block text-sm font-600 text-foreground">
@@ -708,7 +706,7 @@ export default function FinancialAccountForm({
           </div>
         )}
         <div className="min-w-0">
-          <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('settlements.currency', { ns: 'portal' })} *</label>
+          <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('accounts.form.currency', { ns: 'portal' })} *</label>
           {account ? (
             <div className="space-y-2">
               <div className="rounded-xl border border-border bg-muted/20 p-3">
@@ -767,7 +765,7 @@ export default function FinancialAccountForm({
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 min-[420px]:items-start">
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('accounts.openingBalance', { ns: 'portal' })}</label>
           <p className="mb-1.5 text-xs text-muted-foreground">
@@ -782,7 +780,7 @@ export default function FinancialAccountForm({
             type="number"
             step="0.01"
             className={`${compactInputClassName} font-tabular`}
-            placeholder="0.00"
+            placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
             value={form.opening_balance}
             onChange={(event) => setForm((current) => ({ ...current, opening_balance: event.target.value }))}
           />
@@ -969,7 +967,7 @@ export default function FinancialAccountForm({
                   <input
                     type="text"
                     className={compactInputClassName}
-                    placeholder="****1234"
+                    placeholder={t('accounts.form.maskedAccountPlaceholder', { ns: 'portal' })}
                     value={form.account_number_masked}
                     onChange={(event) => setForm((current) => ({ ...current, account_number_masked: event.target.value }))}
                   />
@@ -1044,9 +1042,9 @@ export default function FinancialAccountForm({
         </label>
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-border pt-3">
-        <button type="button" onClick={onCancel} className="btn-secondary h-10 px-4 text-sm">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="button" onClick={handleSave} disabled={isSaving || currencyApplying} className="btn-primary h-10 px-4 text-sm">
+      <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="order-2 btn-secondary h-10 w-full px-4 text-sm sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
+        <button type="button" onClick={handleSave} disabled={isSaving || currencyApplying} className="order-1 btn-primary h-10 w-full px-4 text-sm sm:order-2 sm:w-auto">
           {isSaving ? <><Loader2 size={15} className="animate-spin" /> {t('status.saving', { ns: 'common' })}</> : account ? t('accounts.form.updateAction', { ns: 'portal' }) : t('accounts.addAccount', { ns: 'portal' })}
         </button>
       </div>
@@ -1072,10 +1070,10 @@ export default function FinancialAccountForm({
           closeOnEscape={!currencyWorkflowBlocked}
           stickyFooter
           footer={
-            <div className="flex flex-wrap justify-end gap-2 p-4">
+            <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
               <button
                 type="button"
-                className="btn-secondary h-10 px-4 text-sm"
+                className="btn-secondary h-10 w-full px-4 text-sm sm:w-auto"
                 onClick={() => resetCurrencyWorkflow(false)}
                 disabled={currencyWorkflowBlocked}
               >
@@ -1086,7 +1084,7 @@ export default function FinancialAccountForm({
                   {currencyMode === 'conversion' ? (
                     <button
                       type="button"
-                      className="btn-secondary h-10 px-4 text-sm"
+                      className="btn-secondary h-10 w-full px-4 text-sm sm:w-auto"
                       onClick={() => resetCurrencyWorkflow(false)}
                       disabled={currencyWorkflowBlocked}
                     >
@@ -1098,7 +1096,7 @@ export default function FinancialAccountForm({
                   ) : null}
                   <button
                     type="button"
-                    className="btn-primary h-10 px-4 text-sm"
+                    className="btn-primary h-10 w-full px-4 text-sm sm:w-auto"
                     onClick={handleApplyCurrencyChange}
                     disabled={
                       currencyWorkflowBlocked
@@ -1125,7 +1123,7 @@ export default function FinancialAccountForm({
               ) : (
                 <button
                   type="button"
-                  className="btn-primary h-10 px-4 text-sm"
+                  className="btn-primary h-10 w-full px-4 text-sm sm:w-auto"
                   onClick={handlePreviewCurrencyChange}
                   disabled={!canPreviewCurrencyChange || currencyWorkflowBlocked}
                 >

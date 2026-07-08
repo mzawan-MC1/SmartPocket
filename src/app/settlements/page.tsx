@@ -436,14 +436,14 @@ function NewSettlementModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
-      <div className="bg-card rounded-2xl shadow-card-md w-full max-w-3xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 p-4 backdrop-blur-sm sm:items-center">
+      <div className="max-h-[min(88dvh,840px)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-card p-5 shadow-card-md max-[480px]:rounded-[1.5rem] max-[480px]:px-4 max-[480px]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-700 text-foreground">{t('settlements.newSettlement')}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
           <FormSection
             variant="primary"
             title={mode === 'space' ? t('settlements.newSettlement') : t('settlements.recordSettlement')}
@@ -451,7 +451,7 @@ function NewSettlementModal({
           >
             {mode === 'space' ? (
               <>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 md:grid-cols-3">
                   <div className="md:col-span-3">
                     <label className={getFieldLabelClassName(Boolean(fieldErrors.selectedSpaceId))}>
                       {t('settlements.space', { defaultValue: 'Space' })}
@@ -515,7 +515,7 @@ function NewSettlementModal({
                     </select>
                     {fieldErrors.receiverKey ? <p className={getFieldErrorTextClassName()}>{fieldErrors.receiverKey}</p> : null}
                   </div>
-                  <div>
+                  <div className="min-[520px]:col-span-2 md:col-span-1">
                     <label className="block text-sm font-600 text-foreground mb-1.5">
                       {t('settlements.currency')}
                     </label>
@@ -655,7 +655,7 @@ function NewSettlementModal({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
               <div>
                 <label className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('settlements.amount')} <span className="text-negative">*</span></label>
                 {mode === 'space' ? (
@@ -835,11 +835,11 @@ function NewSettlementModal({
             </div>
           ) : null}
 
-          <div className="flex gap-3 pt-1">
+          <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row">
             <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors">{t('settlements.cancel')}</button>
+              className="order-2 flex-1 rounded-xl border border-border py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted sm:order-1">{t('settlements.cancel')}</button>
             <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 disabled:opacity-60">
+              className="order-1 flex-1 rounded-xl py-2.5 text-sm font-600 text-white shadow-teal-glow transition-opacity hover:opacity-90 disabled:opacity-60 sm:order-2 gradient-teal">
               {saving ? t('settlements.saving') : t('settlements.recordSettlement')}
             </button>
           </div>
@@ -1210,7 +1210,7 @@ export default function SettlementsPage() {
                         </>
                       )}
                     </div>
-                    <div className="text-end">
+                    <div className="min-[520px]:text-end">
                       <FormattedCurrencyAmount
                         amount={Number(settlement.amount)}
                         currencyCode={settlement.currency}
@@ -1221,7 +1221,7 @@ export default function SettlementsPage() {
                         <button
                           type="button"
                           onClick={() => void handleReverseSettlement(settlement)}
-                          className="mt-2 inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-600 text-foreground hover:bg-muted"
+                          className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-600 text-foreground hover:bg-muted min-[520px]:w-auto"
                         >
                           <Undo2 size={12} />
                           {t('settlements.reverseAction', { defaultValue: 'Reverse' })}

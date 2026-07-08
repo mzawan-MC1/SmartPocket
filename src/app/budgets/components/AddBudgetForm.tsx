@@ -72,17 +72,16 @@ function formatSemimonthlySchedule(
     if (value === 0) {
       return t('financialPeriods.paySchedule.lastDayOfMonth', { ns: 'portal' });
     }
-    const mod100 = value % 100;
-    if (mod100 >= 11 && mod100 <= 13) {
-      return `${value}th`;
-    }
-    const mod10 = value % 10;
-    if (mod10 === 1) return `${value}st`;
-    if (mod10 === 2) return `${value}nd`;
-    if (mod10 === 3) return `${value}rd`;
-    return `${value}th`;
+    return t('financialPeriods.paySchedule.dayOfMonth', {
+      ns: 'portal',
+      day: value,
+    });
   };
-  return `${formatDay(config.semimonthlyDay1)} and ${formatDay(config.semimonthlyDay2)}`;
+  return t('financialPeriods.paySchedule.semimonthlyRange', {
+    ns: 'portal',
+    first: formatDay(config.semimonthlyDay1),
+    second: formatDay(config.semimonthlyDay2),
+  });
 }
 
 function getBudgetPeriodLabel(
@@ -395,28 +394,27 @@ export default function AddBudgetForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4 max-[640px]:space-y-3.5" noValidate>
       {spaceId ? (
-        <div className="rounded-2xl border border-info/20 bg-info-soft/40 px-4 py-3 text-sm text-info">
+        <div className="rounded-2xl border border-info/20 bg-info-soft/40 px-4 py-3 text-sm text-info max-[640px]:px-3.5 max-[640px]:py-2.5">
           {t('budgets.form.spaceBudgetNotice', {
             ns: 'portal',
-            defaultValue: `This budget will track Space spending for ${spaceName || 'the selected Space'}.`,
-            space: spaceName || 'the selected Space',
+            space: spaceName || t('spaces.currentSpace.title', { ns: 'portal' }),
           })}
         </div>
       ) : null}
-      <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+      <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground max-[640px]:px-3.5 max-[640px]:py-2.5">
         {t('budgets.form.periodIsolationNotice', { ns: 'portal' })}
       </div>
       {periodChangeWarning ? (
-        <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning">
+        <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning max-[640px]:px-3.5 max-[640px]:py-2.5">
           {periodChangeWarning}
         </div>
       ) : null}
       <FormSection
         variant="primary"
         title={t('budgets.budget', { ns: 'portal' })}
-        bodyClassName="space-y-4"
+        bodyClassName="space-y-4 max-[640px]:space-y-3"
       >
         <div>
           <label className={getFieldLabelClassName(Boolean(fieldErrors.category_id))}>{t('budgets.form.category', { ns: 'portal' })}</label>
@@ -434,7 +432,7 @@ export default function AddBudgetForm({
           <label className="block text-sm font-600 text-foreground mb-1.5">{t('budgets.form.name', { ns: 'portal' })}</label>
           <input type="text" className="input-base" placeholder={t('budgets.form.namePlaceholder', { ns: 'portal' })} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
           <div>
             <label htmlFor="budget-amount" className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>{t('budgets.form.amount', { ns: 'portal' })}</label>
             <input
@@ -443,7 +441,7 @@ export default function AddBudgetForm({
               step="0.01"
               min="0.01"
               className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
-              placeholder="0.00"
+              placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
               value={form.amount}
               onChange={(e) => updateField('amount', e.target.value)}
               aria-invalid={fieldErrors.amount ? 'true' : 'false'}
@@ -463,7 +461,7 @@ export default function AddBudgetForm({
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
           <div>
             <label className={getFieldLabelClassName(Boolean(fieldErrors.budget_period))}>{t('budgets.form.period', { ns: 'portal' })}</label>
             <select
@@ -541,7 +539,7 @@ export default function AddBudgetForm({
           </div>
         ) : null}
         {form.budget_period === 'semimonthly' ? (
-          <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm">
+          <div className="rounded-xl border border-border bg-card px-4 py-3 text-sm max-[640px]:px-3.5 max-[640px]:py-2.5">
             <p className="font-600 text-foreground mb-1">{t('budgets.form.semimonthlyTitle', { ns: 'portal' })}</p>
             {scheduleLabel ? (
               <p className="text-muted-foreground">{scheduleLabel}</p>
@@ -560,13 +558,13 @@ export default function AddBudgetForm({
         ) : null}
       </FormSection>
       {budgetValidation && !budgetValidation.isValid ? (
-        <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning">
+        <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-4 py-3 text-sm text-warning max-[640px]:px-3.5 max-[640px]:py-2.5">
           {translateBudgetValidationError(budgetValidation.error, t)}
         </div>
       ) : null}
-      <div className="flex gap-2 justify-end pt-2 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-secondary">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="submit" disabled={isLoading} className="btn-primary">
+      <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="order-2 btn-secondary w-full sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
+        <button type="submit" disabled={isLoading} className="order-1 btn-primary w-full sm:order-2 sm:w-auto">
           {isLoading ? <><Loader2 size={15} className="animate-spin" /> {budget ? t('status.saving', { ns: 'common' }) : t('status.creating', { ns: 'common' })}</> : budget ? t('budgets.editAction', { ns: 'portal' }) : t('budgets.addCategoryBudget', { ns: 'portal' })}
         </button>
       </div>

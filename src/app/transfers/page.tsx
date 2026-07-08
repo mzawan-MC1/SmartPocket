@@ -140,7 +140,7 @@ export default function TransfersPage() {
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((transfer) => (
-                <div key={transfer.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[480px]:items-start max-[480px]:gap-3 max-[480px]:p-3">
+                <div key={transfer.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[520px]:flex-col max-[520px]:items-stretch max-[480px]:gap-3 max-[480px]:p-3">
                   <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-info-soft max-[480px]:h-9 max-[480px]:w-9">
                     <ArrowLeftRight size={18} className="text-info" />
                   </div>
@@ -150,11 +150,11 @@ export default function TransfersPage() {
                       <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />
                       <span className="text-sm font-600 text-foreground truncate">{transfer.to_account?.name || t('transfers.notAvailable')}</span>
                     </div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 break-words text-xs text-muted-foreground">
                       {transfer.description || t('transfers.transferFallback')} · {transfer.transfer_date}
                     </p>
                   </div>
-                  <div className="flex-shrink-0 text-right">
+                  <div className="flex-shrink-0 text-right max-[520px]:flex max-[520px]:items-start max-[520px]:justify-between max-[520px]:gap-3 max-[520px]:text-left">
                     <p className="text-sm font-700 font-tabular text-foreground">
                       <FormattedCurrencyAmount
                         amount={transfer.source_amount ?? transfer.amount}
@@ -171,7 +171,7 @@ export default function TransfersPage() {
                         />
                       </p>
                     ) : null}
-                    <span className="rounded-full bg-positive-soft px-1.5 py-0.5 text-[10px] font-600 text-positive">{t('transfers.completed')}</span>
+                    <span className="rounded-full bg-positive-soft px-1.5 py-0.5 text-[10px] font-600 text-positive max-[520px]:self-start">{t('transfers.completed')}</span>
                   </div>
                 </div>
               ))}

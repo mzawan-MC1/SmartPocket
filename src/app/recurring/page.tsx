@@ -22,7 +22,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 
 const RecurringTransactionForm = dynamic(() => import('./components/RecurringTransactionForm'), {
   ssr: false,
-  loading: () => <div className="p-4 text-sm text-muted-foreground">Loading...</div>,
+  loading: () => null,
 });
 
 export default function RecurringPage() {
@@ -92,7 +92,7 @@ export default function RecurringPage() {
   };
 
   const handleDelete = async (item: RecurringTransaction) => {
-    if (!confirm(`Delete "${item.description}"?`)) return;
+    if (!confirm(t('recurring.deleteConfirm', { name: item.description }))) return;
     try {
       await updateRecurringTransaction(item.id, { is_active: false });
       toast.success(t('recurring.removed'));
@@ -217,7 +217,7 @@ export default function RecurringPage() {
               {activeItems.map((item) => {
                 const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
                 return (
-                <div key={item.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[480px]:items-start max-[480px]:gap-3 max-[480px]:p-3">
+                <div key={item.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3 max-[480px]:p-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.transaction_type === 'income' ? 'bg-positive-soft' : 'bg-negative-soft'}`}>
                     <Repeat size={18} className={item.transaction_type === 'income' ? 'text-positive' : 'text-negative'} />
                   </div>
@@ -233,7 +233,7 @@ export default function RecurringPage() {
                       <p className="mt-1 text-[10px] font-600 text-warning">{t('recurring.incompleteSchedule')}</p>
                     ) : null}
                   </div>
-                  <div className="text-right flex-shrink-0">
+                  <div className="flex shrink-0 flex-col gap-2 max-[520px]:w-full max-[520px]:rounded-2xl max-[520px]:border max-[520px]:border-border/70 max-[520px]:bg-muted/10 max-[520px]:p-3 min-[521px]:text-right">
                     <p className={`text-sm font-700 font-tabular ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}>
                       <FormattedCurrencyAmount
                         amount={item.transaction_type === 'income' ? Number(item.amount) : -Math.abs(Number(item.amount))}
@@ -242,11 +242,11 @@ export default function RecurringPage() {
                         showCode
                       />
                     </p>
-                    <div className="flex items-center gap-1 mt-1 justify-end">
+                    <div className="mt-1 flex flex-wrap items-center gap-1 max-[520px]:justify-start min-[521px]:justify-end">
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id || !canMarkPaid}
-                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-700 text-accent transition-colors hover:bg-muted/40 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-700 text-accent transition-colors hover:bg-muted/40 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 max-[520px]:flex-1 max-[520px]:justify-center"
                         aria-label={t('recurring.markAsPaid')}
                         title={t('recurring.markAsPaid')}
                       >

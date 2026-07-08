@@ -130,7 +130,7 @@ export default function AddAccountForm({ onSuccess, onCancel }: AddAccountFormPr
               type="number"
               step="0.01"
               className={`input-base pl-7 font-tabular ${errors.openingBalance ? 'input-error' : ''}`}
-              placeholder="0.00"
+              placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
               {...register('openingBalance', {
                 pattern: { value: /^-?\d+(\.\d{0,2})?$/, message: t('validation.validAmount', { ns: 'common' }) },
               })}

@@ -454,7 +454,7 @@ const DEFAULT_FORM: SpaceFormData = {
 
 function SpacesPageContent() {
   const { t } = useTranslation(['portal', 'common']);
-  const { language } = useLanguage();
+  const { language, isRTL } = useLanguage();
   const { user } = useAuth();
   const {
     summary,
@@ -1097,7 +1097,7 @@ function SpacesPageContent() {
                           </select>
                           <ChevronDown
                             size={16}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground ${isRTL ? 'left-3' : 'right-3'}`}
                           />
                         </div>
                       ) : null}
@@ -1112,7 +1112,7 @@ function SpacesPageContent() {
                               <MoreVertical size={16} />
                             </button>
                             {openMenuId === activeSpace.id && (
-                              <div className="absolute right-0 top-12 z-20 min-w-[160px] rounded-2xl border border-border bg-card py-1 shadow-card-md">
+                              <div className={`absolute top-12 z-20 min-w-[160px] max-w-[calc(100vw-1rem)] rounded-2xl border border-border bg-card py-1 shadow-card-md ${isRTL ? 'left-0' : 'right-0'}`}>
                                 <button
                                   type="button"
                                   onClick={() => openEdit(activeSpace)}
@@ -1827,8 +1827,8 @@ function SpacesPageContent() {
 
       {/* Create/Edit Modal */}
       {(showCreateModal || editingSpace) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
-          <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 p-4 backdrop-blur-sm sm:items-center">
+          <div className="max-h-[min(88dvh,760px)] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5 shadow-card-md max-[480px]:rounded-[1.5rem] max-[480px]:px-4 max-[480px]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-700 text-foreground">
                 {editingSpace
@@ -1919,17 +1919,17 @@ function SpacesPageContent() {
               </div>
             ) : null}
 
-            <div className="flex gap-3 pt-1">
+            <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row">
               <button
                 onClick={closeSpaceFormModal}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors"
+                className="order-2 flex-1 rounded-xl border border-border py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted sm:order-1"
               >
                 {t('actions.cancel', { ns: 'common' })}
               </button>
               <button
                 onClick={editingSpace ? handleUpdate : handleCreate}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="order-1 flex-1 rounded-xl py-2.5 text-sm font-600 text-white shadow-teal-glow transition-opacity hover:opacity-90 disabled:opacity-60 sm:order-2 gradient-teal"
               >
                 {saving
                   ? t('status.saving', { ns: 'common' })
@@ -1944,8 +1944,8 @@ function SpacesPageContent() {
 
       {/* Invite Modal */}
       {showInviteModal && hasSharedSpacesFeature && isActiveSpaceOwner && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-foreground/30 backdrop-blur-sm">
-          <div className="bg-card rounded-2xl shadow-card-md w-full max-w-md p-6 space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 p-4 backdrop-blur-sm sm:items-center">
+          <div className="max-h-[min(88dvh,760px)] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-5 shadow-card-md max-[480px]:rounded-[1.5rem] max-[480px]:px-4 max-[480px]:pb-[calc(1rem+env(safe-area-inset-bottom))]">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-700 text-foreground">
                 {t('spaces.ui.modal.inviteMember', { ns: 'portal' })}
@@ -1993,17 +1993,17 @@ function SpacesPageContent() {
               </p>
             </div>
 
-            <div className="flex gap-3 pt-1">
+            <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row">
               <button
                 onClick={() => setShowInviteModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-600 text-muted-foreground hover:bg-muted transition-colors"
+                className="order-2 flex-1 rounded-xl border border-border py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted sm:order-1"
               >
                 {t('actions.cancel', { ns: 'common' })}
               </button>
               <button
                 onClick={handleInvite}
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="order-1 flex-1 rounded-xl py-2.5 text-sm font-600 text-white shadow-teal-glow transition-opacity hover:opacity-90 disabled:opacity-60 sm:order-2 gradient-teal"
               >
                 {saving ? t('spaces.sending', { ns: 'portal' }) : t('spaces.sendInvitation', { ns: 'portal' })}
               </button>
