@@ -24,7 +24,7 @@ export default function TransactionsHeader({
       compact
       actionsClassName="w-full sm:w-auto"
       actions={
-        <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap">
           <button
             onClick={() => {
               if (!onExportCSV) {
@@ -33,12 +33,12 @@ export default function TransactionsHeader({
               }
               onExportCSV();
             }}
-            className="btn-secondary flex-1 px-3 py-2.5 text-sm max-[360px]:w-full sm:flex-none"
+            className="btn-secondary order-2 w-full px-3 py-2.5 text-sm sm:order-1 sm:w-auto sm:flex-none"
           >
             <Download size={15} />
             {t('transactionsHeader.exportCsv')}
           </button>
-          <button onClick={onAddTransaction} className="btn-primary flex-1 px-3 py-2.5 text-sm max-[360px]:w-full sm:flex-none">
+          <button onClick={onAddTransaction} className="btn-primary order-1 w-full px-3 py-2.5 text-sm sm:order-2 sm:w-auto sm:flex-none">
             <Plus size={15} />
             {t('transactionsHeader.addTransaction')}
           </button>

@@ -75,6 +75,7 @@ export default function TransactionsTable({
   const { t } = useTranslation(['portal', 'common']);
   const { dir, language } = useLanguage();
   const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const PreviousIcon = dir === 'rtl' ? ChevronRight : ChevronLeft;
   const NextIcon = dir === 'rtl' ? ChevronLeft : ChevronRight;
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -410,6 +411,16 @@ export default function TransactionsTable({
     }).format(parsed);
   }, [locale]);
 
+  const formatTransactionDateLabel = useCallback((value: string) => {
+    const parsed = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return new Intl.DateTimeFormat(locale, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(parsed);
+  }, [locale]);
+
   const filtered = useMemo(() => {
     let result = transactions.filter((transaction) => {
       const categoryDisplayName = translateSystemCategoryName(transaction.category?.name, (key, options) =>
@@ -521,28 +532,28 @@ export default function TransactionsTable({
               placeholder={t('transactions.searchPlaceholder', { ns: 'portal' })}
               value={search}
               onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-              inputClassName="h-10"
+              inputClassName="h-11 rounded-2xl"
             />
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-[minmax(0,1fr)_auto]">
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(true)}
-                className="flex min-w-0 items-center gap-2 rounded-2xl border border-border bg-muted/20 px-3 py-2.5 text-left"
+                className="flex min-w-0 items-center gap-3 rounded-[20px] border border-border bg-card px-3.5 py-3 text-left shadow-card-sm"
               >
-                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
                   <CalendarRange size={16} />
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
                     {activeDateFilter.description}
                   </p>
-                  <p className="truncate text-sm font-700 text-foreground">{activeDateFilter.label}</p>
+                  <p className={`truncate font-700 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-sm'}`}>{activeDateFilter.label}</p>
                 </div>
               </button>
               <button
                 type="button"
                 onClick={() => setMobileFiltersOpen(true)}
-                className={`btn-secondary h-auto min-h-[3.5rem] gap-2 rounded-2xl px-3 py-2.5 text-sm ${mobileFiltersOpen ? 'border-accent text-accent' : ''}`}
+                className={`btn-secondary h-auto min-h-[3.75rem] gap-2 rounded-[20px] px-3.5 py-2.5 text-sm shadow-card-sm ${mobileFiltersOpen ? 'border-accent text-accent' : ''}`}
               >
                 <Filter size={16} />
                 {t('actions.filter', { ns: 'common' })}
@@ -553,6 +564,25 @@ export default function TransactionsTable({
                 ) : null}
               </button>
             </div>
+            {activeTabletFilterSummaries.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeTabletFilterSummaries.slice(0, 3).map((summary) => (
+                  <span
+                    key={`mobile-filter-summary-${summary}`}
+                    className="inline-flex min-w-0 max-w-full items-center rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-700 text-muted-foreground shadow-card-sm"
+                  >
+                    <span className="truncate">{summary}</span>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={resetResponsiveFilters}
+                  className="inline-flex items-center rounded-full border border-border bg-muted/15 px-3 py-1.5 text-[11px] font-700 text-muted-foreground"
+                >
+                  {t('common:actions.reset')}
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <div className="hidden md:block lg:hidden">
@@ -838,87 +868,109 @@ export default function TransactionsTable({
                   reportingPreview.reportingAmount !== null &&
                   reportingPreview.originalCurrency !== reportingPreview.reportingCurrency;
                 return (
-                  <div key={`mobile-${txn.id}`} className="rounded-2xl border border-border bg-card p-3 shadow-card-sm">
-                    <div className="min-w-0">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-700 text-foreground">{title}</p>
-                            <p className="text-xs text-muted-foreground">{txn.transaction_date}</p>
-                          </div>
+                  <div key={`mobile-${txn.id}`} className="rounded-[24px] border border-border bg-card p-3.5 shadow-card-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={txn.transaction_type === 'income' ? 'active' : txn.transaction_type === 'expense' ? 'exceeded' : 'default'}>
                             {t(`transactions.types.${txn.transaction_type}` as const, { ns: 'portal', defaultValue: txn.transaction_type })}
                           </Badge>
+                          <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
+                            {formatTransactionDateLabel(txn.transaction_date)}
+                          </span>
                         </div>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          {txn.category ? (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: catColor }} />
-                              <span>{translateSystemCategoryName(txn.category.name, (key, options) =>
-                                t(key, { ...(options || {}), ns: 'common' })
-                              )}</span>
-                            </span>
-                          ) : (
-                            <span>{t('transactions.uncategorized', { ns: 'portal' })}</span>
-                          )}
-                          <span>{txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}</span>
-                          {hasDocument ? (
-                            <button
-                              type="button"
-                              onClick={() => setDetailsTransactionId(txn.id)}
-                              className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-600 text-muted-foreground"
-                            >
-                              <Paperclip size={11} className="flex-shrink-0" />
-                              {itemCount > 0
-                                ? t('transactions.documentReview.itemCountLabel', {
-                                    ns: 'portal',
-                                    count: itemCount,
-                                    defaultValue: '{{count}} items',
-                                  })
-                                : t('transactions.documentDetails.documentSection', {
-                                    ns: 'portal',
-                                    defaultValue: 'Receipt / Document',
-                                  })}
-                            </button>
-                          ) : null}
-                          {hasPerson ? <Users size={11} className="flex-shrink-0 text-accent" aria-label={t('transactions.managedPersonTransaction', { ns: 'portal' })} /> : null}
-                        </div>
+                        <p className={`mt-2 truncate font-700 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-[15px]'}`}>{title}</p>
                         {txn.notes ? (
-                          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{txn.notes}</p>
+                          <p className={`mt-1.5 line-clamp-2 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>{txn.notes}</p>
                         ) : null}
-                        <div className="mt-3 flex items-end justify-between gap-3">
-                          <div className="min-w-0">
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <FormattedCurrencyAmount
+                          amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
+                          currencyCode={txn.currency}
+                          size="sm"
+                          className={txn.transaction_type === 'income' ? 'text-[15px] font-700 text-positive' : 'text-[15px] font-700 text-foreground'}
+                        />
+                        {showReportingPreview ? (
+                          <span className={`mt-1 block text-muted-foreground ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+                            ≈{' '}
                             <FormattedCurrencyAmount
-                              amount={txn.transaction_type === 'income' ? txn.amount : txn.transaction_type === 'expense' ? -Math.abs(txn.amount) : txn.amount}
-                              currencyCode={txn.currency}
-                              size="sm"
-                              className={txn.transaction_type === 'income' ? 'text-sm font-700 text-positive' : 'text-sm font-700 text-foreground'}
+                              amount={reportingPreview.reportingAmount as number}
+                              currencyCode={reportingPreview.reportingCurrency}
+                              size="xs"
+                              className={isArabic ? 'text-[11.5px] text-muted-foreground' : 'text-[11px] text-muted-foreground'}
                             />
-                            {showReportingPreview ? (
-                              <span className="mt-1 block text-[11px] text-muted-foreground">
-                                ≈{' '}
-                                <FormattedCurrencyAmount
-                                  amount={reportingPreview.reportingAmount as number}
-                                  currencyCode={reportingPreview.reportingCurrency}
-                                  size="xs"
-                                  className="text-[11px] text-muted-foreground"
-                                />
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => openEdit(txn)} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted" aria-label={t('actions.edit', { ns: 'common' })}>
-                              <Edit2 size={14} className="text-muted-foreground" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(txn)}
-                              disabled={deletingId === txn.id}
-                              className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-negative-soft"
-                              aria-label={t('actions.delete', { ns: 'common' })}
-                            >
-                              {deletingId === txn.id ? <Loader2 size={14} className="animate-spin text-negative" /> : <Trash2 size={14} className="text-negative" />}
-                            </button>
-                          </div>
-                        </div>
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full bg-muted/40 px-2.5 py-1 text-muted-foreground ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+                        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
+                        <span className="truncate">
+                          {txn.category
+                            ? translateSystemCategoryName(txn.category.name, (key, options) =>
+                                t(key, { ...(options || {}), ns: 'common' })
+                              )
+                            : t('transactions.uncategorized', { ns: 'portal' })}
+                        </span>
+                      </span>
+                      <span className={`inline-flex max-w-full items-center rounded-full bg-muted/40 px-2.5 py-1 text-muted-foreground ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+                        <span className="truncate">{txn.account?.name || t('transactions.noAccount', { ns: 'portal' })}</span>
+                      </span>
+                      {hasDocument ? (
+                        <button
+                          type="button"
+                          onClick={() => setDetailsTransactionId(txn.id)}
+                          className={`inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-600 text-muted-foreground ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}
+                        >
+                          <Paperclip size={11} className="flex-shrink-0" />
+                          {itemCount > 0
+                            ? t('transactions.documentReview.itemCountLabel', {
+                                ns: 'portal',
+                                count: itemCount,
+                                defaultValue: '{{count}} items',
+                              })
+                            : t('transactions.documentDetails.documentSection', {
+                                ns: 'portal',
+                                defaultValue: 'Receipt / Document',
+                              })}
+                        </button>
+                      ) : null}
+                      {hasPerson ? (
+                        <span className={`inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-accent ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+                          <Users size={11} className="flex-shrink-0" />
+                          {t('transactions.managedPersonTransaction', { ns: 'portal' })}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setDetailsTransactionId(txn.id)}
+                        className="btn-secondary min-h-[2.5rem] rounded-xl px-3 text-sm"
+                      >
+                        {t('actions.view', { ns: 'common' })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(txn)}
+                        className="btn-ghost min-h-[2.5rem] rounded-xl px-3 text-sm text-foreground"
+                        aria-label={t('actions.edit', { ns: 'common' })}
+                      >
+                        <Edit2 size={14} />
+                        {t('actions.edit', { ns: 'common' })}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(txn)}
+                        disabled={deletingId === txn.id}
+                        className="btn-ghost min-h-[2.5rem] rounded-xl px-3 text-sm text-negative hover:bg-negative-soft"
+                        aria-label={t('actions.delete', { ns: 'common' })}
+                      >
+                        {deletingId === txn.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                        {t('actions.delete', { ns: 'common' })}
+                      </button>
                     </div>
                   </div>
                 );
@@ -1259,10 +1311,10 @@ export default function TransactionsTable({
         title={t('actions.filter', { ns: 'common' })}
         description={t('transactions.filters.customDateRange', { ns: 'portal' })}
         size="md"
-        bodyClassName="space-y-5"
+        bodyClassName="space-y-4"
         stickyFooter
         footer={
-          <div className="flex gap-3 p-4 max-[480px]:flex-col-reverse">
+          <div className="flex gap-3 p-3 max-[480px]:flex-col-reverse">
             <button
               type="button"
               onClick={resetResponsiveFilters}
@@ -1280,27 +1332,27 @@ export default function TransactionsTable({
           </div>
         }
       >
-        <section className="space-y-2">
+        <section className="space-y-3 rounded-2xl border border-border bg-muted/10 p-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-700 text-foreground">
               {t('transactions.filters.period', { ns: 'portal', defaultValue: 'Period' })}
             </h3>
-            <span className="text-xs text-muted-foreground">{activeDateFilter.label}</span>
+            <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-xs'}`}>{activeDateFilter.label}</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {periodModeOptions.map((option) => (
               <button
                 key={`mobile-mode-${option.key}`}
                 type="button"
                 onClick={() => setQuickDateMode(option.key)}
-                className={`rounded-xl border px-3 py-2 text-xs font-700 ${dateFilterMode === option.key ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'}`}
+                className={`min-h-[2.75rem] rounded-xl border px-3 py-2 text-xs font-700 ${dateFilterMode === option.key ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
               >
                 {option.label}
               </button>
             ))}
           </div>
           {(dateFilterMode === 'pay_cycle' || dateFilterMode === 'month') ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-border bg-muted/20 p-2">
+            <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
               <button
                 type="button"
                 onClick={() => { setPeriodOffset((current) => current - 1); setPage(1); }}
@@ -1329,16 +1381,16 @@ export default function TransactionsTable({
           ) : null}
         </section>
 
-        <section className="space-y-2">
+        <section className="space-y-3 rounded-2xl border border-border bg-muted/10 p-3">
           <h3 className="text-sm font-700 text-foreground">{t('transactions.type', { ns: 'portal' })}</h3>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {(['all', 'income', 'expense', 'transfer'] as const).map((filterValue) => (
               <button
                 key={`mobile-type-filter-${filterValue}`}
                 type="button"
                 onClick={() => { setFilterType(filterValue); setPage(1); }}
-                className={`rounded-xl border px-3 py-2 text-xs font-700 ${
-                  filterType === filterValue ? 'border-accent bg-accent text-accent-foreground' : 'border-border text-foreground hover:border-accent/40'
+                className={`min-h-[2.75rem] rounded-xl border px-3 py-2 text-xs font-700 ${
+                  filterType === filterValue ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'
                 }`}
               >
                 {filterValue === 'all'
@@ -1349,7 +1401,7 @@ export default function TransactionsTable({
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-4">
+        <section className="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-muted/10 p-3">
           <div>
             <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.account', { ns: 'portal' })}</label>
             <select value={filterAccount} onChange={(e) => { setFilterAccount(e.target.value); setPage(1); }} className="input-base h-10 text-sm">
@@ -1372,7 +1424,7 @@ export default function TransactionsTable({
                 ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-700 text-foreground">{t('transactions.dateFrom', { ns: 'portal' })}</label>
               <input
