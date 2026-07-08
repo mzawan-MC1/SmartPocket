@@ -124,7 +124,7 @@ export default function SignUpForm({
   const handleMagicLinkSignUp = async () => {
     const email = getValues('email')?.trim();
     if (!email) {
-      toast.error(t('validation.email', { ns: 'validation' }));
+      toast.error(t('email', { ns: 'validation' }));
       return;
     }
 
@@ -243,13 +243,13 @@ export default function SignUpForm({
               className={`input-base ${errors.fullName ? 'input-error' : ''}`}
               placeholder={t('signUp.fullNamePlaceholder', { ns: 'auth' })}
               {...register('fullName', {
-                required: t('validation.required', {
+                required: t('required', {
                   ns: 'validation',
                   field: t('signUp.fullName', { ns: 'auth' }),
                 }),
                 minLength: {
                   value: 2,
-                  message: t('validation.minLength', {
+                  message: t('minLength', {
                     ns: 'validation',
                     field: t('signUp.fullName', { ns: 'auth' }),
                     min: 2,
@@ -275,11 +275,11 @@ export default function SignUpForm({
               className={`input-base ${errors.email ? 'input-error' : ''}`}
               placeholder={t('signUp.emailPlaceholder', { ns: 'auth' })}
               {...register('email', {
-                required: t('validation.required', {
+                required: t('required', {
                   ns: 'validation',
                   field: t('signUp.email', { ns: 'auth' }),
                 }),
-                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('validation.email', { ns: 'validation' }) },
+                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('email', { ns: 'validation' }) },
               })}
             />
             {errors.email && (
@@ -315,13 +315,13 @@ export default function SignUpForm({
                   className={`input-base pr-10 ${errors.password ? 'input-error' : ''}`}
                   placeholder={t('signUp.passwordPlaceholder', { ns: 'auth' })}
                   {...register('password', {
-                    required: t('validation.required', {
+                    required: t('required', {
                       ns: 'validation',
                       field: t('signUp.password', { ns: 'auth' }),
                     }),
                     minLength: {
                       value: 8,
-                      message: t('validation.minLength', {
+                      message: t('minLength', {
                         ns: 'validation',
                         field: t('signUp.password', { ns: 'auth' }),
                         min: 8,
@@ -329,7 +329,7 @@ export default function SignUpForm({
                     },
                     pattern: {
                       value: /^(?=.*[0-9!@#$%^&*])/,
-                      message: t('validation.passwordStrength', { ns: 'validation' }),
+                      message: t('passwordStrength', { ns: 'validation' }),
                     },
                   })}
                 />
@@ -360,7 +360,7 @@ export default function SignUpForm({
                   placeholder={t('signUp.confirmPasswordPlaceholder', { ns: 'auth' })}
                   {...register('confirmPassword', {
                     required: t('signUp.confirmPasswordRequired', { ns: 'auth' }),
-                    validate: (v) => v === passwordValue || t('validation.passwordMatch', { ns: 'validation' }),
+                    validate: (v) => v === passwordValue || t('passwordMatch', { ns: 'validation' }),
                   })}
                 />
                 <button

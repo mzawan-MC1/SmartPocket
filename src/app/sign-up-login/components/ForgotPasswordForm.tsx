@@ -97,11 +97,11 @@ export default function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) 
             className={`input-base ${errors.email ? 'input-error' : ''}`}
             placeholder={t('forgotPassword.emailPlaceholder', { ns: 'auth' })}
             {...register('email', {
-              required: t('validation.required', {
+              required: t('required', {
                 ns: 'validation',
                 field: t('forgotPassword.email', { ns: 'auth' }),
               }),
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('validation.email', { ns: 'validation' }) },
+              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('email', { ns: 'validation' }) },
             })}
           />
           {errors.email && (

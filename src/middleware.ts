@@ -43,6 +43,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
+  if (pathname.startsWith('/_next/')) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  if (pathname.startsWith('/@vite/')) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   if (publicTechnicalRoutes.has(pathname)) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
@@ -192,6 +200,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|assets|currencies|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next|favicon.ico|assets|currencies|manifest.json|@vite|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

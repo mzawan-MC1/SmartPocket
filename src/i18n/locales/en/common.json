@@ -11,8 +11,8 @@
     "help": "Help & Support",
     "notifications": "Notifications",
     "admin": "Admin Portal",
-    "signIn": "Sign In",
-    "signUp": "Get Started",
+    "signIn": "Sign in",
+    "signUp": "Create account",
     "signOut": "Sign Out"
   },
   "actions": {

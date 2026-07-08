@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Eye, EyeOff, Loader2, Globe, Apple } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
@@ -34,6 +35,7 @@ export default function LoginForm({
   showEmailPassword,
 }: LoginFormProps) {
   const { t } = useTranslation(['auth', 'validation']);
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -97,16 +99,17 @@ export default function LoginForm({
       toast.success(t('signIn.success', { ns: 'auth' }));
       trackMarketingEvent('login', { method: 'password' });
 
-      // Hard navigation so the browser sends the new Supabase auth cookies
-      // that were set by the server-side route handler.
+      // The server-side login route already set the auth cookies on the same origin.
+      // Use App Router navigation here to avoid aborting the current chunk/document load.
       window.setTimeout(() => {
         setIsLoading(false);
         toast.error(
           t('signIn.redirectPending', { ns: 'auth', destination })
         );
       }, 2500);
-      window.location.replace(destination);
-      // Note: do NOT call setIsLoading(false) — page is navigating away
+      router.replace(destination, { scroll: true });
+      router.refresh();
+      // Note: do NOT call setIsLoading(false) — route is navigating away
     } catch (err: any) {
       const msg = err?.message || t('signIn.submitFailed', { ns: 'auth' });
       toast.error(msg);
@@ -153,7 +156,7 @@ export default function LoginForm({
   const handleMagicLinkSignIn = async () => {
     const email = getValues('email')?.trim();
     if (!email) {
-      toast.error(t('validation.email', { ns: 'validation' }));
+      toast.error(t('email', { ns: 'validation' }));
       return;
     }
 
@@ -238,11 +241,11 @@ export default function LoginForm({
               className={`input-base ${errors.email ? 'input-error' : ''}`}
               placeholder={t('signIn.emailPlaceholder', { ns: 'auth' })}
               {...register('email', {
-                required: t('validation.required', {
+                required: t('required', {
                   ns: 'validation',
                   field: t('signIn.email', { ns: 'auth' }),
                 }),
-                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('validation.email', { ns: 'validation' }) },
+                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: t('email', { ns: 'validation' }) },
               })}
             />
             {errors.email && <p className="mt-1.5 text-xs text-negative font-500">{errors.email.message}</p>}
@@ -275,13 +278,13 @@ export default function LoginForm({
                   className={`input-base pr-10 ${errors.password ? 'input-error' : ''}`}
                   placeholder={t('signIn.passwordPlaceholder', { ns: 'auth' })}
                   {...register('password', {
-                    required: t('validation.required', {
+                    required: t('required', {
                       ns: 'validation',
                       field: t('signIn.password', { ns: 'auth' }),
                     }),
                     minLength: {
                       value: 8,
-                      message: t('validation.minLength', {
+                      message: t('minLength', {
                         ns: 'validation',
                         field: t('signIn.password', { ns: 'auth' }),
                         min: 8,

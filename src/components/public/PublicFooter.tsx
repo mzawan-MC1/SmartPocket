@@ -85,14 +85,15 @@ export default function PublicFooter() {
   const legalLinks = legalSection?.links ?? [];
   const topSections = publicUi.footerSections.filter((section) => section.id !== legalSection?.id);
   const isHomePage = pathname === '/home' || pathname === '/';
+  const isAuthPage = pathname === '/sign-up-login';
 
   return (
     <footer
       className={isHomePage ? 'border-t border-white/10 bg-[#041229] text-white' : 'border-t border-border bg-card/95 backdrop-blur-sm'}
       suppressHydrationWarning
     >
-      <div className="page-shell py-8 md:py-10">
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]">
+      <div className={`page-shell ${isAuthPage ? 'py-5 sm:py-8' : 'py-8 md:py-10'}`}>
+        <div className={`grid ${isAuthPage ? 'gap-5 sm:gap-8' : 'gap-8'} md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]`}>
           <div className="max-w-sm">
             <Link href="/" className="inline-flex items-center gap-3">
               <AppLogo
@@ -118,7 +119,7 @@ export default function PublicFooter() {
                 {publicUi.footerTagline}
               </p>
             )}
-            <div className={`mt-4 space-y-2 text-sm ${isHomePage ? 'text-slate-300' : 'text-muted-foreground'}`}>
+            <div className={`mt-4 space-y-2 text-sm ${isHomePage ? 'text-slate-300' : 'text-muted-foreground'} ${isAuthPage ? 'hidden sm:block' : ''}`}>
               {contactEmail && (
                 <a
                   href={`mailto:${contactEmail}`}
@@ -144,7 +145,7 @@ export default function PublicFooter() {
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 mt-4">
+            <div className={`mt-4 flex flex-wrap items-center gap-2 ${isAuthPage ? 'hidden sm:flex' : ''}`}>
               {publicUi.socialTwitter && (
                 <a href={publicUi.socialTwitter} target="_blank" rel="noopener noreferrer" className={isHomePage ? 'p-2 rounded-lg text-slate-400 transition-colors hover:bg-white/5 hover:text-white' : 'p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'} aria-label={t('footer.social.twitter')}>
                   <TwitterIcon size={15} />
@@ -164,7 +165,7 @@ export default function PublicFooter() {
           </div>
 
           {topSections.map((section) => (
-            <div key={section.id}>
+            <div key={section.id} className={isAuthPage ? 'hidden sm:block' : ''}>
               <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
                 {getFooterSectionTitle(section.id, section.title, t)}
               </p>

@@ -9,8 +9,8 @@ export default function SignUpLoginPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <PublicHeader />
       <main className="flex-1">
-        <div className="page-shell py-6 sm:py-8 lg:py-10">
-          <div className="overflow-hidden rounded-[32px] border border-border bg-card shadow-card-lg">
+        <div className="page-shell py-3 sm:py-6 lg:py-10">
+          <div className="overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg sm:rounded-[32px]">
             <AuthScreen />
           </div>
         </div>

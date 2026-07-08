@@ -1,7 +1,7 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
@@ -35,6 +35,7 @@ function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, 
 
 export default function PublicHeader() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { t } = useTranslation(['common', 'public']);
   const { language } = useLanguage();
   const { branding, publicUi } = usePlatformSettings();
@@ -43,24 +44,26 @@ export default function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [currentHash, setCurrentHash] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
-  const mobileRef = useRef<HTMLDivElement>(null);
   const isHomePage = pathname === '/home' || pathname === '/';
+  const searchKey = searchParams.toString();
 
-  // Close mobile menu on outside click
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
-        setMobileOpen(false);
-      }
-    };
-    if (mobileOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [mobileOpen]);
-
-  // Close mobile menu on route change
+  // Close mobile menu on route or query change
   useEffect(() => {
     setMobileOpen(false);
-  }, [pathname]);
+  }, [pathname, searchKey]);
+
+  useEffect(() => {
+    if (!mobileOpen) {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     const syncHash = () => {
@@ -105,7 +108,7 @@ export default function PublicHeader() {
   } z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
 
   return (
-    <header className={headerClass} ref={mobileRef} suppressHydrationWarning>
+    <header className={headerClass} suppressHydrationWarning>
       <div className="page-shell">
         <div className="flex min-h-[5rem] items-center justify-between gap-3 py-3 max-[480px]:gap-2">
           {/* Logo */}
@@ -178,6 +181,8 @@ export default function PublicHeader() {
               onClick={() => setMobileOpen(!mobileOpen)}
               className={`p-2.5 rounded-xl transition-colors ${isHomePage ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
               aria-label={mobileOpen ? t('header.closeMenu', { ns: 'public' }) : t('header.openMenu', { ns: 'public' })}
+              aria-expanded={mobileOpen}
+              aria-controls="public-mobile-menu"
             >
               {mobileOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
@@ -186,47 +191,65 @@ export default function PublicHeader() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className={`xl:hidden space-y-1 border-t py-4 pb-4 ${isHomePage ? 'border-slate-200 bg-white' : 'border-border'}`}>
-            {showBrandText && (
-              <div className="px-3.5 pb-3">
-                <p className={`text-sm font-700 ${isHomePage ? 'text-primary' : 'text-primary'}`}>{branding.appName}</p>
-                {showSingleLanguageTagline && branding.tagline ? (
-                  <p className={`mt-1 text-xs ${isHomePage ? 'text-slate-500' : 'text-muted-foreground'}`}>{branding.tagline}</p>
-                ) : null}
+          <>
+            <button
+              type="button"
+              aria-label={t('header.closeMenu', { ns: 'public' })}
+              className="fixed inset-0 top-20 z-40 bg-slate-950/35 backdrop-blur-[1px] xl:hidden"
+              onClick={() => setMobileOpen(false)}
+            />
+            <div
+              id="public-mobile-menu"
+              className="fixed inset-x-4 top-[5.5rem] z-50 xl:hidden"
+            >
+              <div className={`space-y-1 rounded-3xl border p-4 shadow-card-lg ${isHomePage ? 'border-slate-200 bg-white' : 'border-border bg-card'}`}>
+                {showBrandText && (
+                  <div className="px-1 pb-3">
+                    <p className="text-sm font-700 text-primary">{branding.appName}</p>
+                    {showSingleLanguageTagline && branding.tagline ? (
+                      <p className={`mt-1 text-xs ${isHomePage ? 'text-slate-500' : 'text-muted-foreground'}`}>{branding.tagline}</p>
+                    ) : null}
+                  </div>
+                )}
+                <div className="max-h-[calc(100dvh-7.5rem)] overflow-y-auto pr-1">
+                  {publicUi.headerMenu.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
+                        isActive(item.href)
+                          ? isHomePage
+                            ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
+                            : 'text-accent bg-accent/8 border border-accent/15'
+                          : isHomePage
+                            ? 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
+                      }`}
+                    >
+                      {getTranslatedNavLabel(item.href, item.label, t)}
+                    </Link>
+                  ))}
+                  <div className={`mt-3 flex flex-col gap-2 pt-3 ${isHomePage ? 'border-t border-slate-200' : 'border-t border-border'}`}>
+                    <Link
+                      href="/sign-up-login?mode=login"
+                      onClick={() => setMobileOpen(false)}
+                      className={isHomePage ? 'inline-flex justify-center rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-700 text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950' : 'btn-secondary text-sm py-2.5 justify-center'}
+                    >
+                      {t('nav.signIn', { ns: 'common' })}
+                    </Link>
+                    <Link
+                      href="/sign-up-login?mode=signup"
+                      onClick={() => setMobileOpen(false)}
+                      className={isHomePage ? 'inline-flex justify-center rounded-xl bg-cyan-500 py-2.5 text-sm font-700 text-white transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2.5 justify-center'}
+                    >
+                      {t('nav.signUp', { ns: 'common' })}
+                    </Link>
+                  </div>
+                </div>
               </div>
-            )}
-            {publicUi.headerMenu.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
-                  isActive(item.href)
-                    ? isHomePage
-                      ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
-                      : 'text-accent bg-accent/8 border border-accent/15'
-                    : isHomePage
-                      ? 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
-                }`}
-              >
-                {getTranslatedNavLabel(item.href, item.label, t)}
-              </Link>
-            ))}
-            <div className={`pt-3 flex flex-col gap-2 ${isHomePage ? 'border-t border-slate-200' : 'border-t border-border'}`}>
-              <Link
-                href="/sign-up-login?mode=login"
-                className={isHomePage ? 'inline-flex justify-center rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-700 text-slate-700 transition-colors hover:bg-slate-100 hover:text-slate-950' : 'btn-secondary text-sm py-2.5 justify-center'}
-              >
-                {t('nav.signIn', { ns: 'common' })}
-              </Link>
-              <Link
-                href="/sign-up-login?mode=signup"
-                className={isHomePage ? 'inline-flex justify-center rounded-xl bg-cyan-500 py-2.5 text-sm font-700 text-white transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2.5 justify-center'}
-              >
-                {t('header.getStartedFree', { ns: 'public' })}
-              </Link>
             </div>
-          </div>
+          </>
         )}
       </div>
     </header>

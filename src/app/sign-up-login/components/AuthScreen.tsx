@@ -143,9 +143,9 @@ export default function AuthScreen() {
       </div>
 
       {/* Right Form Panel */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-y-auto">
+      <div className="flex-1 flex flex-col items-center justify-start overflow-y-auto p-4 sm:p-6 lg:justify-center lg:p-10">
         {/* Mobile logo */}
-        <div className="w-full max-w-[400px] flex justify-start items-center mb-6 lg:hidden">
+        <div className="w-full max-w-[400px] flex justify-start items-center mb-4 lg:hidden">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/70 bg-card">
               <AppLogo
@@ -165,7 +165,7 @@ export default function AuthScreen() {
           </div>
         </div>
 
-        <div className="w-full max-w-[460px] rounded-[28px] border border-border bg-card/95 p-5 sm:p-7 shadow-card-lg">
+        <div className="w-full max-w-[460px] rounded-[24px] border border-border bg-card/95 p-4 shadow-card-lg sm:rounded-[28px] sm:p-6">
           <Suspense fallback={<div className="w-full h-64 flex items-center justify-center"><div className="w-8 h-8 rounded-full border-4 border-accent border-t-transparent animate-spin" /></div>}>
             {authFeedback ? (
               <div

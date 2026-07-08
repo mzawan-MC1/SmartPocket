@@ -11,8 +11,8 @@
     "help": "Aide et support",
     "notifications": "Notifications",
     "admin": "Portail Admin",
-    "signIn": "Connexion",
-    "signUp": "Commencer",
+    "signIn": "Se connecter",
+    "signUp": "Créer un compte",
     "signOut": "Déconnexion"
   },
   "actions": {
