@@ -1,6 +1,7 @@
- 'use client';
+'use client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { RotateCcw } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
@@ -28,6 +29,9 @@ import { getIntlLocale } from '@/lib/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
+import { clearClientReferenceDataCache } from '@/lib/reference-data/client';
+import { getPostAuthDestination } from '@/lib/auth/redirects';
+import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 
 
 const AIUsageCardLazy = dynamic(() => import('@/app/components/AIUsageCard'), {
@@ -110,6 +114,38 @@ const DASHBOARD_MONTH_STORAGE_KEY = 'smartpocket.dashboard.month';
 const DASHBOARD_PAY_PERIOD_STORAGE_KEY = 'smartpocket.dashboard.pay-period-start';
 const DASHBOARD_REVALIDATE_DEBOUNCE_MS = 1500;
 const DASHBOARD_SLOW_LOAD_MS = 5000;
+
+function buildDashboardSignInHref() {
+  return `/sign-up-login?next=${encodeURIComponent('/dashboard')}`;
+}
+
+function isAuthSessionError(error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error || '');
+  const normalizedMessage = errorMessage.toLowerCase();
+  const errorStatus =
+    typeof error === 'object' && error !== null && 'status' in error
+      ? Number((error as { status?: unknown }).status)
+      : null;
+  const errorCode =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code || '').toLowerCase()
+      : '';
+  const errorName =
+    typeof error === 'object' && error !== null && 'name' in error
+      ? String((error as { name?: unknown }).name || '').toLowerCase()
+      : '';
+
+  return errorStatus === 401
+    || errorStatus === 403
+    || errorCode === 'pgrst301'
+    || errorName === 'authapierror'
+    || normalizedMessage.includes('jwt')
+    || normalizedMessage.includes('auth session missing')
+    || normalizedMessage.includes('invalid refresh token')
+    || normalizedMessage.includes('refresh token not found')
+    || normalizedMessage.includes('refresh_token_not_found')
+    || normalizedMessage.includes('session not found');
+}
 
 // #region debug-point B:dashboard-bootstrap-report
 function reportDashboardFirstLoadEvent(payload: Record<string, unknown>) {
@@ -226,11 +262,14 @@ export default function DashboardPage() {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const { loading: authLoading, user } = useAuth();
+  const router = useRouter();
+  const supabase = React.useMemo(() => createSupabaseClient(), []);
   const dashboardLocale = getIntlLocale(language);
   const [periodContext, setPeriodContext] = useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = useState(true);
   const [periodLoadError, setPeriodLoadError] = useState<string | null>(null);
   const [showSlowLoadState, setShowSlowLoadState] = useState(false);
+  const [routeRecoveryInProgress, setRouteRecoveryInProgress] = useState(false);
   const [viewMode, setViewMode] = useState<DashboardPeriodPreference | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('');
   const [selectedPayPeriodStart, setSelectedPayPeriodStart] = useState('');
@@ -242,6 +281,55 @@ export default function DashboardPage() {
   const secondLowerGrid = useDeferredMount(true, '900px 0px');
   const latestPeriodRequestRef = useRef(0);
   const lastLifecycleRevalidationRef = useRef(0);
+  const latestPeriodContextRef = useRef<UserFinancialPeriodContext | null>(null);
+  const latestViewModeRef = useRef<DashboardPeriodPreference | null>(null);
+
+  useEffect(() => {
+    latestPeriodContextRef.current = periodContext;
+  }, [periodContext]);
+
+  useEffect(() => {
+    latestViewModeRef.current = viewMode;
+  }, [viewMode]);
+
+  const clearDashboardBootstrapCaches = useCallback(() => {
+    clearFinancialPeriodProfileCache();
+    clearResolvedUserDefaultCurrencyCache();
+    clearClientReferenceDataCache();
+  }, []);
+
+  const resetDashboardBootstrapState = useCallback(() => {
+    latestPeriodRequestRef.current += 1;
+    setPeriodContext(null);
+    setViewMode(null);
+    setSelectedMonth('');
+    setSelectedPayPeriodStart('');
+    setPeriodLoadError(null);
+    setShowSlowLoadState(false);
+    setPeriodLoading(true);
+  }, []);
+
+  const redirectToRecoveredDestination = useCallback((destination: string) => {
+    setRouteRecoveryInProgress(true);
+    router.replace(destination, { scroll: destination !== '/dashboard' });
+  }, [router]);
+
+  const resolveDashboardAccess = useCallback(async () => {
+    if (!user?.id) {
+      return buildDashboardSignInHref();
+    }
+
+    const destinationResult = await getPostAuthDestination(supabase, user.id, null);
+    if (destinationResult.profileError && isAuthSessionError(destinationResult.profileError)) {
+      return buildDashboardSignInHref();
+    }
+
+    if (destinationResult.destination !== '/dashboard') {
+      return destinationResult.destination;
+    }
+
+    return null;
+  }, [supabase, user?.id]);
 
   const loadPeriodContext = useCallback(async (options?: { forceRefresh?: boolean; surfaceToast?: boolean }) => {
     const requestId = latestPeriodRequestRef.current + 1;
@@ -271,8 +359,8 @@ export default function DashboardPage() {
           msg: '[DEBUG] dashboard period context load crossed slow-load threshold',
           data: {
             requestId,
-            hasPeriodContext: Boolean(periodContext),
-            hasViewMode: Boolean(viewMode),
+            hasPeriodContext: Boolean(latestPeriodContextRef.current),
+            hasViewMode: Boolean(latestViewModeRef.current),
           },
         });
         // #endregion
@@ -280,14 +368,11 @@ export default function DashboardPage() {
     }, DASHBOARD_SLOW_LOAD_MS);
 
     try {
-      if (options?.forceRefresh) {
-        clearFinancialPeriodProfileCache();
-        clearResolvedUserDefaultCurrencyCache();
-      }
       const nextContext = await loadUserFinancialPeriodContext({
         userId: user?.id ?? null,
       });
       if (latestPeriodRequestRef.current !== requestId) return;
+      setRouteRecoveryInProgress(false);
       setPeriodContext(nextContext);
       // #region debug-point B:dashboard-load-success
       reportDashboardFirstLoadEvent({
@@ -303,6 +388,12 @@ export default function DashboardPage() {
     } catch (error) {
       if (latestPeriodRequestRef.current !== requestId) return;
       console.error(error);
+      if (isAuthSessionError(error)) {
+        clearDashboardBootstrapCaches();
+        void supabase.auth.signOut().catch(() => {});
+        redirectToRecoveredDestination(buildDashboardSignInHref());
+        return;
+      }
       setPeriodLoadError(t('shared.dashboardLoadFailedDescription'));
       // #region debug-point B:dashboard-load-error
       reportDashboardFirstLoadEvent({
@@ -333,7 +424,43 @@ export default function DashboardPage() {
         // #endregion
       }
     }
-  }, [periodContext, t, user?.id, viewMode]);
+  }, [clearDashboardBootstrapCaches, redirectToRecoveredDestination, supabase.auth, t, user?.id]);
+
+  const runDashboardBootstrap = useCallback(async (options?: {
+    forceRefresh?: boolean;
+    surfaceToast?: boolean;
+    resetState?: boolean;
+  }) => {
+    if (authLoading) return;
+
+    if (options?.forceRefresh) {
+      clearDashboardBootstrapCaches();
+    }
+    if (options?.resetState) {
+      resetDashboardBootstrapState();
+    }
+
+    const redirectDestination = await resolveDashboardAccess();
+    if (redirectDestination) {
+      clearDashboardBootstrapCaches();
+      resetDashboardBootstrapState();
+      redirectToRecoveredDestination(redirectDestination);
+      return;
+    }
+
+    setRouteRecoveryInProgress(false);
+    await loadPeriodContext({
+      forceRefresh: options?.forceRefresh,
+      surfaceToast: options?.surfaceToast,
+    });
+  }, [
+    authLoading,
+    clearDashboardBootstrapCaches,
+    loadPeriodContext,
+    redirectToRecoveredDestination,
+    resetDashboardBootstrapState,
+    resolveDashboardAccess,
+  ]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -347,8 +474,8 @@ export default function DashboardPage() {
       },
     });
     // #endregion
-    void loadPeriodContext({ forceRefresh: true });
-  }, [authLoading, user?.id, loadPeriodContext]);
+    void runDashboardBootstrap({ forceRefresh: true, resetState: true });
+  }, [authLoading, runDashboardBootstrap, user?.id]);
 
   useEffect(() => {
     if (authLoading || !user?.id) return;
@@ -359,7 +486,7 @@ export default function DashboardPage() {
   }, [authLoading, user?.id]);
 
   useSmartPocketDataChanged(['profile'], 'DashboardPagePeriodContext', async () => {
-    await loadPeriodContext({ forceRefresh: true });
+    await runDashboardBootstrap({ forceRefresh: true });
   });
 
   const revalidateFromLifecycle = useCallback((forceRefresh = false) => {
@@ -375,8 +502,8 @@ export default function DashboardPage() {
       return;
     }
     lastLifecycleRevalidationRef.current = now;
-    void loadPeriodContext({ forceRefresh: true });
-  }, [authLoading, loadPeriodContext, periodContext, periodLoadError, periodLoading, showSlowLoadState, viewMode]);
+    void runDashboardBootstrap({ forceRefresh: true });
+  }, [authLoading, periodContext, periodLoadError, periodLoading, runDashboardBootstrap, showSlowLoadState, viewMode]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -505,9 +632,17 @@ export default function DashboardPage() {
     setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
   }, [dashboardLocale, periodContext]);
 
+  const handleRetryDashboardBootstrap = useCallback(() => {
+    void runDashboardBootstrap({
+      forceRefresh: true,
+      surfaceToast: true,
+      resetState: true,
+    });
+  }, [runDashboardBootstrap]);
+
   const showDesktopRightRail = isXlUp === true;
   const coreReady = Boolean(periodContext && activePeriod && viewMode);
-  const showLoadFallback = !authLoading && !coreReady && (!periodLoading || showSlowLoadState);
+  const showLoadFallback = !routeRecoveryInProgress && !authLoading && !coreReady && (!periodLoading || showSlowLoadState);
   const readyPeriodContext = coreReady ? periodContext : null;
   const readyActivePeriod = coreReady ? activePeriod : null;
   const readyViewMode = coreReady ? viewMode : null;
@@ -553,10 +688,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   className="btn-secondary h-10 px-4 text-sm"
-                  onClick={() => {
-                    setShowSlowLoadState(false);
-                    void loadPeriodContext({ forceRefresh: true, surfaceToast: true });
-                  }}
+                  onClick={handleRetryDashboardBootstrap}
                 >
                   <RotateCcw size={15} />
                   {t('shared.tryAgain')}
