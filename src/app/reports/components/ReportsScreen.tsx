@@ -1950,8 +1950,8 @@ export default function ReportsScreen() {
                     </div>
                   ) : null}
 
-                  <div className="mt-3 grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-                    <button onClick={handlePreviewReport} disabled={loading || fullReportLoading} className="btn-primary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60 min-[390px]:col-span-2 sm:col-span-1">
+                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <button onClick={handlePreviewReport} disabled={loading || fullReportLoading} className="btn-primary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60 md:col-span-2 lg:col-span-1">
                       {(loading || fullReportLoading) ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
                       {t('reports.controls.preview', { defaultValue: 'Preview report' })}
                     </button>
@@ -1963,7 +1963,7 @@ export default function ReportsScreen() {
                       {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
                       {t('reports.controls.exportCsvPackage', { defaultValue: 'Export CSV package' })}
                     </button>
-                    <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm disabled:opacity-60 min-[390px]:col-span-2">
+                    <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm disabled:opacity-60 md:col-span-2">
                       {t('reports.controls.reset', { defaultValue: 'Reset' })}
                     </button>
                   </div>

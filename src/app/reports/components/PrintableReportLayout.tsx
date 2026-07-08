@@ -21,7 +21,7 @@ export default function PrintableReportLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="report-document mx-auto max-w-[1120px] space-y-6">
+    <div className="report-document mx-auto max-w-[1120px] space-y-6 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0 print:pb-0">
       <PrintableReportHeader
         title={title}
         subtitle={subtitle}

@@ -141,6 +141,26 @@ function SectionCard({
 }
 
 function MetricGrid({ items }: { items: FullReportMetricCard[] }) {
+  const renderMetricValue = (value: string) => {
+    const parts = value.split(' | ').map((part) => part.trim()).filter(Boolean);
+    if (parts.length <= 1) {
+      return <p className="mt-2 text-lg font-800 text-inherit break-words">{value}</p>;
+    }
+
+    return (
+      <>
+        <p className="mt-2 hidden text-lg font-800 text-inherit sm:block break-words">{value}</p>
+        <div className="mt-2 space-y-2 sm:hidden">
+          {parts.map((part) => (
+            <div key={`${value}-${part}`} className="rounded-xl border border-border/70 bg-card px-3 py-2 text-sm font-700 text-foreground">
+              {part}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  };
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => (
@@ -148,8 +168,8 @@ function MetricGrid({ items }: { items: FullReportMetricCard[] }) {
           <p className="text-[11px] font-700 uppercase tracking-wider text-muted-foreground">
             {item.label}
           </p>
-          <p
-            className={`mt-2 text-lg font-800 ${
+          <div
+            className={`${
               item.tone === 'positive'
                 ? 'text-positive'
                 : item.tone === 'negative'
@@ -157,8 +177,8 @@ function MetricGrid({ items }: { items: FullReportMetricCard[] }) {
                   : 'text-foreground'
             }`}
           >
-            {item.value}
-          </p>
+            {renderMetricValue(item.value)}
+          </div>
           {item.helper ? (
             <p className="mt-1 text-xs text-muted-foreground">{item.helper}</p>
           ) : null}
@@ -175,6 +195,24 @@ function SummaryTable({
   table: FullReportSummaryTable;
   compact?: boolean;
 }) {
+  const renderCellValue = (value: string) => {
+    const safeValue = value || '-';
+    const parts = safeValue.split(' | ').map((part) => part.trim()).filter(Boolean);
+    if (parts.length <= 1) {
+      return <span className="break-words whitespace-normal">{safeValue}</span>;
+    }
+
+    return (
+      <div className="space-y-1.5">
+        {parts.map((part) => (
+          <div key={`${safeValue}-${part}`} className="rounded-lg border border-border/70 bg-card px-2.5 py-1.5">
+            <span className="break-words whitespace-normal">{part}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   if (table.rows.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-muted/15 p-4 text-sm text-muted-foreground">
@@ -184,33 +222,56 @@ function SummaryTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-border report-print-section">
-      <table className={`report-print-table min-w-full ${compact ? 'text-xs' : 'text-sm'}`}>
-        <thead className="bg-muted/30">
-          <tr className="border-b border-border">
-            {table.headers.map((header) => (
-              <th
-                key={header}
-                className="px-3 py-2 text-left text-[11px] font-700 uppercase tracking-wider text-muted-foreground"
-              >
-                {header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row, index) => (
-            <tr key={`${row.join('-')}-${index}`} className="border-b border-border/80 align-top last:border-b-0">
+    <>
+      <div className="space-y-3 md:hidden">
+        {table.rows.map((row, index) => (
+          <div key={`${row.join('-')}-${index}`} className="rounded-[24px] border border-border bg-card p-3.5 shadow-card-sm">
+            <div className="space-y-3">
               {row.map((cell, cellIndex) => (
-                <td key={`${cell}-${cellIndex}`} className="px-3 py-2.5 text-foreground">
-                  {cell || '-'}
-                </td>
+                <div
+                  key={`${cell}-${cellIndex}`}
+                  className={`${cellIndex === 0 ? '' : 'border-t border-border/60 pt-3'} min-w-0`}
+                >
+                  <p className="text-[10px] font-700 uppercase tracking-wider text-muted-foreground">
+                    {table.headers[cellIndex] || '—'}
+                  </p>
+                  <div className={`mt-1 text-foreground ${compact ? 'text-xs' : 'text-sm'}`}>
+                    {renderCellValue(cell)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto rounded-2xl border border-border report-print-section md:block">
+        <table className={`report-print-table min-w-full ${compact ? 'text-xs' : 'text-sm'}`}>
+          <thead className="bg-muted/30">
+            <tr className="border-b border-border">
+              {table.headers.map((header) => (
+                <th
+                  key={header}
+                  className="px-3 py-2 text-left text-[11px] font-700 uppercase tracking-wider text-muted-foreground"
+                >
+                  {header}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {table.rows.map((row, index) => (
+              <tr key={`${row.join('-')}-${index}`} className="border-b border-border/80 align-top last:border-b-0">
+                {row.map((cell, cellIndex) => (
+                  <td key={`${cell}-${cellIndex}`} className="px-3 py-2.5 text-foreground whitespace-normal break-words">
+                    {cell || '-'}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
