@@ -39,6 +39,7 @@ function getAccountColorClass(type: string, balance: number) {
 export default function AccountBalances() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -145,7 +146,7 @@ export default function AccountBalances() {
                       includeDefaultLabel: true,
                     })}
                   </p>
-                  <p className="text-[11px] text-muted-foreground capitalize">{getAccountTypeLabel(acct.account_type)}</p>
+                  <p className={`text-muted-foreground capitalize ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>{getAccountTypeLabel(acct.account_type)}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <FormattedCurrencyAmount
@@ -155,7 +156,7 @@ export default function AccountBalances() {
                     className={`text-sm font-700 font-tabular ${acct.current_balance < 0 ? 'text-negative' : 'text-foreground'}`}
                     showCode
                   />
-                  <p className="text-[11px] text-muted-foreground">{lastActivity}</p>
+                  <p className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>{lastActivity}</p>
                 </div>
               </div>
             );
@@ -164,7 +165,7 @@ export default function AccountBalances() {
           <div className="mt-2 flex items-start justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3.5">
             <div>
               <p className="text-sm font-700 text-foreground">{t('dashboardAccounts.totalBalance', { ns: 'portal' })}</p>
-              <p className="text-xs text-muted-foreground">{t('dashboardMetrics.acrossActiveAccounts', { ns: 'portal' })}</p>
+              <p className={`text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-xs'}`}>{t('dashboardMetrics.acrossActiveAccounts', { ns: 'portal' })}</p>
             </div>
             <div className="text-right">
               {totalByCurrency.map(([currency, amount]) => (

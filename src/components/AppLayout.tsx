@@ -52,7 +52,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
                   onClick={() => setMobileSidebarOpen(false)}
                   aria-label={t('actions.close')}
                 />
-                <div className={`absolute top-0 ${isRTL ? 'right-0' : 'left-0'} h-full`}>
+                <div className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} min-h-0 h-[100dvh] max-h-[100dvh]`}>
                   <Sidebar
                     collapsed={false}
                     onToggle={() => setMobileSidebarOpen(false)}

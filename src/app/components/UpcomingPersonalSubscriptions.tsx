@@ -17,6 +17,7 @@ import {
 } from '@/lib/personal-subscriptions-shared';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import PersonalSubscriptionWarningBadge from '@/app/personal-subscriptions/components/PersonalSubscriptionWarningBadge';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function addDays(dateIso: string, days: number) {
   const date = new Date(`${dateIso}T12:00:00Z`);
@@ -32,6 +33,8 @@ export default function UpcomingPersonalSubscriptions({
   compact?: boolean;
 }) {
   const { t } = useTranslation(['portal', 'common']);
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [subscriptions, setSubscriptions] = useState<PersonalSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const todayIso = useMemo(
@@ -132,14 +135,14 @@ export default function UpcomingPersonalSubscriptions({
                     />
                   ) : null}
                 </div>
-                <p className={`mt-1 text-muted-foreground ${compact ? 'text-[11px]' : 'text-xs'}`}>
+                <p className={`mt-1 text-muted-foreground ${compact ? (isArabic ? 'text-[12px] leading-5' : 'text-[11px]') : (isArabic ? 'text-[12.5px] leading-5' : 'text-xs')}`}>
                   {subscription.next_billing_date || notAvailableLabel}
                 </p>
               </div>
               <FormattedCurrencyAmount
                 amount={subscription.amount}
                 currencyCode={subscription.currency_code}
-                className={`${compact ? 'text-[13px]' : 'text-sm'} font-700 text-foreground`}
+                className={`${compact ? 'text-[13px]' : isArabic ? 'text-[15px]' : 'text-sm'} font-700 text-foreground`}
                 showCode
               />
             </div>

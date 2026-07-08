@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Tabs from '@/components/ui/Tabs';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import { ChartSkeleton } from '@/components/ui/LoadingSkeleton';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const IncomeExpenseChart = dynamic(() => import('./charts/IncomeExpenseChart'), {
   ssr: false,
@@ -56,6 +57,8 @@ export default function DashboardCharts({
   hasConfigurationWarning?: boolean;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [activeTab, setActiveTab] = useState<'trend' | 'category'>('trend');
   const descriptionKey = activeTab === 'category'
     ? (activePeriod.mode === 'month'
@@ -77,7 +80,7 @@ export default function DashboardCharts({
         <div className="grid grid-cols-1 gap-2.5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start lg:gap-4">
           <div className="min-w-0">
             <h2 className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('dashboardCharts.title')}</h2>
-            <p className="mt-1 text-[13px] leading-5 text-muted-foreground">{description}</p>
+            <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[13.5px] leading-6' : 'text-[13px] leading-5'}`}>{description}</p>
           </div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(11.5rem,auto)] sm:items-center lg:w-[27rem]">
             <Tabs
@@ -89,7 +92,7 @@ export default function DashboardCharts({
               onChange={setActiveTab}
               className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-[2.1rem] [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-2.5 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-nowrap"
             />
-            <div className="inline-flex min-w-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 text-[11px] font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem]">
+            <div className={`inline-flex min-w-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem] ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
               {activePeriod.label}
             </div>
           </div>

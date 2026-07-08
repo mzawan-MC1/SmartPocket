@@ -58,6 +58,7 @@ export default function DashboardHeader({
   const { t } = useTranslation('portal');
   const { user, profile } = useAuth();
   const { dir, language } = useLanguage();
+  const isArabic = language === 'ar';
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -138,11 +139,19 @@ export default function DashboardHeader({
     <section className="space-y-2">
       <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[minmax(18rem,1.1fr)_minmax(22rem,0.96fr)_14.75rem] xl:items-start xl:gap-3">
         <div className="min-w-0 space-y-1.5 rounded-[20px] border border-transparent py-0.5">
-          <h1 className="flex items-center gap-x-1 gap-y-0 text-[1.04rem] font-800 tracking-[-0.03em] text-foreground max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem] lg:text-[1.5rem] xl:flex-nowrap xl:text-[1.6rem]">
+          <h1 className={`flex items-center gap-x-1 gap-y-0 font-800 tracking-[-0.03em] text-foreground lg:text-[1.5rem] xl:flex-nowrap xl:text-[1.6rem] ${
+            isArabic
+              ? 'text-[1.08rem] leading-[1.3] max-[480px]:text-[1.06rem] max-[360px]:flex-wrap max-[360px]:text-[1rem]'
+              : 'text-[1.04rem] max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem]'
+          }`}>
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
             <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
           </h1>
-          <p className="max-w-[34rem] text-[11px] leading-4 text-muted-foreground md:text-[12px] md:leading-[1.05rem] lg:text-[12.5px]">
+          <p className={`max-w-[34rem] text-muted-foreground ${
+            isArabic
+              ? 'text-[12px] leading-5 md:text-[12.5px] md:leading-5 lg:text-[13px]'
+              : 'text-[11px] leading-4 md:text-[12px] md:leading-[1.05rem] lg:text-[12.5px]'
+          }`}>
             {description}
           </p>
         </div>
@@ -170,7 +179,11 @@ export default function DashboardHeader({
                   }`}>
                     <Icon size={13} />
                   </span>
-                  <span className="line-clamp-2 min-h-[1.4rem] text-center text-[10px] font-700 leading-3.5 max-[480px]:text-[9.5px] max-[480px]:leading-3">
+                  <span className={`line-clamp-2 min-h-[1.4rem] text-center font-700 ${
+                    isArabic
+                      ? 'text-[10.5px] leading-4 max-[480px]:text-[10px] max-[480px]:leading-3.5'
+                      : 'text-[10px] leading-3.5 max-[480px]:text-[9.5px] max-[480px]:leading-3'
+                  }`}>
                     {quickActionShortLabel(action.id)}
                   </span>
                 </button>
@@ -195,7 +208,7 @@ export default function DashboardHeader({
                 }`}>
                   <Ellipsis size={13} />
                 </span>
-                <span className="text-[10px] font-700 leading-3.5 max-[480px]:text-[9.5px]">
+                <span className={isArabic ? 'text-[10.5px] font-700 leading-4 max-[480px]:text-[10px]' : 'text-[10px] font-700 leading-3.5 max-[480px]:text-[9.5px]'}>
                   {t('dashboardHeader.more')}
                 </span>
                 <ChevronDown size={12} className={`flex-shrink-0 text-muted-foreground/90 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
@@ -265,7 +278,9 @@ export default function DashboardHeader({
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                    className="flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 text-[11px] font-700 text-foreground transition-colors hover:bg-card"
+                    className={`flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 font-700 text-foreground transition-colors hover:bg-card ${
+                      isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'
+                    }`}
                       aria-label={t('dashboardHeader.chooseMonth')}
                     >
                       <Calendar size={14} className="text-accent" />
@@ -282,7 +297,9 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className="flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 text-[11px] font-700 text-foreground">
+                  <div className={`flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 font-700 text-foreground ${
+                    isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'
+                  }`}>
                     <Calendar size={14} className="text-accent" />
                     <span className="truncate whitespace-nowrap">{activePeriod.label}</span>
                   </div>

@@ -382,6 +382,22 @@
     "categoryDescriptionThrough": "الفئات حتى {{period}}",
     "categoryDescriptionDuring": "الفئات خلال {{period}}",
     "warning": "لم يتم إعداد وضع فترة الدفع، لذا تعرض الرسوم البيانية الشهر الحالي بدلًا من ذلك.",
+    "trend": {
+      "missingHistoricalRates": "بعض أسعار الصرف التاريخية غير متاحة لهذه الفترة، لذلك لا يمكن عرض الرسم البياني بدقة بعد.",
+      "periodCalculationFailed": "تعذر احتساب فترة الرسم البياني.",
+      "emptyTitle": "لا توجد بيانات معاملات في هذه الفترة",
+      "emptyDescriptionMonth": "أضف معاملات الدخل والمصروفات لعرض اتجاهات الشهر.",
+      "emptyDescriptionPeriod": "أضف معاملات الدخل والمصروفات لعرض اتجاهات فترة الدفع."
+    },
+    "categorySummary": {
+      "noExpenseDataMonth": "لا توجد معاملات مصروفات في هذا الشهر",
+      "noExpenseDataPeriod": "لا توجد معاملات مصروفات في فترة الدفع هذه",
+      "addExpensesToSeeCategories": "أضف معاملات المصروفات لعرض توزيع الفئات.",
+      "missingHistoricalRates": "بعض أسعار الصرف التاريخية غير متاحة لهذه الفترة.",
+      "periodLoadFailed": "تعذر تحميل إنفاق الفئات لهذه الفترة.",
+      "totalSpending": "إجمالي الإنفاق",
+      "ofTotal": "{{percent}}% من الإجمالي"
+    },
     "tabs": {
       "trend": "الدخل مقابل المصروفات",
       "category": "حسب الفئة"
@@ -519,7 +535,19 @@
     "removed": "تمت إزالة العنصر المتكرر",
     "updateFailed": "فشل تحديث العنصر المتكرر.",
     "markPaidFailed": "فشل تحديد العنصر المتكرر كمدفوع.",
-    "deleteFailed": "فشل إزالة العنصر المتكرر."
+    "deleteFailed": "فشل إزالة العنصر المتكرر.",
+    "widgetDescriptionMonth": "النشاط المجدول المستحق في {{period}}",
+    "widgetDescriptionPeriod": "النشاط المجدول خلال {{period}}",
+    "noUpcomingTitle": "لا يوجد نشاط متكرر قادم",
+    "noUpcomingDescriptionMonth": "لا توجد عناصر متكررة مستحقة في {{period}}.",
+    "noUpcomingDescriptionPeriod": "لا توجد عناصر متكررة مستحقة خلال {{period}}.",
+    "tomorrow": "غدًا",
+    "daysLeft": "متبقي {{count}} أيام",
+    "scheduled": "مجدول",
+    "scheduleIncomplete": "الجدول غير مكتمل",
+    "markItemAsPaid": "تحديد {{name}} كمدفوع",
+    "totalScheduled": "إجمالي المجدول",
+    "totalDueThisPeriod": "إجمالي المستحق هذه الفترة"
   },
   "accounts": {
     "title": "الحسابات المالية",

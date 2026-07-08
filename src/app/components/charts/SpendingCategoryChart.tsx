@@ -21,6 +21,7 @@ import {
 } from '@/lib/finance';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const COLORS = ['#0f3460', '#0ea5a0', '#6ee7e7', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#94a3b8', '#f59e0b', '#10b981'];
 
@@ -50,9 +51,8 @@ function CustomTooltip({ active, payload, currencyCode, t }: any) {
         className="mt-0.5 text-sm font-700 font-tabular text-foreground"
       />
       <p className="text-xs text-muted-foreground">
-        {t('reports.chartLabels.ofTotal', {
+        {t('dashboardCharts.categorySummary.ofTotal', {
           percent: ((item.value / total) * 100).toFixed(1),
-          defaultValue: '{{percent}}% of total',
         })}
       </p>
     </div>
@@ -65,6 +65,8 @@ export default function SpendingCategoryChart({
   activePeriod: DashboardActivePeriod;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [activeId, setActiveId] = useState<string | null>(null);
   const [data, setData] = useState<CategorySpend[]>([]);
   const [total, setTotal] = useState(0);
@@ -113,7 +115,7 @@ export default function SpendingCategoryChart({
           ? translateSystemCategoryName(category.name, (key, options) =>
               t(key, { ...(options || {}), ns: 'common' })
             )
-          : t('reports.chartLabels.uncategorized', { defaultValue: 'Uncategorized' });
+          : t('recentTransactions.uncategorized');
         const color = category?.color ?? null;
         const conversion = convertHistoricalAmountWithSnapshots({
           amount: Number(transaction.amount || 0),
@@ -148,15 +150,11 @@ export default function SpendingCategoryChart({
       setTotal(grandTotal);
       setData(sorted.map((item) => ({ ...item, total: grandTotal } as CategorySpend)));
       if (hadMissingRates) {
-        setErrorMessage(t('reports.chartLabels.missingHistoricalRates', {
-          defaultValue: 'Some historical exchange rates are unavailable for this period.',
-        }));
+        setErrorMessage(t('dashboardCharts.categorySummary.missingHistoricalRates'));
       }
     } catch (error) {
       console.error('SpendingCategoryChart error:', error);
-      setErrorMessage(t('reports.chartLabels.chartPeriodFailed', {
-        defaultValue: 'Unable to load category spending for this period.',
-      }));
+      setErrorMessage(t('dashboardCharts.categorySummary.periodLoadFailed'));
     } finally {
       setLoading(false);
     }
@@ -177,17 +175,11 @@ export default function SpendingCategoryChart({
   if (!data.length) {
     return (
       <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-4 text-center">
-        <p className="text-sm text-muted-foreground">
-          {errorMessage || t(activePeriod.mode === 'month' ? 'reports.chartLabels.noExpenseDataMonth' : 'reports.chartLabels.noExpenseDataPayPeriod', {
-            defaultValue: activePeriod.mode === 'month'
-              ? 'No expense transactions in this month'
-              : 'No expense transactions in this pay period',
-          })}
+        <p className={`text-muted-foreground ${isArabic ? 'text-[14px] leading-6' : 'text-sm'}`}>
+          {errorMessage || t(activePeriod.mode === 'month' ? 'dashboardCharts.categorySummary.noExpenseDataMonth' : 'dashboardCharts.categorySummary.noExpenseDataPeriod')}
         </p>
-        <p className="text-[12.5px] text-muted-foreground">
-          {t('reports.chartLabels.addExpensesToSeeCategories', {
-            defaultValue: 'Add expense transactions to see category breakdown.',
-          })}
+        <p className={`text-muted-foreground ${isArabic ? 'text-[13px] leading-6' : 'text-[12.5px]'}`}>
+          {t('dashboardCharts.categorySummary.addExpensesToSeeCategories')}
         </p>
       </div>
     );
@@ -226,7 +218,7 @@ export default function SpendingCategoryChart({
           </div>
           <div className="mt-2 text-center">
             <p className="text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
-              {t('dashboardCharts.categorySummary.totalSpending', { defaultValue: 'Total spending' })}
+              {t('dashboardCharts.categorySummary.totalSpending')}
             </p>
             <FormattedCurrencyAmount
               amount={total}
@@ -263,10 +255,9 @@ export default function SpendingCategoryChart({
                     size="sm"
                     className="text-sm font-700 font-tabular text-foreground"
                   />
-                  <span className="text-[12px] text-muted-foreground">
-                    {t('reports.chartLabels.ofTotal', {
+                  <span className={`text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-[12px]'}`}>
+                    {t('dashboardCharts.categorySummary.ofTotal', {
                       percent: ((item.value / total) * 100).toFixed(1),
-                      defaultValue: '{{percent}}% of total',
                     })}
                   </span>
                 </div>

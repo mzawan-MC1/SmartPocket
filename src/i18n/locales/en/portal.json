@@ -875,6 +875,22 @@
     "categoryDescriptionThrough": "Categories through {{period}}",
     "categoryDescriptionDuring": "Categories during {{period}}",
     "warning": "Pay-period mode is not configured, so charts are showing the current month instead.",
+    "trend": {
+      "missingHistoricalRates": "Some historical exchange rates are unavailable for this period, so the chart cannot be shown accurately yet.",
+      "periodCalculationFailed": "The chart period could not be calculated.",
+      "emptyTitle": "No transaction data in this period",
+      "emptyDescriptionMonth": "Add income and expense transactions to see monthly trends.",
+      "emptyDescriptionPeriod": "Add income and expense transactions to see pay-period trends."
+    },
+    "categorySummary": {
+      "noExpenseDataMonth": "No expense transactions in this month",
+      "noExpenseDataPeriod": "No expense transactions in this pay period",
+      "addExpensesToSeeCategories": "Add expense transactions to see category breakdown.",
+      "missingHistoricalRates": "Some historical exchange rates are unavailable for this period.",
+      "periodLoadFailed": "Unable to load category spending for this period.",
+      "totalSpending": "Total spending",
+      "ofTotal": "{{percent}}% of total"
+    },
     "tabs": {
       "trend": "Income vs Expenses",
       "category": "By Category"

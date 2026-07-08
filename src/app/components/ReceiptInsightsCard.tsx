@@ -39,6 +39,7 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const [loading, setLoading] = useState(true);
   const [insights, setInsights] = useState<ReceiptDashboardInsight[]>([]);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
@@ -148,13 +149,13 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
               <ShoppingBag size={18} />
             </div>
             <div>
-              <h3 className="text-base font-800 text-foreground">{t('receiptInsights.title', { defaultValue: 'Receipt Insights' })}</h3>
-              <p className="text-xs text-muted-foreground">{t('receiptInsights.description', { defaultValue: 'A compact view of repeated items, price changes, and upcoming purchases.' })}</p>
+              <h3 className={`font-800 text-foreground ${isArabic ? 'text-[1.05rem] leading-6' : 'text-base'}`}>{t('receiptInsights.title')}</h3>
+              <p className={`text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-xs'}`}>{t('receiptInsights.description')}</p>
             </div>
           </div>
         </div>
         <Link href="/reports/item-insights" className="text-sm font-700 text-accent transition-colors hover:text-accent/80">
-          {t('receiptInsights.link', { defaultValue: 'Item Insights' })}
+          {t('receiptInsights.link')}
         </Link>
       </div>
 
@@ -163,8 +164,8 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
           <Loader2 size={18} className="animate-spin text-accent" />
         </div>
       ) : visibleInsights.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-sm text-muted-foreground">
-          {t('receiptInsights.empty', { defaultValue: 'No receipt insights are available for the selected period.' })}
+        <div className={`rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-muted-foreground ${isArabic ? 'text-[13px] leading-6' : 'text-sm'}`}>
+          {t('receiptInsights.empty')}
         </div>
       ) : (
         <div className="space-y-3">
@@ -177,8 +178,8 @@ export default function ReceiptInsightsCard({ activePeriod }: { activePeriod: Da
                     <Icon size={16} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-700 text-foreground">{getInsightTitle(insight)}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{getInsightBody(insight)}</p>
+                    <p className={`font-700 text-foreground ${isArabic ? 'text-[14.5px] leading-6' : 'text-sm'}`}>{getInsightTitle(insight)}</p>
+                    <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[13px] leading-6' : 'text-sm'}`}>{getInsightBody(insight)}</p>
                   </div>
                 </div>
               </div>

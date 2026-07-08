@@ -362,6 +362,22 @@
     "categoryDescriptionThrough": "Категории до {{period}}",
     "categoryDescriptionDuring": "Категории в течение {{period}}",
     "warning": "Режим периода выплат не настроен, поэтому графики показывают текущий месяц.",
+    "trend": {
+      "missingHistoricalRates": "Некоторые исторические курсы обмена недоступны для этого периода, поэтому график пока нельзя показать точно.",
+      "periodCalculationFailed": "Не удалось определить период для графика.",
+      "emptyTitle": "Нет данных по операциям за этот период",
+      "emptyDescriptionMonth": "Добавьте доходы и расходы, чтобы увидеть помесячную динамику.",
+      "emptyDescriptionPeriod": "Добавьте доходы и расходы, чтобы увидеть динамику за период выплат."
+    },
+    "categorySummary": {
+      "noExpenseDataMonth": "Нет расходных операций в этом месяце",
+      "noExpenseDataPeriod": "Нет расходных операций за этот период выплат",
+      "addExpensesToSeeCategories": "Добавьте расходные операции, чтобы увидеть разбивку по категориям.",
+      "missingHistoricalRates": "Некоторые исторические курсы обмена недоступны для этого периода.",
+      "periodLoadFailed": "Не удалось загрузить расходы по категориям за этот период.",
+      "totalSpending": "Общие расходы",
+      "ofTotal": "{{percent}}% от общего"
+    },
     "tabs": {
       "trend": "Доходы и расходы",
       "category": "По категориям"
@@ -499,7 +515,19 @@
     "removed": "Повторяющийся элемент удален",
     "updateFailed": "Не удалось обновить повторяющийся элемент.",
     "markPaidFailed": "Не удалось отметить повторяющийся элемент как оплаченный.",
-    "deleteFailed": "Не удалось удалить повторяющийся элемент."
+    "deleteFailed": "Не удалось удалить повторяющийся элемент.",
+    "widgetDescriptionMonth": "Запланированная активность со сроком в {{period}}",
+    "widgetDescriptionPeriod": "Запланированная активность в течение {{period}}",
+    "noUpcomingTitle": "Нет предстоящей повторяющейся активности",
+    "noUpcomingDescriptionMonth": "На {{period}} нет повторяющихся элементов со сроком.",
+    "noUpcomingDescriptionPeriod": "В {{period}} нет повторяющихся элементов со сроком.",
+    "tomorrow": "Завтра",
+    "daysLeft": "Осталось {{count}} дней",
+    "scheduled": "Запланировано",
+    "scheduleIncomplete": "График не завершен",
+    "markItemAsPaid": "Отметить {{name}} как оплаченный",
+    "totalScheduled": "Всего запланировано",
+    "totalDueThisPeriod": "Всего к оплате за этот период"
   },
   "accounts": {
     "title": "Финансовые счета",

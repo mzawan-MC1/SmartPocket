@@ -1,3 +1,5 @@
+import i18n from '@/i18n/config';
+
 export type FinancialAccountOwnershipType = 'personal' | 'shared' | 'business' | 'other';
 export type FinancialAccountSystemDefaultType = 'personal_cash' | 'personal_bank';
 export type FinancialBankAccountType = 'current' | 'savings' | 'credit_card' | 'wallet' | 'other';
@@ -348,9 +350,9 @@ export function getFinancialAccountDisplayLabel(
 
   if (options?.includeDefaultLabel) {
     if (isDefaultCashAccount(account)) {
-      parts.push('Default Cash');
+      parts.push(i18n.t('transfers.form.systemDefaultLabels.personalCash', { ns: 'portal', defaultValue: 'Default Cash' }));
     } else if (isDefaultBankAccount(account)) {
-      parts.push('Default Bank');
+      parts.push(i18n.t('transfers.form.systemDefaultLabels.personalBank', { ns: 'portal', defaultValue: 'Default Bank' }));
     }
   }
 

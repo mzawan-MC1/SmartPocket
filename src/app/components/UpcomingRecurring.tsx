@@ -40,6 +40,7 @@ export default function UpcomingRecurring({
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const [items, setItems] = useState<RecurringTransaction[]>([]);
   const [totalDueByCurrency, setTotalDueByCurrency] = useState<Array<{ currency: string; amount: number }>>([]);
   const [loading, setLoading] = useState(true);
@@ -153,7 +154,7 @@ export default function UpcomingRecurring({
                       {urgent && <AlertCircle size={12} className="text-warning flex-shrink-0" />}
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className={`mt-0.5 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
                       {formatRecurringFrequencyLabel(item.frequency, t)} · {dueDate} · {activePeriod.isCurrent
                         ? (days === 0
                           ? t('time.today', { ns: 'common' })
@@ -163,7 +164,7 @@ export default function UpcomingRecurring({
                         : t('recurring.scheduled', { ns: 'portal' })}
                     </p>
                     {!canMarkPaid ? (
-                      <p className="mt-1 text-[10px] font-600 text-warning">{t('recurring.incompleteSchedule', { ns: 'portal' })}</p>
+                      <p className={`mt-1 font-600 text-warning ${isArabic ? 'text-[11px] leading-5' : 'text-[10px]'}`}>{t('recurring.incompleteSchedule', { ns: 'portal' })}</p>
                     ) : null}
                   </div>
                   <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -177,7 +178,7 @@ export default function UpcomingRecurring({
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id}
-                        className="text-[10px] font-600 text-accent hover:text-teal-600 flex items-center gap-0.5 transition-colors disabled:opacity-50"
+                        className={`flex items-center gap-0.5 font-600 text-accent transition-colors hover:text-teal-600 disabled:opacity-50 ${isArabic ? 'text-[11px] leading-5' : 'text-[10px]'}`}
                         aria-label={t('recurring.markItemAsPaid', { ns: 'portal', name: item.description })}
                       >
                         {markingId === item.id
@@ -187,7 +188,7 @@ export default function UpcomingRecurring({
                         {t('recurring.markAsPaid', { ns: 'portal' })}
                       </button>
                     ) : (
-                      <span className="text-[10px] font-600 text-muted-foreground">
+                      <span className={`font-600 text-muted-foreground ${isArabic ? 'text-[11px] leading-5' : 'text-[10px]'}`}>
                         {canMarkPaid ? t('recurring.scheduled', { ns: 'portal' }) : t('recurring.scheduleIncomplete', { ns: 'portal' })}
                       </span>
                     )}
@@ -198,7 +199,7 @@ export default function UpcomingRecurring({
           </div>
           <div className="mt-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
             <div className="flex items-center justify-between gap-4 text-xs">
-              <span className="min-w-0 text-muted-foreground">
+              <span className={`min-w-0 text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : ''}`}>
                 {activePeriod.mode === 'month'
                   ? t('recurring.totalScheduled', { ns: 'portal' })
                   : t('recurring.totalDueThisPeriod', { ns: 'portal' })}

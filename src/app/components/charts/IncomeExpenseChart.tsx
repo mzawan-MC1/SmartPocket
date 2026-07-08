@@ -30,6 +30,8 @@ import { formatCurrencyValue, getRichCurrencyToken } from '@/lib/currency-format
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { getCurrencyByCode } from '@/lib/reference-data/lookups';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getIntlLocale } from '@/lib/locale';
 
 interface ChartPoint {
   label: string;
@@ -147,6 +149,9 @@ export default function IncomeExpenseChart({
   activePeriod: DashboardActivePeriod;
 }) {
   const { t } = useTranslation('portal');
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -185,7 +190,7 @@ export default function IncomeExpenseChart({
         for (let i = 5; i >= 0; i -= 1) {
           const period = getMonthContext(shiftMonthKey(activePeriod.monthKey || '', -i), activePeriod.timezone);
           bucketMap.set(period.monthKey, {
-            label: new Intl.DateTimeFormat('en-US', { month: 'short', timeZone: 'UTC' }).format(new Date(`${period.startDate}T12:00:00Z`)),
+            label: new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(new Date(`${period.startDate}T12:00:00Z`)),
             income: 0,
             expenses: 0,
             cashFlow: 0,
@@ -207,8 +212,8 @@ export default function IncomeExpenseChart({
           const bucketEndKey = bucketEnd.toISOString().slice(0, 10);
           bucketMap.set(bucketStartKey, {
             label: useWeeklyBuckets
-              ? `${new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart)} - ${new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketEnd)}`
-              : new Intl.DateTimeFormat('en-US', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart),
+              ? `${new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart)} - ${new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketEnd)}`
+              : new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(bucketStart),
             income: 0,
             expenses: 0,
             cashFlow: 0,
@@ -257,7 +262,7 @@ export default function IncomeExpenseChart({
       }
 
       if (missingRateDates.size > 0) {
-        setErrorMessage('Some historical exchange rates are unavailable for this period, so the chart cannot be shown accurately yet.');
+        setErrorMessage(t('dashboardCharts.trend.missingHistoricalRates'));
       }
 
       const normalizedPoints = Array.from(bucketMap.values()).map((point) => ({
@@ -268,11 +273,11 @@ export default function IncomeExpenseChart({
       setData(normalizedPoints);
     } catch (error) {
       console.error('IncomeExpenseChart error:', error);
-      setErrorMessage('The chart period could not be calculated.');
+      setErrorMessage(t('dashboardCharts.trend.periodCalculationFailed'));
     } finally {
       setLoading(false);
     }
-  }, [activePeriod.endDate, activePeriod.mode, activePeriod.monthKey, activePeriod.startDate, activePeriod.timezone]);
+  }, [activePeriod.endDate, activePeriod.mode, activePeriod.monthKey, activePeriod.startDate, activePeriod.timezone, locale, t]);
 
   useEffect(() => {
     void load();
@@ -297,13 +302,13 @@ export default function IncomeExpenseChart({
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),rgba(255,255,255,0.98)_68%)] shadow-[0_18px_36px_-28px_rgba(16,185,129,0.8)]">
             <ChartNoAxesCombined size={24} className="text-accent" />
           </div>
-          <p className="text-sm font-700 text-foreground">
-            {errorMessage || 'No transaction data in this period'}
+          <p className={`font-700 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-sm'}`}>
+            {errorMessage || t('dashboardCharts.trend.emptyTitle')}
           </p>
-          <p className="mt-1 text-[12.5px] leading-5 text-muted-foreground">
+          <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[13.5px] leading-6' : 'text-[12.5px] leading-5'}`}>
             {activePeriod.mode === 'month'
-              ? 'Add income and expense transactions to see monthly trends.'
-              : 'Add income and expense transactions to see pay-period trends.'}
+              ? t('dashboardCharts.trend.emptyDescriptionMonth')
+              : t('dashboardCharts.trend.emptyDescriptionPeriod')}
           </p>
         </div>
       </div>

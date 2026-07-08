@@ -309,8 +309,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
   return (
     <aside
-      className={`relative flex h-full min-h-screen w-full flex-col overflow-hidden bg-card sidebar-transition lg:sticky lg:top-0 lg:min-h-screen lg:h-screen ${
-        isMobileDrawer ? 'w-[86vw] max-w-[320px] shadow-card-lg' : ''
+      className={`relative flex w-full flex-col overflow-hidden bg-card sidebar-transition ${
+        isMobileDrawer
+          ? 'h-[100dvh] min-h-0 max-h-[100dvh] w-[86vw] max-w-[320px] pt-[env(safe-area-inset-top)] shadow-card-lg'
+          : 'h-full min-h-screen lg:sticky lg:top-0 lg:min-h-screen lg:h-screen'
       }`}
     >
       {/* Logo */}
@@ -353,7 +355,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </div>
 
       {/* Navigation */}
-      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'px-2 py-4' : 'px-2.5 py-4'}`}>
+      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'overscroll-contain px-2 py-4 pb-5' : 'px-2.5 py-4'}`}>
         <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3 lg:space-y-5'}>
           {navSections.slice(0, 2).map((section) => (
             <div key={section.heading.label} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
@@ -374,7 +376,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </nav>
 
       {/* User Profile */}
-      <div className={`shrink-0 border-t border-border/70 bg-white ${isMobileDrawer ? 'p-3' : 'p-3'} ${collapsed ? 'flex justify-center' : ''}`}>
+      <div className={`shrink-0 border-t border-border/70 bg-white ${isMobileDrawer ? 'p-3 pb-[calc(env(safe-area-inset-bottom)+0.875rem)]' : 'p-3'} ${collapsed ? 'flex justify-center' : ''}`}>
         {collapsed ? (
           <button
             onClick={handleSignOut}

@@ -231,6 +231,7 @@ export default function DashboardMetrics({
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
+  const isArabic = language === 'ar';
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -611,10 +612,10 @@ export default function DashboardMetrics({
       : metric.change;
     const hasSecondaryContent = Boolean(secondaryContent);
     const valueClassName = isPrimary
-      ? 'inline-flex items-baseline text-[1.72rem] font-800 tracking-[-0.035em] max-[480px]:text-[1.42rem] md:text-[1.68rem] lg:text-[1.78rem]'
+      ? `inline-flex items-baseline font-800 tracking-[-0.035em] md:text-[1.68rem] lg:text-[1.78rem] ${isArabic ? 'text-[1.76rem] leading-[1.25] max-[480px]:text-[1.5rem]' : 'text-[1.72rem] max-[480px]:text-[1.42rem]'}`
       : isSupporting
-        ? 'inline-flex items-baseline text-[1.08rem] font-700 tracking-[-0.02em] max-[480px]:text-[0.98rem] md:text-[1.05rem]'
-        : 'inline-flex items-baseline text-[1.18rem] font-800 tracking-[-0.025em] max-[480px]:text-[1.02rem] md:text-[1.14rem]';
+        ? `inline-flex items-baseline font-700 tracking-[-0.02em] md:text-[1.05rem] ${isArabic ? 'text-[1.11rem] leading-[1.3] max-[480px]:text-[1.02rem]' : 'text-[1.08rem] max-[480px]:text-[0.98rem]'}`
+        : `inline-flex items-baseline font-800 tracking-[-0.025em] md:text-[1.14rem] ${isArabic ? 'text-[1.22rem] leading-[1.28] max-[480px]:text-[1.08rem]' : 'text-[1.18rem] max-[480px]:text-[1.02rem]'}`;
     const helperChangeLabel = metric.id === 'metric-netflow'
       ? t('dashboardMetrics.netOfIncomeAndExpenses')
       : metric.id === 'metric-upcoming'
@@ -648,10 +649,10 @@ export default function DashboardMetrics({
           <div className={`min-w-0 ${isPrimary ? 'space-y-1.5 lg:space-y-2.5' : 'lg:space-y-2'}`}>
             <p className={`min-h-[2.45rem] leading-[1.25rem] max-[480px]:min-h-[2.2rem] max-[480px]:leading-[1.1rem] ${
               isPrimary
-                ? 'min-h-0 text-[14px] font-800 tracking-[-0.015em] text-foreground max-[480px]:text-[12.5px]'
+                ? `min-h-0 font-800 tracking-[-0.015em] text-foreground ${isArabic ? 'text-[14.5px] leading-6 max-[480px]:text-[13.25px] max-[480px]:leading-5' : 'text-[14px] max-[480px]:text-[12.5px]'}`
                 : isSupporting
-                  ? 'text-[13px] font-800 tracking-[-0.012em] text-foreground/88 max-[480px]:text-[11.75px]'
-                  : 'text-[13.5px] font-800 tracking-[-0.012em] text-foreground/95 max-[480px]:text-[12.25px]'
+                  ? `font-800 tracking-[-0.012em] text-foreground/88 ${isArabic ? 'text-[13.25px] leading-5 max-[480px]:text-[12.25px] max-[480px]:leading-5' : 'text-[13px] max-[480px]:text-[11.75px]'}`
+                  : `font-800 tracking-[-0.012em] text-foreground/95 ${isArabic ? 'text-[13.75px] leading-5 max-[480px]:text-[12.75px] max-[480px]:leading-5' : 'text-[13.5px] max-[480px]:text-[12.25px]'}`
             }`}>
               {metric.label}
             </p>
@@ -670,7 +671,7 @@ export default function DashboardMetrics({
               {metric.changeDir === 'down' && <ArrowDown size={13} className="text-negative flex-shrink-0" />}
               <div className="min-w-0">
                 <div className={`font-tabular leading-none max-[480px]:text-[12px] ${
-                  isPrimary ? 'text-[0.95rem] font-800 md:text-[1rem]' : isSupporting ? 'text-[0.82rem] font-700 md:text-[0.85rem]' : 'text-sm font-700'
+                  isPrimary ? (isArabic ? 'text-[0.98rem] font-800 leading-5 md:text-[1rem]' : 'text-[0.95rem] font-800 md:text-[1rem]') : isSupporting ? (isArabic ? 'text-[0.86rem] font-700 leading-5 md:text-[0.88rem]' : 'text-[0.82rem] font-700 md:text-[0.85rem]') : (isArabic ? 'text-[0.92rem] font-700 leading-5' : 'text-sm font-700')
                 } ${
                   metric.changeDir === 'up' ? 'text-positive' :
                   metric.changeDir === 'down' ? 'text-negative' : 'text-muted-foreground'
@@ -679,10 +680,10 @@ export default function DashboardMetrics({
                 </div>
                 <p className={`mt-1.5 text-muted-foreground max-[480px]:leading-[1rem] ${
                   isPrimary
-                    ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+                    ? isArabic ? 'text-[12.5px] font-600 leading-5 max-[480px]:text-[12px] lg:mt-2' : 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px] lg:mt-2'
                     : isSupporting
-                      ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px] lg:mt-1.5'
-                      : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px] lg:mt-2'
+                      ? isArabic ? 'text-[12px] leading-5 max-[480px]:text-[11.5px] lg:mt-1.5' : 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px] lg:mt-1.5'
+                      : isArabic ? 'text-[13px] leading-5 max-[480px]:text-[12px] lg:mt-2' : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px] lg:mt-2'
                 }`}>
                   {helperChangeLabel}
                 </p>
@@ -691,10 +692,10 @@ export default function DashboardMetrics({
           ) : (
             <p className={`text-muted-foreground max-[480px]:leading-[1rem] ${
               isPrimary
-                ? 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px]'
+                ? isArabic ? 'text-[12.5px] font-600 leading-5 max-[480px]:text-[12px]' : 'text-[12px] font-600 leading-4 max-[480px]:text-[11.5px]'
                 : isSupporting
-                  ? 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px]'
-                  : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px]'
+                  ? isArabic ? 'text-[12px] leading-5 max-[480px]:text-[11.5px]' : 'text-[11.5px] leading-[0.95rem] max-[480px]:text-[11px]'
+                  : isArabic ? 'text-[13px] leading-5 max-[480px]:text-[12px]' : 'text-[12.5px] leading-4 max-[480px]:text-[11.5px]'
             }`}>
               {helperChangeLabel}
             </p>

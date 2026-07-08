@@ -31,6 +31,7 @@ function shouldOpenRowFromKeyboard(event: React.KeyboardEvent<HTMLDivElement>) {
 export default function RecentTransactions() {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
+  const isArabic = language === 'ar';
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [documentSummaries, setDocumentSummaries] = useState<Record<string, TransactionListDocumentSummary>>({});
   const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
@@ -181,7 +182,7 @@ export default function RecentTransactions() {
                         onKeyDown={(event) => {
                           event.stopPropagation();
                         }}
-                        className="inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-600 leading-4 text-muted-foreground transition-colors hover:bg-muted/80"
+                        className={`inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-600 text-muted-foreground transition-colors hover:bg-muted/80 ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px] leading-4'}`}
                       >
                         <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
                         <span className="whitespace-nowrap font-tabular">
@@ -190,7 +191,7 @@ export default function RecentTransactions() {
                       </button>
                     ) : null}
                   </div>
-                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  <p className={`mt-0.5 truncate text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-xs'}`}>
                     {categoryLabel} · {accountLabel}
                   </p>
                 </div>
@@ -202,7 +203,7 @@ export default function RecentTransactions() {
                     className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-negative'}`}
                     showCode
                   />
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
                     {formattedDate}
                   </span>
                 </div>

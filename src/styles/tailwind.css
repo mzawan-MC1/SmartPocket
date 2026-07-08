@@ -22,6 +22,7 @@
   --ring: #0f9f98;
   --radius: 16px;
   --font-sans: var(--font-plus-jakarta), 'Plus Jakarta Sans', sans-serif;
+  --font-sans-arabic: Tahoma, Arial, 'Noto Sans Arabic', 'Geeza Pro', sans-serif;
 
   --positive: #15803d;
   --positive-bg: #ecfdf3;
@@ -86,6 +87,27 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  html[lang='ar'],
+  html[lang='ar'] body {
+    font-family: var(--font-sans-arabic), var(--font-sans);
+    line-height: 1.6;
+  }
+
+  html[lang='ar'] .section-title,
+  html[lang='ar'] .empty-state-title {
+    letter-spacing: 0;
+  }
+
+  html[lang='ar'] .section-description {
+    font-size: 0.925rem;
+    line-height: 1.7;
+  }
+
+  html[lang='ar'] .empty-state-description {
+    font-size: 0.9rem;
+    line-height: 1.75;
   }
 
   ::selection {

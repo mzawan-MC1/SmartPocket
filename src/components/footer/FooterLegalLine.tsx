@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 
 type FooterLegalLineProps = {
@@ -12,6 +13,7 @@ function joinClasses(...values: Array<string | undefined>) {
 }
 
 export default function FooterLegalLine({ className }: FooterLegalLineProps) {
+  const { t } = useTranslation('public');
   const { branding, publicUi } = usePlatformSettings();
   const copyrightText = publicUi.footerCopyright || `© ${branding.appName}. All rights reserved.`;
   const poweredByText = publicUi.footerPoweredByText.trim();
@@ -20,7 +22,7 @@ export default function FooterLegalLine({ className }: FooterLegalLineProps) {
   return (
     <p className={joinClasses('flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-6 text-muted-foreground', className)}>
       <span>{copyrightText}</span>
-      {poweredByText ? <span>Powered by</span> : null}
+      {poweredByText ? <span>{t('footer.poweredBy')}</span> : null}
       {poweredByText ? (
         poweredByUrl ? (
           <a

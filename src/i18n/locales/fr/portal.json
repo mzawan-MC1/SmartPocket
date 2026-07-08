@@ -362,6 +362,22 @@
     "categoryDescriptionThrough": "Catégories jusqu'à {{period}}",
     "categoryDescriptionDuring": "Catégories pendant {{period}}",
     "warning": "Le mode période de paie n'est pas configuré, les graphiques affichent donc le mois en cours.",
+    "trend": {
+      "missingHistoricalRates": "Certains taux de change historiques sont indisponibles pour cette période, le graphique ne peut donc pas encore être affiché avec précision.",
+      "periodCalculationFailed": "La période du graphique n'a pas pu être calculée.",
+      "emptyTitle": "Aucune donnée de transaction sur cette période",
+      "emptyDescriptionMonth": "Ajoutez des revenus et des dépenses pour voir les tendances mensuelles.",
+      "emptyDescriptionPeriod": "Ajoutez des revenus et des dépenses pour voir les tendances de la période de paie."
+    },
+    "categorySummary": {
+      "noExpenseDataMonth": "Aucune dépense sur ce mois",
+      "noExpenseDataPeriod": "Aucune dépense sur cette période de paie",
+      "addExpensesToSeeCategories": "Ajoutez des dépenses pour voir la répartition par catégorie.",
+      "missingHistoricalRates": "Certains taux de change historiques sont indisponibles pour cette période.",
+      "periodLoadFailed": "Impossible de charger les dépenses par catégorie pour cette période.",
+      "totalSpending": "Dépenses totales",
+      "ofTotal": "{{percent}}% du total"
+    },
     "tabs": {
       "trend": "Revenus vs dépenses",
       "category": "Par catégorie"
@@ -499,7 +515,19 @@
     "removed": "Élément récurrent supprimé",
     "updateFailed": "Impossible de mettre à jour l'élément récurrent.",
     "markPaidFailed": "Impossible de marquer l'élément récurrent comme payé.",
-    "deleteFailed": "Impossible de supprimer l'élément récurrent."
+    "deleteFailed": "Impossible de supprimer l'élément récurrent.",
+    "widgetDescriptionMonth": "Activité planifiée à échéance en {{period}}",
+    "widgetDescriptionPeriod": "Activité planifiée pendant {{period}}",
+    "noUpcomingTitle": "Aucune activité récurrente à venir",
+    "noUpcomingDescriptionMonth": "Aucun élément récurrent n'est prévu en {{period}}.",
+    "noUpcomingDescriptionPeriod": "Aucun élément récurrent n'est prévu pendant {{period}}.",
+    "tomorrow": "Demain",
+    "daysLeft": "{{count}} jours restants",
+    "scheduled": "Planifié",
+    "scheduleIncomplete": "Planning incomplet",
+    "markItemAsPaid": "Marquer {{name}} comme payé",
+    "totalScheduled": "Total planifié",
+    "totalDueThisPeriod": "Total dû sur cette période"
   },
   "accounts": {
     "title": "Comptes financiers",

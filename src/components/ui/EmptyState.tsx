@@ -37,8 +37,8 @@ export default function EmptyState({
       <div className={`flex items-center justify-center ${isCompact ? 'mb-3 h-12 w-12 rounded-[16px]' : 'mb-4 h-14 w-14 rounded-[18px] max-[480px]:h-12 max-[480px]:w-12'} ${styles.iconWrap}`.trim()}>
         <Icon size={isCompact ? 22 : 24} className={styles.icon} />
       </div>
-      <h3 className={`font-800 text-foreground ${isCompact ? 'mb-1 text-[0.98rem]' : 'mb-2 text-[1.02rem]'}`.trim()}>{title}</h3>
-      <p className={`text-muted-foreground ${isCompact ? 'mb-3 max-w-sm text-[13px] leading-5' : 'mb-4 max-w-md text-sm leading-relaxed'}`.trim()}>{description}</p>
+      <h3 className={`empty-state-title font-800 text-foreground ${isCompact ? 'mb-1 text-[0.98rem]' : 'mb-2 text-[1.02rem]'}`.trim()}>{title}</h3>
+      <p className={`empty-state-description text-muted-foreground ${isCompact ? 'mb-3 max-w-sm text-[13px] leading-5' : 'mb-4 max-w-md text-sm leading-relaxed'}`.trim()}>{description}</p>
       {action && (
         <button type="button" onClick={action.onClick} className="btn-primary max-[480px]:w-full">
           {action.label}
