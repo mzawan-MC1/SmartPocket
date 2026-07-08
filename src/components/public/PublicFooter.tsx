@@ -87,7 +87,10 @@ export default function PublicFooter() {
   const isHomePage = pathname === '/home' || pathname === '/';
 
   return (
-    <footer className={isHomePage ? 'border-t border-white/10 bg-[#041229] text-white' : 'border-t border-border bg-card/95 backdrop-blur-sm'}>
+    <footer
+      className={isHomePage ? 'border-t border-white/10 bg-[#041229] text-white' : 'border-t border-border bg-card/95 backdrop-blur-sm'}
+      suppressHydrationWarning
+    >
       <div className="page-shell py-8 md:py-10">
         <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]">
           <div className="max-w-sm">

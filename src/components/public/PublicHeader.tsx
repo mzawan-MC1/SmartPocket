@@ -105,7 +105,7 @@ export default function PublicHeader() {
   } z-40 ${publicUi.stickyHeader ? 'sticky top-0' : 'relative'}`;
 
   return (
-    <header className={headerClass} ref={mobileRef}>
+    <header className={headerClass} ref={mobileRef} suppressHydrationWarning>
       <div className="page-shell">
         <div className="flex min-h-[5rem] items-center justify-between gap-3 py-3 max-[480px]:gap-2">
           {/* Logo */}

@@ -61,6 +61,10 @@ export default function AuthScreen() {
     : t('authScreen.brandHeadline', { ns: 'public', defaultValue: branding.appName });
 
   const setMode = useCallback((nextMode: AuthMode) => {
+    const currentMode = searchParams.get('mode') || 'login';
+    if (currentMode === nextMode) {
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.set('mode', nextMode);
     const query = params.toString();

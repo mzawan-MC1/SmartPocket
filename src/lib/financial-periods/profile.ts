@@ -69,6 +69,41 @@ let cachedFinancialPeriodProfileConfig: FinancialPeriodConfig | null = null;
 let cachedFinancialPeriodRuntimeContext: UserFinancialPeriodContext | null = null;
 let inFlightFinancialPeriodRuntimeContext: Promise<UserFinancialPeriodContext> | null = null;
 
+// #region debug-point A:financial-period-report
+function reportDashboardFirstLoadEvent(payload: Record<string, unknown>) {
+  try {
+    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
+    if (typeof window === 'undefined') return;
+
+    const url =
+      process.env.NEXT_PUBLIC_SP_DEBUG_URL
+      || `http://${window.location.hostname}:7777/event`;
+    if (!url) return;
+
+    const body = JSON.stringify({
+      sessionId: 'dashboard-first-load',
+      runId: 'pre-fix',
+      hypothesisId: 'A',
+      ts: Date.now(),
+      source: 'financial-periods/profile',
+      ...payload,
+    });
+
+    if ('sendBeacon' in navigator) {
+      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      return;
+    }
+
+    void fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    });
+  } catch {}
+}
+// #endregion
+
 export interface UserFinancialPeriodContext {
   config: FinancialPeriodConfig;
   effectiveConfig: FinancialPeriodConfig;
@@ -79,6 +114,10 @@ export interface UserFinancialPeriodContext {
   currentMonthlyPeriod: FinancialPeriod;
   hasConfigurationWarning: boolean;
   configurationWarning: string | null;
+}
+
+export interface LoadUserFinancialPeriodContextOptions {
+  userId?: string | null;
 }
 
 export function clearFinancialPeriodProfileCache() {
@@ -276,24 +315,79 @@ function buildRuntimeContext(row?: Partial<FinancialPeriodProfileRow> | null): U
   };
 }
 
-export async function loadUserFinancialPeriodContext(): Promise<UserFinancialPeriodContext> {
+export async function loadUserFinancialPeriodContext(
+  options: LoadUserFinancialPeriodContextOptions = {}
+): Promise<UserFinancialPeriodContext> {
   if (cachedFinancialPeriodRuntimeContext) {
+    // #region debug-point A:financial-period-cache-hit
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:cache-hit',
+      msg: '[DEBUG] financial period runtime context cache hit',
+      data: {
+        hasRuntimeContext: true,
+        defaultDashboardPeriod: cachedFinancialPeriodRuntimeContext.defaultDashboardPeriod,
+      },
+    });
+    // #endregion
     return cachedFinancialPeriodRuntimeContext;
   }
 
   if (inFlightFinancialPeriodRuntimeContext) {
+    // #region debug-point A:financial-period-inflight
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:inflight',
+      msg: '[DEBUG] financial period runtime context awaiting in-flight request',
+      data: {
+        hasInFlightRequest: true,
+      },
+    });
+    // #endregion
     return inFlightFinancialPeriodRuntimeContext;
   }
 
   inFlightFinancialPeriodRuntimeContext = (async () => {
     const supabase = createClient();
-    const { data: authData } = await supabase.auth.getUser();
-    const userId = authData.user?.id;
+    // #region debug-point A:financial-period-start
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:start',
+      msg: '[DEBUG] starting financial period context load',
+      data: {
+        hasCachedConfig: Boolean(cachedFinancialPeriodProfileConfig),
+      },
+    });
+    // #endregion
+    const userIdFromOptions =
+      typeof options.userId === 'string' && options.userId.trim()
+        ? options.userId.trim()
+        : null;
+    const sessionData = userIdFromOptions
+      ? null
+      : await supabase.auth.getSession();
+    const userId = userIdFromOptions || sessionData?.data.session?.user?.id || null;
+    // #region debug-point A:financial-period-auth
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:getUser',
+      msg: '[DEBUG] financial period auth lookup completed',
+      data: {
+        hasUserId: Boolean(userId),
+        userIdSource: userIdFromOptions ? 'options' : 'session',
+      },
+    });
+    // #endregion
 
     if (!userId) {
       const context = buildRuntimeContext(null);
-      cachedFinancialPeriodRuntimeContext = context;
-      cachedFinancialPeriodProfileConfig = context.config;
+      // #region debug-point A:financial-period-no-user
+      reportDashboardFirstLoadEvent({
+        location: 'profile.ts:loadUserFinancialPeriodContext:no-user',
+        msg: '[DEBUG] financial period context built without authenticated user',
+        data: {
+          defaultDashboardPeriod: context.defaultDashboardPeriod,
+          hasConfigurationWarning: context.hasConfigurationWarning,
+          cachedGuestFallback: false,
+        },
+      });
+      // #endregion
       return context;
     }
 
@@ -303,6 +397,17 @@ export async function loadUserFinancialPeriodContext(): Promise<UserFinancialPer
       .eq('id', userId)
       .single();
 
+    // #region debug-point A:financial-period-profile-query
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:profile-query',
+      msg: '[DEBUG] financial period profile query completed',
+      data: {
+        hasRow: Boolean(data),
+        errorCode: error?.code ?? null,
+      },
+    });
+    // #endregion
+
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
@@ -310,6 +415,17 @@ export async function loadUserFinancialPeriodContext(): Promise<UserFinancialPer
     const context = buildRuntimeContext((data || null) as Partial<FinancialPeriodProfileRow> | null);
     cachedFinancialPeriodRuntimeContext = context;
     cachedFinancialPeriodProfileConfig = context.config;
+    // #region debug-point A:financial-period-success
+    reportDashboardFirstLoadEvent({
+      location: 'profile.ts:loadUserFinancialPeriodContext:success',
+      msg: '[DEBUG] financial period context built successfully',
+      data: {
+        defaultDashboardPeriod: context.defaultDashboardPeriod,
+        hasConfigurationWarning: context.hasConfigurationWarning,
+        timezone: context.timezone,
+      },
+    });
+    // #endregion
     return context;
   })();
 

@@ -27,6 +27,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
+import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 
 
 const AIUsageCardLazy = dynamic(() => import('@/app/components/AIUsageCard'), {
@@ -109,6 +110,41 @@ const DASHBOARD_MONTH_STORAGE_KEY = 'smartpocket.dashboard.month';
 const DASHBOARD_PAY_PERIOD_STORAGE_KEY = 'smartpocket.dashboard.pay-period-start';
 const DASHBOARD_REVALIDATE_DEBOUNCE_MS = 1500;
 const DASHBOARD_SLOW_LOAD_MS = 5000;
+
+// #region debug-point B:dashboard-bootstrap-report
+function reportDashboardFirstLoadEvent(payload: Record<string, unknown>) {
+  try {
+    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
+    if (typeof window === 'undefined') return;
+
+    const url =
+      process.env.NEXT_PUBLIC_SP_DEBUG_URL
+      || `http://${window.location.hostname}:7777/event`;
+    if (!url) return;
+
+    const body = JSON.stringify({
+      sessionId: 'dashboard-first-load',
+      runId: 'pre-fix',
+      hypothesisId: 'B',
+      ts: Date.now(),
+      source: 'dashboard/page',
+      ...payload,
+    });
+
+    if ('sendBeacon' in navigator) {
+      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
+      return;
+    }
+
+    void fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      keepalive: true,
+    });
+  } catch {}
+}
+// #endregion
 
 function readDashboardSessionStorage(key: string) {
   if (typeof window === 'undefined') return null;
@@ -213,24 +249,72 @@ export default function DashboardPage() {
     setPeriodLoading(true);
     setPeriodLoadError(null);
     setShowSlowLoadState(false);
+    // #region debug-point B:dashboard-load-start
+    reportDashboardFirstLoadEvent({
+      location: 'dashboard/page.tsx:loadPeriodContext:start',
+      msg: '[DEBUG] dashboard period context load started',
+      data: {
+        requestId,
+        forceRefresh: Boolean(options?.forceRefresh),
+        surfaceToast: Boolean(options?.surfaceToast),
+        hasUserId: Boolean(user?.id),
+      },
+    });
+    // #endregion
 
     const slowLoadTimer = window.setTimeout(() => {
       if (latestPeriodRequestRef.current === requestId) {
         setShowSlowLoadState(true);
+        // #region debug-point B:dashboard-slow-load
+        reportDashboardFirstLoadEvent({
+          location: 'dashboard/page.tsx:loadPeriodContext:slow-load',
+          msg: '[DEBUG] dashboard period context load crossed slow-load threshold',
+          data: {
+            requestId,
+            hasPeriodContext: Boolean(periodContext),
+            hasViewMode: Boolean(viewMode),
+          },
+        });
+        // #endregion
       }
     }, DASHBOARD_SLOW_LOAD_MS);
 
     try {
       if (options?.forceRefresh) {
         clearFinancialPeriodProfileCache();
+        clearResolvedUserDefaultCurrencyCache();
       }
-      const nextContext = await loadUserFinancialPeriodContext();
+      const nextContext = await loadUserFinancialPeriodContext({
+        userId: user?.id ?? null,
+      });
       if (latestPeriodRequestRef.current !== requestId) return;
       setPeriodContext(nextContext);
+      // #region debug-point B:dashboard-load-success
+      reportDashboardFirstLoadEvent({
+        location: 'dashboard/page.tsx:loadPeriodContext:success',
+        msg: '[DEBUG] dashboard period context load succeeded',
+        data: {
+          requestId,
+          defaultDashboardPeriod: nextContext.defaultDashboardPeriod,
+          hasConfigurationWarning: nextContext.hasConfigurationWarning,
+        },
+      });
+      // #endregion
     } catch (error) {
       if (latestPeriodRequestRef.current !== requestId) return;
       console.error(error);
       setPeriodLoadError(t('shared.dashboardLoadFailedDescription'));
+      // #region debug-point B:dashboard-load-error
+      reportDashboardFirstLoadEvent({
+        location: 'dashboard/page.tsx:loadPeriodContext:error',
+        msg: '[DEBUG] dashboard period context load failed',
+        data: {
+          requestId,
+          errorName: error instanceof Error ? error.name : 'unknown',
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      });
+      // #endregion
       if (options?.surfaceToast) {
         toast.error(t('shared.dashboardLoadFailedDescription'));
       }
@@ -238,12 +322,31 @@ export default function DashboardPage() {
       window.clearTimeout(slowLoadTimer);
       if (latestPeriodRequestRef.current === requestId) {
         setPeriodLoading(false);
+        // #region debug-point B:dashboard-load-finally
+        reportDashboardFirstLoadEvent({
+          location: 'dashboard/page.tsx:loadPeriodContext:finally',
+          msg: '[DEBUG] dashboard period context load finished',
+          data: {
+            requestId,
+          },
+        });
+        // #endregion
       }
     }
-  }, [t]);
+  }, [periodContext, t, user?.id, viewMode]);
 
   useEffect(() => {
     if (authLoading) return;
+    // #region debug-point B:dashboard-auth-ready
+    reportDashboardFirstLoadEvent({
+      location: 'dashboard/page.tsx:auth-ready-effect',
+      msg: '[DEBUG] dashboard auth-ready effect fired',
+      data: {
+        authLoading,
+        hasUserId: Boolean(user?.id),
+      },
+    });
+    // #endregion
     void loadPeriodContext({ forceRefresh: true });
   }, [authLoading, user?.id, loadPeriodContext]);
 
@@ -323,6 +426,17 @@ export default function DashboardPage() {
     setViewMode((current) => current || nextViewMode);
     setSelectedMonth((current) => current || normalizedMonthKey);
     setSelectedPayPeriodStart((current) => current || normalizedPayPeriod.startDate);
+    // #region debug-point B:dashboard-view-init
+    reportDashboardFirstLoadEvent({
+      location: 'dashboard/page.tsx:periodContext-effect',
+      msg: '[DEBUG] dashboard period context initialized local view state',
+      data: {
+        nextViewMode,
+        normalizedMonthKey,
+        normalizedPayPeriodStart: normalizedPayPeriod.startDate,
+      },
+    });
+    // #endregion
   }, [periodContext]);
 
   useEffect(() => {
@@ -397,6 +511,25 @@ export default function DashboardPage() {
   const readyPeriodContext = coreReady ? periodContext : null;
   const readyActivePeriod = coreReady ? activePeriod : null;
   const readyViewMode = coreReady ? viewMode : null;
+
+  useEffect(() => {
+    // #region debug-point B:dashboard-core-ready-state
+    reportDashboardFirstLoadEvent({
+      location: 'dashboard/page.tsx:core-ready-state',
+      msg: '[DEBUG] dashboard core readiness changed',
+      data: {
+        authLoading,
+        periodLoading,
+        showSlowLoadState,
+        hasPeriodContext: Boolean(periodContext),
+        hasActivePeriod: Boolean(activePeriod),
+        hasViewMode: Boolean(viewMode),
+        coreReady,
+        hasPeriodLoadError: Boolean(periodLoadError),
+      },
+    });
+    // #endregion
+  }, [activePeriod, authLoading, coreReady, periodContext, periodLoadError, periodLoading, showSlowLoadState, viewMode]);
 
   return (
     <AppLayout activeRoute="/dashboard">
