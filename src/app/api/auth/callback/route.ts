@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code');
     const next = getSafeNextPath(searchParams.get('next'));
     const authType = searchParams.get('type');
+    const signupMethod = searchParams.get('signup_method');
     const providerError = searchParams.get('error');
     const providerErrorDescription = searchParams.get('error_description');
 
@@ -85,15 +86,16 @@ export async function GET(request: NextRequest) {
       console.error('[api/auth/callback] profile lookup failed');
     }
 
+    const registrationMethod = resolveRegistrationMethod({
+      authType,
+      provider: (data.user.app_metadata as any)?.provider,
+      identities: (data.user as any)?.identities,
+    });
+
     try {
       const user = data.user;
       const email = user.email || '';
       const fullName = (user.user_metadata as any)?.full_name || (user.user_metadata as any)?.name || '';
-      const method = resolveRegistrationMethod({
-        authType,
-        provider: (user.app_metadata as any)?.provider,
-        identities: (user as any)?.identities,
-      });
 
       const tasks = [
         sendTransactionalEmail({
@@ -104,7 +106,7 @@ export async function GET(request: NextRequest) {
           variables: {
             customer_name: fullName || email.split('@')[0] || 'there',
             customer_email: email,
-            registration_method: method,
+            registration_method: registrationMethod,
           },
         }),
         sendTransactionalEmail({
@@ -115,7 +117,7 @@ export async function GET(request: NextRequest) {
           variables: {
             customer_name: fullName || email.split('@')[0] || 'Unknown',
             customer_email: email,
-            registration_method: method,
+            registration_method: registrationMethod,
           },
         }),
       ];
@@ -131,10 +133,11 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(buildAppUrl(destination, request));
     const queuedEvents: QueuedMarketingEvent[] = [];
 
-    if (authType === 'signup') {
+    if (authType === 'signup' || signupMethod) {
       queuedEvents.push(
-        { name: 'email_confirmed', params: { method: 'email_link' } },
-        { name: 'sign_up_completed', params: { method: 'email_link' } },
+        { name: 'email_confirmed', params: { method: signupMethod || 'email_link' } },
+        { name: 'sign_up_completed', params: { method: signupMethod || 'email_link' } },
+        { name: 'sp_account_created', params: { method: signupMethod || registrationMethod, source: 'auth_callback' } },
         { name: 'trial_started', params: { source: 'signup_confirmation' } }
       );
     }

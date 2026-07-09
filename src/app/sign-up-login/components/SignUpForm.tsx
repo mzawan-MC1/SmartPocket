@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { trackMarketingEvent } from '@/lib/analytics';
+import { trackAccountCreated, trackMarketingEvent } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -56,6 +56,11 @@ export default function SignUpForm({
   } = useForm<SignUpFormData>();
 
   const passwordValue = watch('password', '');
+  const buildSignupCallbackUrl = (method: 'google' | 'apple' | 'magic_link') => {
+    const callbackUrl = new URL(buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next'))));
+    callbackUrl.searchParams.set('signup_method', method);
+    return callbackUrl.toString();
+  };
 
   const onSubmit = async (data: SignUpFormData) => {
     setIsLoading(true);
@@ -63,6 +68,7 @@ export default function SignUpForm({
       trackMarketingEvent('sign_up_started', { method: 'password' });
       const next = getSafeNextPath(searchParams.get('next'));
       const result = await signUp(data.email, data.password, { fullName: data.fullName }, next);
+      trackAccountCreated({ method: 'email', source: 'password_signup' });
 
       if (result.requiresEmailVerification) {
         setSuccessState('verify-email');
@@ -87,7 +93,7 @@ export default function SignUpForm({
       trackMarketingEvent('sign_up_started', { method: 'google' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
+      const callbackUrl = buildSignupCallbackUrl('google');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -107,7 +113,7 @@ export default function SignUpForm({
       trackMarketingEvent('sign_up_started', { method: 'apple' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
+      const callbackUrl = buildSignupCallbackUrl('apple');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
@@ -133,7 +139,7 @@ export default function SignUpForm({
       trackMarketingEvent('sign_up_started', { method: 'magic_link' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
+      const callbackUrl = buildSignupCallbackUrl('magic_link');
 
       const { error } = await supabase.auth.signInWithOtp({
         email,

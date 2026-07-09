@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Loader2, Mail, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { trackMarketingEvent } from '@/lib/analytics';
+import { trackContactClick, trackMarketingEvent } from '@/lib/analytics';
 
 interface ContactFormData {
   name: string;
@@ -32,6 +32,7 @@ export default function ContactFormCard() {
   const onSubmit = async (data: ContactFormData) => {
     setIsLoading(true);
     try {
+      trackContactClick({ source: 'public_contact_form_submit' });
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

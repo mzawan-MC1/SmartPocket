@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import FeaturedBlogSection from '@/components/public/blog/FeaturedBlogSection';
 import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
@@ -576,13 +577,15 @@ export default function HomePage({
               {heroSubtitle}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link
+              <TrackedAnalyticsLink
                 href="/sign-up-login"
+                eventName="sp_signup_click"
+                eventParams={{ source: 'home_hero' }}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-sky-500 px-7 py-4 text-base font-700 text-slate-950 shadow-[0_18px_40px_rgba(34,211,238,0.25)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#041229] motion-reduce:transform-none"
               >
                 {heroCTAPrimary}
                 <ArrowRight size={18} />
-              </Link>
+              </TrackedAnalyticsLink>
               <Link
                 href="/#features"
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-base font-700 text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#041229]"
@@ -904,12 +907,14 @@ export default function HomePage({
             </p>
           </div>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Link
+            <TrackedAnalyticsLink
               href="/sign-up-login"
+              eventName="sp_signup_click"
+              eventParams={{ source: 'home_mid_cta' }}
               className="inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-700 text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-600"
             >
               {t('home.cta.primary')}
-            </Link>
+            </TrackedAnalyticsLink>
             <Link
               href="/#about"
               className="inline-flex items-center justify-center rounded-2xl border border-white/30 bg-white/10 px-6 py-3 text-sm font-700 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-600"
@@ -932,13 +937,15 @@ export default function HomePage({
           <p className="mt-5 text-base leading-7 text-slate-600 sm:text-lg">
             {t('home.contact.description')}
           </p>
-          <Link
+          <TrackedAnalyticsLink
             href="/contact"
+            eventName="sp_contact_click"
+            eventParams={{ source: 'home_contact_section' }}
             className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-8 py-4 text-base font-700 text-white shadow-[0_16px_30px_rgba(15,23,42,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
           >
             <Mail size={18} />
             {t('home.cta.secondary')}
-          </Link>
+          </TrackedAnalyticsLink>
         </div>
       </section>
 
@@ -958,13 +965,15 @@ export default function HomePage({
             </div>
             <div className="space-y-4">
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-                <Link
+                <TrackedAnalyticsLink
                   href="/sign-up-login"
+                  eventName="sp_signup_click"
+                  eventParams={{ source: 'home_final_cta' }}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-700 text-slate-950"
                 >
                   {heroCTAPrimary}
                   <ArrowRight size={15} />
-                </Link>
+                </TrackedAnalyticsLink>
                 <Link
                   href="/#pricing"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 px-6 py-3 text-sm font-700 text-white"

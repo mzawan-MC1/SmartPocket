@@ -6,6 +6,7 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 import FooterLegalLine from '@/components/footer/FooterLegalLine';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
+import { trackContactClick } from '@/lib/analytics';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -123,6 +124,7 @@ export default function PublicFooter() {
               {contactEmail && (
                 <a
                   href={`mailto:${contactEmail}`}
+                  onClick={() => trackContactClick({ source: 'public_footer_email' })}
                   className={isHomePage ? 'inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200' : 'inline-flex items-center gap-2 text-accent hover:underline'}
                 >
                   <Mail size={13} />
@@ -132,6 +134,7 @@ export default function PublicFooter() {
               {publicUi.contactPhone && (
                 <a
                   href={`tel:${publicUi.contactPhone}`}
+                  onClick={() => trackContactClick({ source: 'public_footer_phone' })}
                   className={isHomePage ? 'flex items-center gap-2 transition-colors hover:text-white' : 'flex items-center gap-2 hover:text-foreground transition-colors'}
                 >
                   <Phone size={13} />
@@ -174,6 +177,7 @@ export default function PublicFooter() {
                   <li key={link.id}>
                     <Link
                       href={link.href}
+                      onClick={link.href === '/contact' ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
                       className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}
                     >
                       {getFooterLinkLabel(link.href, link.label, t)}

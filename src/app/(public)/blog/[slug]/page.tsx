@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import CmsHtml from '@/components/cms/CmsHtml';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
@@ -229,13 +230,15 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                 {detail.ctaDescription || 'Upload receipts, track subscriptions, and keep shared expenses simple with AI-assisted review flows.'}
               </p>
               <div className="mt-5 flex flex-col gap-3">
-                <Link
+                <TrackedAnalyticsLink
                   href="/sign-up-login"
+                  eventName="sp_signup_click"
+                  eventParams={{ source: 'blog_article_cta' }}
                   className="inline-flex h-11 items-center justify-center rounded-full bg-cyan-300 px-5 text-sm font-700 text-slate-950 transition-transform hover:-translate-y-0.5"
                 >
                   {detail.ctaPrimaryLabel || 'Start Free Trial'}
                   <ArrowRight size={16} className="ms-2" />
-                </Link>
+                </TrackedAnalyticsLink>
                 <Link
                   href="/"
                   className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 px-5 text-sm font-700 text-white transition-colors hover:border-cyan-300/60 hover:text-cyan-100"

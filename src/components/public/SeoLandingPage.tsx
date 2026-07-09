@@ -9,6 +9,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import {
   type SeoLandingPageContent,
   type SeoLandingPageDefinition,
@@ -57,13 +58,15 @@ export default function SeoLandingPage({
                 {page.hero.subtitle}
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link
+                <TrackedAnalyticsLink
                   href="/sign-up-login?mode=signup"
+                  eventName="sp_signup_click"
+                  eventParams={{ source: `seo_landing_${definition.slug}_hero` }}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3.5 text-sm font-800 text-slate-950 shadow-[0_18px_44px_rgba(15,23,42,0.24)] transition-transform hover:-translate-y-0.5 motion-reduce:transform-none"
                 >
                   {shared.primaryCta}
                   <ArrowRight size={16} />
-                </Link>
+                </TrackedAnalyticsLink>
                 <Link
                   href={`/${definition.slug}#how-it-works`}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/25 bg-white/10 px-6 py-3.5 text-sm font-800 text-white transition-colors hover:bg-white/15"
@@ -199,9 +202,14 @@ export default function SeoLandingPage({
                 <Link href="/faqs" className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-700 text-white transition-colors hover:bg-white/15">
                   {shared.faqLinkLabel}
                 </Link>
-                <Link href="/contact" className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-700 text-white transition-colors hover:bg-white/15">
+                <TrackedAnalyticsLink
+                  href="/contact"
+                  eventName="sp_contact_click"
+                  eventParams={{ source: `seo_landing_${definition.slug}_contact` }}
+                  className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-700 text-white transition-colors hover:bg-white/15"
+                >
                   {shared.contactLinkLabel}
-                </Link>
+                </TrackedAnalyticsLink>
               </div>
             </div>
             <div className="space-y-3">

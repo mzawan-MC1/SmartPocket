@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import BlogArchiveClient from '@/components/public/blog/BlogArchiveClient';
 import { listPublicBlogPosts, type PublicCmsPage } from '@/lib/cms-pages-server';
@@ -162,13 +163,15 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
-            <Link
+            <TrackedAnalyticsLink
               href="/sign-up-login"
+              eventName="sp_signup_click"
+              eventParams={{ source: 'blog_archive_cta' }}
               className="inline-flex h-12 items-center justify-center rounded-full bg-cyan-300 px-6 text-sm font-700 text-slate-950 transition-transform hover:-translate-y-0.5"
             >
               {listing.ctaPrimaryLabel || 'Start Free Trial'}
               <ArrowRight size={16} className="ms-2" />
-            </Link>
+            </TrackedAnalyticsLink>
             <Link
               href="/"
               className="inline-flex h-12 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-700 text-white transition-colors hover:border-cyan-300/60 hover:text-cyan-100"

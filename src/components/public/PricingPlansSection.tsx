@@ -15,7 +15,7 @@ import {
 } from '@/lib/subscription/pricing';
 import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { BillingAvailability, PublicSubscriptionPlan } from '@/lib/subscription/types';
-import { trackMarketingEvent } from '@/lib/analytics';
+import { trackMarketingEvent, trackPricingViewed, trackSignupClick } from '@/lib/analytics';
 
 type PricingCardSection = {
   title: string;
@@ -299,6 +299,9 @@ export default function PricingPlansSection({
     trackMarketingEvent('pricing_viewed', {
       location: sectionId || 'pricing',
     });
+    trackPricingViewed(sectionId || 'pricing', {
+      source: sectionId || 'pricing',
+    });
   }, [sectionId]);
 
   return (
@@ -486,13 +489,19 @@ export default function PricingPlansSection({
                     }`}>
                       <Link
                         href={ctaHref}
-                        onClick={() =>
+                        onClick={() => {
                           trackMarketingEvent('plan_selected', {
                             plan_code: plan.planCode,
                             billing_interval: plan.billingInterval,
                             authenticated: isAuthenticated,
-                          })
-                        }
+                          });
+                          if (!isAuthenticated) {
+                            trackSignupClick({
+                              source: 'pricing_plan_cta',
+                              plan_id: plan.planCode,
+                            });
+                          }
+                        }}
                         className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-600 transition-all ${
                           isDark
                             ? accent

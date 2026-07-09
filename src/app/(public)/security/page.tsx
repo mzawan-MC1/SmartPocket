@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   UserRoundCheck,
 } from 'lucide-react';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
@@ -196,13 +197,23 @@ export default async function SecurityPage() {
                 )}
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link href="/sign-up-login" className="btn-primary h-12 px-6 text-sm">
+                <TrackedAnalyticsLink
+                  href="/sign-up-login"
+                  eventName="sp_signup_click"
+                  eventParams={{ source: 'security_hero' }}
+                  className="btn-primary h-12 px-6 text-sm"
+                >
                   {readString(securityText.primaryCta, readString(englishSecurityText.primaryCta, 'Start Free Trial'))}
                   <ArrowRight size={16} className="ms-2" />
-                </Link>
-                <Link href="/contact" className="btn-secondary h-12 px-6 text-sm">
+                </TrackedAnalyticsLink>
+                <TrackedAnalyticsLink
+                  href="/contact"
+                  eventName="sp_contact_click"
+                  eventParams={{ source: 'security_hero' }}
+                  className="btn-secondary h-12 px-6 text-sm"
+                >
                   {readString(securityText.secondaryCta, readString(englishSecurityText.secondaryCta, 'Contact Support'))}
-                </Link>
+                </TrackedAnalyticsLink>
               </div>
             </div>
           </div>
@@ -374,13 +385,23 @@ export default async function SecurityPage() {
                 )}
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link href="/sign-up-login" className="btn-primary h-12 px-6 text-sm">
+                <TrackedAnalyticsLink
+                  href="/sign-up-login"
+                  eventName="sp_signup_click"
+                  eventParams={{ source: 'security_final_cta' }}
+                  className="btn-primary h-12 px-6 text-sm"
+                >
                   {readString(securityText.primaryCta, readString(englishSecurityText.primaryCta, 'Start Free Trial'))}
                   <ArrowRight size={16} className="ms-2" />
-                </Link>
-                <Link href="/contact" className="btn-secondary h-12 px-6 text-sm">
+                </TrackedAnalyticsLink>
+                <TrackedAnalyticsLink
+                  href="/contact"
+                  eventName="sp_contact_click"
+                  eventParams={{ source: 'security_final_cta' }}
+                  className="btn-secondary h-12 px-6 text-sm"
+                >
                   {readString(securityText.secondaryCta, readString(englishSecurityText.secondaryCta, 'Contact Support'))}
-                </Link>
+                </TrackedAnalyticsLink>
               </div>
             </div>
           </div>

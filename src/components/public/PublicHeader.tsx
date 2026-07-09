@@ -6,6 +6,7 @@ import { Menu, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -163,12 +164,14 @@ export default function PublicHeader() {
             >
               {t('nav.signIn', { ns: 'common' })}
             </Link>
-            <Link
+            <TrackedAnalyticsLink
               href="/sign-up-login?mode=signup"
+              eventName="sp_signup_click"
+              eventParams={{ source: 'public_header_desktop' }}
               className={isHomePage ? 'inline-flex items-center rounded-xl bg-cyan-500 px-4 py-2 text-sm font-700 text-white shadow-sm transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2 px-4'}
             >
               {t('nav.signUp', { ns: 'common' })}
-            </Link>
+            </TrackedAnalyticsLink>
           </div>
 
           {/* Mobile: language + hamburger */}
@@ -238,13 +241,15 @@ export default function PublicHeader() {
                     >
                       {t('nav.signIn', { ns: 'common' })}
                     </Link>
-                    <Link
+                    <TrackedAnalyticsLink
                       href="/sign-up-login?mode=signup"
+                      eventName="sp_signup_click"
+                      eventParams={{ source: 'public_header_mobile' }}
                       onClick={() => setMobileOpen(false)}
                       className={isHomePage ? 'inline-flex justify-center rounded-xl bg-cyan-500 py-2.5 text-sm font-700 text-white transition-colors hover:bg-cyan-600' : 'btn-primary text-sm py-2.5 justify-center'}
                     >
                       {t('nav.signUp', { ns: 'common' })}
-                    </Link>
+                    </TrackedAnalyticsLink>
                   </div>
                 </div>
               </div>

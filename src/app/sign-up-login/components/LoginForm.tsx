@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
-import { trackMarketingEvent } from '@/lib/analytics';
+import { trackMarketingEvent, trackSignupClick } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
 
@@ -349,7 +349,10 @@ export default function LoginForm({
       <p className="text-center text-sm text-muted-foreground mt-6">
         {t('signIn.noAccount', { ns: 'auth' })}{' '}
         <button
-          onClick={onSwitchToSignUp}
+          onClick={() => {
+            trackSignupClick({ source: 'auth_switch_to_signup' });
+            onSwitchToSignUp();
+          }}
           className="font-600 text-accent hover:text-teal-600 transition-colors"
         >
           {t('signIn.createAccount', { ns: 'auth' })}
