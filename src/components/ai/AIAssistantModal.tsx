@@ -72,6 +72,7 @@ import {
   getTransactionDocumentMaxSizeLabel,
   validateTransactionDocumentFile,
 } from '@/lib/transaction-documents';
+import { trackAiEntryUsed } from '@/lib/analytics';
 import type { VoiceRecorderSubmission } from '@/lib/voice-ai';
 
  type AssistantStep =
@@ -1832,6 +1833,7 @@ function isReceiptInsightQuestion(value: string) {
 
   const handleTextSubmit = useCallback(() => {
     if (!textInput.trim()) return;
+    trackAiEntryUsed('text');
     if (isReceiptInsightQuestion(textInput)) {
       void callReceiptInsightAPI(textInput.trim());
       return;
@@ -1840,6 +1842,7 @@ function isReceiptInsightQuestion(value: string) {
   }, [textInput, callParseAPI, callReceiptInsightAPI]);
 
   const handleVoiceReady = useCallback(async (submission: VoiceRecorderSubmission) => {
+    trackAiEntryUsed('voice');
     resetRequestState({
       preserveInput: true,
       preserveMode: true,

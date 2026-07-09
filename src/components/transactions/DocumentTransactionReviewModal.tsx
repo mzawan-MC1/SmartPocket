@@ -42,7 +42,7 @@ import {
   getTransactionDocumentStageProgress,
   type TransactionDocumentProcessingStage,
 } from '@/lib/transaction-document-processing';
-import { trackReceiptScanUsed } from '@/lib/analytics';
+import { trackAiEntryUsed, trackReceiptScanUsed } from '@/lib/analytics';
 import { createClientId } from '@/lib/uuid';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
@@ -902,6 +902,7 @@ export default function DocumentTransactionReviewModal({
               source: sourceSurface,
               method: activeFile?.type === 'application/pdf' ? 'pdf' : 'image',
             });
+            trackAiEntryUsed('document');
             updateProcessingState('reading_receipt', { progress: 30 });
             window.setTimeout(() => {
               if (cancelled || extractionRequestSequenceRef.current !== requestSequence) {

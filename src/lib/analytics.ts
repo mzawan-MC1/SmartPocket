@@ -4,6 +4,7 @@ export type MarketingEventName =
   | 'sp_pricing_viewed'
   | 'sp_contact_click'
   | 'sp_receipt_scan_used'
+  | 'sp_ai_entry_used'
   | 'sign_up_started'
   | 'sign_up_completed'
   | 'email_confirmed'
@@ -129,4 +130,8 @@ export function trackContactClick(params: MarketingEventParams = {}) {
 
 export function trackReceiptScanUsed(params: MarketingEventParams = {}) {
   trackMarketingEvent('sp_receipt_scan_used', params);
+}
+
+export function trackAiEntryUsed(method: 'text' | 'voice' | 'document') {
+  trackMarketingEvent('sp_ai_entry_used', { method });
 }
