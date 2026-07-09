@@ -19,6 +19,7 @@ import {
   toTitleLabel,
   type FinalizedSupportUpload,
 } from '@/lib/support';
+import { openSignedResourceUrl } from '@/lib/signed-resource-navigation';
 import { uploadSupportAttachments } from '@/lib/support-attachments';
 
 type AdminUserOption = {
@@ -281,7 +282,7 @@ export default function AdminSupportTicketDetailPage() {
       if (!response.ok) {
         throw new Error(payload?.error || t('support.ticketDetail.attachmentError'));
       }
-      window.open(payload.signedUrl, '_blank', 'noopener,noreferrer');
+      openSignedResourceUrl(payload.signedUrl);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('support.ticketDetail.attachmentError'));
     }

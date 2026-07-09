@@ -43,6 +43,7 @@ import {
   type TransactionDocumentProcessingStage,
 } from '@/lib/transaction-document-processing';
 import { trackAiEntryUsed, trackReceiptScanUsed } from '@/lib/analytics';
+import { openSignedResourceUrl } from '@/lib/signed-resource-navigation';
 import { createClientId } from '@/lib/uuid';
 
 type EditableDocumentTransaction = TransactionDocumentReviewInput & {
@@ -2065,11 +2066,14 @@ export default function DocumentTransactionReviewModal({
                   <div className="px-4 py-3 sm:px-5">
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     {activeFile?.type === 'application/pdf' ? (
-                      <iframe
-                        src={previewUrl}
-                        title={activeFile?.name || 'document-preview'}
-                        className="h-[18rem] w-full bg-white sm:h-[20rem] lg:h-[22rem]"
-                      />
+                      <div className="flex h-[18rem] flex-col items-center justify-center gap-3 bg-white px-4 text-center sm:h-[20rem] lg:h-[22rem]">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                          <FileText size={20} />
+                        </div>
+                        <p className="max-w-sm break-words text-sm font-700 text-foreground">
+                          {activeFile?.name || 'document-preview'}
+                        </p>
+                      </div>
                     ) : (
                       <img
                         src={previewUrl}
@@ -2082,6 +2086,20 @@ export default function DocumentTransactionReviewModal({
                     <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                       <p className="break-all font-600 text-foreground sm:break-words">{activeFile.name}</p>
                       <p>{formatTransactionDocumentFileSize(activeFile.size)}</p>
+                    </div>
+                  ) : null}
+                  {activeFile?.type === 'application/pdf' && previewUrl ? (
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        onClick={() => openSignedResourceUrl(previewUrl)}
+                        className="btn-secondary min-h-10 w-full justify-center sm:w-auto"
+                      >
+                        {t('transactions.documentReview.previewTitle', {
+                          ns: 'portal',
+                          defaultValue: 'Original Preview',
+                        })}
+                      </button>
                     </div>
                   ) : null}
                   </div>

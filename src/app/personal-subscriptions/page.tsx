@@ -551,7 +551,7 @@ export default function PersonalSubscriptionsPage() {
                         <p>{t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}: {subscription.recurring_transaction_id ? t('personalSubscriptions.labels.linked', { ns: 'portal' }) : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</p>
                       </div>
                     </div>
-                    <div className={`flex min-w-[140px] flex-col gap-2 ${isRTL ? 'items-end lg:items-start' : 'items-start lg:items-end'}`}>
+                    <div className={`flex w-full flex-col gap-2 sm:min-w-[140px] sm:w-auto ${isRTL ? 'items-end lg:items-start' : 'items-start lg:items-end'}`}>
                       <FormattedCurrencyAmount
                         amount={subscription.amount}
                         currencyCode={subscription.currency_code}
@@ -576,7 +576,7 @@ export default function PersonalSubscriptionsPage() {
                           {openMenuId === subscription.id ? (
                             <div
                               role="menu"
-                              className={`absolute top-full z-20 mt-2 flex min-w-[13rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}
+                              className={`absolute top-full z-20 mt-2 flex w-[min(14rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-card-lg sm:min-w-[13rem] sm:w-auto ${isRTL ? 'left-0' : 'right-0'}`}
                             >
                               <Link
                                 href={`/personal-subscriptions/${subscription.id}/edit`}

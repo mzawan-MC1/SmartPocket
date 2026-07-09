@@ -11,6 +11,7 @@ import {
   type TransactionDocumentDetailsResponse,
 } from '@/lib/transaction-document-details';
 import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
+import { openSignedResourceUrl } from '@/lib/signed-resource-navigation';
 
 export default function TransactionDetailsModal({
   isOpen,
@@ -86,6 +87,7 @@ export default function TransactionDetailsModal({
   }, [details, t]);
 
   const hasDocumentPreview = Boolean(details?.document?.previewUrl && details?.document?.downloadUrl);
+  const documentDetails = details?.document ?? null;
   const showDocumentWarning = details?.documentState === 'unavailable';
   const showNoDocument = details?.documentState === 'missing';
   const showProcessingState = details?.documentState === 'processing';
@@ -166,41 +168,44 @@ export default function TransactionDetailsModal({
                         ns: 'portal'
                       })}
                     </div>
-                  ) : hasDocumentPreview && details.document ? (
+                  ) : hasDocumentPreview && documentDetails ? (
                     <>
                       <div className="overflow-hidden rounded-xl border border-border bg-muted/10">
-                        {details.document.mimeType === 'application/pdf' ? (
-                          <iframe
-                            src={details.document.previewUrl}
-                            title={details.document.fileName}
-                            className="h-[24rem] w-full bg-white"
-                          />
+                        {documentDetails.mimeType === 'application/pdf' ? (
+                          <div className="flex h-[24rem] flex-col items-center justify-center gap-3 bg-white px-4 text-center">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                              <FileText size={20} />
+                            </div>
+                            <p className="max-w-sm break-words text-sm font-700 text-foreground">
+                              {documentDetails.fileName}
+                            </p>
+                          </div>
                         ) : (
                           <img
-                            src={details.document.previewUrl}
-                            alt={details.document.fileName}
+                            src={documentDetails.previewUrl}
+                            alt={documentDetails.fileName}
                             className="h-[24rem] w-full bg-white object-contain"
                           />
                         )}
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <a
-                          href={details.document.previewUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => openSignedResourceUrl(documentDetails.previewUrl)}
                           className="btn-secondary"
                         >
                           {t('transactions.documentDetails.viewOriginal', {
                             ns: 'portal',
                             defaultValue: 'View Original',
                           })}
-                        </a>
-                        <a
-                          href={details.document.downloadUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          download={details.document.fileName}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openSignedResourceUrl(documentDetails.downloadUrl, {
+                            download: true,
+                            fileName: documentDetails.fileName,
+                          })}
                           className="btn-secondary"
                         >
                           <Download size={14} />
@@ -208,7 +213,7 @@ export default function TransactionDetailsModal({
                             ns: 'portal',
                             defaultValue: 'Download',
                           })}
-                        </a>
+                        </button>
                       </div>
                     </>
                   ) : null}

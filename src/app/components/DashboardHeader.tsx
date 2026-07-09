@@ -157,7 +157,7 @@ export default function DashboardHeader({
         </div>
 
         <div className="min-w-0 rounded-[18px] border border-border/70 bg-card/90 px-1 py-1 shadow-card-sm">
-          <div className="grid grid-cols-4 items-stretch gap-0.5">
+          <div className="grid grid-cols-2 items-stretch gap-0.5 min-[361px]:grid-cols-4">
             {directActions.map((action) => {
               const Icon = action.icon;
               const isSelected = activeQuickAction === action.id;
@@ -166,7 +166,7 @@ export default function DashboardHeader({
                   key={action.id}
                   type="button"
                   onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className={`group flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1.5 max-[480px]:py-1.5 ${
+                  className={`group flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-2 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 min-[361px]:px-1.5 min-[361px]:py-1.5 ${
                     isSelected
                       ? 'border-accent/20 bg-accent/10 text-accent shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)]'
                       : 'text-foreground/90 hover:border-border/60 hover:bg-muted/40'
@@ -193,7 +193,7 @@ export default function DashboardHeader({
               <button
                 type="button"
                 onClick={() => setMoreOpen((value) => !value)}
-                className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-1.5 py-1.5 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 max-[480px]:px-1.5 max-[480px]:py-1.5 ${
+                  className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-2 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 min-[361px]:px-1.5 min-[361px]:py-1.5 ${
                   activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
                     ? 'border-accent/20 bg-accent/10 text-accent shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)]'
                     : 'text-foreground/90 hover:border-border/60 hover:bg-muted/40'
@@ -217,7 +217,7 @@ export default function DashboardHeader({
                 <div
                   role="menu"
                   aria-label={t('dashboardHeader.moreActions')}
-                  className="absolute end-0 top-full z-20 mt-1.5 flex min-w-[12rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1 shadow-card-lg"
+                  className="absolute end-0 top-full z-20 mt-1.5 flex w-[min(11rem,calc(100vw-2rem))] min-[361px]:w-auto min-[361px]:min-w-[12rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1 shadow-card-lg"
                 >
                   {moreActions.map((action) => {
                     const Icon = action.icon;

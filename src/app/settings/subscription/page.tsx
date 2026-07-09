@@ -643,7 +643,7 @@ export default function SubscriptionSettingsPage() {
               title={t('subscriptionBilling.choosePlan', { ns: 'portal' })}
               description={t('subscriptionBilling.choosePlanDescription', { ns: 'portal' })}
               action={availableIntervals.length > 1 ? (
-                <div className="inline-flex rounded-full border border-border bg-secondary/50 p-1">
+                <div className="flex w-full max-w-full flex-wrap rounded-full border border-border bg-secondary/50 p-1 sm:inline-flex sm:w-auto">
                   {(['monthly', 'yearly'] as const).map((interval) => {
                     const supported = availableIntervals.includes(interval);
                     const active = selectedInterval === interval;
@@ -653,7 +653,7 @@ export default function SubscriptionSettingsPage() {
                         type="button"
                         onClick={() => supported && setSelectedInterval(interval)}
                         disabled={!supported}
-                        className={`relative inline-flex min-w-[8.5rem] items-center justify-center rounded-full px-4 py-2 text-sm font-800 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 ${
+                        className={`relative inline-flex min-w-0 flex-1 items-center justify-center rounded-full px-3 py-2 text-sm font-800 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 sm:min-w-[8.5rem] sm:px-4 ${
                           active
                             ? 'bg-accent text-white shadow-sm ring-1 ring-accent/40'
                             : 'text-muted-foreground hover:bg-card/70 hover:text-foreground'

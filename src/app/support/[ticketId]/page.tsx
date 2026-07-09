@@ -13,6 +13,7 @@ import { SupportPriorityBadge, SupportStatusBadge } from '@/components/support/S
 import SupportConfirmationModal from '@/components/support/SupportConfirmationModal';
 import { canReopenTicket, formatSupportDateTime, toTitleLabel, type FinalizedSupportUpload } from '@/lib/support';
 import { uploadSupportAttachments } from '@/lib/support-attachments';
+import { openSignedResourceUrl } from '@/lib/signed-resource-navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -236,7 +237,7 @@ export default function SupportTicketDetailPage() {
       if (!response.ok) {
         throw new Error(payload?.error || t('support.detail.attachmentError'));
       }
-      window.open(payload.signedUrl, '_blank', 'noopener,noreferrer');
+      openSignedResourceUrl(payload.signedUrl);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('support.detail.attachmentError'));
     }
