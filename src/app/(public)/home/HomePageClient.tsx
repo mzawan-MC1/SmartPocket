@@ -28,6 +28,7 @@ import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
 import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import { getIntlLocale } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface HeroSettings {
@@ -307,11 +308,13 @@ function SecurityVisual() {
 
 function DashboardPreview() {
   const { t } = useTranslation('public');
+  const { language } = useLanguage();
+  const locale = getIntlLocale(language);
   const previewAmounts = {
-    totalBalance: formatCurrencyText(12480, { currencyCode: 'USD' }),
-    income: formatCurrencyText(4200, { currencyCode: 'USD' }),
-    expenses: formatCurrencyText(-2760, { currencyCode: 'USD' }),
-    netFlow: formatCurrencyText(1440, { currencyCode: 'USD' }),
+    totalBalance: formatCurrencyText(12480, { currencyCode: 'USD', locale }),
+    income: formatCurrencyText(4200, { currencyCode: 'USD', locale }),
+    expenses: formatCurrencyText(-2760, { currencyCode: 'USD', locale }),
+    netFlow: formatCurrencyText(1440, { currencyCode: 'USD', locale }),
   };
 
   return (
@@ -515,7 +518,7 @@ function DashboardPreview() {
           <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-amber-200">{t('home.preview.upcomingBill.dueIn')}</span>
         </div>
         <p className="mt-2.5 text-sm font-700 text-white">{t('home.preview.upcomingBill.item')}</p>
-        <p className="mt-1 text-xs text-slate-300">{formatCurrencyText(180, { currencyCode: 'USD' })}</p>
+        <p className="mt-1 text-xs text-slate-300">{formatCurrencyText(180, { currencyCode: 'USD', locale })}</p>
       </div>
     </div>
   );
