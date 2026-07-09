@@ -12,6 +12,7 @@ import {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const pathWithSearch = `${pathname}${request.nextUrl.search}`;
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-sp-pathname', pathname);
   const forwardedHost = request.headers.get('x-forwarded-host');
@@ -151,7 +152,7 @@ export async function middleware(request: NextRequest) {
 
   if (!user && !isPublicRoute) {
     const redirectUrl = buildAppUrl('/sign-up-login', request);
-    redirectUrl.searchParams.set('next', pathname);
+    redirectUrl.searchParams.set('next', pathWithSearch);
     return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
   }
 
@@ -183,7 +184,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     if (!user) {
       const redirectUrl = buildAppUrl('/sign-up-login', request);
-      redirectUrl.searchParams.set('next', pathname);
+      redirectUrl.searchParams.set('next', pathWithSearch);
       return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
     }
 

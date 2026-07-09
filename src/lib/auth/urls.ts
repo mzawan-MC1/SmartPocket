@@ -4,6 +4,8 @@ import { getSafeNextPath } from '@/lib/auth/redirects';
 const LOCAL_DEV_ORIGIN = 'http://localhost:4028';
 const PRODUCTION_CANONICAL_ORIGIN = 'https://1smartpocket.com';
 
+export type AuthUrlTarget = 'web' | 'native';
+
 function normalizeOrigin(value?: string | null) {
   if (!value) return null;
   return value.replace(/\/+$/, '');
@@ -116,17 +118,64 @@ export function buildAppUrl(path: string, request?: Pick<NextRequest, 'headers' 
   return new URL(path, getPublicOrigin(request));
 }
 
-export function buildAuthCallbackUrl(next?: string | null) {
-  const callbackUrl = new URL('/api/auth/callback', getAppOrigin());
-  const safeNext = getSafeNextPath(next ?? null);
+function getConfiguredNativeAuthUrl(kind: 'callback' | 'password_reset') {
+  const value = kind === 'callback'
+    ? process.env.NEXT_PUBLIC_NATIVE_AUTH_CALLBACK_URL
+    : process.env.NEXT_PUBLIC_NATIVE_PASSWORD_RESET_URL;
 
-  if (safeNext) {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildAuthFlowUrl(
+  kind: 'callback' | 'password_reset',
+  options?: {
+    next?: string | null;
+    target?: AuthUrlTarget;
+  }
+) {
+  const target = options?.target ?? 'web';
+  const safeNext = getSafeNextPath(options?.next ?? null);
+
+  if (target === 'native') {
+    const nativeUrl = getConfiguredNativeAuthUrl(kind);
+    if (nativeUrl) {
+      const url = new URL(nativeUrl);
+      if (kind === 'callback' && safeNext) {
+        url.searchParams.set('next', safeNext);
+      }
+      return url.toString();
+    }
+  }
+
+  const callbackPath = kind === 'callback' ? '/api/auth/callback' : '/auth/reset-password';
+  const callbackUrl = new URL(callbackPath, getAppOrigin());
+  if (kind === 'callback' && safeNext) {
     callbackUrl.searchParams.set('next', safeNext);
   }
 
   return callbackUrl.toString();
 }
 
-export function buildPasswordResetUrl() {
-  return new URL('/auth/reset-password', getAppOrigin()).toString();
+export function buildAuthCallbackUrl(
+  next?: string | null,
+  options?: { target?: AuthUrlTarget }
+) {
+  return buildAuthFlowUrl('callback', {
+    next,
+    target: options?.target,
+  });
+}
+
+export function buildPasswordResetUrl(options?: { target?: AuthUrlTarget }) {
+  return buildAuthFlowUrl('password_reset', {
+    target: options?.target,
+  });
 }

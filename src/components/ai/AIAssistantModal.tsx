@@ -2178,7 +2178,7 @@ function isReceiptInsightQuestion(value: string) {
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[90] flex items-end justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:items-center sm:p-5">
       <button
         type="button"
         className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
@@ -2193,8 +2193,8 @@ function isReceiptInsightQuestion(value: string) {
         aria-describedby="smart-entry-description"
         className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
           isCompactSubscriptionReview
-            ? 'w-[calc(100vw-24px)] max-w-3xl max-h-[85vh] rounded-[20px]'
-            : 'w-[calc(100vw-32px)] max-w-[640px] max-h-[calc(100vh-48px)] rounded-[24px]'
+            ? 'w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[20px] sm:w-[calc(100vw-24px)] sm:max-h-[85vh]'
+            : 'w-full max-w-[640px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[calc(100vw-32px)]'
         }`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
@@ -2228,7 +2228,7 @@ function isReceiptInsightQuestion(value: string) {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin max-[480px]:pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
 
           {/* Not configured state */}
           {isAIConfigured === false && step === 'entry' && (

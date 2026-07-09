@@ -2425,7 +2425,7 @@
       "errors": {
         "permissionDenied": "Microphone access denied. Please allow microphone access and try again.",
         "noMicrophone": "No microphone found. Please connect a microphone and try again.",
-        "notSupported": "Voice recording is not supported in this browser. Please use text input instead.",
+        "notSupported": "Voice recording is not available in this browser or app environment. Please use text input instead.",
         "startFailed": "Could not start recording. Please try again.",
         "emptyAudio": "The recording was empty. Please try again.",
         "fileTooLarge": "This recording is too large. Keep it under {{maxSize}}."

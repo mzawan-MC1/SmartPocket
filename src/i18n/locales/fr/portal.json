@@ -1722,7 +1722,7 @@
       "errors": {
         "permissionDenied": "Accès au microphone refusé. Veuillez l'autoriser puis réessayer.",
         "noMicrophone": "Aucun microphone trouvé. Branchez un microphone puis réessayez.",
-        "notSupported": "L'enregistrement vocal n'est pas pris en charge par ce navigateur. Veuillez utiliser la saisie texte.",
+        "notSupported": "L'enregistrement vocal n'est pas disponible dans ce navigateur ou cet environnement d'application. Veuillez utiliser la saisie texte.",
         "startFailed": "Impossible de démarrer l'enregistrement. Veuillez réessayer."
       }
     },

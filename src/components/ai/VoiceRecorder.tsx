@@ -118,22 +118,47 @@ export default function VoiceRecorder({
     setState('error');
   }, []);
 
+  const getUnsupportedRecordingMessage = useCallback(() => {
+    return t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' });
+  }, [t]);
+
+  const getRecordingEnvironmentError = useCallback(() => {
+    if (typeof window === 'undefined' || !window.isSecureContext) {
+      return getUnsupportedRecordingMessage();
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return getUnsupportedRecordingMessage();
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      return getUnsupportedRecordingMessage();
+    }
+
+    if (!getPreferredVoiceRecordingMimeType()) {
+      return getUnsupportedRecordingMessage();
+    }
+
+    return null;
+  }, [getUnsupportedRecordingMessage]);
+
   const startRecording = useCallback(async () => {
-    setState('requesting_permission');
     setErrorMessage('');
     chunksRef.current = [];
     accumulatedMsRef.current = 0;
     recordingStartedAtRef.current = null;
 
     try {
-      if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-        handleRecorderError(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
+      const environmentError = getRecordingEnvironmentError();
+      if (environmentError) {
+        handleRecorderError(environmentError);
         return;
       }
 
+      setState('requesting_permission');
       const mimeType = getPreferredVoiceRecordingMimeType();
-      if (!mimeType || typeof MediaRecorder === 'undefined') {
-        handleRecorderError(t('smartEntryModal.voice.errors.notSupported', { ns: 'portal' }));
+      if (!mimeType) {
+        handleRecorderError(getUnsupportedRecordingMessage());
         return;
       }
 
@@ -219,7 +244,7 @@ export default function VoiceRecorder({
       setState('error');
       cleanup();
     }
-  }, [cleanup, handleRecorderError, maxSeconds, onError, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t, updateElapsed]);
+  }, [cleanup, getRecordingEnvironmentError, handleRecorderError, maxSeconds, onError, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t, updateElapsed]);
 
   const stopRecording = useCallback(() => {
     stopTimer();

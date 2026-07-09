@@ -2,9 +2,22 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export function getSafeNextPath(next: string | null): string | null {
   if (!next) return null;
-  if (!next.startsWith('/') || next.startsWith('//')) return null;
-  if (next.startsWith('/sign-up-login') || next.startsWith('/auth/')) return null;
-  return next;
+
+  try {
+    const parsedUrl = new URL(next, 'https://smartpocket.local');
+    if (parsedUrl.origin !== 'https://smartpocket.local') {
+      return null;
+    }
+
+    const { pathname, search, hash } = parsedUrl;
+    if (!pathname.startsWith('/') || pathname.startsWith('//')) return null;
+    if (pathname === '/api' || pathname.startsWith('/api/')) return null;
+    if (pathname.startsWith('/sign-up-login') || pathname.startsWith('/auth/')) return null;
+
+    return `${pathname}${search}${hash}`;
+  } catch {
+    return null;
+  }
 }
 
 export async function getPostAuthDestination(
