@@ -14,6 +14,7 @@ import { fetchSubscriptionPlans } from '@/lib/subscription/client';
 import type { PlanCode, PublicSubscriptionPlan, SubscriptionSummary } from '@/lib/subscription/types';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import UserAvatar from '@/components/ui/UserAvatar';
+import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -24,16 +25,20 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [activePlans, setActivePlans] = useState<PublicSubscriptionPlan[]>([]);
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, loading: authLoading } = useAuth();
   const { summary: subscriptionSummary } = useSubscriptionSummary();
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const quickActions = useQuickActions();
   const aiButtonLabel = t('topbar.smartEntry', { ns: 'portal' });
   const aiMobileLabel = t('topbar.smartEntryShort', { ns: 'portal', defaultValue: 'AI' });
-
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
-  const isAdmin = user?.app_metadata?.role === 'admin';
+  const fallbackDisplayName = t('topbar.userFallback', { ns: 'portal' });
+  const displayName = authLoading
+    ? fallbackDisplayName
+    : profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || fallbackDisplayName;
+  const displayEmail = authLoading ? null : user?.email ?? null;
+  const displayAvatarUrl = authLoading ? null : profile?.avatar_url ?? null;
+  const isAdmin = !authLoading && user?.app_metadata?.role === 'admin';
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -41,8 +46,10 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
         setUserMenuOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    const pointerDownEvent = getPreferredPointerDownEventName();
+    document.addEventListener(pointerDownEvent, handleClickOutside);
+    return () => document.removeEventListener(pointerDownEvent, handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -112,7 +119,9 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
       <div className="page-shell flex min-h-[72px] w-full flex-wrap items-center gap-3 py-3 max-[480px]:min-h-[60px] max-[480px]:gap-1.5 max-[480px]:py-2 sm:gap-4 sm:py-3.5">
         {/* Mobile menu toggle */}
         <button
-          onClick={onToggleSidebar}
+          onClick={() => {
+            onToggleSidebar();
+          }}
           className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 lg:hidden"
           aria-label={t('topbar.toggleMenu', { ns: 'portal' })}
         >
@@ -130,7 +139,9 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
 
         {/* Mobile search toggle */}
         <button
-          onClick={() => setSearchOpen(!searchOpen)}
+          onClick={() => {
+            setSearchOpen(!searchOpen);
+          }}
           className="btn-ghost h-10 w-10 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl max-[480px]:border max-[480px]:border-border/80 max-[480px]:bg-secondary/55 sm:hidden"
           aria-label={t('topbar.search', { ns: 'portal' })}
         >
@@ -167,15 +178,17 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
           {/* User Menu */}
           <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              onClick={() => {
+                setUserMenuOpen(!userMenuOpen);
+              }}
               className="flex h-10 items-center gap-2 rounded-xl border border-transparent bg-transparent px-2.5 max-[480px]:h-10 max-[480px]:gap-1 max-[480px]:rounded-xl max-[480px]:px-1.5 hover:border-border hover:bg-secondary/50"
               aria-label={t('topbar.userMenu', { ns: 'portal' })}
               aria-expanded={userMenuOpen}
             >
               <UserAvatar
                 fullName={displayName}
-                email={user?.email}
-                avatarUrl={profile?.avatar_url}
+                email={displayEmail}
+                avatarUrl={displayAvatarUrl}
                 className="h-7 w-7 text-xs max-[480px]:h-7 max-[480px]:w-7"
                 textClassName="text-xs"
                 iconClassName="h-3.5 w-3.5"
@@ -189,15 +202,15 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                 <div className="flex items-center gap-2.5 border-b border-border px-3 py-2">
                   <UserAvatar
                     fullName={displayName}
-                    email={user?.email}
-                    avatarUrl={profile?.avatar_url}
+                    email={displayEmail}
+                    avatarUrl={displayAvatarUrl}
                     className="h-9 w-9 text-sm"
                     textClassName="text-sm"
                     iconClassName="h-4 w-4"
                   />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-600 text-foreground">{displayName}</p>
-                    <p className="truncate text-xs text-muted-foreground">{user?.email}</p>
+                    <p className="truncate text-xs text-muted-foreground">{displayEmail}</p>
                   </div>
                 </div>
                 {showUpgradePackage ? (

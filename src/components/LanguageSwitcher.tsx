@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { type SupportedLanguage } from '@/i18n/resources';
 import { Globe, Check, ChevronDown } from 'lucide-react';
+import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
 
 interface LanguageSwitcherProps {
   variant?: 'compact' | 'full';
@@ -32,8 +33,10 @@ export default function LanguageSwitcher({
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+    const pointerDownEvent = getPreferredPointerDownEventName();
+    document.addEventListener(pointerDownEvent, handleClickOutside);
+    return () => document.removeEventListener(pointerDownEvent, handleClickOutside);
   }, []);
 
   const handleSelect = (code: SupportedLanguage) => {

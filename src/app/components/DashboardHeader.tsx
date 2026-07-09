@@ -26,6 +26,7 @@ import type { UserFinancialPeriodContext } from '@/lib/financial-periods/profile
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
 
 type QuickActionId = 'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget';
 
@@ -56,7 +57,7 @@ export default function DashboardHeader({
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const { t } = useTranslation('portal');
-  const { user, profile } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { dir, language } = useLanguage();
   const isArabic = language === 'ar';
   const monthInputRef = useRef<HTMLInputElement | null>(null);
@@ -78,19 +79,28 @@ export default function DashboardHeader({
   const description = t('dashboardHeader.description', {
     period: activePeriod.label,
   });
-  const registeredName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback');
+  const headingFallback = t('dashboardHeader.title');
+  const registeredName = authLoading
+    ? ''
+    : profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const firstName = getFirstName(registeredName) || registeredName;
-  const currentHour = Number(new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    hour12: false,
-    timeZone: financialPeriodContext.timezone,
-  }).format(new Date()));
-  const greetingKey = currentHour < 12
-    ? 'dashboardHeader.greeting.morning'
-    : currentHour < 18
-      ? 'dashboardHeader.greeting.afternoon'
-      : 'dashboardHeader.greeting.evening';
-  const greeting = t(greetingKey, { name: firstName }).replace(/\s*👋\s*$/, '');
+  let headingText = headingFallback;
+
+  if (firstName) {
+    const currentHour = Number(new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      hour12: false,
+      timeZone: financialPeriodContext.timezone,
+    }).format(new Date()));
+    const greetingKey = currentHour < 12
+      ? 'dashboardHeader.greeting.morning'
+      : currentHour < 18
+        ? 'dashboardHeader.greeting.afternoon'
+        : 'dashboardHeader.greeting.evening';
+    headingText = t(greetingKey, { name: firstName }).replace(/\s*ðŸ‘‹\s*$/, '');
+  }
+
+  const showGreetingWave = headingText !== headingFallback;
   const quickActions = [
     { id: 'transaction' as QuickActionId, label: t('dashboardHeader.quickActions.transaction'), icon: Plus },
     { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.account'), icon: Wallet },
@@ -127,10 +137,11 @@ export default function DashboardHeader({
       }
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
+    const pointerDownEvent = getPreferredPointerDownEventName();
+    document.addEventListener(pointerDownEvent, handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener(pointerDownEvent, handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
@@ -144,8 +155,8 @@ export default function DashboardHeader({
               ? 'text-[1.08rem] leading-[1.3] max-[480px]:text-[1.06rem] max-[360px]:flex-wrap max-[360px]:text-[1rem]'
               : 'text-[1.04rem] max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem]'
           }`}>
-            <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{greeting}</span>
-            <span className="inline-flex shrink-0 items-center whitespace-nowrap">👋</span>
+            <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{headingText}</span>
+            {showGreetingWave ? <span className="inline-flex shrink-0 items-center whitespace-nowrap">ðŸ‘‹</span> : null}
           </h1>
           <p className={`max-w-[34rem] text-muted-foreground ${
             isArabic

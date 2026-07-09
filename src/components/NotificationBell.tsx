@@ -16,6 +16,7 @@ import {
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
 
 const NOTIFICATION_STALE_MS = 60 * 1000;
 
@@ -167,10 +168,11 @@ export default function NotificationBell() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    const pointerDownEvent = getPreferredPointerDownEventName();
+    document.addEventListener(pointerDownEvent, handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener(pointerDownEvent, handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
