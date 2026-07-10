@@ -490,6 +490,45 @@ export default function DashboardPage() {
     );
   }, [dashboardLocale, periodContext, selectedMonth, selectedPayPeriodStart, viewMode]);
 
+  const mobileModeToggle = React.useMemo(() => {
+    if (!periodContext || !activePeriod || !viewMode) return null;
+
+    const monthPeriod = buildMonthActivePeriod(
+      selectedMonth || getMonthContext(undefined, periodContext.timezone).monthKey,
+      periodContext.timezone,
+      dashboardLocale
+    );
+    const payPeriod = buildPayPeriodActivePeriod(
+      selectedPayPeriodStart || periodContext.currentFinancialPeriod.startDate,
+      periodContext,
+      dashboardLocale
+    );
+
+    const sameRange = monthPeriod.startDate === payPeriod.startDate && monthPeriod.endDate === payPeriod.endDate;
+    if (sameRange) {
+      return null;
+    }
+
+    return viewMode === 'month'
+      ? {
+          label: t('dashboardHeader.payPeriod'),
+          onToggle: () => handleViewModeChange('pay_cycle'),
+        }
+      : {
+          label: t('dashboardMetrics.monthly'),
+          onToggle: () => handleViewModeChange('month'),
+        };
+  }, [
+    activePeriod,
+    dashboardLocale,
+    handleViewModeChange,
+    periodContext,
+    selectedMonth,
+    selectedPayPeriodStart,
+    t,
+    viewMode,
+  ]);
+
   const handleSelectedMonthChange = useCallback((monthKey: string) => {
     if (!periodContext) return;
     setSelectedMonth(getMonthContext(monthKey, periodContext.timezone).monthKey);
@@ -704,6 +743,7 @@ export default function DashboardPage() {
                   hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning}
                   variant="mobile-dashboard"
                   mobileAfterSummary={<AIUsageCardLazy variant="mobile-featured" />}
+                  mobileModeToggle={mobileModeToggle}
                 />
                 <RecentTransactionsLazy variant="mobile-dashboard" />
                 <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact dashboardSuggestion />

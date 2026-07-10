@@ -45,6 +45,34 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       : []),
   ];
 
+  const quickAddTiles = [
+    ...(canUseTextAi
+      ? [{
+          id: 'qa-smart-entry',
+          label: t('bottomNav.smartEntry', { ns: 'portal' }),
+          icon: Sparkles,
+          color: 'border-cyan-200/80 bg-[linear-gradient(180deg,#eefbff,#f4fbff)] text-cyan-700 shadow-[0_14px_28px_-24px_rgba(6,182,212,0.42)]',
+          onClick: () => quickActionsController?.openQuickAction('smart_entry'),
+        }]
+      : []),
+    ...(canUseVoiceAi
+      ? [{
+          id: 'qa-voice-entry',
+          label: t('bottomNav.voiceEntry', { ns: 'portal' }),
+          icon: Mic,
+          color: 'border-sky-200/80 bg-[linear-gradient(180deg,#eff6ff,#f8fbff)] text-sky-700 shadow-[0_14px_28px_-24px_rgba(37,99,235,0.32)]',
+          onClick: () => quickActionsController?.openQuickAction('voice_entry'),
+        }]
+      : []),
+    ...quickActions.map((action) => ({
+      id: action.id,
+      label: action.label,
+      icon: action.icon,
+      color: action.color,
+      onClick: () => quickActionsController?.openQuickAction(action.action),
+    })),
+  ];
+
   const moreItems = [
     { id: 'more-transfers', label: t('bottomNav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
     { id: 'more-recurring', label: t('bottomNav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
@@ -81,67 +109,56 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       {quickAddOpen && (
-        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+0.25rem)] z-50 px-3 pb-1 lg:hidden">
-          <div className="mx-auto w-full max-w-sm card-elevated-md slide-up overflow-hidden rounded-[22px]">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <p className="text-sm font-700 text-foreground">{t('bottomNav.quickAdd', { ns: 'portal' })}</p>
+        <div className="fixed inset-x-0 bottom-[calc(4.35rem+env(safe-area-inset-bottom)+0.4rem)] z-50 px-3 pb-[max(env(safe-area-inset-bottom),0.35rem)] lg:hidden">
+          <div className="mx-auto w-full max-w-sm slide-up overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_24px_54px_-28px_rgba(15,23,42,0.32)] backdrop-blur-xl">
+            <div className="border-b border-slate-200/80 px-4 py-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[15px] font-800 text-foreground">{t('bottomNav.quickAdd', { ns: 'portal' })}</p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {t('aiUsage.mobileFeature.description', { ns: 'portal' })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)] text-white shadow-[0_14px_28px_-20px_rgba(37,99,235,0.7)]">
+                    <Plus size={18} className="rotate-45" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="max-h-[min(58vh,29rem)] overflow-y-auto px-3.5 py-3.5 scrollbar-thin">
+              <div className="grid grid-cols-2 gap-2.5">
+                {quickAddTiles.map((tile) => {
+                  const TileIcon = tile.icon;
+                  return (
+                    <button
+                      key={tile.id}
+                      type="button"
+                      onClick={() => {
+                        tile.onClick();
+                        setQuickAddOpen(false);
+                      }}
+                      className={`flex min-h-[88px] flex-col items-start justify-between rounded-[22px] border px-3 py-3 text-left transition-all duration-150 active:scale-[0.985] ${tile.color}`}
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/90 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.35)]">
+                        <TileIcon size={17} />
+                      </div>
+                      <span className="text-[13px] font-800 leading-4 text-current">{tile.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex items-center justify-between border-t border-slate-200/80 px-4 py-3">
+              <p className="text-[11px] font-600 text-muted-foreground">{t('bottomNav.more', { ns: 'portal' })}</p>
               <button
                 type="button"
                 onClick={() => setQuickAddOpen(false)}
-                className="btn-ghost h-8 w-8 rounded-full p-0"
+                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-[11px] font-700 text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
                 aria-label={t('bottomNav.closeQuickAdd', { ns: 'portal' })}
               >
-                <X size={16} />
+                <X size={14} />
               </button>
-            </div>
-            <div className="max-h-[min(60vh,28rem)] space-y-3 overflow-y-auto px-4 py-4 scrollbar-thin">
-              <div className="grid grid-cols-2 gap-2.5">
-                {canUseTextAi ? (
-                  <button
-                    onClick={() => {
-                      quickActionsController?.openQuickAction('smart_entry');
-                      setQuickAddOpen(false);
-                    }}
-                    className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
-                  >
-                    <Sparkles size={20} />
-                    <span className="text-xs font-700">{t('bottomNav.smartEntry', { ns: 'portal' })}</span>
-                  </button>
-                ) : null}
-                {canUseVoiceAi ? (
-                  <button
-                    onClick={() => {
-                      quickActionsController?.openQuickAction('voice_entry');
-                      setQuickAddOpen(false);
-                    }}
-                    className="flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl border border-accent/20 bg-accent/10 px-3 py-3 text-sm font-600 text-accent transition-colors duration-150 hover:bg-accent/20"
-                  >
-                    <Mic size={20} />
-                    <span className="text-xs font-700">{t('bottomNav.voiceEntry', { ns: 'portal' })}</span>
-                  </button>
-                ) : null}
-              </div>
-              <div className="border-t border-border pt-3">
-                <div className="grid grid-cols-2 gap-2.5">
-                  {quickActions.map((action) => {
-                    const ActionIcon = action.icon;
-                    return (
-                      <button
-                        key={action.id}
-                        type="button"
-                        className={`flex min-h-[84px] flex-col items-center justify-center gap-2 rounded-2xl px-3 py-3 text-center text-sm font-600 transition-transform duration-150 active:scale-95 ${action.color}`}
-                        onClick={() => {
-                          quickActionsController?.openQuickAction(action.action);
-                          setQuickAddOpen(false);
-                        }}
-                      >
-                        <ActionIcon size={20} />
-                        <span className="text-xs font-700 leading-4">{action.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -228,7 +245,11 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setQuickAddOpen(!quickAddOpen); setMoreOpen(false); }}
-                  className="relative -top-4 flex h-[54px] w-[54px] items-center justify-center rounded-full border-[3px] border-white bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)] shadow-[0_18px_38px_-22px_rgba(37,99,235,0.75)] transition-all duration-200 active:scale-95"
+                  className={`relative -top-4 flex h-[54px] w-[54px] items-center justify-center rounded-full border-[3px] border-white transition-all duration-200 active:scale-95 ${
+                    quickAddOpen
+                      ? 'bg-[linear-gradient(135deg,#0f3cbf,#1d4ed8)] shadow-[0_20px_42px_-20px_rgba(37,99,235,0.82)]'
+                      : 'bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)] shadow-[0_18px_38px_-22px_rgba(37,99,235,0.75)]'
+                  }`}
                   aria-label={t('bottomNav.quickAdd', { ns: 'portal' })}
                 >
                   <Plus size={22} className="text-white transition-transform duration-200" style={{ transform: quickAddOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />

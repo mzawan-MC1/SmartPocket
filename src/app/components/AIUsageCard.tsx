@@ -659,31 +659,30 @@ export default function AIUsageCard({
     ];
 
     return (
-      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.28)]">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-10 top-10 h-40 w-40 rounded-full bg-sky-200/30 blur-2xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-16 bottom-6 h-40 w-40 rounded-full bg-blue-200/25 blur-2xl" />
+      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-3.5 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.28)]">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-8 top-8 h-32 w-32 rounded-full bg-sky-200/30 blur-2xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-14 bottom-5 h-32 w-32 rounded-full bg-blue-200/25 blur-2xl" />
 
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-slate-900">
-              <Sparkles size={18} className="text-[#2f7cff]" />
-              <h2 className="text-[1.18rem] font-800 tracking-[-0.02em]">{t('aiUsage.mobileFeature.title')}</h2>
+              <Sparkles size={17} className="text-[#2f7cff]" />
+              <h2 className="text-[1.08rem] font-800 tracking-[-0.02em]">{t('aiUsage.mobileFeature.title')}</h2>
             </div>
             <p className="mt-1 truncate text-[12px] leading-5 text-slate-600">
-              {t('aiUsage.mobileFeature.shortDescription', {
-                defaultValue: 'Capture expenses your way.',
-              })}
+              {t('aiUsage.mobileFeature.description')}
             </p>
           </div>
-          <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_38%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)]">
-            <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
+          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_36%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)]">
+            <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
+            <div className="absolute inset-[3px] rounded-full border border-white/45" />
             <div className="relative flex items-center justify-center">
-              <Sparkles size={18} className="text-white drop-shadow-sm" />
+              <Sparkles size={15} className="text-white drop-shadow-sm" />
             </div>
           </div>
         </div>
 
-        <div className="relative mt-4 grid grid-cols-3 gap-2.5">
+        <div className="relative mt-3.5 grid grid-cols-3 gap-2">
           {actionCards.map((action) => {
             const Icon = action.icon;
             return (
@@ -691,23 +690,23 @@ export default function AIUsageCard({
                 key={action.id}
                 type="button"
                 onClick={action.onClick}
-                className={`flex min-h-[96px] flex-col items-start rounded-[20px] border p-3 text-left transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
+                className={`flex min-h-[82px] flex-col items-start rounded-[18px] border px-2.5 py-2.5 text-left transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
               >
-                <div className="flex w-full items-center gap-2">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/90 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.3)]">
-                    <Icon size={16} />
+                <div className="flex w-full items-center gap-1.5">
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-white/92 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.24)]">
+                    <Icon size={14} />
                   </div>
-                  <p className="min-w-0 truncate text-[14px] font-800 tracking-[-0.02em] text-slate-900">
+                  <p className="whitespace-nowrap text-[12.5px] font-800 tracking-[-0.02em] text-slate-900">
                     {action.title}
                   </p>
                 </div>
-                <p className="mt-2 text-[11px] leading-4 text-slate-600">{action.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-[10px] leading-3.5 text-slate-600">{action.description}</p>
               </button>
             );
           })}
         </div>
 
-        <div className="relative mt-4 flex items-center justify-center gap-2 rounded-full bg-white/80 px-3 py-2 text-center text-[11px] font-600 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className="relative mt-3.5 flex items-center justify-center gap-1.5 rounded-full bg-white/82 px-3 py-1.5 text-center text-[10.5px] font-600 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
           <Sparkles size={13} className="text-[#2f7cff]" />
           <span>{t('aiUsage.mobileFeature.footer')}</span>
         </div>

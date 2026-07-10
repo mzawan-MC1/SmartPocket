@@ -376,6 +376,7 @@
     "mobileBudgetMixed": "ميزانيات متعددة",
     "mobileBudgetEmpty": "لا توجد ميزانية بعد",
     "mobileBudgetFallbackShort": "جاهز",
+    "mobileRecentHelper": "أحدث النشاطات",
     "peopleWithManagedMoney": "{{count}} أشخاص بأموال مُدارة",
     "borrowedIn": "تم اقتراضه في {{period}}",
     "paidIn": "تم دفعه في {{period}}",
@@ -486,14 +487,14 @@
     "trialing": "تجريبي",
     "mobileFeature": {
       "title": "أضف باستخدام الذكاء الذكي",
-      "description": "التقط المصروفات بالطريقة الأسهل لك.",
+      "description": "التقط مصروفاتك بطريقتك.",
       "typeTitle": "اكتبه",
-      "typeDescription": "اكتب أو الصق مصروفك",
+      "typeDescription": "اكتب أو الصق",
       "voiceTitle": "تكلم به",
-      "voiceDescription": "تحدث ودع الذكاء يضيفه لك",
+      "voiceDescription": "تحدث وأضف",
       "uploadTitle": "ارفعه",
-      "uploadDescription": "ارفع إيصالاً أو لقطة شاشة",
-      "footer": "يستخرج الذكاء التفاصيل ويصنفها فوراً."
+      "uploadDescription": "إيصال أو ملف",
+      "footer": "يستخرج الذكاء التفاصيل فوراً."
     }
   },
   "dashboardAccounts": {

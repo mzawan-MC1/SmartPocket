@@ -1,8 +1,9 @@
 'use client';
+import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye,
+  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye, History, Sparkles,
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -10,6 +11,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 
 interface DashboardMetricCard {
   id: string;
@@ -226,16 +228,22 @@ export default function DashboardMetrics({
   hasConfigurationWarning = false,
   variant = 'default',
   mobileAfterSummary,
+  mobileModeToggle,
 }: {
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
   variant?: 'default' | 'mobile-dashboard';
   mobileAfterSummary?: React.ReactNode;
+  mobileModeToggle?: {
+    label: string;
+    onToggle: () => void;
+  } | null;
 }) {
-  const { t } = useTranslation('portal');
+  const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
   const isArabic = language === 'ar';
+  const quickActions = useQuickActions();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [hideSensitive, setHideSensitive] = useState(false);
@@ -287,11 +295,14 @@ export default function DashboardMetrics({
               {mobileAfterSummary}
             </div>
           ) : null}
-          <div className="grid grid-cols-3 gap-2.5">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={`mobile-metric-skeleton-${index}`} className="animate-pulse rounded-[22px] border border-border/70 bg-card p-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div
+                key={`mobile-metric-skeleton-${index}`}
+                className={`animate-pulse rounded-[22px] border border-border/70 bg-card p-3 ${index === 4 ? 'col-span-2' : ''}`}
+              >
                 <div className="h-10 w-10 rounded-2xl bg-muted" />
-                <div className="mt-4 h-3 w-16 rounded bg-muted" />
+                <div className="mt-3 h-3 w-16 rounded bg-muted" />
                 <div className="mt-2 h-5 w-20 rounded bg-muted" />
                 <div className="mt-2 h-3 w-14 rounded bg-muted" />
               </div>
@@ -708,6 +719,60 @@ export default function DashboardMetrics({
       );
     };
 
+    const mobileDetailCards = [
+      {
+        id: 'status',
+        label: netLabel,
+        value: netCashFlowPositive ? t('dashboardMetrics.mobilePositiveShort') : t('dashboardMetrics.mobileNegativeShort'),
+        helper: t('dashboardMetrics.mobileNetCashFlow'),
+        icon: TrendingUp,
+        iconBg: 'bg-emerald-100',
+        iconColor: netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500',
+        href: '/reports',
+      },
+      {
+        id: 'upcoming',
+        label: t('dashboardMetrics.mobileUpcoming'),
+        value: metrics.upcomingPaymentsCount > 0 ? `${metrics.upcomingPaymentsCount}` : '0',
+        helper: upcomingCountLabel,
+        icon: CalendarClock,
+        iconBg: 'bg-violet-100',
+        iconColor: 'text-violet-600',
+        href: '/personal-subscriptions',
+      },
+      {
+        id: 'budget',
+        label: t('dashboardMetrics.mobileBudget'),
+        value: budgetUsagePct !== null ? `${budgetUsagePct}%` : t('dashboardMetrics.mobileBudgetFallbackShort'),
+        helper: budgetUsageLabel,
+        icon: Target,
+        iconBg: 'bg-amber-100',
+        iconColor: 'text-amber-600',
+        href: '/budgets',
+      },
+      {
+        id: 'recent',
+        label: t('recentTransactions.mobileTitle', { ns: 'portal' }),
+        value: t('actions.viewAll', { ns: 'common' }),
+        helper: t('dashboardMetrics.mobileRecentHelper'),
+        icon: History,
+        iconBg: 'bg-sky-100',
+        iconColor: 'text-sky-600',
+        href: '/transactions',
+      },
+      {
+        id: 'ai',
+        label: t('aiUsage.mobileFeature.title', { ns: 'portal' }),
+        value: t('bottomNav.smartEntry', { ns: 'portal' }),
+        helper: t('aiUsage.mobileFeature.footer', { ns: 'portal' }),
+        icon: Sparkles,
+        iconBg: 'bg-blue-100',
+        iconColor: 'text-blue-600',
+        onClick: () => quickActions?.openQuickAction('smart_entry'),
+        wide: true,
+      },
+    ] as const;
+
     return (
       <div className="space-y-3.5">
         {hasConfigurationWarning ? (
@@ -724,15 +789,27 @@ export default function DashboardMetrics({
           <div className="relative z-[1]">
             <div className="flex items-center justify-between gap-2 text-[13px] font-600 text-white/90">
               <span>{t('dashboardMetrics.mobileSummaryTitle')}</span>
-              <button
-                type="button"
-                onClick={() => setHideSensitive((current) => !current)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/90 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-pressed={hideSensitive}
-                aria-label={hideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
-              >
-                <Eye size={16} className="text-white/90" />
-              </button>
+              <div className="flex items-center gap-2">
+                {mobileModeToggle ? (
+                  <button
+                    type="button"
+                    onClick={mobileModeToggle.onToggle}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full border border-white/18 bg-white/10 px-2.5 text-[11px] font-700 text-white/90 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  >
+                    <ArrowUpDown size={13} />
+                    <span>{mobileModeToggle.label}</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setHideSensitive((current) => !current)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/90 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  aria-pressed={hideSensitive}
+                  aria-label={hideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
+                >
+                  <Eye size={16} className="text-white/90" />
+                </button>
+              </div>
             </div>
 
             <div className="mt-3 font-tabular">
@@ -798,47 +875,44 @@ export default function DashboardMetrics({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-3 gap-2.5">
-          <article className="rounded-[20px] border border-emerald-100/80 bg-[linear-gradient(180deg,#ffffff,#f3fbf7)] p-3 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.55)]">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-              <TrendingUp size={17} />
-            </div>
-            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{netLabel}</p>
-            <p className={`mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] ${netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
-              {netCashFlowPositive ? t('dashboardMetrics.mobilePositiveShort') : t('dashboardMetrics.mobileNegativeShort')}
-            </p>
-            <p className="mt-1 text-[11px] leading-4 text-slate-500">{t('dashboardMetrics.mobileNetCashFlow')}</p>
-          </article>
+        <div className="grid grid-cols-2 gap-2.5">
+          {mobileDetailCards.map((card) => {
+            const Icon = card.icon;
+            const cardClassName = `rounded-[20px] border p-3 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] transition-all duration-150 active:scale-[0.985] ${
+              card.wide ? 'col-span-2 bg-[linear-gradient(180deg,#ffffff,#eff6ff)] border-blue-100/90' : 'bg-[linear-gradient(180deg,#ffffff,#f8fafc)] border-slate-200/80'
+            }`;
+            const content = (
+              <>
+                <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${card.iconBg} ${card.iconColor}`}>
+                  <Icon size={16} />
+                </div>
+                <p className="mt-2 text-[11px] font-700 leading-4 text-slate-700">{card.label}</p>
+                <p className={`mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] ${card.iconColor}`}>
+                  {card.value}
+                </p>
+                <p className="mt-1 text-[11px] leading-4 text-slate-500">{card.helper}</p>
+              </>
+            );
 
-          <article className="rounded-[20px] border border-violet-100/80 bg-[linear-gradient(180deg,#ffffff,#f7f4ff)] p-3 shadow-[0_14px_28px_-24px_rgba(139,92,246,0.45)]">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-              <CalendarClock size={17} />
-            </div>
-            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileUpcoming')}</p>
-            <p className="mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] text-violet-600">
-              {metrics.upcomingPaymentsCount > 0 ? metrics.upcomingPaymentsCount : '0'}
-            </p>
-            <p className="mt-1 text-[11px] leading-4 text-slate-500">{upcomingCountLabel}</p>
-          </article>
+            if ('href' in card) {
+              return (
+                <Link key={card.id} href={card.href} className={cardClassName}>
+                  {content}
+                </Link>
+              );
+            }
 
-          <article className="rounded-[20px] border border-amber-100/90 bg-[linear-gradient(180deg,#ffffff,#fff7ed)] p-3 shadow-[0_14px_28px_-24px_rgba(245,158,11,0.4)]">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <Target size={17} />
-            </div>
-            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileBudget')}</p>
-            <p className="mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] text-amber-600">
-              {budgetUsagePct !== null ? `${budgetUsagePct}%` : t('dashboardMetrics.mobileBudgetFallbackShort')}
-            </p>
-            <p className="mt-1 text-[11px] leading-4 text-slate-500">{budgetUsageLabel}</p>
-            {budgetUsagePct !== null ? (
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
-                <div
-                  className="h-full rounded-full bg-[linear-gradient(90deg,#fb923c,#f59e0b)]"
-                  style={{ width: `${budgetUsagePct}%` }}
-                />
-              </div>
-            ) : null}
-          </article>
+            return (
+              <button
+                key={card.id}
+                type="button"
+                onClick={card.onClick}
+                className={`${cardClassName} text-left`}
+              >
+                {content}
+              </button>
+            );
+          })}
         </div>
       </div>
     );

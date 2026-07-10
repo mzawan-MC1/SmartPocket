@@ -356,6 +356,7 @@
     "mobileBudgetMixed": "Budgets mixtes",
     "mobileBudgetEmpty": "Pas encore de budget",
     "mobileBudgetFallbackShort": "Prêt",
+    "mobileRecentHelper": "Activité récente",
     "peopleWithManagedMoney": "{{count}} personnes avec argent géré",
     "borrowedIn": "emprunté sur {{period}}",
     "paidIn": "payé sur {{period}}",
@@ -466,14 +467,14 @@
     "trialing": "Essai",
     "mobileFeature": {
       "title": "Ajouter avec Smart AI",
-      "description": "Capturez vos dépenses de la manière la plus simple pour vous.",
+      "description": "Capturez vos dépenses à votre façon.",
       "typeTitle": "Tapez-le",
-      "typeDescription": "Tapez ou collez votre dépense",
+      "typeDescription": "Tapez ou collez",
       "voiceTitle": "Dictez-le",
-      "voiceDescription": "Parlez et laissez l'IA l'ajouter pour vous",
+      "voiceDescription": "Parlez et ajoutez",
       "uploadTitle": "Importez-le",
-      "uploadDescription": "Importez un reçu ou une capture d'écran",
-      "footer": "Smart AI extrait les détails et classe tout instantanément."
+      "uploadDescription": "Reçu ou fichier",
+      "footer": "L'IA extrait les détails instantanément."
     }
   },
   "dashboardAccounts": {

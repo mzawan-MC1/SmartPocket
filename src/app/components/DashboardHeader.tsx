@@ -150,11 +150,11 @@ export default function DashboardHeader({
   return (
     <section className="space-y-1.5">
       <div className="md:hidden space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="flex items-start justify-between gap-2.5">
+          <div className="min-w-0 flex-1 pe-1">
             <h1
-              className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.03em] text-foreground ${
-                isArabic ? 'text-[23px] leading-[1.05]' : 'text-[24px] leading-[1.05]'
+              className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.028em] text-foreground ${
+                isArabic ? 'text-[22px] leading-[1.08] max-[360px]:text-[21px]' : 'text-[23px] leading-[1.08] max-[360px]:text-[21px]'
               }`}
               title={headingText}
             >
@@ -165,7 +165,7 @@ export default function DashboardHeader({
             </p>
           </div>
           <div className="shrink-0">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_button]:h-10 [&_button]:w-10 [&_button]:rounded-full [&_svg]:h-[21px] [&_svg]:w-[21px]">
               <NotificationBell />
             </div>
           </div>

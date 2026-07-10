@@ -356,6 +356,7 @@
     "mobileBudgetMixed": "Смешанные бюджеты",
     "mobileBudgetEmpty": "Бюджета пока нет",
     "mobileBudgetFallbackShort": "Готово",
+    "mobileRecentHelper": "Последняя активность",
     "peopleWithManagedMoney": "{{count}} человек с управляемыми деньгами",
     "borrowedIn": "занято в {{period}}",
     "paidIn": "выплачено в {{period}}",
@@ -466,14 +467,14 @@
     "trialing": "Пробный",
     "mobileFeature": {
       "title": "Добавить с Smart AI",
-      "description": "Фиксируйте расходы так, как вам удобнее всего.",
+      "description": "Добавляйте расходы по-своему.",
       "typeTitle": "Напишите",
-      "typeDescription": "Введите или вставьте свой расход",
+      "typeDescription": "Введите или вставьте",
       "voiceTitle": "Скажите",
-      "voiceDescription": "Продиктуйте, и ИИ добавит это за вас",
+      "voiceDescription": "Скажите и добавьте",
       "uploadTitle": "Загрузите",
-      "uploadDescription": "Загрузите чек или снимок экрана",
-      "footer": "Smart AI сразу извлекает детали и распределяет их по категориям."
+      "uploadDescription": "Чек или файл",
+      "footer": "ИИ сразу извлекает детали."
     }
   },
   "dashboardAccounts": {

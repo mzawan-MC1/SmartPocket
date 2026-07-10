@@ -869,6 +869,7 @@
     "mobileBudgetMixed": "Mixed budgets",
     "mobileBudgetEmpty": "No budgets yet",
     "mobileBudgetFallbackShort": "Ready",
+    "mobileRecentHelper": "Latest activity",
     "peopleWithManagedMoney": "{{count}} people with managed money",
     "borrowedIn": "borrowed in {{period}}",
     "paidIn": "paid in {{period}}",
@@ -979,14 +980,14 @@
     "trialing": "Trial",
     "mobileFeature": {
       "title": "Add with Smart AI",
-      "description": "Capture expenses in the way that's easiest for you.",
+      "description": "Capture expenses your way.",
       "typeTitle": "Type it",
-      "typeDescription": "Type or paste your expense",
+      "typeDescription": "Type or paste",
       "voiceTitle": "Voice it",
-      "voiceDescription": "Speak and let AI add it for you",
+      "voiceDescription": "Speak and add",
       "uploadTitle": "Upload it",
-      "uploadDescription": "Upload receipt or screenshot",
-      "footer": "Smart AI extracts details and categorizes instantly."
+      "uploadDescription": "Receipt or file",
+      "footer": "AI extracts details instantly."
     }
   },
   "dashboardAccounts": {
