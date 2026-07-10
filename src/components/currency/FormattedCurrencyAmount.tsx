@@ -72,6 +72,28 @@ export default function FormattedCurrencyAmount({
       displayMode: resolvedTextDisplayMode,
     });
 
+    if (showCode && formattedText.usesCodeToken) {
+      return (
+        <span
+          dir="ltr"
+          className={`inline-flex flex-row items-baseline unicode-bidi-isolate ${className}`.trim()}
+          style={{ gap: `${layoutStyles.gapEm}em`, unicodeBidi: 'isolate' }}
+        >
+          {formattedText.sign ? (
+            <span className={numberClassName} style={{ lineHeight: 1 }}>
+              −
+            </span>
+          ) : null}
+          <span className={resolvedCodeClassName} style={{ lineHeight: 1 }}>
+            {formattedText.code}
+          </span>
+          <bdi dir="ltr" className={numberClassName} style={{ lineHeight: 1 }}>
+            {formattedText.numberText}
+          </bdi>
+        </span>
+      );
+    }
+
     return (
       <span
         dir="ltr"

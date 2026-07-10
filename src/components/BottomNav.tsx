@@ -103,14 +103,14 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     <>
       {(quickAddOpen || moreOpen) && (
         <div
-          className="fixed inset-0 z-40 bg-foreground/20 fade-in"
+          className="fixed inset-0 z-40 bg-slate-900/18 fade-in"
           onClick={() => { setQuickAddOpen(false); setMoreOpen(false); }}
         />
       )}
 
       {quickAddOpen && (
         <div className="fixed inset-x-0 bottom-[calc(4.35rem+env(safe-area-inset-bottom)+0.4rem)] z-50 px-3 pb-[max(env(safe-area-inset-bottom),0.35rem)] lg:hidden">
-          <div className="mx-auto w-full max-w-sm slide-up overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] shadow-[0_24px_54px_-28px_rgba(15,23,42,0.32)] backdrop-blur-xl">
+          <div className="mx-auto w-full max-w-sm slide-up overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_18px_36px_-24px_rgba(15,23,42,0.24)]">
             <div className="border-b border-slate-200/80 px-4 py-3.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -138,7 +138,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                         tile.onClick();
                         setQuickAddOpen(false);
                       }}
-                      className={`flex min-h-[88px] flex-col items-start justify-between rounded-[22px] border px-3 py-3 text-left transition-all duration-150 active:scale-[0.985] ${tile.color}`}
+                      className={`flex min-h-[88px] flex-col items-start justify-between rounded-[22px] border px-3 py-3 text-left transition-colors duration-150 active:bg-slate-50 ${tile.color}`}
                     >
                       <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/90 shadow-[0_10px_20px_-18px_rgba(15,23,42,0.35)]">
                         <TileIcon size={17} />
@@ -234,7 +234,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 bg-white/90 backdrop-blur safe-area-bottom shadow-[0_-10px_34px_rgba(15,23,42,0.12)]"
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 bg-white safe-area-bottom shadow-[0_-8px_24px_rgba(15,23,42,0.08)]"
         style={{ height: 'calc(4.35rem + env(safe-area-inset-bottom))' }}
       >
         <div className="flex h-full items-center justify-around px-2 pt-1.5">

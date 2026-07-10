@@ -12,6 +12,8 @@ import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 
+const DASHBOARD_METRICS_TIMEOUT_MS = 12000;
+
 interface DashboardMetricCard {
   id: string;
   label: string;
@@ -244,19 +246,27 @@ export default function DashboardMetrics({
   const isArabic = language === 'ar';
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [hideSensitive, setHideSensitive] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const nextMetrics = await getDashboardMetrics({
-        startDate: activePeriod.startDate,
-        endDate: activePeriod.endDate,
-        mode: activePeriod.mode,
-      });
+      const nextMetrics = await Promise.race([
+        getDashboardMetrics({
+          startDate: activePeriod.startDate,
+          endDate: activePeriod.endDate,
+          mode: activePeriod.mode,
+        }),
+        new Promise<DashboardMetrics>((_, reject) => {
+          window.setTimeout(() => reject(new Error('dashboard-metrics-timeout')), DASHBOARD_METRICS_TIMEOUT_MS);
+        }),
+      ]);
       setMetrics(nextMetrics);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setMetrics(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -341,7 +351,31 @@ export default function DashboardMetrics({
     );
   }
 
-  if (!metrics) return null;
+  if (loadError || !metrics) {
+    if (variant === 'mobile-dashboard') {
+      return (
+        <section className="rounded-[24px] border border-slate-200/80 bg-white p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.16)]">
+          <div className="space-y-1.5">
+            <h2 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+              {t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}
+            </h2>
+            <p className="text-[13px] leading-5 text-muted-foreground">
+              {t('shared.dashboardLoadFailedDescription', { ns: 'portal' })}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+          >
+            {t('shared.tryAgain', { ns: 'portal' })}
+          </button>
+        </section>
+      );
+    }
+
+    return null;
+  }
 
   const isMonthMode = activePeriod.mode === 'month';
   const flowLabel = isMonthMode ? t('dashboardMetrics.monthly') : t('dashboardMetrics.period');
@@ -778,12 +812,9 @@ export default function DashboardMetrics({
           <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
         ) : null}
 
-        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0f3cbf_0%,#105ce0_42%,#18baf6_100%)] p-5 text-white shadow-[0_22px_46px_-22px_rgba(37,99,235,0.6)]">
-          <div aria-hidden="true" className="pointer-events-none absolute -right-12 bottom-[-3.5rem] h-48 w-48 rounded-full border border-white/10 opacity-70" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-4 bottom-2 h-40 w-40 rounded-full border border-white/10 opacity-70" />
-          <div aria-hidden="true" className="pointer-events-none absolute right-8 bottom-12 h-24 w-24 rounded-full border border-white/10 opacity-70" />
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_92%,rgba(255,255,255,0.14),transparent_56%),radial-gradient(circle_at_88%_100%,rgba(255,255,255,0.10),transparent_58%)] opacity-70" />
-          <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-[-5rem] h-[18rem] w-[18rem] rounded-full border border-white/10 opacity-60" />
+        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0f3cbf_0%,#105ce0_50%,#18baf6_100%)] p-5 text-white shadow-[0_16px_34px_-20px_rgba(37,99,235,0.45)]">
+          <div aria-hidden="true" className="pointer-events-none absolute right-[-1.75rem] bottom-[-1.75rem] h-32 w-32 rounded-full border border-white/10 opacity-70" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-3 bottom-3 h-24 w-24 rounded-full border border-white/10 opacity-65" />
 
           <div className="relative z-[1]">
             <div className="flex items-center justify-between gap-2 text-[13px] font-600 text-white/90">
@@ -877,8 +908,8 @@ export default function DashboardMetrics({
         <div className="grid grid-cols-2 gap-2.5">
           {mobileDetailCards.map((card) => {
             const Icon = card.icon;
-            const cardClassName = `rounded-[20px] border p-3 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] transition-all duration-150 active:scale-[0.985] ${
-              card.wide === true ? 'col-span-2 bg-[linear-gradient(180deg,#ffffff,#eff6ff)] border-blue-100/90' : 'bg-[linear-gradient(180deg,#ffffff,#f8fafc)] border-slate-200/80'
+            const cardClassName = `rounded-[20px] border bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)] transition-colors duration-150 active:bg-slate-50 ${
+              card.wide === true ? 'col-span-2 border-blue-100/90' : 'border-slate-200/80'
             }`;
             const content = (
               <>

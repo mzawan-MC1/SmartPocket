@@ -158,7 +158,7 @@ export default function DashboardHeader({
           <div className="min-w-0 flex-1 pe-1">
             <h1
               className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.028em] text-foreground ${
-                isArabic ? 'text-[22px] leading-[1.08] max-[360px]:text-[21px]' : 'text-[23px] leading-[1.08] max-[360px]:text-[21px]'
+                isArabic ? 'text-[21px] leading-[1.08] max-[380px]:text-[20px] max-[360px]:text-[19px]' : 'text-[22px] leading-[1.08] max-[380px]:text-[21px] max-[360px]:text-[19px]'
               }`}
               title={mobileHeadingText}
             >

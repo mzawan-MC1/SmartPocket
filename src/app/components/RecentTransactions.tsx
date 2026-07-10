@@ -18,6 +18,7 @@ import {
 import { getTransactionDocumentDisplayTitle } from '@/lib/transaction-documents';
 
 const RECENT_TRANSACTIONS_LIMIT = 5;
+const RECENT_TRANSACTIONS_TIMEOUT_MS = 12000;
 
 function formatDate(dateStr: string, locale: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -40,18 +41,32 @@ export default function RecentTransactions({
   const [documentSummaries, setDocumentSummaries] = useState<Record<string, TransactionListDocumentSummary>>({});
   const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const nextTransactions = await getTransactions({ limit: RECENT_TRANSACTIONS_LIMIT });
+      const nextTransactions = await Promise.race([
+        getTransactions({ limit: RECENT_TRANSACTIONS_LIMIT }),
+        new Promise<Transaction[]>((_, reject) => {
+          window.setTimeout(() => reject(new Error('recent-transactions-timeout')), RECENT_TRANSACTIONS_TIMEOUT_MS);
+        }),
+      ]);
       const summaries = nextTransactions.length > 0
-        ? await getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id))
+        ? await Promise.race([
+            getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id)),
+            new Promise<Record<string, TransactionListDocumentSummary>>((_, reject) => {
+              window.setTimeout(() => reject(new Error('recent-transactions-docs-timeout')), RECENT_TRANSACTIONS_TIMEOUT_MS);
+            }),
+          ])
         : {};
       setTransactions(nextTransactions);
       setDocumentSummaries(summaries);
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setTransactions([]);
+      setDocumentSummaries({});
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -123,6 +138,18 @@ export default function RecentTransactions({
               <div className="h-4 bg-muted rounded w-16" />
             </div>
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 text-center">
+          <p className="text-sm font-700 text-foreground">{t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{t('recentTransactions.emptyDescription', { ns: 'portal' })}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[12px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+          >
+            {t('shared.tryAgain', { ns: 'portal' })}
+          </button>
         </div>
       ) : transactions.length === 0 ? (
         <EmptyState

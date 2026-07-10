@@ -137,6 +137,8 @@ type AIHistoryItem = {
   created_at: string;
 };
 
+const AI_USAGE_TIMEOUT_MS = 12000;
+
 let cachedSummaryResult: SummaryFetchResult | null = null;
 let inFlightSummaryRequest: Promise<SummaryFetchResult> | null = null;
 
@@ -418,7 +420,12 @@ export default function AIUsageCard({
   const load = useCallback(async (force = false) => {
     setLoading(true);
     try {
-      const result = await fetchSubscriptionSummary(force);
+      const result = await Promise.race([
+        fetchSubscriptionSummary(force),
+        new Promise<SummaryFetchResult>((_, reject) => {
+          window.setTimeout(() => reject(new Error('ai-usage-timeout')), AI_USAGE_TIMEOUT_MS);
+        }),
+      ]);
 
       if (result.status === 200) {
         setSummary(result.data);
@@ -458,15 +465,20 @@ export default function AIUsageCard({
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
 
-      const { data, error } = await supabase
-        .from('ai_requests')
-        .select('id,request_type,status,raw_text,created_at')
-        .gte('created_at', monthStart.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(8);
+      const historyResult = await Promise.race([
+        supabase
+          .from('ai_requests')
+          .select('id,request_type,status,raw_text,created_at')
+          .gte('created_at', monthStart.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(8),
+        new Promise<{ data: null; error: Error }>((resolve) => {
+          window.setTimeout(() => resolve({ data: null, error: new Error('ai-history-timeout') }), AI_USAGE_TIMEOUT_MS);
+        }),
+      ]);
 
-      if (error) throw error;
-      setHistoryItems((data || []) as AIHistoryItem[]);
+      if (historyResult.error) throw historyResult.error;
+      setHistoryItems((historyResult.data || []) as AIHistoryItem[]);
     } catch {
       setHistoryItems([]);
     } finally {
@@ -489,7 +501,7 @@ export default function AIUsageCard({
 
   if (loading) {
     return (
-      <div className="card-elevated animate-pulse rounded-[24px] border border-violet-200/45 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(248,247,255,0.95)_58%,rgba(243,248,255,0.93))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_16px_36px_-20px_rgba(76,29,149,0.18)]">
+      <div className="animate-pulse rounded-[24px] border border-slate-200/80 bg-white p-3.5 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="h-9 w-9 rounded-2xl bg-violet-100/80" />
@@ -633,9 +645,9 @@ export default function AIUsageCard({
 
   const statusLabel = isTrialing ? t('aiUsage.trialing') : t('status.active', { ns: 'common' });
   const statusTone = peakPercent >= 100 || isTrialing ? 'warning' : 'default';
-  const outerCardClassName = 'card-elevated rounded-[24px] border border-violet-200/55 bg-[linear-gradient(150deg,rgba(252,250,255,0.98),rgba(246,242,255,0.96)_54%,rgba(241,246,255,0.94))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_18px_38px_-22px_rgba(91,33,182,0.24)]';
-  const primarySurfaceClassName = 'rounded-[18px] border border-violet-200/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(245,243,255,0.86))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_28px_-20px_rgba(109,40,217,0.24)]';
-  const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.72),rgba(241,245,249,0.68))] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]';
+  const outerCardClassName = 'rounded-[24px] border border-slate-200/80 bg-white p-3.5 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]';
+  const primarySurfaceClassName = 'rounded-[18px] border border-violet-200/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,247,255,0.96))] px-3 py-3';
+  const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-slate-50 px-3 py-1';
   const textHistoryCount = historyItems.filter((item) => item.request_type === 'text').length;
   const voiceHistoryCount = historyItems.filter((item) => item.request_type === 'voice').length;
   const receiptHistoryCount = receiptUsageTotal;
@@ -705,9 +717,8 @@ export default function AIUsageCard({
     ];
 
     return (
-      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-3.5 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.28)]">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-8 top-8 h-32 w-32 rounded-full bg-sky-200/30 blur-2xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-14 bottom-5 h-32 w-32 rounded-full bg-blue-200/25 blur-2xl" />
+      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-3.5 shadow-[0_10px_24px_-22px_rgba(59,130,246,0.18)]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-blue-100/70" />
 
         <div className="relative flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -722,7 +733,7 @@ export default function AIUsageCard({
           <button
             type="button"
             onClick={() => setUsageSheetOpen(true)}
-            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_36%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
             aria-label={t('aiUsage.history', { defaultValue: 'AI Usage' })}
           >
             <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
@@ -741,7 +752,7 @@ export default function AIUsageCard({
                 key={action.id}
                 type="button"
                 onClick={action.onClick}
-                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2.5 py-2.5 text-center transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
+                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2.5 py-2.5 text-center transition-colors duration-150 active:bg-slate-50 ${action.className}`}
               >
                 <div className="flex w-full items-center justify-center gap-1.5">
                   <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-white/92 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.24)]">
@@ -757,7 +768,7 @@ export default function AIUsageCard({
           })}
         </div>
 
-        <div className="relative mt-3.5 flex items-center justify-center gap-1.5 rounded-full bg-white/82 px-3 py-1.5 text-center text-[10.5px] font-600 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className="relative mt-3.5 flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-center text-[10.5px] font-600 text-slate-600">
           <Sparkles size={13} className="text-[#2f7cff]" />
           <span>{t('aiUsage.mobileFeature.footer')}</span>
         </div>

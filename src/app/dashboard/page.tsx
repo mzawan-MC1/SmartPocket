@@ -116,6 +116,7 @@ const DASHBOARD_MONTH_STORAGE_KEY = 'smartpocket.dashboard.month';
 const DASHBOARD_PAY_PERIOD_STORAGE_KEY = 'smartpocket.dashboard.pay-period-start';
 const DASHBOARD_REVALIDATE_DEBOUNCE_MS = 1500;
 const DASHBOARD_SLOW_LOAD_MS = 5000;
+const DASHBOARD_BOOTSTRAP_TIMEOUT_MS = 12000;
 
 function buildDashboardSignInHref() {
   return `/sign-up-login?next=${encodeURIComponent('/dashboard')}`;
@@ -246,6 +247,20 @@ export default function DashboardPage() {
   const latestPeriodRequestRef = useRef(0);
   const lastLifecycleRevalidationRef = useRef(0);
 
+  const withDashboardTimeout = useCallback(
+    async (promise: Promise<UserFinancialPeriodContext>, timeoutMs = DASHBOARD_BOOTSTRAP_TIMEOUT_MS) => (
+      await Promise.race([
+        promise,
+        new Promise<UserFinancialPeriodContext>((_, reject) => {
+          window.setTimeout(() => {
+            reject(new Error('dashboard-bootstrap-timeout'));
+          }, timeoutMs);
+        }),
+      ])
+    ),
+    []
+  );
+
   const clearDashboardBootstrapCaches = useCallback(() => {
     clearFinancialPeriodProfileCache();
     clearResolvedUserDefaultCurrencyCache();
@@ -299,9 +314,9 @@ export default function DashboardPage() {
     }, DASHBOARD_SLOW_LOAD_MS);
 
     try {
-      const nextContext = await loadUserFinancialPeriodContext({
+      const nextContext = await withDashboardTimeout(loadUserFinancialPeriodContext({
         userId: user?.id ?? null,
-      });
+      }));
       if (latestPeriodRequestRef.current !== requestId) return;
       setRouteRecoveryInProgress(false);
       setPeriodContext(nextContext);
@@ -324,7 +339,7 @@ export default function DashboardPage() {
         setPeriodLoading(false);
       }
     }
-  }, [clearDashboardBootstrapCaches, redirectToRecoveredDestination, supabase.auth, t, user?.id]);
+  }, [clearDashboardBootstrapCaches, redirectToRecoveredDestination, supabase.auth, t, user?.id, withDashboardTimeout]);
 
   const runDashboardBootstrap = useCallback(async (options?: {
     forceRefresh?: boolean;

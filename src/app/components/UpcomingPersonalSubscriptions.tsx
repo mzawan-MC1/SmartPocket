@@ -31,6 +31,8 @@ function daysUntil(dateIso: string, targetIso: string) {
   return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+const UPCOMING_SUBSCRIPTIONS_TIMEOUT_MS = 12000;
+
 export default function UpcomingPersonalSubscriptions({
   activePeriod,
   compact = false,
@@ -45,6 +47,7 @@ export default function UpcomingPersonalSubscriptions({
   const isArabic = language === 'ar';
   const [subscriptions, setSubscriptions] = useState<PersonalSubscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const todayIso = useMemo(
     () => getCurrentBusinessDate(activePeriod.timezone),
     [activePeriod.timezone]
@@ -57,16 +60,23 @@ export default function UpcomingPersonalSubscriptions({
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const all = await getPersonalSubscriptions({
-        statuses: ['trial', 'active', 'cancellation_requested', 'cancelling'],
-        nextBillingDateFrom: todayIso,
-        nextBillingDateTo: upcomingWindowEnd,
-      });
+      const all = await Promise.race([
+        getPersonalSubscriptions({
+          statuses: ['trial', 'active', 'cancellation_requested', 'cancelling'],
+          nextBillingDateFrom: todayIso,
+          nextBillingDateTo: upcomingWindowEnd,
+        }),
+        new Promise<PersonalSubscription[]>((_, reject) => {
+          window.setTimeout(() => reject(new Error('upcoming-subscriptions-timeout')), UPCOMING_SUBSCRIPTIONS_TIMEOUT_MS);
+        }),
+      ]);
       const upcoming = getUpcomingPersonalSubscriptionCharges(all, todayIso).slice(0, 3);
       setSubscriptions(upcoming);
     } catch {
       setSubscriptions([]);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -130,11 +140,27 @@ export default function UpcomingPersonalSubscriptions({
             <div className="mt-2 h-3 w-56 animate-pulse rounded bg-muted" />
             <div className="mt-3 h-10 w-24 animate-pulse rounded-full bg-muted" />
           </div>
+        ) : loadError ? (
+          <div className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
+            <p className="text-[13px] font-700 text-foreground">
+              {t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}
+            </p>
+            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+              {t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' })}
+            </p>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[12px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+            >
+              {t('shared.tryAgain', { ns: 'portal' })}
+            </button>
+          </div>
         ) : (
           visibleSuggestions.map((suggestion) => (
             <section
               key={suggestion.id}
-              className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.22)]"
+              className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]"
             >
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
@@ -177,7 +203,7 @@ export default function UpcomingPersonalSubscriptions({
       description={compact ? undefined : t('personalSubscriptions.widget.description', { ns: 'portal' })}
       className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md ${
         compact
-          ? 'border-violet-200/60 bg-[linear-gradient(165deg,rgba(255,255,255,0.95),rgba(247,244,255,0.92))]'
+          ? 'border-violet-200/60 bg-white'
           : 'border-border/80 bg-card'
       }`}
       action={(
@@ -197,6 +223,17 @@ export default function UpcomingPersonalSubscriptions({
               <div className="h-3 w-28 rounded bg-muted" />
             </div>
           ))}
+        </div>
+      ) : loadError ? (
+        <div className={`flex flex-1 flex-col items-center justify-center text-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}>
+          <p className="text-sm font-700 text-foreground">{t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}</p>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[12px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+          >
+            {t('shared.tryAgain', { ns: 'portal' })}
+          </button>
         </div>
       ) : subscriptions.length === 0 ? (
         <EmptyState
