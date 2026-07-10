@@ -54,8 +54,11 @@ export default function Modal({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const mobileContentClassName = mobileLayout === 'fullscreen'
-    ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-[480px]:rounded-[24px]'
-    : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] max-[480px]:rounded-[22px]';
+    ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-[480px]:rounded-[24px]'
+    : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-[480px]:rounded-[20px]';
+  const mobileShellClassName = mobileLayout === 'sheet'
+    ? 'px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-[calc(env(safe-area-inset-top)+0.35rem)]'
+    : 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)]';
 
   useEffect(() => {
     if (isVisible) {
@@ -106,7 +109,7 @@ export default function Modal({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:items-center sm:p-5">
+    <div className={`fixed inset-0 z-50 flex items-end justify-center ${mobileShellClassName} sm:items-center sm:p-5`}>
       <div className="absolute inset-0 bg-foreground/30 backdrop-blur-sm fade-in" onClick={handleBackdropClick} />
       <div
         ref={dialogRef}
@@ -117,7 +120,7 @@ export default function Modal({
         tabIndex={-1}
         className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
-        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-4 ${headerClassName}`}>
+        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-3.5 ${headerClassName}`}>
           <div>
             <h2 id={headingId} className="text-[1.02rem] font-800 leading-snug text-foreground sm:text-lg">{title}</h2>
             {description ? <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
@@ -125,10 +128,10 @@ export default function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="btn-ghost p-1.5 -mr-1 -mt-1 rounded-lg"
+            className="btn-ghost -mr-1 -mt-1 rounded-lg p-[5px]"
             aria-label={t('actions.close')}
           >
-            <X size={18} />
+            <X size={17} />
           </button>
         </div>
         <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-5 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
