@@ -442,12 +442,12 @@ export default function PersonalSubscriptionForm({
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-5 max-[640px]:space-y-4" noValidate>
+    <form ref={formRef} onSubmit={handleSubmit(onSubmit)} className="space-y-3 max-[640px]:space-y-2.5" noValidate>
       <FormSection
         variant="primary"
         title={t('personalSubscriptions.formTitle', { ns: 'portal' })}
-        description={t('personalSubscriptions.formDescription', { ns: 'portal' })}
-        bodyClassName="space-y-4 max-[640px]:space-y-3"
+        headerClassName="px-3.5 py-3 max-[640px]:px-3 max-[640px]:py-2.5"
+        bodyClassName="space-y-3 px-3.5 py-3 max-[640px]:space-y-2.5 max-[640px]:px-3 max-[640px]:py-2.5"
       >
         <div>
           <label htmlFor="subscription-name" className={compactFieldLabelClassName(Boolean(errors.name))}>
@@ -464,7 +464,7 @@ export default function PersonalSubscriptionForm({
           {errors.name ? <p className={fieldErrorClassName}>{errors.name.message}</p> : null}
         </div>
 
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-12 md:gap-4">
+        <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-12 md:gap-3">
           <div className="min-w-0 min-[420px]:col-span-5 lg:col-span-4">
             <label htmlFor="subscription-amount" className={compactFieldLabelClassName(Boolean(errors.amount))}>
               {t('personalSubscriptions.form.fields.amount', { ns: 'portal' })}
@@ -509,7 +509,7 @@ export default function PersonalSubscriptionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-12 md:gap-4">
+        <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-12 md:gap-3">
           <div className="min-w-0 min-[420px]:col-span-5 lg:col-span-6">
             <label htmlFor="subscription-next-billing" className={compactFieldLabelClassName(Boolean(errors.next_billing_date))}>
               {t('personalSubscriptions.form.fields.nextBillingDate', { ns: 'portal' })}
@@ -554,7 +554,7 @@ export default function PersonalSubscriptionForm({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-2.5 max-[640px]:gap-2.5 md:grid-cols-12">
           <div className="min-w-0 md:col-span-6">
             <label htmlFor="subscription-category" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
@@ -574,7 +574,7 @@ export default function PersonalSubscriptionForm({
         </div>
 
         <div>
-          <label className="flex min-h-[2.75rem] items-center gap-2 rounded-xl border border-border bg-muted/15 px-3 py-2 text-[13px] font-600 leading-4 text-foreground max-[640px]:min-h-[2.625rem] max-[640px]:py-2">
+          <label className="flex min-h-[2.65rem] items-center gap-2 rounded-xl border border-border bg-muted/15 px-3 py-2 text-[13px] font-600 leading-4 text-foreground max-[640px]:min-h-[2.55rem] max-[640px]:py-2">
             <input type="checkbox" className="rounded border-border" {...register('auto_renew')} />
             <span>{t('personalSubscriptions.form.fields.autoRenew', { ns: 'portal' })}</span>
           </label>
@@ -591,11 +591,13 @@ export default function PersonalSubscriptionForm({
         collapsible
         expanded={moreOptionsOpen}
         onExpandedChange={setMoreOptionsOpen}
-        bodyClassName="space-y-5 max-[640px]:space-y-4"
+        className="border-border/80 bg-[#fcfcfd]"
+        headerClassName="px-3.5 py-2.5 max-[640px]:px-3 max-[640px]:py-2.5"
+        bodyClassName="space-y-3 px-3.5 py-2.5 max-[640px]:space-y-2.5 max-[640px]:px-3"
       >
         {moreOptionsOpen ? (
-        <section className="space-y-5 max-[640px]:space-y-4">
-          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+        <section className="space-y-3 max-[640px]:space-y-2.5">
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-provider" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.provider', { ns: 'portal' })}
@@ -625,7 +627,7 @@ export default function PersonalSubscriptionForm({
           </div>
 
           {(frequency === 'custom' || watch('billing_interval') !== '1') ? (
-            <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+            <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
               <div className="md:col-span-6">
                 <label htmlFor="subscription-billing-interval" className={compactFieldLabelClassName(false)}>
                   {t('personalSubscriptions.form.fields.billingInterval', { ns: 'portal' })}
@@ -659,7 +661,7 @@ export default function PersonalSubscriptionForm({
             </div>
           )}
 
-          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-trial-end" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.trialEndDate', { ns: 'portal' })}
@@ -675,7 +677,7 @@ export default function PersonalSubscriptionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-payment-method" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.paymentMethod', { ns: 'portal' })}
@@ -691,7 +693,7 @@ export default function PersonalSubscriptionForm({
             </div>
 
             <div className="md:col-span-6">
-              <label className={`flex items-start gap-2 rounded-xl border border-border bg-muted/15 p-3 text-sm max-[640px]:p-2.5 ${!linkedRecurringSupported || subscription?.recurring_transaction_id ? 'opacity-60' : ''}`}>
+              <label className={`flex items-start gap-2 rounded-xl border border-border bg-muted/15 p-2.5 text-sm ${!linkedRecurringSupported || subscription?.recurring_transaction_id ? 'opacity-60' : ''}`}>
                 <input
                   type="checkbox"
                   className="mt-0.5 rounded border-border"
@@ -717,11 +719,11 @@ export default function PersonalSubscriptionForm({
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             <p className="text-sm font-700 text-foreground max-[640px]:text-[13px]">{t('personalSubscriptions.form.fields.reminderDaysBefore', { ns: 'portal' })}</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5">
               {PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS.map((day) => (
-                <label key={day} className="choice-check-chip inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm">
+                <label key={day} className="choice-check-chip inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[13px]">
                   <input type="checkbox" value={String(day)} className="rounded border-border" {...register('reminder_days_before')} />
                   <span>{t('personalSubscriptions.form.reminderOption', { ns: 'portal', count: day })}</span>
                 </label>
@@ -729,7 +731,7 @@ export default function PersonalSubscriptionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-4">
               <label htmlFor="subscription-notice-days" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.cancellationNoticeDays', { ns: 'portal' })}
@@ -752,7 +754,7 @@ export default function PersonalSubscriptionForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 max-[640px]:gap-3 md:grid-cols-12">
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-website-url" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.websiteUrl', { ns: 'portal' })}
@@ -784,11 +786,11 @@ export default function PersonalSubscriptionForm({
       ) : null}
       </FormSection>
 
-      <div className={`flex flex-col gap-2 border-t border-border pt-4 max-[640px]:gap-1.5 max-[640px]:pt-3 sm:flex-row ${isRTL ? 'sm:justify-start sm:flex-row-reverse' : 'sm:justify-end'}`}>
-        <button type="button" onClick={onCancel} className="order-2 btn-secondary max-[640px]:min-h-[2.5rem] max-[640px]:border-transparent max-[640px]:bg-transparent max-[640px]:px-3 max-[640px]:py-2 max-[640px]:text-sm max-[640px]:text-muted-foreground sm:order-1">
+      <div className={`sticky z-10 rounded-[20px] border border-border/80 bg-background/95 px-2.5 py-2 shadow-card-sm backdrop-blur supports-[backdrop-filter]:bg-background/90 max-[640px]:bottom-[calc(5.2rem+env(safe-area-inset-bottom))] sm:bottom-0 sm:px-3 ${isRTL ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-end'} flex flex-col gap-2 sm:flex-row sm:items-center`}>
+        <button type="button" onClick={onCancel} className="order-2 inline-flex min-h-[2.7rem] items-center justify-center rounded-[15px] bg-[#eef2f7] px-3.5 py-2 text-[14px] font-700 text-[#30435f] transition-colors hover:bg-[#e4ebf4] sm:order-1 sm:w-auto">
           {t('actions.cancel', { ns: 'common' })}
         </button>
-        <button type="submit" disabled={saving} className="order-1 w-full btn-primary max-[640px]:min-h-[2.75rem] max-[640px]:px-4 max-[640px]:py-2.5 sm:order-2 sm:w-auto">
+        <button type="submit" disabled={saving} className="order-1 inline-flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-[15px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-4 py-2.5 text-[14px] font-700 text-white shadow-[0_14px_24px_rgba(18,148,255,0.2)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:order-2 sm:w-auto sm:min-w-[11rem]">
           {saving ? (
             <>
               <Loader2 size={15} className="animate-spin" />
