@@ -588,7 +588,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [textInput, setTextInput] = useState('');
   const [spokenLanguage, setSpokenLanguage] = useState<SmartEntrySpokenLanguage>('auto');
-  const [displayLanguageOverride, setDisplayLanguageOverride] = useState<SmartEntryDisplayLanguage | null>(null);
   const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
   const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
   const [transcript, setTranscript] = useState('');
@@ -617,11 +616,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     notes: string;
   } | null>(null);
   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
-  const defaultDisplayLanguage = useMemo<SmartEntryDisplayLanguage>(
+  const displayLanguage = useMemo<SmartEntryDisplayLanguage>(
     () => normalizeDisplayLanguage(uiLanguage),
     [uiLanguage]
   );
-  const displayLanguage = displayLanguageOverride || defaultDisplayLanguage;
 
   // Check AI configuration on mount
   useEffect(() => {
@@ -1392,7 +1390,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     }
     if (!options?.preserveLanguage) {
       setSpokenLanguage('auto');
-      setDisplayLanguageOverride(null);
     }
   }, [defaultMode, originalTranscript, originalTranscriptLanguage, textInput, translationNotice]);
 
@@ -2123,14 +2120,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     { code: 'fr', label: t('language.fr', { ns: 'common' }) },
     { code: 'ru', label: t('language.ru', { ns: 'common' }) },
   ];
-  const DISPLAY_LANGUAGES: Array<{ code: SmartEntryDisplayLanguage; label: string }> = [
-    { code: 'en', label: t('language.en', { ns: 'common' }) },
-    { code: 'ar', label: t('language.ar', { ns: 'common' }) },
-    { code: 'fr', label: t('language.fr', { ns: 'common' }) },
-    { code: 'ru', label: t('language.ru', { ns: 'common' }) },
-  ];
-  const displayLanguageLabel = DISPLAY_LANGUAGES.find((entry) => entry.code === displayLanguage)?.label
-    || t('language.en', { ns: 'common' });
   const visibleSpokenLanguages = SPOKEN_LANGUAGES.filter((entry) => entry.code !== 'ur');
   const advancedSpokenLanguages = SPOKEN_LANGUAGES.filter((entry) => entry.code === 'ur');
   const modeOptions: Array<{ id: EntryMode; icon: typeof Type; label: string }> = [
@@ -2294,8 +2283,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 })}
               </div>
 
-              <div className="rounded-2xl border border-border bg-secondary/20 p-3.5 sm:p-4">
-                <div className="mb-3">
+              <div className="rounded-2xl border border-border bg-secondary/20 p-3 sm:p-3.5">
+                <div className="mb-2.5">
                   <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
                     {t('smartEntryModal.languageLabel', { ns: 'portal' })}
                   </p>
@@ -2304,101 +2293,50 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <p className="mb-2 text-xs font-600 text-foreground">
-                      {t('smartEntryModal.language.inputLabel', { ns: 'portal' })}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {visibleSpokenLanguages.map((entry) => (
+                <div className="flex flex-wrap gap-2">
+                  {visibleSpokenLanguages.map((entry) => (
+                    <button
+                      key={entry.code}
+                      type="button"
+                      onClick={() => setSpokenLanguage(entry.code)}
+                      dir={getLanguageDirection(entry.code)}
+                      lang={entry.code === 'auto' ? undefined : entry.code}
+                      aria-pressed={spokenLanguage === entry.code}
+                      className={`${languageChipClassName} ${
+                        spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
+                      }`}
+                    >
+                      {entry.label}
+                    </button>
+                  ))}
+                </div>
+                {mode === 'voice' && advancedSpokenLanguages.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer list-none text-[11px] font-600 text-muted-foreground">
+                      {t('smartEntryModal.language.advancedRecognition', { ns: 'portal' })}
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {advancedSpokenLanguages.map((entry) => (
                         <button
                           key={entry.code}
                           type="button"
                           onClick={() => setSpokenLanguage(entry.code)}
                           dir={getLanguageDirection(entry.code)}
-                          lang={entry.code === 'auto' ? undefined : entry.code}
+                          lang={entry.code}
                           aria-pressed={spokenLanguage === entry.code}
                           className={`${languageChipClassName} ${
                             spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
                           }`}
                         >
                           {entry.label}
+                          <span className="ms-1 text-[10px] font-500 opacity-75">
+                            {t('smartEntryModal.language.recognitionOnly', { ns: 'portal' })}
+                          </span>
                         </button>
                       ))}
                     </div>
-                    {mode === 'voice' && advancedSpokenLanguages.length > 0 && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer list-none text-[11px] font-600 text-muted-foreground">
-                          {t('smartEntryModal.language.advancedRecognition', { ns: 'portal' })}
-                        </summary>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {advancedSpokenLanguages.map((entry) => (
-                            <button
-                              key={entry.code}
-                              type="button"
-                              onClick={() => setSpokenLanguage(entry.code)}
-                              dir={getLanguageDirection(entry.code)}
-                              lang={entry.code}
-                              aria-pressed={spokenLanguage === entry.code}
-                              className={`${languageChipClassName} ${
-                                spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
-                              }`}
-                            >
-                              {entry.label}
-                              <span className="ms-1 text-[10px] font-500 opacity-75">
-                                {t('smartEntryModal.language.recognitionOnly', { ns: 'portal' })}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="mb-2 text-xs font-600 text-foreground">
-                      {t('smartEntryModal.language.aiLabel', { ns: 'portal' })}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setDisplayLanguageOverride(null)}
-                        aria-pressed={displayLanguageOverride === null}
-                        className={`${languageChipClassName} ${
-                          displayLanguageOverride === null ? selectedLanguageChipClassName : unselectedLanguageChipClassName
-                        }`}
-                      >
-                        {t('smartEntryModal.language.useSmartPocketDefault', { ns: 'portal' })}
-                      </button>
-                      {DISPLAY_LANGUAGES.map((entry) => (
-                        <button
-                          key={entry.code}
-                          type="button"
-                          onClick={() => setDisplayLanguageOverride(entry.code)}
-                          dir={getLanguageDirection(entry.code)}
-                          lang={entry.code}
-                          aria-pressed={displayLanguageOverride === entry.code}
-                          className={`${languageChipClassName} ${
-                            displayLanguageOverride === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
-                          }`}
-                        >
-                          {entry.label}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="mt-2 text-[11px] text-muted-foreground">
-                      {displayLanguageOverride
-                        ? t('smartEntryModal.language.displayOverride', {
-                            ns: 'portal',
-                            language: displayLanguageLabel,
-                          })
-                        : t('smartEntryModal.language.displayDefault', {
-                            ns: 'portal',
-                            language: displayLanguageLabel,
-                          })}
-                    </p>
-                  </div>
-                </div>
+                  </details>
+                )}
               </div>
 
               {mode === 'document' ? (
