@@ -527,7 +527,7 @@ export default function DashboardPage() {
   }, [dashboardLocale, periodContext]);
 
   const mobileModeToggle = React.useMemo(() => {
-    if (!periodContext || !activePeriod || !viewMode) return null;
+    if (!periodContext || !viewMode) return null;
 
     const monthPeriod = buildMonthActivePeriod(
       selectedMonth || getMonthContext(undefined, periodContext.timezone).monthKey,
@@ -555,7 +555,6 @@ export default function DashboardPage() {
           onToggle: () => handleViewModeChange('month'),
         };
   }, [
-    activePeriod,
     dashboardLocale,
     handleViewModeChange,
     periodContext,
