@@ -6,6 +6,8 @@ import { AlertTriangle, Calendar, Clock, FileUp, History, Keyboard, Mic, Refresh
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
+import Modal from '@/components/ui/Modal';
+import { createClient } from '@/lib/supabase/client';
 
 interface SubscriptionSummary {
   has_subscription: boolean;
@@ -125,6 +127,14 @@ type UsageMetric = {
   total: number;
   used: number;
   percent: number | null;
+};
+
+type AIHistoryItem = {
+  id: string;
+  request_type: 'voice' | 'text';
+  status: string;
+  raw_text: string | null;
+  created_at: string;
 };
 
 let cachedSummaryResult: SummaryFetchResult | null = null;
@@ -401,6 +411,9 @@ export default function AIUsageCard({
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isUnavailable, setIsUnavailable] = useState(false);
+  const [usageSheetOpen, setUsageSheetOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<AIHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const load = useCallback(async (force = false) => {
     setLoading(true);
@@ -436,6 +449,35 @@ export default function AIUsageCard({
   useSmartPocketDataChanged(['ai_usage', 'dashboard', 'transactions', 'transaction_documents', 'financial_accounts'], 'AIUsageCard', async () => {
     await load(true);
   });
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const supabase = createClient();
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('ai_requests')
+        .select('id,request_type,status,raw_text,created_at')
+        .gte('created_at', monthStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      if (error) throw error;
+      setHistoryItems((data || []) as AIHistoryItem[]);
+    } catch {
+      setHistoryItems([]);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!usageSheetOpen) return;
+    void loadHistory();
+  }, [loadHistory, usageSheetOpen]);
 
   const formatResetDate = (value?: string | null) => {
     if (!value) return null;
@@ -594,6 +636,10 @@ export default function AIUsageCard({
   const outerCardClassName = 'card-elevated rounded-[24px] border border-violet-200/55 bg-[linear-gradient(150deg,rgba(252,250,255,0.98),rgba(246,242,255,0.96)_54%,rgba(241,246,255,0.94))] p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.03),0_18px_38px_-22px_rgba(91,33,182,0.24)]';
   const primarySurfaceClassName = 'rounded-[18px] border border-violet-200/55 bg-[linear-gradient(160deg,rgba(255,255,255,0.92),rgba(245,243,255,0.86))] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_14px_28px_-20px_rgba(109,40,217,0.24)]';
   const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-[linear-gradient(160deg,rgba(255,255,255,0.72),rgba(241,245,249,0.68))] px-3 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]';
+  const textHistoryCount = historyItems.filter((item) => item.request_type === 'text').length;
+  const voiceHistoryCount = historyItems.filter((item) => item.request_type === 'voice').length;
+  const receiptHistoryCount = receiptUsageTotal;
+  const totalAiActions = textHistoryCount + voiceHistoryCount + receiptHistoryCount;
 
   const renderHeader = (showHistory: boolean, badge?: React.ReactNode) => (
     <div className="grid grid-cols-[auto,minmax(0,1fr)] gap-x-2.5 gap-y-1">
@@ -673,13 +719,18 @@ export default function AIUsageCard({
               {t('aiUsage.mobileFeature.description')}
             </p>
           </div>
-          <div className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_36%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)]">
+          <button
+            type="button"
+            onClick={() => setUsageSheetOpen(true)}
+            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_36%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)] transition-transform duration-150 hover:scale-[1.03] active:scale-[0.98]"
+            aria-label={t('aiUsage.history', { defaultValue: 'AI Usage' })}
+          >
             <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
             <div className="absolute inset-[3px] rounded-full border border-white/45" />
             <div className="relative flex items-center justify-center">
               <Sparkles size={15} className="text-white drop-shadow-sm" />
             </div>
-          </div>
+          </button>
         </div>
 
         <div className="relative mt-3.5 grid grid-cols-3 gap-2">
@@ -781,8 +832,9 @@ export default function AIUsageCard({
   }
 
   return (
-    <div className={outerCardClassName}>
-      <div className="flex flex-col gap-2.5">
+    <>
+      <div className={outerCardClassName}>
+        <div className="flex flex-col gap-2.5">
         {renderHeader(Boolean(summary.ai_history_enabled), <CompactStatus label={statusLabel} tone={statusTone} />)}
 
         {usageMessage ? <UsageAlert message={usageMessage.text} tone={usageMessage.tone} /> : null}
@@ -882,7 +934,103 @@ export default function AIUsageCard({
             </div>
           ) : null}
         </div>
+        </div>
       </div>
-    </div>
+
+      <Modal
+        isOpen={usageSheetOpen}
+        onClose={() => setUsageSheetOpen(false)}
+        title={t('aiUsage.title', { defaultValue: 'AI Usage' })}
+        description={t('aiUsage.recentActivitySubtitle', {
+          defaultValue: 'Your recent AI activity',
+        })}
+        size="md"
+        mobileLayout="sheet"
+        contentClassName="sm:max-w-lg"
+        bodyClassName="space-y-3"
+      >
+        <div className="grid grid-cols-2 gap-2.5">
+          {[
+            {
+              id: 'text',
+              label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
+              value: textHistoryCount,
+            },
+            {
+              id: 'voice',
+              label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
+              value: voiceHistoryCount,
+            },
+            {
+              id: 'uploads',
+              label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
+              value: receiptHistoryCount,
+            },
+            {
+              id: 'total',
+              label: t('aiUsage.totalActions', { defaultValue: 'AI actions this month' }),
+              value: totalAiActions,
+            },
+          ].map((stat) => (
+            <div key={stat.id} className="rounded-2xl border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-3 py-3">
+              <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 text-[1.1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm font-800 text-foreground">{t('aiUsage.history', { defaultValue: 'History' })}</p>
+            <button
+              type="button"
+              onClick={() => void loadHistory()}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-slate-100"
+              aria-label={t('aiHistory.refresh', { defaultValue: 'Refresh' })}
+            >
+              <RefreshCw size={14} className={historyLoading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+
+          {historyLoading ? (
+            <div className="flex min-h-[8rem] items-center justify-center">
+              <RefreshCw size={18} className="animate-spin text-accent" />
+            </div>
+          ) : historyItems.length === 0 ? (
+            <div className="rounded-2xl bg-slate-50 px-3 py-4 text-center">
+              <p className="text-sm font-700 text-foreground">
+                {t('aiUsage.emptyHistoryTitle', { defaultValue: 'No AI usage yet this month.' })}
+              </p>
+              <p className="mt-1 text-[12px] text-muted-foreground">
+                {t('aiUsage.emptyHistoryBody', { defaultValue: 'Try Smart Entry, voice, or receipt upload to see activity here.' })}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {historyItems.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 rounded-2xl bg-slate-50 px-3 py-2.5">
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${
+                    item.request_type === 'voice' ? 'bg-sky-100 text-sky-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
+                    {item.request_type === 'voice' ? <Mic size={14} /> : <Keyboard size={14} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[13px] font-700 text-foreground">
+                      {item.raw_text || t('aiUsage.history', { defaultValue: 'AI action' })}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      {new Date(item.created_at).toLocaleDateString(
+                        language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
+                        { month: 'short', day: 'numeric' }
+                      )}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+    </>
   );
 }

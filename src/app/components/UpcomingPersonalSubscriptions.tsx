@@ -85,62 +85,88 @@ export default function UpcomingPersonalSubscriptions({
   );
 
   if (dashboardSuggestion) {
-    const firstSubscription = subscriptions[0] ?? null;
-    const dueInDays = firstSubscription?.next_billing_date
-      ? daysUntil(todayIso, firstSubscription.next_billing_date)
-      : null;
+    const suggestions = subscriptions.slice(0, 3).map((subscription) => {
+      const dueInDays = subscription.next_billing_date
+        ? daysUntil(todayIso, subscription.next_billing_date)
+        : null;
+
+      return {
+        id: subscription.id,
+        title: t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' }),
+        badge: t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' }),
+        message: dueInDays !== null
+          ? t('personalSubscriptions.widget.dashboardSuggestionPrimary', {
+              ns: 'portal',
+              name: subscription.name,
+              count: dueInDays,
+            })
+          : subscription.name,
+        helper: subscriptions.length > 1
+          ? t('personalSubscriptions.widget.dashboardSuggestionSecondary', {
+              ns: 'portal',
+              count: subscriptions.length,
+            })
+          : t('personalSubscriptions.widget.dashboardSuggestionSingle', { ns: 'portal' }),
+        href: `/personal-subscriptions/${subscription.id}`,
+      };
+    });
+
+    const visibleSuggestions = suggestions.length > 0
+      ? suggestions
+      : [{
+          id: 'general-suggestion',
+          title: t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' }),
+          badge: t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' }),
+          message: t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' }),
+          helper: t('personalSubscriptions.widget.dashboardSuggestionSingle', { ns: 'portal' }),
+          href: '/transactions',
+        }];
 
     return (
-      <section className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.22)]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-            <ShieldCheck size={20} />
+      <section className="space-y-2">
+        {loading ? (
+          <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.22)]">
+            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-3 w-56 animate-pulse rounded bg-muted" />
+            <div className="mt-3 h-10 w-24 animate-pulse rounded-full bg-muted" />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
-                {t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' })}
-              </h3>
-              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-700">
-                {t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' })}
-              </span>
-            </div>
-            {loading ? (
-              <div className="mt-1 h-4 w-40 animate-pulse rounded bg-muted" />
-            ) : firstSubscription ? (
-              <>
-                <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
-                  {dueInDays !== null
-                    ? t('personalSubscriptions.widget.dashboardSuggestionPrimary', {
-                        ns: 'portal',
-                        name: firstSubscription.name,
-                        count: dueInDays,
-                      })
-                    : firstSubscription.name}
-                </p>
-                <p className={`mt-1 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
-                  {subscriptions.length > 1
-                    ? t('personalSubscriptions.widget.dashboardSuggestionSecondary', {
-                        ns: 'portal',
-                        count: subscriptions.length,
-                      })
-                    : t('personalSubscriptions.widget.dashboardSuggestionSingle', { ns: 'portal' })}
-                </p>
-              </>
-            ) : (
-              <p className={`mt-1 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
-                {t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' })}
-              </p>
-            )}
-          </div>
-          <Link
-            href="/personal-subscriptions"
-            className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-white px-4 text-[13px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
-          >
-            {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
-            <ChevronRight size={16} />
-          </Link>
-        </div>
+        ) : (
+          visibleSuggestions.map((suggestion) => (
+            <section
+              key={suggestion.id}
+              className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.22)]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
+                  <ShieldCheck size={20} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+                      {suggestion.title}
+                    </h3>
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-700">
+                      {suggestion.badge}
+                    </span>
+                  </div>
+                  <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
+                    {suggestion.message}
+                  </p>
+                  <p className={`mt-1 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
+                    {suggestion.helper}
+                  </p>
+                </div>
+                <Link
+                  href={suggestion.href}
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-white px-4 text-[13px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
+                >
+                  {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
+                  <ChevronRight size={16} />
+                </Link>
+              </div>
+            </section>
+          ))
+        )}
       </section>
     );
   }

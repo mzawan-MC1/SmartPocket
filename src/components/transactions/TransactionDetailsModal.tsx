@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Download, FileText, Loader2, Paperclip } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronDown, ChevronUp, Download, FileText, Loader2, Paperclip } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import Modal from '@/components/ui/Modal';
@@ -26,12 +27,14 @@ export default function TransactionDetailsModal({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [details, setDetails] = useState<TransactionDocumentDetailsResponse | null>(null);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !transactionId) {
       setIsLoading(false);
       setErrorMessage('');
       setDetails(null);
+      setShowMoreDetails(false);
       return;
     }
 
@@ -94,6 +97,70 @@ export default function TransactionDetailsModal({
   const totals = details?.totals ?? null;
   const showTotals = Boolean(details?.document && totals);
   const showLineItems = Boolean(details?.document?.createdFromAI);
+  const detailItems = details ? [
+    {
+      id: 'merchant',
+      label: t('transactions.merchantSource', { ns: 'portal' }),
+      value: details.document?.merchant || details.transaction.merchant,
+      priority: true,
+    },
+    {
+      id: 'account',
+      label: t('transactions.account', { ns: 'portal' }),
+      value: details.transaction.accountName,
+      priority: true,
+    },
+    {
+      id: 'category',
+      label: t('transactions.category', { ns: 'portal' }),
+      value: details.transaction.categoryName,
+      priority: true,
+    },
+    {
+      id: 'date',
+      label: t('transactions.date', { ns: 'portal' }),
+      value: details.transaction.transactionDate,
+      priority: true,
+    },
+    {
+      id: 'receipt',
+      label: t('transactions.documentReview.receiptNumber', { ns: 'portal' }),
+      value: details.document?.receiptNumber,
+      priority: false,
+    },
+    {
+      id: 'confidence',
+      label: t('transactions.documentDetails.confidence', {
+        ns: 'portal',
+        defaultValue: 'Extraction confidence',
+      }),
+      value: typeof details.document?.confidence === 'number'
+        ? `${Math.round(details.document.confidence * 100)}%`
+        : null,
+      priority: false,
+    },
+    {
+      id: 'source',
+      label: t('transactions.documentDetails.sourceSurface', {
+        ns: 'portal',
+        defaultValue: 'Source',
+      }),
+      value: t(`transactions.documentDetails.sourceSurfaces.${details.document?.sourceSurface || 'add_transaction'}` as const, {
+        ns: 'portal',
+        defaultValue: details.document?.sourceSurface === 'smart_entry' ? 'Smart Entry' : 'Add Transaction',
+      }),
+      priority: false,
+    },
+  ].filter((item) => Boolean(item.value)) : [];
+
+  const primaryDetailItems = detailItems.filter((item) => item.priority);
+  const secondaryDetailItems = detailItems.filter((item) => !item.priority);
+  const compactDescription = details?.transaction.description || details?.transaction.notes || '';
+  const receiptSummaryLabel = hasDocumentPreview
+    ? t('transactions.viewDocument', { ns: 'portal' })
+    : showProcessingState
+      ? t('status.processing', { ns: 'common' })
+      : t('transactions.noReceiptDocument', { ns: 'portal' });
 
   return (
     <Modal
@@ -103,405 +170,244 @@ export default function TransactionDetailsModal({
         onClose();
       }}
       title={title}
-      size="xl"
-      mobileLayout="fullscreen"
-      contentClassName="sm:max-w-[68rem] sm:max-h-[92vh]"
-      bodyClassName="overflow-hidden p-0"
+      size="lg"
+      mobileLayout="sheet"
+      contentClassName="sm:max-w-[42rem] sm:max-h-[90vh]"
+      bodyClassName="overflow-y-auto p-3.5 sm:p-4"
+      stickyFooter
+      footer={(
+        <div className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <Link
+            href="/transactions"
+            onClick={onClose}
+            className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+          >
+            {t('actions.edit', { ns: 'common' })}
+          </Link>
+          <button type="button" onClick={onClose} className="btn-secondary min-h-10 px-4 text-sm">
+            {t('actions.close', { ns: 'common' })}
+          </button>
+        </div>
+      )}
     >
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-5">
-          {isLoading ? (
-            <div className="flex min-h-[18rem] flex-col items-center justify-center gap-3 text-center">
-              <Loader2 size={24} className="animate-spin text-accent" />
-              <p className="text-sm text-muted-foreground">
-                {t('transactions.documentDetails.loading', {
-                  ns: 'portal',
-                  defaultValue: 'Loading transaction details...',
-                })}
-              </p>
-            </div>
-          ) : errorMessage ? (
-            <div className="rounded-2xl border border-negative/20 bg-negative-soft p-4 text-sm text-negative">
-              {errorMessage}
-            </div>
-          ) : details ? (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <FileText size={16} className="text-accent" />
-                      <p className="text-sm font-700 text-foreground">
-                        {t('transactions.documentDetails.documentSection', {
-                          ns: 'portal',
-                          defaultValue: 'Receipt / Document',
-                        })}
-                      </p>
-                    </div>
-                    {details.document?.createdFromAI ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-700 text-accent">
-                        <Paperclip size={12} />
-                        {t('transactions.documentDetails.aiExtractedBadge', {
-                          ns: 'portal',
-                          defaultValue: 'AI-extracted',
-                        })}
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {showDocumentWarning ? (
-                    <div className="rounded-xl border border-warning/25 bg-warning/10 px-3 py-3 text-sm text-warning" role="status">
-                      <p className="font-700">
-                        {t('transactions.documentDetails.documentUnavailable', {
-                          ns: 'portal'
-                        })}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {details.documentMessage || t('transactions.documentDetails.documentLoadFailed', {
-                          ns: 'portal'
-                        })}
-                      </p>
-                    </div>
-                  ) : showNoDocument ? (
-                    <div className="rounded-xl border border-border/70 bg-muted/10 px-3 py-3 text-sm text-muted-foreground">
-                      {t('transactions.documentDetails.noDocument', {
-                        ns: 'portal'
-                      })}
-                    </div>
-                  ) : hasDocumentPreview && documentDetails ? (
-                    <>
-                      <div className="overflow-hidden rounded-xl border border-border bg-muted/10">
-                        {documentDetails.mimeType === 'application/pdf' ? (
-                          <div className="flex h-[24rem] flex-col items-center justify-center gap-3 bg-white px-4 text-center">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-                              <FileText size={20} />
-                            </div>
-                            <p className="max-w-sm break-words text-sm font-700 text-foreground">
-                              {documentDetails.fileName}
-                            </p>
-                          </div>
-                        ) : (
-                          <img
-                            src={documentDetails.previewUrl}
-                            alt={documentDetails.fileName}
-                            className="h-[24rem] w-full bg-white object-contain"
-                          />
-                        )}
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openSignedResourceUrl(documentDetails.previewUrl)}
-                          className="btn-secondary"
-                        >
-                          {t('transactions.documentDetails.viewOriginal', {
-                            ns: 'portal',
-                            defaultValue: 'View Original',
-                          })}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openSignedResourceUrl(documentDetails.downloadUrl, {
-                            download: true,
-                            fileName: documentDetails.fileName,
-                          })}
-                          className="btn-secondary"
-                        >
-                          <Download size={14} />
-                          {t('transactions.documentDetails.downloadOriginal', {
-                            ns: 'portal',
-                            defaultValue: 'Download',
-                          })}
-                        </button>
-                      </div>
-                    </>
-                  ) : null}
-
-                  {showProcessingState ? (
-                    <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-xs font-700 text-muted-foreground" role="status">
-                      <Loader2 size={12} className="animate-spin" />
-                      <span>{t('status.processing', { ns: 'common' })}</span>
-                    </div>
-                  ) : null}
+      <div className="space-y-3">
+        {isLoading ? (
+          <div className="flex min-h-[14rem] flex-col items-center justify-center gap-3 text-center">
+            <Loader2 size={24} className="animate-spin text-accent" />
+            <p className="text-sm text-muted-foreground">
+              {t('transactions.documentDetails.loading', {
+                ns: 'portal',
+                defaultValue: 'Loading transaction details...',
+              })}
+            </p>
+          </div>
+        ) : errorMessage ? (
+          <div className="rounded-2xl border border-negative/20 bg-negative-soft p-4 text-sm text-negative">
+            {errorMessage}
+          </div>
+        ) : details ? (
+          <>
+            <section className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-4 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.16)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <FormattedCurrencyAmount
+                    amount={details.transaction.amount}
+                    currencyCode={details.transaction.currency}
+                    fallbackCurrencyCode={details.transaction.currency}
+                    textOnly
+                    showCode
+                    className="text-[1.55rem] font-800 tracking-[-0.03em] text-foreground sm:text-[1.7rem]"
+                  />
+                  <p className="mt-1 text-[13px] font-700 text-foreground">
+                    {[details.transaction.categoryName, details.transaction.accountName].filter(Boolean).join(' • ') || '—'}
+                  </p>
+                  <p className="mt-0.5 text-[12px] text-muted-foreground">
+                    {details.transaction.transactionDate}
+                  </p>
                 </div>
+                {details.transaction.merchant || details.transaction.description ? (
+                  <div className="rounded-full bg-white px-3 py-1 text-[11px] font-700 text-muted-foreground shadow-sm">
+                    {details.transaction.merchant || details.transaction.description}
+                  </div>
+                ) : null}
               </div>
+            </section>
 
-              <div className="space-y-4">
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <div className="rounded-[20px] border border-border/70 bg-muted/10 px-4 py-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                          {t('transactions.amount', { ns: 'portal' })}
-                        </p>
-                        <div className="mt-2">
-                          <FormattedCurrencyAmount
-                            amount={details.transaction.amount}
-                            currencyCode={details.transaction.currency}
-                            fallbackCurrencyCode={details.transaction.currency}
-                            className="text-[1.6rem] font-800 text-foreground"
-                            numberClassName="text-[1.85rem] font-800 tracking-tight text-foreground"
-                            symbolClassName="text-[1.05rem] text-muted-foreground"
-                          />
-                        </div>
-                      </div>
-                      <div className="rounded-full bg-card px-3 py-1 text-xs font-700 text-muted-foreground">
-                        {details.transaction.transactionDate}
-                      </div>
-                    </div>
+            <section className="rounded-[22px] border border-slate-200/80 bg-white p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                {t('transactions.description', { ns: 'portal', defaultValue: 'Description' })}
+              </p>
+              <p className="mt-1.5 text-sm font-600 leading-5 text-foreground">
+                {compactDescription || '—'}
+              </p>
+            </section>
 
-                    <div className="mt-3 space-y-1">
-                      <p className="text-sm font-700 text-foreground">
-                        {details.transaction.merchant || details.transaction.description || '—'}
-                      </p>
-                      {(details.transaction.merchant && details.transaction.description) ? (
-                        <p className="text-sm text-muted-foreground">
-                          {details.transaction.description}
-                        </p>
-                      ) : null}
-                    </div>
+            <section className="rounded-[22px] border border-slate-200/80 bg-white p-3.5">
+              <div className="grid grid-cols-2 gap-3">
+                {primaryDetailItems.map((item) => (
+                  <div key={item.id} className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5">
+                    <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                    <p className="mt-1 truncate text-[13px] font-700 text-foreground">{item.value}</p>
                   </div>
+                ))}
+              </div>
+            </section>
 
-                  <div className="mt-4 border-t border-border/70 pt-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.merchantSource', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.document?.merchant || details.transaction.merchant || '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.documentReview.receiptNumber', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.document?.receiptNumber || '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.date', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.transaction.transactionDate}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.documentDetails.confidence', {
-                          ns: 'portal',
-                          defaultValue: 'Extraction confidence',
-                        })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {typeof details.document?.confidence === 'number'
-                          ? `${Math.round(details.document.confidence * 100)}%`
-                          : '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.documentDetails.sourceSurface', {
-                          ns: 'portal',
-                          defaultValue: 'Source',
-                        })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {t(`transactions.documentDetails.sourceSurfaces.${details.document?.sourceSurface || 'add_transaction'}` as const, {
-                          ns: 'portal',
-                          defaultValue: details.document?.sourceSurface === 'smart_entry' ? 'Smart Entry' : 'Add Transaction',
-                        })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.account', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.transaction.accountName || '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.category', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.transaction.categoryName || '—'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.amount', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-700 text-foreground">
-                        {formatCurrencyText(details.transaction.amount, {
-                          currencyCode: details.transaction.currency,
-                          fallbackCurrencyCode: details.transaction.currency,
-                          textOnly: true,
-                        })}
-                      </p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                        {t('transactions.form.details.description', { ns: 'portal' })}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {details.transaction.description || '—'}
-                      </p>
-                    </div>
-                    {details.transaction.notes ? (
-                      <div className="sm:col-span-2">
-                        <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                          {t('transactions.form.details.notes', { ns: 'portal' })}
-                        </p>
-                        <p className="mt-1 text-sm font-600 text-foreground">
-                          {details.transaction.notes}
-                        </p>
-                      </div>
-                    ) : null}
-                  </div>
-                  </div>
-                </div>
-
-                {showTotals && totals ? (
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <p className="text-sm font-700 text-foreground">
-                    {t('transactions.documentDetails.totalSummary', {
+            <section className="rounded-[22px] border border-slate-200/80 bg-white p-3.5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                    {t('transactions.documentDetails.documentSection', {
                       ns: 'portal',
-                      defaultValue: 'Receipt totals',
+                      defaultValue: 'Receipt / Document',
                     })}
                   </p>
-                  <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-                    {[
-                      ['subtotal', totals.subtotal],
-                      ['tax', totals.tax],
-                      ['discount', totals.discount],
-                      ['fee', totals.fee],
-                      ['calculatedTotal', totals.calculatedTotal],
-                      ['receiptTotal', totals.receiptTotal],
-                    ].map(([key, value]) => (
-                      <div key={key} className="rounded-xl bg-muted/20 px-3 py-2">
-                        <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                          {t(`transactions.documentDetails.${key}` as const, {
-                            ns: 'portal',
-                            defaultValue: key,
-                          })}
-                        </p>
-                        <p className="mt-1 font-700 text-foreground">
-                          {formatCurrencyText((value as number) || 0, {
-                            currencyCode: details.transaction.currency,
-                            fallbackCurrencyCode: details.transaction.currency,
-                            textOnly: true,
-                          })}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="mt-1 text-sm font-700 text-foreground">{receiptSummaryLabel}</p>
                 </div>
-                ) : null}
-
-                {showLineItems && details.document ? (
-                <div className="rounded-2xl border border-border bg-card p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-sm font-700 text-foreground">
-                      {t('transactions.documentReview.lineItemsTitle', { ns: 'portal' })}
-                    </p>
-                    <span className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
-                      {t('transactions.documentDetails.itemCount', {
+                {hasDocumentPreview && documentDetails ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openSignedResourceUrl(documentDetails.previewUrl)}
+                      className="btn-secondary min-h-9 px-3 text-xs"
+                    >
+                      {t('transactions.documentDetails.viewOriginal', {
                         ns: 'portal',
-                        count: details.document.itemCount,
-                        defaultValue: '{{count}} items',
+                        defaultValue: 'View',
                       })}
-                    </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openSignedResourceUrl(documentDetails.downloadUrl, {
+                        download: true,
+                        fileName: documentDetails.fileName,
+                      })}
+                      className="btn-secondary min-h-9 px-3 text-xs"
+                    >
+                      <Download size={12} />
+                      {t('transactions.documentDetails.downloadOriginal', {
+                        ns: 'portal',
+                        defaultValue: 'Download',
+                      })}
+                    </button>
                   </div>
+                ) : null}
+              </div>
 
-                  {details.lineItems.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      {t('transactions.documentDetails.noLineItems', {
-                        ns: 'portal',
-                        defaultValue: 'No line items were saved for this document.',
-                      })}
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {details.lineItems.map((item) => (
-                        <div key={item.id} className="rounded-xl border border-border/70 bg-muted/10 px-3 py-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <p className="text-sm font-700 text-foreground">{item.name}</p>
-                              {item.description ? (
-                                <p className="mt-0.5 text-xs text-muted-foreground">{item.description}</p>
-                              ) : null}
-                              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                                {item.categoryName ? <span>{item.categoryName}</span> : null}
-                                {item.itemKind !== 'regular' ? (
-                                  <span className="rounded-full bg-muted px-2 py-0.5 font-600">
-                                    {t(`transactions.documentDetails.itemKinds.${item.itemKind}` as const, {
-                                      ns: 'portal',
-                                      defaultValue: item.itemKind,
+              {showDocumentWarning ? (
+                <p className="mt-2 text-xs text-warning">
+                  {details.documentMessage || t('transactions.documentDetails.documentLoadFailed', { ns: 'portal' })}
+                </p>
+              ) : null}
+            </section>
+
+            {(secondaryDetailItems.length > 0 || showTotals || showLineItems || details.transaction.notes) ? (
+              <section className="rounded-[22px] border border-slate-200/80 bg-white">
+                <button
+                  type="button"
+                  onClick={() => setShowMoreDetails((current) => !current)}
+                  className="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left"
+                >
+                  <span className="text-sm font-800 text-foreground">
+                    {t('transactions.extraDetails', { ns: 'portal', defaultValue: 'More details' })}
+                  </span>
+                  {showMoreDetails ? <ChevronUp size={16} className="text-muted-foreground" /> : <ChevronDown size={16} className="text-muted-foreground" />}
+                </button>
+
+                {showMoreDetails ? (
+                  <div className="space-y-3 border-t border-slate-200/80 px-3.5 py-3.5">
+                    {secondaryDetailItems.length > 0 ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        {secondaryDetailItems.map((item) => (
+                          <div key={item.id} className="min-w-0 rounded-2xl bg-slate-50 px-3 py-2.5">
+                            <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                            <p className="mt-1 truncate text-[13px] font-700 text-foreground">{item.value}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {details.transaction.notes ? (
+                      <div className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+                          {t('transactions.notes', { ns: 'portal' })}
+                        </p>
+                        <p className="mt-1 text-[13px] font-600 text-foreground">{details.transaction.notes}</p>
+                      </div>
+                    ) : null}
+
+                    {showTotals && totals ? (
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {[
+                          ['subtotal', totals.subtotal],
+                          ['tax', totals.tax],
+                          ['discount', totals.discount],
+                          ['fee', totals.fee],
+                          ['calculatedTotal', totals.calculatedTotal],
+                          ['receiptTotal', totals.receiptTotal],
+                        ].map(([key, value]) => (
+                          <div key={key} className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                            <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+                              {t(`transactions.documentDetails.${key}` as const, {
+                                ns: 'portal',
+                                defaultValue: key,
+                              })}
+                            </p>
+                            <p className="mt-1 text-[13px] font-700 text-foreground">
+                              {formatCurrencyText((value as number) || 0, {
+                                currencyCode: details.transaction.currency,
+                                fallbackCurrencyCode: details.transaction.currency,
+                                textOnly: true,
+                              })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {showLineItems && details.document ? (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                          {t('transactions.documentReview.lineItemsTitle', { ns: 'portal' })}
+                        </p>
+                        {details.lineItems.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">
+                            {t('transactions.documentDetails.noLineItems', {
+                              ns: 'portal',
+                              defaultValue: 'No line items were saved for this document.',
+                            })}
+                          </p>
+                        ) : (
+                          details.lineItems.map((item) => (
+                            <div key={item.id} className="rounded-2xl bg-slate-50 px-3 py-2.5">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-700 text-foreground">{item.name}</p>
+                                  {item.description ? (
+                                    <p className="mt-0.5 text-xs text-muted-foreground">{item.description}</p>
+                                  ) : null}
+                                </div>
+                                {typeof item.total === 'number' ? (
+                                  <p className="text-xs font-700 text-foreground">
+                                    {formatCurrencyText(item.total, {
+                                      currencyCode: details.transaction.currency,
+                                      fallbackCurrencyCode: details.transaction.currency,
+                                      textOnly: true,
                                     })}
-                                  </span>
+                                  </p>
                                 ) : null}
                               </div>
                             </div>
-                            <div className="text-right text-xs text-muted-foreground">
-                              {typeof item.quantity === 'number' ? (
-                                <p>
-                                  {t('transactions.documentDetails.quantity', {
-                                    ns: 'portal',
-                                    defaultValue: 'Qty',
-                                  })} {item.quantity}
-                                </p>
-                              ) : null}
-                              {typeof item.unitPrice === 'number' ? (
-                                <p>
-                                  {t('transactions.documentDetails.unitPrice', {
-                                    ns: 'portal',
-                                    defaultValue: 'Unit',
-                                  })}{' '}
-                                  {formatCurrencyText(item.unitPrice, {
-                                    currencyCode: details.transaction.currency,
-                                    fallbackCurrencyCode: details.transaction.currency,
-                                    textOnly: true,
-                                  })}
-                                </p>
-                              ) : null}
-                              {typeof item.total === 'number' ? (
-                                <p className="font-700 text-foreground">
-                                  {t('transactions.documentDetails.lineTotal', {
-                                    ns: 'portal',
-                                    defaultValue: 'Total',
-                                  })}{' '}
-                                  {formatCurrencyText(item.total, {
-                                    currencyCode: details.transaction.currency,
-                                    fallbackCurrencyCode: details.transaction.currency,
-                                    textOnly: true,
-                                  })}
-                                </p>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                          ))
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
-              </div>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="border-t border-border bg-card px-4 py-3 sm:px-5">
-          <div className="flex justify-end">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              {t('actions.close', { ns: 'common' })}
-            </button>
-          </div>
-        </div>
+              </section>
+            ) : null}
+          </>
+        ) : null}
       </div>
     </Modal>
   );
