@@ -710,7 +710,20 @@ export default function DashboardMetrics({
       );
     };
 
-    const renderMobileCurrencyText = (metric: DashboardConvertedMetric, className: string) => {
+    const renderMobileCurrencyText = (
+      metric: DashboardConvertedMetric,
+      {
+        className,
+        numberClassName = '',
+        symbolClassName = '',
+        size = 'md' as const,
+      }: {
+        className: string;
+        numberClassName?: string;
+        symbolClassName?: string;
+        size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+      }
+    ) => {
       if (hideSensitive) {
         return renderMaskedAmount(metric, className);
       }
@@ -728,9 +741,10 @@ export default function DashboardMetrics({
                 amount={row.amount}
                 currencyCode={row.currency}
                 locale={locale}
-                textOnly
-                showCode
                 className={className}
+                numberClassName={numberClassName}
+                symbolClassName={symbolClassName}
+                size={size}
               />
             ))}
           </div>
@@ -743,9 +757,10 @@ export default function DashboardMetrics({
             amount={metric.reportingAmount}
             currencyCode={metric.reportingCurrency}
             locale={locale}
-            textOnly
-            showCode
             className={className}
+            numberClassName={numberClassName}
+            symbolClassName={symbolClassName}
+            size={size}
           />
         </span>
       );
@@ -846,7 +861,12 @@ export default function DashboardMetrics({
               <span style={{ wordSpacing: '0.22em' }}>
                 {renderMobileCurrencyText(
                   metrics.totalBalance,
-                  'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]'
+                  {
+                    className: 'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]',
+                    numberClassName: 'text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]',
+                    symbolClassName: 'text-white/95',
+                    size: 'lg',
+                  }
                 )}
               </span>
             </div>
@@ -861,7 +881,12 @@ export default function DashboardMetrics({
                     </span>
                     {renderMobileCurrencyText(
                       metrics.monthlyIncome,
-                      'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
+                      {
+                        className: 'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white',
+                        numberClassName: 'text-[16px] font-700 leading-none tracking-[-0.03em] text-white',
+                        symbolClassName: 'text-white/90',
+                        size: 'sm',
+                      }
                     )}
                   </div>
                 </div>
@@ -875,7 +900,12 @@ export default function DashboardMetrics({
                     </span>
                     {renderMobileCurrencyText(
                       metrics.monthlyExpenses,
-                      'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
+                      {
+                        className: 'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white',
+                        numberClassName: 'text-[16px] font-700 leading-none tracking-[-0.03em] text-white',
+                        symbolClassName: 'text-white/90',
+                        size: 'sm',
+                      }
                     )}
                   </div>
                 </div>
@@ -891,7 +921,12 @@ export default function DashboardMetrics({
               <div className={`font-tabular ${netCashFlowPositive ? 'text-[#86efac]' : 'text-[#fecdd3]'}`}>
                 {renderMobileCurrencyText(
                   metrics.netCashFlow,
-                  'inline-flex items-baseline text-[13px] font-800 leading-none tracking-[-0.02em]'
+                  {
+                    className: 'inline-flex items-baseline text-[13px] font-800 leading-none tracking-[-0.02em]',
+                    numberClassName: 'text-[13px] font-800 leading-none tracking-[-0.02em]',
+                    symbolClassName: netCashFlowPositive ? 'text-[#86efac]' : 'text-[#fecdd3]',
+                    size: 'xs',
+                  }
                 )}
               </div>
               <span className="text-white/90">{netLabel}</span>

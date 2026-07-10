@@ -752,17 +752,17 @@ export default function AIUsageCard({
                 key={action.id}
                 type="button"
                 onClick={action.onClick}
-                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2.5 py-2.5 text-center transition-colors duration-150 active:bg-slate-50 ${action.className}`}
+                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2 py-2.5 text-center transition-colors duration-150 active:bg-slate-50 ${action.className}`}
               >
-                <div className="flex w-full items-center justify-center gap-1.5">
-                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-white/92 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.24)]">
+                <div className="flex w-full items-center justify-center gap-1">
+                  <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#eff6ff)] shadow-[0_8px_16px_-12px_rgba(37,99,235,0.35)] ring-1 ring-white/80">
                     <Icon size={14} />
                   </div>
-                  <p className="whitespace-nowrap text-[12.5px] font-800 tracking-[-0.02em] text-slate-900">
+                  <p className="whitespace-nowrap text-[12px] font-800 tracking-[-0.02em] text-slate-900">
                     {action.title}
                   </p>
                 </div>
-                <p className="mt-1.5 line-clamp-2 text-[10px] leading-3.5 text-slate-600">{action.description}</p>
+                <p className="mt-1.5 line-clamp-2 text-[9.5px] leading-3.5 text-slate-600">{action.description}</p>
               </button>
             );
           })}
@@ -960,34 +960,103 @@ export default function AIUsageCard({
         contentClassName="sm:max-w-lg"
         bodyClassName="space-y-3"
       >
-        <div className="grid grid-cols-2 gap-2.5">
-          {[
-            {
-              id: 'text',
-              label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
-              value: textHistoryCount,
-            },
-            {
-              id: 'voice',
-              label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
-              value: voiceHistoryCount,
-            },
-            {
-              id: 'uploads',
-              label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
-              value: receiptHistoryCount,
-            },
-            {
-              id: 'total',
-              label: t('aiUsage.totalActions', { defaultValue: 'AI actions this month' }),
-              value: totalAiActions,
-            },
-          ].map((stat) => (
-            <div key={stat.id} className="rounded-2xl border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-3 py-3">
-              <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
-              <p className="mt-1 text-[1.1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
+        <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-800 text-foreground">
+                  {t('aiUsage.assistantTitle', { defaultValue: 'AI Assistant' })}
+                </p>
+                <CompactStatus label={statusLabel} tone={statusTone} />
+              </div>
+              <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+                {t('aiUsage.recentActivitySubtitle', { defaultValue: 'Your recent AI activity' })}
+              </p>
             </div>
-          ))}
+            {resetDate ? (
+              <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                <Calendar size={11} />
+                <span className="whitespace-nowrap">{resetDate}</span>
+              </div>
+            ) : null}
+          </div>
+
+          {usageMessage ? <div className="mt-3"><UsageAlert message={usageMessage.text} tone={usageMessage.tone} /></div> : null}
+
+          {primaryMetric ? (
+            <div className="mt-3 rounded-[18px] border border-violet-200/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,247,255,0.96))] px-3 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="truncate text-[13px] font-700 text-foreground">{primaryMetric.title}</p>
+                <span className="text-[11px] font-600 text-muted-foreground whitespace-nowrap">
+                  {primaryMetric.usedText || primaryMetric.helper}
+                </span>
+              </div>
+              <div className="mt-2 flex items-end gap-2">
+                <span dir="ltr" className="text-[1.6rem] font-800 leading-none tracking-[-0.03em] text-foreground tabular-nums">
+                  {primaryMetric.valueNumber}
+                </span>
+                <span className="pb-0.5 text-[12px] font-600 leading-4 text-muted-foreground">
+                  {primaryMetric.valueLabel}
+                </span>
+              </div>
+              <div className="mt-3">
+                <UsageProgress
+                  label={primaryMetric.progressLabel}
+                  used={primaryMetric.used}
+                  total={primaryMetric.total}
+                  tone={primaryMetric.tone}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {secondaryMetrics.length > 0 ? (
+            <div className="mt-3 grid grid-cols-1 gap-2">
+              {secondaryMetrics.map((metric) => (
+                <div key={metric.id} className="rounded-2xl border border-slate-200/70 bg-slate-50 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="truncate text-[12px] font-700 text-foreground">{metric.title}</p>
+                    <span dir="ltr" className="text-[13px] font-800 text-foreground tabular-nums">
+                      {metric.valueNumber} <span className="text-[11px] font-600 text-muted-foreground">{metric.valueLabel}</span>
+                    </span>
+                  </div>
+                  {metric.usedText ? (
+                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{metric.usedText}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="mt-3 grid grid-cols-2 gap-2.5">
+            {[
+              {
+                id: 'text',
+                label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
+                value: textHistoryCount,
+              },
+              {
+                id: 'voice',
+                label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
+                value: voiceHistoryCount,
+              },
+              {
+                id: 'uploads',
+                label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
+                value: receiptHistoryCount,
+              },
+              {
+                id: 'total',
+                label: t('aiUsage.totalActions', { defaultValue: 'AI actions this month' }),
+                value: totalAiActions,
+              },
+            ].map((stat) => (
+              <div key={stat.id} className="rounded-2xl border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-3 py-3">
+                <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
+                <p className="mt-1 text-[1.1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
@@ -1055,6 +1124,15 @@ export default function AIUsageCard({
             </div>
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={() => quickActions?.openQuickAction('smart_entry')}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/35"
+        >
+          <Sparkles size={14} />
+          {t('aiUsage.openAssistant')}
+        </button>
       </Modal>
     </>
   );

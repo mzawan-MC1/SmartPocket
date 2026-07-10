@@ -119,11 +119,14 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                     {t('aiUsage.mobileFeature.description', { ns: 'portal' })}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)] text-white shadow-[0_14px_28px_-20px_rgba(37,99,235,0.7)]">
-                    <Plus size={18} className="rotate-45" />
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setQuickAddOpen(false)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
+                  aria-label={t('bottomNav.closeQuickAdd', { ns: 'portal' })}
+                >
+                  <X size={16} />
+                </button>
               </div>
             </div>
             <div className="max-h-[min(58vh,29rem)] overflow-y-auto px-3.5 py-3.5 scrollbar-thin">
@@ -148,17 +151,6 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                   );
                 })}
               </div>
-            </div>
-            <div className="flex items-center justify-between border-t border-slate-200/80 px-4 py-3">
-              <p className="text-[11px] font-600 text-muted-foreground">{t('bottomNav.more', { ns: 'portal' })}</p>
-              <button
-                type="button"
-                onClick={() => setQuickAddOpen(false)}
-                className="inline-flex h-8 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-[11px] font-700 text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
-                aria-label={t('bottomNav.closeQuickAdd', { ns: 'portal' })}
-              >
-                <X size={14} />
-              </button>
             </div>
           </div>
         </div>
