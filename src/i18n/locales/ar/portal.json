@@ -1603,15 +1603,21 @@
     "close": "إغلاق الإدخال الذكي",
     "modeText": "نص",
     "modeVoice": "صوت",
-    "languageLabel": "لغة الإدخال",
+    "modeDocument": "إيصال / مستند",
+    "languageLabel": "اللغة",
     "language": {
       "autoDetect": "اكتشاف تلقائي",
       "spokenLabel": "أنا أتحدث",
       "optionsTitle": "خيارات اللغة",
+      "helper": "اختر لغة الإدخال والطريقة التي يجب أن يعرض بها Smart Pocket النص المراجع.",
+      "inputLabel": "لغة الإدخال",
+      "aiLabel": "لغة الذكاء الاصطناعي",
       "displayDefault": "أظهر النص بلغة Smart Pocket - {{language}}",
       "displayOverride": "أظهر النص باللغة {{language}}",
       "displayLabel": "أظهر النص باللغة",
-      "useSmartPocketDefault": "لغة Smart Pocket"
+      "useSmartPocketDefault": "لغة Smart Pocket",
+      "advancedRecognition": "لغات تعرف إضافية",
+      "recognitionOnly": "للتعرف فقط"
     },
     "describeLabel": "صف معاملتك",
     "placeholderExample": "مثال: دفعت 85 درهما للبقالة اليوم من حساب النقد، أو استلمت من أحمد 2300 درهم اليوم.",
@@ -1862,7 +1868,7 @@
     "referenceLabel": "المرجع",
     "document": {
       "title": "إيصال / مستند",
-      "description": "ارفع إيصالا أو فاتورة أو ملاحظة أو ملف PDF لاستخراج مسودات معاملات للمراجعة.",
+      "description": "ارفع إيصالا أو فاتورة أو ملاحظة أو ملف PDF لمراجعته بالذكاء الاصطناعي.",
       "action": "مراجعة المستند",
       "invalidFile": "هذا الملف غير مدعوم لمراجعة الإيصال أو المستند."
     }

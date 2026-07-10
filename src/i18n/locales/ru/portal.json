@@ -1591,15 +1591,21 @@
     "close": "Закрыть умный ввод",
     "modeText": "Текст",
     "modeVoice": "Голос",
-    "languageLabel": "Язык ввода",
+    "modeDocument": "Чек / документ",
+    "languageLabel": "Язык",
     "language": {
       "autoDetect": "Определять автоматически",
       "spokenLabel": "Я говорю на",
       "optionsTitle": "Языковые параметры",
+      "helper": "Выберите язык ввода и то, как Smart Pocket должен показывать проверенный текст.",
+      "inputLabel": "Язык ввода",
+      "aiLabel": "Язык ИИ",
       "displayDefault": "Показывать текст на языке Smart Pocket - {{language}}",
       "displayOverride": "Показывать текст на языке {{language}}",
       "displayLabel": "Показывать текст на",
-      "useSmartPocketDefault": "Язык Smart Pocket"
+      "useSmartPocketDefault": "Язык Smart Pocket",
+      "advancedRecognition": "Другие языки распознавания",
+      "recognitionOnly": "Только распознавание"
     },
     "describeLabel": "Опишите вашу операцию",
     "placeholderExample": "Например: я потратил 85 AED на продукты сегодня из наличных, или Ахмед дал мне сегодня 2 300 AED.",
@@ -1850,7 +1856,7 @@
     "referenceLabel": "Ссылка",
     "document": {
       "title": "Чек / документ",
-      "description": "Загрузите чек, счет, заметку или PDF, чтобы извлечь черновики операций для проверки.",
+      "description": "Загрузите чек, счет, заметку или PDF для проверки ИИ.",
       "action": "Проверить документ",
       "invalidFile": "Этот файл не поддерживается для проверки чека или документа."
     }

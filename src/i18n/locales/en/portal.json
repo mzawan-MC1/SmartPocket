@@ -2286,15 +2286,21 @@
     },
     "modeText": "Text",
     "modeVoice": "Voice",
-    "languageLabel": "Input language",
+    "modeDocument": "Receipt / Document",
+    "languageLabel": "Language",
     "language": {
       "autoDetect": "Auto detect",
       "spokenLabel": "I am speaking",
       "optionsTitle": "Language options",
+      "helper": "Choose the input language and how Smart Pocket should show the reviewed text.",
+      "inputLabel": "Input language",
+      "aiLabel": "AI language",
       "displayDefault": "Show the text in Smart Pocket language - {{language}}",
       "displayOverride": "Show the text in {{language}}",
       "displayLabel": "Show the text in",
-      "useSmartPocketDefault": "Smart Pocket language"
+      "useSmartPocketDefault": "Smart Pocket language",
+      "advancedRecognition": "More recognition languages",
+      "recognitionOnly": "Recognition only"
     },
     "describeLabel": "Describe your transaction",
     "placeholderExample": "For example: I spent AED 85 on groceries today from cash, or Ahmed gave me AED 2,300 today.",
@@ -2549,7 +2555,7 @@
     },
     "document": {
       "title": "Receipt / Document",
-      "description": "Upload a receipt, invoice, note, or PDF to extract draft transactions for review.",
+      "description": "Upload a receipt, invoice, note, or PDF for AI review.",
       "action": "Review Document",
       "invalidFile": "This file is not supported for receipt/document review."
     }

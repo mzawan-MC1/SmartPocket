@@ -1583,15 +1583,21 @@
     "close": "Fermer la saisie intelligente",
     "modeText": "Texte",
     "modeVoice": "Voix",
-    "languageLabel": "Langue d'entree",
+    "modeDocument": "Recu / Document",
+    "languageLabel": "Langue",
     "language": {
       "autoDetect": "Détection automatique",
       "spokenLabel": "Je parle",
       "optionsTitle": "Options de langue",
+      "helper": "Choisissez la langue d'entree et la maniere dont Smart Pocket doit afficher le texte verifie.",
+      "inputLabel": "Langue d'entree",
+      "aiLabel": "Langue IA",
       "displayDefault": "Afficher le texte dans la langue Smart Pocket - {{language}}",
       "displayOverride": "Afficher le texte en {{language}}",
       "displayLabel": "Afficher le texte en",
-      "useSmartPocketDefault": "Langue Smart Pocket"
+      "useSmartPocketDefault": "Langue Smart Pocket",
+      "advancedRecognition": "Autres langues de reconnaissance",
+      "recognitionOnly": "Reconnaissance uniquement"
     },
     "describeLabel": "Decrivez votre transaction",
     "placeholderExample": "Par exemple : j'ai dépensé 85 AED en courses aujourd'hui depuis mes espèces, ou Ahmed m'a remis 2 300 AED aujourd'hui.",
@@ -1842,7 +1848,7 @@
     "referenceLabel": "Reference",
     "document": {
       "title": "Recu / Document",
-      "description": "Televersez un recu, une facture, une note ou un PDF pour extraire des ebauches de transactions a verifier.",
+      "description": "Televersez un recu, une facture, une note ou un PDF pour une verification par l'IA.",
       "action": "Verifier le document",
       "invalidFile": "Ce fichier n'est pas pris en charge pour la verification de recu ou de document."
     }

@@ -143,6 +143,8 @@ function normalizeSubscriptionBillingFrequencyInput(
    defaultMode?: 'voice' | 'text';
  }
 
+type EntryMode = 'voice' | 'text' | 'document';
+
 function formatMoney(value: number | undefined, currency?: string, fallbackCurrency?: string) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return formatCurrencyText(0, {
@@ -573,7 +575,7 @@ function isReceiptInsightQuestion(value: string) {
   );
 }
 
- export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
+export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAssistantModalProps) {
   const { t } = useTranslation(['portal', 'common']);
   const { isRTL, language: uiLanguage } = useLanguage();
   const router = useRouter();
@@ -583,7 +585,7 @@ function isReceiptInsightQuestion(value: string) {
   const subscriptionDefaultAppliedRef = useRef<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<AssistantStep>('entry');
-  const [mode, setMode] = useState<'voice' | 'text'>(defaultMode);
+  const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [textInput, setTextInput] = useState('');
   const [spokenLanguage, setSpokenLanguage] = useState<SmartEntrySpokenLanguage>('auto');
   const [displayLanguageOverride, setDisplayLanguageOverride] = useState<SmartEntryDisplayLanguage | null>(null);
@@ -2129,6 +2131,16 @@ function isReceiptInsightQuestion(value: string) {
   ];
   const displayLanguageLabel = DISPLAY_LANGUAGES.find((entry) => entry.code === displayLanguage)?.label
     || t('language.en', { ns: 'common' });
+  const visibleSpokenLanguages = SPOKEN_LANGUAGES.filter((entry) => entry.code !== 'ur');
+  const advancedSpokenLanguages = SPOKEN_LANGUAGES.filter((entry) => entry.code === 'ur');
+  const modeOptions: Array<{ id: EntryMode; icon: typeof Type; label: string }> = [
+    { id: 'text', icon: Type, label: t('smartEntryModal.modeText', { ns: 'portal' }) },
+    { id: 'voice', icon: Mic, label: t('smartEntryModal.modeVoice', { ns: 'portal' }) },
+    { id: 'document', icon: FileText, label: t('smartEntryModal.modeDocument', { ns: 'portal' }) },
+  ];
+  const languageChipClassName = 'min-h-9 rounded-full border px-3 py-1.5 text-xs font-600 transition-colors sm:min-h-10';
+  const selectedLanguageChipClassName = 'border-accent/30 bg-accent/10 text-accent';
+  const unselectedLanguageChipClassName = 'border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground';
   const originalTranscriptLanguageLabel = (() => {
     const value = (originalTranscriptLanguage || '').toLowerCase();
     if (value === 'ur') return t('language.ur', { ns: 'common' });
@@ -2194,13 +2206,13 @@ function isReceiptInsightQuestion(value: string) {
         className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
           isCompactSubscriptionReview
             ? 'w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[20px] sm:w-[calc(100vw-24px)] sm:max-h-[85vh]'
-            : 'w-full max-w-[640px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[calc(100vw-32px)]'
+            : 'w-full max-w-[760px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),760px)]'
         }`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* Header */}
         <div className={`flex flex-shrink-0 items-center justify-between border-b border-border bg-card ${
-          isCompactSubscriptionReview ? 'px-4 sm:px-5 py-3.5' : 'px-5 sm:px-6 py-4'
+          isCompactSubscriptionReview ? 'px-4 sm:px-5 py-3.5' : 'px-4 py-3.5 sm:px-6 sm:py-4'
         }`}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
@@ -2253,83 +2265,107 @@ function isReceiptInsightQuestion(value: string) {
 
           {/* Entry step */}
           {step === 'entry' && isAIConfigured !== false && (
-            <div className="p-5 sm:p-6">
-              {/* Mode toggle */}
-              <div className="flex gap-2 mb-5">
-                <button
-                  onClick={() => setMode('text')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-600 transition-colors ${
-                    mode === 'text' ? 'bg-accent text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  <Type size={16} />
-                  {t('smartEntryModal.modeText', { ns: 'portal' })}
-                </button>
-                <button
-                  onClick={() => setMode('voice')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-600 transition-colors ${
-                    mode === 'voice' ? 'bg-accent text-white' : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  <Mic size={16} />
-                  {t('smartEntryModal.modeVoice', { ns: 'portal' })}
-                </button>
+            <div className="space-y-4 p-4 sm:space-y-5 sm:p-6">
+              <div className="grid grid-cols-3 gap-2" role="tablist" aria-label={t('smartEntryModal.title', { ns: 'portal' })}>
+                {modeOptions.map((option) => {
+                  const Icon = option.icon;
+                  const active = mode === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setMode(option.id)}
+                      className={`flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-3 text-center text-xs font-700 transition-colors sm:min-h-[78px] sm:text-sm ${
+                        active
+                          ? 'border-accent/30 bg-accent/10 text-accent shadow-sm'
+                          : 'border-border bg-secondary/20 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                      }`}
+                    >
+                      <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+                        active ? 'bg-accent text-white' : 'bg-background text-muted-foreground'
+                      }`}>
+                        <Icon size={16} />
+                      </span>
+                      <span className="leading-tight">{option.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="mb-4 space-y-3">
-                <div>
-                  <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
-                    {t('smartEntryModal.language.spokenLabel', { ns: 'portal' })}
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {SPOKEN_LANGUAGES.map((entry) => (
-                      <button
-                        key={entry.code}
-                        type="button"
-                        onClick={() => setSpokenLanguage(entry.code)}
-                        dir={getLanguageDirection(entry.code)}
-                        lang={entry.code === 'auto' ? undefined : entry.code}
-                        aria-pressed={spokenLanguage === entry.code}
-                        className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
-                          spokenLanguage === entry.code
-                            ? 'border border-accent/30 bg-accent/10 text-accent'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                        }`}
-                      >
-                        {entry.label}
-                      </button>
-                    ))}
-                  </div>
+              <div className="rounded-2xl border border-border bg-secondary/20 p-3.5 sm:p-4">
+                <div className="mb-3">
+                  <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                    {t('smartEntryModal.languageLabel', { ns: 'portal' })}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('smartEntryModal.language.helper', { ns: 'portal' })}
+                  </p>
                 </div>
 
-                <details className="rounded-2xl border border-border bg-secondary/30 p-3">
-                  <summary className="cursor-pointer list-none text-sm font-700 text-foreground">
-                    {t('smartEntryModal.language.optionsTitle', { ns: 'portal' })}
-                  </summary>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {displayLanguageOverride
-                      ? t('smartEntryModal.language.displayOverride', {
-                          ns: 'portal',
-                          language: displayLanguageLabel,
-                        })
-                      : t('smartEntryModal.language.displayDefault', {
-                          ns: 'portal',
-                          language: displayLanguageLabel,
-                        })}
-                  </p>
-                  <div className="mt-3">
-                    <p className="mb-1.5 text-xs font-600 uppercase tracking-wider text-muted-foreground">
-                      {t('smartEntryModal.language.displayLabel', { ns: 'portal' })}
+                <div className="space-y-3">
+                  <div>
+                    <p className="mb-2 text-xs font-600 text-foreground">
+                      {t('smartEntryModal.language.inputLabel', { ns: 'portal' })}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {visibleSpokenLanguages.map((entry) => (
+                        <button
+                          key={entry.code}
+                          type="button"
+                          onClick={() => setSpokenLanguage(entry.code)}
+                          dir={getLanguageDirection(entry.code)}
+                          lang={entry.code === 'auto' ? undefined : entry.code}
+                          aria-pressed={spokenLanguage === entry.code}
+                          className={`${languageChipClassName} ${
+                            spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
+                          }`}
+                        >
+                          {entry.label}
+                        </button>
+                      ))}
+                    </div>
+                    {mode === 'voice' && advancedSpokenLanguages.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer list-none text-[11px] font-600 text-muted-foreground">
+                          {t('smartEntryModal.language.advancedRecognition', { ns: 'portal' })}
+                        </summary>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {advancedSpokenLanguages.map((entry) => (
+                            <button
+                              key={entry.code}
+                              type="button"
+                              onClick={() => setSpokenLanguage(entry.code)}
+                              dir={getLanguageDirection(entry.code)}
+                              lang={entry.code}
+                              aria-pressed={spokenLanguage === entry.code}
+                              className={`${languageChipClassName} ${
+                                spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
+                              }`}
+                            >
+                              {entry.label}
+                              <span className="ms-1 text-[10px] font-500 opacity-75">
+                                {t('smartEntryModal.language.recognitionOnly', { ns: 'portal' })}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="mb-2 text-xs font-600 text-foreground">
+                      {t('smartEntryModal.language.aiLabel', { ns: 'portal' })}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => setDisplayLanguageOverride(null)}
                         aria-pressed={displayLanguageOverride === null}
-                        className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
-                          displayLanguageOverride === null
-                            ? 'border border-accent/30 bg-accent/10 text-accent'
-                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        className={`${languageChipClassName} ${
+                          displayLanguageOverride === null ? selectedLanguageChipClassName : unselectedLanguageChipClassName
                         }`}
                       >
                         {t('smartEntryModal.language.useSmartPocketDefault', { ns: 'portal' })}
@@ -2342,79 +2378,88 @@ function isReceiptInsightQuestion(value: string) {
                           dir={getLanguageDirection(entry.code)}
                           lang={entry.code}
                           aria-pressed={displayLanguageOverride === entry.code}
-                          className={`min-h-10 rounded-lg px-3 py-2 text-xs font-600 transition-colors ${
-                            displayLanguageOverride === entry.code
-                              ? 'border border-accent/30 bg-accent/10 text-accent'
-                              : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          className={`${languageChipClassName} ${
+                            displayLanguageOverride === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
                           }`}
                         >
                           {entry.label}
                         </button>
                       ))}
                     </div>
-                  </div>
-                </details>
-              </div>
-
-              <div className="mb-5 rounded-2xl border border-border bg-secondary/30 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="text-sm font-700 text-foreground">
-                      {t('smartEntryModal.document.title', {
-                        ns: 'portal',
-                        defaultValue: 'Receipt / Document',
-                      })}
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      {displayLanguageOverride
+                        ? t('smartEntryModal.language.displayOverride', {
+                            ns: 'portal',
+                            language: displayLanguageLabel,
+                          })
+                        : t('smartEntryModal.language.displayDefault', {
+                            ns: 'portal',
+                            language: displayLanguageLabel,
+                          })}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t('smartEntryModal.document.description', {
-                        ns: 'portal',
-                        defaultValue: 'Upload a receipt, invoice, note, or PDF to extract draft transactions for review.',
-                      })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('transactions.documentReview.maxFileSizeLabel', {
-                        ns: 'portal',
-                        maxSize: getTransactionDocumentMaxSizeLabel(),
-                        defaultValue: 'Maximum file size: {{maxSize}}',
-                      })}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {t('transactions.documentReview.supportedFileTypesLabel', {
-                        ns: 'portal',
-                        supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
-                        defaultValue: 'Supported file types: {{supportedTypes}}',
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <input
-                      type="file"
-                      id="smart-entry-document-upload"
-                      accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
-                      className="hidden"
-                      onChange={(event) => {
-                        const nextFile = event.target.files?.[0];
-                        void handleOpenDocumentReview(nextFile);
-                        event.currentTarget.value = '';
-                      }}
-                    />
-                    <label
-                      htmlFor="smart-entry-document-upload"
-                      className="inline-flex cursor-pointer items-center justify-center rounded-xl bg-card px-4 py-2.5 text-sm font-600 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-muted"
-                    >
-                      <FileText size={16} className="me-2" />
-                      {t('smartEntryModal.document.action', {
-                        ns: 'portal',
-                        defaultValue: 'Review Document',
-                      })}
-                    </label>
                   </div>
                 </div>
               </div>
 
-              {mode === 'text' ? (
+              {mode === 'document' ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 p-4 sm:p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-700 text-foreground">
+                        {t('smartEntryModal.document.title', {
+                          ns: 'portal',
+                          defaultValue: 'Receipt / Document',
+                        })}
+                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t('smartEntryModal.document.description', {
+                          ns: 'portal',
+                          defaultValue: 'Upload a receipt, invoice, note, or PDF for AI review.',
+                        })}
+                      </p>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {t('transactions.documentReview.supportedFileTypesLabel', {
+                          ns: 'portal',
+                          supportedTypes: TRANSACTION_DOCUMENT_SUPPORTED_TYPES_LABEL,
+                          defaultValue: 'Supported file types: {{supportedTypes}}',
+                        })}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {t('transactions.documentReview.maxFileSizeLabel', {
+                          ns: 'portal',
+                          maxSize: getTransactionDocumentMaxSizeLabel(),
+                          defaultValue: 'Maximum file size: {{maxSize}}',
+                        })}
+                      </p>
+                    </div>
+                    <div className="w-full sm:w-auto">
+                      <input
+                        type="file"
+                        id="smart-entry-document-upload"
+                        accept={TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE}
+                        className="hidden"
+                        onChange={(event) => {
+                          const nextFile = event.target.files?.[0];
+                          void handleOpenDocumentReview(nextFile);
+                          event.currentTarget.value = '';
+                        }}
+                      />
+                      <label
+                        htmlFor="smart-entry-document-upload"
+                        className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-card px-4 py-2.5 text-sm font-600 text-foreground shadow-sm ring-1 ring-border transition-colors hover:bg-muted sm:w-auto"
+                      >
+                        <FileText size={16} className="me-2" />
+                        {t('smartEntryModal.document.action', {
+                          ns: 'portal',
+                          defaultValue: 'Review Document',
+                        })}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              ) : mode === 'text' ? (
                 <div>
-                  <label className="text-xs font-600 text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  <label className="mb-1.5 block text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
                     {t('smartEntryModal.describeLabel', { ns: 'portal' })}
                   </label>
                   <textarea
@@ -2422,7 +2467,7 @@ function isReceiptInsightQuestion(value: string) {
                     value={textInput}
                     onChange={e => setTextInput(e.target.value)}
                     placeholder={examplePlaceholder}
-                    className="input-base w-full min-h-[8.5rem] resize-y text-sm"
+                    className="w-full min-h-[7.25rem] resize-y rounded-2xl border border-border bg-background/90 px-4 py-3.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:font-normal placeholder:text-muted-foreground/70 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 sm:min-h-[8.25rem]"
                     dir={getLanguageDirection(displayLanguage)}
                     lang={displayLanguage}
                     onKeyDown={e => {
@@ -2431,13 +2476,13 @@ function isReceiptInsightQuestion(value: string) {
                   />
                   {translationNoticeBanner ? <div className="mt-3">{translationNoticeBanner}</div> : null}
                   {originalTranscriptDisclosure ? <div className="mt-3">{originalTranscriptDisclosure}</div> : null}
-                  <p className="text-xs text-muted-foreground mt-1.5">
+                  <p className="mt-1.5 text-xs text-muted-foreground">
                     {t('smartEntryModal.submitHint', { ns: 'portal' })}
                   </p>
                   <button
                     onClick={handleTextSubmit}
                     disabled={!textInput.trim()}
-                    className="mt-3 w-full py-3 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-600 text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Sparkles size={16} />
                     {t('smartEntryModal.analyzeAction', { ns: 'portal' })}
@@ -2462,18 +2507,18 @@ function isReceiptInsightQuestion(value: string) {
                 />
               )}
 
-              {/* Examples */}
               {mode === 'text' && (
-                <div className="mt-5 rounded-2xl border border-border bg-secondary/40 p-4">
-                  <p className="text-sm font-700 text-foreground mb-2">
+                <div className="rounded-2xl border border-border bg-secondary/10 p-3 sm:p-4">
+                  <p className="mb-2 text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
                     {t('smartEntryModal.examplesTitle', { ns: 'portal' })}
                   </p>
-                  <div className="space-y-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {exampleItems.map((ex, i) => (
                       <button
                         key={i}
+                        type="button"
                         onClick={() => setTextInput(ex)}
-                        className="block w-full text-start text-sm text-muted-foreground hover:text-foreground transition-colors py-1"
+                        className="rounded-full border border-border bg-background px-3 py-1.5 text-left text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground sm:text-sm"
                         dir={isRTL ? 'rtl' : 'ltr'}
                       >
                         {ex}
