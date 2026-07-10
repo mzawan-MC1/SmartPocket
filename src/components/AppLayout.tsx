@@ -12,9 +12,10 @@ import { useTranslation } from 'react-i18next';
 interface AppLayoutProps {
   children: React.ReactNode;
   activeRoute: string;
+  hideMobileTopbar?: boolean;
 }
 
-export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
+export default function AppLayout({ children, activeRoute, hideMobileTopbar = false }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { dir } = useLanguage();
@@ -65,7 +66,7 @@ export default function AppLayout({ children, activeRoute }: AppLayoutProps) {
 
             {/* Main Content Area */}
             <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden lg:h-screen lg:min-h-0 lg:overflow-hidden">
-              <div className="print:hidden">
+              <div className={`print:hidden ${hideMobileTopbar ? 'hidden md:block' : ''}`}>
                 <Topbar
                   onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
                 />

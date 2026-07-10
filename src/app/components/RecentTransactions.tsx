@@ -28,7 +28,11 @@ function shouldOpenRowFromKeyboard(event: React.KeyboardEvent<HTMLDivElement>) {
   return event.key === 'Enter' || event.key === ' ';
 }
 
-export default function RecentTransactions() {
+export default function RecentTransactions({
+  variant = 'default',
+}: {
+  variant?: 'default' | 'mobile-dashboard';
+}) {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const isArabic = language === 'ar';
@@ -86,17 +90,25 @@ export default function RecentTransactions() {
     await load();
   });
 
+  const visibleTransactions = variant === 'mobile-dashboard'
+    ? transactions.slice(0, 4)
+    : transactions;
+
   return (
     <SectionCard
-      title={t('recentTransactions.title', { ns: 'portal' })}
-      description={t('recentTransactions.description', { ns: 'portal' })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
+      title={variant === 'mobile-dashboard' ? t('recentTransactions.mobileTitle', { ns: 'portal' }) : t('recentTransactions.title', { ns: 'portal' })}
+      description={variant === 'mobile-dashboard' ? undefined : t('recentTransactions.description', { ns: 'portal' })}
+      className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md ${
+        variant === 'mobile-dashboard'
+          ? 'border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]'
+          : 'border-border/80 bg-card'
+      }`}
       action={
-        <Link href="/transactions" className="link-accent text-sm">
+        <Link href="/transactions" className={`font-700 ${variant === 'mobile-dashboard' ? 'text-sm text-[#2563eb]' : 'link-accent text-sm'}`}>
           {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
         </Link>
       }
-      bodyClassName="flex flex-1 flex-col p-3"
+      bodyClassName={`flex flex-1 flex-col ${variant === 'mobile-dashboard' ? 'p-2.5 pt-2' : 'p-3'}`}
     >
 
       {loading ? (
@@ -124,7 +136,7 @@ export default function RecentTransactions() {
       ) : (
         <div className="flex flex-1 flex-col">
           <div className="space-y-2">
-          {transactions.map((txn) => {
+          {visibleTransactions.map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
             const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
@@ -156,7 +168,11 @@ export default function RecentTransactions() {
                   event.preventDefault();
                   openTransactionDetails(txn.id);
                 }}
-                className="group flex items-start gap-3 rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 transition-all duration-150 cursor-pointer hover:border-border/70 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2"
+                className={`group flex items-start gap-3 rounded-2xl border px-3.5 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
+                  variant === 'mobile-dashboard'
+                    ? 'border-transparent bg-transparent py-2.5 hover:border-slate-200 hover:bg-slate-50'
+                    : 'border-transparent bg-muted/15 py-3 hover:border-border/70 hover:bg-muted/30'
+                }`}
               >
                 <div
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
@@ -192,20 +208,22 @@ export default function RecentTransactions() {
                     ) : null}
                   </div>
                   <p className={`mt-0.5 truncate text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-xs'}`}>
-                    {categoryLabel} · {accountLabel}
+                    {variant === 'mobile-dashboard' ? categoryLabel : `${categoryLabel} · ${accountLabel}`}
                   </p>
                 </div>
                 <div className="flex flex-shrink-0 flex-col items-end gap-1 text-right">
                   <FormattedCurrencyAmount
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}
-                    size="sm"
-                    className={`text-sm font-700 font-tabular ${isIncome ? 'text-positive' : 'text-negative'}`}
+                    size={variant === 'mobile-dashboard' ? 'md' : 'sm'}
+                    className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[0.98rem]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
                     showCode
                   />
-                  <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
-                    {formattedDate}
-                  </span>
+                  {variant === 'mobile-dashboard' ? null : (
+                    <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
+                      {formattedDate}
+                    </span>
+                  )}
                 </div>
               </div>
             );

@@ -181,6 +181,7 @@
   "dashboardHeader": {
     "title": "Панель управления",
     "description": "Обзор за {{period}}",
+    "mobileSubtitle": "Вот ваши деньги сегодня",
     "greeting": {
       "morning": "Доброе утро, {{name}}! 👋",
       "afternoon": "Добрый день, {{name}}! 👋",
@@ -338,6 +339,23 @@
     "paymentCount": "{{count}} запланировано",
     "scheduledIn": "запланировано на {{period}}",
     "dueIn": "срок в {{period}}",
+    "mobileSummaryTitle": "Общий баланс",
+    "mobileIncome": "Доход",
+    "mobileExpenses": "Расходы",
+    "mobileThisMonth": "в этом месяце",
+    "mobileThisPeriod": "в этот период",
+    "mobilePositiveShort": "Все в порядке",
+    "mobileNegativeShort": "Нужно внимание",
+    "mobileNetCashFlow": "Чистый поток",
+    "mobileUpcoming": "Скоро",
+    "mobileUpcomingCount_one": "{{count}} скоро",
+    "mobileUpcomingCount_other": "{{count}} скоро",
+    "mobileUpcomingEmpty": "Ничего не ожидается",
+    "mobileBudget": "Бюджет",
+    "mobileBudgetUsed": "Использовано {{percent}}%",
+    "mobileBudgetMixed": "Смешанные бюджеты",
+    "mobileBudgetEmpty": "Бюджета пока нет",
+    "mobileBudgetFallbackShort": "Готово",
     "peopleWithManagedMoney": "{{count}} человек с управляемыми деньгами",
     "borrowedIn": "занято в {{period}}",
     "paidIn": "выплачено в {{period}}",
@@ -445,7 +463,18 @@
     "history": "История ИИ",
     "upgrade": "Обновить тариф",
     "none": "Нет",
-    "trialing": "Пробный"
+    "trialing": "Пробный",
+    "mobileFeature": {
+      "title": "Добавить с Smart AI",
+      "description": "Фиксируйте расходы так, как вам удобнее всего.",
+      "typeTitle": "Напишите",
+      "typeDescription": "Введите или вставьте свой расход",
+      "voiceTitle": "Скажите",
+      "voiceDescription": "Продиктуйте, и ИИ добавит это за вас",
+      "uploadTitle": "Загрузите",
+      "uploadDescription": "Загрузите чек или снимок экрана",
+      "footer": "Smart AI сразу извлекает детали и распределяет их по категориям."
+    }
   },
   "dashboardAccounts": {
     "title": "Обзор счетов",
@@ -873,6 +902,7 @@
   },
   "recentTransactions": {
     "title": "Последние операции",
+    "mobileTitle": "Недавняя активность",
     "description": "Последняя активность по вашим счетам.",
     "emptyDescription": "Добавьте операцию, чтобы начать ленту недавней активности.",
     "uncategorized": "Без категории"
@@ -3263,7 +3293,16 @@
       "title": "Ближайшие личные подписки",
       "description": "Показывает три ближайших списания и их состояния предупреждений.",
       "emptyTitle": "Скорых подписок нет",
-      "emptyDescription": "Ближайшие продления подписок появятся здесь, когда будут запланированы следующие даты списаний."
+      "emptyDescription": "Ближайшие продления подписок появятся здесь, когда будут запланированы следующие даты списаний.",
+      "dashboardSuggestionTitle": "Умная подсказка",
+      "dashboardSuggestionBadge": "Новое",
+      "dashboardSuggestionPrimary_one": "{{name}} продлится через {{count}} день",
+      "dashboardSuggestionPrimary_other": "{{name}} продлится через {{count}} дня",
+      "dashboardSuggestionSecondary_one": "На этой неделе у вас {{count}} продление.",
+      "dashboardSuggestionSecondary_other": "На этой неделе у вас {{count}} продления.",
+      "dashboardSuggestionSingle": "Проверьте ближайшее продление до списания.",
+      "dashboardSuggestionEmpty": "На эту неделю продлений не запланировано.",
+      "dashboardSuggestionReview": "Проверить"
     },
     "detail": {
       "subtitle": "{{amount}} {{currency}} запланировано на каждый расчетный цикл.",

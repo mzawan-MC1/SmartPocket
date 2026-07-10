@@ -519,6 +519,7 @@ export default function DashboardPage() {
   }, [runDashboardBootstrap]);
 
   const showDesktopRightRail = isXlUp === true;
+  const viewportReady = isMdUp !== null && isXlUp !== null;
   const coreReady = Boolean(periodContext && activePeriod && viewMode);
   const showLoadFallback = !routeRecoveryInProgress && !authLoading && !coreReady && (!periodLoading || showSlowLoadState);
   const readyPeriodContext = coreReady ? periodContext : null;
@@ -526,7 +527,7 @@ export default function DashboardPage() {
   const readyViewMode = coreReady ? viewMode : null;
 
   return (
-    <AppLayout activeRoute="/dashboard">
+    <AppLayout activeRoute="/dashboard" hideMobileTopbar>
       <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3">
         {!coreReady ? (
           showLoadFallback ? (
@@ -620,73 +621,89 @@ export default function DashboardPage() {
               activeQuickAction={activeQuickAction}
               financialPeriodContext={readyPeriodContext!}
             />
-            <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
-              <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
-                <div className="md:col-span-12 xl:col-[1]">
-                  <DashboardMetrics activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
-                </div>
-                <div className="hidden md:block md:col-span-12 xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
-                  <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
-                    {isMdUp
-                      ? <AIUsageCardLazy />
-                      : <SectionCardSkeleton lines={3} className="h-full" />
-                    }
-                    {showDesktopRightRail ? (
-                      <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact />
-                    ) : null}
+            {!viewportReady ? (
+              <div className="space-y-4 max-[480px]:space-y-3">
+                <SectionCardSkeleton lines={3} />
+                <SectionCardSkeleton lines={4} />
+                <SectionCardSkeleton lines={4} />
+              </div>
+            ) : isMdUp ? (
+              <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
+                <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
+                  <div className="md:col-span-12 xl:col-[1]">
+                    <DashboardMetrics activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
+                  </div>
+                  <div className="hidden md:block md:col-span-12 xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
+                    <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
+                      <AIUsageCardLazy />
+                      {showDesktopRightRail ? (
+                        <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact />
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="md:col-span-12 xl:col-[1]">
+                    <DashboardCharts activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
                   </div>
                 </div>
-                <div className="md:col-span-12 xl:col-[1]">
-                  <DashboardCharts activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} />
+                <div ref={firstLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
+                  {firstLowerGrid.shouldMount ? (
+                    <>
+                      <div className="md:col-span-2 xl:col-span-1">
+                        <RecentTransactionsLazy />
+                      </div>
+                      <div>
+                        <UpcomingRecurringLazy activePeriod={readyActivePeriod!} />
+                      </div>
+                      <div>
+                        <AccountBalancesLazy />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <SectionCardSkeleton lines={4} className="h-full md:col-span-2 xl:col-span-1" />
+                      <SectionCardSkeleton lines={4} className="h-full" />
+                      <SectionCardSkeleton lines={4} className="h-full" />
+                    </>
+                  )}
+                </div>
+                <div ref={secondLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-2">
+                  {secondLowerGrid.shouldMount ? (
+                    <>
+                      {!showDesktopRightRail ? (
+                        <div className="h-full md:col-span-2 lg:col-span-1 xl:hidden">
+                          <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} />
+                        </div>
+                      ) : null}
+                      <div className="h-full">
+                        <PeopleDashboardWidgetLazy />
+                      </div>
+                      <div className="h-full">
+                        <ReceiptInsightsCardLazy activePeriod={readyActivePeriod!} />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {!showDesktopRightRail ? (
+                        <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1 xl:hidden" />
+                      ) : null}
+                      <SectionCardSkeleton lines={4} className="h-full" />
+                      <SectionCardSkeleton lines={4} className="h-full" />
+                    </>
+                  )}
                 </div>
               </div>
-              <div ref={firstLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3 xl:gap-4">
-                {firstLowerGrid.shouldMount ? (
-                  <>
-                    <div className="md:col-span-2 xl:col-span-1">
-                      <RecentTransactionsLazy />
-                    </div>
-                    <div>
-                      <UpcomingRecurringLazy activePeriod={readyActivePeriod!} />
-                    </div>
-                    <div>
-                      <AccountBalancesLazy />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <SectionCardSkeleton lines={4} className="h-full md:col-span-2 xl:col-span-1" />
-                    <SectionCardSkeleton lines={4} className="h-full" />
-                    <SectionCardSkeleton lines={4} className="h-full" />
-                  </>
-                )}
+            ) : (
+              <div className="space-y-4 max-[480px]:space-y-3">
+                <DashboardMetrics
+                  activePeriod={readyActivePeriod!}
+                  hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning}
+                  variant="mobile-dashboard"
+                />
+                <AIUsageCardLazy variant="mobile-featured" />
+                <RecentTransactionsLazy variant="mobile-dashboard" />
+                <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact dashboardSuggestion />
               </div>
-              <div ref={secondLowerGrid.ref} className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3 lg:gap-4 xl:grid-cols-2">
-                {secondLowerGrid.shouldMount ? (
-                  <>
-                    {!showDesktopRightRail ? (
-                      <div className="h-full md:col-span-2 lg:col-span-1 xl:hidden">
-                        <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} />
-                      </div>
-                    ) : null}
-                    <div className="h-full">
-                      <PeopleDashboardWidgetLazy />
-                    </div>
-                    <div className="h-full">
-                      <ReceiptInsightsCardLazy activePeriod={readyActivePeriod!} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {!showDesktopRightRail ? (
-                      <SectionCardSkeleton lines={4} className="h-full md:col-span-2 lg:col-span-1 xl:hidden" />
-                    ) : null}
-                    <SectionCardSkeleton lines={4} className="h-full" />
-                    <SectionCardSkeleton lines={4} className="h-full" />
-                  </>
-                )}
-              </div>
-            </div>
+            )}
           </>
         )}
 

@@ -196,6 +196,7 @@
   "dashboardHeader": {
     "title": "Dashboard",
     "description": "Overview for {{period}}",
+    "mobileSubtitle": "Here's your money today",
     "greeting": {
       "morning": "Good morning, {{name}}! 👋",
       "afternoon": "Good afternoon, {{name}}! 👋",
@@ -851,6 +852,23 @@
     "paymentCount": "{{count}} scheduled",
     "scheduledIn": "scheduled in {{period}}",
     "dueIn": "due in {{period}}",
+    "mobileSummaryTitle": "Total Balance",
+    "mobileIncome": "Income",
+    "mobileExpenses": "Expenses",
+    "mobileThisMonth": "this month",
+    "mobileThisPeriod": "this period",
+    "mobilePositiveShort": "On track",
+    "mobileNegativeShort": "Watch out",
+    "mobileNetCashFlow": "Net cash flow",
+    "mobileUpcoming": "Upcoming",
+    "mobileUpcomingCount_one": "{{count}} due",
+    "mobileUpcomingCount_other": "{{count}} due",
+    "mobileUpcomingEmpty": "Nothing due",
+    "mobileBudget": "Budget",
+    "mobileBudgetUsed": "{{percent}}% used",
+    "mobileBudgetMixed": "Mixed budgets",
+    "mobileBudgetEmpty": "No budgets yet",
+    "mobileBudgetFallbackShort": "Ready",
     "peopleWithManagedMoney": "{{count}} people with managed money",
     "borrowedIn": "borrowed in {{period}}",
     "paidIn": "paid in {{period}}",
@@ -958,7 +976,18 @@
     "history": "History",
     "upgrade": "Upgrade",
     "none": "None",
-    "trialing": "Trial"
+    "trialing": "Trial",
+    "mobileFeature": {
+      "title": "Add with Smart AI",
+      "description": "Capture expenses in the way that's easiest for you.",
+      "typeTitle": "Type it",
+      "typeDescription": "Type or paste your expense",
+      "voiceTitle": "Voice it",
+      "voiceDescription": "Speak and let AI add it for you",
+      "uploadTitle": "Upload it",
+      "uploadDescription": "Upload receipt or screenshot",
+      "footer": "Smart AI extracts details and categorizes instantly."
+    }
   },
   "dashboardAccounts": {
     "title": "Accounts Overview",
@@ -1530,6 +1559,7 @@
   },
   "recentTransactions": {
     "title": "Recent Transactions",
+    "mobileTitle": "Recent Activity",
     "description": "Latest activity across your accounts.",
     "emptyDescription": "Add a transaction to start building your recent activity feed.",
     "uncategorized": "Uncategorized"
@@ -3621,7 +3651,16 @@
       "title": "Upcoming Personal Subscriptions",
       "description": "Show the next three subscription charges and warning states.",
       "emptyTitle": "No subscriptions due soon",
-      "emptyDescription": "Upcoming subscription renewals will appear here when their next billing dates are scheduled."
+      "emptyDescription": "Upcoming subscription renewals will appear here when their next billing dates are scheduled.",
+      "dashboardSuggestionTitle": "Smart Suggestion",
+      "dashboardSuggestionBadge": "New",
+      "dashboardSuggestionPrimary_one": "{{name}} renews in {{count}} day",
+      "dashboardSuggestionPrimary_other": "{{name}} renews in {{count}} days",
+      "dashboardSuggestionSecondary_one": "You have {{count}} renewal coming this week.",
+      "dashboardSuggestionSecondary_other": "You have {{count}} renewals coming this week.",
+      "dashboardSuggestionSingle": "Review the next renewal before it hits.",
+      "dashboardSuggestionEmpty": "No renewals are scheduled for this week.",
+      "dashboardSuggestionReview": "Review"
     },
     "detail": {
       "subtitle": "{{amount}} {{currency}} scheduled per billing cycle.",

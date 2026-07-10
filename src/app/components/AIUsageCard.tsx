@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Calendar, Clock, History, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, Calendar, Clock, FileUp, History, Keyboard, Mic, RefreshCw, Sparkles } from 'lucide-react';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
@@ -390,7 +390,11 @@ function CompactStatus({
   );
 }
 
-export default function AIUsageCard() {
+export default function AIUsageCard({
+  variant = 'default',
+}: {
+  variant?: 'default' | 'mobile-featured';
+}) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const quickActions = useQuickActions();
@@ -625,6 +629,83 @@ export default function AIUsageCard() {
       <p className="truncate text-[11px] leading-4 text-muted-foreground">{t('aiUsage.companion')}</p>
     </div>
   );
+
+  if (variant === 'mobile-featured' && !loading && !isUnavailable && summary?.has_subscription && hasAnyAiAccess) {
+    const actionCards = [
+      {
+        id: 'type',
+        title: t('aiUsage.mobileFeature.typeTitle'),
+        description: t('aiUsage.mobileFeature.typeDescription'),
+        icon: Keyboard,
+        onClick: () => quickActions?.openQuickAction('smart_entry'),
+        className: 'border-blue-200/90 bg-[linear-gradient(180deg,#eef5ff,#f8fbff)] text-blue-600 shadow-[0_14px_28px_-24px_rgba(59,130,246,0.45)]',
+      },
+      {
+        id: 'voice',
+        title: t('aiUsage.mobileFeature.voiceTitle'),
+        description: t('aiUsage.mobileFeature.voiceDescription'),
+        icon: Mic,
+        onClick: () => quickActions?.openQuickAction('voice_entry'),
+        className: 'border-slate-200/90 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] text-blue-600 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.18)]',
+      },
+      {
+        id: 'upload',
+        title: t('aiUsage.mobileFeature.uploadTitle'),
+        description: t('aiUsage.mobileFeature.uploadDescription'),
+        icon: FileUp,
+        onClick: () => quickActions?.openQuickAction('smart_entry'),
+        className: 'border-slate-200/90 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] text-blue-600 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.18)]',
+      },
+    ];
+
+    return (
+      <section className="overflow-hidden rounded-[28px] border border-[#cfe0ff] bg-[linear-gradient(180deg,#f8fbff_0%,#eef4ff_100%)] p-4 shadow-[0_18px_40px_-28px_rgba(59,130,246,0.35)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 text-slate-900">
+              <Sparkles size={18} className="text-[#2f7cff]" />
+              <h2 className="text-[1.55rem] font-800 tracking-[-0.03em]">{t('aiUsage.mobileFeature.title')}</h2>
+            </div>
+            <p className="mt-1 text-[13px] leading-5 text-slate-500">
+              {t('aiUsage.mobileFeature.description')}
+            </p>
+          </div>
+          <div className="relative flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#eff6ff_0%,#dbeafe_40%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.65)]">
+            <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
+            <div className="relative flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-white" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-3 gap-2.5">
+          {actionCards.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={action.onClick}
+                className={`flex min-h-[112px] flex-col items-start rounded-[20px] border p-3 text-left transition-transform duration-150 hover:-translate-y-0.5 ${action.className}`}
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/85">
+                  <Icon size={18} />
+                </div>
+                <p className="mt-3 text-[1.02rem] font-800 tracking-[-0.02em] text-slate-900">{action.title}</p>
+                <p className="mt-1 text-[12px] leading-4 text-slate-500">{action.description}</p>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-white/70 px-3 py-2 text-center text-[12px] font-600 text-slate-500">
+          <Sparkles size={13} className="text-[#2f7cff]" />
+          <span>{t('aiUsage.mobileFeature.footer')}</span>
+        </div>
+      </section>
+    );
+  }
 
   if (isUnavailable) {
     return (

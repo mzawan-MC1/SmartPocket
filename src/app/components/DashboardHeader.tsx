@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tabs from '@/components/ui/Tabs';
+import NotificationBell from '@/components/NotificationBell';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import {
   getMonthContext,
@@ -148,7 +149,104 @@ export default function DashboardHeader({
 
   return (
     <section className="space-y-2">
-      <div className="grid grid-cols-1 gap-2.5 md:gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[minmax(18rem,1.1fr)_minmax(22rem,0.96fr)_14.75rem] xl:items-start xl:gap-3">
+      <div className="md:hidden space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className={`font-800 tracking-[-0.03em] text-foreground ${
+              isArabic ? 'text-[1.65rem] leading-[1.2]' : 'text-[1.72rem] leading-[1.12]'
+            }`}>
+              {headingText}
+            </h1>
+            <p className={`mt-1 text-muted-foreground ${
+              isArabic ? 'text-[13px] leading-5' : 'text-[13px] leading-5'
+            }`}>
+              {t('dashboardHeader.mobileSubtitle')}
+            </p>
+          </div>
+          <div className="shrink-0">
+            <NotificationBell />
+          </div>
+        </div>
+
+        <div className="rounded-[24px] border border-border/70 bg-card/90 p-2 shadow-card-sm">
+          <Tabs
+            items={[
+              { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
+              { id: 'month', label: t('dashboardHeader.month') },
+            ]}
+            activeId={viewMode}
+            onChange={onViewModeChange}
+            className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-9 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-2xl [&_.tab-button]:px-3 [&_.tab-button]:py-2 [&_.tab-button]:text-[12px] [&_.tab-button]:font-700"
+          />
+          <div className="mt-2 flex items-center gap-1 rounded-[18px] bg-muted/30 p-1">
+            <button
+              type="button"
+              onClick={() => {
+                if (viewMode === 'month') {
+                  onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, -1));
+                  return;
+                }
+                onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
+              }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card"
+              aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
+            >
+              <PreviousIcon size={16} />
+            </button>
+            {viewMode === 'month' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
+                  className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[12px] font-700 text-foreground shadow-sm"
+                  aria-label={t('dashboardHeader.chooseMonth')}
+                >
+                  <Calendar size={14} className="text-accent" />
+                  <span className="truncate">{monthContext.label}</span>
+                </button>
+                <input
+                  ref={monthInputRef}
+                  type="month"
+                  className="sr-only"
+                  value={monthContext.monthKey}
+                  max={currentMonthContext.monthKey}
+                  onChange={(event) => onSelectedMonthChange(event.target.value)}
+                  aria-label={t('dashboardHeader.dashboardMonth')}
+                />
+              </>
+            ) : (
+              <div className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[12px] font-700 text-foreground shadow-sm">
+                <Calendar size={14} className="text-accent" />
+                <span className="truncate">{activePeriod.label}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (!canMoveNext) return;
+                if (viewMode === 'month') {
+                  onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, 1));
+                  return;
+                }
+                onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
+              }}
+              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
+              aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
+              disabled={!canMoveNext}
+            >
+              <NextIcon size={16} />
+            </button>
+          </div>
+        </div>
+
+        {financialPeriodContext.configurationWarning ? (
+          <div className="rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+            {financialPeriodContext.configurationWarning}
+          </div>
+        ) : null}
+      </div>
+
+      <div className="hidden grid-cols-1 gap-2.5 md:grid md:gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[minmax(18rem,1.1fr)_minmax(22rem,0.96fr)_14.75rem] xl:items-start xl:gap-3">
         <div className="min-w-0 space-y-1.5 rounded-[20px] border border-transparent py-0.5">
           <h1 className={`flex items-center gap-x-1 gap-y-0 font-800 tracking-[-0.03em] text-foreground lg:text-[1.5rem] xl:flex-nowrap xl:text-[1.6rem] ${
             isArabic

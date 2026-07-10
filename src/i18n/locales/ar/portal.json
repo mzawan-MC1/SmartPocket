@@ -186,6 +186,7 @@
   "dashboardHeader": {
     "title": "لوحة التحكم",
     "description": "نظرة سريعة على {{period}}",
+    "mobileSubtitle": "هذه أموالك اليوم",
     "greeting": {
       "morning": "صباح الخير، {{name}}! 👋",
       "afternoon": "مساء الخير، {{name}}! 👋",
@@ -358,6 +359,23 @@
     "paymentCount": "{{count}} مجدولة",
     "scheduledIn": "مجدولة في {{period}}",
     "dueIn": "مستحقة في {{period}}",
+    "mobileSummaryTitle": "إجمالي الرصيد",
+    "mobileIncome": "الدخل",
+    "mobileExpenses": "المصروفات",
+    "mobileThisMonth": "هذا الشهر",
+    "mobileThisPeriod": "هذه الفترة",
+    "mobilePositiveShort": "على المسار",
+    "mobileNegativeShort": "انتبه",
+    "mobileNetCashFlow": "صافي التدفق النقدي",
+    "mobileUpcoming": "القادم",
+    "mobileUpcomingCount_one": "{{count}} مستحق",
+    "mobileUpcomingCount_other": "{{count}} مستحقة",
+    "mobileUpcomingEmpty": "لا يوجد شيء مستحق",
+    "mobileBudget": "الميزانية",
+    "mobileBudgetUsed": "تم استخدام {{percent}}%",
+    "mobileBudgetMixed": "ميزانيات متعددة",
+    "mobileBudgetEmpty": "لا توجد ميزانية بعد",
+    "mobileBudgetFallbackShort": "جاهز",
     "peopleWithManagedMoney": "{{count}} أشخاص بأموال مُدارة",
     "borrowedIn": "تم اقتراضه في {{period}}",
     "paidIn": "تم دفعه في {{period}}",
@@ -465,7 +483,18 @@
     "history": "السجل",
     "upgrade": "الترقية",
     "none": "لا شيء",
-    "trialing": "تجريبي"
+    "trialing": "تجريبي",
+    "mobileFeature": {
+      "title": "أضف باستخدام الذكاء الذكي",
+      "description": "التقط المصروفات بالطريقة الأسهل لك.",
+      "typeTitle": "اكتبه",
+      "typeDescription": "اكتب أو الصق مصروفك",
+      "voiceTitle": "تكلم به",
+      "voiceDescription": "تحدث ودع الذكاء يضيفه لك",
+      "uploadTitle": "ارفعه",
+      "uploadDescription": "ارفع إيصالاً أو لقطة شاشة",
+      "footer": "يستخرج الذكاء التفاصيل ويصنفها فوراً."
+    }
   },
   "dashboardAccounts": {
     "title": "نظرة عامة على الحسابات",
@@ -893,6 +922,7 @@
   },
   "recentTransactions": {
     "title": "المعاملات الأخيرة",
+    "mobileTitle": "النشاط الأخير",
     "description": "أحدث النشاطات عبر حساباتك.",
     "emptyDescription": "أضف معاملة لبدء عرض نشاطك الأخير.",
     "uncategorized": "غير مصنفة"
@@ -3273,7 +3303,16 @@
       "title": "الاشتراكات الشخصية القادمة",
       "description": "اعرض الرسوم الثلاث القادمة وحالات التنبيه الخاصة بها.",
       "emptyTitle": "لا توجد اشتراكات مستحقة قريبًا",
-      "emptyDescription": "ستظهر تجديدات الاشتراكات القادمة هنا عند جدولة تاريخ الفوترة التالي."
+      "emptyDescription": "ستظهر تجديدات الاشتراكات القادمة هنا عند جدولة تاريخ الفوترة التالي.",
+      "dashboardSuggestionTitle": "اقتراح ذكي",
+      "dashboardSuggestionBadge": "جديد",
+      "dashboardSuggestionPrimary_one": "سيتم تجديد {{name}} خلال يوم واحد",
+      "dashboardSuggestionPrimary_other": "سيتم تجديد {{name}} خلال {{count}} أيام",
+      "dashboardSuggestionSecondary_one": "لديك تجديد واحد هذا الأسبوع.",
+      "dashboardSuggestionSecondary_other": "لديك {{count}} تجديدات هذا الأسبوع.",
+      "dashboardSuggestionSingle": "راجع التجديد القادم قبل موعد الخصم.",
+      "dashboardSuggestionEmpty": "لا توجد تجديدات مجدولة لهذا الأسبوع.",
+      "dashboardSuggestionReview": "مراجعة"
     },
     "detail": {
       "subtitle": "{{amount}} {{currency}} مجدولة لكل دورة فوترة.",

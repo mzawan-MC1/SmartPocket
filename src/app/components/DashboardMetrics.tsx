@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp,
+  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye,
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -224,9 +224,11 @@ function OriginalCurrencyDisclosure({
 export default function DashboardMetrics({
   activePeriod,
   hasConfigurationWarning = false,
+  variant = 'default',
 }: {
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
+  variant?: 'default' | 'mobile-dashboard';
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -260,6 +262,37 @@ export default function DashboardMetrics({
   });
 
   if (loading) {
+    if (variant === 'mobile-dashboard') {
+      return (
+        <div className="space-y-3">
+          <div className="animate-pulse rounded-[28px] bg-[linear-gradient(135deg,#0f3cbf,#1ab8f4)] p-5 text-white shadow-[0_18px_42px_-20px_rgba(37,99,235,0.5)]">
+            <div className="h-4 w-28 rounded bg-white/20" />
+            <div className="mt-4 h-10 w-44 rounded bg-white/20" />
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
+              <div className="space-y-2">
+                <div className="h-3 w-16 rounded bg-white/20" />
+                <div className="h-6 w-24 rounded bg-white/20" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-16 rounded bg-white/20" />
+                <div className="h-6 w-24 rounded bg-white/20" />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div key={`mobile-metric-skeleton-${index}`} className="animate-pulse rounded-[22px] border border-border/70 bg-card p-3">
+                <div className="h-10 w-10 rounded-2xl bg-muted" />
+                <div className="mt-4 h-3 w-16 rounded bg-muted" />
+                <div className="mt-2 h-5 w-20 rounded bg-muted" />
+                <div className="mt-2 h-3 w-14 rounded bg-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
     const skeletonCards = Array.from({ length: 8 });
 
     return (
@@ -593,6 +626,139 @@ export default function DashboardMetrics({
     loanCards[0],
     loanCards[1],
   ];
+
+  if (variant === 'mobile-dashboard') {
+    const netCashFlowPositive = (metrics.netCashFlow.reportingAmount ?? 0) >= 0;
+    const budgetUsagePct = budgetRemaining.length === 1
+      ? Math.max(0, Math.min(100, Math.round(budgetRemaining[0].usedPct)))
+      : null;
+    const budgetUsageLabel = budgetUsagePct !== null
+      ? t('dashboardMetrics.mobileBudgetUsed', { percent: budgetUsagePct })
+      : hasApplicableBudgets
+        ? t('dashboardMetrics.mobileBudgetMixed')
+        : t('dashboardMetrics.mobileBudgetEmpty');
+    const upcomingCountLabel = metrics.upcomingPaymentsCount > 0
+      ? t('dashboardMetrics.mobileUpcomingCount', { count: metrics.upcomingPaymentsCount })
+      : t('dashboardMetrics.mobileUpcomingEmpty');
+    const netLabel = activePeriod.mode === 'month'
+      ? t('dashboardMetrics.mobileThisMonth')
+      : t('dashboardMetrics.mobileThisPeriod');
+
+    return (
+      <div className="space-y-3.5">
+        {hasConfigurationWarning ? (
+          <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
+        ) : null}
+
+        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0f3cbf_0%,#105ce0_42%,#18baf6_100%)] p-5 text-white shadow-[0_22px_46px_-22px_rgba(37,99,235,0.6)]">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 bottom-[-3.5rem] h-48 w-48 rounded-full border border-white/10 opacity-70" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-4 bottom-2 h-40 w-40 rounded-full border border-white/10 opacity-70" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-8 bottom-12 h-24 w-24 rounded-full border border-white/10 opacity-70" />
+
+          <div className="relative z-[1]">
+            <div className="flex items-center gap-2 text-[0.98rem] font-600 text-white/90">
+              <span>{t('dashboardMetrics.mobileSummaryTitle')}</span>
+              <Eye size={16} className="text-white/85" />
+            </div>
+
+            <div className="mt-3 font-tabular">
+              {renderMetricValue(
+                metrics.totalBalance,
+                'xl',
+                'inline-flex items-baseline text-[2.15rem] font-800 leading-none tracking-[-0.04em] text-white',
+                'font-800'
+              )}
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
+                <div className="font-tabular">
+                  {renderMetricValue(
+                    metrics.monthlyIncome,
+                    'sm',
+                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white',
+                    'font-700'
+                  )}
+                </div>
+              </div>
+              <div className="space-y-1.5 border-s border-white/15 ps-3">
+                <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
+                <div className="font-tabular">
+                  {renderMetricValue(
+                    metrics.monthlyExpenses,
+                    'sm',
+                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white',
+                    'font-700'
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2 border-t border-white/15 pt-3 text-[0.98rem] font-700">
+              {netCashFlowPositive ? (
+                <ArrowUp size={16} className="text-[#4ade80]" />
+              ) : (
+                <ArrowDown size={16} className="text-[#fda4af]" />
+              )}
+              <div className={`font-tabular ${netCashFlowPositive ? 'text-[#86efac]' : 'text-[#fecdd3]'}`}>
+                {renderMetricValue(
+                  metrics.netCashFlow,
+                  'sm',
+                  'inline-flex items-baseline text-[1.02rem] font-800 leading-none tracking-[-0.02em]',
+                  'font-800'
+                )}
+              </div>
+              <span className="text-white/90">{netLabel}</span>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-3 gap-2.5">
+          <article className="rounded-[22px] border border-emerald-100/80 bg-[linear-gradient(180deg,#ffffff,#f3fbf7)] p-3.5 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.55)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <TrendingUp size={18} />
+            </div>
+            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{netLabel}</p>
+            <p className={`mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] ${netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
+              {netCashFlowPositive ? t('dashboardMetrics.mobilePositiveShort') : t('dashboardMetrics.mobileNegativeShort')}
+            </p>
+            <p className="mt-1 text-[12px] leading-4 text-slate-500">{t('dashboardMetrics.mobileNetCashFlow')}</p>
+          </article>
+
+          <article className="rounded-[22px] border border-violet-100/80 bg-[linear-gradient(180deg,#ffffff,#f7f4ff)] p-3.5 shadow-[0_14px_28px_-24px_rgba(139,92,246,0.45)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+              <CalendarClock size={18} />
+            </div>
+            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileUpcoming')}</p>
+            <p className="mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] text-violet-600">
+              {metrics.upcomingPaymentsCount > 0 ? metrics.upcomingPaymentsCount : '0'}
+            </p>
+            <p className="mt-1 text-[12px] leading-4 text-slate-500">{upcomingCountLabel}</p>
+          </article>
+
+          <article className="rounded-[22px] border border-amber-100/90 bg-[linear-gradient(180deg,#ffffff,#fff7ed)] p-3.5 shadow-[0_14px_28px_-24px_rgba(245,158,11,0.4)]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              <Target size={18} />
+            </div>
+            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileBudget')}</p>
+            <p className="mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] text-amber-600">
+              {budgetUsagePct !== null ? `${budgetUsagePct}%` : t('dashboardMetrics.mobileBudgetFallbackShort')}
+            </p>
+            <p className="mt-1 text-[12px] leading-4 text-slate-500">{budgetUsageLabel}</p>
+            {budgetUsagePct !== null ? (
+              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-amber-100">
+                <div
+                  className="h-full rounded-full bg-[linear-gradient(90deg,#fb923c,#f59e0b)]"
+                  style={{ width: `${budgetUsagePct}%` }}
+                />
+              </div>
+            ) : null}
+          </article>
+        </div>
+      </div>
+    );
+  }
 
   const renderMetricCard = (metric: DashboardMetricCard) => {
     const Icon = metric.icon;

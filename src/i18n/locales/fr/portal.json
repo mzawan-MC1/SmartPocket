@@ -181,6 +181,7 @@
   "dashboardHeader": {
     "title": "Tableau de bord",
     "description": "Vue d'ensemble pour {{period}}",
+    "mobileSubtitle": "Voici votre argent aujourd'hui",
     "greeting": {
       "morning": "Bonjour, {{name}}! 👋",
       "afternoon": "Bon apres-midi, {{name}}! 👋",
@@ -338,6 +339,23 @@
     "paymentCount": "{{count}} planifié(s)",
     "scheduledIn": "prévu dans {{period}}",
     "dueIn": "à échéance dans {{period}}",
+    "mobileSummaryTitle": "Solde total",
+    "mobileIncome": "Revenus",
+    "mobileExpenses": "Dépenses",
+    "mobileThisMonth": "ce mois-ci",
+    "mobileThisPeriod": "cette période",
+    "mobilePositiveShort": "Sur la bonne voie",
+    "mobileNegativeShort": "Attention",
+    "mobileNetCashFlow": "Flux net",
+    "mobileUpcoming": "À venir",
+    "mobileUpcomingCount_one": "{{count}} à venir",
+    "mobileUpcomingCount_other": "{{count}} à venir",
+    "mobileUpcomingEmpty": "Rien à venir",
+    "mobileBudget": "Budget",
+    "mobileBudgetUsed": "{{percent}}% utilisés",
+    "mobileBudgetMixed": "Budgets mixtes",
+    "mobileBudgetEmpty": "Pas encore de budget",
+    "mobileBudgetFallbackShort": "Prêt",
     "peopleWithManagedMoney": "{{count}} personnes avec argent géré",
     "borrowedIn": "emprunté sur {{period}}",
     "paidIn": "payé sur {{period}}",
@@ -445,7 +463,18 @@
     "history": "Historique IA",
     "upgrade": "Passer à niveau",
     "none": "Aucun",
-    "trialing": "Essai"
+    "trialing": "Essai",
+    "mobileFeature": {
+      "title": "Ajouter avec Smart AI",
+      "description": "Capturez vos dépenses de la manière la plus simple pour vous.",
+      "typeTitle": "Tapez-le",
+      "typeDescription": "Tapez ou collez votre dépense",
+      "voiceTitle": "Dictez-le",
+      "voiceDescription": "Parlez et laissez l'IA l'ajouter pour vous",
+      "uploadTitle": "Importez-le",
+      "uploadDescription": "Importez un reçu ou une capture d'écran",
+      "footer": "Smart AI extrait les détails et classe tout instantanément."
+    }
   },
   "dashboardAccounts": {
     "title": "Vue des comptes",
@@ -873,6 +902,7 @@
   },
   "recentTransactions": {
     "title": "Transactions récentes",
+    "mobileTitle": "Activité récente",
     "description": "Dernière activité sur vos comptes.",
     "emptyDescription": "Ajoutez une transaction pour commencer votre flux d’activité récente.",
     "uncategorized": "Non catégorisé"
@@ -3253,7 +3283,16 @@
       "title": "Abonnements personnels a venir",
       "description": "Affiche les trois prochaines facturations et leurs alertes.",
       "emptyTitle": "Aucun abonnement bientot facture",
-      "emptyDescription": "Les prochains renouvellements d abonnement apparaitront ici lorsque leur prochaine date de facturation sera planifiee."
+      "emptyDescription": "Les prochains renouvellements d abonnement apparaitront ici lorsque leur prochaine date de facturation sera planifiee.",
+      "dashboardSuggestionTitle": "Suggestion intelligente",
+      "dashboardSuggestionBadge": "Nouveau",
+      "dashboardSuggestionPrimary_one": "{{name}} se renouvelle dans {{count}} jour",
+      "dashboardSuggestionPrimary_other": "{{name}} se renouvelle dans {{count}} jours",
+      "dashboardSuggestionSecondary_one": "Vous avez {{count}} renouvellement cette semaine.",
+      "dashboardSuggestionSecondary_other": "Vous avez {{count}} renouvellements cette semaine.",
+      "dashboardSuggestionSingle": "Vérifiez le prochain renouvellement avant le débit.",
+      "dashboardSuggestionEmpty": "Aucun renouvellement n'est prévu cette semaine.",
+      "dashboardSuggestionReview": "Vérifier"
     },
     "detail": {
       "subtitle": "{{amount}} {{currency}} planifie par cycle de facturation.",

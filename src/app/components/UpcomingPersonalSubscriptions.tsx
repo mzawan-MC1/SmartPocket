@@ -25,12 +25,20 @@ function addDays(dateIso: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function daysUntil(dateIso: string, targetIso: string) {
+  const today = new Date(`${dateIso}T12:00:00Z`);
+  const target = new Date(`${targetIso}T12:00:00Z`);
+  return Math.max(0, Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
 export default function UpcomingPersonalSubscriptions({
   activePeriod,
   compact = false,
+  dashboardSuggestion = false,
 }: {
   activePeriod: DashboardActivePeriod;
   compact?: boolean;
+  dashboardSuggestion?: boolean;
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
@@ -75,6 +83,66 @@ export default function UpcomingPersonalSubscriptions({
       await load();
     }
   );
+
+  if (dashboardSuggestion) {
+    const firstSubscription = subscriptions[0] ?? null;
+    const dueInDays = firstSubscription?.next_billing_date
+      ? daysUntil(todayIso, firstSubscription.next_billing_date)
+      : null;
+
+    return (
+      <section className="rounded-[24px] border border-slate-200/85 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3.5 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.24)]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
+            <CalendarClock size={22} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-[1.02rem] font-800 tracking-[-0.02em] text-foreground">
+                {t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' })}
+              </h3>
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-600">
+                {t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' })}
+              </span>
+            </div>
+            {loading ? (
+              <div className="mt-1 h-4 w-40 animate-pulse rounded bg-muted" />
+            ) : firstSubscription ? (
+              <>
+                <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-4.5'}`}>
+                  {dueInDays !== null
+                    ? t('personalSubscriptions.widget.dashboardSuggestionPrimary', {
+                        ns: 'portal',
+                        name: firstSubscription.name,
+                        count: dueInDays,
+                      })
+                    : firstSubscription.name}
+                </p>
+                <p className={`mt-1 text-[12px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
+                  {subscriptions.length > 1
+                    ? t('personalSubscriptions.widget.dashboardSuggestionSecondary', {
+                        ns: 'portal',
+                        count: subscriptions.length,
+                      })
+                    : t('personalSubscriptions.widget.dashboardSuggestionSingle', { ns: 'portal' })}
+                </p>
+              </>
+            ) : (
+              <p className={`mt-1 text-[12px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
+                {t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' })}
+              </p>
+            )}
+          </div>
+          <Link
+            href="/personal-subscriptions"
+            className="inline-flex h-11 items-center justify-center rounded-2xl border border-blue-200 bg-white px-4 text-sm font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
+          >
+            {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <SectionCard
