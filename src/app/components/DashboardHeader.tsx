@@ -154,7 +154,7 @@ export default function DashboardHeader({
           <div className="min-w-0">
             <h1
               className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.03em] text-foreground ${
-                isArabic ? 'text-[24px] leading-[1.05]' : 'text-[25px] leading-[1.05]'
+                isArabic ? 'text-[23px] leading-[1.05]' : 'text-[24px] leading-[1.05]'
               }`}
               title={headingText}
             >
@@ -165,7 +165,9 @@ export default function DashboardHeader({
             </p>
           </div>
           <div className="shrink-0">
-            <NotificationBell />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)]">
+              <NotificationBell />
+            </div>
           </div>
         </div>
 

@@ -669,15 +669,16 @@ export default function AIUsageCard({
               <Sparkles size={18} className="text-[#2f7cff]" />
               <h2 className="text-[1.18rem] font-800 tracking-[-0.02em]">{t('aiUsage.mobileFeature.title')}</h2>
             </div>
-            <p className="mt-1 text-[12px] leading-5 text-slate-600">
-              {t('aiUsage.mobileFeature.description')}
+            <p className="mt-1 truncate text-[12px] leading-5 text-slate-600">
+              {t('aiUsage.mobileFeature.shortDescription', {
+                defaultValue: 'Capture expenses your way.',
+              })}
             </p>
           </div>
           <div className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_38%,#bfdbfe_100%)] shadow-[0_18px_30px_-24px_rgba(37,99,235,0.55)]">
             <div className="absolute inset-2 rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
-            <div className="relative flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-white" />
-              <span className="h-2.5 w-2.5 rounded-full bg-white" />
+            <div className="relative flex items-center justify-center">
+              <Sparkles size={18} className="text-white drop-shadow-sm" />
             </div>
           </div>
         </div>
@@ -692,11 +693,15 @@ export default function AIUsageCard({
                 onClick={action.onClick}
                 className={`flex min-h-[96px] flex-col items-start rounded-[20px] border p-3 text-left transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
               >
-                <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-white/90 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.35)]">
-                  <Icon size={17} />
+                <div className="flex w-full items-center gap-2">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-white/90 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.3)]">
+                    <Icon size={16} />
+                  </div>
+                  <p className="min-w-0 truncate text-[14px] font-800 tracking-[-0.02em] text-slate-900">
+                    {action.title}
+                  </p>
                 </div>
-                <p className="mt-2.5 text-[0.95rem] font-800 tracking-[-0.02em] text-slate-900">{action.title}</p>
-                <p className="mt-1 text-[11px] leading-4 text-slate-600">{action.description}</p>
+                <p className="mt-2 text-[11px] leading-4 text-slate-600">{action.description}</p>
               </button>
             );
           })}

@@ -217,10 +217,10 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       )}
 
       <nav
-        className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/98 backdrop-blur safe-area-bottom shadow-[0_-6px_24px_rgba(15,52,96,0.08)]"
-        style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))' }}
+        className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200/80 bg-white/90 backdrop-blur safe-area-bottom shadow-[0_-10px_34px_rgba(15,23,42,0.12)]"
+        style={{ height: 'calc(4.35rem + env(safe-area-inset-bottom))' }}
       >
-        <div className="flex h-full items-center justify-around px-1.5 pt-1">
+        <div className="flex h-full items-center justify-around px-2 pt-1.5">
           {navItems.map((item) => {
             const NavIcon = item.icon;
             if (item.isAction) {
@@ -228,7 +228,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setQuickAddOpen(!quickAddOpen); setMoreOpen(false); }}
-                  className="relative -top-3.5 flex h-14 w-14 items-center justify-center rounded-full border-4 border-background gradient-teal shadow-teal-glow transition-all duration-200 active:scale-95"
+                  className="relative -top-4 flex h-[54px] w-[54px] items-center justify-center rounded-full border-[3px] border-white bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)] shadow-[0_18px_38px_-22px_rgba(37,99,235,0.75)] transition-all duration-200 active:scale-95"
                   aria-label={t('bottomNav.quickAdd', { ns: 'portal' })}
                 >
                   <Plus size={22} className="text-white transition-transform duration-200" style={{ transform: quickAddOpen ? 'rotate(45deg)' : 'rotate(0deg)' }} />
@@ -240,9 +240,11 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 <button
                   key={item.id}
                   onClick={() => { setMoreOpen(!moreOpen); setQuickAddOpen(false); }}
-                  className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${moreOpen ? 'bg-accent/8 text-accent' : 'text-muted-foreground'}`}
+                  className={`flex min-w-[64px] flex-col items-center gap-1 rounded-2xl px-2 py-2 transition-colors duration-150 ${moreOpen ? 'bg-[linear-gradient(180deg,rgba(37,99,235,0.12),rgba(37,99,235,0.02))] text-[#1d4ed8] shadow-[0_10px_24px_-20px_rgba(37,99,235,0.35)]' : 'text-slate-500'}`}
                 >
-                  <NavIcon size={19} />
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${moreOpen ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+                    <NavIcon size={18} />
+                  </span>
                   <span className="text-[10px] font-700 leading-none">{item.label}</span>
                 </button>
               );
@@ -253,8 +255,8 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
               <Link
                 key={item.id}
                 href={item.href}
-                className={`flex min-w-[56px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150 ${
-                  active ? 'bg-accent/8 text-accent' : 'text-muted-foreground'
+                className={`flex min-w-[64px] flex-col items-center gap-1 rounded-2xl px-2 py-2 transition-colors duration-150 ${
+                  active ? 'bg-[linear-gradient(180deg,rgba(37,99,235,0.12),rgba(37,99,235,0.02))] text-[#1d4ed8] shadow-[0_10px_24px_-20px_rgba(37,99,235,0.35)]' : 'text-slate-500'
                 }`}
                 onClick={(event) => {
                   void handleNavigationIntent(item.href, event);
@@ -262,7 +264,9 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                 aria-current={active ? 'page' : undefined}
                 aria-busy={pending ? 'true' : undefined}
               >
-                {pending ? <Loader2 size={19} className="animate-spin" /> : <NavIcon size={19} />}
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${active ? 'bg-white shadow-sm' : 'bg-transparent'}`}>
+                  {pending ? <Loader2 size={18} className="animate-spin" /> : <NavIcon size={18} />}
+                </span>
                 <span className="text-[10px] font-700 leading-none">{item.label}</span>
               </Link>
             );

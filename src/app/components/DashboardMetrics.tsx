@@ -238,6 +238,7 @@ export default function DashboardMetrics({
   const isArabic = language === 'ar';
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hideSensitive, setHideSensitive] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -651,7 +652,26 @@ export default function DashboardMetrics({
       ? t('dashboardMetrics.mobileThisMonth')
       : t('dashboardMetrics.mobileThisPeriod');
 
+    const maskedText = '••••••';
+    const getPrimaryCurrencyCode = (metric: DashboardConvertedMetric) => {
+      if (metric.reportingAmount !== null) return metric.reportingCurrency;
+      return metric.originalTotals[0]?.currency || metrics.defaultCurrency;
+    };
+
+    const renderMaskedAmount = (metric: DashboardConvertedMetric, className: string) => {
+      const code = getPrimaryCurrencyCode(metric);
+      return (
+        <span dir="ltr" className={`inline-flex items-baseline whitespace-nowrap font-tabular ${className}`.trim()}>
+          {code} {maskedText}
+        </span>
+      );
+    };
+
     const renderMobileCurrencyText = (metric: DashboardConvertedMetric, className: string) => {
+      if (hideSensitive) {
+        return renderMaskedAmount(metric, className);
+      }
+
       if (metric.reportingAmount === null) {
         const safeRows = metric.originalTotals.length > 0
           ? metric.originalTotals
@@ -675,14 +695,16 @@ export default function DashboardMetrics({
       }
 
       return (
-        <FormattedCurrencyAmount
-          amount={metric.reportingAmount}
-          currencyCode={metric.reportingCurrency}
-          locale={locale}
-          textOnly
-          showCode
-          className={className}
-        />
+        <span style={{ unicodeBidi: 'isolate' }}>
+          <FormattedCurrencyAmount
+            amount={metric.reportingAmount}
+            currencyCode={metric.reportingCurrency}
+            locale={locale}
+            textOnly
+            showCode
+            className={className}
+          />
+        </span>
       );
     };
 
@@ -696,37 +718,59 @@ export default function DashboardMetrics({
           <div aria-hidden="true" className="pointer-events-none absolute -right-12 bottom-[-3.5rem] h-48 w-48 rounded-full border border-white/10 opacity-70" />
           <div aria-hidden="true" className="pointer-events-none absolute -right-4 bottom-2 h-40 w-40 rounded-full border border-white/10 opacity-70" />
           <div aria-hidden="true" className="pointer-events-none absolute right-8 bottom-12 h-24 w-24 rounded-full border border-white/10 opacity-70" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_100%_92%,rgba(255,255,255,0.14),transparent_56%),radial-gradient(circle_at_88%_100%,rgba(255,255,255,0.10),transparent_58%)] opacity-70" />
+          <div aria-hidden="true" className="pointer-events-none absolute -right-24 bottom-[-5rem] h-[18rem] w-[18rem] rounded-full border border-white/10 opacity-60" />
 
           <div className="relative z-[1]">
-            <div className="flex items-center gap-2 text-[13px] font-600 text-white/90">
+            <div className="flex items-center justify-between gap-2 text-[13px] font-600 text-white/90">
               <span>{t('dashboardMetrics.mobileSummaryTitle')}</span>
-              <Eye size={16} className="text-white/85" />
+              <button
+                type="button"
+                onClick={() => setHideSensitive((current) => !current)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/90 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                aria-pressed={hideSensitive}
+                aria-label={hideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
+              >
+                <Eye size={16} className="text-white/90" />
+              </button>
             </div>
 
             <div className="mt-3 font-tabular">
-              {renderMobileCurrencyText(
-                metrics.totalBalance,
-                'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]'
-              )}
+              <span style={{ wordSpacing: '0.22em' }}>
+                {renderMobileCurrencyText(
+                  metrics.totalBalance,
+                  'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]'
+                )}
+              </span>
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
               <div className="space-y-1.5">
                 <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
                 <div className="font-tabular">
-                  {renderMobileCurrencyText(
-                    metrics.monthlyIncome,
-                    'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-[#86efac]">
+                      <ArrowUp size={14} />
+                    </span>
+                    {renderMobileCurrencyText(
+                      metrics.monthlyIncome,
+                      'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="space-y-1.5 border-s border-white/15 ps-3">
                 <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
                 <div className="font-tabular">
-                  {renderMobileCurrencyText(
-                    metrics.monthlyExpenses,
-                    'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
-                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-[#fecdd3]">
+                      <ArrowDown size={14} />
+                    </span>
+                    {renderMobileCurrencyText(
+                      metrics.monthlyExpenses,
+                      'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
