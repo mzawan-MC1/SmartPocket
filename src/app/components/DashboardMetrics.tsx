@@ -827,9 +827,9 @@ export default function DashboardMetrics({
           <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
         ) : null}
 
-        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0f3cbf_0%,#105ce0_50%,#18baf6_100%)] p-5 text-white shadow-[0_16px_34px_-20px_rgba(37,99,235,0.45)]">
-          <div aria-hidden="true" className="pointer-events-none absolute right-[-1.75rem] bottom-[-1.75rem] h-32 w-32 rounded-full border border-white/10 opacity-70" />
-          <div aria-hidden="true" className="pointer-events-none absolute right-3 bottom-3 h-24 w-24 rounded-full border border-white/10 opacity-65" />
+        <section className="relative overflow-hidden rounded-[30px] bg-[linear-gradient(135deg,#0f3cbf_0%,#105ce0_50%,#18baf6_100%)] p-4 text-white shadow-[0_14px_28px_-20px_rgba(37,99,235,0.4)]">
+          <div aria-hidden="true" className="pointer-events-none absolute right-[-1.25rem] bottom-[-1.25rem] h-28 w-28 rounded-full border border-white/10 opacity-65" />
+          <div aria-hidden="true" className="pointer-events-none absolute right-3 bottom-3 h-20 w-20 rounded-full border border-white/10 opacity-55" />
 
           <div className="relative z-[1]">
             <div className="flex items-center justify-between gap-2 text-[13px] font-600 text-white/90">
@@ -857,13 +857,13 @@ export default function DashboardMetrics({
               </div>
             </div>
 
-            <div className="mt-3 font-tabular">
+            <div className="mt-2.5 font-tabular">
               <span style={{ wordSpacing: '0.22em' }}>
                 {renderMobileCurrencyText(
                   metrics.totalBalance,
                   {
-                    className: 'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]',
-                    numberClassName: 'text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]',
+                    className: 'inline-flex items-baseline whitespace-nowrap text-[38px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[34px]',
+                    numberClassName: 'text-[38px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[34px]',
                     symbolClassName: 'text-white/95',
                     size: 'lg',
                   }
@@ -871,8 +871,8 @@ export default function DashboardMetrics({
               </span>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
-              <div className="space-y-1.5">
+            <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/15 pt-3">
+              <div className="space-y-1">
                 <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
                 <div className="font-tabular">
                   <div className="flex items-center gap-2">
@@ -891,7 +891,7 @@ export default function DashboardMetrics({
                   </div>
                 </div>
               </div>
-              <div className="space-y-1.5 border-s border-white/15 ps-3">
+              <div className="space-y-1 border-s border-white/15 ps-3">
                 <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
                 <div className="font-tabular">
                   <div className="flex items-center gap-2">
@@ -912,7 +912,7 @@ export default function DashboardMetrics({
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 border-t border-white/15 pt-3 text-[12px] font-700">
+            <div className="mt-3 flex items-center gap-2 border-t border-white/15 pt-2.5 text-[12px] font-700">
               {netCashFlowPositive ? (
                 <ArrowUp size={16} className="text-[#4ade80]" />
               ) : (
@@ -940,7 +940,7 @@ export default function DashboardMetrics({
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 gap-2">
           {mobileDetailCards.map((card) => {
             const Icon = card.icon;
             const cardClassName = `rounded-[20px] border bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)] transition-colors duration-150 active:bg-slate-50 ${
@@ -948,14 +948,14 @@ export default function DashboardMetrics({
             }`;
             const content = (
               <>
-                <div className={`flex h-9 w-9 items-center justify-center rounded-2xl ${card.iconBg} ${card.iconColor}`}>
-                  <Icon size={16} />
+                <div className={`flex h-8 w-8 items-center justify-center rounded-2xl ${card.iconBg} ${card.iconColor}`}>
+                  <Icon size={15} />
                 </div>
-                <p className="mt-2 text-[11px] font-700 leading-4 text-slate-700">{card.label}</p>
-                <p className={`mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] ${card.iconColor}`}>
+                <p className="mt-1.5 text-[10.5px] font-700 leading-4 text-slate-700">{card.label}</p>
+                <p className={`mt-1 text-[0.95rem] font-800 leading-none tracking-[-0.03em] ${card.iconColor}`}>
                   {card.value}
                 </p>
-                <p className="mt-1 text-[11px] leading-4 text-slate-500">{card.helper}</p>
+                <p className="mt-1 text-[10.5px] leading-4 text-slate-500">{card.helper}</p>
               </>
             );
 

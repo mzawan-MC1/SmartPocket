@@ -138,9 +138,11 @@ type AIHistoryItem = {
 };
 
 const AI_USAGE_TIMEOUT_MS = 12000;
+const AI_USAGE_FAILURE_COOLDOWN_MS = 30000;
 
 let cachedSummaryResult: SummaryFetchResult | null = null;
 let inFlightSummaryRequest: Promise<SummaryFetchResult> | null = null;
+let cachedSummaryFailureAt: number | null = null;
 
 function normalizeSummaryPayload(payload: unknown): SubscriptionSummary | null {
   if (!payload || typeof payload !== 'object') {
@@ -213,10 +215,19 @@ async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResu
   if (force) {
     cachedSummaryResult = null;
     inFlightSummaryRequest = null;
+    cachedSummaryFailureAt = null;
   }
 
   if (cachedSummaryResult) {
     return cachedSummaryResult;
+  }
+
+  if (
+    !force
+    && cachedSummaryFailureAt !== null
+    && Date.now() - cachedSummaryFailureAt < AI_USAGE_FAILURE_COOLDOWN_MS
+  ) {
+    return { status: 0, data: null };
   }
 
   if (inFlightSummaryRequest) {
@@ -239,11 +250,17 @@ async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResu
 
       if (res.ok || res.status === 401) {
         cachedSummaryResult = result;
+        cachedSummaryFailureAt = null;
+      } else {
+        cachedSummaryFailureAt = Date.now();
       }
 
       return result;
     })
-    .catch(() => ({ status: 0, data: null }))
+    .catch(() => {
+      cachedSummaryFailureAt = Date.now();
+      return { status: 0, data: null };
+    })
     .finally(() => {
       inFlightSummaryRequest = null;
     });

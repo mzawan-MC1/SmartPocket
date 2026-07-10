@@ -1,20 +1,27 @@
 'use client';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Calendar,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Ellipsis,
+  LogOut,
   Plus,
   Repeat,
   RotateCcw,
+  Settings,
   Target,
+  User,
   Wallet,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tabs from '@/components/ui/Tabs';
 import NotificationBell from '@/components/NotificationBell';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import UserAvatar from '@/components/ui/UserAvatar';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import {
   getMonthContext,
@@ -58,12 +65,15 @@ export default function DashboardHeader({
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
   const { t } = useTranslation('portal');
-  const { user, profile, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading, signOut } = useAuth();
   const { dir, language } = useLanguage();
+  const router = useRouter();
   const isArabic = language === 'ar';
   const monthInputRef = useRef<HTMLInputElement | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const monthContext = useMemo(
     () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone, undefined, getIntlLocale(language)),
     [activePeriod.monthKey, financialPeriodContext.timezone, language]
@@ -85,6 +95,8 @@ export default function DashboardHeader({
     ? ''
     : profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const firstName = getFirstName(registeredName) || registeredName;
+  const displayEmail = authLoading ? null : user?.email ?? null;
+  const displayAvatarUrl = authLoading ? null : profile?.avatar_url ?? null;
   let headingText = headingFallback;
 
   if (firstName) {
@@ -129,16 +141,29 @@ export default function DashboardHeader({
   );
   const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
 
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+      router.push('/sign-up-login');
+    } finally {
+      setUserMenuOpen(false);
+    }
+  }, [router, signOut]);
+
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
         setMoreOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
       }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setMoreOpen(false);
+        setUserMenuOpen(false);
       }
     };
 
@@ -158,7 +183,7 @@ export default function DashboardHeader({
           <div className="min-w-0 flex-1 pe-1">
             <h1
               className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.028em] text-foreground ${
-                isArabic ? 'text-[21px] leading-[1.08] max-[380px]:text-[20px] max-[360px]:text-[19px]' : 'text-[22px] leading-[1.08] max-[380px]:text-[21px] max-[360px]:text-[19px]'
+                isArabic ? 'text-[20px] leading-[1.08] max-[380px]:text-[19px] max-[360px]:text-[18px]' : 'text-[20px] leading-[1.08] max-[380px]:text-[19px] max-[360px]:text-[18px]'
               }`}
               title={mobileHeadingText}
             >
@@ -169,8 +194,64 @@ export default function DashboardHeader({
             </p>
           </div>
           <div className="shrink-0">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_.notification-bell-trigger]:h-10 [&_.notification-bell-trigger]:w-10 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[22px] [&_.notification-bell-trigger_svg]:w-[22px]">
-              <NotificationBell />
+            <div className="flex items-center gap-1.5">
+              <div className="flex h-10 min-w-[56px] items-center justify-center rounded-full border border-slate-200/80 bg-white px-1.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_button]:h-7 [&_button]:rounded-full [&_button]:border [&_button]:border-slate-200 [&_button]:bg-slate-50 [&_button]:px-2.5">
+                <LanguageSwitcher variant="compact" theme="light" />
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_.notification-bell-trigger]:h-9 [&_.notification-bell-trigger]:w-9 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[21px] [&_.notification-bell-trigger_svg]:w-[21px]">
+                <NotificationBell />
+              </div>
+              <div className="relative" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen((value) => !value)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)]"
+                  aria-label={t('dashboardHeader.mobileProfileMenu', { defaultValue: 'Profile menu' })}
+                  aria-expanded={userMenuOpen}
+                >
+                  <UserAvatar
+                    fullName={registeredName}
+                    email={displayEmail}
+                    avatarUrl={displayAvatarUrl}
+                    className="h-7 w-7 text-[10px]"
+                    textClassName="text-[10px]"
+                    iconClassName="h-3.5 w-3.5"
+                  />
+                </button>
+
+                {userMenuOpen ? (
+                  <div className="absolute end-0 top-full z-40 mt-2 w-[min(14rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-slate-200 bg-white py-1.5 shadow-[0_18px_36px_-24px_rgba(15,23,42,0.24)]">
+                    <div className="border-b border-slate-200 px-3 py-2.5">
+                      <p className="truncate text-sm font-700 text-foreground">{registeredName || headingFallback}</p>
+                      {displayEmail ? <p className="truncate text-[11px] text-muted-foreground">{displayEmail}</p> : null}
+                    </div>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-slate-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <Settings size={15} className="text-muted-foreground" />
+                      {t('topbar.settings')}
+                    </Link>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-foreground transition-colors hover:bg-slate-50"
+                      onClick={() => setUserMenuOpen(false)}
+                    >
+                      <User size={15} className="text-muted-foreground" />
+                      {t('topbar.userMenu', { defaultValue: 'Profile' })}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => void handleSignOut()}
+                      className="flex w-full items-center gap-2.5 px-3 py-2.5 text-sm text-negative transition-colors hover:bg-negative-soft"
+                    >
+                      <LogOut size={15} />
+                      {t('topbar.signOut')}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
