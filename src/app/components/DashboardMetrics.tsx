@@ -3,7 +3,7 @@ import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye, History, Sparkles,
+  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye,
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
@@ -11,7 +11,6 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
-import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 
 interface DashboardMetricCard {
   id: string;
@@ -243,7 +242,6 @@ export default function DashboardMetrics({
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
   const isArabic = language === 'ar';
-  const quickActions = useQuickActions();
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [hideSensitive, setHideSensitive] = useState(false);
@@ -731,19 +729,7 @@ export default function DashboardMetrics({
       wide?: boolean;
     };
 
-    type MobileDetailActionCard = {
-      id: string;
-      label: string;
-      value: string;
-      helper: string;
-      icon: typeof TrendingUp;
-      iconBg: string;
-      iconColor: string;
-      onClick: () => void;
-      wide?: boolean;
-    };
-
-    const mobileDetailCards: Array<MobileDetailLinkCard | MobileDetailActionCard> = [
+    const mobileDetailCards: MobileDetailLinkCard[] = [
       {
         id: 'status',
         label: netLabel,
@@ -775,25 +761,14 @@ export default function DashboardMetrics({
         href: '/budgets',
       },
       {
-        id: 'recent',
-        label: t('recentTransactions.mobileTitle', { ns: 'portal' }),
+        id: 'accounts',
+        label: t('dashboardMetrics.mobileAccounts', { ns: 'portal' }),
         value: t('actions.viewAll', { ns: 'common' }),
-        helper: t('dashboardMetrics.mobileRecentHelper'),
-        icon: History,
+        helper: t('dashboardMetrics.mobileAccountsHelper', { ns: 'portal' }),
+        icon: Wallet,
         iconBg: 'bg-sky-100',
-        iconColor: 'text-sky-600',
-        href: '/transactions',
-      },
-      {
-        id: 'ai',
-        label: t('aiUsage.mobileFeature.title', { ns: 'portal' }),
-        value: t('bottomNav.smartEntry', { ns: 'portal' }),
-        helper: t('aiUsage.mobileFeature.footer', { ns: 'portal' }),
-        icon: Sparkles,
-        iconBg: 'bg-blue-100',
-        iconColor: 'text-blue-600',
-        onClick: () => quickActions?.openQuickAction('smart_entry'),
-        wide: true,
+        iconColor: 'text-sky-700',
+        href: '/financial-accounts',
       },
     ];
 
@@ -918,23 +893,10 @@ export default function DashboardMetrics({
               </>
             );
 
-            if ('href' in card) {
-              return (
-                <Link key={card.id} href={card.href} className={cardClassName}>
-                  {content}
-                </Link>
-              );
-            }
-
             return (
-              <button
-                key={card.id}
-                type="button"
-                onClick={card.onClick}
-                className={`${cardClassName} text-left`}
-              >
+              <Link key={card.id} href={card.href} className={cardClassName}>
                 {content}
-              </button>
+              </Link>
             );
           })}
         </div>

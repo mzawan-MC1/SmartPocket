@@ -222,6 +222,14 @@
       "more": "Инструменты и действия"
     }
   },
+  "dashboardSections": {
+    "smartSuggestionsTitle": "Умные подсказки",
+    "moneyHealthTitle": "Финансовое здоровье",
+    "moneyHealthConfigTitle": "Требует внимания",
+    "moneyHealthReviewAction": "Проверить",
+    "moneyHealthEmptyTitle": "Все хорошо",
+    "moneyHealthEmptyDescription": "Сейчас нет срочных задач."
+  },
   "shared": {
     "loadingPlanningPeriodTitle": "Загрузка периода планирования",
     "loadingPlanningPeriodDescription": "Smart Pocket загружает ваши сохраненные настройки платежного цикла и часового пояса.",
@@ -357,6 +365,8 @@
     "mobileBudgetEmpty": "Бюджета пока нет",
     "mobileBudgetFallbackShort": "Готово",
     "mobileRecentHelper": "Последняя активность",
+    "mobileAccounts": "Счета",
+    "mobileAccountsHelper": "Посмотреть баланс",
     "peopleWithManagedMoney": "{{count}} человек с управляемыми деньгами",
     "borrowedIn": "занято в {{period}}",
     "paidIn": "выплачено в {{period}}",

@@ -1,6 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
 import { RotateCcw } from 'lucide-react';
@@ -746,7 +747,49 @@ export default function DashboardPage() {
                   mobileModeToggle={mobileModeToggle}
                 />
                 <RecentTransactionsLazy variant="mobile-dashboard" />
-                <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact dashboardSuggestion />
+                <section className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+                      {t('dashboardSections.smartSuggestionsTitle')}
+                    </h2>
+                  </div>
+                  <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact dashboardSuggestion />
+                </section>
+
+                <section className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3.5 shadow-[0_16px_36px_-28px_rgba(15,23,42,0.14)]">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+                      {t('dashboardSections.moneyHealthTitle')}
+                    </h2>
+                  </div>
+                  {readyPeriodContext?.configurationWarning ? (
+                    <div className="mt-2 rounded-2xl border border-warning/25 bg-warning-soft px-3 py-2.5">
+                      <p className="text-[13px] font-700 text-foreground">
+                        {t('dashboardSections.moneyHealthConfigTitle')}
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                        {readyPeriodContext.configurationWarning}
+                      </p>
+                      <div className="mt-2">
+                        <Link
+                          href="/settings"
+                          className="inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[13px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+                        >
+                          {t('dashboardSections.moneyHealthReviewAction')}
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2 rounded-2xl bg-slate-50 px-3 py-3 text-center">
+                      <p className="text-[13px] font-700 text-foreground">
+                        {t('dashboardSections.moneyHealthEmptyTitle')}
+                      </p>
+                      <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                        {t('dashboardSections.moneyHealthEmptyDescription')}
+                      </p>
+                    </div>
+                  )}
+                </section>
               </div>
             )}
           </>

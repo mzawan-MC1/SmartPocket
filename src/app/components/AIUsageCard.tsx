@@ -741,9 +741,9 @@ export default function AIUsageCard({
                 key={action.id}
                 type="button"
                 onClick={action.onClick}
-                className={`flex min-h-[82px] flex-col items-start rounded-[18px] border px-2.5 py-2.5 text-left transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
+                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2.5 py-2.5 text-center transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0 ${action.className}`}
               >
-                <div className="flex w-full items-center gap-1.5">
+                <div className="flex w-full items-center justify-center gap-1.5">
                   <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-xl bg-white/92 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.24)]">
                     <Icon size={14} />
                   </div>
@@ -1018,12 +1018,26 @@ export default function AIUsageCard({
                     <p className="truncate text-[13px] font-700 text-foreground">
                       {item.raw_text || t('aiUsage.history', { defaultValue: 'AI action' })}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      {new Date(item.created_at).toLocaleDateString(
-                        language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
-                        { month: 'short', day: 'numeric' }
-                      )}
-                    </p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <span>
+                        {new Date(item.created_at).toLocaleDateString(
+                          language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
+                          { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
+                        )}
+                      </span>
+                      <span>·</span>
+                      <span className="whitespace-nowrap">
+                        {item.request_type === 'voice'
+                          ? t('aiHistory.requestTypes.voice', { defaultValue: 'Voice' })
+                          : t('aiHistory.requestTypes.text', { defaultValue: 'Text' })}
+                      </span>
+                      {item.status ? (
+                        <>
+                          <span>·</span>
+                          <span className="whitespace-nowrap">{item.status}</span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               ))}

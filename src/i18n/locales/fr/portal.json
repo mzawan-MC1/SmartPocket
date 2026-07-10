@@ -222,6 +222,14 @@
       "more": "Outils et actions"
     }
   },
+  "dashboardSections": {
+    "smartSuggestionsTitle": "Suggestions intelligentes",
+    "moneyHealthTitle": "Santé financière",
+    "moneyHealthConfigTitle": "À vérifier",
+    "moneyHealthReviewAction": "Vérifier",
+    "moneyHealthEmptyTitle": "Tout va bien",
+    "moneyHealthEmptyDescription": "Aucun élément urgent pour le moment."
+  },
   "shared": {
     "loadingPlanningPeriodTitle": "Chargement de la période de planification",
     "loadingPlanningPeriodDescription": "Smart Pocket charge vos reglages enregistres de cycle de paie et de fuseau horaire.",
@@ -357,6 +365,8 @@
     "mobileBudgetEmpty": "Pas encore de budget",
     "mobileBudgetFallbackShort": "Prêt",
     "mobileRecentHelper": "Activité récente",
+    "mobileAccounts": "Comptes",
+    "mobileAccountsHelper": "Voir les soldes",
     "peopleWithManagedMoney": "{{count}} personnes avec argent géré",
     "borrowedIn": "emprunté sur {{period}}",
     "paidIn": "payé sur {{period}}",

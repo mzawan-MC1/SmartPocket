@@ -102,6 +102,10 @@ export default function DashboardHeader({
   }
 
   const showGreetingWave = headingText !== headingFallback;
+  const mobileHeadingText = headingText
+    .replace(/,\s*/g, ' ')
+    .replace(/!\s*$/, '')
+    .trim();
   const quickActions = [
     { id: 'transaction' as QuickActionId, label: t('dashboardHeader.quickActions.transaction'), icon: Plus },
     { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.account'), icon: Wallet },
@@ -156,16 +160,16 @@ export default function DashboardHeader({
               className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.028em] text-foreground ${
                 isArabic ? 'text-[22px] leading-[1.08] max-[360px]:text-[21px]' : 'text-[23px] leading-[1.08] max-[360px]:text-[21px]'
               }`}
-              title={headingText}
+              title={mobileHeadingText}
             >
-              {headingText}
+              {mobileHeadingText}
             </h1>
             <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[14px] leading-5' : 'text-[14px] leading-5'}`}>
               {t('dashboardHeader.mobileSubtitle')}
             </p>
           </div>
           <div className="shrink-0">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_button]:h-10 [&_button]:w-10 [&_button]:rounded-full [&_svg]:h-[21px] [&_svg]:w-[21px]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_button]:h-10 [&_button]:w-10 [&_button]:rounded-full [&_svg]:h-[22px] [&_svg]:w-[22px]">
               <NotificationBell />
             </div>
           </div>

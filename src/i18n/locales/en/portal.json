@@ -237,6 +237,14 @@
       "more": "Tools & actions"
     }
   },
+  "dashboardSections": {
+    "smartSuggestionsTitle": "Smart Suggestions",
+    "moneyHealthTitle": "Money Health",
+    "moneyHealthConfigTitle": "Needs attention",
+    "moneyHealthReviewAction": "Review",
+    "moneyHealthEmptyTitle": "All good",
+    "moneyHealthEmptyDescription": "No urgent items right now."
+  },
   "shared": {
     "loadingPlanningPeriodTitle": "Loading planning period",
     "loadingPlanningPeriodDescription": "Smart Pocket is loading your saved pay-cycle and timezone settings.",
@@ -870,6 +878,8 @@
     "mobileBudgetEmpty": "No budgets yet",
     "mobileBudgetFallbackShort": "Ready",
     "mobileRecentHelper": "Latest activity",
+    "mobileAccounts": "Accounts",
+    "mobileAccountsHelper": "View balances",
     "peopleWithManagedMoney": "{{count}} people with managed money",
     "borrowedIn": "borrowed in {{period}}",
     "paidIn": "paid in {{period}}",

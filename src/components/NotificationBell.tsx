@@ -235,7 +235,7 @@ export default function NotificationBell() {
     <div className="relative shrink-0" ref={containerRef}>
       <button
         type="button"
-        className="btn-ghost relative h-12 w-12 shrink-0 p-0 max-[480px]:flex max-[480px]:h-10 max-[480px]:w-10 max-[480px]:items-center max-[480px]:justify-center max-[480px]:rounded-xl"
+        className="btn-ghost relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl p-0"
         aria-label={t('notifications.button')}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -247,7 +247,7 @@ export default function NotificationBell() {
           }
         }}
       >
-        <Bell className="h-[44px] w-[44px] max-[480px]:h-[22px] max-[480px]:w-[22px]" />
+        <Bell className="h-[22px] w-[22px]" />
         {unreadDot ? (
           <span className="absolute end-1 top-1 flex min-h-2.5 min-w-2.5 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-700 text-white ring-2 ring-card max-[480px]:end-1.5 max-[480px]:top-1.5">
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -319,20 +319,22 @@ export default function NotificationBell() {
                     key={notification.id}
                     type="button"
                     onClick={() => void handleNotificationClick(notification)}
-                    className={`flex w-full flex-col items-start gap-1 px-4 py-3 text-start transition-colors hover:bg-muted/40 max-[480px]:px-3.5 max-[480px]:py-3 ${
+                    className={`flex w-full flex-col items-start gap-1.5 px-4 py-3 text-start transition-colors hover:bg-muted/40 max-[480px]:px-3.5 max-[480px]:py-3 ${
                       notification.is_read ? 'bg-card' : 'bg-accent/5'
                     }`}
                   >
                     <div className="flex w-full items-start justify-between gap-3">
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         {!notification.is_read ? <span className="mt-0.5 h-2 w-2 rounded-full bg-accent" aria-hidden="true" /> : null}
-                        <p className="text-sm font-700 text-foreground text-start">{localized.title}</p>
+                        <p className="min-w-0 truncate text-sm font-700 text-foreground text-start">{localized.title}</p>
                       </div>
                       <span className="shrink-0 text-[11px] text-muted-foreground">
                         {formatNotificationTime(notification.created_at, language)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground text-start">{localized.message}</p>
+                    <p className="line-clamp-2 text-[13px] leading-5 text-muted-foreground text-start">
+                      {localized.message}
+                    </p>
                   </button>
                 ))}
               </div>

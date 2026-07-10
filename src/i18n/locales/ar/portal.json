@@ -227,6 +227,14 @@
       "more": "أدوات وإجراءات"
     }
   },
+  "dashboardSections": {
+    "smartSuggestionsTitle": "اقتراحات ذكية",
+    "moneyHealthTitle": "صحة المال",
+    "moneyHealthConfigTitle": "بحاجة إلى انتباه",
+    "moneyHealthReviewAction": "مراجعة",
+    "moneyHealthEmptyTitle": "كل شيء جيد",
+    "moneyHealthEmptyDescription": "لا توجد عناصر عاجلة الآن."
+  },
   "shared": {
     "loadingPlanningPeriodTitle": "جار تحميل فترة التخطيط",
     "loadingPlanningPeriodDescription": "يقوم Smart Pocket بتحميل إعدادات دورة الدفع والمنطقة الزمنية المحفوظة.",
@@ -377,6 +385,8 @@
     "mobileBudgetEmpty": "لا توجد ميزانية بعد",
     "mobileBudgetFallbackShort": "جاهز",
     "mobileRecentHelper": "أحدث النشاطات",
+    "mobileAccounts": "الحسابات",
+    "mobileAccountsHelper": "عرض الأرصدة",
     "peopleWithManagedMoney": "{{count}} أشخاص بأموال مُدارة",
     "borrowedIn": "تم اقتراضه في {{period}}",
     "paidIn": "تم دفعه في {{period}}",
