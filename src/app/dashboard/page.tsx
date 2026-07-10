@@ -528,7 +528,7 @@ export default function DashboardPage() {
 
   return (
     <AppLayout activeRoute="/dashboard" hideMobileTopbar>
-      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3">
+      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+14px)] md:pt-0">
         {!coreReady ? (
           showLoadFallback ? (
             <div className="section-card">
@@ -693,7 +693,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-4 max-[480px]:space-y-3">
+              <div className="space-y-4 max-[480px]:space-y-3 pb-6">
                 <DashboardMetrics
                   activePeriod={readyActivePeriod!}
                   hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning}

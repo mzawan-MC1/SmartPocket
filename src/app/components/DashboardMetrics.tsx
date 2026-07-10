@@ -644,6 +644,41 @@ export default function DashboardMetrics({
       ? t('dashboardMetrics.mobileThisMonth')
       : t('dashboardMetrics.mobileThisPeriod');
 
+    const renderMobileCurrencyText = (metric: DashboardConvertedMetric, className: string) => {
+      if (metric.reportingAmount === null) {
+        const safeRows = metric.originalTotals.length > 0
+          ? metric.originalTotals
+          : [{ currency: metrics.defaultCurrency, amount: 0 }];
+
+        return (
+          <div className="flex flex-col gap-1.5">
+            {safeRows.map((row) => (
+              <FormattedCurrencyAmount
+                key={`${row.currency}-${row.amount}`}
+                amount={row.amount}
+                currencyCode={row.currency}
+                locale={locale}
+                textOnly
+                showCode
+                className={className}
+              />
+            ))}
+          </div>
+        );
+      }
+
+      return (
+        <FormattedCurrencyAmount
+          amount={metric.reportingAmount}
+          currencyCode={metric.reportingCurrency}
+          locale={locale}
+          textOnly
+          showCode
+          className={className}
+        />
+      );
+    };
+
     return (
       <div className="space-y-3.5">
         {hasConfigurationWarning ? (
@@ -662,11 +697,9 @@ export default function DashboardMetrics({
             </div>
 
             <div className="mt-3 font-tabular">
-              {renderMetricValue(
+              {renderMobileCurrencyText(
                 metrics.totalBalance,
-                'xl',
-                'inline-flex items-baseline text-[2.15rem] font-800 leading-none tracking-[-0.04em] text-white',
-                'font-800'
+                'inline-flex items-baseline text-[2.15rem] font-800 leading-none tracking-[-0.04em] text-white'
               )}
             </div>
 
@@ -674,22 +707,18 @@ export default function DashboardMetrics({
               <div className="space-y-1.5">
                 <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
                 <div className="font-tabular">
-                  {renderMetricValue(
+                  {renderMobileCurrencyText(
                     metrics.monthlyIncome,
-                    'sm',
-                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white',
-                    'font-700'
+                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
               <div className="space-y-1.5 border-s border-white/15 ps-3">
                 <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
                 <div className="font-tabular">
-                  {renderMetricValue(
+                  {renderMobileCurrencyText(
                     metrics.monthlyExpenses,
-                    'sm',
-                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white',
-                    'font-700'
+                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
@@ -702,11 +731,9 @@ export default function DashboardMetrics({
                 <ArrowDown size={16} className="text-[#fda4af]" />
               )}
               <div className={`font-tabular ${netCashFlowPositive ? 'text-[#86efac]' : 'text-[#fecdd3]'}`}>
-                {renderMetricValue(
+                {renderMobileCurrencyText(
                   metrics.netCashFlow,
-                  'sm',
-                  'inline-flex items-baseline text-[1.02rem] font-800 leading-none tracking-[-0.02em]',
-                  'font-800'
+                  'inline-flex items-baseline text-[1.02rem] font-800 leading-none tracking-[-0.02em]'
                 )}
               </div>
               <span className="text-white/90">{netLabel}</span>
