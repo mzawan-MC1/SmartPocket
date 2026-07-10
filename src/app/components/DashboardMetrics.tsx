@@ -719,7 +719,31 @@ export default function DashboardMetrics({
       );
     };
 
-    const mobileDetailCards = [
+    type MobileDetailLinkCard = {
+      id: string;
+      label: string;
+      value: string;
+      helper: string;
+      icon: typeof TrendingUp;
+      iconBg: string;
+      iconColor: string;
+      href: string;
+      wide?: boolean;
+    };
+
+    type MobileDetailActionCard = {
+      id: string;
+      label: string;
+      value: string;
+      helper: string;
+      icon: typeof TrendingUp;
+      iconBg: string;
+      iconColor: string;
+      onClick: () => void;
+      wide?: boolean;
+    };
+
+    const mobileDetailCards: Array<MobileDetailLinkCard | MobileDetailActionCard> = [
       {
         id: 'status',
         label: netLabel,
@@ -771,7 +795,7 @@ export default function DashboardMetrics({
         onClick: () => quickActions?.openQuickAction('smart_entry'),
         wide: true,
       },
-    ] as const;
+    ];
 
     return (
       <div className="space-y-3.5">
@@ -879,7 +903,7 @@ export default function DashboardMetrics({
           {mobileDetailCards.map((card) => {
             const Icon = card.icon;
             const cardClassName = `rounded-[20px] border p-3 shadow-[0_14px_28px_-24px_rgba(15,23,42,0.16)] transition-all duration-150 active:scale-[0.985] ${
-              card.wide ? 'col-span-2 bg-[linear-gradient(180deg,#ffffff,#eff6ff)] border-blue-100/90' : 'bg-[linear-gradient(180deg,#ffffff,#f8fafc)] border-slate-200/80'
+              card.wide === true ? 'col-span-2 bg-[linear-gradient(180deg,#ffffff,#eff6ff)] border-blue-100/90' : 'bg-[linear-gradient(180deg,#ffffff,#f8fafc)] border-slate-200/80'
             }`;
             const content = (
               <>

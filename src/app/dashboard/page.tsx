@@ -490,6 +490,26 @@ export default function DashboardPage() {
     );
   }, [dashboardLocale, periodContext, selectedMonth, selectedPayPeriodStart, viewMode]);
 
+  const handleSelectedMonthChange = useCallback((monthKey: string) => {
+    if (!periodContext) return;
+    setSelectedMonth(getMonthContext(monthKey, periodContext.timezone).monthKey);
+  }, [periodContext]);
+
+  const handleViewModeChange = useCallback((nextMode: DashboardPeriodPreference) => {
+    if (!periodContext) return;
+    setViewMode(nextMode);
+    if (nextMode === 'month') {
+      setSelectedMonth((current) => current || getMonthContext(undefined, periodContext.timezone).monthKey);
+      return;
+    }
+    setSelectedPayPeriodStart((current) => current || periodContext.currentFinancialPeriod.startDate);
+  }, [periodContext]);
+
+  const handlePayPeriodChange = useCallback((startDate: string) => {
+    if (!periodContext) return;
+    setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
+  }, [dashboardLocale, periodContext]);
+
   const mobileModeToggle = React.useMemo(() => {
     if (!periodContext || !activePeriod || !viewMode) return null;
 
@@ -528,26 +548,6 @@ export default function DashboardPage() {
     t,
     viewMode,
   ]);
-
-  const handleSelectedMonthChange = useCallback((monthKey: string) => {
-    if (!periodContext) return;
-    setSelectedMonth(getMonthContext(monthKey, periodContext.timezone).monthKey);
-  }, [periodContext]);
-
-  const handleViewModeChange = useCallback((nextMode: DashboardPeriodPreference) => {
-    if (!periodContext) return;
-    setViewMode(nextMode);
-    if (nextMode === 'month') {
-      setSelectedMonth((current) => current || getMonthContext(undefined, periodContext.timezone).monthKey);
-      return;
-    }
-    setSelectedPayPeriodStart((current) => current || periodContext.currentFinancialPeriod.startDate);
-  }, [periodContext]);
-
-  const handlePayPeriodChange = useCallback((startDate: string) => {
-    if (!periodContext) return;
-    setSelectedPayPeriodStart(buildPayPeriodActivePeriod(startDate, periodContext, dashboardLocale).startDate);
-  }, [dashboardLocale, periodContext]);
 
   const handleRetryDashboardBootstrap = useCallback(() => {
     void runDashboardBootstrap({
