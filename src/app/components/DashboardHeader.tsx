@@ -169,7 +169,7 @@ export default function DashboardHeader({
             </p>
           </div>
           <div className="shrink-0">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_button]:h-10 [&_button]:w-10 [&_button]:rounded-full [&_svg]:h-[22px] [&_svg]:w-[22px]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.28)] [&_.notification-bell-trigger]:h-10 [&_.notification-bell-trigger]:w-10 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[22px] [&_.notification-bell-trigger_svg]:w-[22px]">
               <NotificationBell />
             </div>
           </div>

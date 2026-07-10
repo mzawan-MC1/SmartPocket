@@ -232,10 +232,10 @@ export default function NotificationBell() {
   ), [language, notifications, referenceData?.snapshot.currencies, t]);
 
   return (
-    <div className="relative shrink-0" ref={containerRef}>
+    <div className="notification-bell relative shrink-0" ref={containerRef}>
       <button
         type="button"
-        className="btn-ghost relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl p-0"
+        className="notification-bell-trigger btn-ghost relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl p-0"
         aria-label={t('notifications.button')}
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -260,7 +260,7 @@ export default function NotificationBell() {
           role="dialog"
           aria-label={t('notifications.title')}
           dir={dir}
-          className="absolute end-0 top-full z-50 mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg max-[480px]:fixed max-[480px]:left-3 max-[480px]:right-3 max-[480px]:top-[calc(env(safe-area-inset-top)+4rem)] max-[480px]:mt-0 max-[480px]:w-auto max-[480px]:max-w-[calc(100vw-24px)]"
+          className="absolute end-0 top-full z-50 mt-2 w-[min(calc(100vw-32px),420px)] overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg max-[480px]:fixed max-[480px]:left-4 max-[480px]:right-4 max-[480px]:top-[calc(env(safe-area-inset-top)+4rem)] max-[480px]:mt-0 max-[480px]:w-auto max-[480px]:max-w-[calc(100vw-32px)]"
         >
           <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 max-[480px]:px-3.5 max-[480px]:py-3">
             <div>
