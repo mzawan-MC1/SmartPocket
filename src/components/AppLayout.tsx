@@ -13,9 +13,17 @@ interface AppLayoutProps {
   children: React.ReactNode;
   activeRoute: string;
   hideMobileTopbar?: boolean;
+  hideMobileFooter?: boolean;
+  mobileContentPaddingBottomClassName?: string;
 }
 
-export default function AppLayout({ children, activeRoute, hideMobileTopbar = false }: AppLayoutProps) {
+export default function AppLayout({
+  children,
+  activeRoute,
+  hideMobileTopbar = false,
+  hideMobileFooter = false,
+  mobileContentPaddingBottomClassName,
+}: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { dir } = useLanguage();
@@ -25,6 +33,10 @@ export default function AppLayout({ children, activeRoute, hideMobileTopbar = fa
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [activeRoute]);
+
+  const resolvedMobileContentPaddingBottomClassName =
+    mobileContentPaddingBottomClassName
+      || 'pb-[calc(6.25rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6.75rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9';
 
   return (
     <SubscriptionSummaryProvider>
@@ -78,10 +90,10 @@ export default function AppLayout({ children, activeRoute, hideMobileTopbar = fa
                 style={{ background: 'var(--background)' }}
               >
                 <div className="flex min-h-full flex-col">
-                  <div className="page-shell page-shell-authenticated flex-1 pb-[calc(6.25rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6.75rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9">
+                  <div className={`page-shell page-shell-authenticated flex-1 ${resolvedMobileContentPaddingBottomClassName}`}>
                     {children}
                   </div>
-                  <div className="print:hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0">
+                  <div className={`print:hidden pb-[calc(5.5rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:pb-0 ${hideMobileFooter ? 'hidden md:block' : ''}`}>
                     <PortalFooter />
                   </div>
                 </div>

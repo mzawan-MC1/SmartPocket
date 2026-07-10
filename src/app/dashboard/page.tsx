@@ -527,8 +527,13 @@ export default function DashboardPage() {
   const readyViewMode = coreReady ? viewMode : null;
 
   return (
-    <AppLayout activeRoute="/dashboard" hideMobileTopbar>
-      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+14px)] md:pt-0">
+    <AppLayout
+      activeRoute="/dashboard"
+      hideMobileTopbar
+      hideMobileFooter
+      mobileContentPaddingBottomClassName="pb-[calc(env(safe-area-inset-bottom)+120px)] max-[480px]:pb-[calc(env(safe-area-inset-bottom)+132px)] sm:pb-9 lg:pb-9"
+    >
+      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+20px)] md:pt-0">
         {!coreReady ? (
           showLoadFallback ? (
             <div className="section-card">

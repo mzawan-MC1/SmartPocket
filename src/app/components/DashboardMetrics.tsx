@@ -691,7 +691,7 @@ export default function DashboardMetrics({
           <div aria-hidden="true" className="pointer-events-none absolute right-8 bottom-12 h-24 w-24 rounded-full border border-white/10 opacity-70" />
 
           <div className="relative z-[1]">
-            <div className="flex items-center gap-2 text-[0.98rem] font-600 text-white/90">
+            <div className="flex items-center gap-2 text-[13px] font-600 text-white/90">
               <span>{t('dashboardMetrics.mobileSummaryTitle')}</span>
               <Eye size={16} className="text-white/85" />
             </div>
@@ -699,32 +699,32 @@ export default function DashboardMetrics({
             <div className="mt-3 font-tabular">
               {renderMobileCurrencyText(
                 metrics.totalBalance,
-                'inline-flex items-baseline text-[2.15rem] font-800 leading-none tracking-[-0.04em] text-white'
+                'inline-flex items-baseline text-[2.05rem] font-800 leading-[1.05] tracking-[-0.04em] text-white'
               )}
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/15 pt-4">
               <div className="space-y-1.5">
-                <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
+                <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileIncome')}</p>
                 <div className="font-tabular">
                   {renderMobileCurrencyText(
                     metrics.monthlyIncome,
-                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white'
+                    'inline-flex items-baseline text-[1.12rem] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
               <div className="space-y-1.5 border-s border-white/15 ps-3">
-                <p className="text-[13px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
+                <p className="text-[12px] font-500 text-white/80">{t('dashboardMetrics.mobileExpenses')}</p>
                 <div className="font-tabular">
                   {renderMobileCurrencyText(
                     metrics.monthlyExpenses,
-                    'inline-flex items-baseline text-[1.2rem] font-700 leading-none tracking-[-0.03em] text-white'
+                    'inline-flex items-baseline text-[1.12rem] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-2 border-t border-white/15 pt-3 text-[0.98rem] font-700">
+            <div className="mt-4 flex items-center gap-2 border-t border-white/15 pt-3 text-[12px] font-700">
               {netCashFlowPositive ? (
                 <ArrowUp size={16} className="text-[#4ade80]" />
               ) : (
@@ -733,7 +733,7 @@ export default function DashboardMetrics({
               <div className={`font-tabular ${netCashFlowPositive ? 'text-[#86efac]' : 'text-[#fecdd3]'}`}>
                 {renderMobileCurrencyText(
                   metrics.netCashFlow,
-                  'inline-flex items-baseline text-[1.02rem] font-800 leading-none tracking-[-0.02em]'
+                  'inline-flex items-baseline text-[13px] font-800 leading-none tracking-[-0.02em]'
                 )}
               </div>
               <span className="text-white/90">{netLabel}</span>
@@ -742,39 +742,39 @@ export default function DashboardMetrics({
         </section>
 
         <div className="grid grid-cols-3 gap-2.5">
-          <article className="rounded-[22px] border border-emerald-100/80 bg-[linear-gradient(180deg,#ffffff,#f3fbf7)] p-3.5 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.55)]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-              <TrendingUp size={18} />
+          <article className="rounded-[20px] border border-emerald-100/80 bg-[linear-gradient(180deg,#ffffff,#f3fbf7)] p-3 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.55)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
+              <TrendingUp size={17} />
             </div>
-            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{netLabel}</p>
-            <p className={`mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] ${netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
+            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{netLabel}</p>
+            <p className={`mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] ${netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
               {netCashFlowPositive ? t('dashboardMetrics.mobilePositiveShort') : t('dashboardMetrics.mobileNegativeShort')}
             </p>
-            <p className="mt-1 text-[12px] leading-4 text-slate-500">{t('dashboardMetrics.mobileNetCashFlow')}</p>
+            <p className="mt-1 text-[11px] leading-4 text-slate-500">{t('dashboardMetrics.mobileNetCashFlow')}</p>
           </article>
 
-          <article className="rounded-[22px] border border-violet-100/80 bg-[linear-gradient(180deg,#ffffff,#f7f4ff)] p-3.5 shadow-[0_14px_28px_-24px_rgba(139,92,246,0.45)]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-              <CalendarClock size={18} />
+          <article className="rounded-[20px] border border-violet-100/80 bg-[linear-gradient(180deg,#ffffff,#f7f4ff)] p-3 shadow-[0_14px_28px_-24px_rgba(139,92,246,0.45)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+              <CalendarClock size={17} />
             </div>
-            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileUpcoming')}</p>
-            <p className="mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] text-violet-600">
+            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileUpcoming')}</p>
+            <p className="mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] text-violet-600">
               {metrics.upcomingPaymentsCount > 0 ? metrics.upcomingPaymentsCount : '0'}
             </p>
-            <p className="mt-1 text-[12px] leading-4 text-slate-500">{upcomingCountLabel}</p>
+            <p className="mt-1 text-[11px] leading-4 text-slate-500">{upcomingCountLabel}</p>
           </article>
 
-          <article className="rounded-[22px] border border-amber-100/90 bg-[linear-gradient(180deg,#ffffff,#fff7ed)] p-3.5 shadow-[0_14px_28px_-24px_rgba(245,158,11,0.4)]">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-              <Target size={18} />
+          <article className="rounded-[20px] border border-amber-100/90 bg-[linear-gradient(180deg,#ffffff,#fff7ed)] p-3 shadow-[0_14px_28px_-24px_rgba(245,158,11,0.4)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+              <Target size={17} />
             </div>
-            <p className="mt-3 text-[12px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileBudget')}</p>
-            <p className="mt-1.5 text-[1.05rem] font-800 leading-none tracking-[-0.03em] text-amber-600">
+            <p className="mt-2.5 text-[11px] font-700 leading-4 text-slate-700">{t('dashboardMetrics.mobileBudget')}</p>
+            <p className="mt-1 text-[0.98rem] font-800 leading-none tracking-[-0.03em] text-amber-600">
               {budgetUsagePct !== null ? `${budgetUsagePct}%` : t('dashboardMetrics.mobileBudgetFallbackShort')}
             </p>
-            <p className="mt-1 text-[12px] leading-4 text-slate-500">{budgetUsageLabel}</p>
+            <p className="mt-1 text-[11px] leading-4 text-slate-500">{budgetUsageLabel}</p>
             {budgetUsagePct !== null ? (
-              <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-amber-100">
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-amber-100">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#fb923c,#f59e0b)]"
                   style={{ width: `${budgetUsagePct}%` }}

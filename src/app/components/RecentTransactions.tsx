@@ -104,11 +104,11 @@ export default function RecentTransactions({
           : 'border-border/80 bg-card'
       }`}
       action={
-        <Link href="/transactions" className={`font-700 ${variant === 'mobile-dashboard' ? 'text-sm text-[#2563eb]' : 'link-accent text-sm'}`}>
-          {t('actions.viewAll', { ns: 'common' })} <ArrowRight size={13} />
+        <Link href="/transactions" className={`font-700 ${variant === 'mobile-dashboard' ? 'text-[13px] text-[#2563eb]' : 'link-accent text-sm'}`}>
+          {t('actions.viewAll', { ns: 'common' })}{variant === 'mobile-dashboard' ? null : <ArrowRight size={13} />}
         </Link>
       }
-      bodyClassName={`flex flex-1 flex-col ${variant === 'mobile-dashboard' ? 'p-2.5 pt-2' : 'p-3'}`}
+      bodyClassName={`flex flex-1 flex-col ${variant === 'mobile-dashboard' ? 'p-3 pt-2' : 'p-3'}`}
     >
 
       {loading ? (
@@ -135,7 +135,7 @@ export default function RecentTransactions({
         />
       ) : (
         <div className="flex flex-1 flex-col">
-          <div className="space-y-2">
+          <div className={variant === 'mobile-dashboard' ? 'divide-y divide-slate-200/70' : 'space-y-2'}>
           {visibleTransactions.map((txn) => {
             const isIncome = txn.transaction_type === 'income';
             const catColor = txn.category?.color || '#6b7280';
@@ -168,10 +168,10 @@ export default function RecentTransactions({
                   event.preventDefault();
                   openTransactionDetails(txn.id);
                 }}
-                className={`group flex items-start gap-3 rounded-2xl border px-3.5 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
+                className={`group flex items-start gap-3 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
                   variant === 'mobile-dashboard'
-                    ? 'border-transparent bg-transparent py-2.5 hover:border-slate-200 hover:bg-slate-50'
-                    : 'border-transparent bg-muted/15 py-3 hover:border-border/70 hover:bg-muted/30'
+                    ? 'border-0 bg-transparent px-2 py-3 hover:bg-slate-50'
+                    : 'rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 hover:border-border/70 hover:bg-muted/30'
                 }`}
               >
                 <div
@@ -215,8 +215,9 @@ export default function RecentTransactions({
                   <FormattedCurrencyAmount
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}
-                    size={variant === 'mobile-dashboard' ? 'md' : 'sm'}
-                    className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[0.98rem]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
+                    size={variant === 'mobile-dashboard' ? 'sm' : 'sm'}
+                    textOnly={variant === 'mobile-dashboard'}
+                    className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[13px]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
                     showCode
                   />
                   {variant === 'mobile-dashboard' ? null : (

@@ -148,14 +148,15 @@ export default function DashboardHeader({
   }, []);
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-1.5">
       <div className="md:hidden space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className={`font-800 tracking-[-0.03em] text-foreground ${
-              isArabic ? 'text-[1.65rem] leading-[1.2]' : 'text-[1.72rem] leading-[1.12]'
+              isArabic ? 'text-[1.5rem] leading-[1.22]' : 'text-[1.58rem] leading-[1.16]'
             }`}>
-              {headingText}
+              <span className="min-w-0 whitespace-pre-wrap">{headingText}</span>
+              {showGreetingWave ? <span className="ms-1 inline-flex shrink-0">{'\u{1F44B}'}</span> : null}
             </h1>
             <p className={`mt-1 text-muted-foreground ${
               isArabic ? 'text-[13px] leading-5' : 'text-[13px] leading-5'
@@ -168,7 +169,7 @@ export default function DashboardHeader({
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-border/70 bg-card/90 p-2 shadow-card-sm">
+        <div className="rounded-[22px] border border-border/60 bg-card/85 p-1.5 shadow-card-sm">
           <Tabs
             items={[
               { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
@@ -176,9 +177,9 @@ export default function DashboardHeader({
             ]}
             activeId={viewMode}
             onChange={onViewModeChange}
-            className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-9 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-2xl [&_.tab-button]:px-3 [&_.tab-button]:py-2 [&_.tab-button]:text-[12px] [&_.tab-button]:font-700"
+            className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-8 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-2xl [&_.tab-button]:px-3 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700"
           />
-          <div className="mt-2 flex items-center gap-1 rounded-[18px] bg-muted/30 p-1">
+          <div className="mt-1.5 flex items-center gap-1 rounded-[18px] bg-muted/25 p-0.5">
             <button
               type="button"
               onClick={() => {
@@ -188,20 +189,20 @@ export default function DashboardHeader({
                 }
                 onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
               }}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card"
               aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
             >
-              <PreviousIcon size={16} />
+              <PreviousIcon size={15} />
             </button>
             {viewMode === 'month' ? (
               <>
                 <button
                   type="button"
                   onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                  className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[12px] font-700 text-foreground shadow-sm"
+                  className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[11px] font-700 text-foreground shadow-sm"
                   aria-label={t('dashboardHeader.chooseMonth')}
                 >
-                  <Calendar size={14} className="text-accent" />
+                  <Calendar size={13} className="text-accent" />
                   <span className="truncate">{monthContext.label}</span>
                 </button>
                 <input
@@ -215,8 +216,8 @@ export default function DashboardHeader({
                 />
               </>
             ) : (
-              <div className="flex h-10 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[12px] font-700 text-foreground shadow-sm">
-                <Calendar size={14} className="text-accent" />
+              <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[11px] font-700 text-foreground shadow-sm">
+                <Calendar size={13} className="text-accent" />
                 <span className="truncate">{activePeriod.label}</span>
               </div>
             )}
@@ -230,11 +231,11 @@ export default function DashboardHeader({
                 }
                 onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
               }}
-              className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
               aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
               disabled={!canMoveNext}
             >
-              <NextIcon size={16} />
+              <NextIcon size={15} />
             </button>
           </div>
         </div>
