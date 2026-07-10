@@ -225,10 +225,12 @@ export default function DashboardMetrics({
   activePeriod,
   hasConfigurationWarning = false,
   variant = 'default',
+  mobileAfterSummary,
 }: {
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
   variant?: 'default' | 'mobile-dashboard';
+  mobileAfterSummary?: React.ReactNode;
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -279,6 +281,11 @@ export default function DashboardMetrics({
               </div>
             </div>
           </div>
+          {mobileAfterSummary ? (
+            <div className="animate-none">
+              {mobileAfterSummary}
+            </div>
+          ) : null}
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: 3 }).map((_, index) => (
               <div key={`mobile-metric-skeleton-${index}`} className="animate-pulse rounded-[22px] border border-border/70 bg-card p-3">
@@ -699,7 +706,7 @@ export default function DashboardMetrics({
             <div className="mt-3 font-tabular">
               {renderMobileCurrencyText(
                 metrics.totalBalance,
-                'inline-flex items-baseline text-[2.05rem] font-800 leading-[1.05] tracking-[-0.04em] text-white'
+                'inline-flex items-baseline whitespace-nowrap text-[40px] font-800 leading-[1.02] tracking-[-0.04em] text-white max-[360px]:text-[36px]'
               )}
             </div>
 
@@ -709,7 +716,7 @@ export default function DashboardMetrics({
                 <div className="font-tabular">
                   {renderMobileCurrencyText(
                     metrics.monthlyIncome,
-                    'inline-flex items-baseline text-[1.12rem] font-700 leading-none tracking-[-0.03em] text-white'
+                    'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
@@ -718,7 +725,7 @@ export default function DashboardMetrics({
                 <div className="font-tabular">
                   {renderMobileCurrencyText(
                     metrics.monthlyExpenses,
-                    'inline-flex items-baseline text-[1.12rem] font-700 leading-none tracking-[-0.03em] text-white'
+                    'inline-flex items-baseline whitespace-nowrap text-[16px] font-700 leading-none tracking-[-0.03em] text-white'
                   )}
                 </div>
               </div>
@@ -740,6 +747,12 @@ export default function DashboardMetrics({
             </div>
           </div>
         </section>
+
+        {mobileAfterSummary ? (
+          <div>
+            {mobileAfterSummary}
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-3 gap-2.5">
           <article className="rounded-[20px] border border-emerald-100/80 bg-[linear-gradient(180deg,#ffffff,#f3fbf7)] p-3 shadow-[0_14px_28px_-24px_rgba(16,185,129,0.55)]">

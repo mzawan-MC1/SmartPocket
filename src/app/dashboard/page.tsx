@@ -531,7 +531,7 @@ export default function DashboardPage() {
       activeRoute="/dashboard"
       hideMobileTopbar
       hideMobileFooter
-      mobileContentPaddingBottomClassName="pb-[calc(env(safe-area-inset-bottom)+120px)] max-[480px]:pb-[calc(env(safe-area-inset-bottom)+132px)] sm:pb-9 lg:pb-9"
+      mobileContentPaddingBottomClassName="pb-[calc(env(safe-area-inset-bottom)+130px)] max-[480px]:pb-[calc(env(safe-area-inset-bottom)+142px)] sm:pb-9 lg:pb-9"
     >
       <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+20px)] md:pt-0">
         {!coreReady ? (
@@ -703,8 +703,8 @@ export default function DashboardPage() {
                   activePeriod={readyActivePeriod!}
                   hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning}
                   variant="mobile-dashboard"
+                  mobileAfterSummary={<AIUsageCardLazy variant="mobile-featured" />}
                 />
-                <AIUsageCardLazy variant="mobile-featured" />
                 <RecentTransactionsLazy variant="mobile-dashboard" />
                 <UpcomingPersonalSubscriptionsLazy activePeriod={readyActivePeriod!} compact dashboardSuggestion />
               </div>

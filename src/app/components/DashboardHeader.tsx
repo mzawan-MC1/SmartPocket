@@ -152,91 +152,20 @@ export default function DashboardHeader({
       <div className="md:hidden space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h1 className={`font-800 tracking-[-0.03em] text-foreground ${
-              isArabic ? 'text-[1.5rem] leading-[1.22]' : 'text-[1.58rem] leading-[1.16]'
-            }`}>
-              <span className="min-w-0 whitespace-pre-wrap">{headingText}</span>
-              {showGreetingWave ? <span className="ms-1 inline-flex shrink-0">{'\u{1F44B}'}</span> : null}
+            <h1
+              className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.03em] text-foreground ${
+                isArabic ? 'text-[24px] leading-[1.05]' : 'text-[25px] leading-[1.05]'
+              }`}
+              title={headingText}
+            >
+              {headingText}
             </h1>
-            <p className={`mt-1 text-muted-foreground ${
-              isArabic ? 'text-[13px] leading-5' : 'text-[13px] leading-5'
-            }`}>
+            <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[14px] leading-5' : 'text-[14px] leading-5'}`}>
               {t('dashboardHeader.mobileSubtitle')}
             </p>
           </div>
           <div className="shrink-0">
             <NotificationBell />
-          </div>
-        </div>
-
-        <div className="rounded-[22px] border border-border/60 bg-card/85 p-1.5 shadow-card-sm">
-          <Tabs
-            items={[
-              { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
-              { id: 'month', label: t('dashboardHeader.month') },
-            ]}
-            activeId={viewMode}
-            onChange={onViewModeChange}
-            className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-8 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-2xl [&_.tab-button]:px-3 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700"
-          />
-          <div className="mt-1.5 flex items-center gap-1 rounded-[18px] bg-muted/25 p-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                if (viewMode === 'month') {
-                  onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, -1));
-                  return;
-                }
-                onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
-              }}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card"
-              aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
-            >
-              <PreviousIcon size={15} />
-            </button>
-            {viewMode === 'month' ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                  className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[11px] font-700 text-foreground shadow-sm"
-                  aria-label={t('dashboardHeader.chooseMonth')}
-                >
-                  <Calendar size={13} className="text-accent" />
-                  <span className="truncate">{monthContext.label}</span>
-                </button>
-                <input
-                  ref={monthInputRef}
-                  type="month"
-                  className="sr-only"
-                  value={monthContext.monthKey}
-                  max={currentMonthContext.monthKey}
-                  onChange={(event) => onSelectedMonthChange(event.target.value)}
-                  aria-label={t('dashboardHeader.dashboardMonth')}
-                />
-              </>
-            ) : (
-              <div className="flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-2xl bg-card px-3 text-center text-[11px] font-700 text-foreground shadow-sm">
-                <Calendar size={13} className="text-accent" />
-                <span className="truncate">{activePeriod.label}</span>
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                if (!canMoveNext) return;
-                if (viewMode === 'month') {
-                  onSelectedMonthChange(shiftMonthKey(monthContext.monthKey, 1));
-                  return;
-                }
-                onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
-              }}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
-              aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
-              disabled={!canMoveNext}
-            >
-              <NextIcon size={15} />
-            </button>
           </div>
         </div>
 
