@@ -113,7 +113,6 @@ export default function DashboardHeader({
     headingText = t(greetingKey, { name: firstName }).replace(/\s*ðŸ‘‹\s*$/, '');
   }
 
-  const showGreetingWave = headingText !== headingFallback;
   const mobileHeadingText = headingText
     .replace(/,\s*/g, ' ')
     .replace(/!\s*$/, '')
@@ -271,7 +270,6 @@ export default function DashboardHeader({
               : 'text-[1.04rem] max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem]'
           }`}>
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{headingText}</span>
-            {showGreetingWave ? <span className="inline-flex shrink-0 items-center whitespace-nowrap">ðŸ‘‹</span> : null}
           </h1>
           <p className={`max-w-[34rem] text-muted-foreground ${
             isArabic
