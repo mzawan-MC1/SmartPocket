@@ -2566,7 +2566,7 @@
       "includeUpcomingCommitments": "Inclure les engagements a venir",
       "includeArchivedAccounts": "Inclure les comptes archives ou versionnes lorsque c est pertinent",
       "preview": "Previsualiser le rapport",
-      "exportCsvPackage": "Exporter le package CSV",
+      "exportCsvPackage": "Exporter le CSV complet du rapport",
       "reset": "Reinitialiser",
       "previewPrompt": "Choisissez vos filtres puis previsualisez le rapport pour construire le document financier complet.",
       "previewStatus": "Etat de la previsualisation",
@@ -2574,7 +2574,7 @@
       "summaryOnlyTransactions": "Resume des transactions seulement"
     },
     "fullReport": {
-      "csvPackageExported": "Le package CSV du rapport complet a ete exporte.",
+      "csvPackageExported": "Le rapport complet a ete exporte en un seul fichier CSV.",
       "largeReportWarning": "Ce rapport contient un grand nombre de transactions et peut prendre plus de temps a generer.",
       "metadata": {
         "reportType": "Type de rapport",

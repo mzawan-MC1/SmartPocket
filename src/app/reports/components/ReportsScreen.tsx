@@ -34,8 +34,7 @@ import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmou
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
-import { buildCsvRow, downloadCsvFile, escapeCsvValue } from '@/lib/reports-export';
-import { openPrintWindowForElement } from '@/lib/reports-export';
+import { buildCsvRow, downloadCsvFile, escapeCsvValue, openPrintWindowForDocument } from '@/lib/reports-export';
 import {
   formatReportPeriodLabel,
   getInitialReportPreset,
@@ -848,6 +847,99 @@ function buildFullReportSummaryCsv(
   return rows.join('\n');
 }
 
+function buildFullFinancialReportSingleCsv(args: {
+  report: FullFinancialReportData;
+  reportData: ReportViewData;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) {
+  const { report, reportData, t } = args;
+  const rows: string[] = [];
+
+  const appendBlankLine = () => {
+    if (rows.length > 0 && rows[rows.length - 1] !== '') {
+      rows.push('');
+    }
+  };
+
+  const appendSectionTitle = (title: string) => {
+    appendBlankLine();
+    rows.push(buildCsvRow([title]));
+  };
+
+  const appendTable = (headers: string[], tableRows: string[][]) => {
+    rows.push(buildCsvRow(headers));
+    if (tableRows.length === 0) {
+      rows.push(buildCsvRow([t('reports.noData')]));
+      return;
+    }
+
+    tableRows.forEach((row) => {
+      rows.push(buildCsvRow(row));
+    });
+  };
+
+  rows.push(buildCsvRow([report.title]));
+  rows.push(buildCsvRow([t('reports.generated'), report.generatedAtLabel]));
+
+  appendSectionTitle(t('reports.fullReport.metadata.reportType', { defaultValue: 'Report metadata' }));
+  appendTable(
+    [t('reports.label', { defaultValue: 'Label' }), t('reports.value', { defaultValue: 'Value' })],
+    report.metadata.map((item) => [item.label, item.value])
+  );
+
+  appendSectionTitle(t('reports.fullReport.sections.executiveSummary', { defaultValue: 'Executive Summary' }));
+  appendTable(
+    [
+      t('reports.label', { defaultValue: 'Label' }),
+      t('reports.value', { defaultValue: 'Value' }),
+      t('reports.notes', { defaultValue: 'Notes' }),
+    ],
+    report.executiveSummary.metrics.map((item) => [item.label, item.value, item.helper || ''])
+  );
+
+  appendSectionTitle(t('reports.fullReport.sections.transactions', { defaultValue: 'Transactions' }));
+  rows.push(...buildTransactionsCsv(reportData, t).split('\n'));
+
+  appendSectionTitle(t('reports.fullReport.sections.accounts', { defaultValue: 'Financial Accounts' }));
+  appendTable(
+    [t('reports.group', { defaultValue: 'Group' }), ...report.accounts.personal.headers],
+    [
+      ...report.accounts.personal.rows.map((row) => ['Personal', ...row]),
+      ...report.accounts.shared.rows.map((row) => ['Shared', ...row]),
+      ...report.accounts.spaces.rows.map((row) => ['Space', ...row]),
+    ]
+  );
+
+  appendSectionTitle(t('reports.fullReport.sections.budgets', { defaultValue: 'Budget Performance' }));
+  appendTable(report.budgets.table.headers, report.budgets.table.rows);
+
+  appendSectionTitle(t('reports.fullReport.sections.categoryAnalysis', { defaultValue: 'Category Analysis' }));
+  appendTable(
+    [t('reports.group', { defaultValue: 'Group' }), ...report.categories.expenseTable.headers],
+    [
+      ...report.categories.expenseTable.rows.map((row) => [t('reports.expenses', { defaultValue: 'Expenses' }), ...row]),
+      ...report.categories.incomeTable.rows.map((row) => [t('reports.income', { defaultValue: 'Income' }), ...row]),
+    ]
+  );
+
+  appendSectionTitle(t('reports.fullReport.sections.people', { defaultValue: 'People, Reimbursements and Settlements' }));
+  appendTable(report.people.table.headers, report.people.table.rows);
+
+  appendSectionTitle(t('reports.fullReport.sections.recurring', { defaultValue: 'Recurring Transactions' }));
+  appendTable(report.recurring.table.headers, report.recurring.table.rows);
+
+  appendSectionTitle(t('reports.fullReport.sections.subscriptions', { defaultValue: 'Personal Subscriptions' }));
+  appendTable(
+    [t('reports.group', { defaultValue: 'Group' }), ...report.subscriptions.table.headers],
+    [
+      ...report.subscriptions.table.rows.map((row) => [t('reports.fullReport.subscriptions.active', { defaultValue: 'Subscriptions' }), ...row]),
+      ...report.subscriptions.upcomingTable.rows.map((row) => [t('reports.fullReport.subscriptions.upcoming', { defaultValue: 'Upcoming renewals' }), ...row]),
+    ]
+  );
+
+  return rows.join('\n');
+}
+
 export default function ReportsScreen() {
   const { t } = useTranslation(['portal', 'common']);
   const { dir, language } = useLanguage();
@@ -889,8 +981,6 @@ export default function ReportsScreen() {
   const [actionInFlight, setActionInFlight] = useState<'csv' | 'print' | null>(null);
   const latestReportRequestRef = useRef(0);
   const latestFullReportRequestRef = useRef(0);
-  const printableReportRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
@@ -1806,6 +1896,28 @@ export default function ReportsScreen() {
     t,
   ]);
 
+  const fullFinancialReportDocument = useMemo(() => {
+    if (!fullReportData) {
+      return null;
+    }
+
+    return (
+      <FullFinancialReport
+        data={fullReportData}
+        includeCharts={includeCharts}
+        includeTransactionDetails={includeTransactionDetails}
+        includeItemInsights={includeItemInsights}
+        includeUpcomingCommitments={includeUpcomingCommitments}
+      />
+    );
+  }, [
+    fullReportData,
+    includeCharts,
+    includeItemInsights,
+    includeTransactionDetails,
+    includeUpcomingCommitments,
+  ]);
+
   const handleDownloadCSV = useCallback(() => {
     if (actionInFlight) return;
     setActionInFlight('csv');
@@ -1819,22 +1931,13 @@ export default function ReportsScreen() {
           toast.error(fullReportError || t('reports.noDataToExport'));
           return;
         }
-        const baseName = `smart-pocket-full-financial-${activeRange.startDate}-to-${activeRange.endDate}`;
-        const accountHeaders = ['Group', ...fullReportData.accounts.personal.headers];
-        const accountRows = [
-          ...fullReportData.accounts.personal.rows.map((row) => ['Personal', ...row]),
-          ...fullReportData.accounts.shared.rows.map((row) => ['Shared', ...row]),
-          ...fullReportData.accounts.spaces.rows.map((row) => ['Space', ...row]),
-        ];
-        downloadCsvFile(`${baseName}-summary.csv`, buildFullReportSummaryCsv(fullReportData, t));
-        downloadCsvFile(`${baseName}-transactions.csv`, buildTransactionsCsv(reportData, t));
-        downloadCsvFile(`${baseName}-accounts.csv`, [buildCsvRow(accountHeaders), ...accountRows.map((row) => buildCsvRow(row))].join('\n'));
-        downloadCsvFile(`${baseName}-categories.csv`, buildTableCsv(fullReportData.categories.expenseTable));
-        downloadCsvFile(`${baseName}-budgets.csv`, buildTableCsv(fullReportData.budgets.table));
-        downloadCsvFile(`${baseName}-people.csv`, buildTableCsv(fullReportData.people.table));
-        downloadCsvFile(`${baseName}-subscriptions.csv`, buildTableCsv(fullReportData.subscriptions.table));
-        downloadCsvFile(`${baseName}-recurring.csv`, buildTableCsv(fullReportData.recurring.table));
-        toast.success(t('reports.fullReport.csvPackageExported', { defaultValue: 'Exported the full report CSV package.' }));
+        const baseName = `smart-pocket-full-financial-${activeRange.startDate}-to-${activeRange.endDate}.csv`;
+        downloadCsvFile(baseName, buildFullFinancialReportSingleCsv({
+          report: fullReportData,
+          reportData,
+          t,
+        }));
+        toast.success(t('reports.fullReport.csvPackageExported', { defaultValue: 'Exported the full report as one CSV file.' }));
         return;
       }
       if (activeReport === 'budget-performance') {
@@ -1863,20 +1966,21 @@ export default function ReportsScreen() {
     }
   }, [actionInFlight, activeRange, activeReport, fullReportData, fullReportError, reportData, t]);
 
-  const handlePrint = useCallback(() => {
+  const handlePrint = useCallback(async () => {
     if (actionInFlight) return;
     setActionInFlight('print');
     try {
-      const target = printableReportRef.current?.querySelector('.report-document') as HTMLElement | null
-        || printableReportRef.current;
+      const printableDocument = activeReport === 'full-financial'
+        ? fullFinancialReportDocument
+        : printableStandardReportDocument;
 
-      if (!target) {
+      if (!printableDocument) {
         toast.error(t('reports.noDataToExport'));
         return;
       }
 
-      const opened = openPrintWindowForElement({
-        element: target,
+      const opened = await openPrintWindowForDocument({
+        content: printableDocument,
         title: `${getReportTypeLabel(activeReport, t)} | Smart Pocket`,
         lang: language,
         dir,
@@ -1888,7 +1992,7 @@ export default function ReportsScreen() {
     } finally {
       setActionInFlight(null);
     }
-  }, [actionInFlight, activeReport, dir, language, t]);
+  }, [actionInFlight, activeReport, dir, fullFinancialReportDocument, language, printableStandardReportDocument, t]);
 
   const handlePreviewReport = useCallback(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
@@ -2351,7 +2455,9 @@ export default function ReportsScreen() {
                     </button>
                     <button onClick={handleDownloadCSV} disabled={actionInFlight !== null || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-3 text-sm disabled:opacity-60">
                       {actionInFlight === 'csv' ? <Loader2 size={15} className="animate-spin" /> : <FileDown size={15} />}
-                      {t('reports.controls.exportCsvPackage', { defaultValue: 'Export CSV package' })}
+                      {activeReport === 'full-financial'
+                        ? t('reports.controls.exportCsvPackage', { defaultValue: 'Export full report CSV' })
+                        : t('reports.controls.exportCsvPackage', { defaultValue: 'Export CSV package' })}
                     </button>
                     <button onClick={handleResetReportOptions} disabled={loading || fullReportLoading} className="btn-secondary inline-flex h-10 items-center justify-center rounded-xl px-3 text-sm disabled:opacity-60 md:col-span-2">
                       {t('reports.controls.reset', { defaultValue: 'Reset' })}
@@ -2428,16 +2534,8 @@ export default function ReportsScreen() {
                     description={fullReportError}
                   />
                 </div>
-              ) : fullReportData ? (
-                <div ref={printableReportRef}>
-                  <FullFinancialReport
-                    data={fullReportData}
-                    includeCharts={includeCharts}
-                    includeTransactionDetails={includeTransactionDetails}
-                    includeItemInsights={includeItemInsights}
-                    includeUpcomingCommitments={includeUpcomingCommitments}
-                  />
-                </div>
+              ) : fullFinancialReportDocument ? (
+                fullFinancialReportDocument
               ) : (
                 <div className="flex min-h-[300px] items-center justify-center">
                   <EmptyState
@@ -2621,15 +2719,6 @@ export default function ReportsScreen() {
         </div>
       </div>
 
-      {activeReport !== 'full-financial' && printableStandardReportDocument ? (
-        <div
-          ref={printableReportRef}
-          aria-hidden="true"
-          className="pointer-events-none fixed left-[-200vw] top-0 w-[1120px] opacity-0"
-        >
-          {printableStandardReportDocument}
-        </div>
-      ) : null}
     </div>
   );
 }

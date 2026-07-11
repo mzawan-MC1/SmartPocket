@@ -2586,7 +2586,7 @@
       "includeUpcomingCommitments": "تضمين الالتزامات القادمة",
       "includeArchivedAccounts": "تضمين الحسابات المؤرشفة أو المرقمة إصداريًا عند الحاجة",
       "preview": "معاينة التقرير",
-      "exportCsvPackage": "تصدير حزمة CSV",
+      "exportCsvPackage": "تصدير ملف CSV الكامل للتقرير",
       "reset": "إعادة تعيين",
       "previewPrompt": "اختر عوامل التصفية ثم عاين التقرير لبناء المستند المالي الكامل.",
       "previewStatus": "حالة المعاينة",
@@ -2594,7 +2594,7 @@
       "summaryOnlyTransactions": "ملخص المعاملات فقط"
     },
     "fullReport": {
-      "csvPackageExported": "تم تصدير حزمة CSV الخاصة بالتقرير الكامل.",
+      "csvPackageExported": "تم تصدير التقرير الكامل كملف CSV واحد.",
       "largeReportWarning": "يحتوي هذا التقرير على عدد كبير من المعاملات وقد يستغرق وقتًا أطول في الإنشاء.",
       "metadata": {
         "reportType": "نوع التقرير",

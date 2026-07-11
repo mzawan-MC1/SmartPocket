@@ -560,7 +560,7 @@
       "includeUpcomingCommitments": "Include upcoming commitments",
       "includeArchivedAccounts": "Include archived or versioned accounts when relevant",
       "preview": "Preview report",
-      "exportCsvPackage": "Export CSV package",
+      "exportCsvPackage": "Export full report CSV",
       "reset": "Reset",
       "previewPrompt": "Choose your filters and preview the report to build the full financial document.",
       "previewStatus": "Preview status",
@@ -568,7 +568,7 @@
       "summaryOnlyTransactions": "Transaction summary only"
     },
     "fullReport": {
-      "csvPackageExported": "Exported the full report CSV package.",
+      "csvPackageExported": "Exported the full report as one CSV file.",
       "largeReportWarning": "This report contains a large number of transactions and may take longer to generate.",
       "metadata": {
         "reportType": "Report type",
