@@ -35,6 +35,7 @@ import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 import { buildCsvRow, downloadCsvFile, escapeCsvValue } from '@/lib/reports-export';
+import { openPrintWindowForElement } from '@/lib/reports-export';
 import {
   formatReportPeriodLabel,
   getInitialReportPreset,
@@ -56,6 +57,7 @@ import { getPersonalSubscriptions } from '@/lib/personal-subscriptions';
 import type { PersonalSubscription } from '@/lib/personal-subscriptions-shared';
 import { getItemInsightsSnapshot, type ItemInsightsSnapshot } from '@/lib/transaction-item-insights';
 import FullFinancialReport, { type FullFinancialReportData, type FullReportChartState, type FullReportSummaryTable } from './FullFinancialReport';
+import PrintableStandardReport, { PrintableDocumentTable, type PrintableStandardReportSection } from './PrintableStandardReport';
 import { buildFullFinancialReportData, type FullReportFilters, type FullReportSupplementalData } from './full-report-builder';
 import type { PrintableReportIdentity, ReportMetadataItem } from './full-report-types';
 
@@ -548,6 +550,78 @@ function renderConvertedMetricDetails(
   );
 }
 
+function formatCurrencyText(amount: number, currency: string, locale: string) {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
+function formatGroupedCurrencyText(rows: Array<{ currency: string; amount: number }>, locale: string) {
+  if (rows.length === 0) return '—';
+  return rows
+    .map((row) => formatCurrencyText(row.amount, row.currency, locale))
+    .join(' | ');
+}
+
+function formatConvertedMetricText(
+  metric: HistoricalReportConvertedMetric | null | undefined,
+  locale: string,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  if (!metric) return '—';
+  if (metric.reportingAmount === null) {
+    if (metric.unavailableReason) {
+      return localizeReportMessage(metric.unavailableReason, t) || t('reports.unavailable');
+    }
+    return formatGroupedCurrencyText(metric.originalTotals, locale);
+  }
+
+  return formatCurrencyText(metric.reportingAmount, metric.reportingCurrency, locale);
+}
+
+function buildPrintableTransactionDetailRows(args: {
+  transactions: Transaction[];
+  reportingCurrency: string;
+  snapshots: ReportViewData['snapshots'];
+  t: (key: string, options?: Record<string, unknown>) => string;
+  locale: string;
+}) {
+  return args.transactions.map((transaction) => {
+    const signedOriginalAmount = transaction.transaction_type === 'expense'
+      ? -Math.abs(Number(transaction.amount || 0))
+      : Number(transaction.amount || 0);
+    const conversion = convertHistoricalAmountWithSnapshots({
+      amount: signedOriginalAmount,
+      fromCurrency: transaction.currency || args.reportingCurrency,
+      reportingCurrency: args.reportingCurrency,
+      rateDate: transaction.transaction_date,
+      snapshots: args.snapshots,
+    });
+
+    return [
+      formatSafeUtcDisplayDate(transaction.transaction_date, args.locale),
+      getTransactionTypeLabel(transaction.transaction_type, args.t),
+      transaction.merchant || transaction.description || args.t('reports.notProvided', { defaultValue: 'Not provided' }),
+      transaction.account?.name || '—',
+      transaction.category?.name
+        ? translateSystemCategoryName(transaction.category.name, (key, options) =>
+            args.t(key, { ...(options || {}), ns: 'common' })
+          )
+        : args.t('transactions.uncategorized'),
+      conversion.convertedAmount === null
+        ? formatCurrencyText(signedOriginalAmount, transaction.currency || args.reportingCurrency, args.locale)
+        : `${formatCurrencyText(signedOriginalAmount, transaction.currency || args.reportingCurrency, args.locale)} | ${formatCurrencyText(conversion.convertedAmount, args.reportingCurrency, args.locale)}`,
+    ];
+  });
+}
+
 function getReportTitle(
   activeReport: ReportType,
   grouping: ReportGrouping,
@@ -815,6 +889,7 @@ export default function ReportsScreen() {
   const [actionInFlight, setActionInFlight] = useState<'csv' | 'print' | null>(null);
   const latestReportRequestRef = useRef(0);
   const latestFullReportRequestRef = useRef(0);
+  const printableReportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
@@ -1439,6 +1514,298 @@ export default function ReportsScreen() {
     selectedTransactionType,
   ]);
 
+  const printableReportIdentity = useMemo<PrintableReportIdentity>(() => ({
+    fullName: profile?.full_name || user?.user_metadata?.full_name || user?.email || null,
+    email: user?.email || null,
+    country: profileCountry,
+    avatarUrl: profile?.avatar_url || user?.user_metadata?.avatar_url || null,
+  }), [
+    profile?.avatar_url,
+    profile?.full_name,
+    profileCountry,
+    user?.email,
+    user?.user_metadata?.avatar_url,
+    user?.user_metadata?.full_name,
+  ]);
+
+  const printableReportMetadata = useMemo<ReportMetadataItem[]>(() => {
+    if (!activeRange) return [];
+
+    return [
+      { label: t('reports.fullReport.metadata.reportType', { defaultValue: 'Report type' }), value: getReportTypeLabel(activeReport, t) },
+      { label: t('reports.fullReport.metadata.period', { defaultValue: 'Selected period' }), value: formatReportPeriodLabel(activeRange) },
+      { label: t('reports.fullReport.metadata.scope', { defaultValue: 'Scope' }), value: selectedScopeLabel },
+      { label: t('reports.accountFilter', { defaultValue: 'Account filter' }), value: selectedAccountLabel },
+      { label: t('reports.reportingCurrencyLabel'), value: reportData?.reportingCurrency || t('reports.loading') },
+      { label: t('reports.fullReport.metadata.filters', { defaultValue: 'Selected filters' }), value: selectedFilterSummary },
+      { label: t('reports.generated'), value: generatedAtLabel || t('reports.loading') },
+    ];
+  }, [
+    activeRange,
+    activeReport,
+    generatedAtLabel,
+    reportData?.reportingCurrency,
+    selectedAccountLabel,
+    selectedFilterSummary,
+    selectedScopeLabel,
+    t,
+  ]);
+
+  const printableSummaryMetrics = useMemo(() => (
+    summaryByType[activeReport].map((item) => ({
+      label: item.label,
+      value: item.convertedMetric
+        ? formatConvertedMetricText(item.convertedMetric, locale, t)
+        : item.value || '—',
+      helper: item.sub || null,
+      tone: item.positive === true ? 'positive' as const : item.positive === false ? 'negative' as const : 'neutral' as const,
+    }))
+  ), [activeReport, locale, summaryByType, t]);
+
+  const printableChart = useMemo(() => {
+    if (!reportData) return null;
+
+    if (activeReport === 'income-expense') {
+      if (incomeExpenseChartState.unavailableReason || incomeExpenseChartState.data.length === 0) return null;
+      return (
+        <div className="h-[18rem]">
+          <IncomeExpenseReportChart
+            data={sanitizeIncomeExpenseChartRows(incomeExpenseChartState.data)}
+            currencyCode={reportData.reportingCurrency}
+          />
+        </div>
+      );
+    }
+
+    if (activeReport === 'spending-category') {
+      if (spendingCategoryChartState.unavailableReason || spendingCategoryChartState.data.length === 0) return null;
+      return (
+        <div className="h-[18rem]">
+          <SpendingCategoryReportChart
+            data={sanitizeSpendingCategoryChartRows(spendingCategoryChartState.data)}
+            currencyCode={reportData.reportingCurrency}
+          />
+        </div>
+      );
+    }
+
+    if (activeReport === 'monthly-trends') {
+      if (incomeExpenseChartState.unavailableReason || incomeExpenseChartState.data.length === 0) return null;
+      return (
+        <div className="h-[18rem]">
+          <MonthlyTrendsChart
+            data={sanitizeIncomeExpenseChartRows(incomeExpenseChartState.data).map((row) => ({
+              month: row.month,
+              income: row.income,
+              expenses: row.expenses,
+              savings: row.net,
+            }))}
+            currencyCode={reportData.reportingCurrency}
+          />
+        </div>
+      );
+    }
+
+    if (activeReport === 'budget-performance') {
+      if (reportData.budgetPerformance.unavailableReason || reportData.budgetPerformance.chartRows.length === 0) return null;
+      return (
+        <div className="h-[18rem]">
+          <BudgetPerformanceChart
+            data={sanitizeBudgetPerformanceChartRows(reportData.budgetPerformance.chartRows)}
+            currencyCode={reportData.budgetPerformance.reportingCurrency}
+          />
+        </div>
+      );
+    }
+
+    return null;
+  }, [
+    activeReport,
+    incomeExpenseChartState.data,
+    incomeExpenseChartState.unavailableReason,
+    reportData,
+    spendingCategoryChartState.data,
+    spendingCategoryChartState.unavailableReason,
+  ]);
+
+  const printableSections = useMemo<PrintableStandardReportSection[]>(() => {
+    if (!reportData) return [];
+
+    if (activeReport === 'income-expense' || activeReport === 'monthly-trends') {
+      const rows = sanitizeIncomeExpenseChartRows(incomeExpenseChartState.data).map((row) => [
+        row.month,
+        formatCurrencyText(row.income, reportData.reportingCurrency, locale),
+        formatCurrencyText(row.expenses, reportData.reportingCurrency, locale),
+        formatCurrencyText(row.net, reportData.reportingCurrency, locale),
+      ]);
+
+      return [{
+        title: t('reports.fullReport.transactions.summaryTitle', { defaultValue: 'Period summary' }),
+        description: activeRange?.comparisonLabel
+          ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
+          : t('reports.sharedBoundaries'),
+        content: (
+          <PrintableDocumentTable
+            headers={[
+              grouping === 'day'
+                ? t('reports.grouping.day')
+                : grouping === 'week'
+                  ? t('reports.grouping.week')
+                  : t('reports.grouping.month'),
+              t('reports.summary.totalIncome'),
+              t('reports.summary.totalExpenses'),
+              t('reports.summary.netSavings'),
+            ]}
+            rows={rows}
+            emptyMessage={t('reports.noTransactionsInPeriod')}
+            compact
+          />
+        ),
+      }];
+    }
+
+    if (activeReport === 'spending-category') {
+      const rows = sanitizeSpendingCategoryChartRows(spendingCategoryChartState.data).map((row) => [
+        row.category,
+        formatCurrencyText(row.amount, reportData.reportingCurrency, locale),
+      ]);
+
+      return [{
+        title: t('reports.types.spendingCategory'),
+        description: t('reports.downloads.transactionsInRange', { count: reportData.expenseTransactions.length || 0 }),
+        content: (
+          <PrintableDocumentTable
+            headers={[
+              t('reports.category', { defaultValue: 'Category' }),
+              t('reports.summary.totalSpent'),
+            ]}
+            rows={rows}
+            emptyMessage={t('reports.noExpensesInPeriod')}
+            compact
+          />
+        ),
+      }];
+    }
+
+    if (activeReport === 'budget-performance') {
+      const rows = (reportData.budgetPerformance.items || []).map((item) => [
+        item.budget.category?.name
+          ? translateSystemCategoryName(item.budget.category.name, (key, options) =>
+              t(key, { ...(options || {}), ns: 'common' })
+            )
+          : item.budget.name || t('reports.budget'),
+        item.period.label,
+        getLocalizedBudgetStatusLabel(item, t),
+        formatCurrencyText(Number(item.budget.amount || 0), item.budget.currency, locale),
+        item.spentAmount === null ? t('reports.unavailable') : formatCurrencyText(item.spentAmount, item.budget.currency, locale),
+        item.remainingAmount === null ? t('reports.unavailable') : formatCurrencyText(item.remainingAmount, item.budget.currency, locale),
+      ]);
+
+      return [{
+        title: t('reports.types.budgetPerformance'),
+        description: reportData.budgetPerformance.unavailableReason
+          ? localizeReportMessage(reportData.budgetPerformance.unavailableReason, t)
+          : activeRange?.label || null,
+        content: (
+          <PrintableDocumentTable
+            headers={[
+              t('reports.budget'),
+              t('reports.period'),
+              t('reports.status', { defaultValue: 'Status' }),
+              t('reports.budget'),
+              t('reports.spent'),
+              t('reports.remaining'),
+            ]}
+            rows={rows}
+            emptyMessage={t('reports.noBudgetsApply')}
+            compact
+          />
+        ),
+      }];
+    }
+
+    if (activeReport === 'account-statement') {
+      const rows = buildPrintableTransactionDetailRows({
+        transactions: reportData.transactions,
+        reportingCurrency: reportData.reportingCurrency,
+        snapshots: reportData.snapshots,
+        t,
+        locale,
+      });
+
+      return [{
+        title: t('reports.types.accountStatement'),
+        description: t('reports.downloads.transactionsInRange', { count: reportData.transactions.length || 0 }),
+        content: (
+          <PrintableDocumentTable
+            headers={[
+              t('reports.accountStatement.columns.date'),
+              t('reports.accountStatement.columns.type'),
+              t('reports.accountStatement.columns.merchantSource'),
+              t('reports.accountStatement.columns.account'),
+              t('reports.accountStatement.columns.category'),
+              t('reports.accountStatement.columns.reportingEquivalent'),
+            ]}
+            rows={rows}
+            emptyMessage={t('reports.noTransactionsInPeriod')}
+            compact
+          />
+        ),
+      }];
+    }
+
+    return [];
+  }, [
+    activeRange?.comparisonLabel,
+    activeRange?.label,
+    activeReport,
+    grouping,
+    incomeExpenseChartState.data,
+    locale,
+    reportData,
+    spendingCategoryChartState.data,
+    t,
+  ]);
+
+  const printableStandardReportDocument = useMemo(() => {
+    if (activeReport === 'full-financial' || !activeRange || !reportData || !generatedAtLabel) {
+      return null;
+    }
+
+    return (
+      <PrintableStandardReport
+        title={getReportTypeLabel(activeReport, t)}
+        subtitle={activeRange.label}
+        identity={printableReportIdentity}
+        metadata={printableReportMetadata}
+        generatedAtLabel={generatedAtLabel}
+        summaryTitle={t('reports.fullReport.sections.executiveSummary', { defaultValue: 'Executive Summary' })}
+        summaryDescription={t('reports.controls.fullReportPanelDescription', {
+          defaultValue: 'Preview one organized report using the selected period, scope, and filters without changing underlying calculations.',
+        })}
+        summary={printableSummaryMetrics}
+        chartTitle={activeTitle}
+        chartDescription={activeRange.comparisonLabel
+          ? t('reports.comparedWith', { value: activeRange.comparisonLabel })
+          : t('reports.downloads.printPdfDescription')}
+        chart={printableChart}
+        sections={printableSections}
+      />
+    );
+  }, [
+    activeRange,
+    activeReport,
+    activeTitle,
+    generatedAtLabel,
+    printableChart,
+    printableReportIdentity,
+    printableReportMetadata,
+    printableSections,
+    printableSummaryMetrics,
+    reportData,
+    t,
+  ]);
+
   const handleDownloadCSV = useCallback(() => {
     if (actionInFlight) return;
     setActionInFlight('csv');
@@ -1500,11 +1867,28 @@ export default function ReportsScreen() {
     if (actionInFlight) return;
     setActionInFlight('print');
     try {
-      window.print();
+      const target = printableReportRef.current?.querySelector('.report-document') as HTMLElement | null
+        || printableReportRef.current;
+
+      if (!target) {
+        toast.error(t('reports.noDataToExport'));
+        return;
+      }
+
+      const opened = openPrintWindowForElement({
+        element: target,
+        title: `${getReportTypeLabel(activeReport, t)} | Smart Pocket`,
+        lang: language,
+        dir,
+      });
+
+      if (!opened) {
+        toast.error(t('reports.printPopupBlocked', { defaultValue: 'Allow pop-ups to open the printable report.' }));
+      }
     } finally {
       setActionInFlight(null);
     }
-  }, [actionInFlight]);
+  }, [actionInFlight, activeReport, dir, language, t]);
 
   const handlePreviewReport = useCallback(() => {
     setGeneratedAtLabel(new Intl.DateTimeFormat(locale, {
@@ -1587,10 +1971,11 @@ export default function ReportsScreen() {
         badge={<StatusBadge status="info" label={t('reports.pageBadge')} />}
         compact
         hideDescriptionOnMobile
+        className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
         actionsClassName="w-full sm:w-auto !min-w-0"
         actions={
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap print:hidden">
-            <Link href="/reports/item-insights" className="btn-secondary inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl px-3 text-sm sm:h-9 sm:w-auto">
+            <Link href="/reports/item-insights" className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-[18px] border border-accent/20 bg-accent/10 px-3.5 text-sm font-700 text-accent shadow-card-sm transition-colors hover:bg-accent/15 sm:h-10 sm:w-auto">
               <BarChart3 size={15} />
               {t('itemInsights.title')}
             </Link>
@@ -1611,9 +1996,14 @@ export default function ReportsScreen() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
-        <div className="card-elevated p-3 xl:col-span-1 print:hidden sm:p-3.5">
-          <p className={`mb-3 px-1 font-600 text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{t('reports.reportType')}</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-1">
+        <div className="card-elevated rounded-[24px] border border-border/80 p-3.5 xl:col-span-1 print:hidden sm:p-4">
+          <div className="mb-3 flex items-center justify-between gap-3 px-0.5">
+            <p className={`font-700 text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-[0.16em]'}`}>{t('reports.reportType')}</p>
+            <span className="rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
+              {t('reports.pageBadge')}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 xl:grid-cols-1">
             {reportTypes.map((rt) => {
               const Icon = rt.icon;
               const label = getReportTypeLabel(rt.id, t);
@@ -1623,8 +2013,8 @@ export default function ReportsScreen() {
                   key={rt.id}
                   onClick={() => setActiveReport(rt.id)}
                   aria-pressed={activeReport === rt.id}
-                  className={`w-full rounded-2xl border p-3 text-left transition-all duration-150 ${
-                    activeReport === rt.id ? 'border-accent bg-accent/8 shadow-sm' : 'border-border bg-card hover:border-accent/40 hover:bg-muted/40'
+                  className={`w-full rounded-[20px] border p-3 text-left transition-all duration-150 ${
+                    activeReport === rt.id ? 'border-accent/60 bg-accent/8 shadow-card-sm' : 'border-border/80 bg-card hover:border-accent/40 hover:bg-muted/40'
                   }`}
                 >
                   <div className="flex min-w-0 items-start gap-3">
@@ -1645,15 +2035,15 @@ export default function ReportsScreen() {
         </div>
 
         <div className="space-y-4 xl:col-span-3">
-          <div className="card-elevated p-3 print:hidden sm:p-4">
+          <div className="card-elevated rounded-[24px] border border-border/80 p-3.5 print:hidden sm:p-4">
             <div className="space-y-3">
-              <div className="rounded-2xl border border-border bg-muted/12 p-3 sm:hidden">
+              <div className="rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(248,250,252,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-3 sm:hidden">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                    <p className="text-[10px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
                       {getReportTypeLabel(activeReport, t)}
                     </p>
-                    <p className={`mt-1 truncate font-700 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-sm'}`}>
+                    <p className={`mt-1 truncate font-800 text-foreground ${isArabic ? 'text-[15px] leading-6' : 'text-sm'}`}>
                       {activeRange?.label || t('reports.loadingPeriod')}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
@@ -1972,9 +2362,9 @@ export default function ReportsScreen() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 md:grid-cols-4 print:hidden">
+          <div className="grid grid-cols-2 gap-3 print:hidden md:grid-cols-4">
             {summaryByType[activeReport].map((item) => (
-              <div key={item.id} className="card-elevated p-3.5 sm:p-4">
+              <div key={item.id} className="card-elevated rounded-[22px] border border-border/80 p-3.5 sm:p-4">
                 <p className={`mb-1.5 font-600 text-muted-foreground ${isArabic ? 'text-xs tracking-normal' : 'text-[11px] uppercase tracking-wider'}`}>{item.label}</p>
                 <div className={`text-lg font-700 font-tabular ${item.positive === true ? 'text-positive' : item.positive === false ? 'text-negative' : 'text-foreground'}`}>
                   {(loading || periodLoading || (activeReport === 'full-financial' && fullReportLoading)) ? (
@@ -1991,7 +2381,7 @@ export default function ReportsScreen() {
             ))}
           </div>
 
-          <div className="card-elevated p-4 sm:p-5">
+          <div className="card-elevated rounded-[24px] border border-border/80 p-4 sm:p-5">
             <div className="mb-4 flex flex-col gap-2 min-[390px]:flex-row min-[390px]:items-start min-[390px]:justify-between max-[480px]:mb-3">
               <div className="min-w-0">
                 <h2 className="text-base font-700 text-foreground">{activeTitle}</h2>
@@ -2039,13 +2429,15 @@ export default function ReportsScreen() {
                   />
                 </div>
               ) : fullReportData ? (
-                <FullFinancialReport
-                  data={fullReportData}
-                  includeCharts={includeCharts}
-                  includeTransactionDetails={includeTransactionDetails}
-                  includeItemInsights={includeItemInsights}
-                  includeUpcomingCommitments={includeUpcomingCommitments}
-                />
+                <div ref={printableReportRef}>
+                  <FullFinancialReport
+                    data={fullReportData}
+                    includeCharts={includeCharts}
+                    includeTransactionDetails={includeTransactionDetails}
+                    includeItemInsights={includeItemInsights}
+                    includeUpcomingCommitments={includeUpcomingCommitments}
+                  />
+                </div>
               ) : (
                 <div className="flex min-h-[300px] items-center justify-center">
                   <EmptyState
@@ -2178,7 +2570,7 @@ export default function ReportsScreen() {
           </div>
 
           {activeReport !== 'full-financial' ? (
-            <div className="card-elevated p-3.5 print:hidden sm:p-4">
+            <div className="card-elevated rounded-[24px] border border-border/80 p-3.5 print:hidden sm:p-4">
               <p className="mb-3 text-sm font-700 text-foreground">{t('reports.downloadOptions')}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {[
@@ -2228,6 +2620,16 @@ export default function ReportsScreen() {
           ) : null}
         </div>
       </div>
+
+      {activeReport !== 'full-financial' && printableStandardReportDocument ? (
+        <div
+          ref={printableReportRef}
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-200vw] top-0 w-[1120px] opacity-0"
+        >
+          {printableStandardReportDocument}
+        </div>
+      ) : null}
     </div>
   );
 }

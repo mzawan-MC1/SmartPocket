@@ -12,6 +12,8 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
+import Modal from '@/components/ui/Modal';
+import ManagedPersonForm from '@/app/people/components/ManagedPersonForm';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -85,6 +87,7 @@ export default function ManagedPeoplePage() {
   const [filterRelationship, setFilterRelationship] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const ChevronIcon = isRTL ? ChevronLeft : ChevronRight;
 
   const loadPeople = useCallback(async () => {
@@ -127,78 +130,85 @@ export default function ManagedPeoplePage() {
   const totalIOwe = useMemo(() => groupPeopleTotals(people, 'user_owes_person'), [people]);
 
   return (
-    <AppLayout activeRoute="/people">
+    <AppLayout activeRoute="/people" hideMobileFooter>
       <SubscriptionFeatureGate feature="managed_people">
-        <div className="page-section pb-6 max-[480px]:gap-3">
+        <div className="page-section pb-6 max-[480px]:gap-2.5">
         <PageHeader
           title={t('people.title')}
           description={t('people.description')}
           badge={<StatusBadge status="info" label={t('people.badge')} />}
           compact
-          hideDescriptionOnMobile
+          className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"
           actions={
-            <Link
-              href="/people/new"
-              className="btn-primary max-[480px]:w-full"
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-3.5 py-2.5 text-[14px] font-700 text-white shadow-[0_12px_24px_rgba(18,148,255,0.18)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 sm:w-auto"
             >
               <UserPlus size={16} />
               <span>{t('people.addPerson')}</span>
-            </Link>
+            </button>
           }
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 lg:grid-cols-3">
-          <div className="card p-4 max-[480px]:p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Wallet size={16} className="text-info" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.moneyHeld')}</span>
+        <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+          <div className="card-elevated rounded-[22px] border border-[#d7e3f5] bg-[linear-gradient(180deg,#fafdff_0%,#ffffff_100%)] p-3 shadow-card-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-[#edf5ff] text-info">
+                <Wallet size={15} />
+              </span>
+              <span className="text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('people.moneyHeld')}</span>
             </div>
             <div className="space-y-1">
-              {totalHeld.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalHeld.map((row) => (
-                <FormattedCurrencyAmount key={`held-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
+              {totalHeld.length === 0 ? <p className="text-[13px] text-muted-foreground">{t('people.noBalances')}</p> : totalHeld.map((row) => (
+                <FormattedCurrencyAmount key={`held-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-foreground" />
               ))}
             </div>
           </div>
-          <div className="card p-4 max-[480px]:p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp size={16} className="text-positive" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.owedToMe')}</span>
+          <div className="card-elevated rounded-[22px] border border-[#d7ecdf] bg-[linear-gradient(180deg,#f7fdf9_0%,#ffffff_100%)] p-3 shadow-card-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-positive-soft text-positive">
+                <TrendingUp size={15} />
+              </span>
+              <span className="text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('people.owedToMe')}</span>
             </div>
             <div className="space-y-1">
-              {totalOwedToMe.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalOwedToMe.map((row) => (
-                <FormattedCurrencyAmount key={`owed-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-positive" />
+              {totalOwedToMe.length === 0 ? <p className="text-[13px] text-muted-foreground">{t('people.noBalances')}</p> : totalOwedToMe.map((row) => (
+                <FormattedCurrencyAmount key={`owed-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-positive" />
               ))}
             </div>
           </div>
-          <div className="card p-4 max-[480px]:p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown size={16} className="text-negative" />
-              <span className="text-xs font-600 text-muted-foreground uppercase tracking-wide">{t('people.iOwe')}</span>
+          <div className="card-elevated col-span-2 rounded-[22px] border border-[#f0d7da] bg-[linear-gradient(180deg,#fffafb_0%,#ffffff_100%)] p-3 shadow-card-sm lg:col-span-1">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-negative-soft text-negative">
+                <TrendingDown size={15} />
+              </span>
+              <span className="text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{t('people.iOwe')}</span>
             </div>
             <div className="space-y-1">
-              {totalIOwe.length === 0 ? <p className="text-sm text-muted-foreground">{t('people.noBalances')}</p> : totalIOwe.map((row) => (
-                <FormattedCurrencyAmount key={`owe-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-negative" />
+              {totalIOwe.length === 0 ? <p className="text-[13px] text-muted-foreground">{t('people.noBalances')}</p> : totalIOwe.map((row) => (
+                <FormattedCurrencyAmount key={`owe-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-negative" />
               ))}
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-center">
           <SearchField
             type="text"
             placeholder={t('people.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             wrapperClassName="flex-1"
-            inputClassName="bg-card h-[42px]"
+            inputClassName="bg-card h-11 rounded-[18px] px-3.5 text-[14px]"
           />
           <select
             value={filterRelationship}
             onChange={(e) => setFilterRelationship(e.target.value)}
-            className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="rounded-[18px] border border-border bg-card px-3 py-2.5 text-[14px] focus:outline-none focus:ring-2 focus:ring-accent/30"
           >
             <option value="all">{t('people.allRelationships')}</option>
             {RELATIONSHIPS.map((relationship) => (
@@ -209,23 +219,23 @@ export default function ManagedPeoplePage() {
           </select>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-500 transition-colors ${showArchived ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-card text-muted-foreground'}`}
+            className={`flex items-center justify-center gap-2 rounded-[18px] border px-3 py-2.5 text-[14px] font-700 transition-colors ${showArchived ? 'border-accent bg-accent/10 text-accent' : 'border-border bg-card text-muted-foreground'}`}
           >
             <Archive size={15} />
             {t('people.archived')}
           </button>
-          <button onClick={loadPeople} className="rounded-xl border border-border bg-card p-2.5 text-muted-foreground transition-colors hover:text-foreground max-[480px]:hidden">
+          <button onClick={loadPeople} className="rounded-[18px] border border-border bg-card p-2.5 text-muted-foreground transition-colors hover:text-foreground max-[480px]:hidden">
             <RefreshCw size={16} />
           </button>
         </div>
 
         {/* People List */}
         {loading ? (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="card p-4 animate-pulse">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted" />
+              <div key={i} className="card rounded-[22px] p-3 animate-pulse">
+                <div className="flex items-center gap-3">
+                  <div className="h-11 w-11 rounded-full bg-muted" />
                   <div className="flex-1 space-y-2">
                     <div className="h-4 bg-muted rounded w-1/3" />
                     <div className="h-3 bg-muted rounded w-1/4" />
@@ -235,7 +245,7 @@ export default function ManagedPeoplePage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="card p-12 text-center">
+          <div className="card rounded-[24px] p-10 text-center max-[480px]:p-8">
             <Users size={48} className="mx-auto text-muted-foreground/40 mb-4" />
             <h3 className="text-lg font-600 text-foreground mb-2">
               {search || filterRelationship !== 'all' ? t('people.emptyFilteredTitle') : t('people.emptyTitle')}
@@ -244,17 +254,18 @@ export default function ManagedPeoplePage() {
               {search || filterRelationship !== 'all' ? t('people.emptyFilteredDescription') : t('people.emptyDescription')}
             </p>
             {!search && filterRelationship === 'all' && (
-              <Link
-                href="/people/new"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-teal text-white text-sm font-600 shadow-teal-glow"
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-2 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-5 py-2.5 text-sm font-700 text-white shadow-[0_14px_24px_rgba(18,148,255,0.2)]"
               >
                 <Plus size={16} />
                 {t('people.addFirstPerson')}
-              </Link>
+              </button>
             )}
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {filtered.map((person) => (
               <div
                 key={person.id}
@@ -274,11 +285,11 @@ export default function ManagedPeoplePage() {
                     router.push(`/people/${person.id}`);
                   }
                 }}
-                className="card cursor-pointer p-4 transition-shadow hover:shadow-card-md focus:outline-none focus:ring-2 focus:ring-accent/30 max-[480px]:p-3"
+                className="card cursor-pointer rounded-[22px] border border-border/80 p-3 transition-shadow hover:shadow-card-md focus:outline-none focus:ring-2 focus:ring-accent/30"
               >
-                <div className="flex items-center gap-4 max-[480px]:items-start max-[480px]:gap-3">
+                <div className="flex items-center gap-3 max-[480px]:items-start max-[480px]:gap-2.5">
                   {/* Avatar */}
-                  <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarColor(person.full_name)} text-sm font-700 text-white max-[480px]:h-11 max-[480px]:w-11`}>
+                  <div className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${getAvatarColor(person.full_name)} text-sm font-700 text-white`}>
                     {person.photo_url ? (
                       <img src={person.photo_url} alt={person.full_name} className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -289,42 +300,42 @@ export default function ManagedPeoplePage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-600 text-foreground truncate">{person.full_name}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-500 ${RELATIONSHIP_COLORS[person.relationship] || RELATIONSHIP_COLORS.other}`}>
+                      <span className="truncate text-[14px] font-700 text-foreground">{person.full_name}</span>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-700 ${RELATIONSHIP_COLORS[person.relationship] || RELATIONSHIP_COLORS.other}`}>
                         {t(`people.relationships.${person.relationship}` as const, {
                           defaultValue: t('people.relationships.other'),
                         })}
                       </span>
                       {person.is_archived && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-500">{t('people.archived')}</span>
+                        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-700 text-muted-foreground">{t('people.archived')}</span>
                       )}
                     </div>
 
                     {/* Balance row */}
-                    <div className="flex items-center gap-4 mt-1.5 flex-wrap">
+                    <div className="mt-1.5 flex items-center gap-3 flex-wrap">
                       {(person.money_held ?? 0) > 0 && (
-                        <span className="text-xs text-info font-500">
+                        <span className="text-[11px] font-700 text-info">
                           {t('people.held')}: {formatAmount(person.money_held ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {(person.person_owes_user ?? 0) > 0 && (
-                        <span className="text-xs text-positive font-500">
+                        <span className="text-[11px] font-700 text-positive">
                           {t('people.owesMe')}: {formatAmount(person.person_owes_user ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {(person.user_owes_person ?? 0) > 0 && (
-                        <span className="text-xs text-negative font-500">
+                        <span className="text-[11px] font-700 text-negative">
                           {t('people.iOweShort')}: {formatAmount(person.user_owes_person ?? 0, person.preferred_currency)}
                         </span>
                       )}
                       {!(person.money_held) && !(person.person_owes_user) && !(person.user_owes_person) && (
-                        <span className="text-xs text-muted-foreground">{t('people.noOutstandingBalance')}</span>
+                        <span className="text-[11px] text-muted-foreground">{t('people.noOutstandingBalance')}</span>
                       )}
                     </div>
                   </div>
 
                   {/* Actions */}
-                  <div className="flex items-center gap-2 self-start flex-shrink-0">
+                  <div className="flex items-center gap-1.5 self-start flex-shrink-0">
                     <ChevronIcon size={16} className="text-muted-foreground" aria-hidden="true" />
                     <div className="relative">
                       <button
@@ -334,21 +345,21 @@ export default function ManagedPeoplePage() {
                           event.stopPropagation();
                           setOpenMenuId(openMenuId === person.id ? null : person.id);
                         }}
-                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted"
                         aria-label={t('actions.more', { ns: 'common', defaultValue: 'More' })}
                       >
                         <MoreVertical size={16} />
                       </button>
                       {openMenuId === person.id && (
                         <div
-                          className={`absolute top-8 z-20 bg-card border border-border rounded-xl shadow-card-md min-w-[160px] py-1 ${isRTL ? 'left-0' : 'right-0'}`}
+                          className={`absolute top-8 z-20 min-w-[160px] rounded-xl border border-border bg-card py-1 shadow-card-md ${isRTL ? 'left-0' : 'right-0'}`}
                           role="menu"
                           data-row-interactive="true"
                           onClick={(event) => event.stopPropagation()}
                         >
                           <Link
                             href={`/people/${person.id}/edit`}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-[13px] hover:bg-muted transition-colors"
                             role="menuitem"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -359,7 +370,7 @@ export default function ManagedPeoplePage() {
                           </Link>
                           <Link
                             href={`/people/${person.id}?tab=ledger`}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-[13px] hover:bg-muted transition-colors"
                             role="menuitem"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -370,7 +381,7 @@ export default function ManagedPeoplePage() {
                           </Link>
                           <Link
                             href={`/people/new?quick=money_received&person=${person.id}`}
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-positive"
+                            className="flex items-center gap-2 px-4 py-2 text-[13px] text-positive transition-colors hover:bg-muted"
                             role="menuitem"
                             onClick={(event) => {
                               event.stopPropagation();
@@ -387,7 +398,7 @@ export default function ManagedPeoplePage() {
                                 event.stopPropagation();
                                 void handleArchive(person.id, person.full_name);
                               }}
-                              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-muted transition-colors text-muted-foreground"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-muted"
                             >
                               {t('people.archive')}
                             </button>
@@ -407,6 +418,27 @@ export default function ManagedPeoplePage() {
         {openMenuId && (
           <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
         )}
+
+        <Modal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          title={t('people.addPerson')}
+          description={t('people.form.createManagedProfile')}
+          size="md"
+          mobileLayout="sheet"
+          contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]"
+          headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5"
+          bodyClassName="overflow-hidden p-0"
+        >
+          <ManagedPersonForm
+            onSuccess={(person) => {
+              setShowAddModal(false);
+              void loadPeople();
+              router.push(`/people/${person.id}`);
+            }}
+            onCancel={() => setShowAddModal(false)}
+          />
+        </Modal>
       </SubscriptionFeatureGate>
     </AppLayout>
   );

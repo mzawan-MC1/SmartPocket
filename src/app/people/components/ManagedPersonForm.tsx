@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Save, User } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
@@ -126,18 +126,12 @@ export default function ManagedPersonForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 max-[480px]:space-y-4" noValidate>
-      <div className="flex justify-center max-[480px]:hidden">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-accent to-blue-600">
-          <User size={32} className="text-white" />
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="space-y-3 px-2.5 py-2.5 pb-2 sm:space-y-4 sm:px-4 sm:py-4 sm:pb-3" noValidate>
       <FormSection
         variant="primary"
         title={t('people.addPerson', { ns: 'portal' })}
         description={t('people.form.createManagedProfile', { ns: 'portal' })}
-        bodyClassName="space-y-4 max-[480px]:space-y-3"
+        bodyClassName="space-y-3"
       >
         <div>
           <label className={getFieldLabelClassName(Boolean(fieldErrors.full_name))}>
@@ -157,7 +151,7 @@ export default function ManagedPersonForm({
               });
             }}
             placeholder={t('people.form.fullNamePlaceholder', { ns: 'portal' })}
-            className={getFieldInputClassName('input-base h-11 max-[480px]:h-10', Boolean(fieldErrors.full_name))}
+            className={getFieldInputClassName('input-base h-11', Boolean(fieldErrors.full_name))}
             aria-invalid={fieldErrors.full_name ? 'true' : 'false'}
             aria-describedby={fullNameErrorId}
           />
@@ -169,7 +163,7 @@ export default function ManagedPersonForm({
           <select
             value={form.relationship}
             onChange={(event) => setForm((current) => ({ ...current, relationship: event.target.value as RelationshipType }))}
-            className="input-base h-11 max-[480px]:h-10"
+            className="input-base h-11"
           >
             {RELATIONSHIPS.map((relationship) => (
               <option key={relationship} value={relationship}>
@@ -182,17 +176,17 @@ export default function ManagedPersonForm({
         </div>
 
         <div className="grid grid-cols-1 gap-4 min-[430px]:grid-cols-2">
-          <div>
+          <div className="min-[430px]:col-span-2">
             <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.email', { ns: 'portal' })}</label>
             <input
               type="email"
               value={form.email}
               onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))}
               placeholder={t('people.form.optional', { ns: 'portal' })}
-              className="input-base h-11 max-[480px]:h-10"
+              className="input-base h-11"
             />
           </div>
-          <div>
+          <div className="min-[430px]:col-span-2">
             <InternationalPhoneInput
               label={t('people.form.phone', { ns: 'portal' })}
               value={form.phone_display}
@@ -208,6 +202,11 @@ export default function ManagedPersonForm({
                 }));
               }}
               helperText={t('people.form.phoneHelper', { ns: 'portal' })}
+              showNormalizationHint={false}
+              gridClassName="grid-cols-[minmax(7.25rem,8.25rem)_1fr] gap-2.5"
+              countrySelectorClassName="[&_.selector-trigger]:h-11 [&_.selector-trigger]:rounded-[14px] [&_.selector-trigger]:px-3 [&_.selector-value-primary]:text-[13px]"
+              inputClassName="h-11 rounded-[14px] px-3"
+              helperClassName="leading-5"
             />
           </div>
         </div>
@@ -225,7 +224,7 @@ export default function ManagedPersonForm({
       <FormSection
         variant="secondary"
         title={t('people.form.notes', { ns: 'portal' })}
-        bodyClassName="space-y-3"
+        bodyClassName="space-y-2.5"
       >
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('people.form.notes', { ns: 'portal' })}</label>
@@ -234,17 +233,17 @@ export default function ManagedPersonForm({
             onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
             placeholder={t('people.form.notesPlaceholder', { ns: 'portal' })}
             rows={3}
-            className="input-base resize-none"
+            className="input-base min-h-[104px] resize-none rounded-[16px]"
           />
         </div>
       </FormSection>
 
-      <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
-        <div className="flex gap-3">
-          <button type="button" onClick={onCancel} className="btn-secondary flex-1">
+      <div className="safe-area-bottom sticky bottom-0 -mx-2.5 border-t border-border/80 bg-card/95 px-2.5 py-3 backdrop-blur sm:-mx-4 sm:px-4">
+        <div className="flex gap-2.5">
+          <button type="button" onClick={onCancel} className="btn-secondary h-11 flex-1 rounded-[14px]">
             {t('actions.cancel', { ns: 'common' })}
           </button>
-          <button type="submit" disabled={saving} className="btn-primary flex-1">
+          <button type="submit" disabled={saving} className="btn-primary h-11 flex-1 rounded-[14px]">
             <Save size={16} />
             {saving ? t('status.saving', { ns: 'common' }) : t('people.addPerson', { ns: 'portal' })}
           </button>

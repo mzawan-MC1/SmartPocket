@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -311,14 +311,14 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     <aside
       className={`relative flex w-full flex-col overflow-hidden bg-card sidebar-transition ${
         isMobileDrawer
-          ? 'h-[100dvh] min-h-0 max-h-[100dvh] w-[86vw] max-w-[320px] pt-[env(safe-area-inset-top)] shadow-card-lg'
+          ? 'h-[100dvh] min-h-0 max-h-[100dvh] w-[86vw] max-w-[320px] border-e border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.98)_100%)] pt-[env(safe-area-inset-top)] shadow-card-lg'
           : 'h-full min-h-screen lg:sticky lg:top-0 lg:min-h-screen lg:h-screen'
       }`}
     >
       {/* Logo */}
       <div
         className={`flex shrink-0 items-center border-b border-border/70 bg-white ${
-          isMobileDrawer ? 'h-[76px] gap-3 px-3' : 'h-[68px] gap-2.5 px-2.5'
+          isMobileDrawer ? 'h-[84px] gap-3 px-3.5' : 'h-[68px] gap-2.5 px-2.5'
         }`}
       >
         <div className="min-w-0 flex-1">
@@ -327,7 +327,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               isMobileDrawer
                 ? collapsed
                   ? 'h-12 w-11 justify-center rounded-2xl px-1'
-                  : 'h-12 max-w-[208px] rounded-2xl px-3'
+                  : 'h-12 max-w-[218px] rounded-[20px] bg-white px-3 shadow-card-sm'
                 : collapsed
                   ? 'h-10 w-10 justify-center rounded-xl px-1'
                   : 'h-10 max-w-[184px] rounded-2xl px-2.5'
@@ -347,10 +347,14 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         </div>
         <button
           onClick={onToggle}
-          className={`btn-ghost h-8.5 w-8.5 shrink-0 p-0 ${isMobileDrawer ? 'hidden' : ''}`}
+          className={`btn-ghost h-8.5 w-8.5 shrink-0 rounded-xl border border-border/80 p-0 ${isMobileDrawer ? 'inline-flex items-center justify-center bg-secondary/65' : ''}`}
           aria-label={collapsed ? t('sidebar.expand', { ns: 'portal' }) : t('sidebar.collapse', { ns: 'portal' })}
         >
-          <ToggleIcon size={18} className="text-muted-foreground" />
+          {isMobileDrawer ? (
+            <X size={18} className="text-muted-foreground" />
+          ) : (
+            <ToggleIcon size={18} className="text-muted-foreground" />
+          )}
         </button>
       </div>
 
@@ -415,11 +419,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               </div>
               <button
                 onClick={handleSignOut}
-                className={`inline-flex items-center justify-center border border-negative/20 bg-negative-soft text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80 ${isMobileDrawer ? 'rounded-xl px-3 py-2' : 'rounded-lg px-2.5 py-1.5'}`}
+                className={`inline-flex items-center justify-center gap-1.5 border border-negative/20 bg-negative-soft text-xs font-700 text-negative transition-colors hover:bg-negative-soft/80 ${isMobileDrawer ? 'rounded-xl px-3 py-2' : 'rounded-lg px-2.5 py-1.5'}`}
                 aria-label={t('sidebar.signOut', { ns: 'portal' })}
                 title={t('sidebar.signOut', { ns: 'portal' })}
               >
                 <LogOut size={14} />
+                {isMobileDrawer ? <span>{t('sidebar.signOut', { ns: 'portal' })}</span> : null}
               </button>
             </div>
           </div>

@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import BottomNav from './BottomNav';
@@ -27,14 +27,49 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
   const [isMdUp, setIsMdUp] = useState(false);
+  const closeSidebarTimerRef = useRef<number | null>(null);
   const { dir } = useLanguage();
   const isRTL = dir === 'rtl';
   const { t } = useTranslation('common');
 
+  const clearSidebarCloseTimer = useCallback(() => {
+    if (closeSidebarTimerRef.current !== null) {
+      window.clearTimeout(closeSidebarTimerRef.current);
+      closeSidebarTimerRef.current = null;
+    }
+  }, []);
+
+  const openMobileSidebar = useCallback(() => {
+    clearSidebarCloseTimer();
+    setMobileSidebarOpen(true);
+    window.requestAnimationFrame(() => setMobileSidebarVisible(true));
+  }, [clearSidebarCloseTimer]);
+
+  const closeMobileSidebar = useCallback(() => {
+    clearSidebarCloseTimer();
+    setMobileSidebarVisible(false);
+    closeSidebarTimerRef.current = window.setTimeout(() => {
+      setMobileSidebarOpen(false);
+      closeSidebarTimerRef.current = null;
+    }, 200);
+  }, [clearSidebarCloseTimer]);
+
+  const toggleMobileSidebar = useCallback(() => {
+    if (mobileSidebarOpen && mobileSidebarVisible) {
+      closeMobileSidebar();
+      return;
+    }
+
+    openMobileSidebar();
+  }, [closeMobileSidebar, mobileSidebarOpen, mobileSidebarVisible, openMobileSidebar]);
+
   useEffect(() => {
-    setMobileSidebarOpen(false);
-  }, [activeRoute]);
+    if (mobileSidebarOpen) {
+      closeMobileSidebar();
+    }
+  }, [activeRoute, closeMobileSidebar, mobileSidebarOpen]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -44,6 +79,15 @@ export default function AppLayout({
     updateMatch();
     return subscribeToMediaQueryChange(mediaQuery, updateMatch);
   }, []);
+
+  useEffect(() => {
+    if (!isMdUp) return;
+    clearSidebarCloseTimer();
+    setMobileSidebarVisible(false);
+    setMobileSidebarOpen(false);
+  }, [clearSidebarCloseTimer, isMdUp]);
+
+  useEffect(() => () => clearSidebarCloseTimer(), [clearSidebarCloseTimer]);
 
   const resolvedMobileContentPaddingBottomClassName =
     mobileContentPaddingBottomClassName
@@ -74,16 +118,27 @@ export default function AppLayout({
               <div className="fixed inset-0 z-40 print:hidden lg:hidden">
                 <button
                   type="button"
-                  className="absolute inset-0 bg-foreground/35 backdrop-blur-sm"
-                  onClick={() => setMobileSidebarOpen(false)}
+                  className={`absolute inset-0 bg-foreground/35 backdrop-blur-sm transition-opacity duration-200 ${
+                    mobileSidebarVisible ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  onClick={closeMobileSidebar}
                   aria-label={t('actions.close')}
                 />
-                <div className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} min-h-0 h-[100dvh] max-h-[100dvh]`}>
+                <div
+                  className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} min-h-0 h-[100dvh] max-h-[100dvh] transition-transform duration-200 ease-out ${
+                    mobileSidebarVisible
+                      ? 'translate-x-0'
+                      : isRTL
+                        ? 'translate-x-full'
+                        : '-translate-x-full'
+                  }`}
+                >
                   <Sidebar
                     collapsed={false}
-                    onToggle={() => setMobileSidebarOpen(false)}
+                    onToggle={closeMobileSidebar}
                     activeRoute={activeRoute}
                     isMobileDrawer
+                    onNavigateItem={closeMobileSidebar}
                   />
                 </div>
               </div>
@@ -94,7 +149,7 @@ export default function AppLayout({
               {shouldRenderTopbar ? (
                 <div className={`print:hidden ${hideMobileTopbar ? 'hidden md:block' : ''}`}>
                   <Topbar
-                    onToggleSidebar={() => setMobileSidebarOpen((v) => !v)}
+                    onToggleSidebar={toggleMobileSidebar}
                   />
                 </div>
               ) : null}

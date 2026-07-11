@@ -5,7 +5,7 @@ import ReportsScreen from './components/ReportsScreen';
 
 export default function ReportsPage() {
   return (
-    <AppLayout activeRoute="/reports">
+    <AppLayout activeRoute="/reports" hideMobileFooter>
       <SubscriptionFeatureGate feature="standard_reports">
         <ReportsScreen />
       </SubscriptionFeatureGate>

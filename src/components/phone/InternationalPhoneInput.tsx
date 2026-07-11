@@ -30,6 +30,11 @@ interface InternationalPhoneInputProps {
   helperText?: string | null;
   countries?: CountryReference[];
   countriesLoading?: boolean;
+  showNormalizationHint?: boolean;
+  gridClassName?: string;
+  inputClassName?: string;
+  countrySelectorClassName?: string;
+  helperClassName?: string;
 }
 
 export default function InternationalPhoneInput({
@@ -43,6 +48,11 @@ export default function InternationalPhoneInput({
   helperText = null,
   countries: providedCountries,
   countriesLoading = false,
+  showNormalizationHint = true,
+  gridClassName = '',
+  inputClassName = '',
+  countrySelectorClassName = '',
+  helperClassName = '',
 }: InternationalPhoneInputProps) {
   const { data, loading } = useClientReferenceData();
   const countries = providedCountries ?? data?.snapshot.countries ?? [];
@@ -93,7 +103,7 @@ export default function InternationalPhoneInput({
   return (
     <div className={className}>
       {label ? <label className="mb-1.5 block text-sm font-600 text-foreground">{label}</label> : null}
-      <div className="grid grid-cols-[minmax(10.5rem,12rem)_1fr] gap-3">
+      <div className={`grid grid-cols-[minmax(10.5rem,12rem)_1fr] gap-3 ${gridClassName}`.trim()}>
         <PhoneCountrySelector
           value={selectedCountryCode}
           onChange={(nextCountryCode) => {
@@ -107,6 +117,7 @@ export default function InternationalPhoneInput({
             emitChange(rebuiltValue, nextCountryCode);
           }}
           disabled={disabled || isCountriesLoading}
+          className={countrySelectorClassName}
           countries={countries}
           loading={isCountriesLoading}
         />
@@ -118,13 +129,13 @@ export default function InternationalPhoneInput({
           onChange={(event) => emitChange(event.target.value)}
           disabled={disabled || isCountriesLoading}
           placeholder={placeholder}
-          className="input-base"
+          className={`input-base ${inputClassName}`.trim()}
         />
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <div className={`mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground ${helperClassName}`.trim()}>
         {helperText ? <span>{helperText}</span> : null}
-        {normalized.e164 ? <span>E.164: {normalized.e164}</span> : null}
-        {!normalized.e164 && value ? (
+        {showNormalizationHint && normalized.e164 ? <span>E.164: {normalized.e164}</span> : null}
+        {showNormalizationHint && !normalized.e164 && value ? (
           <span>Enter a full number or choose a country code for normalization.</span>
         ) : null}
       </div>
