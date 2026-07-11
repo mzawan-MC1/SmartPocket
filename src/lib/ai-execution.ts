@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/client';
 import { getClientReferenceData } from '@/lib/reference-data/client';
 import { getPersonalSubscriptions } from './personal-subscriptions';
+import { buildSmartEntryDateContext } from './ai-relative-dates';
 import type { FinancialAction, ParsedFinancialInstruction, ExecutionResult, ExecutedAction, FailedAction } from './ai-types';
 import {
   createTransaction,
@@ -18,6 +19,7 @@ import {
   type Category,
 } from './finance';
 import { addLedgerEntry, createReimbursement, recordReimbursementPayment, createSettlement, createManagedPerson, getManagedPeople, recordMoneyReceived, type ManagedPerson,  } from './people';
+import { loadUserFinancialPeriodContext } from './financial-periods/profile';
 
 // ─── Context Resolution ───────────────────────────────────────────────────────
 
@@ -27,14 +29,18 @@ export interface ResolvedContext {
   people: ManagedPerson[];
   supportedCurrencies: string[];
   defaultCurrency: string;
+  timezone: string;
+  currentBusinessDate: string;
+  currentDateTime: string;
 }
 
 export async function loadExecutionContext(): Promise<ResolvedContext> {
-  const [accounts, categories, people, referenceData] = await Promise.all([
+  const [accounts, categories, people, referenceData, financialPeriodContext] = await Promise.all([
     getAccounts(),
     getCategories(),
     getManagedPeople(),
     getClientReferenceData(),
+    loadUserFinancialPeriodContext().catch(() => null),
   ]);
   const supportedCurrencies = referenceData.snapshot.currencies
     .filter((currency) => currency.isActive)
@@ -43,12 +49,19 @@ export async function loadExecutionContext(): Promise<ResolvedContext> {
     referenceData.platformDefaultCurrency ||
     (supportedCurrencies.includes('USD') ? 'USD' : supportedCurrencies[0] || 'USD')
   ).trim().toUpperCase();
+  const dateContext = buildSmartEntryDateContext({
+    timezone: financialPeriodContext?.timezone,
+    currentDate: financialPeriodContext?.currentBusinessDate,
+  });
   return {
     accounts: accounts.filter((account) => account.is_active),
     categories,
     people: people.filter((person) => person.is_active && !person.is_archived),
     supportedCurrencies,
     defaultCurrency,
+    timezone: dateContext.timezone,
+    currentBusinessDate: dateContext.currentDate,
+    currentDateTime: dateContext.currentDateTime,
   };
 }
 
@@ -113,8 +126,7 @@ async function executeAction(
   ctx: ResolvedContext,
   userId: string
 ): Promise<ExecutedAction> {
-  const today = new Date().toISOString().slice(0, 10);
-  const date = action.date === 'today' || !action.date ? today : action.date;
+  const date = action.date === 'today' || !action.date ? ctx.currentBusinessDate : action.date;
   const currency = sanitizeExecutionCurrency(action.currency, ctx);
   const amount = action.amount || 0;
 
@@ -487,5 +499,8 @@ export async function buildAIContext() {
     })),
     currencies: ctx.supportedCurrencies,
     defaultCurrency: ctx.defaultCurrency,
+    currentDate: ctx.currentBusinessDate,
+    currentDateTime: ctx.currentDateTime,
+    timezone: ctx.timezone,
   };
 }

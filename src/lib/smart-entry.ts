@@ -183,6 +183,11 @@ function getTodayIso() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getContextCurrentDate(context?: FinancialContext | null) {
+  const currentDate = context?.currentDate?.trim();
+  return currentDate && /^\d{4}-\d{2}-\d{2}$/.test(currentDate) ? currentDate : getTodayIso();
+}
+
 function normalizeLookupValue(value: string | null | undefined) {
   return (value || '')
     .trim()
@@ -441,7 +446,7 @@ function buildSubscriptionReview(args: {
   if (!action) return null;
 
   const raw = (args.sourceText || '').toLowerCase();
-  const todayIso = getTodayIso();
+  const todayIso = getContextCurrentDate(args.context);
   const currency = sanitizeCurrency(
     action.currencyCode || action.currency || args.context?.defaultCurrency,
     {

@@ -1611,6 +1611,10 @@ export async function processAIRequest(
     const parseRequest: ParseRequest = {
       text: textToProcess,
       language: request.language || 'en',
+      locale: request.locale || request.context?.locale,
+      currentDate: request.currentDate || request.context?.currentDate,
+      currentDateTime: request.currentDateTime || request.context?.currentDateTime,
+      timezone: request.timezone || request.context?.timezone,
       context: request.context,
       requestId: createClientId(),
     };
@@ -2226,6 +2230,10 @@ function buildUserMessage(input: ParseRequest): string {
   let msg = `Parse this financial instruction:\n"${input.text}"`;
   if (input.requestId) msg += `\n\nrequestId: ${input.requestId}`;
   if (input.language)  msg += `\nLanguage hint: ${input.language}`;
+  if (input.locale) msg += `\nLocale: ${input.locale}`;
+  if (input.currentDate) msg += `\nCurrent date: ${input.currentDate}`;
+  if (input.currentDateTime) msg += `\nCurrent date-time: ${input.currentDateTime}`;
+  if (input.timezone) msg += `\nTimezone: ${input.timezone}`;
   if (input.context) {
     if (input.context.accounts?.length) {
       msg += `\n\nAvailable accounts: ${input.context.accounts.map(a => `${a.name} (${a.type}, ${a.currency})`).join(', ')}`;

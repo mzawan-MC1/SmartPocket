@@ -1711,6 +1711,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       const body: Record<string, unknown> = {
         inputType: 'text',
         language: displayLanguage,
+        locale: uiLanguage || displayLanguage,
+        currentDate: context.currentDate,
+        currentDateTime: context.currentDateTime,
+        timezone: context.timezone,
         context,
         idempotencyKey: nextFlowId,
         text,
@@ -1788,7 +1792,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [displayLanguage, handleApiFailure, resetRequestState, t]);
+  }, [displayLanguage, handleApiFailure, resetRequestState, t, uiLanguage]);
 
   const callReceiptInsightAPI = useCallback(async (question: string) => {
     resetRequestState({

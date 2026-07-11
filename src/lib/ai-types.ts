@@ -29,6 +29,10 @@ export interface TranscriptResult {
 export interface ParseRequest {
   text: string;
   language?: string;
+  locale?: string;
+  currentDate?: string;
+  currentDateTime?: string;
+  timezone?: string;
   /** Existing Smart Pocket context for resolution */
   context?: FinancialContext;
   requestId?: string;
@@ -69,6 +73,10 @@ export interface FinancialContext {
   }>;
   currencies?: string[];
   defaultCurrency?: string;
+  currentDate?: string;
+  currentDateTime?: string;
+  timezone?: string;
+  locale?: string;
 }
 
 // ─── Parsed Financial Instruction ────────────────────────────────────────────
@@ -378,6 +386,10 @@ export interface AIAssistantRequest {
   text?: string;
   audio?: AudioInput;
   language?: string;
+  locale?: string;
+  currentDate?: string;
+  currentDateTime?: string;
+  timezone?: string;
   context?: FinancialContext;
   idempotencyKey?: string;
   userId: string;
@@ -599,7 +611,7 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
       "actionType": "<one of: income|expense|money_received_from_person|money_returned_to_person|expense_from_held_balance|expense_paid_for_person|expense_paid_by_person|reimbursement_payment|settlement|transfer|budget|recurring_transaction|personal_subscription_create|personal_subscription_update|personal_subscription_payment|personal_subscription_cancel|loan_received|loan_repayment>",
       "amount": <number or null>,
       "currency": "<ISO 4217 code or null>",
-      "date": "<YYYY-MM-DD or 'today' or null>",
+      "date": "<YYYY-MM-DD or null>",
       "personName": "<name as spoken, not translated>",
       "accountName": "<account name as spoken>",
       "destinationAccountName": "<for transfers>",
@@ -617,7 +629,7 @@ You must return ONLY valid JSON matching this exact schema. No prose, no markdow
       "currencyCode": "<ISO 4217 code for subscription billing or null>",
       "billingFrequency": "<weekly|monthly|quarterly|semi_annual|yearly|custom|null>",
       "billingInterval": <number or null>,
-      "startDate": "<YYYY-MM-DD or 'today' or null>",
+      "startDate": "<YYYY-MM-DD or null>",
       "nextBillingDate": "<YYYY-MM-DD or null>",
       "trialEndDate": "<YYYY-MM-DD or null>",
       "contractEndDate": "<YYYY-MM-DD or null>",
@@ -654,7 +666,14 @@ RULES:
 - Do not translate person names, merchant names, or user-entered descriptions
 - Use ISO 4217 currency codes (AED, USD, EUR, etc.)
 - Default currency is the provided context default currency when available; otherwise only use a clearly stated ISO currency
-- "today" is acceptable for date when user says today/now
+- Resolve every relative date using the provided currentDate, currentDateTime, and timezone
+- If the user says today, yesterday, tomorrow, this Thursday, last Thursday, last week Monday, this week, or last week, calculate the exact ISO date
+- Return dates in YYYY-MM-DD only
+- If one sentence produces multiple actions and the date phrase is global, apply the same resolved date to every action unless the user explicitly gives different dates
+- If no date is mentioned, default to currentDate
+- Never use model training dates, example dates, server build dates, or hardcoded fallback dates
+- Never invent old historical dates such as 2024-06-06 unless the user explicitly said that date
+- "today" is acceptable only as an intermediate hint before you resolve it to the provided currentDate
 - If amount is missing, add "amount"to missingFields - If account is ambiguous, add"account" to missingFields
 - Set requiresClarification: true if any critical field is missing or ambiguous
 - Use personal subscription intents for subscription and membership wording such as subscription, subscribed, monthly plan, annual plan, membership, renews monthly, renews yearly, free trial, auto-renew, Netflix, ChatGPT Plus, Amazon Prime, Google One, iCloud, gym membership, hosting plan, domain renewal, or software licence when the meaning is clearly about a personal subscription

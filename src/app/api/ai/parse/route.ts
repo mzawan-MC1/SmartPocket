@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { loadAIConfig, processAIRequest } from '@/lib/ai-gateway';
-import type { AIAssistantRequest, AIErrorPayload, AIErrorResponse, AIUsageSummary } from '@/lib/ai-types';
+import type { AIAssistantRequest, AIErrorPayload, AIErrorResponse, AIUsageSummary, FinancialContext } from '@/lib/ai-types';
+import { applySmartEntryDateDefaults, buildSmartEntryDateContext } from '@/lib/ai-relative-dates';
 import { applySmartEntryReviewToInstruction, buildInitialSmartEntryReview, getSmartEntryMissingFields } from '@/lib/smart-entry';
 import { ensureUserSubscriptionSummary } from '@/lib/subscription/server';
 import type { SubscriptionSummary } from '@/lib/subscription/types';
@@ -37,6 +38,9 @@ const ALLOWED_REQUEST_TYPES = new Set(['voice', 'text']);
 // Allowlisted language codes — prevent prompt injection via language field
 const ALLOWED_LANGUAGES = new Set([
   'en', 'ar', 'fr', 'ru', 'ur', 'auto',
+]);
+const ALLOWED_RELATIONSHIPS = new Set([
+  'spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other',
 ]);
 
 function shortRequestId(value: string | undefined | null) {
@@ -219,6 +223,26 @@ export async function POST(req: NextRequest) {
     // Context is optional and informational only
     const rawContext = body.context as Record<string, unknown> | undefined;
     const safeContext = rawContext ? sanitizeContext(rawContext) : undefined;
+    const dateContext = buildSmartEntryDateContext({
+      timezone: typeof body.timezone === 'string' ? body.timezone : safeContext?.timezone,
+      locale: typeof body.locale === 'string' ? body.locale : safeContext?.locale || language,
+      currentDate: typeof body.currentDate === 'string' ? body.currentDate : safeContext?.currentDate,
+      currentDateTime: typeof body.currentDateTime === 'string' ? body.currentDateTime : safeContext?.currentDateTime,
+    });
+    const nextContext: FinancialContext | undefined = safeContext
+      ? {
+          ...safeContext,
+          currentDate: dateContext.currentDate,
+          currentDateTime: dateContext.currentDateTime,
+          timezone: dateContext.timezone,
+          locale: dateContext.locale || language,
+        }
+      : {
+          currentDate: dateContext.currentDate,
+          currentDateTime: dateContext.currentDateTime,
+          timezone: dateContext.timezone,
+          locale: dateContext.locale || language,
+        };
 
     const textValue = requestType === 'text' ? (body.text as string).trim() : undefined;
     const audioValue = requestType === 'voice' ? (body.audio as Record<string, unknown>) : undefined;
@@ -236,7 +260,11 @@ export async function POST(req: NextRequest) {
           }
         : undefined,
       language,
-      context: safeContext,
+      locale: dateContext.locale || language,
+      currentDate: dateContext.currentDate,
+      currentDateTime: dateContext.currentDateTime,
+      timezone: dateContext.timezone,
+      context: nextContext,
       idempotencyKey,
       userId: user.id,
     };
@@ -264,13 +292,18 @@ export async function POST(req: NextRequest) {
     }
 
     if (responseBody.parsed) {
-      const review = buildInitialSmartEntryReview({
+      const normalizedInstruction = applySmartEntryDateDefaults({
         instruction: responseBody.parsed,
         sourceText: textValue || responseBody.transcript,
-        context: safeContext as AIAssistantRequest['context'],
+        currentDate: dateContext.currentDate,
+      });
+      const review = buildInitialSmartEntryReview({
+        instruction: normalizedInstruction,
+        sourceText: textValue || responseBody.transcript,
+        context: nextContext,
       });
       const reviewedInstruction = applySmartEntryReviewToInstruction({
-        ...responseBody.parsed,
+        ...normalizedInstruction,
         review,
         missingFields: [...review.missing],
         requiresClarification: false,
@@ -414,54 +447,73 @@ export async function POST(req: NextRequest) {
 // ─── Sanitization helpers ─────────────────────────────────────────────────────
 
 /** Keep only safe context fields used for review hydration and provider hints. */
-function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> {
-  const safe: Record<string, unknown> = {};
+function sanitizeContext(ctx: Record<string, unknown>): FinancialContext {
+  const safe: FinancialContext = {};
   // Only pass through known safe context keys
   if (Array.isArray(ctx.accounts)) {
-    safe.accounts = (ctx.accounts as unknown[]).map((a) => {
-      if (typeof a !== 'object' || !a) return null;
+    safe.accounts = (ctx.accounts as unknown[]).flatMap((a) => {
+      if (typeof a !== 'object' || !a) return [];
       const acc = a as Record<string, unknown>;
-      return {
-        id: typeof acc.id === 'string' && UUID_PATTERN.test(acc.id) ? acc.id : undefined,
-        name: acc.name,
-        type: acc.type,
-        currency: acc.currency,
+      const id = typeof acc.id === 'string' && UUID_PATTERN.test(acc.id) ? acc.id : '';
+      const name = typeof acc.name === 'string' ? acc.name.trim() : '';
+      const type = typeof acc.type === 'string' ? acc.type.trim() : '';
+      const currency = typeof acc.currency === 'string'
+        ? acc.currency.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3)
+        : '';
+      if (!id || !name || !type || currency.length !== 3) return [];
+      return [{
+        id,
+        name,
+        type,
+        currency,
         includeInTotal: typeof acc.includeInTotal === 'boolean' ? acc.includeInTotal : undefined,
-      };
-    }).filter(Boolean);
+      }];
+    });
   }
   if (Array.isArray(ctx.people)) {
-    safe.people = (ctx.people as unknown[]).map((p) => {
-      if (typeof p !== 'object' || !p) return null;
+    safe.people = (ctx.people as unknown[]).flatMap((p) => {
+      if (typeof p !== 'object' || !p) return [];
       const person = p as Record<string, unknown>;
-      return {
-        id: typeof person.id === 'string' && UUID_PATTERN.test(person.id) ? person.id : undefined,
-        fullName: person.fullName,
+      const id = typeof person.id === 'string' && UUID_PATTERN.test(person.id) ? person.id : '';
+      const fullName = typeof person.fullName === 'string' ? person.fullName.trim() : '';
+      if (!id || !fullName) return [];
+      return [{
+        id,
+        fullName,
         aliases: Array.isArray(person.aliases)
           ? person.aliases.filter((alias): alias is string => typeof alias === 'string')
           : undefined,
-        relationship: typeof person.relationship === 'string' ? person.relationship : undefined,
-      };
-    }).filter(Boolean);
+        relationship: typeof person.relationship === 'string' && ALLOWED_RELATIONSHIPS.has(person.relationship)
+          ? person.relationship as NonNullable<NonNullable<FinancialContext['people']>[number]>['relationship']
+          : undefined,
+      }];
+    });
   }
   if (Array.isArray(ctx.categories)) {
-    safe.categories = (ctx.categories as unknown[]).map((c) => {
-      if (typeof c !== 'object' || !c) return null;
+    safe.categories = (ctx.categories as unknown[]).flatMap((c) => {
+      if (typeof c !== 'object' || !c) return [];
       const cat = c as Record<string, unknown>;
-      return {
-        id: typeof cat.id === 'string' && UUID_PATTERN.test(cat.id) ? cat.id : undefined,
-        name: cat.name,
-        type: typeof cat.type === 'string' ? cat.type : undefined,
-      };
-    }).filter(Boolean);
+      const id = typeof cat.id === 'string' && UUID_PATTERN.test(cat.id) ? cat.id : '';
+      const name = typeof cat.name === 'string' ? cat.name.trim() : '';
+      const type = typeof cat.type === 'string' ? cat.type.trim() : '';
+      if (!id || !name || !type) return [];
+      return [{
+        id,
+        name,
+        type,
+      }];
+    });
   }
   if (Array.isArray(ctx.subscriptions)) {
-    safe.subscriptions = (ctx.subscriptions as unknown[]).map((s) => {
-      if (typeof s !== 'object' || !s) return null;
+    safe.subscriptions = (ctx.subscriptions as unknown[]).flatMap((s) => {
+      if (typeof s !== 'object' || !s) return [];
       const subscription = s as Record<string, unknown>;
-      return {
-        id: typeof subscription.id === 'string' && UUID_PATTERN.test(subscription.id) ? subscription.id : undefined,
-        name: typeof subscription.name === 'string' ? subscription.name : undefined,
+      const id = typeof subscription.id === 'string' && UUID_PATTERN.test(subscription.id) ? subscription.id : '';
+      const name = typeof subscription.name === 'string' ? subscription.name.trim() : '';
+      if (!id || !name) return [];
+      return [{
+        id,
+        name,
         provider: typeof subscription.provider === 'string' ? subscription.provider : undefined,
         amount: typeof subscription.amount === 'number' && Number.isFinite(subscription.amount) ? subscription.amount : undefined,
         currencyCode: typeof subscription.currencyCode === 'string'
@@ -473,13 +525,30 @@ function sanitizeContext(ctx: Record<string, unknown>): Record<string, unknown> 
         financialAccountId: typeof subscription.financialAccountId === 'string' && UUID_PATTERN.test(subscription.financialAccountId)
           ? subscription.financialAccountId
           : undefined,
-      };
-    }).filter(Boolean);
+      }];
+    });
   }
   if (typeof ctx.defaultCurrency === 'string') {
     // Currency code: 3 uppercase letters only
     const currency = ctx.defaultCurrency.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 3);
     if (currency.length === 3) safe.defaultCurrency = currency;
+  }
+  if (typeof ctx.currentDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(ctx.currentDate.trim())) {
+    safe.currentDate = ctx.currentDate.trim();
+  }
+  if (typeof ctx.currentDateTime === 'string' && !Number.isNaN(new Date(ctx.currentDateTime).getTime())) {
+    safe.currentDateTime = ctx.currentDateTime;
+  }
+  if (typeof ctx.timezone === 'string') {
+    try {
+      new Intl.DateTimeFormat('en-US', { timeZone: ctx.timezone }).format(new Date());
+      safe.timezone = ctx.timezone;
+    } catch {
+      // Ignore invalid time zones and fall back later.
+    }
+  }
+  if (typeof ctx.locale === 'string' && ctx.locale.trim()) {
+    safe.locale = ctx.locale.trim();
   }
   return safe;
 }

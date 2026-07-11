@@ -13,6 +13,7 @@ import {
   type FinancialAccountOwnershipType,
   type FinancialAccountSystemDefaultType,
 } from '@/lib/financial-account-utils';
+import { getCurrentBusinessDate } from '@/lib/financial-periods';
 import { ensureDefaultPersonalAccounts } from '@/lib/financial-accounts-server';
 import {
   createPersonalSubscription,
@@ -134,6 +135,8 @@ export interface ServerExecutionContext {
   people: ServerPerson[];
   supportedCurrencies: string[];
   defaultCurrency: string;
+  timezone: string;
+  currentBusinessDate: string;
 }
 
 export interface AccountSuggestion {
@@ -295,7 +298,7 @@ export async function loadExecutionContextServer(args: {
       .eq('is_active', true),
     args.supabase
       .from('user_profiles')
-      .select('default_currency')
+      .select('default_currency, timezone')
       .eq('id', args.userId)
       .maybeSingle(),
     args.supabase
@@ -359,6 +362,8 @@ export async function loadExecutionContextServer(args: {
   const supportedCurrencies = ((currenciesResult.data || []) as Array<{ code: string }>)
     .map((currency) => currency.code);
 
+  const timezone = profileResult.data?.timezone || 'UTC';
+
   return {
     accounts: sortFinancialAccounts((accountsResult.data || []) as ServerAccount[]),
     categories: (categoriesResult.data || []) as ServerCategory[],
@@ -372,6 +377,8 @@ export async function loadExecutionContextServer(args: {
         supportedCurrencies
       )
     ),
+    timezone,
+    currentBusinessDate: getCurrentBusinessDate(timezone),
   };
 }
 
@@ -473,6 +480,8 @@ function preflightInstruction(
     people: [...context.people],
     supportedCurrencies: [...context.supportedCurrencies],
     defaultCurrency: context.defaultCurrency,
+    timezone: context.timezone,
+    currentBusinessDate: context.currentBusinessDate,
   };
 
   instruction.actions.forEach((action, index) => {
@@ -652,8 +661,7 @@ async function executeActionServer(args: {
   context: ServerExecutionContext;
 }): Promise<ExecutedAction> {
   const { action, index, requestId, userId, supabase, context } = args;
-  const today = new Date().toISOString().slice(0, 10);
-  const date = !action.date || action.date === 'today' ? today : action.date;
+  const date = !action.date || action.date === 'today' ? context.currentBusinessDate : action.date;
   const currency = sanitizeCurrency(action.currency, context.supportedCurrencies, context.defaultCurrency);
   if (actionRequiresAmount(action) && typeof action.amount !== 'number') {
     throw new InvalidExecutionActionError('Missing amount');
