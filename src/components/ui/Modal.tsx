@@ -54,11 +54,11 @@ export default function Modal({
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const mobileContentClassName = mobileLayout === 'fullscreen'
-    ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-[480px]:rounded-[24px]'
-    : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] max-[480px]:rounded-[20px]';
+    ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.5rem)] max-[480px]:rounded-[24px]'
+    : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.5rem)] max-[480px]:rounded-[20px]';
   const mobileShellClassName = mobileLayout === 'sheet'
-    ? 'px-2 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-[calc(env(safe-area-inset-top)+0.35rem)]'
-    : 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)]';
+    ? 'px-2 pb-[calc(env(safe-area-inset-bottom)+0.2rem)] pt-[calc(env(safe-area-inset-top)+0.2rem)]'
+    : 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-[calc(env(safe-area-inset-top)+0.35rem)]';
 
   useEffect(() => {
     if (isVisible) {
@@ -118,9 +118,9 @@ export default function Modal({
         aria-labelledby={headingId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
-        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-3.5 ${headerClassName}`}>
+        <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-3 ${headerClassName}`}>
           <div>
             <h2 id={headingId} className="text-[1.02rem] font-800 leading-snug text-foreground sm:text-lg">{title}</h2>
             {description ? <p id={descriptionId} className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p> : null}
@@ -134,7 +134,7 @@ export default function Modal({
             <X size={17} />
           </button>
         </div>
-        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-5 scrollbar-thin max-[480px]:p-4 ${bodyClassName}`}>
+        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-5 scrollbar-thin max-[480px]:p-3 ${bodyClassName}`}>
           {children}
         </div>
         {footer ? (

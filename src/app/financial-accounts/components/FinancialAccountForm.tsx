@@ -582,7 +582,7 @@ export default function FinancialAccountForm({
   const currencyWorkflowBlocked = currencyApplying || currencyPreviewLoading;
 
   return (
-    <div className="space-y-2.5 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24">
+    <div className="space-y-2.5 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-2">
       <div>
         <label className={getFieldLabelClassName(Boolean(fieldErrors.name))}>{t('accounts.form.name', { ns: 'portal' })} *</label>
         <input

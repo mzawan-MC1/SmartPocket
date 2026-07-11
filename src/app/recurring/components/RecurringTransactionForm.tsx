@@ -424,7 +424,7 @@ export default function RecurringTransactionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-2" noValidate>
       {spaceId ? (
         <div className="rounded-xl border border-info/20 bg-info-soft/30 p-2.5 text-[12px] text-info">
           {t('recurring.form.spaceRecurringNotice', {

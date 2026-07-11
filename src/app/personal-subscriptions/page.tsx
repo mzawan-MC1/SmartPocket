@@ -397,18 +397,18 @@ export default function PersonalSubscriptionsPage() {
             className="h-full overflow-hidden border border-[#d5e7df] bg-[linear-gradient(180deg,#f7fdf9_0%,#ffffff_100%)] shadow-[0_8px_22px_rgba(15,23,42,0.045)] [&_.section-card-header]:gap-2 [&_.section-card-header]:border-b [&_.section-card-header]:border-[#e0eee6] [&_.section-card-header]:bg-[#f3fbf7] [&_.section-card-header]:px-3 [&_.section-card-header]:py-2.75 [&_.section-title]:text-[12.5px] [&_.section-title]:font-800 [&_.section-title]:tracking-[-0.01em] [&_.section-title]:text-foreground [&_.section-description]:mt-0.5 [&_.section-description]:text-[10px] [&_.section-description]:leading-4 [&_.section-description]:text-muted-foreground/68 max-[360px]:[&_.section-card-header]:gap-1.5 max-[360px]:[&_.section-card-header]:px-2.5 max-[360px]:[&_.section-card-header]:py-2.5 max-[360px]:[&_.section-title]:text-[11px] max-[360px]:[&_.section-title]:leading-4 max-[360px]:[&_.section-description]:text-[8.75px] max-[360px]:[&_.section-description]:leading-3.5"
             bodyClassName="px-2.5 py-2.75"
           >
-            <div className="grid grid-cols-3 gap-1.5 text-center">
-              <div className="rounded-2xl bg-white/85 px-2 py-1.5 ring-1 ring-[#edf2f7]">
-                <p className="text-[15px] font-800 text-foreground">{summary?.activeCount || 0}</p>
-                <p className="text-[10px] text-muted-foreground">{t('personalSubscriptions.summary.active', { ns: 'portal' })}</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
+                <p className="text-[13px] font-800 leading-4 text-foreground">{summary?.activeCount || 0}</p>
+                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.active', { ns: 'portal' })}</p>
               </div>
-              <div className="rounded-2xl bg-white/85 px-2 py-1.5 ring-1 ring-[#edf2f7]">
-                <p className="text-[15px] font-800 text-warning">{summary?.trialCount || 0}</p>
-                <p className="text-[10px] text-muted-foreground">{t('personalSubscriptions.summary.trials', { ns: 'portal' })}</p>
+              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
+                <p className="text-[13px] font-800 leading-4 text-warning">{summary?.trialCount || 0}</p>
+                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.trials', { ns: 'portal' })}</p>
               </div>
-              <div className="rounded-2xl bg-white/85 px-2 py-1.5 ring-1 ring-[#edf2f7]">
-                <p className="text-[15px] font-800 text-negative">{summary?.cancellationDeadlineCount || 0}</p>
-                <p className="text-[10px] text-muted-foreground">{t('personalSubscriptions.summary.deadlines', { ns: 'portal' })}</p>
+              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
+                <p className="text-[13px] font-800 leading-4 text-negative">{summary?.cancellationDeadlineCount || 0}</p>
+                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.deadlines', { ns: 'portal' })}</p>
               </div>
             </div>
           </SectionCard>

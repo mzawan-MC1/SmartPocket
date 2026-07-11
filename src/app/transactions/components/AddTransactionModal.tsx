@@ -1302,7 +1302,7 @@ export default function AddTransactionModal({
       bodyClassName="overflow-hidden p-0"
     >
       <div className="flex h-full min-h-0 flex-col overflow-x-hidden">
-        <div className="flex-1 space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24 sm:px-4 sm:py-4 sm:pb-24">
+        <div className="flex-1 space-y-2 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-3 sm:px-4 sm:py-4 sm:pb-4">
           <div className="mx-auto h-1 w-12 rounded-full bg-muted/80 sm:hidden" />
           <div className="grid grid-cols-1 gap-1.5">
             {!editingTransaction ? (

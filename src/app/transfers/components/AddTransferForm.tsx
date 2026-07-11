@@ -528,7 +528,7 @@ export default function AddTransferForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24 max-[480px]:space-y-2.5" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-2 max-[480px]:space-y-2.5" noValidate>
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         <div>
           <label htmlFor="transfer-from-account" className={getFieldLabelClassName(Boolean(fieldErrors.from_account_id))}>

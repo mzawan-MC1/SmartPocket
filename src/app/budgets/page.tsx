@@ -327,7 +327,7 @@ export default function BudgetsPage() {
           <div className="card-elevated rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.98)_100%)] p-3.5 max-[480px]:p-3">
             <div className="flex flex-col gap-3 max-[480px]:gap-3 lg:flex-row lg:items-center lg:gap-5">
               {singleCurrencySummary ? (
-                <div className="mx-auto h-24 w-24 flex-shrink-0 max-[480px]:h-[5.5rem] max-[480px]:w-[5.5rem] lg:mx-0 lg:h-32 lg:w-32">
+                <div className="mx-auto hidden h-24 w-24 flex-shrink-0 lg:block lg:h-32 lg:w-32">
                   <BudgetRadialChart
                     pct={singleCurrencySummary.utilizationPct}
                     spent={singleCurrencySummary.totalSpent}

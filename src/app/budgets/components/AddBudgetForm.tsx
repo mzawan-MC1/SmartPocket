@@ -394,7 +394,7 @@ export default function AddBudgetForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2.5 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24 max-[640px]:space-y-2" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-2.5 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-2 max-[640px]:space-y-2" noValidate>
       {spaceId ? (
         <div className="rounded-[16px] border border-info/20 bg-info-soft/30 px-3 py-2 text-[12px] text-info">
           {t('budgets.form.spaceBudgetNotice', {
