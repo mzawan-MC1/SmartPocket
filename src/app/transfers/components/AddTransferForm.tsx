@@ -528,15 +528,15 @@ export default function AddTransferForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-[480px]:space-y-3" noValidate>
-      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24 max-[480px]:space-y-2.5" noValidate>
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         <div>
           <label htmlFor="transfer-from-account" className={getFieldLabelClassName(Boolean(fieldErrors.from_account_id))}>
             {t('transfers.form.fromAccount', { ns: 'portal' })}
           </label>
           <select
             id="transfer-from-account"
-            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10', Boolean(fieldErrors.from_account_id))}
+            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 text-[14px]', Boolean(fieldErrors.from_account_id))}
             value={form.from_account_id}
             onChange={(event) => updateField('from_account_id', event.target.value)}
             disabled={!hasAccounts}
@@ -559,7 +559,7 @@ export default function AddTransferForm({
           </label>
           <select
             id="transfer-to-account"
-            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 max-[480px]:h-10', Boolean(fieldErrors.to_account_id))}
+            className={getFieldInputClassName('input-base h-11 max-w-full truncate pr-10 text-[14px]', Boolean(fieldErrors.to_account_id))}
             value={form.to_account_id}
             onChange={(event) => updateField('to_account_id', event.target.value)}
             disabled={!hasDestinationAccounts}
@@ -586,9 +586,10 @@ export default function AddTransferForm({
             defaultValue: 'Transfer route',
           })}
           description={getRouteLabel()}
-          bodyClassName="space-y-3"
+          headerClassName="px-3 py-2.5"
+          bodyClassName="space-y-2.5 px-3 py-2.5"
         >
-          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {t('transfers.form.transferPurpose', {
@@ -597,7 +598,7 @@ export default function AddTransferForm({
                 })}
               </label>
               <select
-                className="input-base h-10"
+                className="input-base h-10 text-[13px]"
                 value={form.transfer_purpose}
                 onChange={(event) => setForm((current) => ({
                   ...current,
@@ -617,14 +618,14 @@ export default function AddTransferForm({
 
       <div>
         <label htmlFor="transfer-amount" className={getFieldLabelClassName(Boolean(fieldErrors.amount))}>
-          {t('transactions.form.amount', { ns: 'portal' })}
+          {t('settlements.amount', { ns: 'portal' })}
         </label>
         <input
           id="transfer-amount"
           type="number"
           step="0.01"
           min="0.01"
-          className={getFieldInputClassName('input-base h-12 text-base font-tabular max-[480px]:h-11', Boolean(fieldErrors.amount))}
+          className={getFieldInputClassName('input-base h-11 text-[14px] font-tabular', Boolean(fieldErrors.amount))}
           placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
           value={form.amount}
           onChange={(event) => updateField('amount', event.target.value)}
@@ -636,7 +637,7 @@ export default function AddTransferForm({
 
       {transferPreview && fromAccount && toAccount ? (
         <div
-          className={`rounded-xl border p-3 ${
+          className={`rounded-xl border p-2.5 ${
             transferPreview.available ? 'border-info/20 bg-info-soft/40' : 'border-warning/30 bg-warning-soft/20'
           }`}
         >
@@ -651,7 +652,7 @@ export default function AddTransferForm({
             )}
           </div>
           {!transferPreview.sameCurrency && transferPreview.available ? (
-            <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+            <div className="mt-1.5 space-y-1 text-[11px] text-muted-foreground">
               <p>{t('accounts.summary.provider', { ns: 'portal', value: transferPreview.provider || t('aiHistory.unknown', { ns: 'portal' }) })}</p>
               <p>{t('accounts.summary.rateDate', { ns: 'portal', value: transferPreview.rateDate || t('aiHistory.unknown', { ns: 'portal' }) })}</p>
               {transferPreview.stale ? <p className="text-warning">{t('transfers.form.stalePreview', { ns: 'portal' })}</p> : null}
@@ -660,12 +661,12 @@ export default function AddTransferForm({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settlements.descriptionLabel', { ns: 'portal' })}</label>
           <input
             type="text"
-            className="input-base h-11 max-[480px]:h-10"
+            className="input-base h-11 text-[14px]"
             placeholder={t('transfers.form.descriptionPlaceholder', { ns: 'portal' })}
             value={form.description}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
@@ -675,7 +676,7 @@ export default function AddTransferForm({
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('settlements.date', { ns: 'portal' })}</label>
           <input
             type="date"
-            className="input-base h-11 max-[480px]:h-10"
+            className="input-base h-11 text-[14px]"
             value={form.transfer_date}
             onChange={(event) => setForm((current) => ({ ...current, transfer_date: event.target.value }))}
           />
@@ -686,15 +687,15 @@ export default function AddTransferForm({
         <label className="mb-1.5 block text-sm font-600 text-foreground">{t('reimbursements.notes', { ns: 'portal' })}</label>
         <textarea
           rows={2}
-          className="input-base resize-none"
+          className="input-base min-h-[5rem] resize-none py-2.5 text-[14px]"
           placeholder={t('transfers.form.notesPlaceholder', { ns: 'portal' })}
           value={form.notes}
           onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
         />
       </div>
 
-      <div className="rounded-xl border border-info/20 bg-info-soft/40 p-3">
-        <p className="text-xs font-600 text-info">
+      <div className="rounded-xl border border-info/20 bg-info-soft/30 p-2.5">
+        <p className="text-[11px] font-600 text-info">
           {allowedPurposes.includes('member_contribution')
             ? t('transfers.form.helper', { ns: 'portal' })
             : t('transfers.form.genericHelper', {
@@ -710,12 +711,12 @@ export default function AddTransferForm({
         </div>
       ) : null}
 
-      <div className="sticky bottom-0 safe-area-bottom border-t border-border bg-card/95 pt-3 backdrop-blur max-[480px]:-mx-4 max-[480px]:px-4">
+      <div className="sticky bottom-0 safe-area-bottom -mx-2.5 border-t border-border bg-card/95 px-2.5 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-2 backdrop-blur">
         <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
-          <button type="button" onClick={onCancel} className="btn-secondary flex-1">
+          <button type="button" onClick={onCancel} className="inline-flex min-h-[2.9rem] flex-1 items-center justify-center rounded-[16px] bg-[#eef2f7] px-4 py-2.5 text-[14px] font-700 text-[#30435f] transition-colors hover:bg-[#e4ebf4]">
             {t('actions.cancel', { ns: 'common' })}
           </button>
-          <button type="submit" disabled={isLoading} className="btn-primary flex-1">
+          <button type="submit" disabled={isLoading} className="inline-flex min-h-[2.9rem] flex-1 items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-4 py-2.5 text-[14px] font-700 text-white shadow-[0_14px_24px_rgba(18,148,255,0.2)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60">
             {isLoading ? (
               <>
                 <Loader2 size={15} className="animate-spin" />

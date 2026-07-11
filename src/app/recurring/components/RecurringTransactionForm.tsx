@@ -424,9 +424,9 @@ export default function RecurringTransactionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-3 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24" noValidate>
       {spaceId ? (
-        <div className="rounded-xl border border-info/20 bg-info-soft/40 p-3 text-sm text-info max-[640px]:px-3 max-[640px]:py-2.5">
+        <div className="rounded-xl border border-info/20 bg-info-soft/30 p-2.5 text-[12px] text-info">
           {t('recurring.form.spaceRecurringNotice', {
             ns: 'portal',
             space: spaceName || t('spaces.currentSpace.title', { ns: 'portal' }),
@@ -451,14 +451,14 @@ export default function RecurringTransactionForm({
         {fieldErrors.description ? <p id={descriptionErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.description}</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
+      <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:gap-3">
         <div>
           <label htmlFor="rec-type-shared" className="block text-sm font-600 text-foreground mb-1.5">
             {t('categories.form.type', { ns: 'portal' })}
           </label>
           <select
             id="rec-type-shared"
-            className="input-base"
+            className="input-base h-11 text-[14px]"
             value={form.transaction_type}
             onChange={(event) => setForm((current) => ({
               ...current,
@@ -475,7 +475,7 @@ export default function RecurringTransactionForm({
           </label>
           <select
             id="rec-freq-shared"
-            className="input-base"
+            className="input-base h-11 text-[14px]"
             value={form.frequency}
             onChange={(event) => setForm((current) => ({
               ...current,
@@ -498,7 +498,7 @@ export default function RecurringTransactionForm({
         </label>
         <select
           id="rec-account-shared"
-          className={getFieldInputClassName('input-base', Boolean(fieldErrors.account_id))}
+          className={getFieldInputClassName('input-base h-11 text-[14px]', Boolean(fieldErrors.account_id))}
           value={form.account_id}
           onChange={(event) => updateFormField('account_id', event.target.value)}
           aria-invalid={fieldErrors.account_id ? 'true' : 'false'}
@@ -523,7 +523,7 @@ export default function RecurringTransactionForm({
         </label>
         <select
           id="rec-category-shared"
-          className="input-base"
+          className="input-base h-11 text-[14px]"
           value={form.category_id}
           onChange={(event) => setForm((current) => ({ ...current, category_id: event.target.value }))}
         >
@@ -547,7 +547,7 @@ export default function RecurringTransactionForm({
           type="number"
           step="0.01"
           min="0.01"
-          className={getFieldInputClassName('input-base font-tabular', Boolean(fieldErrors.amount))}
+          className={getFieldInputClassName('input-base h-11 text-[14px] font-tabular', Boolean(fieldErrors.amount))}
           placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
           value={form.amount}
           onChange={(event) => updateFormField('amount', event.target.value)}
@@ -557,7 +557,7 @@ export default function RecurringTransactionForm({
         {fieldErrors.amount ? <p id={amountErrorId} className={getFieldErrorTextClassName()}>{fieldErrors.amount}</p> : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
+      <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 sm:gap-3">
         <div>
           <label htmlFor="rec-merchant-shared" className="block text-sm font-600 text-foreground mb-1.5">
             {t('transactions.merchantSource', { ns: 'portal' })}
@@ -565,7 +565,7 @@ export default function RecurringTransactionForm({
           <input
             id="rec-merchant-shared"
             type="text"
-            className="input-base"
+            className="input-base h-11 text-[14px]"
             placeholder={t('recurring.form.merchantPlaceholder', { ns: 'portal' })}
             value={form.merchant}
             onChange={(event) => setForm((current) => ({ ...current, merchant: event.target.value }))}
@@ -578,7 +578,7 @@ export default function RecurringTransactionForm({
           <input
             id="rec-next-date-shared"
             type="date"
-            className="input-base"
+            className="input-base h-11 text-[14px]"
             value={form.next_due_date}
             onChange={(event) => setForm((current) => ({ ...current, next_due_date: event.target.value }))}
           />
@@ -598,16 +598,17 @@ export default function RecurringTransactionForm({
               ns: 'portal',
               defaultValue: 'Space details',
             })}
-          className={fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40' : ''}
-          bodyClassName="space-y-4"
+          className={fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/40 bg-[#fcfcfd]' : 'border-border/80 bg-[#fcfcfd]'}
+          headerClassName="px-3 py-2.5"
+          bodyClassName="space-y-3 px-3 py-2.5"
         >
-          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2">
             <div>
               <label className="block text-sm font-600 text-foreground mb-1.5">
                 {t('recurring.form.payer', { ns: 'portal', defaultValue: 'Payer' })}
               </label>
               <select
-                className="input-base"
+                className="input-base h-11 text-[14px]"
                 value={payerKey}
                 onChange={(event) => setPayerKey(event.target.value)}
               >
@@ -624,7 +625,7 @@ export default function RecurringTransactionForm({
                 {t('recurring.form.executionPermissions', { ns: 'portal', defaultValue: 'Execution permissions' })}
               </label>
               <select
-                className="input-base"
+                className="input-base h-11 text-[14px]"
                 value={executionPermissions}
                 onChange={(event) => setExecutionPermissions(event.target.value as ExecutionPermission)}
               >
@@ -640,7 +641,7 @@ export default function RecurringTransactionForm({
               {t('recurring.form.splitMethod', { ns: 'portal', defaultValue: 'Split method' })}
             </label>
             <select
-              className="input-base"
+              className="input-base h-11 text-[14px]"
               value={splitMethod}
               onChange={(event) => {
                 setSubmitError(null);
@@ -662,7 +663,7 @@ export default function RecurringTransactionForm({
                 const checked = beneficiaryKeys.includes(option.key);
                 return (
                   <div key={option.key} className={`rounded-xl border bg-card p-3 ${fieldErrors.beneficiaries || fieldErrors.exact_allocations ? 'border-negative/30' : 'border-border'}`}>
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
                       <label className="flex items-center gap-3 text-sm text-foreground">
                         <input
                           type="checkbox"
@@ -677,7 +678,7 @@ export default function RecurringTransactionForm({
                           type="number"
                           min="0"
                           step="0.01"
-                          className={getFieldInputClassName('input-base min-[420px]:w-40', Boolean(fieldErrors.exact_allocations))}
+                          className={getFieldInputClassName('input-base h-10 min-[420px]:w-40 text-[14px]', Boolean(fieldErrors.exact_allocations))}
                           placeholder={t('settlements.amountPlaceholder', { ns: 'portal' })}
                           value={exactAllocationAmounts[option.key] || ''}
                           onChange={(event) => {
@@ -714,11 +715,13 @@ export default function RecurringTransactionForm({
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
-        <button type="button" onClick={onCancel} className="order-2 btn-secondary w-full sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="submit" disabled={isLoading} className="order-1 btn-primary w-full sm:order-2 sm:w-auto">
+      <div className="sticky bottom-0 z-10 -mx-2.5 border-t border-border bg-card/95 px-2.5 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-2 backdrop-blur">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="order-2 inline-flex min-h-[2.9rem] w-full items-center justify-center rounded-[16px] bg-[#eef2f7] px-4 py-2.5 text-[14px] font-700 text-[#30435f] transition-colors hover:bg-[#e4ebf4] sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
+        <button type="submit" disabled={isLoading} className="order-1 inline-flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-4 py-2.5 text-[14px] font-700 text-white shadow-[0_14px_24px_rgba(18,148,255,0.2)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:order-2 sm:w-auto">
           {isLoading ? <><Loader2 size={15} className="animate-spin" /> {t('recurring.form.creating', { ns: 'portal' })}</> : t('recurring.add', { ns: 'portal' })}
         </button>
+        </div>
       </div>
     </form>
   );

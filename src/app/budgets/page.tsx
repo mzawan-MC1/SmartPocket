@@ -232,31 +232,32 @@ export default function BudgetsPage() {
   }, [load, t]);
 
   return (
-    <AppLayout activeRoute="/budgets">
-      <div className="page-section max-[480px]:gap-3">
+    <AppLayout activeRoute="/budgets" hideMobileFooter>
+      <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
           title={t('nav.budgets', { ns: 'common' })}
           description={t('budgets.description')}
           badge={<StatusBadge status="info" label={t('budgets.badge')} />}
           compact
+          className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"
           actions={
             <div className="flex w-full sm:w-auto">
               <button onClick={() => {
                 setEditingBudget(null);
                 setShowAddModal(true);
-              }} className="btn-primary w-full px-3 py-2.5 text-sm sm:w-auto">
+              }} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-3.5 py-2.5 text-[14px] font-700 text-white shadow-[0_12px_24px_rgba(18,148,255,0.18)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 sm:w-auto">
                 <Plus size={16} /> {t('budgets.addCategoryBudget')}
               </button>
             </div>
           }
         />
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin max-[480px]:gap-1.5 sm:flex-wrap">
+        <div className="flex flex-wrap gap-1.5 pb-1 max-[480px]:gap-1.5">
           <button
             type="button"
             aria-pressed={scopeType === 'personal'}
             onClick={() => setScopeType('personal')}
-            className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+            className={`shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-700 ${
               scopeType === 'personal'
                 ? 'border-accent bg-accent text-accent-foreground'
                 : 'border-border bg-card text-foreground hover:border-accent/40'
@@ -269,7 +270,7 @@ export default function BudgetsPage() {
             aria-pressed={scopeType === 'space'}
             onClick={() => setScopeType('space')}
             disabled={spaces.length === 0}
-            className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 disabled:opacity-50 max-[480px]:px-2.5 max-[480px]:py-1.5 ${
+            className={`shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-700 disabled:opacity-50 ${
               scopeType === 'space'
                 ? 'border-accent bg-accent text-accent-foreground'
                 : 'border-border bg-card text-foreground hover:border-accent/40'
@@ -285,7 +286,7 @@ export default function BudgetsPage() {
                 type="button"
                 aria-pressed={selected}
                 onClick={() => setPeriodFilter(filterValue)}
-                className={`shrink-0 rounded-xl border px-3 py-2 text-xs font-600 max-[480px]:px-2.5 max-[480px]:py-1.5 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
+                className={`shrink-0 rounded-full border px-2.5 py-1.5 text-[11px] font-700 ${selected ? 'border-accent bg-accent text-accent-foreground' : 'border-border bg-card text-foreground hover:border-accent/40'}`}
               >
                 {filterValue === 'all' ? t('budgets.allBudgets') : getBudgetPeriodTypeLabel(filterValue, t)}
               </button>
@@ -300,7 +301,7 @@ export default function BudgetsPage() {
             <select
               value={selectedSpaceId}
               onChange={(event) => setSelectedSpaceId(event.target.value)}
-              className="input-base"
+              className="input-base h-11 text-[14px]"
             >
               {spaces.map((space) => (
                 <option key={space.id} value={space.id}>
@@ -313,7 +314,7 @@ export default function BudgetsPage() {
 
         {/* Overview Card */}
         {loading ? (
-          <div className="card-elevated p-6 max-[480px]:p-4">
+          <div className="card-elevated rounded-[22px] border border-border/80 p-4 max-[480px]:p-3">
             <div className="space-y-4">
               <div className="space-y-2">
                 <div className="h-6 w-48 rounded bg-muted" />
@@ -323,10 +324,10 @@ export default function BudgetsPage() {
             </div>
           </div>
         ) : budgetSummaries.length > 0 ? (
-          <div className="card-elevated p-6 max-[480px]:p-4">
-            <div className="flex flex-col gap-4 max-[480px]:gap-4 lg:flex-row lg:items-center lg:gap-6">
+          <div className="card-elevated rounded-[22px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.98)_100%)] p-3.5 max-[480px]:p-3">
+            <div className="flex flex-col gap-3 max-[480px]:gap-3 lg:flex-row lg:items-center lg:gap-5">
               {singleCurrencySummary ? (
-                <div className="mx-auto h-32 w-32 flex-shrink-0 max-[480px]:h-28 max-[480px]:w-28 lg:mx-0 lg:h-40 lg:w-40">
+                <div className="mx-auto h-24 w-24 flex-shrink-0 max-[480px]:h-[5.5rem] max-[480px]:w-[5.5rem] lg:mx-0 lg:h-32 lg:w-32">
                   <BudgetRadialChart
                     pct={singleCurrencySummary.utilizationPct}
                     spent={singleCurrencySummary.totalSpent}
@@ -334,10 +335,10 @@ export default function BudgetsPage() {
                   />
                 </div>
               ) : null}
-              <div className="flex-1 space-y-3 max-[480px]:space-y-3 sm:space-y-4">
+              <div className="flex-1 space-y-2.5 max-[480px]:space-y-2.5 sm:space-y-3">
                 <div>
                   <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-base font-700 text-foreground">{t('budgets.overview')}</h2>
+                    <h2 className="text-[15px] font-800 text-foreground">{t('budgets.overview')}</h2>
                     {singleCurrencySummary ? (
                       <span className={`text-sm font-700 font-tabular ${statusColor}`}>
                         {t('budgets.usedPercent', { percent: singleCurrencySummary.utilizationPct.toFixed(1) })}
@@ -349,7 +350,7 @@ export default function BudgetsPage() {
                     )}
                   </div>
                   {singleCurrencySummary ? (
-                    <div className="w-full h-3 rounded-full bg-muted overflow-hidden">
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${barClass}`}
                         style={{ width: `${Math.min(singleCurrencySummary.utilizationPct, 100)}%` }}
@@ -362,8 +363,15 @@ export default function BudgetsPage() {
                   )}
                 </div>
                 {singleCurrencySummary ? (
-                  <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 sm:grid-cols-3 sm:gap-4">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
                     {[
+                      {
+                        id: 'bov-used',
+                        label: t('budgets.used'),
+                        value: `${singleCurrencySummary.utilizationPct.toFixed(0)}%`,
+                        color: statusColor,
+                        isText: true,
+                      },
                       {
                         id: 'bov-budget',
                         label: t('budgets.totalBudget'),
@@ -387,14 +395,19 @@ export default function BudgetsPage() {
                         color: singleCurrencySummary.remaining >= 0 ? 'text-positive' : 'text-negative',
                       },
                     ].map((item) => (
-                      <div key={item.id}>
-                        <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1">{item.label}</p>
-                        <FormattedCurrencyAmount
-                          amount={item.amount}
-                          currencyCode={singleCurrencySummary.currency}
-                          className={`text-lg font-700 font-tabular max-[480px]:text-base ${item.color}`}
-                          showCode
-                        />
+                      <div key={item.id} className="rounded-[18px] border border-border/80 bg-card px-2.5 py-2 shadow-card-sm">
+                        <p className="mb-1 text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{item.label}</p>
+                        {'isText' in item && item.isText ? (
+                          <p className={`text-[15px] font-800 font-tabular ${item.color}`}>{item.value}</p>
+                        ) : 'amount' in item ? (
+                          <FormattedCurrencyAmount
+                            amount={item.amount ?? 0}
+                            currencyCode={singleCurrencySummary.currency}
+                            className={`text-[15px] font-800 font-tabular ${item.color}`}
+                            showCode
+                          />
+                        ) : null
+                        }
                       </div>
                     ))}
                   </div>
@@ -462,12 +475,12 @@ export default function BudgetsPage() {
                     })}
                   </div>
                 )}
-                <div className="flex flex-wrap items-center gap-3 max-[480px]:gap-2">
-                  <span className="flex items-center gap-1.5 text-xs font-600 text-positive"><span className="w-2 h-2 rounded-full bg-positive" />{t('budgets.onTrack', { count: onTrack })}</span>
-                  <span className="flex items-center gap-1.5 text-xs font-600 text-warning"><span className="w-2 h-2 rounded-full bg-warning" />{t('budgets.nearLimit', { count: warning })}</span>
-                  <span className="flex items-center gap-1.5 text-xs font-600 text-negative"><span className="w-2 h-2 rounded-full bg-negative" />{t('budgets.exceeded', { count: exceeded })}</span>
+                <div className="flex flex-wrap items-center gap-1.5 max-[480px]:gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10.5px] font-700 text-positive"><span className="h-2 w-2 rounded-full bg-positive" />{t('budgets.onTrack', { count: onTrack })}</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10.5px] font-700 text-warning"><span className="h-2 w-2 rounded-full bg-warning" />{t('budgets.nearLimit', { count: warning })}</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10.5px] font-700 text-negative"><span className="h-2 w-2 rounded-full bg-negative" />{t('budgets.exceeded', { count: exceeded })}</span>
                   {unavailable > 0 ? (
-                    <span className="flex items-center gap-1.5 text-xs font-600 text-warning"><span className="w-2 h-2 rounded-full bg-warning" />{t('budgets.conversionUnavailable', { count: unavailable })}</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10.5px] font-700 text-warning"><span className="h-2 w-2 rounded-full bg-warning" />{t('budgets.conversionUnavailable', { count: unavailable })}</span>
                   ) : null}
                 </div>
               </div>
@@ -476,7 +489,7 @@ export default function BudgetsPage() {
         ) : null}
 
         {/* Category Budgets */}
-        <div className="space-y-3 max-[480px]:space-y-3 sm:space-y-4">
+        <div className="space-y-2.5 max-[480px]:space-y-2.5 sm:space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-700 text-foreground">{t('budgets.categoryBudgets')}</h2>
           </div>
@@ -488,7 +501,7 @@ export default function BudgetsPage() {
               ))}
             </div>
           ) : items.length === 0 ? (
-            <div className="card-elevated p-6 max-[480px]:p-4">
+            <div className="card-elevated rounded-[22px] border border-border/80 p-4 max-[480px]:p-3">
               <EmptyState
                 icon={Plus}
                 title={t('budgets.emptyTitle')}
@@ -498,7 +511,7 @@ export default function BudgetsPage() {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2 xl:gap-4 2xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-2 xl:gap-3 2xl:grid-cols-3">
               {items.map((item) => {
                 const bud = item.budget;
                 const barClass = getBarClass(item.status);
@@ -512,35 +525,35 @@ export default function BudgetsPage() {
                       setDetailSnapshot(null);
                       setDetailReferenceDate(item.period.startDate);
                     }}
-                    className={`card-elevated p-4 transition-shadow duration-200 hover:shadow-card-md max-[480px]:p-3.5 ${
+                    className={`card-elevated rounded-[20px] border border-border/80 p-3 transition-shadow duration-200 hover:shadow-card-md max-[480px]:p-3 ${
                       item.status === 'over_budget' ? 'border-negative/30 bg-negative-soft/10' : item.status === 'near_limit' ? 'border-warning/30' : ''
                     }`}
                   >
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: catColor + '20' }}>
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: catColor + '20' }}>
                           <span className="text-base" style={{ color: catColor }}>●</span>
                         </div>
                         <div>
-                          <p className="text-sm font-700 text-foreground">
+                          <p className="text-[14px] font-800 text-foreground">
                             {bud.category?.name
                               ? translateSystemCategoryName(bud.category.name, (key, options) =>
                                   t(key, { ...(options || {}), ns: 'common' })
                                 )
                               : bud.name}
                           </p>
-                          <p className="text-[11px] text-muted-foreground">
+                          <p className="text-[10.5px] text-muted-foreground">
                             {t('budgets.periodBudget', { period: getBudgetPeriodTypeLabel(item.period.budgetPeriod, t) })}
                           </p>
-                          <div className="flex items-center gap-1 mt-0.5">
+                          <div className="mt-0.5 flex items-center gap-1">
                             {item.status === 'over_budget' && <AlertCircle size={11} className="text-negative" />}
                             {item.status === 'near_limit' && <AlertTriangle size={11} className="text-warning" />}
-                            <span className={`text-[10px] font-600 ${getStatusTone(item.status)}`}>{getBudgetStatusLabel(item, t)}</span>
+                            <span className={`text-[10px] font-700 ${getStatusTone(item.status)}`}>{getBudgetStatusLabel(item, t)}</span>
                           </div>
                         </div>
                       </div>
                       <button
-                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         onClick={(event) => {
                           event.stopPropagation();
                           setEditingBudget(bud);
@@ -551,18 +564,18 @@ export default function BudgetsPage() {
                       </button>
                     </div>
 
-                    <div className="mb-3">
-                      <p className="mb-2 text-xs text-muted-foreground">{item.period.label}</p>
-                      <div className="flex items-center justify-between mb-1.5">
+                    <div className="mb-2.5">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <p className="truncate text-[10.5px] text-muted-foreground">{item.period.label}</p>
                         {item.spentAmount !== null ? (
                           <FormattedCurrencyAmount
                             amount={item.spentAmount}
                             currencyCode={bud.currency}
-                            className="text-xs text-muted-foreground"
+                            className="text-[11px] text-muted-foreground"
                             textOnly
                           />
                         ) : (
-                            <span className="text-xs text-warning">
+                            <span className="text-[11px] text-warning">
                               {t('budgets.conversionUnavailableTitle')}
                             </span>
                         )}
@@ -575,18 +588,18 @@ export default function BudgetsPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground">{t('budgets.budgetAmount')}</p>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="rounded-xl bg-muted/15 px-2.5 py-2">
+                        <p className="text-[10px] text-muted-foreground">{t('budgets.budgetAmount')}</p>
                         <FormattedCurrencyAmount
                           amount={bud.amount}
                           currencyCode={bud.currency}
-                          className="text-sm font-700 font-tabular text-foreground"
+                          className="text-[13px] font-800 font-tabular text-foreground"
                           showCode
                         />
                       </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-muted-foreground">
+                      <div className="rounded-xl bg-muted/15 px-2.5 py-2 text-right">
+                        <p className="text-[10px] text-muted-foreground">
                           {item.remainingAmount !== null && item.remainingAmount >= 0
                             ? t('budgets.remaining')
                             : t('budgets.overBy')}
@@ -595,17 +608,17 @@ export default function BudgetsPage() {
                           <FormattedCurrencyAmount
                             amount={Math.abs(item.remainingAmount)}
                             currencyCode={bud.currency}
-                            className={`text-sm font-700 font-tabular ${item.remainingAmount >= 0 ? 'text-positive' : 'text-negative'}`}
+                            className={`text-[13px] font-800 font-tabular ${item.remainingAmount >= 0 ? 'text-positive' : 'text-negative'}`}
                             showCode
                           />
                         ) : (
-                          <p className="text-sm font-700 text-warning">
+                          <p className="text-[13px] font-800 text-warning">
                             {t('budgets.unavailable')}
                           </p>
                         )}
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[10.5px] text-muted-foreground">
                       <span>{t('budgets.transactionsInPeriod', { count: item.transactionCount })}</span>
                       <span>{item.warning ? localizeBudgetWarning(item.warning, t) : item.period.label}</span>
                     </div>
@@ -626,6 +639,10 @@ export default function BudgetsPage() {
           }}
           title={t('budgets.setCategoryBudget')}
           size="md"
+          mobileLayout="sheet"
+          contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]"
+          headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5"
+          bodyClassName="overflow-hidden p-0"
         >
           <AddBudgetForm
             spaceId={scopeType === 'space' ? selectedSpaceId || null : null}
@@ -652,6 +669,10 @@ export default function BudgetsPage() {
               : editingBudget?.name || t('budgets.budgetFallback'),
           })}
           size="md"
+          mobileLayout="sheet"
+          contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]"
+          headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5"
+          bodyClassName="overflow-hidden p-0"
         >
           <AddBudgetForm
             budget={editingBudget}

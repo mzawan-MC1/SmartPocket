@@ -352,17 +352,17 @@ export default function AccountsGrid() {
         return (
           <div
             key={acct.id}
-            className="card-elevated overflow-hidden hover:shadow-card-md transition-shadow duration-200 cursor-pointer"
+            className="card-elevated overflow-hidden rounded-[20px] border border-border/80 hover:shadow-card-md transition-shadow duration-200 cursor-pointer"
             onClick={() => setSelectedAccount(acct)}
           >
-            <div className={`relative overflow-hidden bg-gradient-to-r ${gradient} p-5 max-[480px]:p-4`}>
+            <div className={`relative overflow-hidden bg-gradient-to-r ${gradient} p-4 max-[480px]:p-3.5`}>
               <div className="absolute top-0 right-0 w-24 h-24 rounded-full bg-white opacity-5 translate-x-8 -translate-y-8" />
               <div className="flex items-start justify-between relative">
                 <div>
                   <p className="text-white/70 text-xs font-500 uppercase tracking-wider">
                     {getAccountTypeLabel(acct.account_type, t)}
                   </p>
-                  <p className="text-white font-700 text-base mt-0.5 truncate max-w-[180px]">{acct.name}</p>
+                  <p className="mt-0.5 max-w-[180px] truncate text-[15px] font-800 text-white">{acct.name}</p>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -373,7 +373,7 @@ export default function AccountsGrid() {
                       menuTriggerRefs.current[acct.id] = node;
                     }}
                     type="button"
-                    className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center hover:bg-white/30 transition-colors"
+                    className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 transition-colors hover:bg-white/30"
                     onClick={(e) => {
                       e.stopPropagation();
                       if (openMenuId === acct.id) {
@@ -390,7 +390,7 @@ export default function AccountsGrid() {
                   </button>
                 </div>
               </div>
-              <div className="relative mt-3 flex flex-wrap gap-2">
+              <div className="relative mt-2.5 flex flex-wrap gap-1.5">
                 <Badge variant="default" className="bg-white/15 text-white border-white/20">
                   {getOwnershipLabel(acct, t)}
                 </Badge>
@@ -410,9 +410,9 @@ export default function AccountsGrid() {
                   </Badge>
                 ) : null}
               </div>
-              <div className="relative mt-4 max-[480px]:mt-3">
+              <div className="relative mt-3 max-[480px]:mt-2.5">
                 <p className="text-white/70 text-[11px] font-500">{t('accounts.currentBalance')}</p>
-                <p className={`text-2xl font-800 font-tabular mt-0.5 ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
+                <p className={`mt-0.5 text-[1.35rem] font-800 font-tabular ${acct.current_balance < 0 ? 'text-red-200' : 'text-white'}`}>
                   <FormattedCurrencyAmount
                     amount={acct.current_balance}
                     currencyCode={acct.currency}
@@ -421,13 +421,13 @@ export default function AccountsGrid() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-between p-4 max-[480px]:flex-wrap max-[480px]:gap-2 max-[480px]:p-3">
+            <div className="flex items-center justify-between p-3 max-[480px]:flex-wrap max-[480px]:gap-2.5 max-[480px]:p-2.5">
               <div>
-                <p className="text-xs text-muted-foreground">{t('accounts.openingBalance')}</p>
+                <p className="text-[10.5px] text-muted-foreground">{t('accounts.openingBalance')}</p>
                 <FormattedCurrencyAmount
                   amount={acct.opening_balance}
                   currencyCode={acct.currency}
-                  className="text-sm font-600 text-foreground"
+                  className="text-[13px] font-700 text-foreground"
                 />
               </div>
               <div className="flex items-center gap-1">
@@ -435,7 +435,7 @@ export default function AccountsGrid() {
                   ? <TrendingUp size={14} className="text-positive" />
                   : <TrendingDown size={14} className="text-negative" />
                 }
-                <span className={`text-xs font-600 font-tabular ${acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}`}>
+                <span className={`text-[11px] font-700 font-tabular ${acct.current_balance >= acct.opening_balance ? 'text-positive' : 'text-negative'}`}>
                   <FormattedCurrencyAmount
                     amount={acct.current_balance - acct.opening_balance}
                     currencyCode={acct.currency}
@@ -471,28 +471,28 @@ export default function AccountsGrid() {
   }
 
   return (
-    <div className="space-y-6 max-[480px]:space-y-4">
+    <div className="space-y-4 max-[480px]:space-y-3">
       <AccountsHeader onAddAccount={openAdd} />
 
       {/* Summary Bar */}
-      <div className="grid grid-cols-1 gap-3 min-[380px]:grid-cols-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
         {summaryCards.map((item) => {
           const metric = item.isCount ? null : summary?.[item.field] ?? null;
 
           return (
-          <div key={item.id} className="card-elevated p-4 max-[480px]:p-3">
+          <div key={item.id} className={`card-elevated rounded-[20px] border border-border/80 p-3 shadow-card-sm ${item.id === 'sum-total' ? 'col-span-2 md:col-span-1' : ''}`}>
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
             {item.isCount ? (
-              <p className="text-xl font-700 font-tabular text-foreground">{activeAccounts.length}</p>
+              <p className="text-[16px] font-800 font-tabular text-foreground">{activeAccounts.length}</p>
             ) : !metric || metric.originalTotals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t('accounts.summary.noActiveBalances')}</p>
+              <p className="text-[13px] text-muted-foreground">{t('accounts.summary.noActiveBalances')}</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {metric.reportingAmount !== null ? (
                   <FormattedCurrencyAmount
                     amount={metric.reportingAmount}
                     currencyCode={metric.reportingCurrency}
-                    className={`text-sm font-700 ${
+                    className={`text-[15px] font-800 ${
                       item.field === 'totalLiabilities'
                         ? 'text-negative'
                         : (metric.reportingAmount || 0) >= 0
@@ -507,7 +507,7 @@ export default function AccountsGrid() {
                         key={`${item.id}-${row.currency}`}
                         amount={row.amount}
                         currencyCode={row.currency}
-                        className={`text-sm font-700 ${
+                        className={`text-[14px] font-800 ${
                           item.field === 'totalLiabilities'
                             ? 'text-negative'
                             : row.amount >= 0
@@ -518,8 +518,8 @@ export default function AccountsGrid() {
                     ))}
                   </div>
                 )}
-                <details className="rounded-lg border border-border/70 bg-muted/20 px-2.5 py-2">
-                  <summary className="cursor-pointer text-[11px] font-600 text-muted-foreground">
+                <details className="rounded-lg border border-border/70 bg-muted/20 px-2.5 py-1.5">
+                  <summary className="cursor-pointer text-[10.5px] font-700 text-muted-foreground">
                     {t('accounts.summary.viewOriginalCurrencies')}
                   </summary>
                   <div className="mt-2 space-y-1.5 text-[11px] text-muted-foreground">
@@ -549,7 +549,7 @@ export default function AccountsGrid() {
 
       {/* Active Accounts */}
       <div>
-        <div className="mb-3 flex items-center justify-between gap-3 max-[480px]:mb-2">
+        <div className="mb-2.5 flex items-center justify-between gap-3 max-[480px]:mb-2">
           <h2 className="text-base font-700 text-foreground">{t('accounts.activeAccounts')}</h2>
         </div>
 
@@ -564,20 +564,20 @@ export default function AccountsGrid() {
             />
           </div>
         ) : (
-          <div className="space-y-6">
-            <div className="space-y-4">
+          <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <h3 className="text-sm font-700 text-foreground">
                   {t('accounts.personalAccountsSection')}
                 </h3>
               </div>
               {personalAccounts.length > 0 ? (
-                renderAccountCards(personalAccounts, 'grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3')
+                renderAccountCards(personalAccounts, 'grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3')
               ) : null}
             </div>
 
             {sharedWithSpacesAccounts.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <h3 className="text-sm font-700 text-foreground">
                     {t('accounts.sharedWithSpacesSection')}
@@ -586,11 +586,11 @@ export default function AccountsGrid() {
                     {t('accounts.sharedWithSpacesHelper')}
                   </p>
                 </div>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-3">
                   {sharedWithSpacesAccounts.map((acct) => {
                     const sharedSpaceNames = getSharedSpaceNames(acct);
                     return (
-                      <div key={acct.id} className="rounded-2xl border border-border bg-card p-4">
+                      <div key={acct.id} className="rounded-[20px] border border-border/80 bg-card p-3 shadow-card-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-700 text-foreground">{acct.name}</p>
@@ -602,13 +602,13 @@ export default function AccountsGrid() {
                             {t('accounts.sharedOwnershipLabel')}
                           </Badge>
                         </div>
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-2.5 space-y-1.5">
                           <FormattedCurrencyAmount
                             amount={acct.current_balance}
                             currencyCode={acct.currency}
                             className="text-base font-700 text-foreground"
                           />
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[11px] text-muted-foreground">
                             {t('accounts.sharedWithSpacesPrivacyHint')}
                           </p>
                         </div>
@@ -620,7 +620,7 @@ export default function AccountsGrid() {
             ) : null}
 
             {spaceAccounts.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <h3 className="text-sm font-700 text-foreground">
                     {t('accounts.spaceAccountsSection')}
@@ -790,6 +790,10 @@ export default function AccountsGrid() {
           onClose={() => setShowAddModal(false)}
           title={editingAccount ? t('accounts.editAccount') : t('accounts.addAccount')}
           size="md"
+          mobileLayout="sheet"
+          contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]"
+          headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5"
+          bodyClassName="overflow-hidden p-0"
         >
           <FinancialAccountForm
             account={editingAccount}

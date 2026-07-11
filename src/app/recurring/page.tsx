@@ -128,62 +128,62 @@ export default function RecurringPage() {
   const netMonthly = Array.from(netMonthlyMap.entries()).map(([currency, amount]) => ({ currency, amount }));
 
   return (
-    <AppLayout activeRoute="/recurring">
-      <div className="page-section max-[480px]:gap-3">
+    <AppLayout activeRoute="/recurring" hideMobileFooter>
+      <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
           title={t('recurring.title')}
           description={t('recurring.description')}
           badge={<StatusBadge status="info" label={t('recurring.badge')} />}
           compact
-          hideDescriptionOnMobile
+          className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"
           actions={
-            <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
+            <button onClick={() => setShowAddModal(true)} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-3.5 py-2.5 text-[14px] font-700 text-white shadow-[0_12px_24px_rgba(18,148,255,0.18)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 sm:w-auto">
               <Plus size={16} /> {t('recurring.add')}
             </button>
           }
         />
 
         {/* Summary */}
-        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
-          <div className="card-elevated p-4 max-[480px]:p-3">
+        <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-3">
+          <div className="card-elevated col-span-2 rounded-[20px] border border-border/80 p-3 shadow-card-sm min-[430px]:col-span-1">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.scheduledExpenses')}</p>
-            <div className="text-xl font-700 font-tabular text-negative">
+            <div className="text-[16px] font-800 font-tabular text-negative">
               {totalMonthly.map((row) => (
-                <FormattedCurrencyAmount key={`expense-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-negative" showCode />
+                <FormattedCurrencyAmount key={`expense-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-negative" showCode />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('recurring.activeExpenseCount', { count: activeItems.filter((r) => r.transaction_type === 'expense').length })}</p>
+            <p className="mt-1 text-[10.5px] text-muted-foreground">{t('recurring.activeExpenseCount', { count: activeItems.filter((r) => r.transaction_type === 'expense').length })}</p>
           </div>
-          <div className="card-elevated p-4 max-[480px]:p-3">
+          <div className="card-elevated rounded-[20px] border border-border/80 p-3 shadow-card-sm">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.scheduledIncome')}</p>
-            <div className="text-xl font-700 font-tabular text-positive">
+            <div className="text-[16px] font-800 font-tabular text-positive">
               {totalIncome.map((row) => (
-                <FormattedCurrencyAmount key={`income-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-xl font-700 text-positive" showCode />
+                <FormattedCurrencyAmount key={`income-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-positive" showCode />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('recurring.incomeSourcesCount', { count: activeItems.filter((r) => r.transaction_type === 'income').length })}</p>
+            <p className="mt-1 text-[10.5px] text-muted-foreground">{t('recurring.incomeSourcesCount', { count: activeItems.filter((r) => r.transaction_type === 'income').length })}</p>
           </div>
-          <div className="card-elevated p-4 max-[480px]:p-3">
+          <div className="card-elevated rounded-[20px] border border-border/80 p-3 shadow-card-sm">
             <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{t('recurring.netScheduled')}</p>
-            <div className="text-xl font-700 font-tabular">
+            <div className="text-[16px] font-800 font-tabular">
               {netMonthly.map((row) => (
                 <FormattedCurrencyAmount
                   key={`net-${row.currency}`}
                   amount={row.amount}
                   currencyCode={row.currency}
-                  className={`text-xl font-700 ${row.amount >= 0 ? 'text-positive' : 'text-negative'}`}
+                  className={`text-[16px] font-800 ${row.amount >= 0 ? 'text-positive' : 'text-negative'}`}
                   showCode
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{t('recurring.acrossSupportedSchedules')}</p>
+            <p className="mt-1 text-[10.5px] text-muted-foreground">{t('recurring.acrossSupportedSchedules')}</p>
           </div>
         </div>
 
         {/* Recurring List */}
-          <div className="card-elevated overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
+          <div className="card-elevated overflow-hidden rounded-[22px] border border-border/80">
+          <div className="flex items-center justify-between border-b border-border px-3.5 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
             <h2 className="text-base font-700 text-foreground">{t('recurring.activeRecurring')}</h2>
             <span className="text-xs text-muted-foreground">{t('recurring.activeCount', { count: activeItems.length })}</span>
           </div>
@@ -217,15 +217,15 @@ export default function RecurringPage() {
               {activeItems.map((item) => {
                 const canMarkPaid = canAutoAdvanceRecurringTransaction(item.frequency);
                 return (
-                <div key={item.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[520px]:flex-col max-[520px]:items-stretch max-[520px]:gap-3 max-[480px]:p-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${item.transaction_type === 'income' ? 'bg-positive-soft' : 'bg-negative-soft'}`}>
-                    <Repeat size={18} className={item.transaction_type === 'income' ? 'text-positive' : 'text-negative'} />
+                <div key={item.id} className="flex items-start gap-3 p-3 transition-colors hover:bg-muted/30 max-[480px]:gap-2.5 max-[480px]:p-2.5">
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.transaction_type === 'income' ? 'bg-positive-soft' : 'bg-negative-soft'}`}>
+                    <Repeat size={16} className={item.transaction_type === 'income' ? 'text-positive' : 'text-negative'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
+                      <p className="truncate text-[13px] font-700 text-foreground">{item.description}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
                       {item.merchant && `${item.merchant} · `}{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.next', { date: item.next_due_date })}
                       {item.account && ` · ${item.account.name}`}
                     </p>
@@ -233,20 +233,20 @@ export default function RecurringPage() {
                       <p className="mt-1 text-[10px] font-600 text-warning">{t('recurring.incompleteSchedule')}</p>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 flex-col gap-2 max-[520px]:w-full max-[520px]:rounded-2xl max-[520px]:border max-[520px]:border-border/70 max-[520px]:bg-muted/10 max-[520px]:p-3 min-[521px]:text-right">
-                    <p className={`text-sm font-700 font-tabular ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5 min-[521px]:text-right">
+                    <p className={`text-[13px] font-800 font-tabular ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}>
                       <FormattedCurrencyAmount
                         amount={item.transaction_type === 'income' ? Number(item.amount) : -Math.abs(Number(item.amount))}
                         currencyCode={item.currency}
-                        className={`text-sm font-700 ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}
+                        className={`text-[13px] font-800 ${item.transaction_type === 'income' ? 'text-positive' : 'text-negative'}`}
                         showCode
                       />
                     </p>
-                    <div className="mt-1 flex flex-wrap items-center gap-1 max-[520px]:justify-start min-[521px]:justify-end">
+                    <div className="flex flex-wrap items-center gap-1 min-[521px]:justify-end">
                       <button
                         onClick={() => handleMarkPaid(item)}
                         disabled={markingId === item.id || !canMarkPaid}
-                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-xs font-700 text-accent transition-colors hover:bg-muted/40 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50 max-[520px]:flex-1 max-[520px]:justify-center"
+                        className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-card px-2.5 text-[11px] font-700 text-accent transition-colors hover:bg-muted/40 hover:text-teal-600 focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:opacity-50"
                         aria-label={t('recurring.markAsPaid')}
                         title={t('recurring.markAsPaid')}
                       >
@@ -279,19 +279,19 @@ export default function RecurringPage() {
 
         {/* Paused Items */}
         {pausedItems.length > 0 && (
-          <div className="card-elevated overflow-hidden">
-            <div className="border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
+          <div className="card-elevated overflow-hidden rounded-[22px] border border-border/80">
+            <div className="border-b border-border px-3.5 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
               <h2 className="text-base font-700 text-muted-foreground">{t('recurring.pausedCount', { count: pausedItems.length })}</h2>
             </div>
             <div className="divide-y divide-border">
               {pausedItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-4 p-4 opacity-60 hover:bg-muted/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
-                    <Repeat size={18} className="text-muted-foreground" />
+                <div key={item.id} className="flex items-center gap-3 p-3 opacity-60 transition-colors hover:bg-muted/30">
+                  <div className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                    <Repeat size={16} className="text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
-                    <p className="text-xs text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.paused')}</p>
+                    <p className="truncate text-[13px] font-700 text-foreground">{item.description}</p>
+                    <p className="text-[11px] text-muted-foreground">{formatRecurringFrequencyLabel(item.frequency, t)} · {t('recurring.paused')}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -312,7 +312,7 @@ export default function RecurringPage() {
 
       {/* Add Modal */}
       {showAddModal ? (
-        <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('recurring.addModalTitle')} size="md">
+        <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('recurring.addModalTitle')} size="md" mobileLayout="sheet" contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]" headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5" bodyClassName="overflow-hidden p-0">
           <RecurringTransactionForm
             accounts={accounts}
             categories={categories}

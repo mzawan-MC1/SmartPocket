@@ -67,23 +67,23 @@ export default function TransfersPage() {
   const groupedTransferred = groupTransferAmounts(thisMonthTransfers);
 
   return (
-    <AppLayout activeRoute="/transfers">
-      <div className="page-section max-[480px]:gap-3">
+    <AppLayout activeRoute="/transfers" hideMobileFooter>
+      <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
           title={t('transfers.title')}
           description={t('transfers.description')}
           badge={<StatusBadge status="info" label={t('transfers.badge')} />}
           compact
-          hideDescriptionOnMobile
+          className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actions={
-            <button onClick={() => setShowAddModal(true)} className="btn-primary max-[480px]:w-full">
+            <button onClick={() => setShowAddModal(true)} className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-3.5 py-2.5 text-[14px] font-700 text-white shadow-[0_12px_24px_rgba(18,148,255,0.18)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 sm:w-auto">
               <Plus size={16} /> {t('transfers.newTransfer')}
             </button>
           }
         />
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 gap-3 min-[430px]:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2.5 min-[430px]:grid-cols-3">
           {loading ? Array.from({ length: 3 }).map((_, index) => (
             <SectionCardSkeleton key={`transfer-summary-skeleton-${index + 1}`} lines={2} className="h-full" />
           )) : [
@@ -91,39 +91,39 @@ export default function TransfersPage() {
             { label: t('transfers.summary.count'), value: String(thisMonthTransfers.length), sub: t('transfers.thisMonth') },
             { label: t('transfers.summary.average'), value: groupedTransferred.length === 1 ? avgTransfer : null, currency: groupedTransferred[0]?.currency, sub: groupedTransferred.length === 1 ? t('transfers.perTransfer') : t('transfers.unavailableMixedCurrencies') },
           ].map((item) => (
-            <div key={item.label} className="card-elevated p-4 max-[480px]:p-3">
+            <div key={item.label} className={`card-elevated rounded-[20px] border border-border/80 p-3 shadow-card-sm ${item.label === t('transfers.summary.totalTransferred') ? 'col-span-2 min-[430px]:col-span-1' : ''}`}>
               <p className="text-[11px] font-600 uppercase tracking-wider text-muted-foreground mb-1.5">{item.label}</p>
               {item.label === t('transfers.summary.totalTransferred') ? (
                 <div className="space-y-1">
-                  {groupedTransferred.length === 0 ? <p className="text-sm text-muted-foreground">{t('transfers.noTransfers')}</p> : groupedTransferred.map((row) => (
-                    <FormattedCurrencyAmount key={`${item.label}-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-lg font-700 text-foreground" />
+                  {groupedTransferred.length === 0 ? <p className="text-[13px] text-muted-foreground">{t('transfers.noTransfers')}</p> : groupedTransferred.map((row) => (
+                    <FormattedCurrencyAmount key={`${item.label}-${row.currency}`} amount={row.amount} currencyCode={row.currency} className="text-[16px] font-800 text-foreground" />
                   ))}
                 </div>
               ) : item.value === null ? (
-                <p className="text-sm font-600 text-muted-foreground">{t('transfers.mixedCurrencies')}</p>
+                <p className="text-[13px] font-600 text-muted-foreground">{t('transfers.mixedCurrencies')}</p>
               ) : item.currency ? (
-                <FormattedCurrencyAmount amount={item.value} currencyCode={item.currency} className="text-lg font-700 text-foreground" />
+                <FormattedCurrencyAmount amount={item.value} currencyCode={item.currency} className="text-[16px] font-800 text-foreground" />
               ) : (
-                <p className="text-xl font-700 font-tabular text-foreground">{item.value}</p>
+                <p className="text-[16px] font-800 font-tabular text-foreground">{item.value}</p>
               )}
-              <p className="text-xs text-muted-foreground mt-1">{item.sub}</p>
+              <p className="mt-1 text-[10.5px] text-muted-foreground">{item.sub}</p>
             </div>
           ))}
         </div>
 
         {/* Search */}
-        <div className="card-elevated p-4 max-[480px]:p-3">
+        <div className="card-elevated rounded-[20px] border border-border/80 p-3 max-[480px]:p-2.5">
           <SearchField
             placeholder={t('transfers.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            inputClassName="h-10"
+            inputClassName="h-11 rounded-[18px] px-3.5"
           />
         </div>
 
         {/* Transfers List */}
-        <div className="card-elevated overflow-hidden">
-          <div className="border-b border-border p-4 max-[480px]:px-3 max-[480px]:py-3">
+        <div className="card-elevated overflow-hidden rounded-[22px] border border-border/80">
+          <div className="border-b border-border px-3.5 py-3 max-[480px]:px-3 max-[480px]:py-2.5">
             <h2 className="text-base font-700 text-foreground">{t('transfers.history')}</h2>
           </div>
           {loading ? (
@@ -140,38 +140,38 @@ export default function TransfersPage() {
           ) : (
             <div className="divide-y divide-border">
               {filtered.map((transfer) => (
-                <div key={transfer.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-muted/30 max-[520px]:flex-col max-[520px]:items-stretch max-[480px]:gap-3 max-[480px]:p-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-info-soft max-[480px]:h-9 max-[480px]:w-9">
-                    <ArrowLeftRight size={18} className="text-info" />
+                <div key={transfer.id} className="flex items-start gap-3 p-3 transition-colors hover:bg-muted/30 max-[480px]:gap-2.5 max-[480px]:p-2.5">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-info-soft">
+                    <ArrowLeftRight size={16} className="text-info" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 max-[480px]:flex-wrap">
-                      <span className="text-sm font-600 text-foreground truncate">{transfer.from_account?.name || t('transfers.notAvailable')}</span>
-                      <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />
-                      <span className="text-sm font-600 text-foreground truncate">{transfer.to_account?.name || t('transfers.notAvailable')}</span>
+                    <div className="flex items-center gap-1.5 max-[480px]:flex-wrap">
+                      <span className="truncate text-[13px] font-700 text-foreground">{transfer.from_account?.name || t('transfers.notAvailable')}</span>
+                      <ChevronRight size={13} className="flex-shrink-0 text-muted-foreground" />
+                      <span className="truncate text-[13px] font-700 text-foreground">{transfer.to_account?.name || t('transfers.notAvailable')}</span>
                     </div>
-                    <p className="mt-0.5 break-words text-xs text-muted-foreground">
+                    <p className="mt-0.5 break-words text-[11px] text-muted-foreground">
                       {transfer.description || t('transfers.transferFallback')} · {transfer.transfer_date}
                     </p>
                   </div>
-                  <div className="flex-shrink-0 text-right max-[520px]:flex max-[520px]:items-start max-[520px]:justify-between max-[520px]:gap-3 max-[520px]:text-left">
-                    <p className="text-sm font-700 font-tabular text-foreground">
+                  <div className="flex shrink-0 flex-col items-end gap-1 text-right">
+                    <p className="text-[13px] font-800 font-tabular text-foreground">
                       <FormattedCurrencyAmount
                         amount={transfer.source_amount ?? transfer.amount}
                         currencyCode={transfer.source_currency || transfer.currency}
-                        className="text-sm font-700 text-foreground"
+                        className="text-[13px] font-800 text-foreground"
                       />
                     </p>
                     {transfer.destination_currency && transfer.destination_currency !== (transfer.source_currency || transfer.currency) ? (
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-[10.5px] text-muted-foreground">
                         <FormattedCurrencyAmount
                           amount={transfer.destination_amount ?? transfer.amount}
                           currencyCode={transfer.destination_currency}
-                          className="text-[11px] text-muted-foreground"
+                          className="text-[10.5px] text-muted-foreground"
                         />
                       </p>
                     ) : null}
-                    <span className="rounded-full bg-positive-soft px-1.5 py-0.5 text-[10px] font-600 text-positive max-[520px]:self-start">{t('transfers.completed')}</span>
+                    <span className="rounded-full bg-positive-soft px-2 py-0.5 text-[10px] font-700 text-positive">{t('transfers.completed')}</span>
                   </div>
                 </div>
               ))}
@@ -181,7 +181,7 @@ export default function TransfersPage() {
       </div>
 
       {/* Add Transfer Modal */}
-      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('transfers.newTransfer')} size="md">
+      <Modal isOpen={showAddModal} onClose={() => { setShowAddModal(false); }} title={t('transfers.newTransfer')} size="md" mobileLayout="sheet" contentClassName="max-[480px]:w-[min(calc(100vw-8px),430px)]" headerClassName="max-[480px]:px-3.5 max-[480px]:py-2.5" bodyClassName="overflow-hidden p-0">
         <AddTransferForm
           accounts={accounts}
           onSuccess={() => {

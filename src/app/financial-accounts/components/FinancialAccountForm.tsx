@@ -557,8 +557,8 @@ export default function FinancialAccountForm({
     form.branch_name ||
     form.bank_account_type !== 'current'
   );
-  const compactInputClassName = 'input-base text-sm max-[640px]:min-h-[2.75rem] max-[640px]:px-3 max-[640px]:py-2.5';
-  const compactCardClassName = 'rounded-xl border border-border bg-muted/15 p-3';
+  const compactInputClassName = 'input-base h-11 px-3 text-[14px]';
+  const compactCardClassName = 'rounded-xl border border-border bg-muted/15 p-2.5';
   const sharingSummary = hasEnabledSharing
     ? t('accounts.form.spaceSharingEnabledSummary', {
       ns: 'portal',
@@ -582,7 +582,7 @@ export default function FinancialAccountForm({
   const currencyWorkflowBlocked = currencyApplying || currencyPreviewLoading;
 
   return (
-    <div className="space-y-3.5">
+    <div className="space-y-2.5 bg-[linear-gradient(180deg,rgba(249,250,252,0.85)_0%,rgba(255,255,255,1)_100%)] px-2.5 py-2.5 pb-24">
       <div>
         <label className={getFieldLabelClassName(Boolean(fieldErrors.name))}>{t('accounts.form.name', { ns: 'portal' })} *</label>
         <input
@@ -604,7 +604,7 @@ export default function FinancialAccountForm({
                 space: selectedScopeSpace.name,
               })}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-[11px] text-muted-foreground">
               {t('accounts.form.spaceAccountHelper', {
                 ns: 'portal',
               })}
@@ -613,7 +613,7 @@ export default function FinancialAccountForm({
         ) : null
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2">
         {!hideScopeControls ? (
           <div className="min-w-0">
             <label className="mb-1.5 block text-sm font-600 text-foreground">
@@ -709,7 +709,7 @@ export default function FinancialAccountForm({
           <label className={getFieldLabelClassName(Boolean(fieldErrors.currency))}>{t('accounts.form.currency', { ns: 'portal' })} *</label>
           {account ? (
             <div className="space-y-2">
-              <div className="rounded-xl border border-border bg-muted/20 p-3">
+              <div className="rounded-xl border border-border bg-muted/20 p-2.5">
                 <p className="text-sm font-700 text-foreground">
                   {currentCurrencyRecord?.name || currentCurrencyCode}
                 </p>
@@ -719,10 +719,10 @@ export default function FinancialAccountForm({
                     defaultValue: 'Existing accounts use a secure currency-change workflow so values never change silently.',
                   })}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-2.5 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="btn-secondary h-9 px-3 text-sm"
+                    className="btn-secondary h-8 px-3 text-[13px]"
                     onClick={() => setShowCurrencyWorkflow(true)}
                   >
                     {t('accounts.currencyChange.openAction', {
@@ -751,8 +751,8 @@ export default function FinancialAccountForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-        <label className="flex min-h-[40px] items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2.5">
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+        <label className="flex min-h-[40px] items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2">
           <input
             type="checkbox"
             className="h-4 w-4 cursor-pointer rounded border-border accent-accent"
@@ -765,10 +765,10 @@ export default function FinancialAccountForm({
         </label>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 min-[420px]:items-start">
+      <div className="grid grid-cols-1 gap-2.5 min-[420px]:grid-cols-2 min-[420px]:items-start">
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('accounts.openingBalance', { ns: 'portal' })}</label>
-          <p className="mb-1.5 text-xs text-muted-foreground">
+          <p className="mb-1 text-[11px] text-muted-foreground">
             {isSpaceAccount
               ? t('accounts.form.spaceOpeningBalanceHelper', {
                 ns: 'portal',
@@ -788,8 +788,8 @@ export default function FinancialAccountForm({
         <div>
           <label className="mb-1.5 block text-sm font-600 text-foreground">{t('reimbursements.notes', { ns: 'portal' })}</label>
           <textarea
-            rows={3}
-            className="input-base min-h-[88px] resize-none py-2.5 text-sm"
+            rows={2}
+            className="input-base min-h-[84px] resize-none py-2.5 text-[14px]"
             placeholder={t('accounts.form.notesPlaceholder', { ns: 'portal' })}
             value={form.notes}
             onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
@@ -808,7 +808,9 @@ export default function FinancialAccountForm({
           collapsible
           expanded={sharingExpanded}
           onExpandedChange={setSharingExpanded}
-          bodyClassName="space-y-2.5"
+          className="border-border/80 bg-[#fcfcfd]"
+          headerClassName="px-3 py-2.5"
+          bodyClassName="space-y-2.5 px-3 py-2.5"
         >
           {sharingExpanded ? (
             <>
@@ -853,7 +855,7 @@ export default function FinancialAccountForm({
                   </label>
                   {entry.enabled ? (
                     <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-sm text-foreground">
+                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-[13px] text-foreground">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-border accent-accent"
@@ -872,7 +874,7 @@ export default function FinancialAccountForm({
                           defaultValue: 'Allow new Space transactions',
                         })}
                       </label>
-                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-sm text-foreground">
+                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-[13px] text-foreground">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-border accent-accent"
@@ -891,7 +893,7 @@ export default function FinancialAccountForm({
                           defaultValue: 'Allow balance visibility',
                         })}
                       </label>
-                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-2 text-sm text-foreground">
+                      <label className="flex items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-[13px] text-foreground">
                         <input
                           type="checkbox"
                           className="h-4 w-4 rounded border-border accent-accent"
@@ -927,7 +929,9 @@ export default function FinancialAccountForm({
           collapsible
           expanded={bankDetailsExpanded}
           onExpandedChange={setBankDetailsExpanded}
-          bodyClassName="space-y-3"
+          className="border-border/80 bg-[#fcfcfd]"
+          headerClassName="px-3 py-2.5"
+          bodyClassName="space-y-2.5 px-3 py-2.5"
         >
           {bankDetailsExpanded ? (
             <>
@@ -937,7 +941,7 @@ export default function FinancialAccountForm({
                   defaultValue: 'Only masked account numbers are shown in the app. Use this section for optional banking details.',
                 })}
               </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-600 text-foreground">
                     {t('accounts.form.bankName', { ns: 'portal', defaultValue: 'Bank name' })}
@@ -1023,7 +1027,7 @@ export default function FinancialAccountForm({
         </FormSection>
       ) : null}
 
-      <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2.5">
+      <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 px-3 py-2">
         <input
           id="include-in-total-shared"
           type="checkbox"
@@ -1042,11 +1046,13 @@ export default function FinancialAccountForm({
         </label>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-border pt-3 sm:flex-row sm:justify-end">
-        <button type="button" onClick={onCancel} className="order-2 btn-secondary h-10 w-full px-4 text-sm sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
-        <button type="button" onClick={handleSave} disabled={isSaving || currencyApplying} className="order-1 btn-primary h-10 w-full px-4 text-sm sm:order-2 sm:w-auto">
+      <div className="sticky bottom-0 z-10 -mx-2.5 border-t border-border bg-card/95 px-2.5 pb-[calc(env(safe-area-inset-bottom)+0.55rem)] pt-2 backdrop-blur">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+        <button type="button" onClick={onCancel} className="order-2 inline-flex min-h-[2.9rem] w-full items-center justify-center rounded-[16px] bg-[#eef2f7] px-4 py-2.5 text-[14px] font-700 text-[#30435f] transition-colors hover:bg-[#e4ebf4] sm:order-1 sm:w-auto">{t('actions.cancel', { ns: 'common' })}</button>
+        <button type="button" onClick={handleSave} disabled={isSaving || currencyApplying} className="order-1 inline-flex min-h-[2.9rem] w-full items-center justify-center gap-2 rounded-[16px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-4 py-2.5 text-[14px] font-700 text-white shadow-[0_14px_24px_rgba(18,148,255,0.2)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60 sm:order-2 sm:w-auto">
           {isSaving ? <><Loader2 size={15} className="animate-spin" /> {t('status.saving', { ns: 'common' })}</> : account ? t('accounts.form.updateAction', { ns: 'portal' }) : t('accounts.addAccount', { ns: 'portal' })}
         </button>
+        </div>
       </div>
 
       {account ? (

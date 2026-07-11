@@ -4,7 +4,7 @@ import AccountsGrid from './components/AccountsGrid';
 
 export default function FinancialAccountsPage() {
   return (
-    <AppLayout activeRoute="/financial-accounts">
+    <AppLayout activeRoute="/financial-accounts" hideMobileFooter>
       <div className="page-section">
         <AccountsGrid />
       </div>
