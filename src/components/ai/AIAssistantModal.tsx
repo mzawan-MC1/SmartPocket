@@ -15,6 +15,8 @@ import Link from 'next/link';
    Calendar,
    ArrowUpRight,
    Zap,
+  Wallet,
+  ChevronDown,
  } from 'lucide-react';
  import { createPortal } from 'react-dom';
  import { useRouter } from 'next/navigation';
@@ -1147,22 +1149,59 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     if (datedRows.length === 0) return null;
     const uniqueDates = Array.from(new Set(datedRows.map((row) => row.dateIso)));
     if (uniqueDates.length !== 1 || !uniqueDates[0]) return null;
-    return formatSmartEntryDisplayDate(uniqueDates[0], displayLanguage, 'long');
+    return formatSmartEntryDisplayDate(uniqueDates[0], displayLanguage, 'short');
   }, [compactSummaryRows, displayLanguage]);
-  const summaryTotalAmountText = useMemo(() => {
+  const summaryTotal = useMemo(() => {
     if (!previewInstruction) return null;
 
-    const totalAmount = previewInstruction.actions.reduce((sum, action) => {
-      if (action.actionType === 'create_account' || action.actionType === 'create_managed_person') {
-        return sum;
-      }
-      return typeof action.amount === 'number' ? sum + Math.abs(action.amount) : sum;
-    }, 0);
+    const monetaryActions = previewInstruction.actions.filter((action) => (
+      action.actionType !== 'create_account'
+      && action.actionType !== 'create_managed_person'
+      && typeof action.amount === 'number'
+    ));
 
-    return totalAmount > 0
-      ? formatMoney(totalAmount, reviewState?.currency, contextSnapshot?.defaultCurrency)
-      : null;
-  }, [contextSnapshot?.defaultCurrency, previewInstruction, reviewState?.currency]);
+    if (monetaryActions.length === 0) {
+      return null;
+    }
+
+    const resolvedCurrencies = Array.from(new Set(
+      monetaryActions
+        .map((action) => sanitizeCurrency(action.currency, {
+          fallbackCurrency: reviewState?.account?.currency || reviewState?.currency || contextSnapshot?.defaultCurrency,
+          allowedCurrencies: contextSnapshot?.currencies,
+        }))
+        .filter((currency): currency is string => typeof currency === 'string' && currency.length > 0)
+    ));
+
+    if (resolvedCurrencies.length > 1) {
+      return null;
+    }
+
+    const resolvedCurrency = resolvedCurrencies[0] || sanitizeCurrency(
+      reviewState?.account?.currency || reviewState?.currency,
+      {
+        fallbackCurrency: contextSnapshot?.defaultCurrency,
+        allowedCurrencies: contextSnapshot?.currencies,
+      }
+    );
+
+    const totalAmount = monetaryActions.reduce((sum, action) => sum + Math.abs(action.amount || 0), 0);
+
+    if (!(totalAmount > 0)) {
+      return null;
+    }
+
+    return {
+      amountText: formatMoney(totalAmount, resolvedCurrency, contextSnapshot?.defaultCurrency),
+      currency: resolvedCurrency,
+    };
+  }, [
+    contextSnapshot?.currencies,
+    contextSnapshot?.defaultCurrency,
+    previewInstruction,
+    reviewState?.account?.currency,
+    reviewState?.currency,
+  ]);
   const isCompactSubscriptionReview = step === 'confirming' && isSubscriptionFlow;
   const reviewSectionClass = isSubscriptionFlow
     ? 'rounded-xl border border-border bg-muted/20 p-3 sm:p-3.5 space-y-2.5'
@@ -1268,7 +1307,27 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
              (reviewState?.destinationAccount?.name || '').trim().toLowerCase()
          ) || null
        );
-
+  const primaryAccountLabel = isSubscriptionFlow
+    ? getSubscriptionPrimaryAccountLabel(reviewState?.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+    : getPrimaryAccountLabel(reviewState?.purpose, (key, options) => t(key, { ns: 'portal', ...options }));
+  const primaryAccountDisplayName =
+    selectedAccount?.name
+    || reviewState?.account?.name
+    || (
+      isSubscriptionFlow
+        ? t('smartEntryModal.subscription.paymentAccountFallback', {
+            ns: 'portal',
+            defaultValue: 'Select a payment account',
+          })
+        : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })
+    );
+  const primaryAccountDisplayCurrency = sanitizeCurrency(
+    selectedAccount?.currency || reviewState?.account?.currency || reviewState?.currency,
+    {
+      fallbackCurrency: contextSnapshot?.defaultCurrency,
+      allowedCurrencies: contextSnapshot?.currencies,
+    }
+  );
   const normalizeReviewCurrency = useCallback(
     (value?: string) =>
       sanitizeCurrency(value, {
@@ -2392,7 +2451,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
           isCompactSubscriptionReview
             ? 'w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[20px] sm:w-[calc(100vw-24px)] sm:max-h-[85vh]'
-            : 'w-full max-w-[760px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),760px)]'
+            : 'w-full max-w-[812px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),812px)]'
         }`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
@@ -2827,7 +2886,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     {understandingLines.map((item, index) => (
                       <div
                         key={`${item.primaryText}-${item.dateIso || index}`}
-                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 sm:items-center"
                       >
                         <CategoryIcon
                           category={item.iconCategory}
@@ -2838,19 +2897,19 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                         />
                         <div className="min-w-0 flex-1 space-y-1">
                           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-sm text-foreground">
+                            <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-sm text-foreground sm:flex-nowrap sm:gap-2.5">
                               {item.showSeparateAmount && item.amountText ? (
                                 <>
                                   <span dir="ltr" className="font-700 text-foreground">{item.amountText}</span>
-                                  <span className="text-muted-foreground">&middot;</span>
+                                  <span className="text-muted-foreground sm:hidden">&middot;</span>
                                 </>
                               ) : null}
-                              <span className={`${item.showSeparateAmount ? 'truncate font-600' : 'leading-5'}`}>
+                              <span className={`min-w-0 ${item.showSeparateAmount ? 'truncate font-600' : 'leading-5'}`}>
                                 {item.primaryText}
                               </span>
                             </div>
                             {item.dateText ? (
-                              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/20 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
                                 <Calendar size={11} className="flex-shrink-0" />
                                 <span>{item.dateText}</span>
                               </span>
@@ -3376,55 +3435,70 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                           })
                         : t('smartEntryModal.accountTitle', { ns: 'portal' })}
                     </p>
-                    <div className={reviewInnerCardClass}>
-                      <p className="text-xs text-muted-foreground">
-                        {isSubscriptionFlow
-                          ? getSubscriptionPrimaryAccountLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
-                          : getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
-                      </p>
-                      <p className="mt-1 text-sm font-600 text-foreground">
-                        {getContextAccountDisplayLabel(selectedAccount) || reviewState.account?.name || (
-                          isSubscriptionFlow
-                            ? t('smartEntryModal.subscription.paymentAccountFallback', {
+                    <div className="relative">
+                      <div
+                        className={`relative overflow-hidden rounded-2xl border bg-card transition-colors focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10 ${
+                          hasMissingField('account')
+                            ? 'border-negative/50 ring-1 ring-negative/20'
+                            : 'border-border/70'
+                        }`}
+                      >
+                        <div className="pointer-events-none flex min-h-[60px] items-center gap-3 px-3 py-2.5">
+                          <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/20 text-muted-foreground">
+                            <Wallet size={16} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground/80">
+                              {primaryAccountLabel}
+                              {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
+                            </p>
+                            <div className="mt-1 flex min-w-0 items-center gap-2">
+                              <p className="min-w-0 truncate text-sm font-600 text-foreground">
+                                {primaryAccountDisplayName}
+                              </p>
+                              {primaryAccountDisplayCurrency ? (
+                                <span
+                                  dir="ltr"
+                                  className="inline-flex flex-shrink-0 items-center rounded-full border border-border bg-muted/20 px-2 py-0.5 text-[11px] font-700 text-muted-foreground"
+                                >
+                                  {primaryAccountDisplayCurrency}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                          <ChevronDown size={16} className="flex-shrink-0 text-muted-foreground" />
+                        </div>
+                        <label className="sr-only">
+                          {primaryAccountLabel}
+                          <select
+                            value={primaryAccountSelectValue}
+                            onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
+                            aria-invalid={hasMissingField('account') ? 'true' : 'false'}
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                          >
+                            <option value="">
+                              {isSubscriptionFlow
+                                ? t('smartEntryModal.subscription.paymentAccountFallback', {
+                                    ns: 'portal',
+                                    defaultValue: 'Select a payment account',
+                                  })
+                                : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
+                            </option>
+                            {primaryAccountOptions.map((account) => (
+                              <option key={account.id} value={account.id}>
+                                {getContextAccountDisplayLabel(account)}
+                              </option>
+                            ))}
+                            <option value="__create__">
+                              {t('smartEntryModal.createAccountAction', {
                                 ns: 'portal',
-                                defaultValue: 'Select a payment account',
-                              })
-                            : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })
-                        )}
-                      </p>
+                                name: reviewState.account?.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
+                              })}
+                            </option>
+                          </select>
+                        </label>
+                      </div>
                     </div>
-                    <label className={getFieldLabelClassName(Boolean(isSubscriptionFlow && getFieldErrorMessage('account')), 'mb-1.5 block text-xs font-600')}>
-                      {isSubscriptionFlow
-                        ? getSubscriptionPrimaryAccountLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
-                        : getPrimaryAccountLabel(reviewState.purpose, (key, options) => t(key, { ns: 'portal', ...options }))}
-                      {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
-                    </label>
-                    <select
-                      value={primaryAccountSelectValue}
-                      onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
-                      aria-invalid={hasMissingField('account') ? 'true' : 'false'}
-                      className={getFieldInputClassName('input-base w-full text-sm', hasMissingField('account'))}
-                    >
-                      <option value="">
-                        {isSubscriptionFlow
-                          ? t('smartEntryModal.subscription.paymentAccountFallback', {
-                              ns: 'portal',
-                              defaultValue: 'Select a payment account',
-                            })
-                          : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
-                      </option>
-                      {primaryAccountOptions.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {getContextAccountDisplayLabel(account)}
-                        </option>
-                      ))}
-                      <option value="__create__">
-                        {t('smartEntryModal.createAccountAction', {
-                          ns: 'portal',
-                          name: reviewState.account?.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
-                        })}
-                      </option>
-                    </select>
                     {hasMissingField('account') && (
                       <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
                         {getFieldErrorMessage('account')}
@@ -3608,24 +3682,24 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 )}
 
                 <div className={reviewSectionClass}>
-                  <div className="space-y-1">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
                     </p>
                     {sharedTransactionDateText ? (
-                      <div className="space-y-0.5">
-                        <p className="text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground/80">
-                          {t('smartEntryModal.transactionDateLabel', { ns: 'portal' })}
-                        </p>
-                        <p className="text-sm font-600 text-foreground">{sharedTransactionDateText}</p>
-                      </div>
+                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5 text-[11px] font-600 text-muted-foreground">
+                        <Calendar size={12} className="flex-shrink-0" />
+                        <span>{t('smartEntryModal.transactionDateLabel', { ns: 'portal' })}</span>
+                        <span aria-hidden="true">&middot;</span>
+                        <span>{sharedTransactionDateText}</span>
+                      </span>
                     ) : null}
                   </div>
                   <div className={isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2'}>
                     {compactSummaryRows.map((item, index) => (
                       <div
                         key={`${item.primaryText}-${item.dateIso || index}`}
-                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 sm:items-center"
                       >
                         <CategoryIcon
                           category={item.iconCategory}
@@ -3643,11 +3717,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                               ) : null}
                             </div>
                             {item.showSeparateAmount && item.amountText ? (
-                              <p dir="ltr" className="text-sm font-700 text-foreground">{item.amountText}</p>
+                              <p dir="ltr" className="text-sm font-700 text-foreground sm:text-[15px]">{item.amountText}</p>
                             ) : null}
                           </div>
                           {!sharedTransactionDateText && item.dateText ? (
-                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/20 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
                               <Calendar size={11} className="flex-shrink-0" />
                               <span>{item.dateText}</span>
                             </span>
@@ -3656,12 +3730,14 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                       </div>
                     ))}
                   </div>
-                  {!isSubscriptionFlow && summaryTotalAmountText ? (
-                    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2.5">
-                      <p className="text-sm font-600 text-muted-foreground">
+                  {!isSubscriptionFlow && summaryTotal?.amountText ? (
+                    <div className="border-t border-border/80 pt-2.5">
+                      <div className="flex items-center justify-between rounded-xl bg-card px-1 py-1">
+                        <p className="text-sm font-600 text-muted-foreground">
                         {t('smartEntryModal.totalLabel', { ns: 'portal' })}
-                      </p>
-                      <p dir="ltr" className="text-sm font-700 text-foreground">{summaryTotalAmountText}</p>
+                        </p>
+                        <p dir="ltr" className="text-base font-700 text-positive">{summaryTotal.amountText}</p>
+                      </div>
                     </div>
                   ) : null}
                   {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_money' && (
