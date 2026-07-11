@@ -28,6 +28,7 @@ import { getIntlLocale } from '@/lib/locale';
 import { TableSkeleton } from '@/components/ui/LoadingSkeleton';
 import Modal from '@/components/ui/Modal';
 import { downloadCsvFile } from '@/lib/reports-export';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 
 type SortKey = 'transaction_date' | 'merchant' | 'amount';
 type SortDir = 'asc' | 'desc' | null;
@@ -906,7 +907,7 @@ export default function TransactionsTable({
                     </div>
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
                       <span className={`inline-flex max-w-full items-center gap-1 rounded-full bg-[#f2f6fb] px-2.5 py-[0.28rem] text-muted-foreground ${isArabic ? 'text-[11px] leading-5' : 'text-[10.5px] leading-4'}`}>
-                        <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
+                        <CategoryIcon category={txn.category || 'tag'} color={catColor} size={12} />
                         <span className="truncate">
                           {txn.category
                             ? translateSystemCategoryName(txn.category.name, (key, options) =>
@@ -1034,7 +1035,7 @@ export default function TransactionsTable({
                           <div className="flex flex-wrap items-center gap-1.5">
                             {txn.category ? (
                               <span className="inline-flex min-w-0 items-center gap-1.5 text-xs text-foreground">
-                                <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ backgroundColor: catColor }} />
+                                <CategoryIcon category={txn.category} color={catColor} size={13} />
                                 <span className="truncate">
                                   {translateSystemCategoryName(txn.category.name, (key, options) =>
                                     t(key, { ...(options || {}), ns: 'common' })
@@ -1186,7 +1187,7 @@ export default function TransactionsTable({
                         <td className="px-4 py-3">
                           {txn.category ? (
                             <span className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: catColor }} />
+                              <CategoryIcon category={txn.category} color={catColor} size={14} />
                               <span className="text-sm text-foreground">
                                 {translateSystemCategoryName(txn.category.name, (key, options) =>
                                   t(key, { ...(options || {}), ns: 'common' })
@@ -1644,12 +1645,23 @@ export default function TransactionsTable({
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">
                   <span className="text-muted-foreground">{t('transactions.category', { ns: 'portal' })}</span>
-                  <span className="max-w-[60%] truncate text-right text-foreground">
-                    {tabletDetailsTransaction.category
-                      ? translateSystemCategoryName(tabletDetailsTransaction.category.name, (key, options) =>
-                        t(key, { ...(options || {}), ns: 'common' })
-                      )
-                      : t('transactions.uncategorized', { ns: 'portal' })}
+                  <span className="inline-flex max-w-[60%] items-center justify-end gap-2 text-right text-foreground">
+                    {tabletDetailsTransaction.category ? (
+                      <>
+                        <span className="truncate">
+                          {translateSystemCategoryName(tabletDetailsTransaction.category.name, (key, options) =>
+                            t(key, { ...(options || {}), ns: 'common' })
+                          )}
+                        </span>
+                        <CategoryIcon
+                          category={tabletDetailsTransaction.category}
+                          color={tabletDetailsTransaction.category.color || null}
+                          size={14}
+                        />
+                      </>
+                    ) : (
+                      <span className="truncate">{t('transactions.uncategorized', { ns: 'portal' })}</span>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-4 py-3 text-sm">

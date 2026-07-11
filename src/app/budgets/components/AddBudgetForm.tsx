@@ -7,6 +7,7 @@ import { createBudget, getCategories, updateBudget, type Budget, type Category }
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 import FormSection from '@/components/ui/FormSection';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
@@ -19,6 +20,7 @@ import {
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { getBudgetPeriodTypeLabel, getCurrentBudgetPeriod, getDefaultBudgetAnchorDate, normalizeBudgetPeriodValue, validateBudgetPeriodConfig } from '@/lib/financial-periods/budgets';
 import type { BudgetPeriod } from '@/lib/financial-periods';
+import { translateSystemCategoryName } from '@/lib/system-category-display';
 
 interface AddBudgetFormProps {
   budget?: Budget | null;
@@ -296,6 +298,10 @@ export default function AddBudgetForm({
   };
 
   const scheduleLabel = useMemo(() => formatSemimonthlySchedule(periodContext, t), [periodContext, t]);
+  const selectedCategory = useMemo(
+    () => categories.find((category) => category.id === form.category_id) || null,
+    [categories, form.category_id]
+  );
   const budgetValidation = useMemo(() => {
     if (!periodContext) return null;
     return validateBudgetPeriodConfig({
@@ -425,8 +431,29 @@ export default function AddBudgetForm({
             onChange={(e) => updateField('category_id', e.target.value)}
           >
             <option value="">{t('budgets.form.selectCategory', { ns: 'portal' })}</option>
-            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {translateSystemCategoryName(c.name, (key, options) =>
+                  t(key, { ...(options || {}), ns: 'common' })
+                )}
+              </option>
+            ))}
           </select>
+          {selectedCategory ? (
+            <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+              <CategoryIcon
+                category={selectedCategory}
+                withContainer
+                size={14}
+                containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
+              />
+              <span className="min-w-0 truncate text-sm font-600 text-foreground">
+                {translateSystemCategoryName(selectedCategory.name, (key, options) =>
+                  t(key, { ...(options || {}), ns: 'common' })
+                )}
+              </span>
+            </div>
+          ) : null}
           {fieldErrors.category_id ? <p className={getFieldErrorTextClassName()}>{fieldErrors.category_id}</p> : null}
         </div>
         <div>

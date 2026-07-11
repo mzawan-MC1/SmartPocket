@@ -67,6 +67,7 @@ import {
 } from '@/lib/form-field-styles';
 import type { SpaceMember } from '@/lib/spaces';
 import { useLanguage } from '@/contexts/LanguageContext';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 
 type TransactionModalMode = 'single' | 'multiple';
 type TransactionEntryKind = 'standard' | 'personal_subscription_payment' | 'loan_repayment';
@@ -1691,14 +1692,27 @@ export default function AddTransactionModal({
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
                                     {t('transactions.category', { ns: 'portal' })}
                                   </p>
-                                  <p className="mt-1 text-sm font-600 text-foreground">
-                                    {selectedSubscription.category_id
-                                      ? translateSystemCategoryName(
-                                        categoryMap.get(selectedSubscription.category_id)?.name || selectedSubscription.category?.name || '',
-                                        (key, options) => t(key, { ...(options || {}), ns: 'common' })
-                                      ) || t('transactions.noCategory', { ns: 'portal' })
-                                      : t('transactions.noCategory', { ns: 'portal' })}
-                                  </p>
+                                  <div className="mt-1 flex items-center gap-2">
+                                    <CategoryIcon
+                                      category={(selectedSubscription.category_id
+                                        ? categoryMap.get(selectedSubscription.category_id)
+                                        : null) || selectedSubscription.category || 'tag'}
+                                      color={(selectedSubscription.category_id
+                                        ? categoryMap.get(selectedSubscription.category_id)?.color
+                                        : null) || selectedSubscription.category?.color || null}
+                                      withContainer
+                                      size={14}
+                                      containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
+                                    />
+                                    <p className="min-w-0 truncate text-sm font-600 text-foreground">
+                                      {selectedSubscription.category_id
+                                        ? translateSystemCategoryName(
+                                          categoryMap.get(selectedSubscription.category_id)?.name || selectedSubscription.category?.name || '',
+                                          (key, options) => t(key, { ...(options || {}), ns: 'common' })
+                                        ) || t('transactions.noCategory', { ns: 'portal' })
+                                        : t('transactions.noCategory', { ns: 'portal' })}
+                                    </p>
+                                  </div>
                                 </div>
                                 <div className="rounded-xl border border-border bg-card px-3 py-2">
                                   <p className="text-xs font-600 uppercase tracking-wide text-muted-foreground">
@@ -1828,6 +1842,22 @@ export default function AddTransactionModal({
                                 <label className={getFieldLabelClassName(hasFieldError('category_id'), 'mb-1 block text-sm font-600')}>
                                   {t('transactions.category', { ns: 'portal' })}
                                 </label>
+                                {row.category_id ? (
+                                  <div className="mb-2 flex items-center gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+                                    <CategoryIcon
+                                      category={categoryMap.get(row.category_id) || 'tag'}
+                                      color={categoryMap.get(row.category_id)?.color || null}
+                                      withContainer
+                                      size={14}
+                                      containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
+                                    />
+                                    <span className="min-w-0 truncate text-sm font-600 text-foreground">
+                                      {translateSystemCategoryName(categoryMap.get(row.category_id)?.name || '', (key, options) =>
+                                        t(key, { ...(options || {}), ns: 'common' })
+                                      ) || t('transactions.noCategory', { ns: 'portal' })}
+                                    </span>
+                                  </div>
+                                ) : null}
                                 <select
                                   className={getFieldInputClassName('h-10 min-w-0 text-[13px] input-base', hasFieldError('category_id'))}
                                   value={row.category_id}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
-import { Tag, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
+import { Check, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -12,43 +12,19 @@ import SearchField from '@/components/ui/SearchField';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
-
-
-interface Category {
-  id: string;
-  name: string;
-  category_type: 'income' | 'expense' | 'transfer';
-  color: string;
-  icon: string;
-  is_system: boolean;
-}
+import type { Category } from '@/lib/finance';
+import CategoryIcon, {
+  CATEGORY_ICON_OPTIONS,
+  getCategoryIconOption,
+  normalizeCategoryIconKey,
+} from '@/components/categories/CategoryIcon';
 
 interface CategoryFormData {
   name: string;
   category_type: 'income' | 'expense' | 'transfer';
   color: string;
+  icon: string;
 }
-
-const SYSTEM_CATEGORIES: Category[] = [
-  { id: 'sys-1', name: 'Salary', category_type: 'income', color: '#059669', icon: 'Briefcase', is_system: true },
-  { id: 'sys-2', name: 'Freelance', category_type: 'income', color: '#0ea5e9', icon: 'Laptop', is_system: true },
-  { id: 'sys-3', name: 'Groceries & Household', category_type: 'expense', color: '#65a30d', icon: 'ShoppingCart', is_system: true },
-  { id: 'sys-4', name: 'Dining Out', category_type: 'expense', color: '#f97316', icon: 'UtensilsCrossed', is_system: true },
-  { id: 'sys-5', name: 'Housing', category_type: 'expense', color: '#7c3aed', icon: 'Home', is_system: true },
-  { id: 'sys-6', name: 'Transport', category_type: 'expense', color: '#2563eb', icon: 'Car', is_system: true },
-  { id: 'sys-7', name: 'Utilities', category_type: 'expense', color: '#8b5cf6', icon: 'Zap', is_system: true },
-  { id: 'sys-8', name: 'Shopping', category_type: 'expense', color: '#d97706', icon: 'ShoppingBag', is_system: true },
-  { id: 'sys-9', name: 'Healthcare', category_type: 'expense', color: '#ec4899', icon: 'Heart', is_system: true },
-  { id: 'sys-10', name: 'Entertainment', category_type: 'expense', color: '#dc2626', icon: 'Tv', is_system: true },
-  { id: 'sys-11', name: 'Travel', category_type: 'expense', color: '#0891b2', icon: 'Plane', is_system: true },
-  { id: 'sys-12', name: 'Education', category_type: 'expense', color: '#16a34a', icon: 'BookOpen', is_system: true },
-  { id: 'sys-13', name: 'Personal Care', category_type: 'expense', color: '#db2777', icon: 'Sparkles', is_system: true },
-  { id: 'sys-14', name: 'Subscriptions', category_type: 'expense', color: '#7c3aed', icon: 'RefreshCw', is_system: true },
-  { id: 'sys-15', name: 'Savings', category_type: 'expense', color: '#059669', icon: 'PiggyBank', is_system: true },
-  { id: 'sys-16', name: 'Other Expense', category_type: 'expense', color: '#6b7280', icon: 'Tag', is_system: true },
-  { id: 'sys-17', name: 'Other', category_type: 'expense', color: '#6b7280', icon: 'EllipsisHorizontal', is_system: true },
-  { id: 'sys-18', name: 'Transfer', category_type: 'transfer', color: '#0ea5e9', icon: 'ArrowLeftRight', is_system: true },
-];
 
 const COLOR_OPTIONS = [
   '#059669', '#0ea5e9', '#f97316', '#7c3aed', '#2563eb', '#8b5cf6',
@@ -67,10 +43,11 @@ export default function CategoriesPage() {
   const { user } = useAuth();
 
   const { register, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm<CategoryFormData>({
-    defaultValues: { category_type: 'expense', color: '#6b7280' },
+    defaultValues: { category_type: 'expense', color: '#6b7280', icon: 'tag' },
   });
 
   const selectedColor = watch('color');
+  const selectedIcon = getCategoryIconOption(watch('icon'));
 
   useEffect(() => {
     loadCategories();
@@ -78,7 +55,7 @@ export default function CategoriesPage() {
 
   const loadCategories = async () => {
     if (!user) {
-      setCategories(SYSTEM_CATEGORIES);
+      setCategories([]);
       setIsLoading(false);
       return;
     }
@@ -90,9 +67,9 @@ export default function CategoriesPage() {
         .or(`user_id.eq.${user.id},is_system.eq.true`)
         .order('sort_order', { ascending: true });
       if (error) throw error;
-      setCategories(data || SYSTEM_CATEGORIES);
+      setCategories((data || []) as Category[]);
     } catch {
-      setCategories(SYSTEM_CATEGORIES);
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +83,12 @@ export default function CategoriesPage() {
       if (editCategory) {
         const { error } = await supabase
           .from('categories')
-          .update({ name: data.name, category_type: data.category_type, color: data.color })
+          .update({
+            name: data.name,
+            category_type: data.category_type,
+            color: data.color,
+            icon: normalizeCategoryIconKey(data.icon) || 'tag',
+          })
           .eq('id', editCategory.id)
           .eq('user_id', user.id);
         if (error) throw error;
@@ -117,7 +99,7 @@ export default function CategoriesPage() {
           name: data.name,
           category_type: data.category_type,
           color: data.color,
-          icon: 'Tag',
+          icon: normalizeCategoryIconKey(data.icon) || 'tag',
           is_system: false,
         });
         if (error) throw error;
@@ -152,7 +134,8 @@ export default function CategoriesPage() {
     setEditCategory(cat);
     setValue('name', cat.name);
     setValue('category_type', cat.category_type);
-    setValue('color', cat.color);
+    setValue('color', cat.color || '#6b7280');
+    setValue('icon', normalizeCategoryIconKey(cat.icon) || 'tag');
     setShowAddModal(true);
   };
 
@@ -246,22 +229,31 @@ export default function CategoriesPage() {
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {cats.map((cat) => (
                       <div key={cat.id} className="group card-elevated flex items-center gap-3 p-4 max-[480px]:p-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: `${cat.color}20` }}
-                        >
-                          <Tag size={18} style={{ color: cat.color }} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-600 text-foreground truncate">
+                        <CategoryIcon
+                          category={cat}
+                          withContainer
+                          size={18}
+                          containerClassName="h-10 w-10 flex-shrink-0 rounded-xl"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-600 text-foreground">
                             {translateSystemCategoryName(cat.name, t)}
                           </p>
-                          {cat.is_system && (
-                            <span className="text-[10px] text-muted-foreground">{t('categories.system')}</span>
-                          )}
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-full border border-border bg-muted/20 px-2 py-0.5 text-[10px] font-600 text-muted-foreground">
+                              {cat.category_type === 'income'
+                                ? t('categories.filters.income')
+                                : cat.category_type === 'expense'
+                                  ? t('categories.filters.expense')
+                                  : t('categories.filters.transfer')}
+                            </span>
+                            {cat.is_system ? (
+                              <span className="text-[10px] text-muted-foreground">{t('categories.system')}</span>
+                            ) : null}
+                          </div>
                         </div>
                         {!cat.is_system && (
-                          <div className="flex items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                          <div className="flex shrink-0 items-center gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                             <button
                               onClick={() => handleEdit(cat)}
                               className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center"
@@ -317,6 +309,67 @@ export default function CategoriesPage() {
               <option value="income">{t('categories.filters.income')}</option>
               <option value="transfer">{t('categories.filters.transfer')}</option>
             </select>
+          </div>
+
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between gap-3">
+              <label className="block text-sm font-600 text-foreground">
+                {t('categories.form.categoryIcon')}
+              </label>
+              <span className="text-xs text-muted-foreground">
+                {selectedIcon.key === 'tag'
+                  ? t('categories.form.defaultIcon')
+                  : t('categories.form.changeIcon')}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/10 p-3">
+              <CategoryIcon
+                category={{ icon: selectedIcon.key, color: selectedColor }}
+                withContainer
+                size={18}
+                containerClassName="h-10 w-10 flex-shrink-0 rounded-xl"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-600 text-foreground">
+                  {t(selectedIcon.labelKey, { defaultValue: selectedIcon.defaultLabel })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedIcon.key === 'tag'
+                    ? t('categories.form.defaultIcon')
+                    : t('categories.form.changeIcon')}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-6 gap-2 sm:grid-cols-7">
+              {CATEGORY_ICON_OPTIONS.map((option) => {
+                const isSelected = selectedIcon.key === option.key;
+                return (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setValue('icon', option.key, { shouldDirty: true })}
+                    className={`relative flex h-11 items-center justify-center rounded-xl border transition-colors ${
+                      isSelected
+                        ? 'border-accent bg-accent/10 text-accent'
+                        : 'border-border bg-card text-muted-foreground hover:border-accent/40 hover:text-foreground'
+                    }`}
+                    aria-label={t(option.labelKey, { defaultValue: option.defaultLabel })}
+                    title={t(option.labelKey, { defaultValue: option.defaultLabel })}
+                  >
+                    <CategoryIcon
+                      category={{ icon: option.key, color: isSelected ? selectedColor : null }}
+                      size={18}
+                      className={isSelected ? 'text-accent' : ''}
+                    />
+                    {isSelected ? (
+                      <span className="absolute -right-1 -top-1 rounded-full bg-accent p-0.5 text-accent-foreground">
+                        <Check size={10} />
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div>

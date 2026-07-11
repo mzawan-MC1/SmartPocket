@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import FormSection from '@/components/ui/FormSection';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 import { dispatchSmartPocketDataChanged } from '@/lib/data-change';
 import {
   getFieldErrorTextClassName,
@@ -159,6 +160,10 @@ export default function RecurringTransactionForm({
   const filteredCategories = useMemo(
     () => categories.filter((category) => category.category_type === form.transaction_type),
     [categories, form.transaction_type]
+  );
+  const selectedCategory = useMemo(
+    () => filteredCategories.find((category) => category.id === form.category_id) || null,
+    [filteredCategories, form.category_id]
   );
 
   useEffect(() => {
@@ -536,6 +541,21 @@ export default function RecurringTransactionForm({
             </option>
           ))}
         </select>
+        {selectedCategory ? (
+          <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+            <CategoryIcon
+              category={selectedCategory}
+              withContainer
+              size={14}
+              containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
+            />
+            <span className="min-w-0 truncate text-sm font-600 text-foreground">
+              {translateSystemCategoryName(selectedCategory.name, (key, options) =>
+                t(key, { ...(options || {}), ns: 'common' })
+              )}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div>

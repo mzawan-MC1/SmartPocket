@@ -39,11 +39,18 @@ const SYSTEM_CATEGORY_KEY_BY_NAME: Record<string, string> = {
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
+export function getSystemCategoryDisplayKey(name: string | null | undefined) {
+  const fallback = (name || '').trim();
+  if (!fallback) return null;
+
+  return SYSTEM_CATEGORY_KEY_BY_NAME[fallback.toLowerCase()] || null;
+}
+
 export function translateSystemCategoryName(name: string | null | undefined, t: Translate) {
   const fallback = (name || '').trim();
   if (!fallback) return '';
 
-  const key = SYSTEM_CATEGORY_KEY_BY_NAME[fallback.toLowerCase()];
+  const key = getSystemCategoryDisplayKey(fallback);
   if (!key) return fallback;
 
   return t(`systemCategories.${key}`, {

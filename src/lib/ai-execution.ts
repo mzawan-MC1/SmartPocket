@@ -485,6 +485,9 @@ export async function buildAIContext() {
       id: c.id,
       name: c.name,
       type: c.category_type,
+      color: c.color,
+      icon: c.icon,
+      isSystem: c.is_system,
     })),
     subscriptions: subscriptions.map((subscription) => ({
       id: subscription.id,

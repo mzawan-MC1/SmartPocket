@@ -75,6 +75,7 @@ import {
 } from '@/lib/transaction-documents';
 import { trackAiEntryUsed } from '@/lib/analytics';
 import type { VoiceRecorderSubmission } from '@/lib/voice-ai';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 
  type AssistantStep =
    | 'entry'
@@ -396,10 +397,17 @@ function getPurposeOptionText(
   }
 }
 
+type SmartEntryContextCategory = NonNullable<NonNullable<FinancialContext['categories']>[number]>;
+
 type SmartEntryReviewDisplayItem = {
   primaryText: string;
+  secondaryText?: string | null;
+  amountText: string | null;
   dateIso: string | null;
   dateText: string | null;
+  iconCategory: SmartEntryContextCategory | string | null;
+  iconColor: string | null;
+  showSeparateAmount: boolean;
 };
 
 function getSmartEntryActionDisplayDate(action: ParsedFinancialInstruction['actions'][number]) {
@@ -422,11 +430,46 @@ function formatSmartEntryDisplayDate(
   }).format(parsed);
 }
 
+function findSmartEntryContextCategory(
+  categoryName: string | null | undefined,
+  categories: SmartEntryContextCategory[] | undefined
+) {
+  const lookup = (categoryName || '').trim().toLowerCase();
+  if (!lookup || !categories?.length) return null;
+
+  return (
+    categories.find((category) => category.name.trim().toLowerCase() === lookup)
+    || categories.find((category) => category.name.trim().toLowerCase().includes(lookup))
+    || categories.find((category) => lookup.includes(category.name.trim().toLowerCase()))
+    || null
+  );
+}
+
+function getSmartEntryCategoryDisplay(
+  categoryName: string | null | undefined,
+  categories: SmartEntryContextCategory[] | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+) {
+  const matchedCategory = findSmartEntryContextCategory(categoryName, categories);
+  const localizedName = categoryName
+    ? translateSystemCategoryName(categoryName, (key, options) =>
+        t(key, { ...(options || {}), ns: 'common' })
+      )
+    : t('transactions.noCategory', { ns: 'portal' });
+
+  return {
+    label: localizedName,
+    iconCategory: matchedCategory || categoryName || 'tag',
+    iconColor: matchedCategory?.color || null,
+  };
+}
+
 function getCompactSummaryRowsLocalized(
   instruction: ParsedFinancialInstruction,
   t: (key: string, options?: Record<string, unknown>) => string,
   fallbackCurrency: string | undefined,
-  language: SmartEntryDisplayLanguage
+  language: SmartEntryDisplayLanguage,
+  contextCategories?: SmartEntryContextCategory[]
 ) {
   return instruction.actions
     .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
@@ -435,41 +478,51 @@ function getCompactSummaryRowsLocalized(
         ? formatMoney(action.amount, action.currency, fallbackCurrency)
         : t('smartEntryModal.summary.amountNeeded', { ns: 'portal' });
       const personName = action.personName || t('smartEntryModal.summary.someone', { ns: 'portal' });
-      const categoryName = action.categoryName
-        ? translateSystemCategoryName(action.categoryName, (key, options) =>
-            t(key, { ...(options || {}), ns: 'common' })
-          )
-        : '';
+      const categoryDisplay = getSmartEntryCategoryDisplay(action.categoryName, contextCategories, t);
       const dateIso = getSmartEntryActionDisplayDate(action);
       const dateText = formatSmartEntryDisplayDate(dateIso, language, 'short');
       let primaryText: string;
+      let secondaryText: string | null = null;
+      let iconCategory: SmartEntryReviewDisplayItem['iconCategory'] = categoryDisplay.iconCategory;
+      let iconColor: string | null = categoryDisplay.iconColor;
+      let showSeparateAmount = false;
 
       switch (action.actionType) {
         case 'income':
           primaryText = t('smartEntryModal.summaryRows.income', { ns: 'portal', amount });
+          iconCategory = action.categoryName || 'wallet';
+          iconColor = null;
           break;
         case 'loan_received':
           primaryText = t('smartEntryModal.summaryRows.loanReceived', { ns: 'portal', amount, personName });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'money_received_from_person':
           primaryText = t('smartEntryModal.summaryRows.receivedFromPerson', { ns: 'portal', amount, personName });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'expense':
         case 'expense_from_held_balance':
-          primaryText = t('smartEntryModal.summaryRows.expense', {
-            ns: 'portal',
-            amount,
-            categoryName,
-          }).trim();
+          primaryText = categoryDisplay.label;
+          secondaryText = action.personName ? personName : null;
+          showSeparateAmount = true;
           break;
         case 'loan_repayment':
           primaryText = t('smartEntryModal.summaryRows.loanRepayment', { ns: 'portal', amount, personName });
+          iconCategory = 'credit-card';
+          iconColor = null;
           break;
         case 'reimbursement_payment':
           primaryText = t('smartEntryModal.summaryRows.reimbursementPayment', { ns: 'portal', amount, personName });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'money_returned_to_person':
           primaryText = t('smartEntryModal.summaryRows.moneyReturned', { ns: 'portal', amount, personName });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'transfer':
           primaryText = t('smartEntryModal.summaryRows.transfer', {
@@ -478,6 +531,8 @@ function getCompactSummaryRowsLocalized(
             sourceAccount: action.accountName || t('smartEntryModal.summary.oneAccount', { ns: 'portal' }),
             destinationAccount: action.destinationAccountName || t('smartEntryModal.summary.anotherAccount', { ns: 'portal' }),
           });
+          iconCategory = 'arrow-left-right';
+          iconColor = null;
           break;
         default:
           primaryText = action.description || t('smartEntryModal.summaryRows.fallback', {
@@ -485,13 +540,20 @@ function getCompactSummaryRowsLocalized(
             actionType: action.actionType,
             amount,
           });
+          iconCategory = action.categoryName || 'tag';
+          iconColor = null;
           break;
       }
 
       return {
         primaryText,
+        secondaryText,
+        amountText: showSeparateAmount ? amount : null,
         dateIso,
         dateText,
+        iconCategory,
+        iconColor,
+        showSeparateAmount,
       } satisfies SmartEntryReviewDisplayItem;
     });
 }
@@ -500,7 +562,8 @@ function getUnderstandingLinesLocalized(
   instruction: ParsedFinancialInstruction,
   t: (key: string, options?: Record<string, unknown>) => string,
   fallbackCurrency: string | undefined,
-  language: SmartEntryDisplayLanguage
+  language: SmartEntryDisplayLanguage,
+  contextCategories?: SmartEntryContextCategory[]
 ) {
   return instruction.actions
     .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
@@ -509,42 +572,63 @@ function getUnderstandingLinesLocalized(
         ? formatMoney(action.amount, action.currency, fallbackCurrency)
         : t('smartEntryModal.understanding.unknownAmount', { ns: 'portal' });
       const personName = action.personName || t('smartEntryModal.understanding.someone', { ns: 'portal' });
-      const categoryName = action.categoryName
-        ? translateSystemCategoryName(action.categoryName, (key, options) =>
-            t(key, { ...(options || {}), ns: 'common' })
-          )
-        : '';
+      const categoryDisplay = getSmartEntryCategoryDisplay(action.categoryName, contextCategories, t);
       const dateIso = getSmartEntryActionDisplayDate(action);
-      const dateText = formatSmartEntryDisplayDate(dateIso, language, 'long');
+      const dateText = formatSmartEntryDisplayDate(dateIso, language, 'short');
       let primaryText: string;
+      let secondaryText: string | null = null;
+      let amountText: string | null = null;
+      let iconCategory: SmartEntryReviewDisplayItem['iconCategory'] = categoryDisplay.iconCategory;
+      let iconColor: string | null = categoryDisplay.iconColor;
+      let showSeparateAmount = false;
 
       switch (action.actionType) {
         case 'income':
           primaryText = t('smartEntryModal.understanding.income', { ns: 'portal', personName, amount });
+          iconCategory = action.categoryName || 'wallet';
+          iconColor = null;
           break;
         case 'expense':
-          primaryText = t('smartEntryModal.understanding.expense', { ns: 'portal', amount, categoryName }).trim();
+          primaryText = categoryDisplay.label;
+          amountText = amount;
+          showSeparateAmount = true;
           break;
         case 'loan_received':
           primaryText = t('smartEntryModal.understanding.loanReceived', { ns: 'portal', personName, amount });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'loan_repayment':
           primaryText = t('smartEntryModal.understanding.loanRepayment', { ns: 'portal', personName, amount });
+          iconCategory = 'credit-card';
+          iconColor = null;
           break;
         case 'money_received_from_person':
           primaryText = t('smartEntryModal.understanding.moneyReceivedFromPerson', { ns: 'portal', personName, amount });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'money_returned_to_person':
           primaryText = t('smartEntryModal.understanding.moneyReturnedToPerson', { ns: 'portal', personName, amount });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'expense_from_held_balance':
-          primaryText = t('smartEntryModal.understanding.expenseFromHeldBalance', { ns: 'portal', personName, amount, categoryName }).trim();
+          primaryText = categoryDisplay.label;
+          secondaryText = personName;
+          amountText = amount;
+          showSeparateAmount = true;
           break;
         case 'expense_paid_for_person':
-          primaryText = t('smartEntryModal.understanding.expensePaidForPerson', { ns: 'portal', personName, amount, categoryName }).trim();
+          primaryText = categoryDisplay.label;
+          secondaryText = personName;
+          amountText = amount;
+          showSeparateAmount = true;
           break;
         case 'reimbursement_payment':
           primaryText = t('smartEntryModal.understanding.reimbursementPayment', { ns: 'portal', personName, amount });
+          iconCategory = 'hand-coins';
+          iconColor = null;
           break;
         case 'transfer':
           primaryText = t('smartEntryModal.understanding.transfer', {
@@ -553,6 +637,8 @@ function getUnderstandingLinesLocalized(
             sourceAccount: action.accountName || t('smartEntryModal.understanding.oneAccount', { ns: 'portal' }),
             destinationAccount: action.destinationAccountName || t('smartEntryModal.understanding.anotherAccount', { ns: 'portal' }),
           });
+          iconCategory = 'arrow-left-right';
+          iconColor = null;
           break;
         default:
           primaryText = action.description || t('smartEntryModal.understanding.fallback', {
@@ -560,13 +646,20 @@ function getUnderstandingLinesLocalized(
             actionType: action.actionType,
             amount,
           });
+          iconCategory = action.categoryName || 'tag';
+          iconColor = null;
           break;
       }
 
       return {
         primaryText,
+        secondaryText,
+        amountText,
         dateIso,
         dateText,
+        iconCategory,
+        iconColor,
+        showSeparateAmount,
       } satisfies SmartEntryReviewDisplayItem;
     });
 }
@@ -1032,10 +1125,22 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     ? currentMissingFields.map((field) => getMissingFieldLabel(field, t))
     : [];
   const compactSummaryRows = previewInstruction
-    ? getCompactSummaryRowsLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency, displayLanguage)
+    ? getCompactSummaryRowsLocalized(
+        previewInstruction,
+        t,
+        contextSnapshot?.defaultCurrency,
+        displayLanguage,
+        contextSnapshot?.categories
+      )
     : [];
   const understandingLines = previewInstruction
-    ? getUnderstandingLinesLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency, displayLanguage)
+    ? getUnderstandingLinesLocalized(
+        previewInstruction,
+        t,
+        contextSnapshot?.defaultCurrency,
+        displayLanguage,
+        contextSnapshot?.categories
+      )
     : [];
   const sharedTransactionDateText = useMemo(() => {
     const datedRows = compactSummaryRows.filter((row) => !!row.dateIso);
@@ -1044,6 +1149,20 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     if (uniqueDates.length !== 1 || !uniqueDates[0]) return null;
     return formatSmartEntryDisplayDate(uniqueDates[0], displayLanguage, 'long');
   }, [compactSummaryRows, displayLanguage]);
+  const summaryTotalAmountText = useMemo(() => {
+    if (!previewInstruction) return null;
+
+    const totalAmount = previewInstruction.actions.reduce((sum, action) => {
+      if (action.actionType === 'create_account' || action.actionType === 'create_managed_person') {
+        return sum;
+      }
+      return typeof action.amount === 'number' ? sum + Math.abs(action.amount) : sum;
+    }, 0);
+
+    return totalAmount > 0
+      ? formatMoney(totalAmount, reviewState?.currency, contextSnapshot?.defaultCurrency)
+      : null;
+  }, [contextSnapshot?.defaultCurrency, previewInstruction, reviewState?.currency]);
   const isCompactSubscriptionReview = step === 'confirming' && isSubscriptionFlow;
   const reviewSectionClass = isSubscriptionFlow
     ? 'rounded-xl border border-border bg-muted/20 p-3 sm:p-3.5 space-y-2.5'
@@ -2706,13 +2825,41 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </p>
                   <div className={isSubscriptionFlow ? 'space-y-2' : 'space-y-2.5'}>
                     {understandingLines.map((item, index) => (
-                      <div key={`${item.primaryText}-${item.dateIso || index}`} className="space-y-0.5">
-                        <p className="text-sm text-foreground">{item.primaryText}</p>
-                        {item.dateText ? (
-                          <p className="text-xs text-muted-foreground">
-                            {t('smartEntryModal.dateLabel', { ns: 'portal' })}: {item.dateText}
-                          </p>
-                        ) : null}
+                      <div
+                        key={`${item.primaryText}-${item.dateIso || index}`}
+                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+                      >
+                        <CategoryIcon
+                          category={item.iconCategory}
+                          color={item.iconColor}
+                          withContainer
+                          size={16}
+                          containerClassName="h-9 w-9 flex-shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-sm text-foreground">
+                              {item.showSeparateAmount && item.amountText ? (
+                                <>
+                                  <span dir="ltr" className="font-700 text-foreground">{item.amountText}</span>
+                                  <span className="text-muted-foreground">&middot;</span>
+                                </>
+                              ) : null}
+                              <span className={`${item.showSeparateAmount ? 'truncate font-600' : 'leading-5'}`}>
+                                {item.primaryText}
+                              </span>
+                            </div>
+                            {item.dateText ? (
+                              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                                <Calendar size={11} className="flex-shrink-0" />
+                                <span>{item.dateText}</span>
+                              </span>
+                            ) : null}
+                          </div>
+                          {item.secondaryText ? (
+                            <p className="truncate text-xs text-muted-foreground">{item.secondaryText}</p>
+                          ) : null}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -3476,14 +3623,47 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </div>
                   <div className={isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2'}>
                     {compactSummaryRows.map((item, index) => (
-                      <div key={`${item.primaryText}-${item.dateIso || index}`} className="space-y-0.5">
-                        <p className="text-sm text-foreground">{item.primaryText}</p>
-                        {item.dateText ? (
-                          <p className="text-xs text-muted-foreground">{item.dateText}</p>
-                        ) : null}
+                      <div
+                        key={`${item.primaryText}-${item.dateIso || index}`}
+                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5"
+                      >
+                        <CategoryIcon
+                          category={item.iconCategory}
+                          color={item.iconColor}
+                          withContainer
+                          size={16}
+                          containerClassName="h-9 w-9 flex-shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-600 text-foreground">{item.primaryText}</p>
+                              {item.secondaryText ? (
+                                <p className="truncate text-xs text-muted-foreground">{item.secondaryText}</p>
+                              ) : null}
+                            </div>
+                            {item.showSeparateAmount && item.amountText ? (
+                              <p dir="ltr" className="text-sm font-700 text-foreground">{item.amountText}</p>
+                            ) : null}
+                          </div>
+                          {!sharedTransactionDateText && item.dateText ? (
+                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                              <Calendar size={11} className="flex-shrink-0" />
+                              <span>{item.dateText}</span>
+                            </span>
+                          ) : null}
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {!isSubscriptionFlow && summaryTotalAmountText ? (
+                    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3 py-2.5">
+                      <p className="text-sm font-600 text-muted-foreground">
+                        {t('smartEntryModal.totalLabel', { ns: 'portal' })}
+                      </p>
+                      <p dir="ltr" className="text-sm font-700 text-foreground">{summaryTotalAmountText}</p>
+                    </div>
+                  ) : null}
                   {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_money' && (
                     <p className="text-sm font-600 text-foreground">
                       {t('smartEntryModal.summary.remainingFor', {

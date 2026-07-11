@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormSection from '@/components/ui/FormSection';
+import CategoryIcon from '@/components/categories/CategoryIcon';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
@@ -139,6 +140,7 @@ export default function PersonalSubscriptionForm({
 
   const frequency = watch('billing_frequency');
   const selectedAccountId = watch('financial_account_id');
+  const selectedCategoryId = watch('category_id');
   const linkedRecurringToggle = watch('create_linked_recurring_expense');
   const selectedCurrencyCode = watch('currency_code');
   const reminderDaysBefore = watch('reminder_days_before');
@@ -153,6 +155,10 @@ export default function PersonalSubscriptionForm({
   const selectedAccount = useMemo(
     () => accountOptions.find((account) => account.id === selectedAccountId) || null,
     [accountOptions, selectedAccountId]
+  );
+  const selectedExpenseCategory = useMemo(
+    () => expenseCategories.find((category) => category.id === selectedCategoryId) || null,
+    [expenseCategories, selectedCategoryId]
   );
   const linkedRecurringSupported = supportsLinkedRecurringExpense(
     isPersonalSubscriptionBillingFrequency(frequency) ? frequency : 'monthly'
@@ -569,6 +575,21 @@ export default function PersonalSubscriptionForm({
                 </option>
               ))}
             </select>
+            {selectedExpenseCategory ? (
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-border bg-muted/10 px-3 py-2">
+                <CategoryIcon
+                  category={selectedExpenseCategory}
+                  withContainer
+                  size={14}
+                  containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
+                />
+                <span className="min-w-0 truncate text-sm font-600 text-foreground">
+                  {translateSystemCategoryName(selectedExpenseCategory.name, (key, options) =>
+                    t(key, { ...(options || {}), ns: 'common' })
+                  )}
+                </span>
+              </div>
+            ) : null}
           </div>
 
         </div>

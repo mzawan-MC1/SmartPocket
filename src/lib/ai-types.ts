@@ -59,7 +59,14 @@ export interface FinancialContext {
     relationship?: 'spouse' | 'child' | 'parent' | 'sibling' | 'friend' | 'relative' | 'colleague' | 'client' | 'other';
     moneyHeld?: number;
   }>;
-  categories?: Array<{ id: string; name: string; type: string }>;
+  categories?: Array<{
+    id: string;
+    name: string;
+    type: string;
+    color?: string | null;
+    icon?: string | null;
+    isSystem?: boolean;
+  }>;
   subscriptions?: Array<{
     id: string;
     name: string;
