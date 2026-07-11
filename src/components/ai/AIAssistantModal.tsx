@@ -1204,12 +1204,16 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   ]);
   const isCompactSubscriptionReview = step === 'confirming' && isSubscriptionFlow;
   const reviewSectionClass = isSubscriptionFlow
-    ? 'rounded-xl border border-border bg-muted/20 p-3 sm:p-3.5 space-y-2.5'
-    : 'rounded-2xl border border-border bg-muted/20 p-4 space-y-3';
+    ? 'rounded-xl border border-border bg-muted/20 p-2.5 sm:p-3 space-y-2'
+    : 'rounded-2xl border border-border bg-muted/20 p-2.5 sm:p-3 space-y-2';
   const reviewInnerCardClass = isSubscriptionFlow
     ? 'rounded-lg bg-card p-2.5'
     : 'rounded-xl bg-card p-3';
   const reviewFieldGroupClass = isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2';
+  const reviewListContainerClass = 'overflow-hidden rounded-xl border border-border/70 bg-card divide-y divide-border/70';
+  const reviewListRowClass = 'flex items-start gap-3 px-3 py-1.5 sm:items-center sm:py-2';
+  const reviewDateChipClass = 'inline-flex w-fit max-w-full flex-shrink-0 items-center gap-1 rounded-full border border-border bg-muted/20 px-2 py-0.5 text-[10.5px] font-600 text-muted-foreground sm:text-[11px]';
+  const reviewTotalRowClass = 'flex items-center justify-between border-t border-border/70 px-3 py-2';
   const amountPromptLabel = previewInstruction && reviewState
     ? getLocalizedAmountPrompt(reviewState, previewInstruction, t)
     : t('smartEntryModal.amountFallback', { ns: 'portal' });
@@ -1328,6 +1332,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       allowedCurrencies: contextSnapshot?.currencies,
     }
   );
+  const primaryAccountMetaText = [
+    selectedAccount?.type ? getAccountTypeLabel(selectedAccount.type, t) : null,
+    primaryAccountDisplayName,
+    primaryAccountDisplayCurrency,
+  ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' · ');
   const normalizeReviewCurrency = useCallback(
     (value?: string) =>
       sanitizeCurrency(value, {
@@ -2451,7 +2460,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
           isCompactSubscriptionReview
             ? 'w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[20px] sm:w-[calc(100vw-24px)] sm:max-h-[85vh]'
-            : 'w-full max-w-[812px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),812px)]'
+            : 'w-full max-w-[856px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),856px)]'
         }`}
         dir={isRTL ? 'rtl' : 'ltr'}
       >
@@ -2824,8 +2833,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
 
           {/* Confirming */}
           {step === 'confirming' && parsed && reviewState && previewInstruction && (
-            <div className={`flex min-h-full flex-col ${isSubscriptionFlow ? 'p-4 sm:p-5' : 'space-y-4 p-5'}`}>
-              <div className={`flex items-center gap-2 ${isSubscriptionFlow ? 'mb-3' : 'mb-4'}`}>
+            <div className={`flex min-h-full flex-col gap-2.5 ${isSubscriptionFlow ? 'p-4 sm:p-5' : 'p-4 sm:p-5'}`}>
+              <div className="flex items-center gap-2">
                 <CheckCircle size={18} className="text-positive" />
                 <p className="text-sm font-600 text-foreground">
                   {t('smartEntryModal.reviewTitle', { ns: 'portal' })}
@@ -2833,7 +2842,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
               </div>
 
               {transcript && (
-                <div className={`bg-muted/50 ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
+                <div className={`bg-muted/50 ${isSubscriptionFlow ? 'rounded-lg p-2.5' : 'rounded-xl p-2.5 sm:p-3'}`}>
                   <p className="text-xs text-muted-foreground">
                     {t('smartEntryModal.inputLabel', { ns: 'portal' })}:
                   </p>
@@ -2847,18 +2856,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 </div>
               )}
               {translationNoticeBanner ? (
-                <div className={isSubscriptionFlow ? 'mb-3' : 'mb-4'}>
+                <div>
                   {translationNoticeBanner}
                 </div>
               ) : null}
               {originalTranscriptDisclosure ? (
-                <div className={isSubscriptionFlow ? 'mb-3' : 'mb-4'}>
+                <div>
                   {originalTranscriptDisclosure}
                 </div>
               ) : null}
 
               {errorMessage && (
-                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
+                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'rounded-lg p-2.5' : 'rounded-xl p-3'}`}>
                   <div className="flex items-start gap-2">
                     <AlertTriangle size={14} className="text-warning mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-warning">{errorMessage}</p>
@@ -2867,7 +2876,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
               )}
 
               {previewInstruction.warnings?.length > 0 && (
-                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'mb-3 rounded-lg p-2.5' : 'mb-4 rounded-xl p-3'}`}>
+                <div className={`border border-warning/20 bg-warning-soft ${isSubscriptionFlow ? 'rounded-lg p-2.5' : 'rounded-xl p-3'}`}>
                   {previewInstruction.warnings.map((w, i) => (
                     <div key={i} className="flex items-start gap-2">
                       <AlertTriangle size={14} className="text-warning mt-0.5 flex-shrink-0" />
@@ -2877,46 +2886,46 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 </div>
               )}
 
-              <div className={isSubscriptionFlow ? 'flex-1 space-y-3' : 'space-y-4'}>
+              <div className={isSubscriptionFlow ? 'flex-1 space-y-3' : 'space-y-3'}>
                 <div className={reviewSectionClass}>
                   <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                     {t('smartEntryModal.understandingTitle', { ns: 'portal' })}
                   </p>
-                  <div className={isSubscriptionFlow ? 'space-y-2' : 'space-y-2.5'}>
+                  <div className={reviewListContainerClass}>
                     {understandingLines.map((item, index) => (
                       <div
                         key={`${item.primaryText}-${item.dateIso || index}`}
-                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 sm:items-center"
+                        className={reviewListRowClass}
                       >
                         <CategoryIcon
                           category={item.iconCategory}
                           color={item.iconColor}
                           withContainer
                           size={16}
-                          containerClassName="h-9 w-9 flex-shrink-0"
+                          containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
                         />
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <div className="min-w-0 flex flex-wrap items-center gap-1.5 text-sm text-foreground sm:flex-nowrap sm:gap-2.5">
+                        <div className="min-w-0 flex flex-1 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                          <div className="min-w-0 space-y-0.5">
+                            <div className="flex min-w-0 flex-col gap-0.5 text-sm text-foreground min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-2 sm:gap-2.5">
                               {item.showSeparateAmount && item.amountText ? (
-                                <>
-                                  <span dir="ltr" className="font-700 text-foreground">{item.amountText}</span>
-                                  <span className="text-muted-foreground sm:hidden">&middot;</span>
-                                </>
+                                <span dir="ltr" className="font-700 text-foreground">{item.amountText}</span>
                               ) : null}
-                              <span className={`min-w-0 ${item.showSeparateAmount ? 'truncate font-600' : 'leading-5'}`}>
+                              {item.showSeparateAmount && item.amountText ? (
+                                <span className="hidden text-muted-foreground min-[420px]:inline">&middot;</span>
+                              ) : null}
+                              <span className={`min-w-0 truncate ${item.showSeparateAmount ? 'font-600' : 'leading-5'}`}>
                                 {item.primaryText}
                               </span>
                             </div>
-                            {item.dateText ? (
-                              <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/20 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
-                                <Calendar size={11} className="flex-shrink-0" />
-                                <span>{item.dateText}</span>
-                              </span>
+                            {item.secondaryText ? (
+                              <p className="truncate text-xs text-muted-foreground">{item.secondaryText}</p>
                             ) : null}
                           </div>
-                          {item.secondaryText ? (
-                            <p className="truncate text-xs text-muted-foreground">{item.secondaryText}</p>
+                          {item.dateText ? (
+                            <span className={`${reviewDateChipClass} self-start sm:self-auto`}>
+                              <Calendar size={11} className="flex-shrink-0" />
+                              <span>{item.dateText}</span>
+                            </span>
                           ) : null}
                         </div>
                       </div>
@@ -3427,44 +3436,26 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
 
                 {(isSubscriptionFlow || (reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear'))) && (
                   <div className={reviewSectionClass}>
-                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
-                      {isSubscriptionFlow
-                        ? t('smartEntryModal.subscription.paymentAccountSection', {
-                            ns: 'portal',
-                            defaultValue: 'Payment account',
-                          })
-                        : t('smartEntryModal.accountTitle', { ns: 'portal' })}
-                    </p>
                     <div className="relative">
                       <div
-                        className={`relative overflow-hidden rounded-2xl border bg-card transition-colors focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10 ${
+                        className={`relative overflow-hidden rounded-xl border bg-card transition-colors focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10 ${
                           hasMissingField('account')
                             ? 'border-negative/50 ring-1 ring-negative/20'
                             : 'border-border/70'
                         }`}
                       >
-                        <div className="pointer-events-none flex min-h-[60px] items-center gap-3 px-3 py-2.5">
-                          <span className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border/70 bg-muted/20 text-muted-foreground">
-                            <Wallet size={16} />
+                        <div className="pointer-events-none flex min-h-[48px] items-center gap-3 px-3 py-1.5">
+                          <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground">
+                            <Wallet size={15} />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground/80">
+                            <p className="text-[10.5px] font-700 uppercase tracking-[0.14em] text-muted-foreground/80">
                               {primaryAccountLabel}
                               {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
                             </p>
-                            <div className="mt-1 flex min-w-0 items-center gap-2">
-                              <p className="min-w-0 truncate text-sm font-600 text-foreground">
-                                {primaryAccountDisplayName}
-                              </p>
-                              {primaryAccountDisplayCurrency ? (
-                                <span
-                                  dir="ltr"
-                                  className="inline-flex flex-shrink-0 items-center rounded-full border border-border bg-muted/20 px-2 py-0.5 text-[11px] font-700 text-muted-foreground"
-                                >
-                                  {primaryAccountDisplayCurrency}
-                                </span>
-                              ) : null}
-                            </div>
+                            <p className="mt-0.5 min-w-0 truncate text-sm font-600 text-foreground">
+                              {primaryAccountMetaText}
+                            </p>
                           </div>
                           <ChevronDown size={16} className="flex-shrink-0 text-muted-foreground" />
                         </div>
@@ -3682,12 +3673,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 )}
 
                 <div className={reviewSectionClass}>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                       {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
                     </p>
                     {sharedTransactionDateText ? (
-                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-border/70 bg-card px-3 py-1.5 text-[11px] font-600 text-muted-foreground">
+                      <span className="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-border/70 bg-card px-2.5 py-0.5 text-[10.5px] font-600 text-muted-foreground sm:text-[11px]">
                         <Calendar size={12} className="flex-shrink-0" />
                         <span>{t('smartEntryModal.transactionDateLabel', { ns: 'portal' })}</span>
                         <span aria-hidden="true">&middot;</span>
@@ -3695,21 +3686,21 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                       </span>
                     ) : null}
                   </div>
-                  <div className={isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2'}>
+                  <div className={reviewListContainerClass}>
                     {compactSummaryRows.map((item, index) => (
                       <div
                         key={`${item.primaryText}-${item.dateIso || index}`}
-                        className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5 sm:items-center"
+                        className={reviewListRowClass}
                       >
                         <CategoryIcon
                           category={item.iconCategory}
                           color={item.iconColor}
                           withContainer
                           size={16}
-                          containerClassName="h-9 w-9 flex-shrink-0"
+                          containerClassName="h-8 w-8 flex-shrink-0 rounded-lg"
                         />
                         <div className="min-w-0 flex-1 space-y-1">
-                          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                          <div className="flex min-w-0 items-start justify-between gap-3 sm:items-center">
                             <div className="min-w-0">
                               <p className="truncate text-sm font-600 text-foreground">{item.primaryText}</p>
                               {item.secondaryText ? (
@@ -3717,11 +3708,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                               ) : null}
                             </div>
                             {item.showSeparateAmount && item.amountText ? (
-                              <p dir="ltr" className="text-sm font-700 text-foreground sm:text-[15px]">{item.amountText}</p>
+                              <p dir="ltr" className="text-sm font-700 text-foreground sm:min-w-[112px] sm:text-right sm:text-[15px]">{item.amountText}</p>
                             ) : null}
                           </div>
                           {!sharedTransactionDateText && item.dateText ? (
-                            <span className="inline-flex w-fit items-center gap-1 rounded-full border border-border bg-muted/20 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+                            <span className={reviewDateChipClass}>
                               <Calendar size={11} className="flex-shrink-0" />
                               <span>{item.dateText}</span>
                             </span>
@@ -3729,17 +3720,15 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                         </div>
                       </div>
                     ))}
-                  </div>
-                  {!isSubscriptionFlow && summaryTotal?.amountText ? (
-                    <div className="border-t border-border/80 pt-2.5">
-                      <div className="flex items-center justify-between rounded-xl bg-card px-1 py-1">
+                    {!isSubscriptionFlow && summaryTotal?.amountText ? (
+                      <div className={reviewTotalRowClass}>
                         <p className="text-sm font-600 text-muted-foreground">
-                        {t('smartEntryModal.totalLabel', { ns: 'portal' })}
+                          {t('smartEntryModal.totalLabel', { ns: 'portal' })}
                         </p>
-                        <p dir="ltr" className="text-base font-700 text-positive">{summaryTotal.amountText}</p>
+                        <p dir="ltr" className="text-base font-700 text-positive sm:min-w-[112px] sm:text-right">{summaryTotal.amountText}</p>
                       </div>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                   {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_money' && (
                     <p className="text-sm font-600 text-foreground">
                       {t('smartEntryModal.summary.remainingFor', {
@@ -3786,8 +3775,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     </p>
                   </div>
                 )}
-              </div>
-
               <div className={`flex gap-2 ${
                 isSubscriptionFlow
                   ? 'sticky bottom-0 mt-3 border-t border-border bg-card/95 pt-3 pb-1 backdrop-blur'
@@ -3820,6 +3807,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   {t('smartEntryModal.completeRequiredDetails', { ns: 'portal' })}
                 </p>
               )}
+            </div>
             </div>
           )}
 

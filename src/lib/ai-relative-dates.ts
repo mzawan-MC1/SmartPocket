@@ -9,6 +9,7 @@ const WEEKDAY_INDEX: Record<string, number> = {
   friday: 5,
   saturday: 6,
 };
+const WEEKDAY_PATTERN = 'sunday|monday|tuesday|wednesday|thursday|friday|saturday';
 
 const MONTH_NAME_PATTERN = [
   'jan(?:uary)?',
@@ -35,7 +36,7 @@ const ABSOLUTE_DATE_PATTERN = new RegExp(
   'i'
 );
 
-const FUTURE_INTENT_PATTERN = /\b(plan(?:ned)?|upcoming|next|tomorrow|will|gonna|going to|later|schedule(?:d)?|future)\b/i;
+const FUTURE_INTENT_PATTERN = /\b(plan(?:ned)?|upcoming|next|tomorrow|will|gonna|going to|later|schedule(?:d)?|schedule for|scheduled for|need to|needs to|due|future|this coming|coming)\b/i;
 
 export interface SmartEntryDateContext {
   currentDate: string;
@@ -115,6 +116,21 @@ function getPreviousWeekday(dateString: string, weekday: number) {
     offset = 7;
   }
   return addDays(dateString, -offset);
+}
+
+function getMostRecentWeekdayOnOrBefore(dateString: string, weekday: number) {
+  const currentWeekday = toUtcNoonDate(dateString).getUTCDay();
+  const offset = (currentWeekday - weekday + 7) % 7;
+  return addDays(dateString, -offset);
+}
+
+function getNextWeekday(dateString: string, weekday: number, includeToday = false) {
+  const currentWeekday = toUtcNoonDate(dateString).getUTCDay();
+  let offset = (weekday - currentWeekday + 7) % 7;
+  if (offset === 0 && !includeToday) {
+    offset = 7;
+  }
+  return addDays(dateString, offset);
 }
 
 function compareIsoDates(left: string, right: string) {
@@ -223,6 +239,28 @@ function resolveRelativePhraseDate(phrase: string, currentDate: string, sourceTe
     return candidate;
   }
 
+  const thisComingMatch = normalizedPhrase.match(/^this coming\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (thisComingMatch) {
+    return getNextWeekday(currentDate, WEEKDAY_INDEX[thisComingMatch[1]], false);
+  }
+
+  const nextMatch = normalizedPhrase.match(/^next\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (nextMatch) {
+    return getNextWeekday(currentDate, WEEKDAY_INDEX[nextMatch[1]], false);
+  }
+
+  const comingMatch = normalizedPhrase.match(/^coming\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (comingMatch) {
+    return getNextWeekday(currentDate, WEEKDAY_INDEX[comingMatch[1]], false);
+  }
+
+  const bareWeekdayMatch = normalizedPhrase.match(/^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/);
+  if (bareWeekdayMatch) {
+    return futureIntent
+      ? getNextWeekday(currentDate, WEEKDAY_INDEX[bareWeekdayMatch[1]], true)
+      : getMostRecentWeekdayOnOrBefore(currentDate, WEEKDAY_INDEX[bareWeekdayMatch[1]]);
+  }
+
   return null;
 }
 
@@ -277,9 +315,22 @@ export function resolveRelativeDateFromText(args: {
 
   pushMatch(/\blast week\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
   pushMatch(/\bthis week\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
+  pushMatch(/\bthis coming\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
+  pushMatch(/\bnext\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
+  pushMatch(/\bcoming\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
   pushMatch(/\blast\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
   pushMatch(/\bthis\s+(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/g);
   pushMatch(/\b(?:today|yesterday|tomorrow|last week|this week|last month|this month)\b/g);
+  const bareWeekdayMatches = lowered.matchAll(new RegExp(`\\b(${WEEKDAY_PATTERN})\\b`, 'g'));
+  for (const match of bareWeekdayMatches) {
+    const phrase = match[1];
+    const matchIndex = match.index ?? 0;
+    const prefix = lowered.slice(Math.max(0, matchIndex - 20), matchIndex);
+    if (/(?:last|this|next|coming)\s+$/.test(prefix) || /(?:last week|this week|this coming)\s+$/.test(prefix)) {
+      continue;
+    }
+    phrases.push(phrase);
+  }
 
   if (phrases.length === 0) {
     return {
@@ -296,6 +347,9 @@ export function resolveRelativeDateFromText(args: {
     }
     if (phrase === 'this week') {
       return !phrases.some((candidate) => candidate.startsWith('this week ') && candidate !== 'this week');
+    }
+    if (new RegExp(`^${WEEKDAY_PATTERN}$`).test(phrase)) {
+      return !phrases.some((candidate) => candidate !== phrase && candidate.endsWith(` ${phrase}`));
     }
     return true;
   });
