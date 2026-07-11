@@ -21,6 +21,7 @@ import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
  import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import { getIntlLocale } from '@/lib/locale';
  import VoiceRecorder from './VoiceRecorder';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
  import type {
@@ -395,10 +396,37 @@ function getPurposeOptionText(
   }
 }
 
+type SmartEntryReviewDisplayItem = {
+  primaryText: string;
+  dateIso: string | null;
+  dateText: string | null;
+};
+
+function getSmartEntryActionDisplayDate(action: ParsedFinancialInstruction['actions'][number]) {
+  return action.date || action.startDate || action.nextBillingDate || action.cancelEffectiveDate || null;
+}
+
+function formatSmartEntryDisplayDate(
+  value: string | null | undefined,
+  language: SmartEntryDisplayLanguage,
+  format: 'long' | 'short' = 'long'
+) {
+  if (!value) return null;
+  const parsed = new Date(`${value}T12:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat(getIntlLocale(language), {
+    day: 'numeric',
+    month: format,
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
 function getCompactSummaryRowsLocalized(
   instruction: ParsedFinancialInstruction,
   t: (key: string, options?: Record<string, unknown>) => string,
-  fallbackCurrency?: string
+  fallbackCurrency: string | undefined,
+  language: SmartEntryDisplayLanguage
 ) {
   return instruction.actions
     .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
@@ -412,48 +440,67 @@ function getCompactSummaryRowsLocalized(
             t(key, { ...(options || {}), ns: 'common' })
           )
         : '';
+      const dateIso = getSmartEntryActionDisplayDate(action);
+      const dateText = formatSmartEntryDisplayDate(dateIso, language, 'short');
+      let primaryText: string;
 
       switch (action.actionType) {
         case 'income':
-          return t('smartEntryModal.summaryRows.income', { ns: 'portal', amount });
+          primaryText = t('smartEntryModal.summaryRows.income', { ns: 'portal', amount });
+          break;
         case 'loan_received':
-          return t('smartEntryModal.summaryRows.loanReceived', { ns: 'portal', amount, personName });
+          primaryText = t('smartEntryModal.summaryRows.loanReceived', { ns: 'portal', amount, personName });
+          break;
         case 'money_received_from_person':
-          return t('smartEntryModal.summaryRows.receivedFromPerson', { ns: 'portal', amount, personName });
+          primaryText = t('smartEntryModal.summaryRows.receivedFromPerson', { ns: 'portal', amount, personName });
+          break;
         case 'expense':
         case 'expense_from_held_balance':
-          return t('smartEntryModal.summaryRows.expense', {
+          primaryText = t('smartEntryModal.summaryRows.expense', {
             ns: 'portal',
             amount,
             categoryName,
           }).trim();
+          break;
         case 'loan_repayment':
-          return t('smartEntryModal.summaryRows.loanRepayment', { ns: 'portal', amount, personName });
+          primaryText = t('smartEntryModal.summaryRows.loanRepayment', { ns: 'portal', amount, personName });
+          break;
         case 'reimbursement_payment':
-          return t('smartEntryModal.summaryRows.reimbursementPayment', { ns: 'portal', amount, personName });
+          primaryText = t('smartEntryModal.summaryRows.reimbursementPayment', { ns: 'portal', amount, personName });
+          break;
         case 'money_returned_to_person':
-          return t('smartEntryModal.summaryRows.moneyReturned', { ns: 'portal', amount, personName });
+          primaryText = t('smartEntryModal.summaryRows.moneyReturned', { ns: 'portal', amount, personName });
+          break;
         case 'transfer':
-          return t('smartEntryModal.summaryRows.transfer', {
+          primaryText = t('smartEntryModal.summaryRows.transfer', {
             ns: 'portal',
             amount,
             sourceAccount: action.accountName || t('smartEntryModal.summary.oneAccount', { ns: 'portal' }),
             destinationAccount: action.destinationAccountName || t('smartEntryModal.summary.anotherAccount', { ns: 'portal' }),
           });
+          break;
         default:
-          return action.description || t('smartEntryModal.summaryRows.fallback', {
+          primaryText = action.description || t('smartEntryModal.summaryRows.fallback', {
             ns: 'portal',
             actionType: action.actionType,
             amount,
           });
+          break;
       }
+
+      return {
+        primaryText,
+        dateIso,
+        dateText,
+      } satisfies SmartEntryReviewDisplayItem;
     });
 }
 
 function getUnderstandingLinesLocalized(
   instruction: ParsedFinancialInstruction,
   t: (key: string, options?: Record<string, unknown>) => string,
-  fallbackCurrency?: string
+  fallbackCurrency: string | undefined,
+  language: SmartEntryDisplayLanguage
 ) {
   return instruction.actions
     .filter((action) => action.actionType !== 'create_account' && action.actionType !== 'create_managed_person')
@@ -467,40 +514,60 @@ function getUnderstandingLinesLocalized(
             t(key, { ...(options || {}), ns: 'common' })
           )
         : '';
+      const dateIso = getSmartEntryActionDisplayDate(action);
+      const dateText = formatSmartEntryDisplayDate(dateIso, language, 'long');
+      let primaryText: string;
 
       switch (action.actionType) {
         case 'income':
-          return t('smartEntryModal.understanding.income', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.income', { ns: 'portal', personName, amount });
+          break;
         case 'expense':
-          return t('smartEntryModal.understanding.expense', { ns: 'portal', amount, categoryName }).trim();
+          primaryText = t('smartEntryModal.understanding.expense', { ns: 'portal', amount, categoryName }).trim();
+          break;
         case 'loan_received':
-          return t('smartEntryModal.understanding.loanReceived', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.loanReceived', { ns: 'portal', personName, amount });
+          break;
         case 'loan_repayment':
-          return t('smartEntryModal.understanding.loanRepayment', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.loanRepayment', { ns: 'portal', personName, amount });
+          break;
         case 'money_received_from_person':
-          return t('smartEntryModal.understanding.moneyReceivedFromPerson', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.moneyReceivedFromPerson', { ns: 'portal', personName, amount });
+          break;
         case 'money_returned_to_person':
-          return t('smartEntryModal.understanding.moneyReturnedToPerson', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.moneyReturnedToPerson', { ns: 'portal', personName, amount });
+          break;
         case 'expense_from_held_balance':
-          return t('smartEntryModal.understanding.expenseFromHeldBalance', { ns: 'portal', personName, amount, categoryName }).trim();
+          primaryText = t('smartEntryModal.understanding.expenseFromHeldBalance', { ns: 'portal', personName, amount, categoryName }).trim();
+          break;
         case 'expense_paid_for_person':
-          return t('smartEntryModal.understanding.expensePaidForPerson', { ns: 'portal', personName, amount, categoryName }).trim();
+          primaryText = t('smartEntryModal.understanding.expensePaidForPerson', { ns: 'portal', personName, amount, categoryName }).trim();
+          break;
         case 'reimbursement_payment':
-          return t('smartEntryModal.understanding.reimbursementPayment', { ns: 'portal', personName, amount });
+          primaryText = t('smartEntryModal.understanding.reimbursementPayment', { ns: 'portal', personName, amount });
+          break;
         case 'transfer':
-          return t('smartEntryModal.understanding.transfer', {
+          primaryText = t('smartEntryModal.understanding.transfer', {
             ns: 'portal',
             amount,
             sourceAccount: action.accountName || t('smartEntryModal.understanding.oneAccount', { ns: 'portal' }),
             destinationAccount: action.destinationAccountName || t('smartEntryModal.understanding.anotherAccount', { ns: 'portal' }),
           });
+          break;
         default:
-          return action.description || t('smartEntryModal.understanding.fallback', {
+          primaryText = action.description || t('smartEntryModal.understanding.fallback', {
             ns: 'portal',
             actionType: action.actionType,
             amount,
           });
+          break;
       }
+
+      return {
+        primaryText,
+        dateIso,
+        dateText,
+      } satisfies SmartEntryReviewDisplayItem;
     });
 }
 
@@ -965,11 +1032,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     ? currentMissingFields.map((field) => getMissingFieldLabel(field, t))
     : [];
   const compactSummaryRows = previewInstruction
-    ? getCompactSummaryRowsLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
+    ? getCompactSummaryRowsLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency, displayLanguage)
     : [];
   const understandingLines = previewInstruction
-    ? getUnderstandingLinesLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency)
+    ? getUnderstandingLinesLocalized(previewInstruction, t, contextSnapshot?.defaultCurrency, displayLanguage)
     : [];
+  const sharedTransactionDateText = useMemo(() => {
+    const datedRows = compactSummaryRows.filter((row) => !!row.dateIso);
+    if (datedRows.length === 0) return null;
+    const uniqueDates = Array.from(new Set(datedRows.map((row) => row.dateIso)));
+    if (uniqueDates.length !== 1 || !uniqueDates[0]) return null;
+    return formatSmartEntryDisplayDate(uniqueDates[0], displayLanguage, 'long');
+  }, [compactSummaryRows, displayLanguage]);
   const isCompactSubscriptionReview = step === 'confirming' && isSubscriptionFlow;
   const reviewSectionClass = isSubscriptionFlow
     ? 'rounded-xl border border-border bg-muted/20 p-3 sm:p-3.5 space-y-2.5'
@@ -2630,9 +2704,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
                     {t('smartEntryModal.understandingTitle', { ns: 'portal' })}
                   </p>
-                  {understandingLines.map((line, index) => (
-                    <p key={index} className="text-sm text-foreground">{line}</p>
-                  ))}
+                  <div className={isSubscriptionFlow ? 'space-y-2' : 'space-y-2.5'}>
+                    {understandingLines.map((item, index) => (
+                      <div key={`${item.primaryText}-${item.dateIso || index}`} className="space-y-0.5">
+                        <p className="text-sm text-foreground">{item.primaryText}</p>
+                        {item.dateText ? (
+                          <p className="text-xs text-muted-foreground">
+                            {t('smartEntryModal.dateLabel', { ns: 'portal' })}: {item.dateText}
+                          </p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
                   {reviewState.purposeOptions && reviewState.purposeOptions.length > 0 && (
                     <div className="space-y-2 pt-0.5">
                       <p className="text-sm font-600 text-foreground">
@@ -3378,12 +3461,27 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 )}
 
                 <div className={reviewSectionClass}>
-                  <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
-                    {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-700 uppercase tracking-wider text-muted-foreground">
+                      {t('smartEntryModal.summaryTitle', { ns: 'portal' })}
+                    </p>
+                    {sharedTransactionDateText ? (
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground/80">
+                          {t('smartEntryModal.transactionDateLabel', { ns: 'portal' })}
+                        </p>
+                        <p className="text-sm font-600 text-foreground">{sharedTransactionDateText}</p>
+                      </div>
+                    ) : null}
+                  </div>
                   <div className={isSubscriptionFlow ? 'space-y-1.5' : 'space-y-2'}>
-                    {compactSummaryRows.map((row, index) => (
-                      <p key={index} className="text-sm text-foreground">{row}</p>
+                    {compactSummaryRows.map((item, index) => (
+                      <div key={`${item.primaryText}-${item.dateIso || index}`} className="space-y-0.5">
+                        <p className="text-sm text-foreground">{item.primaryText}</p>
+                        {item.dateText ? (
+                          <p className="text-xs text-muted-foreground">{item.dateText}</p>
+                        ) : null}
+                      </div>
                     ))}
                   </div>
                   {!isSubscriptionFlow && totals && reviewState.purpose === 'managed_money' && (
