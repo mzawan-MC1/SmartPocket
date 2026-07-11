@@ -35,34 +35,29 @@ export function useSubscriptionSummary() {
 
 export function SubscriptionSummaryProvider({ children }: { children: React.ReactNode }) {
   const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
   const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
   const [billing, setBilling] = useState<BillingAvailability | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const refreshRequestIdRef = useRef(0);
-  const activeRefreshControllerRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
     refreshRequestIdRef.current += 1;
     const requestId = refreshRequestIdRef.current;
-    activeRefreshControllerRef.current?.abort();
 
-    if (!user) {
+    if (!userId) {
       setSummary(null);
       setBilling(null);
       setLoading(false);
       setError(null);
-      activeRefreshControllerRef.current = null;
       return;
     }
-
-    const controller = new AbortController();
-    activeRefreshControllerRef.current = controller;
 
     setLoading(true);
     setError(null);
     try {
-      const payload = await fetchSubscriptionSummary({ signal: controller.signal });
+      const payload = await fetchSubscriptionSummary();
       if (requestId !== refreshRequestIdRef.current) {
         return;
       }
@@ -82,14 +77,11 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
       setBilling(null);
       setError('Failed to load subscription details.');
     } finally {
-      if (activeRefreshControllerRef.current === controller) {
-        activeRefreshControllerRef.current = null;
-      }
       if (requestId === refreshRequestIdRef.current) {
         setLoading(false);
       }
     }
-  }, [user]);
+  }, [userId]);
 
   useEffect(() => {
     if (authLoading) {
@@ -102,8 +94,6 @@ export function SubscriptionSummaryProvider({ children }: { children: React.Reac
   useEffect(() => {
     return () => {
       refreshRequestIdRef.current += 1;
-      activeRefreshControllerRef.current?.abort();
-      activeRefreshControllerRef.current = null;
     };
   }, []);
 

@@ -3,6 +3,7 @@ import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+
 interface ModalProps {
   open?: boolean;
   isOpen?: boolean;
@@ -29,6 +30,45 @@ const sizeClasses = {
   xl: 'max-w-4xl',
 };
 
+let modalInstanceSequence = 0;
+let activeModalStack: number[] = [];
+let bodyScrollLockCount = 0;
+let previousBodyOverflow = '';
+
+function registerModalInstance(instanceId: number) {
+  activeModalStack = [...activeModalStack.filter((id) => id !== instanceId), instanceId];
+}
+
+function unregisterModalInstance(instanceId: number) {
+  activeModalStack = activeModalStack.filter((id) => id !== instanceId);
+}
+
+function isTopModal(instanceId: number) {
+  return activeModalStack[activeModalStack.length - 1] === instanceId;
+}
+
+function lockBodyScroll() {
+  if (typeof document === 'undefined') return;
+
+  if (bodyScrollLockCount === 0) {
+    previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+
+  bodyScrollLockCount += 1;
+}
+
+function unlockBodyScroll() {
+  if (typeof document === 'undefined' || bodyScrollLockCount === 0) return;
+
+  bodyScrollLockCount -= 1;
+
+  if (bodyScrollLockCount === 0) {
+    document.body.style.overflow = previousBodyOverflow;
+    previousBodyOverflow = '';
+  }
+}
+
 export default function Modal({
   open,
   isOpen,
@@ -53,6 +93,7 @@ export default function Modal({
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+  const instanceIdRef = useRef<number | null>(null);
   const mobileContentClassName = mobileLayout === 'fullscreen'
     ? 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.5rem)] max-[480px]:rounded-[24px]'
     : 'max-[480px]:max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.5rem)] max-[480px]:rounded-[20px]';
@@ -61,12 +102,24 @@ export default function Modal({
     : 'px-3 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-[calc(env(safe-area-inset-top)+0.35rem)]';
 
   useEffect(() => {
-    if (isVisible) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
+    if (!isVisible) {
+      return undefined;
     }
-    return () => { document.body.style.overflow = ''; };
+
+    if (instanceIdRef.current == null) {
+      modalInstanceSequence += 1;
+      instanceIdRef.current = modalInstanceSequence;
+    }
+
+    registerModalInstance(instanceIdRef.current);
+    lockBodyScroll();
+
+    return () => {
+      if (instanceIdRef.current != null) {
+        unregisterModalInstance(instanceIdRef.current);
+      }
+      unlockBodyScroll();
+    };
   }, [isVisible]);
 
   useEffect(() => {
@@ -82,7 +135,9 @@ export default function Modal({
 
     return () => {
       window.cancelAnimationFrame(id);
-      restoreFocusRef.current?.focus?.();
+      if (restoreFocusRef.current && document.contains(restoreFocusRef.current)) {
+        restoreFocusRef.current.focus();
+      }
       restoreFocusRef.current = null;
     };
   }, [isVisible]);
@@ -91,13 +146,20 @@ export default function Modal({
     if (!isVisible) return undefined;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && closeOnEscape) {
+      if (
+        event.key === 'Escape'
+        && closeOnEscape
+        && instanceIdRef.current != null
+        && isTopModal(instanceIdRef.current)
+      ) {
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [closeOnEscape, isVisible, onClose]);
 
   const handleBackdropClick = () => {

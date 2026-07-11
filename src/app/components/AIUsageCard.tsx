@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Calendar, Clock, FileUp, History, Keyboard, Mic, RefreshCw, Sparkles } from 'lucide-react';
@@ -8,6 +8,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 import Modal from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
+import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import type { SubscriptionSummary as SharedSubscriptionSummary } from '@/lib/subscription/types';
 
 interface SubscriptionSummary {
   has_subscription: boolean;
@@ -56,62 +58,6 @@ interface SubscriptionSummary {
   };
 }
 
-type SummaryApiPayload = {
-  summary?: {
-    hasSubscription?: boolean;
-    planName?: string;
-    planCode?: string;
-    status?: string;
-    trialEndsAt?: string | null;
-    currentPeriodEnd?: string | null;
-    monthlyAiCredits?: number;
-    dailyAiRequestLimit?: number;
-    monthlyVoiceSeconds?: number;
-    monthlyReceiptExtractions?: number;
-    receiptIntelligenceEnabled?: boolean;
-    textAiEnabled?: boolean;
-    voiceAiEnabled?: boolean;
-    aiHistoryEnabled?: boolean;
-    creditsAllocated?: number;
-    creditsConsumed?: number;
-    creditsReserved?: number;
-    creditsRefunded?: number;
-    voiceSecondsUsed?: number;
-    requestsToday?: number;
-    receiptExtractionsIncluded?: number;
-    receiptExtractionsUsed?: number;
-    receiptExtractionsReserved?: number;
-    receiptExtractionsRefunded?: number;
-    receiptExtractionsRemaining?: number;
-    cycleStart?: string | null;
-    cycleEnd?: string | null;
-    usageAvailability?: {
-      textCredit?: {
-        includedRemaining?: number;
-        purchasedRemaining?: number;
-        totalAvailable?: number;
-      };
-      voiceSecond?: {
-        includedRemaining?: number;
-        purchasedRemaining?: number;
-        totalAvailable?: number;
-      };
-      receiptExtraction?: {
-        includedRemaining?: number;
-        purchasedRemaining?: number;
-        totalAvailable?: number;
-      };
-    };
-  };
-};
-
-type WrappedSummary = NonNullable<SummaryApiPayload['summary']>;
-
-type SummaryFetchResult = {
-  status: number;
-  data: SubscriptionSummary | null;
-};
-
 type UsageMetricTone = 'normal' | 'warning' | 'exhausted';
 
 type UsageMetric = {
@@ -138,51 +84,40 @@ type AIHistoryItem = {
 };
 
 const AI_USAGE_TIMEOUT_MS = 12000;
-const AI_USAGE_FAILURE_COOLDOWN_MS = 30000;
 
-let cachedSummaryResult: SummaryFetchResult | null = null;
-let inFlightSummaryRequest: Promise<SummaryFetchResult> | null = null;
-let cachedSummaryFailureAt: number | null = null;
-
-function normalizeSummaryPayload(payload: unknown): SubscriptionSummary | null {
-  if (!payload || typeof payload !== 'object') {
+function normalizeSummaryPayload(summary: SharedSubscriptionSummary | null | undefined): SubscriptionSummary | null {
+  if (!summary) {
     return null;
   }
 
-  const rawSummary = payload as Partial<SubscriptionSummary>;
-  const wrappedSummary = (payload as SummaryApiPayload).summary;
-  const summary: WrappedSummary | undefined = wrappedSummary && typeof wrappedSummary === 'object'
-    ? wrappedSummary
-    : undefined;
-
   return {
-    has_subscription: Boolean(summary?.hasSubscription ?? rawSummary.has_subscription),
-    plan_name: summary?.planName ?? rawSummary.plan_name,
-    plan_code: summary?.planCode ?? rawSummary.plan_code,
-    status: summary?.status ?? rawSummary.status,
-    trial_ends_at: summary?.trialEndsAt ?? rawSummary.trial_ends_at,
-    current_period_end: summary?.currentPeriodEnd ?? rawSummary.current_period_end,
-    monthly_ai_credits: summary?.monthlyAiCredits ?? rawSummary.monthly_ai_credits,
-    daily_ai_request_limit: summary?.dailyAiRequestLimit ?? rawSummary.daily_ai_request_limit,
-    monthly_voice_seconds: summary?.monthlyVoiceSeconds ?? rawSummary.monthly_voice_seconds,
-    monthly_receipt_extractions: summary?.monthlyReceiptExtractions ?? rawSummary.monthly_receipt_extractions,
-    receipt_intelligence_enabled: summary?.receiptIntelligenceEnabled ?? rawSummary.receipt_intelligence_enabled,
-    text_ai_enabled: summary?.textAiEnabled ?? rawSummary.text_ai_enabled,
-    voice_ai_enabled: summary?.voiceAiEnabled ?? rawSummary.voice_ai_enabled,
-    ai_history_enabled: summary?.aiHistoryEnabled ?? rawSummary.ai_history_enabled,
-    credits_allocated: summary?.creditsAllocated ?? rawSummary.credits_allocated,
-    credits_consumed: summary?.creditsConsumed ?? rawSummary.credits_consumed,
-    credits_reserved: summary?.creditsReserved ?? rawSummary.credits_reserved,
-    credits_refunded: summary?.creditsRefunded ?? rawSummary.credits_refunded,
-    voice_seconds_used: summary?.voiceSecondsUsed ?? rawSummary.voice_seconds_used,
-    requests_today: summary?.requestsToday ?? rawSummary.requests_today,
-    receipt_extractions_included: summary?.receiptExtractionsIncluded ?? rawSummary.receipt_extractions_included,
-    receipt_extractions_used: summary?.receiptExtractionsUsed ?? rawSummary.receipt_extractions_used,
-    receipt_extractions_reserved: summary?.receiptExtractionsReserved ?? rawSummary.receipt_extractions_reserved,
-    receipt_extractions_refunded: summary?.receiptExtractionsRefunded ?? rawSummary.receipt_extractions_refunded,
-    receipt_extractions_remaining: summary?.receiptExtractionsRemaining ?? rawSummary.receipt_extractions_remaining,
-    cycle_start: summary?.cycleStart ?? rawSummary.cycle_start,
-    cycle_end: summary?.cycleEnd ?? rawSummary.cycle_end,
+    has_subscription: Boolean(summary.hasSubscription),
+    plan_name: summary.planName,
+    plan_code: summary.planCode,
+    status: summary.status,
+    trial_ends_at: summary.trialEndsAt ?? undefined,
+    current_period_end: summary.currentPeriodEnd ?? undefined,
+    monthly_ai_credits: summary.monthlyAiCredits,
+    daily_ai_request_limit: summary.dailyAiRequestLimit,
+    monthly_voice_seconds: summary.monthlyVoiceSeconds,
+    monthly_receipt_extractions: summary.monthlyReceiptExtractions,
+    receipt_intelligence_enabled: summary.receiptIntelligenceEnabled,
+    text_ai_enabled: summary.textAiEnabled,
+    voice_ai_enabled: summary.voiceAiEnabled,
+    ai_history_enabled: summary.aiHistoryEnabled,
+    credits_allocated: summary.creditsAllocated,
+    credits_consumed: summary.creditsConsumed,
+    credits_reserved: summary.creditsReserved,
+    credits_refunded: summary.creditsRefunded,
+    voice_seconds_used: summary.voiceSecondsUsed,
+    requests_today: summary.requestsToday,
+    receipt_extractions_included: summary.receiptExtractionsIncluded,
+    receipt_extractions_used: summary.receiptExtractionsUsed,
+    receipt_extractions_reserved: summary.receiptExtractionsReserved,
+    receipt_extractions_refunded: summary.receiptExtractionsRefunded,
+    receipt_extractions_remaining: summary.receiptExtractionsRemaining,
+    cycle_start: summary.cycleStart ?? undefined,
+    cycle_end: summary.cycleEnd ?? undefined,
     usage_availability: summary?.usageAvailability
       ? {
           text_credit: summary.usageAvailability.textCredit
@@ -207,65 +142,8 @@ function normalizeSummaryPayload(payload: unknown): SubscriptionSummary | null {
               }
             : undefined,
         }
-      : rawSummary.usage_availability,
+      : undefined,
   };
-}
-
-async function fetchSubscriptionSummary(force = false): Promise<SummaryFetchResult> {
-  if (force) {
-    cachedSummaryResult = null;
-    inFlightSummaryRequest = null;
-    cachedSummaryFailureAt = null;
-  }
-
-  if (cachedSummaryResult) {
-    return cachedSummaryResult;
-  }
-
-  if (
-    !force
-    && cachedSummaryFailureAt !== null
-    && Date.now() - cachedSummaryFailureAt < AI_USAGE_FAILURE_COOLDOWN_MS
-  ) {
-    return { status: 0, data: null };
-  }
-
-  if (inFlightSummaryRequest) {
-    return inFlightSummaryRequest;
-  }
-
-  inFlightSummaryRequest = fetch('/api/subscription/summary', {
-    cache: 'no-store',
-  })
-    .then(async (res) => {
-      const contentType = res.headers.get('content-type') || '';
-      const data = contentType.includes('application/json')
-        ? normalizeSummaryPayload(await res.json())
-        : null;
-
-      const result = {
-        status: res.status,
-        data: res.ok ? data : null,
-      };
-
-      if (res.ok || res.status === 401) {
-        cachedSummaryResult = result;
-        cachedSummaryFailureAt = null;
-      } else {
-        cachedSummaryFailureAt = Date.now();
-      }
-
-      return result;
-    })
-    .catch(() => {
-      cachedSummaryFailureAt = Date.now();
-      return { status: 0, data: null };
-    })
-    .finally(() => {
-      inFlightSummaryRequest = null;
-    });
-
-  return inFlightSummaryRequest;
 }
 
 function UsageProgress({
@@ -427,51 +305,23 @@ export default function AIUsageCard({
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const quickActions = useQuickActions();
-  const [summary, setSummary] = useState<SubscriptionSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isUnavailable, setIsUnavailable] = useState(false);
+  const {
+    summary: subscriptionSummary,
+    loading,
+    error,
+    refresh: refreshSubscriptionSummary,
+  } = useSubscriptionSummary();
+  const summary = useMemo(
+    () => normalizeSummaryPayload(subscriptionSummary),
+    [subscriptionSummary]
+  );
+  const isUnavailable = !loading && (!!error || !subscriptionSummary || subscriptionSummary.status === 'unavailable');
   const [usageSheetOpen, setUsageSheetOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<AIHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const load = useCallback(async (force = false) => {
-    setLoading(true);
-    try {
-      const result = await Promise.race([
-        fetchSubscriptionSummary(force),
-        new Promise<SummaryFetchResult>((_, reject) => {
-          window.setTimeout(() => reject(new Error('ai-usage-timeout')), AI_USAGE_TIMEOUT_MS);
-        }),
-      ]);
-
-      if (result.status === 200) {
-        setSummary(result.data);
-        setIsUnavailable(result.data?.status === 'unavailable');
-        return;
-      }
-
-      if (result.status === 401) {
-        setSummary(null);
-        setIsUnavailable(true);
-        return;
-      }
-
-      setSummary(null);
-      setIsUnavailable(true);
-    } catch {
-      setSummary(null);
-      setIsUnavailable(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   useSmartPocketDataChanged(['ai_usage', 'dashboard', 'transactions', 'transaction_documents', 'financial_accounts'], 'AIUsageCard', async () => {
-    await load(true);
+    await refreshSubscriptionSummary();
   });
 
   const loadHistory = useCallback(async () => {
@@ -693,7 +543,7 @@ export default function AIUsageCard({
           ) : null}
           <button
             type="button"
-            onClick={() => void load(true)}
+            onClick={() => void refreshSubscriptionSummary()}
             className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
             aria-label={t('aiHistory.refresh')}
           >

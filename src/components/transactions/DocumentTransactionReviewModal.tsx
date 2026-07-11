@@ -356,6 +356,17 @@ function formatElapsedDuration(seconds: number) {
   return `${minutes}m ${remainingSeconds}s`;
 }
 
+function mapsEqual<T>(left: Record<string, T>, right: Record<string, T>) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every((key) => left[key] === right[key]);
+}
+
 function getLocalizedTransactionDocumentError(args: {
   t: ReturnType<typeof useTranslation>['t'];
   errorCode?: unknown;
@@ -1516,7 +1527,7 @@ export default function DocumentTransactionReviewModal({
       for (const transaction of reviewTransactions) {
         next[transaction.id] = current[transaction.id] === true;
       }
-      return next;
+      return mapsEqual(current, next) ? current : next;
     });
 
     setExpandedLineItems((current) => {
@@ -1529,7 +1540,7 @@ export default function DocumentTransactionReviewModal({
             ? currentIndex
             : null;
       }
-      return next;
+      return mapsEqual(current, next) ? current : next;
     });
 
     setShowOnlyInvalidItems((current) => {
@@ -1537,7 +1548,7 @@ export default function DocumentTransactionReviewModal({
       for (const transaction of reviewTransactions) {
         next[transaction.id] = current[transaction.id] === true;
       }
-      return next;
+      return mapsEqual(current, next) ? current : next;
     });
   }, [isOpen, reviewTransactions]);
 

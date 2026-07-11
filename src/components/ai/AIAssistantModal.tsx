@@ -1,42 +1,41 @@
 'use client';
- import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
- import {
-   X,
-   Mic,
-   Type,
-   AlertTriangle,
-   CheckCircle,
+import {
+  Mic,
+  Type,
+  AlertTriangle,
+  CheckCircle,
   FileText,
-   Loader2,
-   RotateCcw,
-   Sparkles,
-   Clock,
-   Calendar,
-   ArrowUpRight,
-   Zap,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  Clock,
+  Calendar,
+  ArrowUpRight,
+  Zap,
   Wallet,
   ChevronDown,
- } from 'lucide-react';
- import { createPortal } from 'react-dom';
- import { useRouter } from 'next/navigation';
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
- import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
- import VoiceRecorder from './VoiceRecorder';
+import VoiceRecorder from './VoiceRecorder';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
- import type {
-   ParsedFinancialInstruction,
-   FinancialContext,
-   AIErrorPayload,
-   AIUsageSummary,
-   SmartEntryReview,
-   SuggestedAccount,
-   SmartEntryPurpose,
- } from '@/lib/ai-types';
- import { buildAIContext } from '@/lib/ai-execution';
- import { dispatchSmartPocketDataChanged, type SmartPocketDataEntity } from '@/lib/data-change';
+import Modal from '@/components/ui/Modal';
+import type {
+  ParsedFinancialInstruction,
+  FinancialContext,
+  AIErrorPayload,
+  AIUsageSummary,
+  SmartEntryReview,
+  SuggestedAccount,
+  SmartEntryPurpose,
+} from '@/lib/ai-types';
+import { buildAIContext } from '@/lib/ai-execution';
+import { dispatchSmartPocketDataChanged, type SmartPocketDataEntity } from '@/lib/data-change';
 import {
   getDefaultPersonalAccount,
   getFinancialAccountDisplayLabel,
@@ -48,21 +47,21 @@ import {
   getFieldLabelClassName,
   getRequiredMarkerClassName,
 } from '@/lib/form-field-styles';
- import { createClientId } from '@/lib/uuid';
- import { useLanguage } from '@/contexts/LanguageContext';
- import {
-   applySmartEntryReviewToInstruction,
-   buildInitialSmartEntryReview,
+import { createClientId } from '@/lib/uuid';
+import { useLanguage } from '@/contexts/LanguageContext';
+import {
+  applySmartEntryReviewToInstruction,
+  buildInitialSmartEntryReview,
   getEligibleAccountsForPurpose,
   getManagedAccountName,
-   getSmartEntryMissingFields,
+  getSmartEntryMissingFields,
   getSmartEntryReviewMissingFields,
-   getSmartEntryTotals,
+  getSmartEntryTotals,
   hydrateSmartEntryReviewWithContext,
-   inferAccountType,
+  inferAccountType,
   isManagedPurpose,
-   sanitizeCurrency,
- } from '@/lib/smart-entry';
+  sanitizeCurrency,
+} from '@/lib/smart-entry';
 import {
   isPersonalSubscriptionBillingFrequency,
   PERSONAL_SUBSCRIPTION_REMINDER_OPTIONS,
@@ -741,11 +740,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const { t } = useTranslation(['portal', 'common']);
   const { isRTL, language: uiLanguage } = useLanguage();
   const router = useRouter();
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const lastFocusedRef = useRef<HTMLElement | null>(null);
   const subscriptionDefaultAppliedRef = useRef<string | null>(null);
-  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<AssistantStep>('entry');
   const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [textInput, setTextInput] = useState('');
@@ -800,72 +795,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     };
     checkConfig();
   }, []);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-
-    lastFocusedRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    const focusInitialElement = () => {
-      const autofocusTarget = dialogRef.current?.querySelector<HTMLElement>('[data-autofocus="true"]');
-      (autofocusTarget || closeButtonRef.current)?.focus();
-    };
-
-    const timeoutId = window.setTimeout(focusInitialElement, 0);
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onClose();
-        return;
-      }
-
-      if (event.key !== 'Tab' || !dialogRef.current) return;
-
-      const focusableElements = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(
-          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      ).filter((el) => !el.hasAttribute('hidden') && el.offsetParent !== null);
-
-      if (focusableElements.length === 0) {
-        event.preventDefault();
-        return;
-      }
-
-      const first = focusableElements[0];
-      const last = focusableElements[focusableElements.length - 1];
-      const activeElement = document.activeElement as HTMLElement | null;
-
-      if (event.shiftKey && activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-      lastFocusedRef.current?.focus();
-    };
-  }, [mounted, onClose]);
 
   const getAuthToken = async (): Promise<string> => {
     const supabase = createClient();
@@ -1414,7 +1343,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
      setReviewState((current) => {
        if (!current) return current;
        const next = updater(current);
-       return {
+      return {
          ...next,
          missing: getSmartEntryReviewMissingFields(next),
        };
@@ -2441,60 +2370,120 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     t('smartEntryModal.examples.subscriptionPayment', { ns: 'portal' }),
   ];
 
-  if (!mounted) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-end justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-[calc(env(safe-area-inset-top)+0.5rem)] sm:items-center sm:p-5">
-      <button
-        type="button"
-        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm"
-        aria-label={t('smartEntryModal.close', { ns: 'portal' })}
-        onClick={onClose}
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="smart-entry-title"
-        aria-describedby="smart-entry-description"
-        className={`relative z-[1] flex flex-col overflow-hidden border border-border bg-card shadow-card-lg ${
-          isCompactSubscriptionReview
-            ? 'w-full max-w-3xl max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[20px] sm:w-[calc(100vw-24px)] sm:max-h-[85vh]'
-            : 'w-full max-w-[856px] max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] rounded-[24px] sm:w-[min(calc(100vw-32px),856px)]'
-        }`}
-        dir={isRTL ? 'rtl' : 'ltr'}
-      >
-        {/* Header */}
-        <div className={`flex flex-shrink-0 items-center justify-between border-b border-border bg-card ${
-          isCompactSubscriptionReview ? 'px-4 sm:px-5 py-3.5' : 'px-4 py-3.5 sm:px-6 sm:py-4'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
-              <Sparkles size={16} className="text-white" />
-            </div>
-            <div>
-              <h2 id="smart-entry-title" className="text-lg font-800 text-foreground">
-                {t('smartEntryModal.title', { ns: 'portal' })}
-              </h2>
-              <p id="smart-entry-description" className={`text-muted-foreground ${
-                isCompactSubscriptionReview ? 'text-xs sm:text-sm' : 'text-sm'
-              }`}>
-                {t('smartEntryModal.description', { ns: 'portal' })}
-              </p>
-            </div>
-          </div>
+  const modalFooter = step === 'confirming' && parsed && reviewState && previewInstruction
+    ? (
+        <div className={`flex gap-2 ${isSubscriptionFlow ? 'px-4 py-3 sm:px-5' : 'px-4 py-3 sm:px-6'}`}>
           <button
-            ref={closeButtonRef}
-            onClick={onClose}
-            className="btn-ghost p-2 rounded-lg"
-            aria-label={t('actions.close', { ns: 'common' })}
+            onClick={handleConfirm}
+            disabled={unresolvedReviewFields.length > 0}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive px-4 py-2.5 text-sm font-700 text-white transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <X size={18} />
+            <CheckCircle size={16} />
+            {isSubscriptionFlow
+              ? getSubscriptionConfirmLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+              : t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
+          </button>
+          <button
+            onClick={handleReset}
+            className="rounded-xl bg-muted px-3.5 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+            aria-label={t('actions.reset', { ns: 'common' })}
+          >
+            <RotateCcw size={16} />
           </button>
         </div>
+      )
+    : step === 'success' && executionResult
+      ? (
+          <div className="flex gap-2 px-4 py-3 sm:px-6">
+            <button
+              onClick={handleReset}
+              className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+            >
+              {t('smartEntryModal.addAnother', { ns: 'portal' })}
+            </button>
+            <button
+              onClick={onClose}
+              className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
+            >
+              {t('actions.done', { ns: 'common' })}
+            </button>
+          </div>
+        )
+      : step === 'limit'
+        ? (
+            <div className="flex gap-2 px-4 py-3 sm:px-6">
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+              >
+                {t('actions.close', { ns: 'common' })}
+              </button>
+              <button
+                onClick={() => router.push('/settings/subscription')}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
+              >
+                {limitView.primaryLabel}
+                <ArrowUpRight size={15} />
+              </button>
+            </div>
+          )
+        : step === 'failed'
+          ? (
+              <div className="flex gap-2 px-4 py-3 sm:px-6">
+                {failedShowsRefresh ? (
+                  <button
+                    onClick={handleReset}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
+                  >
+                    <RotateCcw size={16} />
+                    {t('actions.refresh', { ns: 'common' })}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMode('text');
+                      setStep('entry');
+                      setApiError(null);
+                      setErrorMessage('');
+                    }}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
+                  >
+                    <Type size={16} />
+                    {t('smartEntryModal.voice.actions.useText', { ns: 'portal' })}
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+                >
+                  {t('actions.close', { ns: 'common' })}
+                </button>
+              </div>
+            )
+          : undefined;
 
-        {/* Content */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-thin max-[480px]:pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
+  return (
+    <>
+      <Modal
+        isOpen
+        onClose={onClose}
+        title={t('smartEntryModal.title', { ns: 'portal' })}
+        description={t('smartEntryModal.description', { ns: 'portal' })}
+        size="xl"
+        mobileLayout="fullscreen"
+        closeOnBackdrop
+        closeOnEscape
+        footer={modalFooter}
+        stickyFooter={Boolean(modalFooter)}
+        contentClassName={`${
+          isCompactSubscriptionReview
+            ? 'sm:w-[calc(100vw-24px)] sm:max-w-3xl sm:max-h-[85vh]'
+            : 'sm:w-[min(calc(100vw-32px),856px)] sm:max-w-[856px]'
+        }`}
+        headerClassName={isCompactSubscriptionReview ? 'px-4 py-3.5 sm:px-5' : 'px-4 py-3.5 sm:px-6 sm:py-4'}
+        bodyClassName="min-h-0 overflow-y-auto overscroll-contain p-0 scrollbar-thin max-[480px]:pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+      >
+        <div dir={isRTL ? 'rtl' : 'ltr'}>
 
           {/* Not configured state */}
           {isAIConfigured === false && step === 'entry' && (
@@ -3775,33 +3764,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     </p>
                   </div>
                 )}
-              <div className={`flex gap-2 ${
-                isSubscriptionFlow
-                  ? 'sticky bottom-0 mt-3 border-t border-border bg-card/95 pt-3 pb-1 backdrop-blur'
-                  : ''
-              }`}>
-                <button
-                  onClick={handleConfirm}
-                  disabled={unresolvedReviewFields.length > 0}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive text-white text-sm font-700 transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50 ${
-                    isSubscriptionFlow ? 'px-4 py-2.5' : 'py-3'
-                  }`}
-                >
-                  <CheckCircle size={16} />
-                  {isSubscriptionFlow
-                    ? getSubscriptionConfirmLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
-                    : t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
-                </button>
-                <button
-                  onClick={handleReset}
-                  className={`rounded-xl bg-muted text-foreground text-sm font-600 transition-colors hover:bg-muted/80 ${
-                    isSubscriptionFlow ? 'px-3.5 py-2.5' : 'px-4 py-3'
-                  }`}
-                  aria-label={t('actions.reset', { ns: 'common' })}
-                >
-                  <RotateCcw size={16} />
-                </button>
-              </div>
               {unresolvedReviewFields.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                   {t('smartEntryModal.completeRequiredDetails', { ns: 'portal' })}
@@ -3837,20 +3799,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     count: executionResult.count,
                   })}
                 </p>
-              </div>
-              <div className="flex gap-2 w-full">
-                <button
-                  onClick={handleReset}
-                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                >
-                  {t('smartEntryModal.addAnother', { ns: 'portal' })}
-                </button>
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors"
-                >
-                  {t('actions.done', { ns: 'common' })}
-                </button>
               </div>
             </div>
           )}
@@ -3940,22 +3888,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </div>
                 )}
               </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                >
-                  {t('actions.close', { ns: 'common' })}
-                </button>
-                <button
-                  onClick={() => router.push('/settings/subscription')}
-                  className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-                >
-                  {limitView.primaryLabel}
-                  <ArrowUpRight size={15} />
-                </button>
-              </div>
             </div>
           )}
 
@@ -3974,55 +3906,28 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </p>
                 )}
               </div>
-              <div className="flex gap-2 w-full">
-                {failedShowsRefresh ? (
-                  <button
-                    onClick={handleReset}
-                    className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <RotateCcw size={16} />
-                    {t('actions.refresh', { ns: 'common' })}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setMode('text');
-                      setStep('entry');
-                      setApiError(null);
-                      setErrorMessage('');
-                    }}
-                    className="flex-1 py-2.5 rounded-xl bg-accent text-white text-sm font-600 hover:bg-accent/90 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Type size={16} />
-                    {t('smartEntryModal.voice.actions.useText', { ns: 'portal' })}
-                  </button>
-                )}
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-2.5 rounded-xl bg-muted text-foreground text-sm font-600 hover:bg-muted/80 transition-colors"
-                >
-                  {t('actions.close', { ns: 'common' })}
-                </button>
-              </div>
             </div>
           )}
         </div>
-      </div>
-      <DocumentTransactionReviewModal
-        isOpen={!!documentReviewFile}
-        file={documentReviewFile}
-        sourceSurface="smart_entry"
-        onClose={() => setDocumentReviewFile(null)}
-        onSaved={async () => {
-          dispatchSmartPocketDataChanged({
-            source: 'smart-entry-document-review',
-            entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
-          });
-          router.refresh();
-          onClose();
-        }}
-      />
-    </div>,
-    document.body
+      </Modal>
+      {documentReviewFile ? (
+        <DocumentTransactionReviewModal
+          isOpen
+          file={documentReviewFile}
+          sourceSurface="smart_entry"
+          onClose={() => {
+            setDocumentReviewFile(null);
+          }}
+          onSaved={async () => {
+            dispatchSmartPocketDataChanged({
+              source: 'smart-entry-document-review',
+              entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
+            });
+            router.refresh();
+            onClose();
+          }}
+        />
+      ) : null}
+    </>
   );
 }
