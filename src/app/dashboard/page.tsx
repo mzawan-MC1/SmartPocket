@@ -31,10 +31,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { ChartSkeleton, KPICardSkeleton, ListItemSkeleton, SectionCardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { clearResolvedUserDefaultCurrencyCache } from '@/lib/currency-totals';
 import { clearClientReferenceDataCache } from '@/lib/reference-data/client';
-import { getPostAuthDestination } from '@/lib/auth/redirects';
 import { createClient as createSupabaseClient } from '@/lib/supabase/client';
 import { subscribeToMediaQueryChange } from '@/lib/browser-compat';
-
 
 const AIUsageCardLazy = dynamic(() => import('@/app/components/AIUsageCard'), {
   loading: () => <SectionCardSkeleton lines={3} className="h-full" />,
@@ -283,23 +281,6 @@ export default function DashboardPage() {
     router.replace(destination, { scroll: destination !== '/dashboard' });
   }, [router]);
 
-  const resolveDashboardAccess = useCallback(async () => {
-    if (!user?.id) {
-      return buildDashboardSignInHref();
-    }
-
-    const destinationResult = await getPostAuthDestination(supabase, user.id, null);
-    if (destinationResult.profileError && isAuthSessionError(destinationResult.profileError)) {
-      return buildDashboardSignInHref();
-    }
-
-    if (destinationResult.destination !== '/dashboard') {
-      return destinationResult.destination;
-    }
-
-    return null;
-  }, [supabase, user?.id]);
-
   const loadPeriodContext = useCallback(async (options?: { forceRefresh?: boolean; surfaceToast?: boolean }) => {
     const requestId = latestPeriodRequestRef.current + 1;
     latestPeriodRequestRef.current = requestId;
@@ -355,26 +336,35 @@ export default function DashboardPage() {
       resetDashboardBootstrapState();
     }
 
-    const redirectDestination = await resolveDashboardAccess();
-    if (redirectDestination) {
-      clearDashboardBootstrapCaches();
-      resetDashboardBootstrapState();
-      redirectToRecoveredDestination(redirectDestination);
-      return;
-    }
+    try {
+      if (!user?.id) {
+        clearDashboardBootstrapCaches();
+        resetDashboardBootstrapState();
+        redirectToRecoveredDestination(buildDashboardSignInHref());
+        return;
+      }
 
-    setRouteRecoveryInProgress(false);
-    await loadPeriodContext({
-      forceRefresh: options?.forceRefresh,
-      surfaceToast: options?.surfaceToast,
-    });
+      setRouteRecoveryInProgress(false);
+      await loadPeriodContext({
+        forceRefresh: options?.forceRefresh,
+        surfaceToast: options?.surfaceToast,
+      });
+    } catch (error) {
+      setRouteRecoveryInProgress(false);
+      setPeriodLoadError(t('shared.dashboardLoadFailedDescription'));
+      setPeriodLoading(false);
+      if (options?.surfaceToast) {
+        toast.error(t('shared.dashboardLoadFailedDescription'));
+      }
+    }
   }, [
     authLoading,
     clearDashboardBootstrapCaches,
     loadPeriodContext,
     redirectToRecoveredDestination,
     resetDashboardBootstrapState,
-    resolveDashboardAccess,
+    t,
+    user?.id,
   ]);
 
   useEffect(() => {
