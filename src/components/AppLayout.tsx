@@ -30,6 +30,7 @@ export default function AppLayout({
   const [mobileSidebarVisible, setMobileSidebarVisible] = useState(false);
   const [isMdUp, setIsMdUp] = useState(false);
   const closeSidebarTimerRef = useRef<number | null>(null);
+  const previousActiveRouteRef = useRef(activeRoute);
   const { dir } = useLanguage();
   const isRTL = dir === 'rtl';
   const { t } = useTranslation('common');
@@ -66,6 +67,13 @@ export default function AppLayout({
   }, [closeMobileSidebar, mobileSidebarOpen, mobileSidebarVisible, openMobileSidebar]);
 
   useEffect(() => {
+    const previousActiveRoute = previousActiveRouteRef.current;
+    previousActiveRouteRef.current = activeRoute;
+
+    if (previousActiveRoute === activeRoute) {
+      return;
+    }
+
     if (mobileSidebarOpen) {
       closeMobileSidebar();
     }
@@ -86,6 +94,30 @@ export default function AppLayout({
     setMobileSidebarVisible(false);
     setMobileSidebarOpen(false);
   }, [clearSidebarCloseTimer, isMdUp]);
+
+  useEffect(() => {
+    if (!mobileSidebarOpen) {
+      return;
+    }
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMobileSidebar();
+      }
+    };
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [closeMobileSidebar, mobileSidebarOpen]);
 
   useEffect(() => () => clearSidebarCloseTimer(), [clearSidebarCloseTimer]);
 
