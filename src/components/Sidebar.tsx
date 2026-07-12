@@ -397,35 +397,34 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             />
           </button>
         ) : (
-          <div className={`border border-border/80 bg-secondary/35 shadow-card-sm ${isMobileDrawer ? 'rounded-2xl p-3' : 'rounded-[18px] p-2'}`}>
-            <div className={`flex items-center ${isMobileDrawer ? 'gap-3' : 'gap-2'}`}>
+          <div className={`border border-border/80 bg-secondary/35 shadow-card-sm ${isMobileDrawer ? 'rounded-[18px] p-2.5' : 'rounded-2xl p-2'}`}>
+            <div className={`flex items-center ${isMobileDrawer ? 'gap-2.5' : 'gap-2'}`}>
               <UserAvatar
                 fullName={displayName}
                 email={displayEmail}
                 avatarUrl={profile?.avatar_url}
-                className={isMobileDrawer ? 'h-10 w-10 text-sm' : 'h-9 w-9 text-xs'}
-                textClassName={isMobileDrawer ? 'text-sm' : 'text-xs'}
-                iconClassName={isMobileDrawer ? 'h-4.5 w-4.5' : 'h-4 w-4'}
+                className={isMobileDrawer ? 'h-8.5 w-8.5 text-xs' : 'h-8 w-8 text-[11px]'}
+                textClassName={isMobileDrawer ? 'text-xs' : 'text-[11px]'}
+                iconClassName={isMobileDrawer ? 'h-4 w-4' : 'h-3.5 w-3.5'}
               />
-              <div className="min-w-0 flex-1">
-                <p className={`truncate font-700 leading-tight text-foreground ${isMobileDrawer ? 'text-sm' : 'text-[12.5px]'}`}>{displayName}</p>
-                <p className={`truncate leading-tight text-muted-foreground ${isMobileDrawer ? 'text-xs' : 'text-[10.5px]'}`}>{displayEmail}</p>
+              <div className="min-w-0 flex-1" title={`${displayName}${displayEmail ? `\n${displayEmail}` : ''}`}>
+                <p className={`truncate font-600 leading-[1.15] text-foreground ${isMobileDrawer ? 'text-[12.5px]' : 'text-[12px]'}`}>{displayName}</p>
+                <p className={`truncate leading-[1.15] text-muted-foreground ${isMobileDrawer ? 'mt-0.5 text-[10.5px]' : 'mt-0.5 text-[10px]'}`}>{displayEmail}</p>
               </div>
             </div>
-            <div className={`flex items-center justify-between gap-2 border border-border/80 bg-card ${isMobileDrawer ? 'mt-3 rounded-xl px-3 py-2' : 'mt-1.5 rounded-[14px] px-2 py-1.5'}`}>
-              <div className="min-w-0">
-                <p className={`font-700 uppercase text-muted-foreground ${isMobileDrawer ? 'text-[11px] tracking-[0.14em]' : 'text-[9px] tracking-[0.16em]'}`}>{t('sidebar.accountTitle', { ns: 'portal' })}</p>
-                <p className={`text-muted-foreground ${isMobileDrawer ? 'truncate text-[11px]' : 'max-w-[138px] truncate text-[10px] leading-tight'}`}>{t('sidebar.accountDescription', { ns: 'portal' })}</p>
-              </div>
+            <div className={`mt-2 border-t border-border/75 ${isMobileDrawer ? 'pt-2' : 'pt-1.5'}`}>
+              <div className="flex items-center justify-between gap-2">
+                <p className={`min-w-0 truncate font-700 uppercase text-muted-foreground ${isMobileDrawer ? 'text-[10px] tracking-[0.14em]' : 'text-[9px] tracking-[0.16em]'}`}>{t('sidebar.accountTitle', { ns: 'portal' })}</p>
               <button
                 onClick={handleSignOut}
-                className={`inline-flex items-center justify-center gap-1.5 border border-negative/20 bg-negative-soft font-700 text-negative transition-colors hover:bg-negative-soft/80 ${isMobileDrawer ? 'rounded-xl px-3 py-2 text-xs' : 'h-8 w-8 rounded-full p-0 text-[11px]'}`}
+                className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-negative/18 bg-negative/5 font-600 text-negative transition-colors hover:bg-negative/10 ${isMobileDrawer ? 'min-h-9 px-2.5 py-1.5 text-[11px]' : 'min-h-8 px-2.5 py-1.5 text-[11px]'}`}
                 aria-label={t('sidebar.signOut', { ns: 'portal' })}
                 title={t('sidebar.signOut', { ns: 'portal' })}
               >
-                <LogOut size={isMobileDrawer ? 14 : 13} />
-                {isMobileDrawer ? <span>{t('sidebar.signOut', { ns: 'portal' })}</span> : null}
+                <LogOut size={isMobileDrawer ? 13 : 12} />
+                <span className="truncate">{t('sidebar.signOut', { ns: 'portal' })}</span>
               </button>
+              </div>
             </div>
           </div>
         )}
