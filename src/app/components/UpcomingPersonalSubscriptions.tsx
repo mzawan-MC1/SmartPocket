@@ -133,12 +133,33 @@ export default function UpcomingPersonalSubscriptions({
         }];
 
     return (
-      <section className="space-y-2">
+      <section className="space-y-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+            {t('dashboardSections.smartSuggestionsTitle', { ns: 'portal' })}
+          </h2>
+          {suggestions.length > 0 ? (
+            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-blue-200/80 bg-blue-50 px-2 text-[11px] font-800 text-blue-700">
+              {suggestions.length}
+            </span>
+          ) : null}
+        </div>
+
         {loading ? (
-          <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.22)]">
-            <div className="h-4 w-40 animate-pulse rounded bg-muted" />
-            <div className="mt-2 h-3 w-56 animate-pulse rounded bg-muted" />
-            <div className="mt-3 h-10 w-24 animate-pulse rounded-full bg-muted" />
+          <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.18)]">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 animate-pulse rounded-2xl bg-blue-100/70" />
+              <div className="min-w-0 flex-1">
+                <div className="h-3.5 w-32 animate-pulse rounded bg-muted" />
+                <div className="mt-2 h-4 w-48 animate-pulse rounded bg-muted" />
+              </div>
+              <div className="h-6 w-10 animate-pulse rounded-full bg-muted" />
+            </div>
+            <div className="mt-3 h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <div className="h-3 w-36 animate-pulse rounded bg-muted" />
+              <div className="h-8 w-20 animate-pulse rounded-full bg-muted" />
+            </div>
           </div>
         ) : loadError ? (
           <div className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
@@ -157,41 +178,47 @@ export default function UpcomingPersonalSubscriptions({
             </button>
           </div>
         ) : (
-          visibleSuggestions.map((suggestion) => (
-            <section
-              key={suggestion.id}
-              className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-                  <ShieldCheck size={20} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
-                      {suggestion.title}
-                    </h3>
-                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-700">
-                      {suggestion.badge}
-                    </span>
+          <div className="space-y-2">
+            {visibleSuggestions.map((suggestion) => (
+              <section
+                key={suggestion.id}
+                className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.22)]"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100/90 text-blue-700 shadow-[0_8px_18px_-14px_rgba(37,99,235,0.25)]">
+                    <ShieldCheck size={18} />
                   </div>
-                  <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
-                    {suggestion.message}
-                  </p>
-                  <p className={`mt-1 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
-                    {suggestion.helper}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="truncate text-[13px] font-800 tracking-[-0.02em] text-foreground">
+                        {suggestion.title}
+                      </h3>
+                      <span className="shrink-0 rounded-full border border-blue-200/80 bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-700">
+                        {suggestion.badge}
+                      </span>
+                    </div>
+
+                    <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
+                      {suggestion.message}
+                    </p>
+
+                    <div className="mt-2 flex items-end justify-between gap-3">
+                      <p className={`line-clamp-2 min-w-0 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
+                        {suggestion.helper}
+                      </p>
+                      <Link
+                        href={suggestion.href}
+                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-blue-200/80 bg-white px-3 text-[12px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
+                      >
+                        {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
+                        <ChevronRight size={14} className={isArabic ? 'rotate-180' : ''} />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <Link
-                  href={suggestion.href}
-                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-white px-4 text-[13px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
-                >
-                  {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
-                  <ChevronRight size={16} />
-                </Link>
-              </div>
-            </section>
-          ))
+              </section>
+            ))}
+          </div>
         )}
       </section>
     );

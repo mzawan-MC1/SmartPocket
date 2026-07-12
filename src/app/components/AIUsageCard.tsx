@@ -629,6 +629,202 @@ export default function AIUsageCard({
     </div>
   );
 
+  const usageSheetModal = (
+    <Modal
+      isOpen={usageSheetOpen}
+      onClose={() => setUsageSheetOpen(false)}
+      title={t('aiUsage.title', { defaultValue: 'AI Usage' })}
+      description={t('aiUsage.recentActivitySubtitle', {
+        defaultValue: 'Your recent AI activity',
+      })}
+      size="md"
+      mobileLayout="sheet"
+      contentClassName="sm:max-w-lg"
+      bodyClassName="space-y-3 max-[480px]:space-y-2.5"
+    >
+      <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-800 text-foreground">
+                {t('aiUsage.assistantTitle', { defaultValue: 'AI Assistant' })}
+              </p>
+              <CompactStatus label={statusLabel} tone={statusTone} />
+            </div>
+            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+              {t('aiUsage.recentActivitySubtitle', { defaultValue: 'Your recent AI activity' })}
+            </p>
+          </div>
+          {resetDate ? (
+            <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
+              <Calendar size={11} />
+              <span className="whitespace-nowrap">{resetDate}</span>
+            </div>
+          ) : null}
+        </div>
+
+        {usageMessage ? <div className="mt-3"><UsageAlert message={usageMessage.text} tone={usageMessage.tone} /></div> : null}
+
+        <div className="mt-3 divide-y divide-slate-200/80 rounded-[18px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+          {summaryRows.map((row) => {
+            const visuals = getMetricVisualStyles(row.id);
+            const Icon = visuals.icon;
+
+            return (
+              <div key={row.id} className="px-3 py-3 first:rounded-t-[18px] last:rounded-b-[18px]">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl ${visuals.iconClassName} ring-1 ${visuals.ringClassName}`}>
+                    <Icon size={15} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-[13px] font-700 text-foreground">{row.title}</p>
+                        <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                          {row.metric?.usedText || row.metric?.helper || t('aiUsage.noAccess', { defaultValue: 'Unavailable on your current plan.' })}
+                        </p>
+                      </div>
+                      <div className="min-w-[112px] text-right">
+                        {row.metric ? (
+                          <>
+                            <p className={`text-[13px] font-800 leading-none tabular-nums ${
+                              row.metric.tone === 'exhausted'
+                                ? 'text-negative'
+                                : row.metric.tone === 'warning'
+                                  ? 'text-warning'
+                                  : 'text-foreground'
+                            }`}>
+                              <span dir="ltr">{row.metric.valueNumber}</span>
+                              <span className="ml-1 text-[11px] font-700 text-current/90">{row.metric.valueLabel}</span>
+                            </p>
+                            <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
+                              {row.metric.valueText}
+                            </p>
+                          </>
+                        ) : (
+                          <CompactStatus label={t('aiUsage.noAccessBadge')} tone="warning" />
+                        )}
+                      </div>
+                    </div>
+                    {row.metric && row.metric.total > 0 ? (
+                      <div className="mt-2">
+                        <UsageProgress
+                          label={row.metric.progressLabel}
+                          used={row.metric.used}
+                          total={row.metric.total}
+                          tone={row.metric.tone}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <p className="text-sm font-800 text-foreground">{t('aiUsage.history', { defaultValue: 'History' })}</p>
+          <button
+            type="button"
+            onClick={() => void loadHistory()}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-slate-100"
+            aria-label={t('aiHistory.refresh', { defaultValue: 'Refresh' })}
+          >
+            <RefreshCw size={14} className={historyLoading ? 'animate-spin' : ''} />
+          </button>
+        </div>
+
+        {historyLoading ? (
+          <div className="flex min-h-[8rem] items-center justify-center">
+            <RefreshCw size={18} className="animate-spin text-accent" />
+          </div>
+        ) : historyItems.length === 0 ? (
+          <div className="rounded-2xl bg-slate-50 px-3 py-4 text-center">
+            <p className="text-sm font-700 text-foreground">
+              {t('aiUsage.emptyHistoryTitle', { defaultValue: 'No AI usage yet this month.' })}
+            </p>
+            <p className="mt-1 text-[12px] text-muted-foreground">
+              {t('aiUsage.emptyHistoryBody', { defaultValue: 'Try Smart Entry, voice, or receipt upload to see activity here.' })}
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-white">
+            {historyItems.map((item) => (
+              <div key={item.id} className="flex items-start gap-3 px-3 py-2.5">
+                <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${
+                  item.request_type === 'voice' ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/70' : 'bg-blue-100 text-blue-700 ring-1 ring-blue-200/70'
+                }`}>
+                  {item.request_type === 'voice' ? <Mic size={14} /> : <Keyboard size={14} />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="truncate text-[13px] font-700 text-foreground">
+                      {item.request_type === 'voice'
+                        ? t('aiHistory.requestTypes.voice', { defaultValue: 'Voice' })
+                        : t('aiHistory.requestTypes.text', { defaultValue: 'Text' })}
+                    </p>
+                    {item.status ? (
+                      <span className="shrink-0 text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                        {getHistoryStatusLabel(item.status)}
+                      </span>
+                    ) : null}
+                  </div>
+                  {item.raw_text ? (
+                    <p className="mt-0.5 truncate text-[11px] leading-4 text-muted-foreground">
+                      {item.raw_text}
+                    </p>
+                  ) : null}
+                  <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                    <span>{formatHistoryTimestamp(item.created_at)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.08)]">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {[
+            {
+              id: 'text',
+              label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
+              value: textHistoryCount,
+            },
+            {
+              id: 'voice',
+              label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
+              value: voiceHistoryCount,
+            },
+            {
+              id: 'uploads',
+              label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
+              value: receiptUsageTotal,
+            },
+          ].map((stat) => (
+            <div key={stat.id} className="rounded-2xl bg-slate-50 px-2.5 py-2.5">
+              <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
+              <p className="mt-1 text-[1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => quickActions?.openQuickAction('smart_entry')}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/35"
+      >
+        <Sparkles size={14} />
+        {t('aiUsage.openAssistant')}
+      </button>
+    </Modal>
+  );
+
   if (variant === 'mobile-featured' && !loading && !isUnavailable && summary?.has_subscription && hasAnyAiAccess) {
     const actionCards = [
       {
@@ -658,62 +854,65 @@ export default function AIUsageCard({
     ];
 
     return (
-      <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-3.5 shadow-[0_10px_24px_-22px_rgba(59,130,246,0.18)]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-blue-100/70" />
+      <>
+        <section className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff_0%,#eff6ff_100%)] p-3.5 shadow-[0_10px_24px_-22px_rgba(59,130,246,0.18)]">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-px bg-blue-100/70" />
 
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 text-slate-900">
-              <Sparkles size={17} className="text-[#2f7cff]" />
-              <h2 className="text-[1.08rem] font-800 tracking-[-0.02em]">{t('aiUsage.mobileFeature.title')}</h2>
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-slate-900">
+                <Sparkles size={17} className="text-[#2f7cff]" />
+                <h2 className="text-[1.08rem] font-800 tracking-[-0.02em]">{t('aiUsage.mobileFeature.title')}</h2>
+              </div>
+              <p className="mt-1 truncate text-[12px] leading-5 text-slate-600">
+                {t('aiUsage.mobileFeature.description')}
+              </p>
             </div>
-            <p className="mt-1 truncate text-[12px] leading-5 text-slate-600">
-              {t('aiUsage.mobileFeature.description')}
-            </p>
+            <button
+              type="button"
+              onClick={() => setUsageSheetOpen(true)}
+              className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] hover:shadow-[0_14px_24px_-16px_rgba(37,99,235,0.42)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f7cff]/35 focus-visible:ring-offset-2"
+              aria-label={orbAriaLabel}
+            >
+              <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
+              <div className="absolute inset-[3px] rounded-full border border-white/45" />
+              <div className="relative flex items-center justify-center">
+                <Sparkles size={15} className="text-white drop-shadow-sm" />
+              </div>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setUsageSheetOpen(true)}
-            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] hover:shadow-[0_14px_24px_-16px_rgba(37,99,235,0.42)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f7cff]/35 focus-visible:ring-offset-2"
-            aria-label={orbAriaLabel}
-          >
-            <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
-            <div className="absolute inset-[3px] rounded-full border border-white/45" />
-            <div className="relative flex items-center justify-center">
-              <Sparkles size={15} className="text-white drop-shadow-sm" />
-            </div>
-          </button>
-        </div>
 
-        <div className="relative mt-3.5 grid grid-cols-3 gap-2">
-          {actionCards.map((action) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={action.id}
-                type="button"
-                onClick={action.onClick}
-                className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2 py-2.5 text-center transition-colors duration-150 active:bg-slate-50 ${action.className}`}
-              >
-                <div className="flex w-full items-center justify-center gap-1">
-                  <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#eff6ff)] shadow-[0_8px_16px_-12px_rgba(37,99,235,0.35)] ring-1 ring-white/80">
-                    <Icon size={14} />
+          <div className="relative mt-3.5 grid grid-cols-3 gap-2">
+            {actionCards.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={action.onClick}
+                  className={`flex min-h-[82px] flex-col items-center rounded-[18px] border px-2 py-2.5 text-center transition-colors duration-150 active:bg-slate-50 ${action.className}`}
+                >
+                  <div className="flex w-full items-center justify-center gap-1">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#ffffff,#eff6ff)] shadow-[0_8px_16px_-12px_rgba(37,99,235,0.35)] ring-1 ring-white/80">
+                      <Icon size={14} />
+                    </div>
+                    <p className="whitespace-nowrap text-[12px] font-800 tracking-[-0.02em] text-slate-900">
+                      {action.title}
+                    </p>
                   </div>
-                  <p className="whitespace-nowrap text-[12px] font-800 tracking-[-0.02em] text-slate-900">
-                    {action.title}
-                  </p>
-                </div>
-                <p className="mt-1.5 line-clamp-2 text-[9.5px] leading-3.5 text-slate-600">{action.description}</p>
-              </button>
-            );
-          })}
-        </div>
+                  <p className="mt-1.5 line-clamp-2 text-[9.5px] leading-3.5 text-slate-600">{action.description}</p>
+                </button>
+              );
+            })}
+          </div>
 
-        <div className="relative mt-3.5 flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-center text-[10.5px] font-600 text-slate-600">
-          <Sparkles size={13} className="text-[#2f7cff]" />
-          <span>{t('aiUsage.mobileFeature.footer')}</span>
-        </div>
-      </section>
+          <div className="relative mt-3.5 flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-center text-[10.5px] font-600 text-slate-600">
+            <Sparkles size={13} className="text-[#2f7cff]" />
+            <span>{t('aiUsage.mobileFeature.footer')}</span>
+          </div>
+        </section>
+        {usageSheetModal}
+      </>
     );
   }
 
@@ -889,199 +1088,7 @@ export default function AIUsageCard({
         </div>
       </div>
 
-      <Modal
-        isOpen={usageSheetOpen}
-        onClose={() => setUsageSheetOpen(false)}
-        title={t('aiUsage.title', { defaultValue: 'AI Usage' })}
-        description={t('aiUsage.recentActivitySubtitle', {
-          defaultValue: 'Your recent AI activity',
-        })}
-        size="md"
-        mobileLayout="sheet"
-        contentClassName="sm:max-w-lg"
-        bodyClassName="space-y-3 max-[480px]:space-y-2.5"
-      >
-        <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-800 text-foreground">
-                  {t('aiUsage.assistantTitle', { defaultValue: 'AI Assistant' })}
-                </p>
-                <CompactStatus label={statusLabel} tone={statusTone} />
-              </div>
-              <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
-                {t('aiUsage.recentActivitySubtitle', { defaultValue: 'Your recent AI activity' })}
-              </p>
-            </div>
-            {resetDate ? (
-              <div className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-50 px-2.5 py-1 text-[11px] font-600 text-muted-foreground">
-                <Calendar size={11} />
-                <span className="whitespace-nowrap">{resetDate}</span>
-              </div>
-            ) : null}
-          </div>
-
-          {usageMessage ? <div className="mt-3"><UsageAlert message={usageMessage.text} tone={usageMessage.tone} /></div> : null}
-
-          <div className="mt-3 divide-y divide-slate-200/80 rounded-[18px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
-            {summaryRows.map((row) => {
-              const visuals = getMetricVisualStyles(row.id);
-              const Icon = visuals.icon;
-
-              return (
-                <div key={row.id} className="px-3 py-3 first:rounded-t-[18px] last:rounded-b-[18px]">
-                  <div className="flex items-start gap-3">
-                    <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl ${visuals.iconClassName} ring-1 ${visuals.ringClassName}`}>
-                      <Icon size={15} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-[13px] font-700 text-foreground">{row.title}</p>
-                          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
-                            {row.metric?.usedText || row.metric?.helper || t('aiUsage.noAccess', { defaultValue: 'Unavailable on your current plan.' })}
-                          </p>
-                        </div>
-                        <div className="min-w-[112px] text-right">
-                          {row.metric ? (
-                            <>
-                              <p className={`text-[13px] font-800 leading-none tabular-nums ${
-                                row.metric.tone === 'exhausted'
-                                  ? 'text-negative'
-                                  : row.metric.tone === 'warning'
-                                    ? 'text-warning'
-                                    : 'text-foreground'
-                              }`}>
-                                <span dir="ltr">{row.metric.valueNumber}</span>
-                                <span className="ml-1 text-[11px] font-700 text-current/90">{row.metric.valueLabel}</span>
-                              </p>
-                              <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
-                                {row.metric.valueText}
-                              </p>
-                            </>
-                          ) : (
-                            <CompactStatus label={t('aiUsage.noAccessBadge')} tone="warning" />
-                          )}
-                        </div>
-                      </div>
-                      {row.metric && row.metric.total > 0 ? (
-                        <div className="mt-2">
-                          <UsageProgress
-                            label={row.metric.progressLabel}
-                            used={row.metric.used}
-                            total={row.metric.total}
-                            tone={row.metric.tone}
-                          />
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <p className="text-sm font-800 text-foreground">{t('aiUsage.history', { defaultValue: 'History' })}</p>
-            <button
-              type="button"
-              onClick={() => void loadHistory()}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-slate-100"
-              aria-label={t('aiHistory.refresh', { defaultValue: 'Refresh' })}
-            >
-              <RefreshCw size={14} className={historyLoading ? 'animate-spin' : ''} />
-            </button>
-          </div>
-
-          {historyLoading ? (
-            <div className="flex min-h-[8rem] items-center justify-center">
-              <RefreshCw size={18} className="animate-spin text-accent" />
-            </div>
-          ) : historyItems.length === 0 ? (
-            <div className="rounded-2xl bg-slate-50 px-3 py-4 text-center">
-              <p className="text-sm font-700 text-foreground">
-                {t('aiUsage.emptyHistoryTitle', { defaultValue: 'No AI usage yet this month.' })}
-              </p>
-              <p className="mt-1 text-[12px] text-muted-foreground">
-                {t('aiUsage.emptyHistoryBody', { defaultValue: 'Try Smart Entry, voice, or receipt upload to see activity here.' })}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-white">
-              {historyItems.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 px-3 py-2.5">
-                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${
-                    item.request_type === 'voice' ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/70' : 'bg-blue-100 text-blue-700 ring-1 ring-blue-200/70'
-                  }`}>
-                    {item.request_type === 'voice' ? <Mic size={14} /> : <Keyboard size={14} />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <p className="truncate text-[13px] font-700 text-foreground">
-                        {item.request_type === 'voice'
-                          ? t('aiHistory.requestTypes.voice', { defaultValue: 'Voice' })
-                          : t('aiHistory.requestTypes.text', { defaultValue: 'Text' })}
-                      </p>
-                      {item.status ? (
-                        <span className="shrink-0 text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
-                          {getHistoryStatusLabel(item.status)}
-                        </span>
-                      ) : null}
-                    </div>
-                    {item.raw_text ? (
-                      <p className="mt-0.5 truncate text-[11px] leading-4 text-muted-foreground">
-                        {item.raw_text}
-                      </p>
-                    ) : null}
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                      <span>{formatHistoryTimestamp(item.created_at)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.08)]">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            {[
-              {
-                id: 'text',
-                label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
-                value: textHistoryCount,
-              },
-              {
-                id: 'voice',
-                label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
-                value: voiceHistoryCount,
-              },
-              {
-                id: 'uploads',
-                label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
-                value: receiptUsageTotal,
-              },
-            ].map((stat) => (
-              <div key={stat.id} className="rounded-2xl bg-slate-50 px-2.5 py-2.5">
-                <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 text-[1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => quickActions?.openQuickAction('smart_entry')}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-violet-600 px-4 py-2.5 text-sm font-700 text-white shadow-card-sm transition-colors hover:bg-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/35"
-        >
-          <Sparkles size={14} />
-          {t('aiUsage.openAssistant')}
-        </button>
-      </Modal>
+      {usageSheetModal}
     </>
   );
 }

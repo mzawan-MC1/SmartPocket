@@ -771,6 +771,7 @@ export default function DashboardMetrics({
       label: string;
       value: string;
       helper: string;
+      valueDir?: 'auto' | 'ltr';
       icon: typeof TrendingUp;
       iconBg: string;
       iconColor: string;
@@ -784,6 +785,7 @@ export default function DashboardMetrics({
         label: netLabel,
         value: netCashFlowPositive ? t('dashboardMetrics.mobilePositiveShort') : t('dashboardMetrics.mobileNegativeShort'),
         helper: t('dashboardMetrics.mobileNetCashFlow'),
+        valueDir: 'auto',
         icon: TrendingUp,
         iconBg: 'bg-emerald-100',
         iconColor: netCashFlowPositive ? 'text-emerald-600' : 'text-rose-500',
@@ -794,6 +796,7 @@ export default function DashboardMetrics({
         label: t('dashboardMetrics.mobileUpcoming'),
         value: metrics.upcomingPaymentsCount > 0 ? `${metrics.upcomingPaymentsCount}` : '0',
         helper: upcomingCountLabel,
+        valueDir: 'ltr',
         icon: CalendarClock,
         iconBg: 'bg-violet-100',
         iconColor: 'text-violet-600',
@@ -804,6 +807,7 @@ export default function DashboardMetrics({
         label: t('dashboardMetrics.mobileBudget'),
         value: budgetUsagePct !== null ? `${budgetUsagePct}%` : t('dashboardMetrics.mobileBudgetFallbackShort'),
         helper: budgetUsageLabel,
+        valueDir: budgetUsagePct !== null ? 'ltr' : 'auto',
         icon: Target,
         iconBg: 'bg-amber-100',
         iconColor: 'text-amber-600',
@@ -814,6 +818,7 @@ export default function DashboardMetrics({
         label: t('dashboardMetrics.mobileAccounts', { ns: 'portal' }),
         value: t('actions.viewAll', { ns: 'common' }),
         helper: t('dashboardMetrics.mobileAccountsHelper', { ns: 'portal' }),
+        valueDir: 'auto',
         icon: Wallet,
         iconBg: 'bg-sky-100',
         iconColor: 'text-sky-700',
@@ -943,19 +948,30 @@ export default function DashboardMetrics({
         <div className="grid grid-cols-2 gap-2">
           {mobileDetailCards.map((card) => {
             const Icon = card.icon;
-            const cardClassName = `rounded-[20px] border bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)] transition-colors duration-150 active:bg-slate-50 ${
+            const cardClassName = `flex min-h-[90px] flex-col justify-between rounded-[20px] border bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)] transition-colors duration-150 active:bg-slate-50 ${
               card.wide === true ? 'col-span-2 border-blue-100/90' : 'border-slate-200/80'
             }`;
             const content = (
               <>
-                <div className={`flex h-8 w-8 items-center justify-center rounded-2xl ${card.iconBg} ${card.iconColor}`}>
-                  <Icon size={15} />
+                <div className="flex items-center gap-2.5">
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-2xl ${card.iconBg} ${card.iconColor}`}>
+                    <Icon size={15} />
+                  </div>
+                  <p className="min-w-0 truncate text-[11px] font-700 leading-4 text-slate-700">
+                    {card.label}
+                  </p>
                 </div>
-                <p className="mt-1.5 text-[10.5px] font-700 leading-4 text-slate-700">{card.label}</p>
-                <p className={`mt-1 text-[0.95rem] font-800 leading-none tracking-[-0.03em] ${card.iconColor}`}>
-                  {card.value}
-                </p>
-                <p className="mt-1 text-[10.5px] leading-4 text-slate-500">{card.helper}</p>
+                <div className="mt-2 flex items-end justify-between gap-2">
+                  <p
+                    dir={card.valueDir}
+                    className={`min-w-0 truncate text-[0.98rem] font-800 leading-none tracking-[-0.03em] ${card.iconColor}`}
+                  >
+                    {card.value}
+                  </p>
+                  <p className="min-w-0 truncate text-right text-[10.5px] leading-4 text-slate-500">
+                    {card.helper}
+                  </p>
+                </div>
               </>
             );
 
