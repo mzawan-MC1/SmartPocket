@@ -297,6 +297,35 @@ function CompactStatus({
   );
 }
 
+function getMetricVisualStyles(metricId: UsageMetric['id']) {
+  switch (metricId) {
+    case 'text':
+      return {
+        icon: Keyboard,
+        iconClassName: 'bg-blue-100 text-blue-700',
+        ringClassName: 'ring-blue-200/70',
+      };
+    case 'voice':
+      return {
+        icon: Mic,
+        iconClassName: 'bg-sky-100 text-sky-700',
+        ringClassName: 'ring-sky-200/70',
+      };
+    case 'receipt':
+      return {
+        icon: FileUp,
+        iconClassName: 'bg-violet-100 text-violet-700',
+        ringClassName: 'ring-violet-200/70',
+      };
+    default:
+      return {
+        icon: Sparkles,
+        iconClassName: 'bg-slate-100 text-slate-700',
+        ringClassName: 'ring-slate-200/70',
+      };
+  }
+}
+
 export default function AIUsageCard({
   variant = 'default',
 }: {
@@ -517,8 +546,53 @@ export default function AIUsageCard({
   const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-slate-50 px-3 py-1';
   const textHistoryCount = historyItems.filter((item) => item.request_type === 'text').length;
   const voiceHistoryCount = historyItems.filter((item) => item.request_type === 'voice').length;
-  const receiptHistoryCount = receiptUsageTotal;
-  const totalAiActions = textHistoryCount + voiceHistoryCount + receiptHistoryCount;
+  const historyLocale = language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US';
+  const orbAriaLabel = `${t('actions.view', { ns: 'common', defaultValue: 'View' })} ${t('aiUsage.title', { defaultValue: 'AI Usage' })}`;
+  const summaryRows: Array<{
+    id: UsageMetric['id'];
+    title: string;
+    metric: UsageMetric | null;
+  }> = [
+    {
+      id: 'text',
+      title: t('aiUsage.textAi'),
+      metric: textMetric,
+    },
+    {
+      id: 'voice',
+      title: t('aiUsage.voiceAi'),
+      metric: voiceMetric,
+    },
+    {
+      id: 'receipt',
+      title: t('aiUsage.receiptIntelligence'),
+      metric: receiptMetric,
+    },
+  ];
+
+  const getHistoryStatusLabel = (status: string) => {
+    const statusKeyMap: Record<string, string> = {
+      executed: 'aiHistory.statuses.executed',
+      confirmed: 'aiHistory.statuses.confirmed',
+      cancelled: 'aiHistory.statuses.cancelled',
+      failed: 'aiHistory.statuses.failed',
+      parsed: 'aiHistory.statuses.parsed',
+      clarifying: 'aiHistory.statuses.clarifying',
+      not_configured: 'aiHistory.statuses.notConfigured',
+    };
+
+    const translationKey = statusKeyMap[status];
+    return translationKey ? t(translationKey, { defaultValue: status }) : status;
+  };
+
+  const formatHistoryTimestamp = (value: string) => (
+    new Date(value).toLocaleDateString(historyLocale, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  );
 
   const renderHeader = (showHistory: boolean, badge?: React.ReactNode) => (
     <div className="grid grid-cols-[auto,minmax(0,1fr)] gap-x-2.5 gap-y-1">
@@ -600,8 +674,8 @@ export default function AIUsageCard({
           <button
             type="button"
             onClick={() => setUsageSheetOpen(true)}
-            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] active:scale-[0.98]"
-            aria-label={t('aiUsage.history', { defaultValue: 'AI Usage' })}
+            className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] hover:shadow-[0_14px_24px_-16px_rgba(37,99,235,0.42)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f7cff]/35 focus-visible:ring-offset-2"
+            aria-label={orbAriaLabel}
           >
             <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
             <div className="absolute inset-[3px] rounded-full border border-white/45" />
@@ -825,10 +899,10 @@ export default function AIUsageCard({
         size="md"
         mobileLayout="sheet"
         contentClassName="sm:max-w-lg"
-        bodyClassName="space-y-3"
+        bodyClassName="space-y-3 max-[480px]:space-y-2.5"
       >
         <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.12)]">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <p className="truncate text-sm font-800 text-foreground">
@@ -850,79 +924,62 @@ export default function AIUsageCard({
 
           {usageMessage ? <div className="mt-3"><UsageAlert message={usageMessage.text} tone={usageMessage.tone} /></div> : null}
 
-          {primaryMetric ? (
-            <div className="mt-3 rounded-[18px] border border-violet-200/45 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,247,255,0.96))] px-3 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <p className="truncate text-[13px] font-700 text-foreground">{primaryMetric.title}</p>
-                <span className="text-[11px] font-600 text-muted-foreground whitespace-nowrap">
-                  {primaryMetric.usedText || primaryMetric.helper}
-                </span>
-              </div>
-              <div className="mt-2 flex items-end gap-2">
-                <span dir="ltr" className="text-[1.6rem] font-800 leading-none tracking-[-0.03em] text-foreground tabular-nums">
-                  {primaryMetric.valueNumber}
-                </span>
-                <span className="pb-0.5 text-[12px] font-600 leading-4 text-muted-foreground">
-                  {primaryMetric.valueLabel}
-                </span>
-              </div>
-              <div className="mt-3">
-                <UsageProgress
-                  label={primaryMetric.progressLabel}
-                  used={primaryMetric.used}
-                  total={primaryMetric.total}
-                  tone={primaryMetric.tone}
-                />
-              </div>
-            </div>
-          ) : null}
+          <div className="mt-3 divide-y divide-slate-200/80 rounded-[18px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+            {summaryRows.map((row) => {
+              const visuals = getMetricVisualStyles(row.id);
+              const Icon = visuals.icon;
 
-          {secondaryMetrics.length > 0 ? (
-            <div className="mt-3 grid grid-cols-1 gap-2">
-              {secondaryMetrics.map((metric) => (
-                <div key={metric.id} className="rounded-2xl border border-slate-200/70 bg-slate-50 px-3 py-2.5">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="truncate text-[12px] font-700 text-foreground">{metric.title}</p>
-                    <span dir="ltr" className="text-[13px] font-800 text-foreground tabular-nums">
-                      {metric.valueNumber} <span className="text-[11px] font-600 text-muted-foreground">{metric.valueLabel}</span>
-                    </span>
+              return (
+                <div key={row.id} className="px-3 py-3 first:rounded-t-[18px] last:rounded-b-[18px]">
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl ${visuals.iconClassName} ring-1 ${visuals.ringClassName}`}>
+                      <Icon size={15} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px] font-700 text-foreground">{row.title}</p>
+                          <p className="mt-0.5 text-[11px] leading-4 text-muted-foreground">
+                            {row.metric?.usedText || row.metric?.helper || t('aiUsage.noAccess', { defaultValue: 'Unavailable on your current plan.' })}
+                          </p>
+                        </div>
+                        <div className="min-w-[112px] text-right">
+                          {row.metric ? (
+                            <>
+                              <p className={`text-[13px] font-800 leading-none tabular-nums ${
+                                row.metric.tone === 'exhausted'
+                                  ? 'text-negative'
+                                  : row.metric.tone === 'warning'
+                                    ? 'text-warning'
+                                    : 'text-foreground'
+                              }`}>
+                                <span dir="ltr">{row.metric.valueNumber}</span>
+                                <span className="ml-1 text-[11px] font-700 text-current/90">{row.metric.valueLabel}</span>
+                              </p>
+                              <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
+                                {row.metric.valueText}
+                              </p>
+                            </>
+                          ) : (
+                            <CompactStatus label={t('aiUsage.noAccessBadge')} tone="warning" />
+                          )}
+                        </div>
+                      </div>
+                      {row.metric && row.metric.total > 0 ? (
+                        <div className="mt-2">
+                          <UsageProgress
+                            label={row.metric.progressLabel}
+                            used={row.metric.used}
+                            total={row.metric.total}
+                            tone={row.metric.tone}
+                          />
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  {metric.usedText ? (
-                    <p className="mt-1 text-[11px] leading-4 text-muted-foreground">{metric.usedText}</p>
-                  ) : null}
                 </div>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="mt-3 grid grid-cols-2 gap-2.5">
-            {[
-              {
-                id: 'text',
-                label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
-                value: textHistoryCount,
-              },
-              {
-                id: 'voice',
-                label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
-                value: voiceHistoryCount,
-              },
-              {
-                id: 'uploads',
-                label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
-                value: receiptHistoryCount,
-              },
-              {
-                id: 'total',
-                label: t('aiUsage.totalActions', { defaultValue: 'AI actions this month' }),
-                value: totalAiActions,
-              },
-            ].map((stat) => (
-              <div key={stat.id} className="rounded-2xl border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-3 py-3">
-                <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
-                <p className="mt-1 text-[1.1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -953,43 +1010,67 @@ export default function AIUsageCard({
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="divide-y divide-slate-200/80 rounded-2xl border border-slate-200/80 bg-white">
               {historyItems.map((item) => (
-                <div key={item.id} className="flex items-start gap-3 rounded-2xl bg-slate-50 px-3 py-2.5">
+                <div key={item.id} className="flex items-start gap-3 px-3 py-2.5">
                   <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl ${
-                    item.request_type === 'voice' ? 'bg-sky-100 text-sky-700' : 'bg-blue-100 text-blue-700'
+                    item.request_type === 'voice' ? 'bg-sky-100 text-sky-700 ring-1 ring-sky-200/70' : 'bg-blue-100 text-blue-700 ring-1 ring-blue-200/70'
                   }`}>
                     {item.request_type === 'voice' ? <Mic size={14} /> : <Keyboard size={14} />}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-700 text-foreground">
-                      {item.raw_text || t('aiUsage.history', { defaultValue: 'AI action' })}
-                    </p>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
-                      <span>
-                        {new Date(item.created_at).toLocaleDateString(
-                          language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US',
-                          { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
-                        )}
-                      </span>
-                      <span>·</span>
-                      <span className="whitespace-nowrap">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="truncate text-[13px] font-700 text-foreground">
                         {item.request_type === 'voice'
                           ? t('aiHistory.requestTypes.voice', { defaultValue: 'Voice' })
                           : t('aiHistory.requestTypes.text', { defaultValue: 'Text' })}
-                      </span>
+                      </p>
                       {item.status ? (
-                        <>
-                          <span>·</span>
-                          <span className="whitespace-nowrap">{item.status}</span>
-                        </>
+                        <span className="shrink-0 text-[10.5px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+                          {getHistoryStatusLabel(item.status)}
+                        </span>
                       ) : null}
+                    </div>
+                    {item.raw_text ? (
+                      <p className="mt-0.5 truncate text-[11px] leading-4 text-muted-foreground">
+                        {item.raw_text}
+                      </p>
+                    ) : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <span>{formatHistoryTimestamp(item.created_at)}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           )}
+        </div>
+
+        <div className="rounded-[20px] border border-slate-200/80 bg-white p-3 shadow-[0_8px_18px_-16px_rgba(15,23,42,0.08)]">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              {
+                id: 'text',
+                label: t('aiUsage.textEntries', { defaultValue: 'Text entries' }),
+                value: textHistoryCount,
+              },
+              {
+                id: 'voice',
+                label: t('aiUsage.voiceEntries', { defaultValue: 'Voice entries' }),
+                value: voiceHistoryCount,
+              },
+              {
+                id: 'uploads',
+                label: t('aiUsage.uploadEntries', { defaultValue: 'Receipt scans' }),
+                value: receiptUsageTotal,
+              },
+            ].map((stat) => (
+              <div key={stat.id} className="rounded-2xl bg-slate-50 px-2.5 py-2.5">
+                <p className="text-[11px] font-700 text-muted-foreground">{stat.label}</p>
+                <p className="mt-1 text-[1rem] font-800 tracking-[-0.03em] text-foreground">{stat.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <button
