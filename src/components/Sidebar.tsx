@@ -391,9 +391,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               fullName={displayName}
               email={displayEmail}
               avatarUrl={profile?.avatar_url}
-              className={isMobileDrawer ? 'h-10 w-10 text-sm' : 'h-8.5 w-8.5 text-xs'}
+              className={isMobileDrawer ? 'h-10 w-10 max-h-10 max-w-10 text-sm' : 'h-8 w-8 max-h-8 max-w-8 text-xs'}
               textClassName={isMobileDrawer ? 'text-sm' : 'text-xs'}
-              iconClassName={isMobileDrawer ? 'h-4.5 w-4.5' : 'h-4 w-4'}
+              iconClassName={isMobileDrawer ? 'h-[18px] w-[18px]' : 'h-4 w-4'}
             />
           </button>
         ) : (
@@ -403,7 +403,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                 fullName={displayName}
                 email={displayEmail}
                 avatarUrl={profile?.avatar_url}
-                className={isMobileDrawer ? 'h-8.5 w-8.5 text-xs' : 'h-8 w-8 text-[11px]'}
+                className={isMobileDrawer ? 'h-[34px] w-[34px] max-h-[34px] max-w-[34px] text-xs' : 'h-8 w-8 max-h-8 max-w-8 text-[11px]'}
                 textClassName={isMobileDrawer ? 'text-xs' : 'text-[11px]'}
                 iconClassName={isMobileDrawer ? 'h-4 w-4' : 'h-3.5 w-3.5'}
               />
