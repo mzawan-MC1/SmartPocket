@@ -871,14 +871,12 @@ export default function AIUsageCard({
             <button
               type="button"
               onClick={() => setUsageSheetOpen(true)}
-              className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] hover:shadow-[0_14px_24px_-16px_rgba(37,99,235,0.42)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f7cff]/35 focus-visible:ring-offset-2"
+              className="relative flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-blue-200/80 bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#dbeafe_42%,#bfdbfe_100%)] shadow-[0_10px_20px_-14px_rgba(37,99,235,0.35)] transition-transform duration-150 hover:scale-[1.02] hover:shadow-[0_14px_24px_-16px_rgba(37,99,235,0.42)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2f7cff]/35 focus-visible:ring-offset-2"
               aria-label={orbAriaLabel}
             >
-              <div className="absolute inset-[7px] rounded-full bg-[linear-gradient(135deg,#1d4ed8,#38bdf8)]" />
-              <div className="absolute inset-[3px] rounded-full border border-white/45" />
-              <div className="relative flex items-center justify-center">
-                <Sparkles size={15} className="text-white drop-shadow-sm" />
-              </div>
+              <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/92 shadow-[0_10px_18px_-14px_rgba(37,99,235,0.3)] ring-1 ring-blue-100/90">
+                <Sparkles size={17} className="text-[#2f7cff]" />
+              </span>
             </button>
           </div>
 
