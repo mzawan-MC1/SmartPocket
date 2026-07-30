@@ -1470,7 +1470,11 @@ export function applySmartEntryReviewToInstruction(
         includeInTotal: review.account.includeInTotal ?? action.includeInTotal,
         accountScope: review.account.scope || action.accountScope,
         managedPersonId: review.account.managedPersonId || action.managedPersonId,
-        currency: sanitizeCurrency(review.account.currency || action.currency || review.currency),
+        currency: sanitizeCurrency(
+          review.account.mode === 'existing'
+            ? action.currency || review.currency
+            : review.account.currency || action.currency || review.currency
+        ),
       };
     }
 

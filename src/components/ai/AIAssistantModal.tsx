@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
   Mic,
   Type,
@@ -38,8 +39,8 @@ import { buildAIContext } from '@/lib/ai-execution';
 import { dispatchSmartPocketDataChanged, type SmartPocketDataEntity } from '@/lib/data-change';
 import {
   getDefaultPersonalAccount,
-  getFinancialAccountDisplayLabel,
   getActivePersonalFinancialAccounts,
+  getPreferredTransactionAccount,
 } from '@/lib/financial-account-utils';
 import {
   getFieldErrorTextClassName,
@@ -59,6 +60,7 @@ import {
   getSmartEntryTotals,
   hydrateSmartEntryReviewWithContext,
   inferAccountType,
+  isAccountRequired,
   isManagedPurpose,
   sanitizeCurrency,
 } from '@/lib/smart-entry';
@@ -77,6 +79,8 @@ import {
 import { trackAiEntryUsed } from '@/lib/analytics';
 import type { VoiceRecorderSubmission } from '@/lib/voice-ai';
 import CategoryIcon from '@/components/categories/CategoryIcon';
+
+const FinancialAccountFormLazy = dynamic(() => import('@/app/financial-accounts/components/FinancialAccountForm'));
 
  type AssistantStep =
    | 'entry'
@@ -207,6 +211,34 @@ function getAccountTypeLabel(
   }
 }
 
+function getSmartEntryPreferredAccountTransactionType(
+  review: SmartEntryReview | null | undefined,
+  parsed: ParsedFinancialInstruction | null | undefined
+): 'income' | 'expense' {
+  const primaryAction = parsed?.actions.find((action) => (
+    action.actionType !== 'create_account'
+    && action.actionType !== 'create_managed_person'
+    && isAccountRequired(action, 'account')
+  ));
+
+  switch (primaryAction?.actionType) {
+    case 'income':
+    case 'money_received_from_person':
+    case 'loan_received':
+      return 'income';
+    default:
+      break;
+  }
+
+  switch (review?.purpose) {
+    case 'personal_income':
+    case 'borrowed_money':
+      return 'income';
+    default:
+      return 'expense';
+  }
+}
+
 function isSubscriptionReview(review: SmartEntryReview | null | undefined): review is SmartEntryReview & {
   subscription: NonNullable<SmartEntryReview['subscription']>;
 } {
@@ -306,24 +338,6 @@ function getSubscriptionPaymentMethodLabel(
     ns: 'portal',
     defaultValue: method,
   });
-}
-
-function getContextAccountDisplayLabel(
-  account: NonNullable<NonNullable<FinancialContext['accounts']>[number]> | null | undefined
-) {
-  if (!account) return '';
-  return getFinancialAccountDisplayLabel(
-    {
-      name: account.name,
-      currency: account.currency,
-      is_system_default: account.isSystemDefault,
-      system_default_type: account.systemDefaultType,
-    },
-    {
-      includeCurrency: true,
-      includeDefaultLabel: true,
-    }
-  );
 }
 
 function getMissingFieldLabel(
@@ -773,6 +787,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     notes: string;
   } | null>(null);
   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
+  const [financialAccountFormOpen, setFinancialAccountFormOpen] = useState(false);
   const displayLanguage = useMemo<SmartEntryDisplayLanguage>(
     () => normalizeDisplayLanguage(uiLanguage),
     [uiLanguage]
@@ -802,6 +817,20 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     if (!session?.access_token) throw new Error(t('errors.sessionExpired', { ns: 'common' }));
     return session.access_token;
   };
+
+  const refreshSmartEntryContext = useCallback(async () => {
+    const nextContext = await buildAIContext();
+    setContextSnapshot(nextContext);
+    setReviewState((current) => (
+      current
+        ? hydrateSmartEntryReviewWithContext({
+            review: current,
+            context: nextContext,
+          })
+        : current
+    ));
+    return nextContext;
+  }, []);
 
   const getErrorText = (value: unknown) => {
     if (typeof value === 'string') return value;
@@ -1254,6 +1283,14 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
           })
         : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })
     );
+  const normalizeReviewCurrency = useCallback(
+    (value?: string) =>
+      sanitizeCurrency(value, {
+        fallbackCurrency: contextSnapshot?.defaultCurrency,
+        allowedCurrencies: contextSnapshot?.currencies,
+      }),
+    [contextSnapshot?.currencies, contextSnapshot?.defaultCurrency]
+  );
   const primaryAccountDisplayCurrency = sanitizeCurrency(
     selectedAccount?.currency || reviewState?.account?.currency || reviewState?.currency,
     {
@@ -1266,14 +1303,71 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     primaryAccountDisplayName,
     primaryAccountDisplayCurrency,
   ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' · ');
-  const normalizeReviewCurrency = useCallback(
-    (value?: string) =>
-      sanitizeCurrency(value, {
-        fallbackCurrency: contextSnapshot?.defaultCurrency,
-        allowedCurrencies: contextSnapshot?.currencies,
-      }),
-    [contextSnapshot?.currencies, contextSnapshot?.defaultCurrency]
+  const preferredPrimaryAccountTransactionType = useMemo(
+    () => getSmartEntryPreferredAccountTransactionType(reviewState, parsed),
+    [parsed, reviewState]
   );
+  const preferredPrimaryAccount = useMemo(() => {
+    if (!primaryAccountOptions.length || isManagedPurpose(reviewState?.purpose)) {
+      return null;
+    }
+
+    const preferred = getPreferredTransactionAccount(
+      primaryAccountOptions.map((account) => ({
+        id: account.id,
+        name: account.name,
+        account_type: account.type,
+        currency: account.currency,
+        is_active: true,
+        include_in_total: account.includeInTotal,
+        ownership_type: account.ownershipType,
+        scope_type: account.ownershipType === 'space' ? 'space' : 'personal',
+        is_system_default: account.isSystemDefault,
+        system_default_type: account.systemDefaultType,
+      })),
+      preferredPrimaryAccountTransactionType
+    );
+
+    return (
+      (preferred ? primaryAccountOptions.find((account) => account.id === preferred.id) : null)
+      || primaryAccountOptions[0]
+      || null
+    );
+  }, [preferredPrimaryAccountTransactionType, primaryAccountOptions, reviewState?.purpose]);
+  const canUseExistingAccountCreationFlow = !isManagedPurpose(reviewState?.purpose);
+  const primaryAccountCurrencyMismatch = useMemo(() => {
+    if (!selectedAccount?.currency || !previewInstruction) {
+      return null;
+    }
+
+    const accountCurrency = normalizeReviewCurrency(selectedAccount.currency);
+    const mismatched = previewInstruction.actions.some((action) => {
+      if (
+        action.actionType === 'create_account'
+        || action.actionType === 'create_managed_person'
+        || !isAccountRequired(action, 'account')
+      ) {
+        return false;
+      }
+
+      return normalizeReviewCurrency(action.currency || reviewState?.currency) !== accountCurrency;
+    });
+
+    return mismatched
+      ? t('transactions.documentReview.errors.currencyMismatch', {
+          ns: 'portal',
+          defaultValue: 'The selected account currency must match the transaction currency.',
+        })
+      : null;
+  }, [normalizeReviewCurrency, previewInstruction, reviewState?.currency, selectedAccount?.currency, t]);
+  const getPrimaryAccountOptionLabel = useCallback((account: NonNullable<typeof primaryAccountOptions[number]>) => (
+    [
+      account.name,
+      getAccountTypeLabel(account.type, t),
+      normalizeReviewCurrency(account.currency),
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' · ')
+  ), [normalizeReviewCurrency, t]);
+  const hasBlockingReviewIssues = unresolvedReviewFields.length > 0 || !!primaryAccountCurrencyMismatch;
 
   const hasMissingField = useCallback(
     (field: ReturnType<typeof getSmartEntryReviewMissingFields>[number]) => missingFieldSet.has(field),
@@ -1394,6 +1488,54 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     reviewState?.account?.name,
     reviewState?.subscription,
     reviewState?.subscription?.financialAccountHint,
+    updateReview,
+  ]);
+
+  useEffect(() => {
+    if (!reviewState?.account?.required || isSubscriptionFlow || isManagedPurpose(reviewState.purpose)) {
+      return;
+    }
+
+    if (reviewState.account.mode === 'create' || reviewState.account.accountId) {
+      return;
+    }
+
+    const detectedPrimaryAction = parsed?.actions.find((action) => (
+      action.actionType !== 'create_account'
+      && action.actionType !== 'create_managed_person'
+      && isAccountRequired(action, 'account')
+    ));
+    const hasExplicitDetectedAccount = !!detectedPrimaryAction?.accountId || !!detectedPrimaryAction?.accountName?.trim();
+
+    if (hasExplicitDetectedAccount || !preferredPrimaryAccount) {
+      return;
+    }
+
+    updateReview((current) => ({
+      ...current,
+      account: {
+        ...(current.account || {}),
+        required: current.subscription ? current.subscription.accountRequired : true,
+        mode: 'existing',
+        accountId: preferredPrimaryAccount.id,
+        name: preferredPrimaryAccount.name,
+        type: preferredPrimaryAccount.type as SuggestedAccount['type'],
+        currency: normalizeReviewCurrency(preferredPrimaryAccount.currency || current.currency),
+        includeInTotal: true,
+        scope: 'personal',
+        managedPersonId: undefined,
+        managedPersonName: undefined,
+      },
+    }));
+  }, [
+    isSubscriptionFlow,
+    normalizeReviewCurrency,
+    parsed?.actions,
+    preferredPrimaryAccount,
+    reviewState?.account?.accountId,
+    reviewState?.account?.mode,
+    reviewState?.account?.required,
+    reviewState?.purpose,
     updateReview,
   ]);
 
@@ -1575,6 +1717,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setAccountDraft(null);
     setPersonDraft(null);
     setAccountDraftTarget(null);
+    setFinancialAccountFormOpen(false);
     if (!options?.preserveMode) {
       setMode(defaultMode);
     }
@@ -1723,6 +1866,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
    }, [handleStartCreatePerson, people, syncManagedAccount, updateReview]);
 
    const handleStartCreateAccount = useCallback((field: 'account' | 'destinationAccount') => {
+    if (field === 'account' && canUseExistingAccountCreationFlow) {
+      setFinancialAccountFormOpen(true);
+      return;
+    }
+
      const selection = field === 'destinationAccount' ? reviewState?.destinationAccount : reviewState?.account;
      const personName = reviewState?.person?.name;
     const suggestedName =
@@ -1743,7 +1891,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         ? (isSubscriptionFlow ? true : !isManagedPurpose(reviewState?.purpose))
         : true,
      });
-  }, [isSubscriptionFlow, normalizeReviewCurrency, reviewState, t]);
+  }, [canUseExistingAccountCreationFlow, isSubscriptionFlow, normalizeReviewCurrency, reviewState, t]);
+
+  const handleFinancialAccountFormSuccess = useCallback(async () => {
+    setFinancialAccountFormOpen(false);
+    await refreshSmartEntryContext();
+  }, [refreshSmartEntryContext]);
 
    const handleApplyCreateAccount = useCallback(() => {
      if (!accountDraft?.name.trim()) return;
@@ -2121,7 +2274,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   }, [displayLanguage, getAuthToken, handleVoiceFailure, resetRequestState, router, spokenLanguage, t]);
 
   const handleConfirm = useCallback(async () => {
-    if (!parsed || !reviewState || unresolvedReviewFields.length > 0) return;
+    if (!parsed || !reviewState || hasBlockingReviewIssues) return;
     setStep('executing');
     setErrorMessage('');
     setApiError(null);
@@ -2204,7 +2357,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [parsed, reviewState, previewInstruction?.actions.length, router, t, unresolvedReviewFields.length, handleApiFailure]);
+  }, [hasBlockingReviewIssues, parsed, reviewState, previewInstruction?.actions.length, router, t, handleApiFailure]);
 
   const handleReset = useCallback(() => {
     resetRequestState();
@@ -3426,35 +3579,36 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 {(isSubscriptionFlow || (reviewState.account?.required && (!reviewState.purposeOptions?.length || !!reviewState.purpose && reviewState.purpose !== 'unclear'))) && (
                   <div className={reviewSectionClass}>
                     <div className="relative">
-                      <div
-                        className={`relative overflow-hidden rounded-xl border bg-card transition-colors focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/10 ${
-                          hasMissingField('account')
-                            ? 'border-negative/50 ring-1 ring-negative/20'
-                            : 'border-border/70'
-                        }`}
-                      >
-                        <div className="pointer-events-none flex min-h-[48px] items-center gap-3 px-3 py-1.5">
-                          <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground">
+                      {primaryAccountOptions.length > 0 ? (
+                        <div
+                          className={`relative overflow-hidden rounded-xl border bg-card transition-colors ${
+                            hasMissingField('account') || primaryAccountCurrencyMismatch
+                              ? 'border-negative/50 ring-1 ring-negative/20'
+                              : 'border-border/70 hover:border-accent/40 hover:bg-accent/5'
+                          }`}
+                        >
+                          <label htmlFor="smart-entry-primary-account" className="sr-only">
+                            {primaryAccountLabel}
+                          </label>
+                          <span
+                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`}
+                          >
                             <Wallet size={15} />
                           </span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[10.5px] font-700 uppercase tracking-[0.14em] text-muted-foreground/80">
-                              {primaryAccountLabel}
-                              {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
-                            </p>
-                            <p className="mt-0.5 min-w-0 truncate text-sm font-600 text-foreground">
-                              {primaryAccountMetaText}
-                            </p>
-                          </div>
-                          <ChevronDown size={16} className="flex-shrink-0 text-muted-foreground" />
-                        </div>
-                        <label className="sr-only">
-                          {primaryAccountLabel}
+                          <span
+                            className={`pointer-events-none absolute top-2 z-10 text-[10.5px] font-700 uppercase tracking-[0.14em] text-muted-foreground/80 ${isRTL ? 'right-14 left-10 text-right' : 'left-14 right-10 text-left'}`}
+                          >
+                            {primaryAccountLabel}
+                            {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
+                          </span>
                           <select
+                            id="smart-entry-primary-account"
                             value={primaryAccountSelectValue}
                             onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
-                            aria-invalid={hasMissingField('account') ? 'true' : 'false'}
-                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                            aria-invalid={hasMissingField('account') || primaryAccountCurrencyMismatch ? 'true' : 'false'}
+                            aria-label={primaryAccountLabel}
+                            title={primaryAccountMetaText}
+                            className={`input-base h-[54px] w-full cursor-pointer appearance-none border-0 bg-transparent text-sm font-600 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 ${isRTL ? 'pr-14 pl-10 text-right' : 'pl-14 pr-10 text-left'} pt-5 pb-1.5`}
                           >
                             <option value="">
                               {isSubscriptionFlow
@@ -3466,7 +3620,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             </option>
                             {primaryAccountOptions.map((account) => (
                               <option key={account.id} value={account.id}>
-                                {getContextAccountDisplayLabel(account)}
+                                {getPrimaryAccountOptionLabel(account)}
                               </option>
                             ))}
                             <option value="__create__">
@@ -3476,14 +3630,45 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                               })}
                             </option>
                           </select>
-                        </label>
-                      </div>
+                          <span
+                            className={`pointer-events-none absolute top-1/2 z-10 -translate-y-1/2 text-muted-foreground ${isRTL ? 'left-3' : 'right-3'}`}
+                          >
+                            <ChevronDown size={16} />
+                          </span>
+                        </div>
+                      ) : canUseExistingAccountCreationFlow ? (
+                        <button
+                          type="button"
+                          onClick={() => handleStartCreateAccount('account')}
+                          className={`flex min-h-[54px] w-full items-center gap-3 rounded-xl border bg-card px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/10 ${hasMissingField('account') ? 'border-negative/50 ring-1 ring-negative/20' : 'border-border/70 hover:border-accent/40 hover:bg-accent/5'} ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                          aria-label={t('accounts.addAccount', { ns: 'portal' })}
+                        >
+                          <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground">
+                            <Wallet size={15} />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-[10.5px] font-700 uppercase tracking-[0.14em] text-muted-foreground/80">
+                              {primaryAccountLabel}
+                              {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
+                            </span>
+                            <span className="mt-0.5 block truncate text-sm font-600 text-foreground">
+                              {t('accounts.addAccount', { ns: 'portal' })}
+                            </span>
+                          </span>
+                          <ChevronDown size={16} className="flex-shrink-0 text-muted-foreground" />
+                        </button>
+                      ) : null}
                     </div>
                     {hasMissingField('account') && (
                       <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
                         {getFieldErrorMessage('account')}
                       </p>
                     )}
+                    {!hasMissingField('account') && primaryAccountCurrencyMismatch ? (
+                      <p className={getFieldErrorTextClassName('mt-1 text-xs')}>
+                        {primaryAccountCurrencyMismatch}
+                      </p>
+                    ) : null}
                     {accountDraft && accountDraftTarget === 'account' && (
                       <div className="space-y-2 rounded-xl border border-border bg-card p-3">
                         <input
@@ -3910,6 +4095,20 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
           )}
         </div>
       </Modal>
+      {financialAccountFormOpen ? (
+        <Modal
+          isOpen
+          onClose={() => setFinancialAccountFormOpen(false)}
+          title={t('accounts.addAccount', { ns: 'portal' })}
+          size="md"
+          mobileLayout="sheet"
+        >
+          <FinancialAccountFormLazy
+            onSuccess={handleFinancialAccountFormSuccess}
+            onCancel={() => setFinancialAccountFormOpen(false)}
+          />
+        </Modal>
+      ) : null}
       {documentReviewFile ? (
         <DocumentTransactionReviewModal
           isOpen
