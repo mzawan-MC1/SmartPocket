@@ -10,7 +10,8 @@ export type QuickActionId =
   | 'person'
   | 'reimbursement'
   | 'smart_entry'
-  | 'voice_entry';
+  | 'voice_entry'
+  | 'document_entry';
 
 export interface QuickActionsContextValue {
   openQuickAction: (action: QuickActionId) => void;

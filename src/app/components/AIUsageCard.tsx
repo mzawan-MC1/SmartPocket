@@ -848,7 +848,7 @@ export default function AIUsageCard({
         title: t('aiUsage.mobileFeature.uploadTitle'),
         description: t('aiUsage.mobileFeature.uploadDescription'),
         icon: FileUp,
-        onClick: () => quickActions?.openQuickAction('smart_entry'),
+        onClick: () => quickActions?.openQuickAction('document_entry'),
         className: 'border-slate-200/70 bg-white/75 text-slate-700 shadow-[0_14px_28px_-26px_rgba(15,23,42,0.12)]',
       },
     ];

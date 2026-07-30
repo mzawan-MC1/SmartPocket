@@ -147,7 +147,7 @@ function normalizeSubscriptionBillingFrequencyInput(
 
  interface AIAssistantModalProps {
    onClose: () => void;
-   defaultMode?: 'voice' | 'text';
+  defaultMode?: EntryMode;
  }
 
 type EntryMode = 'voice' | 'text' | 'document';

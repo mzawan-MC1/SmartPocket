@@ -150,14 +150,14 @@ export default function AppLayout({
               <div className="fixed inset-0 z-40 print:hidden lg:hidden">
                 <button
                   type="button"
-                  className={`absolute inset-0 bg-foreground/35 backdrop-blur-sm transition-opacity duration-200 ${
+                  className={`absolute inset-0 z-0 bg-foreground/35 backdrop-blur-sm transition-opacity duration-200 ${
                     mobileSidebarVisible ? 'opacity-100' : 'opacity-0'
                   }`}
                   onClick={closeMobileSidebar}
                   aria-label={t('actions.close')}
                 />
                 <div
-                  className={`absolute inset-y-0 ${isRTL ? 'right-0' : 'left-0'} min-h-0 h-[100dvh] max-h-[100dvh] transition-transform duration-200 ease-out ${
+                  className={`absolute inset-y-0 z-10 min-h-0 h-[100dvh] w-[86vw] max-w-[320px] max-h-[100dvh] ${isRTL ? 'right-0' : 'left-0'} transition-transform duration-200 ease-out ${
                     mobileSidebarVisible
                       ? 'translate-x-0'
                       : isRTL

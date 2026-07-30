@@ -46,6 +46,7 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
     activeAction === 'income' ? 'income' : 'expense';
   const canUseTextAi = hasSubscriptionFeature(summary, 'text_ai');
   const canUseVoiceAi = hasSubscriptionFeature(summary, 'voice_ai');
+  const canUseReceiptAi = hasSubscriptionFeature(summary, 'receipt_intelligence');
   const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
 
   const closeQuickAction = useCallback(() => {
@@ -53,9 +54,19 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
   }, []);
 
   const openQuickAction = useCallback((action: QuickActionId) => {
-    if ((action === 'smart_entry' && !canUseTextAi) || (action === 'voice_entry' && !canUseVoiceAi)) {
+    if (
+      (action === 'smart_entry' && !canUseTextAi)
+      || (action === 'voice_entry' && !canUseVoiceAi)
+      || (action === 'document_entry' && !canUseReceiptAi)
+    ) {
       toast.error(t('featureGate.quickActionDenied', {
-        feature: t(action === 'voice_entry' ? 'featureGate.features.voiceAi' : 'featureGate.features.textAi'),
+        feature: t(
+          action === 'voice_entry'
+            ? 'featureGate.features.voiceAi'
+            : action === 'document_entry'
+              ? 'featureGate.features.receiptIntelligence'
+              : 'featureGate.features.textAi'
+        ),
       }));
       return;
     }
@@ -68,7 +79,7 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
     }
 
     setActiveAction(action);
-  }, [canUseManagedPeople, canUseTextAi, canUseVoiceAi, t]);
+  }, [canUseManagedPeople, canUseReceiptAi, canUseTextAi, canUseVoiceAi, t]);
 
   const contextValue = useMemo<QuickActionsContextValue>(
     () => ({
@@ -135,11 +146,22 @@ export default function QuickActionsProvider({ children }: { children: React.Rea
         </Modal>
       ) : null}
 
-      {((activeAction === 'smart_entry' && canUseTextAi) || (activeAction === 'voice_entry' && canUseVoiceAi)) && (
+      {(
+        (activeAction === 'smart_entry' && canUseTextAi)
+        || (activeAction === 'voice_entry' && canUseVoiceAi)
+        || (activeAction === 'document_entry' && canUseReceiptAi)
+      ) && (
         <React.Suspense fallback={null}>
           <AIAssistantModalLazy
+            key={activeAction}
             onClose={closeQuickAction}
-            defaultMode={activeAction === 'voice_entry' ? 'voice' : 'text'}
+            defaultMode={
+              activeAction === 'voice_entry'
+                ? 'voice'
+                : activeAction === 'document_entry'
+                  ? 'document'
+                  : 'text'
+            }
           />
         </React.Suspense>
       )}
