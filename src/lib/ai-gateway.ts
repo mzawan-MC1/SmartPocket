@@ -9,6 +9,7 @@ import {
   FINANCIAL_SYSTEM_PROMPT,
 } from './ai-types';
 import { createClientId } from './uuid';
+import { getOpenRouterAudioFormat, normalizeVoiceAudioMimeType } from './voice-ai';
 import {
   classifyTransactionDocumentError,
   TRANSACTION_DOCUMENT_SYSTEM_PROMPT,
@@ -1090,6 +1091,240 @@ export function getOpenRouterHeaders() {
   };
 }
 
+function getDisplayLanguageName(language: string) {
+  switch ((language || '').trim().toLowerCase()) {
+    case 'ar':
+      return 'Arabic';
+    case 'fr':
+      return 'French';
+    case 'ru':
+      return 'Russian';
+    case 'ur':
+      return 'Urdu';
+    case 'en':
+    default:
+      return 'English';
+  }
+}
+
+function buildVoiceSinglePassSystemPrompt(displayLanguage: string) {
+  return `${FINANCIAL_SYSTEM_PROMPT}
+
+For voice inputs, include these additional top-level JSON fields:
+- "transcript": the transcript to show in the UI. If the spoken language differs from ${getDisplayLanguageName(displayLanguage)}, translate it into ${getDisplayLanguageName(displayLanguage)} while preserving transaction meaning, names, amounts, currencies, dates, merchants, and account names exactly. If translation is not needed, return the exact transcription.
+- "originalTranscript": the exact spoken-language transcription in the original script.
+- "detectedLanguage": the detected spoken language as a BCP-47 language code.
+- "translationApplied": true only if "transcript" is translated from "originalTranscript".
+- "translationFailed": false when you can provide a usable transcript.
+
+If the transaction is ambiguous, still return the full JSON schema with missingFields and requiresClarification instead of refusing.`;
+}
+
+function buildVoiceSinglePassUserMessage(input: AIAssistantRequest) {
+  const displayLanguage = input.displayLanguage || input.language || 'en';
+  const spokenLanguage = input.spokenLanguage || input.audio?.languageHint || 'auto';
+  let msg = 'Analyze this spoken financial instruction in a single pass and return only valid JSON.';
+  msg += `\nrequestId: ${input.idempotencyKey || createClientId()}`;
+  msg += `\nDisplay language: ${displayLanguage}`;
+  msg += `\nSpoken language hint: ${spokenLanguage}`;
+  if (input.locale) msg += `\nLocale: ${input.locale}`;
+  if (input.currentDate) msg += `\nCurrent date: ${input.currentDate}`;
+  if (input.currentDateTime) msg += `\nCurrent date-time: ${input.currentDateTime}`;
+  if (input.timezone) msg += `\nTimezone: ${input.timezone}`;
+  if (input.context) {
+    if (input.context.accounts?.length) {
+      msg += `\n\nAvailable accounts: ${input.context.accounts.map((a) => `${a.name} (${a.type}, ${a.currency})`).join(', ')}`;
+    }
+    if (input.context.people?.length) {
+      msg += `\nKnown people: ${input.context.people.map((p) => {
+        const aliases = p.aliases?.length ? ` [aliases: ${p.aliases.join(', ')}]` : '';
+        return `${p.fullName}${aliases}`;
+      }).join(', ')}`;
+    }
+    if (input.context.categories?.length) {
+      msg += `\nAvailable categories: ${input.context.categories.map((c) => c.name).join(', ')}`;
+    }
+    if (input.context.subscriptions?.length) {
+      msg += `\nKnown subscriptions: ${input.context.subscriptions
+        .map((subscription) => {
+          const parts = [subscription.name];
+          if (subscription.provider) parts.push(`provider: ${subscription.provider}`);
+          if (subscription.amount && subscription.currencyCode) parts.push(`amount: ${subscription.amount} ${subscription.currencyCode}`);
+          if (subscription.billingFrequency) parts.push(`frequency: ${subscription.billingFrequency}`);
+          if (subscription.status) parts.push(`status: ${subscription.status}`);
+          return parts.join(' | ');
+        })
+        .join(', ')}`;
+    }
+    if (input.context.defaultCurrency) {
+      msg += `\nDefault currency: ${input.context.defaultCurrency}`;
+    }
+  }
+  return msg;
+}
+
+function extractVoiceStructuredFields(payload: unknown) {
+  if (!payload || typeof payload !== 'object') {
+    return {
+      transcript: undefined,
+      originalTranscript: undefined,
+      detectedLanguage: undefined,
+      translationApplied: false,
+      translationFailed: false,
+    };
+  }
+
+  const record = payload as Record<string, unknown>;
+  const transcript = typeof record.transcript === 'string' ? record.transcript.trim() : undefined;
+  const originalTranscript = typeof record.originalTranscript === 'string' ? record.originalTranscript.trim() : undefined;
+  const detectedLanguage = typeof record.detectedLanguage === 'string' ? record.detectedLanguage.trim().toLowerCase() : undefined;
+  const translationApplied = record.translationApplied === true;
+  const translationFailed = record.translationFailed === true;
+
+  return {
+    transcript,
+    originalTranscript,
+    detectedLanguage,
+    translationApplied,
+    translationFailed,
+  };
+}
+
+async function processSinglePassVoiceRequest(
+  request: AIAssistantRequest,
+  config: AIGatewayConfig,
+  startTime: number
+): Promise<AIAssistantResponse> {
+  if (!request.audio) {
+    return {
+      requestId: createClientId(),
+      status: 'failed',
+      errorMessage: 'Voice audio is required for voice entry.',
+      errorCategory: 'empty_input',
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY || '';
+  const model = request.voiceModel || process.env.VOICE_MODEL || process.env.OPENROUTER_MODEL || '';
+  const format = getOpenRouterAudioFormat(normalizeVoiceAudioMimeType(request.audio.mimeType));
+  if (!apiKey || !model || !format) {
+    return {
+      requestId: createClientId(),
+      status: 'not_configured',
+      errorMessage: 'AI is not configured yet. You can continue using manual transaction entry.',
+      errorCategory: 'not_configured',
+      durationMs: Date.now() - startTime,
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+  const displayLanguage = request.displayLanguage || request.language || 'en';
+
+  try {
+    const response = await fetch(`${getOpenRouterBaseUrl()}/chat/completions`, {
+      method: 'POST',
+      headers: getOpenRouterHeaders(),
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: buildVoiceSinglePassSystemPrompt(displayLanguage),
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: buildVoiceSinglePassUserMessage(request),
+              },
+              {
+                type: 'input_audio',
+                input_audio: {
+                  data: request.audio.audioBase64,
+                  format,
+                },
+              },
+            ],
+          },
+        ],
+        temperature: 0,
+        max_tokens: 2000,
+        response_format: { type: 'json_object' },
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`OpenRouter error ${response.status}: ${sanitizeError(errText)}`);
+    }
+
+    const rawOutput = await response.json();
+    const content = rawOutput?.choices?.[0]?.message?.content;
+    const normalizedContent = stripTranscriptFormatting(extractOpenRouterTextContent(content));
+    if (!normalizedContent) {
+      throw new Error('Empty response from OpenRouter');
+    }
+
+    const parsedPayload = safeParseJSON(normalizedContent);
+    if (!parsedPayload) {
+      throw new Error('Invalid JSON from OpenRouter');
+    }
+
+    const voiceFields = extractVoiceStructuredFields(parsedPayload);
+    try {
+      const validated = validateParsedInstruction(parsedPayload);
+      const transcript = voiceFields.transcript || validated.transcript || voiceFields.originalTranscript;
+      const originalTranscript = voiceFields.originalTranscript || transcript;
+
+      return {
+        requestId: validated.requestId,
+        status: 'parsed',
+        parsed: {
+          ...validated,
+          transcript,
+          originalTranscript,
+          detectedLanguage: voiceFields.detectedLanguage || validated.language,
+          translationApplied: voiceFields.translationApplied || (Boolean(transcript) && Boolean(originalTranscript) && transcript !== originalTranscript),
+          translationFailed: voiceFields.translationFailed,
+          providerUsed: 'openrouter',
+          modelUsed: model,
+          fallbackUsed: false,
+        },
+        transcript,
+        originalTranscript,
+        detectedLanguage: voiceFields.detectedLanguage || validated.language,
+        providerUsed: 'openrouter',
+        modelUsed: model,
+        fallbackUsed: false,
+        durationMs: Date.now() - startTime,
+        providerCallCount: 1,
+      };
+    } catch (validationError) {
+      return {
+        requestId: createClientId(),
+        status: 'failed',
+        transcript: voiceFields.transcript || voiceFields.originalTranscript,
+        originalTranscript: voiceFields.originalTranscript || voiceFields.transcript,
+        detectedLanguage: voiceFields.detectedLanguage,
+        errorMessage: sanitizeError(validationError instanceof Error ? validationError.message : 'Invalid structured voice response'),
+        errorCategory: 'invalid_response',
+        providerUsed: 'openrouter',
+        modelUsed: model,
+        fallbackUsed: false,
+        durationMs: Date.now() - startTime,
+        providerCallCount: 1,
+      };
+    }
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function extractOpenRouterTextContent(content: unknown): string {
   if (typeof content === 'string') {
     return content.trim();
@@ -1560,6 +1795,10 @@ export async function processAIRequest(
   }
 
   try {
+    if (request.type === 'voice' && request.audio) {
+      return await processSinglePassVoiceRequest(request, config, startTime);
+    }
+
     let transcript: string | undefined;
     let sttFallbackUsed = false;
 

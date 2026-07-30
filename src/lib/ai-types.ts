@@ -321,6 +321,10 @@ export interface ParsedFinancialInstruction {
   requestId: string;
   language: string;
   transcript?: string;
+  originalTranscript?: string;
+  detectedLanguage?: string;
+  translationApplied?: boolean;
+  translationFailed?: boolean;
   confidence: number;
   overallIntent: OverallIntent;
   actions: FinancialAction[];
@@ -393,6 +397,9 @@ export interface AIAssistantRequest {
   text?: string;
   audio?: AudioInput;
   language?: string;
+  spokenLanguage?: string;
+  displayLanguage?: string;
+  voiceModel?: string;
   locale?: string;
   currentDate?: string;
   currentDateTime?: string;
@@ -407,11 +414,15 @@ export interface AIAssistantResponse {
   status: 'parsed' | 'clarifying' | 'failed' | 'not_configured';
   parsed?: ParsedFinancialInstruction;
   transcript?: string;
+  originalTranscript?: string;
+  detectedLanguage?: string;
   errorMessage?: string;
   errorCategory?: string;
   providerUsed?: string;
+  modelUsed?: string;
   fallbackUsed?: boolean;
   durationMs?: number;
+  providerCallCount?: number;
 }
 
 export interface AIUsageSummary {

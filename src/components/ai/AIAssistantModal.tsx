@@ -2068,6 +2068,56 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     };
   }, [checkVoiceAvailability, isAIConfigured, mode, step]);
 
+  const applyParsedReviewResult = useCallback((args: {
+    payload: Record<string, unknown>;
+    context: FinancialContext;
+    sourceText: string;
+  }) => {
+    const instruction = args.payload.parsed as ParsedFinancialInstruction;
+    const responseRequestId = typeof args.payload.requestId === 'string' ? args.payload.requestId.trim() : '';
+    const instructionRequestId = typeof instruction?.requestId === 'string' ? instruction.requestId.trim() : '';
+    const effectiveRequestId = responseRequestId || instructionRequestId;
+
+    if (
+      !effectiveRequestId ||
+      !UUID_PATTERN.test(effectiveRequestId) ||
+      (responseRequestId && instructionRequestId && responseRequestId !== instructionRequestId)
+    ) {
+      handleApiFailure(
+        {
+          error: {
+            code: 'AI_REQUEST_ID_INVALID',
+            category: 'state',
+            message: t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' }),
+            requestId: responseRequestId || instructionRequestId || undefined,
+          },
+        },
+        t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' })
+      );
+      return;
+    }
+
+    const persistedInstruction: ParsedFinancialInstruction = {
+      ...instruction,
+      requestId: effectiveRequestId,
+    };
+
+    setParsed(persistedInstruction);
+    const baseReview =
+      persistedInstruction.review ||
+      buildInitialSmartEntryReview({
+        instruction: persistedInstruction,
+        sourceText: args.sourceText.trim(),
+        context: args.context,
+      });
+    setReviewState(hydrateSmartEntryReviewWithContext({ review: baseReview, context: args.context }));
+    setAccountDraft(null);
+    setPersonDraft(null);
+    setAccountDraftTarget(null);
+    setAnalysisFailureStage(null);
+    setStep('confirming');
+  }, [handleApiFailure, t]);
+
   const callParseAPI = useCallback(async (text: string) => {
     const idempotencyKey = createClientId();
     let analysisStage: Exclude<AnalysisFailureStage, null> = 'preparing';
@@ -2141,51 +2191,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       }
 
       if (data.transcript) setTranscript(data.transcript);
-
-      const instruction = data.parsed as ParsedFinancialInstruction;
-      const responseRequestId = typeof data.requestId === 'string' ? data.requestId.trim() : '';
-      const instructionRequestId = typeof instruction?.requestId === 'string' ? instruction.requestId.trim() : '';
-      const effectiveRequestId = responseRequestId || instructionRequestId;
-
-      if (
-        !effectiveRequestId ||
-        !UUID_PATTERN.test(effectiveRequestId) ||
-        (responseRequestId && instructionRequestId && responseRequestId !== instructionRequestId)
-      ) {
-        handleApiFailure(
-          {
-            error: {
-              code: 'AI_REQUEST_ID_INVALID',
-              category: 'state',
-              message: t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' }),
-              requestId: responseRequestId || instructionRequestId || undefined,
-            },
-          },
-          t('smartEntryModal.errors.noLongerAvailable', { ns: 'portal' })
-        );
-        return;
-      }
-
-      const persistedInstruction: ParsedFinancialInstruction = {
-        ...instruction,
-        requestId: effectiveRequestId,
-      };
-
-      setParsed(persistedInstruction);
-      const baseReview =
-        persistedInstruction.review ||
-        buildInitialSmartEntryReview({
-          instruction: persistedInstruction,
-          sourceText: (text || data.transcript || '').trim(),
-          context,
-        });
-      setReviewState(hydrateSmartEntryReviewWithContext({ review: baseReview, context }));
-      setAccountDraft(null);
-      setPersonDraft(null);
-      setAccountDraftTarget(null);
-
-      setAnalysisFailureStage(null);
-      setStep('confirming');
+      applyParsedReviewResult({
+        payload: data,
+        context,
+        sourceText: text || data.transcript || '',
+      });
     } catch (err) {
       const nextFailureStage: Exclude<AnalysisFailureStage, null> =
         err instanceof DOMException && err.name === 'AbortError'
@@ -2264,13 +2274,30 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setUsageSummary(null);
 
     try {
-      const token = await getAuthToken();
+      const [token, context] = await Promise.all([
+        withTimeout(
+          getAuthToken(),
+          ANALYSIS_PREP_TIMEOUT_MS,
+          t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' })
+        ),
+        withTimeout(
+          buildAIContext(),
+          ANALYSIS_PREP_TIMEOUT_MS,
+          getAnalysisFailureMessage('preparing')
+        ),
+      ]);
+      setContextSnapshot(context);
       const formData = new FormData();
       formData.append('audio', submission.file);
       formData.append('durationSeconds', String(submission.durationSeconds));
       formData.append('spokenLanguage', spokenLanguage);
       formData.append('displayLanguage', displayLanguage);
       formData.append('idempotencyKey', createClientId());
+      formData.append('locale', uiLanguage || displayLanguage);
+      formData.append('currentDate', context.currentDate || '');
+      formData.append('currentDateTime', context.currentDateTime || '');
+      formData.append('timezone', context.timezone || '');
+      formData.append('context', JSON.stringify(context));
 
       const response = await fetch('/api/ai/transcribe', {
         method: 'POST',
@@ -2281,7 +2308,41 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data?.success !== true || typeof data?.transcript !== 'string') {
+      if (!response.ok || data?.success !== true) {
+        const nextTranscript = typeof data?.transcript === 'string' ? data.transcript.trim() : '';
+        const nextOriginalTranscript =
+          typeof data?.originalTranscript === 'string' && data.originalTranscript.trim()
+            ? data.originalTranscript.trim()
+            : nextTranscript;
+
+        if (nextTranscript) {
+          const nextFailureStage: Exclude<AnalysisFailureStage, null> =
+            response.status === 504 ? 'timeout' : 'request';
+          const structuredError = parseErrorPayload(isObject(data) ? data.error : null);
+          const usage = parseUsageSummary(isObject(data) ? data.usage : null);
+
+          setTranscript(nextTranscript);
+          setTextInput(nextTranscript);
+          setOriginalTranscript(nextOriginalTranscript);
+          setOriginalTranscriptLanguage(
+            typeof data?.detectedLanguage === 'string' && data.detectedLanguage.trim()
+              ? data.detectedLanguage.trim().toLowerCase()
+              : spokenLanguage
+          );
+          setTranslationNotice(
+            data?.translationFailed === true
+              ? t('smartEntryModal.voice.translationFailed', { ns: 'portal' })
+              : ''
+          );
+          setMode('text');
+          setApiError(structuredError);
+          setUsageSummary(usage);
+          setAnalysisFailureStage(nextFailureStage);
+          setErrorMessage(getAnalysisFailureMessage(nextFailureStage));
+          setStep('failed');
+          return;
+        }
+
         handleVoiceFailure(data, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
         return;
       }
@@ -2316,10 +2377,14 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
           : ''
       );
       setMode('text');
-      setStep('entry');
       setApiError(null);
       setErrorMessage('');
       setUsageSummary(null);
+      applyParsedReviewResult({
+        payload: data,
+        context,
+        sourceText: nextTranscript || nextOriginalTranscript,
+      });
     } catch (err) {
       handleVoiceFailure({
         error: {
@@ -2329,7 +2394,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         },
       }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
     }
-  }, [displayLanguage, getAuthToken, handleVoiceFailure, resetRequestState, spokenLanguage, t]);
+  }, [applyParsedReviewResult, displayLanguage, getAnalysisFailureMessage, getAuthToken, handleVoiceFailure, resetRequestState, spokenLanguage, t, uiLanguage]);
 
   const handleConfirm = useCallback(async () => {
     if (!parsed || !reviewState || hasBlockingReviewIssues) return;
