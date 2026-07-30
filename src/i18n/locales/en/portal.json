@@ -2431,11 +2431,20 @@
       "anotherAccount": "another account"
     },
     "failedTitles": {
+      "analysisPreparing": "Preparing analysis failed",
+      "analysisTimedOut": "Analysis timed out",
+      "analysisRequest": "Analysis failed",
       "accountCreate": "Account creation failed",
       "chooseAnotherAccount": "Choose another account",
       "transactionSave": "Transaction save failed",
       "reviewRequired": "Review required",
       "generic": "Smart Entry failed"
+    },
+    "analysisFailure": {
+      "preparingMessage": "We kept your transcript, but Smart Entry could not finish preparing the analysis. Retry analysis without recording again.",
+      "timeoutMessage": "We kept your transcript, but the AI analysis took too long to respond. Retry analysis without recording again.",
+      "requestMessage": "We kept your transcript, but the AI analysis request failed. Retry analysis without recording again.",
+      "retryAction": "Retry analysis"
     },
     "errors": {
       "moreDetailsRequired": "More details are required before this entry can be saved.",

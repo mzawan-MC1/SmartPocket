@@ -1728,11 +1728,20 @@
       "anotherAccount": "un autre compte"
     },
     "failedTitles": {
+      "analysisPreparing": "Echec de la preparation de l'analyse",
+      "analysisTimedOut": "Delai d'analyse depasse",
+      "analysisRequest": "Echec de l'analyse",
       "accountCreate": "Echec de creation du compte",
       "chooseAnotherAccount": "Choisir un autre compte",
       "transactionSave": "Echec d'enregistrement de la transaction",
       "reviewRequired": "Verification requise",
       "generic": "Echec de la saisie intelligente"
+    },
+    "analysisFailure": {
+      "preparingMessage": "Nous avons conserve votre transcription, mais Smart Entry n'a pas pu terminer la preparation de l'analyse. Relancez l'analyse sans enregistrer a nouveau.",
+      "timeoutMessage": "Nous avons conserve votre transcription, mais l'analyse IA a pris trop de temps. Relancez l'analyse sans enregistrer a nouveau.",
+      "requestMessage": "Nous avons conserve votre transcription, mais la requete d'analyse IA a echoue. Relancez l'analyse sans enregistrer a nouveau.",
+      "retryAction": "Relancer l'analyse"
     },
     "errors": {
       "moreDetailsRequired": "Des details supplementaires sont necessaires avant d'enregistrer cette saisie.",

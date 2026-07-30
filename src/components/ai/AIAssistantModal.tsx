@@ -117,6 +117,29 @@ type SmartEntryDisplayLanguage = 'en' | 'ar' | 'fr' | 'ru';
 type SmartEntrySpokenLanguage = 'auto' | SmartEntryDisplayLanguage | 'ur';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const ANALYSIS_PREP_TIMEOUT_MS = 8000;
+const ANALYSIS_FETCH_TIMEOUT_MS = 20000;
+
+type AnalysisFailureStage = 'preparing' | 'request' | 'timeout' | null;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(message));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
 
 function normalizeDisplayLanguage(value: string | null | undefined): SmartEntryDisplayLanguage {
   return value === 'ar' || value === 'fr' || value === 'ru' ? value : 'en';
@@ -767,6 +790,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [translationNotice, setTranslationNotice] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
+  const [analysisFailureStage, setAnalysisFailureStage] = useState<AnalysisFailureStage>(null);
   const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
   const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
   const [receiptInsightAnswer, setReceiptInsightAnswer] = useState<ReceiptInsightAnswer | null>(null);
@@ -917,6 +941,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     );
     setStep('failed');
   }, []);
+
+  const getAnalysisFailureMessage = useCallback((stage: Exclude<AnalysisFailureStage, null>) => {
+    switch (stage) {
+      case 'preparing':
+        return t('smartEntryModal.analysisFailure.preparingMessage', { ns: 'portal' });
+      case 'timeout':
+        return t('smartEntryModal.analysisFailure.timeoutMessage', { ns: 'portal' });
+      case 'request':
+      default:
+        return t('smartEntryModal.analysisFailure.requestMessage', { ns: 'portal' });
+    }
+  }, [t]);
 
   const formatShortDateTime = (value: string | undefined) => {
     if (!value) return null;
@@ -1710,6 +1746,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setReviewState(null);
     setErrorMessage('');
     setApiError(null);
+    setAnalysisFailureStage(null);
     setUsageSummary(null);
     setExecutionResult(null);
     setReceiptInsightAnswer(null);
@@ -2032,7 +2069,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   }, [checkVoiceAvailability, isAIConfigured, mode, step]);
 
   const callParseAPI = useCallback(async (text: string) => {
-    const nextFlowId = createClientId();
+    const idempotencyKey = createClientId();
+    let analysisStage: Exclude<AnalysisFailureStage, null> = 'preparing';
     resetRequestState({
       preserveInput: false,
       preserveMode: true,
@@ -2044,11 +2082,20 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setTranslationNotice('');
     setErrorMessage('');
     setApiError(null);
+    setAnalysisFailureStage(null);
     setUsageSummary(null);
 
     try {
-      const token = await getAuthToken();
-      const context = await buildAIContext();
+      const token = await withTimeout(
+        getAuthToken(),
+        ANALYSIS_PREP_TIMEOUT_MS,
+        getAnalysisFailureMessage('preparing')
+      );
+      const context = await withTimeout(
+        buildAIContext(),
+        ANALYSIS_PREP_TIMEOUT_MS,
+        getAnalysisFailureMessage('preparing')
+      );
       setContextSnapshot(context);
 
       const body: Record<string, unknown> = {
@@ -2059,17 +2106,25 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         currentDateTime: context.currentDateTime,
         timezone: context.timezone,
         context,
-        idempotencyKey: nextFlowId,
+        idempotencyKey,
         text,
       };
 
+      analysisStage = 'request';
+      const fetchController = new AbortController();
+      const fetchTimeoutId = setTimeout(() => {
+        fetchController.abort();
+      }, ANALYSIS_FETCH_TIMEOUT_MS);
       const response = await fetch('/api/ai/parse', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        signal: fetchController.signal,
         body: JSON.stringify(body),
+      }).finally(() => {
+        clearTimeout(fetchTimeoutId);
       });
 
       const data = await response.json().catch(() => ({}));
@@ -2080,6 +2135,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       }
 
       if (data.status === 'failed' || !response.ok) {
+        setAnalysisFailureStage('request');
         handleApiFailure(data, t('errors.generic', { ns: 'common' }));
         return;
       }
@@ -2128,14 +2184,20 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setPersonDraft(null);
       setAccountDraftTarget(null);
 
+      setAnalysisFailureStage(null);
       setStep('confirming');
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : t('errors.network', { ns: 'common' }));
+      const nextFailureStage: Exclude<AnalysisFailureStage, null> =
+        err instanceof DOMException && err.name === 'AbortError'
+          ? 'timeout'
+          : analysisStage;
+      setAnalysisFailureStage(nextFailureStage);
+      setErrorMessage(getAnalysisFailureMessage(nextFailureStage));
       setApiError(null);
       setUsageSummary(null);
       setStep('failed');
     }
-  }, [displayLanguage, handleApiFailure, resetRequestState, t, uiLanguage]);
+  }, [displayLanguage, getAnalysisFailureMessage, handleApiFailure, resetRequestState, t, uiLanguage]);
 
   const callReceiptInsightAPI = useCallback(async (question: string) => {
     resetRequestState({
@@ -2189,6 +2251,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
 
   const handleVoiceReady = useCallback(async (submission: VoiceRecorderSubmission) => {
     trackAiEntryUsed('voice');
+    setAnalysisFailureStage(null);
     resetRequestState({
       preserveInput: true,
       preserveMode: true,
@@ -2257,11 +2320,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setApiError(null);
       setErrorMessage('');
       setUsageSummary(null);
-      dispatchSmartPocketDataChanged({
-        source: 'smart-entry-voice-transcription',
-        entities: ['dashboard', 'transactions', 'financial_accounts', 'ai_usage'],
-      });
-      router.refresh();
     } catch (err) {
       handleVoiceFailure({
         error: {
@@ -2271,7 +2329,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         },
       }, t('smartEntryModal.voice.unavailable.providerUnavailableMessage', { ns: 'portal' }));
     }
-  }, [displayLanguage, getAuthToken, handleVoiceFailure, resetRequestState, router, spokenLanguage, t]);
+  }, [displayLanguage, getAuthToken, handleVoiceFailure, resetRequestState, spokenLanguage, t]);
 
   const handleConfirm = useCallback(async () => {
     if (!parsed || !reviewState || hasBlockingReviewIssues) return;
@@ -2397,6 +2455,16 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   };
 
   const failedStateTitle = (() => {
+    if (analysisFailureStage === 'preparing') {
+      return t('smartEntryModal.failedTitles.analysisPreparing', { ns: 'portal' });
+    }
+    if (analysisFailureStage === 'timeout') {
+      return t('smartEntryModal.failedTitles.analysisTimedOut', { ns: 'portal' });
+    }
+    if (analysisFailureStage === 'request') {
+      return t('smartEntryModal.failedTitles.analysisRequest', { ns: 'portal' });
+    }
+
     switch (apiError?.code) {
       case 'openrouter_not_configured':
       case 'voice_not_in_plan':
@@ -2425,7 +2493,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     }
   })();
 
-  const failedShowsRefresh = apiError?.code !== 'openrouter_not_configured'
+  const analysisRetryText = (transcript || textInput).trim();
+  const failedShowsRefresh = !analysisFailureStage
+    && apiError?.code !== 'openrouter_not_configured'
     && apiError?.code !== 'voice_model_missing'
     && apiError?.code !== 'voice_model_audio_unsupported'
     && apiError?.code !== 'openrouter_auth_failed'
@@ -2583,7 +2653,17 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         : step === 'failed'
           ? (
               <div className="flex gap-2 px-4 py-3 sm:px-6">
-                {failedShowsRefresh ? (
+                {analysisFailureStage && analysisRetryText ? (
+                  <button
+                    onClick={() => {
+                      void callParseAPI(analysisRetryText);
+                    }}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
+                  >
+                    <RotateCcw size={16} />
+                    {t('smartEntryModal.analysisFailure.retryAction', { ns: 'portal' })}
+                  </button>
+                ) : failedShowsRefresh ? (
                   <button
                     onClick={handleReset}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
@@ -4082,7 +4162,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
               <div className="w-14 h-14 rounded-full bg-negative-soft flex items-center justify-center">
                 <AlertTriangle size={28} className="text-negative" />
               </div>
-              <div>
+              <div className="w-full max-w-xl">
                 <p className="text-base font-700 text-foreground">{failedStateTitle}</p>
                 <p className="text-sm text-muted-foreground mt-1">{errorMessage}</p>
                 {apiError?.requestId && (
@@ -4090,6 +4170,30 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     {t('smartEntryModal.referenceLabel', { ns: 'portal' })}: {apiError.requestId}
                   </p>
                 )}
+                {transcript ? (
+                  <div className="mt-4 rounded-xl bg-muted/50 p-3 text-left">
+                    <p className="text-xs font-600 text-muted-foreground">
+                      {t('smartEntryModal.transcriptLabel', { ns: 'portal' })}:
+                    </p>
+                    <p
+                      className="mt-1 text-sm italic text-foreground"
+                      dir={getLanguageDirection(displayLanguage)}
+                      lang={displayLanguage}
+                    >
+                      "{transcript}"
+                    </p>
+                  </div>
+                ) : null}
+                {translationNoticeBanner ? (
+                  <div className="mt-4 text-left">
+                    {translationNoticeBanner}
+                  </div>
+                ) : null}
+                {originalTranscriptDisclosure ? (
+                  <div className="mt-4 text-left">
+                    {originalTranscriptDisclosure}
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
