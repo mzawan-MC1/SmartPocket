@@ -67,39 +67,6 @@ function logExtractionStage(
   console.info(payload);
 }
 
-function isDevelopmentTimingEnabled() {
-  return process.env.NODE_ENV !== 'production';
-}
-
-function createStageTimer() {
-  return {
-    startedAt: Date.now(),
-    stages: {} as Record<string, number>,
-    measure<T>(stage: string, promise: PromiseLike<T> | T) {
-      const stageStartedAt = Date.now();
-      return Promise.resolve(promise).finally(() => {
-        this.stages[stage] = Date.now() - stageStartedAt;
-      });
-    },
-    finish() {
-      this.stages.totalMs = Date.now() - this.startedAt;
-      return this.stages;
-    },
-  };
-}
-
-function logExtractionTimings(extractRequestId: string, meta: Record<string, unknown>) {
-  if (!isDevelopmentTimingEnabled()) {
-    return;
-  }
-
-  console.info({
-    scope: 'transaction-document-extract-timing',
-    extractRequestId,
-    ...meta,
-  });
-}
-
 function getSafeExtractErrorCode(error: unknown): TransactionDocumentErrorCode {
   if (isErrorWithCode(error) && error.code === '42P01') {
     return 'migration_missing';
@@ -341,7 +308,6 @@ export async function POST(request: NextRequest) {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
   const extractRequestId = crypto.randomUUID();
   const referenceId = buildExtractReferenceId(extractRequestId);
-  const stageTimer = createStageTimer();
   let admin: ReturnType<typeof requireAdminClient> | null = null;
   let storagePath = '';
   let documentId = '';
@@ -396,7 +362,7 @@ export async function POST(request: NextRequest) {
     });
     currentUserId = user.id;
 
-    const formData = await stageTimer.measure('formDataMs', request.formData());
+    const formData = await request.formData();
     const fileEntry = formData.get('file');
     if (!(fileEntry instanceof File)) {
       logExtractionStage('error', 'file.validation.failed', {
@@ -426,9 +392,20 @@ export async function POST(request: NextRequest) {
       size: fileEntry.size,
       sourceSurface,
     });
+    const fileBufferPromise = fileEntry.arrayBuffer();
+    const validationPromise = validateTransactionDocumentFile(fileEntry, {
+      arrayBuffer: fileBufferPromise,
+    });
+    const fileHashPromise = fileBufferPromise.then((fileBuffer) => sha256HexFromArrayBuffer(fileBuffer));
     let validation: Awaited<ReturnType<typeof validateTransactionDocumentFile>>;
+    let fileBuffer: ArrayBuffer;
+    let fileHash: string;
     try {
-      validation = await stageTimer.measure('validationMs', validateTransactionDocumentFile(fileEntry));
+      [validation, fileBuffer, fileHash] = await Promise.all([
+        validationPromise,
+        fileBufferPromise,
+        fileHashPromise,
+      ]);
     } catch (error) {
       logExtractionStage('error', 'file.validation.failed', {
         extractRequestId,
@@ -440,8 +417,6 @@ export async function POST(request: NextRequest) {
       });
       throw error;
     }
-    const fileBuffer = await stageTimer.measure('bufferMs', fileEntry.arrayBuffer());
-    const fileHash = await stageTimer.measure('hashMs', sha256HexFromArrayBuffer(fileBuffer));
     documentId = crypto.randomUUID();
     jobId = crypto.randomUUID();
     storagePath = buildTransactionDocumentStoragePath({
@@ -461,15 +436,16 @@ export async function POST(request: NextRequest) {
 
     admin = requireAdminClient();
     const config = loadAIConfig();
-    const contextPromise = stageTimer.measure('contextMs', loadExecutionContextServer({
+    const contextPromise = loadExecutionContextServer({
       userId: user.id,
       supabase: admin,
-    }));
+      scope: 'receipt',
+    });
     void contextPromise.catch(() => undefined);
-    const accessCheckPromise = stageTimer.measure('accessCheckMs', admin.rpc('check_ai_access', {
+    const accessCheckPromise = admin.rpc('check_ai_access', {
       p_user_id: user.id,
       p_request_type: 'receipt_extraction',
-    }));
+    });
 
     const { data: accessError, error: accessRpcError } = await accessCheckPromise;
 
@@ -506,12 +482,12 @@ export async function POST(request: NextRequest) {
       bucket: TRANSACTION_DOCUMENT_BUCKET,
       storagePath,
     });
-    const uploadPromise = stageTimer.measure('uploadMs', admin.storage
+    const uploadPromise = admin.storage
       .from(TRANSACTION_DOCUMENT_BUCKET)
       .upload(storagePath, fileBuffer, {
         contentType: fileEntry.type,
         upsert: false,
-      }));
+      });
 
     logExtractionStage('info', 'receipt_allowance.reserve.start', {
       extractRequestId,
@@ -520,11 +496,11 @@ export async function POST(request: NextRequest) {
       jobId,
       idempotencyKey,
     });
-    const reservePromise = stageTimer.measure('reserveMs', admin.rpc('reserve_ai_credits', {
+    const reservePromise = admin.rpc('reserve_ai_credits', {
       p_user_id: user.id,
       p_request_type: 'receipt_extraction',
       p_idempotency_key: idempotencyKey,
-    }));
+    });
     const [{ error: uploadError }, { data: reserveData, error: reserveError }] = await Promise.all([
       uploadPromise,
       reservePromise,
@@ -606,9 +582,13 @@ export async function POST(request: NextRequest) {
       duplicate: reserveResult.duplicate || false,
     });
 
-    const { error: documentInsertError } = await stageTimer.measure(
-      'documentInsertMs',
-      admin.from('transaction_documents').insert({
+    const previewUrlPromise = createSignedTransactionDocumentPreview({
+      admin,
+      path: storagePath,
+    });
+    void previewUrlPromise.catch(() => undefined);
+
+    const { error: documentInsertError } = await admin.from('transaction_documents').insert({
       id: documentId,
       user_id: user.id,
       storage_bucket: TRANSACTION_DOCUMENT_BUCKET,
@@ -620,17 +600,14 @@ export async function POST(request: NextRequest) {
       sha256_hash: fileHash,
       source_surface: sourceSurface,
       status: 'uploaded',
-      })
-    );
+    });
 
     if (documentInsertError) {
       throw documentInsertError;
     }
     createdDocumentRow = true;
 
-    const { error: jobInsertError } = await stageTimer.measure(
-      'jobInsertMs',
-      admin.from('document_extraction_jobs').insert({
+    const { error: jobInsertError } = await admin.from('document_extraction_jobs').insert({
       id: jobId,
       user_id: user.id,
       document_id: documentId,
@@ -644,27 +621,43 @@ export async function POST(request: NextRequest) {
       error_message: null,
       idempotency_key: idempotencyKey,
       credit_ledger_id: creditLedgerId || null,
-      })
-    );
+    });
 
     if (jobInsertError) {
       throw jobInsertError;
     }
     createdJobRow = true;
 
-    if (usageReserved) {
-      await updateReceiptLedgerMetadata(admin, creditLedgerId, {
-        source_request_id: jobId,
-        request_type: 'receipt_extraction',
-      });
-    }
-
-    const context = await contextPromise;
+    const ledgerMetadataPromise = usageReserved
+      ? updateReceiptLedgerMetadata(admin, creditLedgerId, {
+          source_request_id: jobId,
+          request_type: 'receipt_extraction',
+        })
+      : Promise.resolve();
+    const [context, signedPreviewUrl] = await Promise.all([
+      contextPromise,
+      previewUrlPromise,
+      ledgerMetadataPromise,
+    ]);
+    previewUrl = signedPreviewUrl;
     const options = mapDocumentOptionsFromContext(context);
-    previewUrl = await stageTimer.measure('signedUrlMs', createSignedTransactionDocumentPreview({
-      admin,
-      path: storagePath,
-    }));
+    const providerContext = {
+      accounts: context.accounts.map((account) => ({
+        id: account.id,
+        name: account.name,
+        type: account.account_type,
+        currency: account.currency,
+        includeInTotal: account.include_in_total,
+      })),
+      categories: context.categories
+        .filter((category) => category.category_type === 'income' || category.category_type === 'expense')
+        .map((category) => ({
+          id: category.id,
+          name: category.name,
+          type: category.category_type,
+        })),
+      defaultCurrency: context.defaultCurrency,
+    };
 
     if (request.signal.aborted) {
       throw new Error('Client cancelled receipt extraction before provider call.');
@@ -679,7 +672,7 @@ export async function POST(request: NextRequest) {
       mimeType: fileEntry.type,
       sourceSurface,
     });
-    const extractionResponse = await stageTimer.measure('providerMs', processTransactionDocumentAIRequest({
+    const extractionResponse = await processTransactionDocumentAIRequest({
       requestId: jobId,
       fileName: fileEntry.name,
       fileMimeType: fileEntry.type,
@@ -687,24 +680,8 @@ export async function POST(request: NextRequest) {
       language,
       pageCount: validation.pageCount,
       sourceSurface,
-      context: {
-        accounts: context.accounts.map((account) => ({
-          id: account.id,
-          name: account.name,
-          type: account.account_type,
-          currency: account.currency,
-          includeInTotal: account.include_in_total,
-        })),
-        categories: context.categories
-          .filter((category) => category.category_type === 'income' || category.category_type === 'expense')
-          .map((category) => ({
-            id: category.id,
-            name: category.name,
-            type: category.category_type,
-          })),
-        defaultCurrency: context.defaultCurrency,
-      },
-    }, config));
+      context: providerContext,
+    }, config);
     providerAttempted = true;
     providerUsed = extractionResponse.providerUsed || null;
     modelUsed = extractionResponse.modelUsed || extractionResponse.parsed?.modelUsed || null;
@@ -824,7 +801,7 @@ export async function POST(request: NextRequest) {
     const primaryDraft = extractionResponse.parsed.transactions[0];
     let duplicates;
     try {
-      duplicates = await stageTimer.measure('duplicateLookupMs', findDuplicateTransactionDocuments({
+      duplicates = await findDuplicateTransactionDocuments({
         admin,
         userId: user.id,
         fileHash,
@@ -836,7 +813,7 @@ export async function POST(request: NextRequest) {
           currency: transaction.currency,
           receiptNumber: transaction.receiptNumber,
         })),
-      }));
+      });
     } catch (error) {
       logExtractionStage('error', 'duplicate_lookup.failed', {
         extractRequestId,
@@ -857,9 +834,7 @@ export async function POST(request: NextRequest) {
     });
     duplicateMatches = duplicates;
 
-    const [documentUpdateResult, jobUpdateResult] = await stageTimer.measure(
-      'persistenceMs',
-      Promise.all([
+    const [documentUpdateResult, jobUpdateResult] = await Promise.all([
         admin.from('transaction_documents').update({
       status: 'review_ready',
       merchant_name: primaryDraft?.merchant || null,
@@ -879,8 +854,7 @@ export async function POST(request: NextRequest) {
           raw_ai_output: rawAiOutput,
           error_message: null,
         }).eq('id', jobId),
-      ])
-    );
+      ]);
     const documentUpdateError = documentUpdateResult.error;
     if (documentUpdateError) {
       logExtractionStage('error', 'document_job.insert.document_failed', {
@@ -959,14 +933,6 @@ export async function POST(request: NextRequest) {
       durationMs: extractDurationMs,
     });
     dailyUsageLogged = true;
-    logExtractionTimings(extractRequestId, {
-      result: 'success',
-      timings: stageTimer.finish(),
-      providerUsed,
-      modelUsed,
-      draftCount: extractionResponse.parsed.transactions.length,
-      duplicateCount: duplicates.length,
-    });
 
     return jsonWithCookies({
       success: true,
@@ -1077,14 +1043,6 @@ export async function POST(request: NextRequest) {
         durationMs: extractDurationMs,
       }).catch(() => undefined);
     }
-    logExtractionTimings(extractRequestId, {
-      result: 'error',
-      errorCode,
-      providerAttempted,
-      providerUsed,
-      modelUsed,
-      timings: stageTimer.finish(),
-    });
 
     return jsonWithCookies({
       success: false,

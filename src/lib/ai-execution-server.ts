@@ -255,8 +255,11 @@ export async function loadExecutionContextServer(args: {
   userId: string;
   supabase: SupabaseClient;
   instruction?: ParsedFinancialInstruction;
+  scope?: 'full' | 'receipt';
 }): Promise<ServerExecutionContext> {
-  const needsPersonBalances = instructionNeedsPersonBalances(args.instruction);
+  const scope = args.scope || 'full';
+  const includePeople = scope === 'full';
+  const needsPersonBalances = includePeople && instructionNeedsPersonBalances(args.instruction);
 
   await ensureDefaultPersonalAccounts(args.userId, {
     supabase: args.supabase,
@@ -277,21 +280,25 @@ export async function loadExecutionContextServer(args: {
       .or(`user_id.eq.${args.userId},user_id.is.null,is_system.eq.true`)
       .order('sort_order', { ascending: true })
       .order('created_at', { ascending: true }),
-    args.supabase
-      .from('managed_people')
-      .select('id, owner_id, full_name, relationship, preferred_currency, is_active, is_archived')
-      .eq('owner_id', args.userId)
-      .eq('is_archived', false)
-      .order('full_name', { ascending: true }),
+    includePeople
+      ? args.supabase
+          .from('managed_people')
+          .select('id, owner_id, full_name, relationship, preferred_currency, is_active, is_archived')
+          .eq('owner_id', args.userId)
+          .eq('is_archived', false)
+          .order('full_name', { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
     needsPersonBalances
       ? args.supabase
           .from('person_balances')
           .select('*')
           .eq('owner_id', args.userId)
       : Promise.resolve({ data: [], error: null }),
-    args.supabase
-      .from('person_aliases')
-      .select('person_id, alias'),
+    includePeople
+      ? args.supabase
+          .from('person_aliases')
+          .select('person_id, alias')
+      : Promise.resolve({ data: [], error: null }),
     args.supabase
       .from('currency_registry')
       .select('code')

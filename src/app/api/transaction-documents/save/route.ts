@@ -79,6 +79,15 @@ function getSaveFailureStage(error: unknown, fallbackStage: string) {
   return fallbackStage;
 }
 
+function getRawRequestedJobId(body: unknown) {
+  if (typeof body !== 'object' || body === null || !('jobId' in body)) {
+    return '';
+  }
+
+  const rawJobId = (body as { jobId?: unknown }).jobId;
+  return typeof rawJobId === 'string' ? rawJobId.trim() : '';
+}
+
 function getSafeSaveStatusCode(errorCode: TransactionDocumentErrorCode): number {
   switch (errorCode) {
     case 'unauthorized':
@@ -188,10 +197,43 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const admin = requireAdminClient();
-    const context = await loadExecutionContextServer({
+    const requestedJobId = getRawRequestedJobId(body);
+    if (!requestedJobId) {
+      return jsonWithCookies({
+        success: false,
+        errorCode: 'job_required',
+        errorMessage: getSafeSaveErrorMessage('job_required', ''),
+        referenceId,
+      }, getSafeSaveStatusCode('job_required'), cookieMutations);
+    }
+
+    const existingSavedResultPromise = loadSavedTransactionDocumentReviewResult({
+      admin,
+      userId: user.id,
+      jobId: requestedJobId,
+    });
+    const contextPromise = loadExecutionContextServer({
       userId: user.id,
       supabase: admin,
+      scope: 'receipt',
     });
+    void contextPromise.catch(() => undefined);
+
+    const existingSavedResult = await existingSavedResultPromise;
+    if (existingSavedResult) {
+      logSaveStage('info', 'save.commit.success', {
+        saveRequestId,
+        referenceId,
+        userId,
+        jobId: requestedJobId,
+        documentId: existingSavedResult.documentId,
+        savedCount: existingSavedResult.savedCount,
+        idempotent: true,
+      });
+      return jsonWithCookies(existingSavedResult, 200, cookieMutations);
+    }
+
+    const context = await contextPromise;
     const options = mapDocumentOptionsFromContext(context);
     currentStage = 'save.payload.validation.start';
     logSaveStage('info', currentStage, {
@@ -222,24 +264,6 @@ export async function POST(request: NextRequest) {
       draftCount,
       lineItemCount,
     });
-
-    const existingSavedResult = await loadSavedTransactionDocumentReviewResult({
-      admin,
-      userId: user.id,
-      jobId,
-    });
-    if (existingSavedResult) {
-      logSaveStage('info', 'save.commit.success', {
-        saveRequestId,
-        referenceId,
-        userId,
-        jobId,
-        documentId: existingSavedResult.documentId,
-        savedCount: existingSavedResult.savedCount,
-        idempotent: true,
-      });
-      return jsonWithCookies(existingSavedResult, 200, cookieMutations);
-    }
 
     currentStage = 'save.duplicate_lookup.refresh';
     logSaveStage('info', currentStage, {
@@ -309,14 +333,8 @@ export async function POST(request: NextRequest) {
       throw rpcError;
     }
 
-    const savedResult = await loadSavedTransactionDocumentReviewResult({
-      admin,
-      userId: user.id,
-      jobId,
-    });
     const rpcRow = Array.isArray(rpcData) ? rpcData[0] : rpcData;
-    documentId = savedResult?.documentId
-      || (typeof rpcRow?.document_id === 'string' ? rpcRow.document_id : null);
+    documentId = typeof rpcRow?.document_id === 'string' ? rpcRow.document_id : null;
     currentStage = 'save.commit.success';
     logSaveStage('info', currentStage, {
       saveRequestId,
@@ -326,22 +344,20 @@ export async function POST(request: NextRequest) {
       documentId,
       draftCount,
       lineItemCount,
-      savedCount: savedResult?.savedCount
-        ?? (typeof rpcRow?.saved_count === 'number' ? rpcRow.saved_count : 0),
+      savedCount: typeof rpcRow?.saved_count === 'number' ? rpcRow.saved_count : 0,
     });
 
     return jsonWithCookies({
       success: true,
       jobId,
-      documentId: savedResult?.documentId || rpcRow?.document_id || null,
-      primaryTransactionId: savedResult?.primaryTransactionId || rpcRow?.primary_transaction_id || null,
-      transactionIds: savedResult?.transactionIds || (Array.isArray(rpcRow?.transaction_ids) ? rpcRow.transaction_ids : []),
-      savedCount: savedResult?.savedCount
-        ?? (typeof rpcRow?.saved_count === 'number'
-          ? rpcRow.saved_count
-          : Array.isArray(rpcRow?.transaction_ids)
-            ? rpcRow.transaction_ids.length
-            : 0),
+      documentId: rpcRow?.document_id || null,
+      primaryTransactionId: rpcRow?.primary_transaction_id || null,
+      transactionIds: Array.isArray(rpcRow?.transaction_ids) ? rpcRow.transaction_ids : [],
+      savedCount: typeof rpcRow?.saved_count === 'number'
+        ? rpcRow.saved_count
+        : Array.isArray(rpcRow?.transaction_ids)
+          ? rpcRow.transaction_ids.length
+          : 0,
     }, 200, cookieMutations);
   } catch (error) {
     const errorCode = classifyTransactionDocumentError(error) || 'save_failed';

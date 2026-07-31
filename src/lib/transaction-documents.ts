@@ -152,6 +152,8 @@ export interface TransactionDocumentDuplicateMatch {
   currency?: string | null;
   receiptNumber?: string | null;
   matchedAt?: string | null;
+  reasons?: string[];
+  score?: number;
 }
 
 export interface TransactionDocumentReviewItemInput {
@@ -704,7 +706,10 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   return null;
 }
 
-export async function validateTransactionDocumentFile(file: File) {
+export async function validateTransactionDocumentFile(
+  file: File,
+  options?: { arrayBuffer?: ArrayBuffer | Promise<ArrayBuffer> }
+) {
   if (!Number.isFinite(file.size) || file.size <= 0) {
     throw new Error('This file appears to be empty or unreadable.');
   }
@@ -718,7 +723,9 @@ export async function validateTransactionDocumentFile(file: File) {
   }
 
   if (file.type === 'application/pdf') {
-    const buffer = await file.arrayBuffer();
+    const buffer = options?.arrayBuffer
+      ? await options.arrayBuffer
+      : await file.arrayBuffer();
     const pageCount = await getPdfPageCountFromArrayBuffer(buffer);
     if (pageCount > TRANSACTION_DOCUMENT_MAX_PDF_PAGES) {
       throw new Error(`PDF files can include at most ${TRANSACTION_DOCUMENT_MAX_PDF_PAGES} pages.`);

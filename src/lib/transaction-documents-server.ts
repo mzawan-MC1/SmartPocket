@@ -287,6 +287,7 @@ export async function findDuplicateTransactionDocuments(args: {
   userId: string;
   fileHash: string;
   currentDocumentId?: string | null;
+  mode?: 'full' | 'final_recheck';
   extractedTransactions: Array<{
     merchant?: string | null;
     date?: string | null;
@@ -296,6 +297,7 @@ export async function findDuplicateTransactionDocuments(args: {
   }>;
 }): Promise<TransactionDocumentDuplicateMatch[]> {
   const currentDocumentId = (args.currentDocumentId || '').trim();
+  const mode = args.mode || 'full';
   const candidateDocuments = new Map<string, DuplicateCandidateDocumentRow>();
   const uploadReceiptNumbers = new Set<string>();
   const uploadMerchantDateTotalKeys = new Set<string>();
@@ -351,18 +353,6 @@ export async function findDuplicateTransactionDocuments(args: {
     }
   }
 
-  if (args.fileHash) {
-    const { data, error } = await createCandidateDocumentQuery()
-      .eq('sha256_hash', args.fileHash)
-      .limit(25);
-
-    if (error) {
-      throw error;
-    }
-
-    addDocuments(parseDuplicateCandidateDocumentRows(data));
-  }
-
   const exactReceiptNumbers = Array.from(
     new Set(
       args.extractedTransactions
@@ -370,56 +360,115 @@ export async function findDuplicateTransactionDocuments(args: {
         .filter((value): value is string => Boolean(value))
     )
   );
-  if (exactReceiptNumbers.length > 0) {
-    const { data, error } = await createCandidateDocumentQuery()
-      .in('receipt_number', exactReceiptNumbers)
-      .limit(50);
+  const merchantDateTotalQueries = Array.from(uploadMerchantDateTotalKeys).map((key) => {
+    const [merchant = '', date = '', total = ''] = key.split('|');
+    return createCandidateDocumentQuery()
+      .eq('merchant_name', merchant)
+      .eq('document_date', date)
+      .eq('total_amount', Number(total))
+      .limit(25);
+  });
+  const dateTotalQueries = Array.from(uploadDateTotalKeys).map((key) => {
+    const [date = '', total = ''] = key.split('|');
+    return createCandidateDocumentQuery()
+      .eq('document_date', date)
+      .eq('total_amount', Number(total))
+      .limit(25);
+  });
+  const candidateQueries = [
+    args.fileHash
+      ? createCandidateDocumentQuery()
+          .eq('sha256_hash', args.fileHash)
+          .limit(25)
+      : null,
+    exactReceiptNumbers.length > 0
+      ? createCandidateDocumentQuery()
+          .in('receipt_number', exactReceiptNumbers)
+          .limit(50)
+      : null,
+    ...merchantDateTotalQueries,
+    ...dateTotalQueries,
+  ].filter((query): query is ReturnType<typeof createCandidateDocumentQuery> => Boolean(query));
 
-    if (error) {
-      throw error;
-    }
-
-    addDocuments(parseDuplicateCandidateDocumentRows(data));
-  }
-
-  for (const candidate of args.extractedTransactions) {
-    const merchant = normalizeText(candidate.merchant);
-    const date = normalizeDate(candidate.date);
-    const total = typeof candidate.total === 'number' && Number.isFinite(candidate.total)
-      ? Math.round(candidate.total * 100) / 100
-      : null;
-
-    if (merchant && date && total !== null) {
-      const { data, error } = await createCandidateDocumentQuery()
-        .eq('merchant_name', merchant)
-        .eq('document_date', date)
-        .eq('total_amount', total)
-        .limit(25);
-
-      if (error) {
-        throw error;
+  if (candidateQueries.length > 0) {
+    const candidateResults = await Promise.all(candidateQueries);
+    for (const result of candidateResults) {
+      if (result.error) {
+        throw result.error;
       }
-
-      addDocuments(parseDuplicateCandidateDocumentRows(data));
-    }
-
-    if (date && total !== null && (merchant || normalizeText(candidate.receiptNumber))) {
-      const { data, error } = await createCandidateDocumentQuery()
-        .eq('document_date', date)
-        .eq('total_amount', total)
-        .limit(25);
-
-      if (error) {
-        throw error;
-      }
-
-      addDocuments(parseDuplicateCandidateDocumentRows(data));
+      addDocuments(parseDuplicateCandidateDocumentRows(result.data));
     }
   }
 
   const documentIds = Array.from(candidateDocuments.keys());
   if (documentIds.length === 0) {
     return [];
+  }
+
+  if (mode === 'final_recheck') {
+    const lightweightMatches: Array<TransactionDocumentDuplicateMatch | null> = Array.from(candidateDocuments.values())
+      .map((document) => {
+        const reasons = new Set<TransactionDocumentDuplicateMatch['reason']>();
+        const merchant = normalizeText(document.merchant_name) || null;
+        const date = normalizeDate(document.document_date) || null;
+        const amount = normalizeDuplicateLookupAmount(document.total_amount);
+        const normalizedMerchant = normalizeDuplicateLookupText(merchant);
+        const normalizedDate = normalizeDuplicateLookupDate(date);
+        const normalizedAmount = typeof amount === 'number' ? amount.toFixed(2) : '';
+        const normalizedReceiptNumber = normalizeDuplicateLookupText(document.receipt_number);
+
+        if (document.sha256_hash && document.sha256_hash === args.fileHash) {
+          reasons.add('file_hash');
+        }
+        if (normalizedReceiptNumber && uploadReceiptNumbers.has(normalizedReceiptNumber)) {
+          reasons.add('receipt_number');
+        }
+        if (
+          normalizedMerchant
+          && normalizedDate
+          && normalizedAmount
+          && uploadMerchantDateTotalKeys.has(`${normalizedMerchant}|${normalizedDate}|${normalizedAmount}`)
+        ) {
+          reasons.add('merchant_date_total');
+        }
+        if (
+          normalizedDate
+          && normalizedAmount
+          && uploadDateTotalKeys.has(`${normalizedDate}|${normalizedAmount}`)
+        ) {
+          reasons.add('date_total');
+        }
+
+        if (reasons.size === 0) {
+          return null;
+        }
+
+        const sortedReasons = sortDuplicateReasons(Array.from(reasons));
+        const primaryReason = sortedReasons[0];
+        return {
+          documentId: document.id,
+          transactionId: document.primary_transaction_id || null,
+          reason: primaryReason,
+          reasons: sortedReasons,
+          score: getDuplicateReasonScore(primaryReason),
+          merchant,
+          description: null,
+          date,
+          total: amount,
+          currency: normalizeDuplicateLookupCurrency(document.currency_code),
+          receiptNumber: normalizeText(document.receipt_number) || null,
+          matchedAt: document.created_at,
+        } satisfies TransactionDocumentDuplicateMatch;
+      })
+    return lightweightMatches
+      .filter((match): match is TransactionDocumentDuplicateMatch => match !== null)
+      .sort((left, right) => {
+        const scoreDifference = (right.score || 0) - (left.score || 0);
+        if (scoreDifference !== 0) {
+          return scoreDifference;
+        }
+        return (right.matchedAt || '').localeCompare(left.matchedAt || '');
+      });
   }
 
   const { data: jobData, error: jobError } = await args.admin
@@ -689,6 +738,7 @@ export async function refreshTransactionDocumentDuplicateMatches(args: {
     userId: args.userId,
     fileHash: documentRecord.sha256_hash || '',
     currentDocumentId: row.document_id,
+    mode: 'final_recheck',
     extractedTransactions: args.extractedTransactions,
   });
 
