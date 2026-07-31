@@ -34,6 +34,7 @@ let modalInstanceSequence = 0;
 let activeModalStack: number[] = [];
 let bodyScrollLockCount = 0;
 let previousBodyOverflow = '';
+let previousHtmlOverflow = '';
 
 function registerModalInstance(instanceId: number) {
   activeModalStack = [...activeModalStack.filter((id) => id !== instanceId), instanceId];
@@ -52,7 +53,9 @@ function lockBodyScroll() {
 
   if (bodyScrollLockCount === 0) {
     previousBodyOverflow = document.body.style.overflow;
+    previousHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
   }
 
   bodyScrollLockCount += 1;
@@ -65,7 +68,9 @@ function unlockBodyScroll() {
 
   if (bodyScrollLockCount === 0) {
     document.body.style.overflow = previousBodyOverflow;
+    document.documentElement.style.overflow = previousHtmlOverflow;
     previousBodyOverflow = '';
+    previousHtmlOverflow = '';
   }
 }
 
@@ -162,6 +167,43 @@ export default function Modal({
     };
   }, [closeOnEscape, isVisible, onClose]);
 
+  useEffect(() => {
+    if (!isVisible) return undefined;
+
+    const scrollFocusedElementIntoView = (target: EventTarget | null) => {
+      if (typeof window === 'undefined') return;
+      if (!window.matchMedia('(max-width: 768px)').matches) return;
+      if (!(target instanceof HTMLElement)) return;
+      if (!dialogRef.current?.contains(target)) return;
+
+      window.setTimeout(() => {
+        target.scrollIntoView({
+          block: 'nearest',
+          inline: 'nearest',
+          behavior: 'smooth',
+        });
+      }, 40);
+    };
+
+    const handleFocusIn = (event: FocusEvent) => {
+      scrollFocusedElementIntoView(event.target);
+    };
+
+    const handleViewportChange = () => {
+      scrollFocusedElementIntoView(document.activeElement);
+    };
+
+    dialogRef.current?.addEventListener('focusin', handleFocusIn);
+    window.visualViewport?.addEventListener('resize', handleViewportChange);
+    window.visualViewport?.addEventListener('scroll', handleViewportChange);
+
+    return () => {
+      dialogRef.current?.removeEventListener('focusin', handleFocusIn);
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, [isVisible]);
+
   const handleBackdropClick = () => {
     if (closeOnBackdrop) {
       onClose();
@@ -180,7 +222,7 @@ export default function Modal({
         aria-labelledby={headingId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
-        className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] flex-col overflow-hidden rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
+        className={`relative box-border flex w-full max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-0.75rem)] flex-col overflow-hidden overscroll-contain rounded-[24px] border border-border bg-card shadow-card-lg scale-in sm:rounded-[24px] ${sizeClasses[size]} ${mobileContentClassName} ${contentClassName}`}
       >
         <div className={`flex flex-shrink-0 items-start justify-between border-b border-border bg-card p-5 max-[480px]:p-3 ${headerClassName}`}>
           <div>
@@ -196,7 +238,7 @@ export default function Modal({
             <X size={17} />
           </button>
         </div>
-        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-5 scrollbar-thin max-[480px]:p-3 ${bodyClassName}`}>
+        <div className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto scroll-pb-24 p-5 scrollbar-thin max-[480px]:p-3 ${bodyClassName}`}>
           {children}
         </div>
         {footer ? (

@@ -157,7 +157,7 @@ export default function AppLayout({
                   aria-label={t('actions.close')}
                 />
                 <div
-                  className={`absolute inset-y-0 z-10 min-h-0 h-[100dvh] w-[82vw] max-w-[300px] md:max-w-[320px] max-h-[100dvh] ${isRTL ? 'right-0' : 'left-0'} transition-transform duration-200 ease-out ${
+                  className={`absolute inset-y-0 z-10 min-h-0 h-[100dvh] w-[78vw] max-w-[288px] md:max-w-[304px] max-h-[100dvh] ${isRTL ? 'right-0' : 'left-0'} transition-transform duration-200 ease-out ${
                     mobileSidebarVisible
                       ? 'translate-x-0'
                       : isRTL
@@ -188,7 +188,7 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto scrollbar-thin lg:h-full"
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain scrollbar-thin lg:h-full"
                 style={{ background: 'var(--background)' }}
               >
                 <div className="flex min-h-full flex-col">

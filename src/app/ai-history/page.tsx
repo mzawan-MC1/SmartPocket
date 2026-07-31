@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
 import { usePathname } from 'next/navigation';
@@ -74,6 +74,7 @@ export default function AIHistoryPage() {
   const pathname = usePathname();
   const [requests, setRequests] = useState<AIRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [requestDetails, setRequestDetails] = useState<Record<string, AIRequestDetail>>({});
   const [detailLoadingId, setDetailLoadingId] = useState<string | null>(null);
@@ -85,14 +86,26 @@ export default function AIHistoryPage() {
     wrongFields: string[];
     notes: string;
   } | null>(null);
+  const historyRequestIdRef = useRef(0);
+  const detailRequestIdsRef = useRef<Record<string, number>>({});
+  const hasLoadedOnceRef = useRef(false);
 
   const WRONG_FIELD_OPTIONS = [
     'amount', 'currency', 'person', 'account', 'category',
     'date', 'payer', 'funding_source', 'reimbursement',
   ];
 
-  const loadHistory = useCallback(async () => {
-    setLoading(true);
+  const loadHistory = useCallback(async (options?: { background?: boolean }) => {
+    const requestId = historyRequestIdRef.current + 1;
+    historyRequestIdRef.current = requestId;
+    const keepVisibleData = options?.background ?? hasLoadedOnceRef.current;
+
+    if (keepVisibleData) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -102,27 +115,48 @@ export default function AIHistoryPage() {
         .limit(50);
 
       if (error) throw error;
-      setRequests((data || []) as AIRequest[]);
-      setRequestDetails({});
+      if (requestId !== historyRequestIdRef.current) {
+        return;
+      }
+
+      const nextRequests = (data || []) as AIRequest[];
+      const nextIds = new Set(nextRequests.map((request) => request.id));
+      setRequests(nextRequests);
+      setExpandedId((current) => (current && nextIds.has(current) ? current : null));
+      setRequestDetails((current) =>
+        Object.fromEntries(Object.entries(current).filter(([id]) => nextIds.has(id)))
+      );
 
       // Load existing feedback
-      if (data && data.length > 0) {
-        const ids = data.map((r: AIRequest) => r.id);
+      if (nextRequests.length > 0) {
+        const ids = nextRequests.map((r: AIRequest) => r.id);
         const { data: fbData } = await supabase
           .from('ai_feedback')
           .select('*')
           .in('request_id', ids);
+
+        if (requestId !== historyRequestIdRef.current) {
+          return;
+        }
 
         const fbMap: Record<string, AIFeedback> = {};
         (fbData || []).forEach((fb: AIFeedback) => {
           fbMap[fb.request_id] = fb;
         });
         setFeedbackMap(fbMap);
+      } else {
+        setFeedbackMap({});
       }
+      hasLoadedOnceRef.current = true;
     } catch {
-      toast.error(t('aiHistory.loadFailed'));
+      if (requestId === historyRequestIdRef.current) {
+        toast.error(t('aiHistory.loadFailed'));
+      }
     } finally {
-      setLoading(false);
+      if (requestId === historyRequestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [t]);
 
@@ -130,6 +164,8 @@ export default function AIHistoryPage() {
 
   const loadRequestDetail = useCallback(async (requestId: string) => {
     if (requestDetails[requestId]) return;
+    const detailRequestId = (detailRequestIdsRef.current[requestId] ?? 0) + 1;
+    detailRequestIdsRef.current[requestId] = detailRequestId;
     setDetailLoadingId(requestId);
     try {
       const supabase = createClient();
@@ -140,14 +176,21 @@ export default function AIHistoryPage() {
         .single();
 
       if (error) throw error;
+      if (detailRequestIdsRef.current[requestId] !== detailRequestId) {
+        return;
+      }
       setRequestDetails((current) => ({
         ...current,
         [requestId]: data as AIRequestDetail,
       }));
     } catch {
-      toast.error(t('aiHistory.loadFailed'));
+      if (detailRequestIdsRef.current[requestId] === detailRequestId) {
+        toast.error(t('aiHistory.loadFailed'));
+      }
     } finally {
-      setDetailLoadingId((current) => (current === requestId ? null : current));
+      if (detailRequestIdsRef.current[requestId] === detailRequestId) {
+        setDetailLoadingId((current) => (current === requestId ? null : current));
+      }
     }
   }, [requestDetails, t]);
 
@@ -192,7 +235,7 @@ export default function AIHistoryPage() {
 
       toast.success(t('aiHistory.feedbackSubmitted'));
       setFeedbackForm(null);
-      loadHistory();
+      void loadHistory({ background: true });
     } catch {
       toast.error(t('aiHistory.feedbackFailed'));
     } finally {
@@ -334,7 +377,7 @@ export default function AIHistoryPage() {
   return (
     <AppLayout activeRoute={pathname}>
       <SubscriptionFeatureGate feature="ai_history">
-        <div className="page-shell page-section">
+        <div className="page-section">
           <PageHeader
             title={t('aiHistory.title')}
             description={t('aiHistory.description')}
@@ -344,11 +387,12 @@ export default function AIHistoryPage() {
             actionsClassName="w-full sm:w-auto"
             actions={
               <button
-                onClick={loadHistory}
+                onClick={() => void loadHistory({ background: true })}
                 className="btn-secondary max-[480px]:w-full"
                 aria-label={t('aiHistory.refresh')}
+                disabled={refreshing}
               >
-                <RotateCcw size={16} />
+                {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />}
                 {t('aiHistory.refresh')}
               </button>
             }
@@ -410,7 +454,7 @@ export default function AIHistoryPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-end gap-2 flex-shrink-0">
+                    <div className="flex flex-shrink-0 items-center justify-end gap-2 max-[480px]:ms-auto max-[480px]:flex-col max-[480px]:items-end max-[480px]:gap-1">
                       <AIHistoryStatusBadge status={req.confirmation_status || req.status} t={t} />
                       {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                     </div>
@@ -445,7 +489,7 @@ export default function AIHistoryPage() {
                       )}
 
                       {/* Provider info */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                         {detail.language_provider_used && (
                           <span>{t('aiHistory.provider', { value: detail.language_provider_used })}</span>
                         )}
@@ -540,17 +584,17 @@ export default function AIHistoryPage() {
                               )}
                               <div className="flex gap-2">
                                 <button
+                                  onClick={() => setFeedbackForm(null)}
+                                  className="px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-600 hover:bg-muted/80 transition-colors"
+                                >
+                                  {t('aiHistory.cancel')}
+                                </button>
+                                <button
                                   onClick={handleSubmitFeedback}
                                   disabled={submittingFeedback === req.id}
                                   className="flex-1 py-2 rounded-lg bg-accent text-white text-xs font-600 hover:bg-accent/90 disabled:opacity-50 transition-colors"
                                 >
                                   {submittingFeedback === req.id ? <Loader2 size={12} className="animate-spin mx-auto" /> : t('aiHistory.submit')}
-                                </button>
-                                <button
-                                  onClick={() => setFeedbackForm(null)}
-                                  className="px-3 py-2 rounded-lg bg-muted text-foreground text-xs font-600 hover:bg-muted/80 transition-colors"
-                                >
-                                  {t('aiHistory.cancel')}
                                 </button>
                               </div>
                             </div>

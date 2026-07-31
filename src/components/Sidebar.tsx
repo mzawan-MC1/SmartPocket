@@ -311,7 +311,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     <aside
       className={`relative flex w-full flex-col overflow-hidden bg-card sidebar-transition ${
         isMobileDrawer
-          ? 'h-[100dvh] min-h-0 max-h-[100dvh] w-full border-e border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.98)_100%)] pt-[env(safe-area-inset-top)] shadow-card-lg'
+          ? 'h-[100dvh] min-h-0 max-h-[100dvh] w-full border-e border-border/70 bg-card pt-[env(safe-area-inset-top)] shadow-card-lg'
           : 'h-full min-h-screen lg:sticky lg:top-0 lg:min-h-screen lg:h-screen'
       }`}
     >
