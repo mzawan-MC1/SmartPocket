@@ -1473,6 +1473,62 @@ async function getLoanMetrics(
   };
 }
 
+function buildEmptyDashboardBudgetSummary(): DashboardBudgetSummary {
+  return {
+    totalBudgetByCurrency: [],
+    spentByCurrency: [],
+    remainingByCurrency: [],
+    activeBudgetCount: 0,
+    activeBudgetCycleLabels: [],
+    activeBudgetCyclePeriods: [],
+    hasMixedCycles: false,
+    conversionUnavailableCount: 0,
+  };
+}
+
+function buildEmptyManagedMoneyMetrics(defaultCurrency: string) {
+  return {
+    managedMoneyByCurrency: ensureZeroCurrencyTotal([], defaultCurrency),
+    managedPeopleCount: 0,
+  };
+}
+
+function buildEmptyLoanMetrics(defaultCurrency: string) {
+  return {
+    outstandingLoanBalanceByCurrency: ensureZeroCurrencyTotal([], defaultCurrency),
+    loanBorrowedThisMonthByCurrency: ensureZeroCurrencyTotal([], defaultCurrency),
+    loanRepaidThisMonthByCurrency: ensureZeroCurrencyTotal([], defaultCurrency),
+  };
+}
+
+const DASHBOARD_OPTIONAL_METRIC_TIMEOUT_MS = 4000;
+
+async function withOptionalDashboardMetricTimeout<T>(
+  operationName: string,
+  promise: Promise<T>,
+  fallbackValue: T,
+  timeoutMs = DASHBOARD_OPTIONAL_METRIC_TIMEOUT_MS
+): Promise<T> {
+  let timeoutId: ReturnType<typeof globalThis.setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = globalThis.setTimeout(() => {
+          reject(new Error(`${operationName}-timeout`));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch {
+    return fallbackValue;
+  } finally {
+    if (timeoutId !== null) {
+      globalThis.clearTimeout(timeoutId);
+    }
+  }
+}
+
 // ─── Accounts ─────────────────────────────────────────────────────────────────
 
 async function parseFinancialAccountResponse(response: Response) {
@@ -3208,17 +3264,7 @@ export async function getDashboardMetrics(args?: {
   }
   const periodStart = args.startDate;
   const periodEnd = args.endDate;
-  const [
-    ledgerSummaryByTransactionId,
-    accountInclusionById,
-    accountsResult,
-    incomeResult,
-    expenseResult,
-    dashboardBudgetSummary,
-    upcomingResult,
-    managedMetrics,
-    loanMetrics,
-  ] = await Promise.all([
+  const coreMetricsPromise = Promise.all([
     loadTransactionLedgerSummaryMap(supabase),
     loadAccountInclusionMap(supabase),
     supabase
@@ -3237,26 +3283,73 @@ export async function getDashboardMetrics(args?: {
       .eq('transaction_type', 'expense')
       .gte('transaction_date', periodStart)
       .lte('transaction_date', periodEnd),
+  ]);
+
+  const optionalBudgetSummaryPromise = withOptionalDashboardMetricTimeout(
+    'dashboard-budget-summary',
     getDashboardBudgetSummary({
       startDate: periodStart,
       endDate: periodEnd,
       mode: args.mode,
     }),
-    supabase
-      .from('recurring_transactions')
-      .select('amount, currency')
-      .eq('is_active', true)
-      .eq('transaction_type', 'expense')
-      .gte('next_due_date', periodStart)
-      .lte('next_due_date', periodEnd),
+    buildEmptyDashboardBudgetSummary()
+  );
+
+  const optionalUpcomingPaymentsPromise = withOptionalDashboardMetricTimeout<CurrencyAmountRow[]>(
+    'dashboard-upcoming-payments',
+    (async () => {
+      const result = await supabase
+        .from('recurring_transactions')
+        .select('amount, currency')
+        .eq('is_active', true)
+        .eq('transaction_type', 'expense')
+        .gte('next_due_date', periodStart)
+        .lte('next_due_date', periodEnd);
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      return (result.data || []) as CurrencyAmountRow[];
+    })(),
+    []
+  );
+
+  const optionalManagedMoneyPromise = withOptionalDashboardMetricTimeout(
+    'dashboard-managed-money',
     getManagedMoneyMetrics(supabase, defaultCurrency),
+    buildEmptyManagedMoneyMetrics(defaultCurrency)
+  );
+
+  const optionalLoanMetricsPromise = withOptionalDashboardMetricTimeout(
+    'dashboard-loan-metrics',
     getLoanMetrics(supabase, periodStart, periodEnd, defaultCurrency),
+    buildEmptyLoanMetrics(defaultCurrency)
+  );
+
+  const [
+    [
+      ledgerSummaryByTransactionId,
+      accountInclusionById,
+      accountsResult,
+      incomeResult,
+      expenseResult,
+    ],
+    dashboardBudgetSummary,
+    upcomingRows,
+    managedMetrics,
+    loanMetrics,
+  ] = await Promise.all([
+    coreMetricsPromise,
+    optionalBudgetSummaryPromise,
+    optionalUpcomingPaymentsPromise,
+    optionalManagedMoneyPromise,
+    optionalLoanMetricsPromise,
   ]);
 
   if (accountsResult.error) throw accountsResult.error;
   if (incomeResult.error) throw incomeResult.error;
   if (expenseResult.error) throw expenseResult.error;
-  if (upcomingResult.error) throw upcomingResult.error;
 
   const totalBalanceByCurrency = new Map<string, number>();
   for (const account of ((accountsResult.data || []) as BalanceRow[]).filter((row) => row.include_in_total)) {
@@ -3303,7 +3396,7 @@ export async function getDashboardMetrics(args?: {
   }
 
   const upcomingPaymentsByCurrency = new Map<string, number>();
-  for (const recurring of ((upcomingResult.data || []) as CurrencyAmountRow[])) {
+  for (const recurring of upcomingRows) {
     addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0), defaultCurrency);
   }
 
@@ -3345,7 +3438,7 @@ export async function getDashboardMetrics(args?: {
       reportingCurrency: defaultCurrency,
       latestSnapshot,
     }),
-    upcomingPaymentsCount: (upcomingResult.data || []).length,
+    upcomingPaymentsCount: upcomingRows.length,
     managedMoney: buildDashboardConvertedMetric({
       originalTotals: managedMetrics.managedMoneyByCurrency,
       reportingCurrency: defaultCurrency,

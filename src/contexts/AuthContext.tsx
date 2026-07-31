@@ -2,42 +2,9 @@
 
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { ReactNode } from 'react';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '../lib/supabase/client';
 import { buildAuthCallbackUrl } from '@/lib/auth/urls';
-
-// #region debug-point home-first-visit-blank:auth-report
-function reportHomeFirstVisitBlankEvent(payload: Record<string, unknown>) {
-  try {
-    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
-    if (typeof window === 'undefined') return;
-
-    const url =
-      process.env.NEXT_PUBLIC_SP_DEBUG_URL
-      || `http://${window.location.hostname}:7777/event`;
-    if (!url) return;
-
-    const body = JSON.stringify({
-      sessionId: 'home-first-visit-blank',
-      ts: Date.now(),
-      source: 'AuthContext',
-      ...payload,
-    });
-
-    if ('sendBeacon' in navigator) {
-      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
-      return;
-    }
-
-    void fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      keepalive: true,
-    });
-  } catch {}
-}
-// #endregion debug-point home-first-visit-blank:auth-report
 
 type SignUpMetadata = {
   fullName?: string;
@@ -72,9 +39,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<AuthUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [supabase] = useState(() => createClient());
+  const userIdRef = useRef<string | null>(null);
+  const lastAppliedSessionKeyRef = useRef<string | null>(null);
+  const profileRefreshInFlightRef = useRef<Promise<void> | null>(null);
+  const profileRefreshUserIdRef = useRef<string | null>(null);
+  const profileRefreshTokenRef = useRef<symbol | null>(null);
 
   const refreshUserProfile = useCallback(async (userId?: string | null) => {
-    const nextUserId = userId || user?.id;
+    const nextUserId = userId ?? userIdRef.current;
     if (!nextUserId) {
       setProfile(null);
       return null;
@@ -96,72 +68,131 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       : null;
 
-    setProfile(nextProfile);
+    if (userIdRef.current === nextUserId) {
+      setProfile(nextProfile);
+    }
     return nextProfile;
-  }, [supabase, user?.id]);
+  }, [supabase]);
 
   const patchUserProfile = useCallback((patch: Partial<AuthUserProfile>) => {
     setProfile((current) => {
-      if (!current && !user?.id) return current;
+      if (!current && !userIdRef.current) return current;
       return {
-        id: current?.id || user?.id || '',
+        id: current?.id || userIdRef.current || '',
         full_name: patch.full_name !== undefined ? patch.full_name ?? null : current?.full_name || null,
         avatar_url: patch.avatar_url !== undefined ? patch.avatar_url ?? null : current?.avatar_url || null,
       };
     });
-  }, [user?.id]);
+  }, []);
 
   const refreshUserProfileSafely = useCallback(async (userId?: string | null) => {
+    const targetUserId = userId ?? userIdRef.current;
     try {
-      if (userId) {
-        await refreshUserProfile(userId);
+      if (targetUserId) {
+        await refreshUserProfile(targetUserId);
       } else {
         setProfile(null);
       }
-    } catch (error: unknown) {
-      reportHomeFirstVisitBlankEvent({
-        point: 'loadUserProfile',
-        errorName: error instanceof Error ? error.name : 'unknown',
-        errorMessage: error instanceof Error ? error.message : String(error),
-      });
-      setProfile(null);
+    } catch {
+      if (!targetUserId || userIdRef.current === targetUserId) {
+        setProfile(null);
+      }
     }
   }, [refreshUserProfile]);
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession()
-      .then(async ({ data: { session } }: { data: { session: Session | null } }) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        // Unblock app readiness as soon as auth session is known.
+  const scheduleProfileRefresh = useCallback((nextUserId: string | null) => {
+    if (!nextUserId) {
+      profileRefreshInFlightRef.current = null;
+      profileRefreshUserIdRef.current = null;
+      setProfile(null);
+      return;
+    }
+
+    if (profileRefreshInFlightRef.current && profileRefreshUserIdRef.current === nextUserId) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      if (userIdRef.current !== nextUserId) {
+        return;
+      }
+
+      if (profileRefreshInFlightRef.current && profileRefreshUserIdRef.current === nextUserId) {
+        return;
+      }
+
+      profileRefreshUserIdRef.current = nextUserId;
+      const refreshToken = Symbol(nextUserId);
+      profileRefreshTokenRef.current = refreshToken;
+      const refreshPromise = refreshUserProfileSafely(nextUserId).finally(() => {
+        if (profileRefreshTokenRef.current === refreshToken) {
+          profileRefreshInFlightRef.current = null;
+          profileRefreshUserIdRef.current = null;
+          profileRefreshTokenRef.current = null;
+        }
+      });
+
+      profileRefreshInFlightRef.current = refreshPromise;
+    }, 0);
+  }, [refreshUserProfileSafely]);
+
+  const applySession = useCallback((nextSession: Session | null) => {
+    const nextUser = nextSession?.user ?? null;
+    const nextUserId = nextUser?.id ?? null;
+    const nextSessionKey = nextSession?.access_token
+      ? `${nextUserId || 'anonymous'}:${nextSession.access_token}`
+      : `signed-out:${nextUserId || 'anonymous'}`;
+
+    if (lastAppliedSessionKeyRef.current === nextSessionKey) {
+      if (!nextUserId) {
         setLoading(false);
-        await refreshUserProfileSafely(session?.user?.id ?? null);
+      }
+      return false;
+    }
+
+    lastAppliedSessionKeyRef.current = nextSessionKey;
+    userIdRef.current = nextUserId;
+    setSession(nextSession);
+    setUser(nextUser);
+    setLoading(false);
+
+    if (!nextUserId) {
+      profileRefreshInFlightRef.current = null;
+      profileRefreshUserIdRef.current = null;
+      profileRefreshTokenRef.current = null;
+      setProfile(null);
+      return true;
+    }
+
+    scheduleProfileRefresh(nextUserId);
+    return true;
+  }, [scheduleProfileRefresh]);
+
+  useEffect(() => {
+    supabase.auth.getSession()
+      .then(({ data: { session } }: { data: { session: Session | null } }) => {
+        applySession(session);
       })
-      .catch((error: unknown) => {
-        reportHomeFirstVisitBlankEvent({
-          point: 'getSession',
-          errorName: error instanceof Error ? error.name : 'unknown',
-          errorMessage: error instanceof Error ? error.message : String(error),
-        });
+      .catch(() => {
+        lastAppliedSessionKeyRef.current = 'signed-out:anonymous';
+        userIdRef.current = null;
+        profileRefreshInFlightRef.current = null;
+        profileRefreshUserIdRef.current = null;
+        profileRefreshTokenRef.current = null;
         setSession(null);
         setUser(null);
         setProfile(null);
         setLoading(false);
       });
 
-    // Listen for auth changes
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-      await refreshUserProfileSafely(session?.user?.id ?? null);
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, nextSession: Session | null) => {
+      applySession(nextSession);
     });
 
     return () => subscription.unsubscribe();
-  }, [refreshUserProfileSafely, supabase.auth]);
+  }, [applySession, supabase.auth]);
 
   // Email/Password Sign Up
   const signUp = async (

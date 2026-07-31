@@ -65,12 +65,11 @@ export const FINANCIAL_PERIOD_PROFILE_SELECT = [
   'custom_cycle_days',
 ].join(',');
 
-let cachedFinancialPeriodProfileConfig: FinancialPeriodConfig | null = null;
-let cachedFinancialPeriodRuntimeContext: UserFinancialPeriodContext | null = null;
-let inFlightFinancialPeriodRuntimeContext: Promise<UserFinancialPeriodContext> | null = null;
-let inFlightFinancialPeriodBackgroundRefresh: Promise<void> | null = null;
-const FINANCIAL_PERIOD_PROFILE_FALLBACK_TIMEOUT_MS = 2500;
-export const FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT = 'smartpocket:financial-period-context-refreshed';
+const cachedFinancialPeriodProfileConfigByUserId = new Map<string, FinancialPeriodConfig>();
+const cachedFinancialPeriodRuntimeContextByUserId = new Map<string, UserFinancialPeriodContext>();
+const inFlightFinancialPeriodRuntimeContextByUserId = new Map<string, Promise<UserFinancialPeriodContext>>();
+const latestFinancialPeriodLoadIdByUserId = new Map<string, number>();
+let nextFinancialPeriodLoadId = 0;
 
 export interface UserFinancialPeriodContext {
   config: FinancialPeriodConfig;
@@ -88,11 +87,34 @@ export interface LoadUserFinancialPeriodContextOptions {
   userId?: string | null;
 }
 
-export function clearFinancialPeriodProfileCache() {
-  cachedFinancialPeriodProfileConfig = null;
-  cachedFinancialPeriodRuntimeContext = null;
-  inFlightFinancialPeriodRuntimeContext = null;
-  inFlightFinancialPeriodBackgroundRefresh = null;
+export function clearFinancialPeriodProfileCache(userId?: string | null) {
+  const normalizedUserId =
+    typeof userId === 'string' && userId.trim()
+      ? userId.trim()
+      : null;
+
+  if (normalizedUserId) {
+    latestFinancialPeriodLoadIdByUserId.set(normalizedUserId, ++nextFinancialPeriodLoadId);
+    cachedFinancialPeriodProfileConfigByUserId.delete(normalizedUserId);
+    cachedFinancialPeriodRuntimeContextByUserId.delete(normalizedUserId);
+    inFlightFinancialPeriodRuntimeContextByUserId.delete(normalizedUserId);
+    return;
+  }
+
+  const userIds = new Set<string>([
+    ...cachedFinancialPeriodProfileConfigByUserId.keys(),
+    ...cachedFinancialPeriodRuntimeContextByUserId.keys(),
+    ...inFlightFinancialPeriodRuntimeContextByUserId.keys(),
+    ...latestFinancialPeriodLoadIdByUserId.keys(),
+  ]);
+
+  for (const activeUserId of userIds) {
+    latestFinancialPeriodLoadIdByUserId.set(activeUserId, ++nextFinancialPeriodLoadId);
+  }
+
+  cachedFinancialPeriodProfileConfigByUserId.clear();
+  cachedFinancialPeriodRuntimeContextByUserId.clear();
+  inFlightFinancialPeriodRuntimeContextByUserId.clear();
 }
 
 export function getBrowserTimeZone() {
@@ -107,10 +129,6 @@ function stringifyNumber(value: number | null | undefined) {
 }
 
 export function toFinancialPeriodConfig(row?: Partial<FinancialPeriodProfileRow> | null): FinancialPeriodConfig {
-  if (!row && cachedFinancialPeriodProfileConfig) {
-    return cachedFinancialPeriodProfileConfig;
-  }
-
   const normalized = normalizeFinancialPeriodConfig({
     incomeFrequency: row?.income_frequency || undefined,
     payCycleAnchorDate: row?.pay_cycle_anchor_date,
@@ -126,10 +144,6 @@ export function toFinancialPeriodConfig(row?: Partial<FinancialPeriodProfileRow>
     timezone: row?.timezone || undefined,
     customCycleDays: row?.custom_cycle_days,
   });
-
-  if (!row) {
-    cachedFinancialPeriodProfileConfig = normalized;
-  }
 
   return normalized;
 }
@@ -284,15 +298,10 @@ function buildRuntimeContext(row?: Partial<FinancialPeriodProfileRow> | null): U
   };
 }
 
-function cacheFinancialPeriodContext(context: UserFinancialPeriodContext) {
-  cachedFinancialPeriodRuntimeContext = context;
-  cachedFinancialPeriodProfileConfig = context.config;
+function cacheFinancialPeriodContext(userId: string, context: UserFinancialPeriodContext) {
+  cachedFinancialPeriodRuntimeContextByUserId.set(userId, context);
+  cachedFinancialPeriodProfileConfigByUserId.set(userId, context.config);
   return context;
-}
-
-function dispatchFinancialPeriodContextRefreshed() {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT));
 }
 
 function isFinancialPeriodAuthError(error: unknown) {
@@ -344,75 +353,62 @@ async function loadFinancialPeriodContextFromProfile(args: {
 export async function loadUserFinancialPeriodContext(
   options: LoadUserFinancialPeriodContextOptions = {}
 ): Promise<UserFinancialPeriodContext> {
-  if (cachedFinancialPeriodRuntimeContext) {
-    return cachedFinancialPeriodRuntimeContext;
+  const userIdFromOptions =
+    typeof options.userId === 'string' && options.userId.trim()
+      ? options.userId.trim()
+      : null;
+  const supabase = createClient();
+  let sessionData: Awaited<ReturnType<typeof supabase.auth.getSession>> | null = null;
+
+  if (!userIdFromOptions) {
+    sessionData = await supabase.auth.getSession();
   }
 
-  if (inFlightFinancialPeriodRuntimeContext) {
-    return inFlightFinancialPeriodRuntimeContext;
+  const userId = userIdFromOptions || sessionData?.data.session?.user?.id || null;
+
+  if (!userId) {
+    return buildRuntimeContext(null);
   }
 
-  inFlightFinancialPeriodRuntimeContext = (async () => {
-    const userIdFromOptions =
-      typeof options.userId === 'string' && options.userId.trim()
-        ? options.userId.trim()
-        : null;
-    const supabase = createClient();
-    let sessionData: Awaited<ReturnType<typeof supabase.auth.getSession>> | null = null;
+  const cachedContext = cachedFinancialPeriodRuntimeContextByUserId.get(userId);
+  if (cachedContext) {
+    return cachedContext;
+  }
 
-    if (!userIdFromOptions) {
-      sessionData = await supabase.auth.getSession();
-    }
-    const userId = userIdFromOptions || sessionData?.data.session?.user?.id || null;
+  const inFlightContext = inFlightFinancialPeriodRuntimeContextByUserId.get(userId);
+  if (inFlightContext) {
+    return inFlightContext;
+  }
 
-    if (!userId) {
-      return buildRuntimeContext(null);
-    }
+  const loadId = ++nextFinancialPeriodLoadId;
+  latestFinancialPeriodLoadIdByUserId.set(userId, loadId);
 
-    const profileContextPromise = loadFinancialPeriodContextFromProfile({
-      userId,
-    });
-    const racedResult = await Promise.race([
-      profileContextPromise
-        .then((context) => ({ kind: 'resolved' as const, context }))
-        .catch((error: unknown) => ({ kind: 'rejected' as const, error })),
-      new Promise<{ kind: 'timeout' }>((resolve) => {
-        window.setTimeout(() => resolve({ kind: 'timeout' }), FINANCIAL_PERIOD_PROFILE_FALLBACK_TIMEOUT_MS);
-      }),
-    ]);
-
-    if (racedResult.kind === 'resolved') {
-      return cacheFinancialPeriodContext(racedResult.context);
-    }
-
-    if (racedResult.kind === 'rejected') {
-      if (isFinancialPeriodAuthError(racedResult.error)) {
-        throw racedResult.error;
+  const baseLoadPromise = (async () => {
+    try {
+      const nextContext = await loadFinancialPeriodContextFromProfile({ userId });
+      if (latestFinancialPeriodLoadIdByUserId.get(userId) === loadId) {
+        return cacheFinancialPeriodContext(userId, nextContext);
+      }
+      return nextContext;
+    } catch (error) {
+      if (isFinancialPeriodAuthError(error)) {
+        throw error;
       }
 
-      return cacheFinancialPeriodContext(buildRuntimeContext(null));
+      const fallbackContext = buildRuntimeContext(null);
+      if (latestFinancialPeriodLoadIdByUserId.get(userId) === loadId) {
+        return cacheFinancialPeriodContext(userId, fallbackContext);
+      }
+      return fallbackContext;
     }
-
-    const fallbackContext = cacheFinancialPeriodContext(buildRuntimeContext(null));
-
-    if (!inFlightFinancialPeriodBackgroundRefresh) {
-      inFlightFinancialPeriodBackgroundRefresh = profileContextPromise
-        .then((freshContext) => {
-          cacheFinancialPeriodContext(freshContext);
-          dispatchFinancialPeriodContextRefreshed();
-        })
-        .catch(() => {})
-        .finally(() => {
-          inFlightFinancialPeriodBackgroundRefresh = null;
-        });
-    }
-
-    return fallbackContext;
   })();
 
-  try {
-    return await inFlightFinancialPeriodRuntimeContext;
-  } finally {
-    inFlightFinancialPeriodRuntimeContext = null;
-  }
+  const loadPromise = baseLoadPromise.finally(() => {
+    if (inFlightFinancialPeriodRuntimeContextByUserId.get(userId) === loadPromise) {
+      inFlightFinancialPeriodRuntimeContextByUserId.delete(userId);
+    }
+  });
+
+  inFlightFinancialPeriodRuntimeContextByUserId.set(userId, loadPromise);
+  return loadPromise;
 }

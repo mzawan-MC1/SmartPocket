@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye,
@@ -248,27 +248,57 @@ export default function DashboardMetrics({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [hideSensitive, setHideSensitive] = useState(false);
+  const latestLoadRequestRef = useRef(0);
+  const metricsRef = useRef<DashboardMetrics | null>(null);
+
+  useEffect(() => {
+    metricsRef.current = metrics;
+  }, [metrics]);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    const requestId = latestLoadRequestRef.current + 1;
+    latestLoadRequestRef.current = requestId;
+    const hasExistingMetrics = metricsRef.current !== null;
+
+    if (!hasExistingMetrics) {
+      setLoading(true);
+    }
     setLoadError(false);
+
+    let timeoutId: number | null = null;
     try {
-      const nextMetrics = await Promise.race([
+      const nextMetrics = await Promise.race<DashboardMetrics>([
         getDashboardMetrics({
           startDate: activePeriod.startDate,
           endDate: activePeriod.endDate,
           mode: activePeriod.mode,
         }),
         new Promise<DashboardMetrics>((_, reject) => {
-          window.setTimeout(() => reject(new Error('dashboard-metrics-timeout')), DASHBOARD_METRICS_TIMEOUT_MS);
+          timeoutId = window.setTimeout(() => reject(new Error('dashboard-metrics-timeout')), DASHBOARD_METRICS_TIMEOUT_MS);
         }),
       ]);
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
       setMetrics(nextMetrics);
+      setLoadError(false);
     } catch {
-      setMetrics(null);
-      setLoadError(true);
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
+      if (!metricsRef.current) {
+        setMetrics(null);
+        setLoadError(true);
+      }
     } finally {
-      setLoading(false);
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+      if (latestLoadRequestRef.current === requestId) {
+        setLoading(false);
+      }
     }
   }, [activePeriod.endDate, activePeriod.mode, activePeriod.startDate]);
 

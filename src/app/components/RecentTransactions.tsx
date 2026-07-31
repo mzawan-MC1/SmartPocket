@@ -1,5 +1,5 @@
 'use client';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import { TrendingUp, TrendingDown, Paperclip, ArrowRight, Receipt } from 'lucide-react';
@@ -42,33 +42,65 @@ export default function RecentTransactions({
   const [detailsTransactionId, setDetailsTransactionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const latestLoadRequestRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = latestLoadRequestRef.current + 1;
+    latestLoadRequestRef.current = requestId;
     setLoading(true);
     setLoadError(false);
+
+    let nextTransactions: Transaction[] = [];
     try {
-      const nextTransactions = await Promise.race([
+      nextTransactions = await Promise.race([
         getTransactions({ limit: RECENT_TRANSACTIONS_LIMIT }),
         new Promise<Transaction[]>((_, reject) => {
           window.setTimeout(() => reject(new Error('recent-transactions-timeout')), RECENT_TRANSACTIONS_TIMEOUT_MS);
         }),
       ]);
-      const summaries = nextTransactions.length > 0
-        ? await Promise.race([
-            getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id)),
-            new Promise<Record<string, TransactionListDocumentSummary>>((_, reject) => {
-              window.setTimeout(() => reject(new Error('recent-transactions-docs-timeout')), RECENT_TRANSACTIONS_TIMEOUT_MS);
-            }),
-          ])
-        : {};
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
       setTransactions(nextTransactions);
-      setDocumentSummaries(summaries);
+      setDocumentSummaries({});
+      setLoadError(false);
+      setLoading(false);
+
+      if (nextTransactions.length === 0) {
+        return;
+      }
     } catch {
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
       setTransactions([]);
       setDocumentSummaries({});
       setLoadError(true);
-    } finally {
       setLoading(false);
+      return;
+    }
+
+    try {
+      const summaries = await Promise.race([
+        getTransactionDocumentListSummaries(nextTransactions.map((txn) => txn.id)),
+        new Promise<Record<string, TransactionListDocumentSummary>>((_, reject) => {
+          window.setTimeout(() => reject(new Error('recent-transactions-docs-timeout')), RECENT_TRANSACTIONS_TIMEOUT_MS);
+        }),
+      ]);
+
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
+      setDocumentSummaries(summaries);
+    } catch {
+      if (latestLoadRequestRef.current !== requestId) {
+        return;
+      }
+
+      setDocumentSummaries({});
     }
   }, []);
 
