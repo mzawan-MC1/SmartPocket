@@ -108,24 +108,7 @@ function getTransactionDocumentTimeoutMs() {
 }
 
 function getTransactionDocumentMaxTokens(mimeType: string) {
-  return mimeType === 'application/pdf' ? 2200 : 1400;
-}
-
-function shouldFallbackTransactionDocumentRequest(
-  error: unknown,
-  primaryProvider: string,
-  fallbackProvider: string,
-  enableFallback: boolean
-) {
-  if (!enableFallback || primaryProvider === fallbackProvider) {
-    return false;
-  }
-
-  if (!(error instanceof TransactionDocumentGatewayError)) {
-    return false;
-  }
-
-  return error.code === 'openrouter_not_configured' || error.code === 'unsupported_multimodal_model';
+  return mimeType === 'application/pdf' ? 1800 : 1200;
 }
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
@@ -1946,22 +1929,11 @@ export async function processTransactionDocumentAIRequest(
       fileMimeType: normalizedMimeType,
       pageCount: request.pageCount ?? null,
     });
-    const [primaryLang, fallbackLang] = getProviderOrder(config);
-    let result;
-    let fallbackUsed = false;
-    try {
-      const providerStartedAt = Date.now();
-      result = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
-      timings.providerMs = Date.now() - providerStartedAt;
-    } catch (primaryError) {
-      if (!shouldFallbackTransactionDocumentRequest(primaryError, primaryLang, fallbackLang, config.enableAutoFallback)) {
-        throw primaryError;
-      }
-      const providerStartedAt = Date.now();
-      result = await parseTransactionDocumentWithProvider(fallbackLang, { ...request, requestId });
-      timings.providerMs = Date.now() - providerStartedAt;
-      fallbackUsed = true;
-    }
+    const [primaryLang] = getProviderOrder(config);
+    const providerStartedAt = Date.now();
+    const result = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
+    timings.providerMs = Date.now() - providerStartedAt;
+    const fallbackUsed = false;
 
     logTransactionDocumentGateway('info', 'document-ai.parse_response.start', {
       requestId,
@@ -2534,21 +2506,43 @@ function buildTransactionDocumentUserContent(input: TransactionDocumentAIRequest
 }
 
 function buildTransactionDocumentUserMessage(input: TransactionDocumentAIRequest) {
-  let message = `Extract draft transactions from this document.\nrequestId: ${input.requestId || createClientId()}`;
-  message += `\nLanguage hint: ${input.language || 'en'}`;
-  message += `\nSource surface: ${input.sourceSurface || 'unknown'}`;
-  message += `\nFile name: ${input.fileName}`;
-  message += `\nMIME type: ${input.fileMimeType}`;
+  const message: Record<string, unknown> = {
+    requestId: input.requestId || createClientId(),
+  };
+
+  const normalizedLanguage = input.language?.trim();
+  if (normalizedLanguage) {
+    message.languageHint = normalizedLanguage;
+  }
   if (typeof input.pageCount === 'number') {
-    message += `\nPDF page count: ${input.pageCount}`;
+    message.pageCount = input.pageCount;
   }
   if (input.context?.defaultCurrency) {
-    message += `\nDefault currency: ${input.context.defaultCurrency}`;
+    message.defaultCurrency = input.context.defaultCurrency.trim().toUpperCase();
   }
   if (input.context?.categories?.length) {
-    message += `\nAvailable categories: ${input.context.categories.map((category) => category.name).join(', ')}`;
+    const expenseCategories: string[] = [];
+    const incomeCategories: string[] = [];
+
+    for (const category of input.context.categories) {
+      const normalizedName = category.name?.trim();
+      if (!normalizedName) continue;
+
+      if (category.type === 'expense') {
+        expenseCategories.push(normalizedName);
+      } else if (category.type === 'income') {
+        incomeCategories.push(normalizedName);
+      }
+    }
+
+    if (expenseCategories.length) {
+      message.expenseCategories = expenseCategories;
+    }
+    if (incomeCategories.length) {
+      message.incomeCategories = incomeCategories;
+    }
   }
-  return message;
+  return JSON.stringify(message);
 }
 
 function buildMockDocumentExtraction(input: TransactionDocumentAIRequest): TransactionDocumentExtraction {

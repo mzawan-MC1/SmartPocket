@@ -8,11 +8,11 @@ import {
   type TransactionDocumentErrorCode,
 } from '@/lib/transaction-documents';
 
-const TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES = 2.5 * 1024 * 1024;
-const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 2200;
-const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE = 2800;
-const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH = 900;
-const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.9;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES = 1.75 * 1024 * 1024;
+const TRANSACTION_DOCUMENT_OPTIMIZED_LONG_EDGE = 1700;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_LONG_EDGE = 1800;
+const TRANSACTION_DOCUMENT_OPTIMIZED_TALL_RECEIPT_MIN_WIDTH = 720;
+const TRANSACTION_DOCUMENT_OPTIMIZED_JPEG_QUALITY = 0.84;
 
 export type PreparedTransactionDocumentUpload =
   | {
@@ -131,8 +131,7 @@ async function optimizeImageForUpload(file: File) {
   const targetWidth = Math.max(1, Math.round(originalWidth * scale));
   const targetHeight = Math.max(1, Math.round(originalHeight * scale));
   const shouldAttemptOptimization = scale < 1
-    || file.size > TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES
-    || file.type === 'image/png';
+    || file.size > TRANSACTION_DOCUMENT_OPTIMIZED_TARGET_BYTES;
 
   if (!shouldAttemptOptimization) {
     loaded.cleanup();
@@ -173,7 +172,7 @@ async function optimizeImageForUpload(file: File) {
     };
   }
 
-  if (blob.size >= file.size && scale === 1) {
+  if (blob.size >= file.size) {
     return {
       file,
       optimized: false,

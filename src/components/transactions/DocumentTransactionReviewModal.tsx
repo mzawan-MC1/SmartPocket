@@ -2582,18 +2582,19 @@ export default function DocumentTransactionReviewModal({
                               return (
                                 <div key={itemKey} ref={(node) => { lineItemRefs.current[itemKey] = node; }} className={`rounded-2xl border bg-white ${hasNameError || hasTotalError ? 'border-negative/40' : 'border-slate-200'}`}>
                                   <div className="flex flex-col gap-3 p-3.5">
-                                    <div className="flex items-start justify-between gap-3">
-                                      <button type="button" onClick={() => toggleLineItem(transaction.id, itemIndex)} aria-expanded={isExpanded} aria-controls={`document-review-line-panel-${transaction.id}-${itemIndex}`} className="min-w-0 flex-1 text-left">
-                                        <p className="truncate text-sm font-700 text-foreground">{itemIndex + 1}. {item.name || t('transactions.documentReview.unnamedItem', { ns: 'portal', defaultValue: 'Unnamed item' })}</p>
-                                        <p className="mt-1 text-xs text-muted-foreground">{`${formatOptionalNumberInput(item.quantity)} x ${formatOptionalNumberInput(item.unitPrice)} = ${displayedTotal}`}</p>
-                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-                                          <span className={`rounded-full px-2 py-0.5 font-700 ${hasNameError || hasTotalError ? 'bg-negative-soft text-negative' : 'bg-emerald-50 text-emerald-700'}`}>{hasNameError || hasTotalError ? t('transactions.documentReview.needsReview', { ns: 'portal', defaultValue: 'Needs review' }) : t('transactions.documentReview.readyLabel', { ns: 'portal', defaultValue: 'Looks good' })}</span>
-                                          <span className="rounded-full bg-slate-50 px-2 py-0.5 font-600 text-muted-foreground">{itemCategoryName}</span>
-                                        </div>
-                                      </button>
-                                      <div className="flex shrink-0 items-center gap-2">
+                                    <button type="button" onClick={() => toggleLineItem(transaction.id, itemIndex)} aria-expanded={isExpanded} aria-controls={`document-review-line-panel-${transaction.id}-${itemIndex}`} className="w-full text-left">
+                                      <p className="text-sm font-700 leading-5 text-foreground break-words whitespace-normal">{itemIndex + 1}. {item.name || t('transactions.documentReview.unnamedItem', { ns: 'portal', defaultValue: 'Unnamed item' })}</p>
+                                      <p className="mt-1 text-xs leading-5 text-muted-foreground break-words whitespace-normal">{`${formatOptionalNumberInput(item.quantity)} x ${formatOptionalNumberInput(item.unitPrice)} = ${displayedTotal}`}</p>
+                                    </button>
+
+                                    <div className="flex flex-wrap items-start justify-between gap-2">
+                                      <div className="min-w-0 flex flex-wrap items-center gap-2 text-[11px]">
+                                        <span className={`rounded-full px-2 py-0.5 font-700 ${hasNameError || hasTotalError ? 'bg-negative-soft text-negative' : 'bg-emerald-50 text-emerald-700'}`}>{hasNameError || hasTotalError ? t('transactions.documentReview.needsReview', { ns: 'portal', defaultValue: 'Needs review' }) : t('transactions.documentReview.readyLabel', { ns: 'portal', defaultValue: 'Looks good' })}</span>
+                                        <span className="rounded-full bg-slate-50 px-2 py-0.5 font-600 text-muted-foreground break-words">{itemCategoryName}</span>
+                                      </div>
+                                      <div className="ml-auto flex shrink-0 items-center gap-2">
                                         <button type="button" onClick={() => toggleLineItem(transaction.id, itemIndex)} className="btn-secondary min-h-10 px-3 text-xs">{isExpanded ? t('common:actions.close', { defaultValue: 'Close' }) : t('common:actions.edit', { defaultValue: 'Edit' })}</button>
-                                        <button type="button" aria-label={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })} title={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })} onClick={() => removeLineItem(transaction.id, itemIndex)} className="btn-ghost inline-flex h-10 min-h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 p-0 text-rose-600 hover:bg-rose-50 hover:text-rose-700"><Trash2 size={14} /></button>
+                                        <button type="button" aria-label={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })} title={t('transactions.documentReview.removeItem', { ns: 'portal', defaultValue: 'Remove item' })} onClick={() => removeLineItem(transaction.id, itemIndex)} className="btn-ghost inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-600 text-rose-600 hover:bg-rose-50 hover:text-rose-700"><Trash2 size={14} /><span>{t('common:actions.delete', { defaultValue: 'Delete' })}</span></button>
                                       </div>
                                     </div>
 

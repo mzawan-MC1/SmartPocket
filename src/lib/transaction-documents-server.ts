@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
+import type { FinancialContext } from '@/lib/ai-types';
 import {
   getTransactionDocumentLineItemValidation,
   getTransactionDocumentLineItemTotal,
@@ -239,6 +240,19 @@ export function mapDocumentOptionsFromContext(context: ServerExecutionContext) {
   return {
     accounts,
     categories,
+    defaultCurrency: context.defaultCurrency,
+  };
+}
+
+export function mapTransactionDocumentAIContext(context: ServerExecutionContext): FinancialContext {
+  return {
+    categories: context.categories
+      .filter((category) => category.category_type === 'income' || category.category_type === 'expense')
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        type: category.category_type,
+      })),
     defaultCurrency: context.defaultCurrency,
   };
 }

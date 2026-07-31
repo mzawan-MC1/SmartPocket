@@ -7,6 +7,7 @@ import {
   createSignedTransactionDocumentPreview,
   findDuplicateTransactionDocuments,
   mapDocumentOptionsFromContext,
+  mapTransactionDocumentAIContext,
   requireAdminClient,
 } from '@/lib/transaction-documents-server';
 import {
@@ -641,23 +642,7 @@ export async function POST(request: NextRequest) {
     ]);
     previewUrl = signedPreviewUrl;
     const options = mapDocumentOptionsFromContext(context);
-    const providerContext = {
-      accounts: context.accounts.map((account) => ({
-        id: account.id,
-        name: account.name,
-        type: account.account_type,
-        currency: account.currency,
-        includeInTotal: account.include_in_total,
-      })),
-      categories: context.categories
-        .filter((category) => category.category_type === 'income' || category.category_type === 'expense')
-        .map((category) => ({
-          id: category.id,
-          name: category.name,
-          type: category.category_type,
-        })),
-      defaultCurrency: context.defaultCurrency,
-    };
+    const providerContext = mapTransactionDocumentAIContext(context);
 
     if (request.signal.aborted) {
       throw new Error('Client cancelled receipt extraction before provider call.');
