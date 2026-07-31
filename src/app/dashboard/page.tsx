@@ -22,6 +22,7 @@ import {
 } from '@/lib/financial-periods';
 import {
   clearFinancialPeriodProfileCache,
+  FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT,
   loadUserFinancialPeriodContext,
   type UserFinancialPeriodContext,
 } from '@/lib/financial-periods/profile';
@@ -244,18 +245,21 @@ export default function DashboardPage() {
   const secondLowerGrid = useDeferredMount(true, '900px 0px');
   const latestPeriodRequestRef = useRef(0);
   const lastLifecycleRevalidationRef = useRef(0);
+  const bootstrapInvocationRef = useRef(0);
+  const bootstrapInFlightRef = useRef(false);
+  const initialBootstrapCompletedRef = useRef(false);
 
   const withDashboardTimeout = useCallback(
-    async (promise: Promise<UserFinancialPeriodContext>, timeoutMs = DASHBOARD_BOOTSTRAP_TIMEOUT_MS) => (
-      await Promise.race([
+    async (promise: Promise<UserFinancialPeriodContext>, timeoutMs = DASHBOARD_BOOTSTRAP_TIMEOUT_MS) => {
+      return await Promise.race([
         promise,
         new Promise<UserFinancialPeriodContext>((_, reject) => {
           window.setTimeout(() => {
             reject(new Error('dashboard-bootstrap-timeout'));
           }, timeoutMs);
         }),
-      ])
-    ),
+      ]);
+    },
     []
   );
 
@@ -297,7 +301,7 @@ export default function DashboardPage() {
     try {
       const nextContext = await withDashboardTimeout(loadUserFinancialPeriodContext({
         userId: user?.id ?? null,
-      }));
+      }), DASHBOARD_BOOTSTRAP_TIMEOUT_MS);
       if (latestPeriodRequestRef.current !== requestId) return;
       setRouteRecoveryInProgress(false);
       setPeriodContext(nextContext);
@@ -320,14 +324,21 @@ export default function DashboardPage() {
         setPeriodLoading(false);
       }
     }
-  }, [clearDashboardBootstrapCaches, redirectToRecoveredDestination, supabase.auth, t, user?.id, withDashboardTimeout]);
+  }, [authLoading, clearDashboardBootstrapCaches, redirectToRecoveredDestination, supabase.auth, t, user?.id, withDashboardTimeout]);
 
   const runDashboardBootstrap = useCallback(async (options?: {
     forceRefresh?: boolean;
     surfaceToast?: boolean;
     resetState?: boolean;
   }) => {
+    if (bootstrapInFlightRef.current) {
+      return;
+    }
+
+    const invocation = bootstrapInvocationRef.current + 1;
+    bootstrapInvocationRef.current = invocation;
     if (authLoading) return;
+    bootstrapInFlightRef.current = true;
 
     if (options?.forceRefresh) {
       clearDashboardBootstrapCaches();
@@ -356,6 +367,9 @@ export default function DashboardPage() {
       if (options?.surfaceToast) {
         toast.error(t('shared.dashboardLoadFailedDescription'));
       }
+    } finally {
+      bootstrapInFlightRef.current = false;
+      initialBootstrapCompletedRef.current = true;
     }
   }, [
     authLoading,
@@ -369,16 +383,17 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading) return;
+    initialBootstrapCompletedRef.current = false;
     void runDashboardBootstrap({ forceRefresh: true, resetState: true });
   }, [authLoading, runDashboardBootstrap, user?.id]);
 
   useEffect(() => {
-    if (authLoading || !user?.id) return;
+    if (authLoading || !user?.id || !periodContext) return;
     void fetch('/api/financial-accounts/ensure-defaults', {
       method: 'POST',
       credentials: 'include',
     }).catch(() => {});
-  }, [authLoading, user?.id]);
+  }, [authLoading, periodContext, user?.id]);
 
   useSmartPocketDataChanged(['profile'], 'DashboardPagePeriodContext', async () => {
     await runDashboardBootstrap({ forceRefresh: true });
@@ -386,6 +401,8 @@ export default function DashboardPage() {
 
   const revalidateFromLifecycle = useCallback((forceRefresh = false) => {
     if (authLoading) return;
+    if (!initialBootstrapCompletedRef.current) return;
+    if (bootstrapInFlightRef.current) return;
 
     const coreReady = Boolean(periodContext && viewMode);
     if (coreReady && !periodLoadError && !showSlowLoadState && !periodLoading && !forceRefresh) {
@@ -399,6 +416,20 @@ export default function DashboardPage() {
     lastLifecycleRevalidationRef.current = now;
     void runDashboardBootstrap({ forceRefresh: true });
   }, [authLoading, periodContext, periodLoadError, periodLoading, runDashboardBootstrap, showSlowLoadState, viewMode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const handleFinancialPeriodContextRefreshed = () => {
+      if (authLoading || !user?.id || bootstrapInFlightRef.current) return;
+      void runDashboardBootstrap({ forceRefresh: false });
+    };
+
+    window.addEventListener(FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT, handleFinancialPeriodContextRefreshed);
+    return () => {
+      window.removeEventListener(FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT, handleFinancialPeriodContextRefreshed);
+    };
+  }, [authLoading, runDashboardBootstrap, user?.id]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;

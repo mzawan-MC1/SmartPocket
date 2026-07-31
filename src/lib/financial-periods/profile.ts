@@ -68,41 +68,9 @@ export const FINANCIAL_PERIOD_PROFILE_SELECT = [
 let cachedFinancialPeriodProfileConfig: FinancialPeriodConfig | null = null;
 let cachedFinancialPeriodRuntimeContext: UserFinancialPeriodContext | null = null;
 let inFlightFinancialPeriodRuntimeContext: Promise<UserFinancialPeriodContext> | null = null;
-
-// #region debug-point A:financial-period-report
-function reportDashboardFirstLoadEvent(payload: Record<string, unknown>) {
-  try {
-    if (process.env.NEXT_PUBLIC_SP_DEBUG !== '1') return;
-    if (typeof window === 'undefined') return;
-
-    const url =
-      process.env.NEXT_PUBLIC_SP_DEBUG_URL
-      || `http://${window.location.hostname}:7777/event`;
-    if (!url) return;
-
-    const body = JSON.stringify({
-      sessionId: 'dashboard-first-load',
-      runId: 'pre-fix',
-      hypothesisId: 'A',
-      ts: Date.now(),
-      source: 'financial-periods/profile',
-      ...payload,
-    });
-
-    if ('sendBeacon' in navigator) {
-      navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }));
-      return;
-    }
-
-    void fetch(url, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      keepalive: true,
-    });
-  } catch {}
-}
-// #endregion
+let inFlightFinancialPeriodBackgroundRefresh: Promise<void> | null = null;
+const FINANCIAL_PERIOD_PROFILE_FALLBACK_TIMEOUT_MS = 2500;
+export const FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT = 'smartpocket:financial-period-context-refreshed';
 
 export interface UserFinancialPeriodContext {
   config: FinancialPeriodConfig;
@@ -124,6 +92,7 @@ export function clearFinancialPeriodProfileCache() {
   cachedFinancialPeriodProfileConfig = null;
   cachedFinancialPeriodRuntimeContext = null;
   inFlightFinancialPeriodRuntimeContext = null;
+  inFlightFinancialPeriodBackgroundRefresh = null;
 }
 
 export function getBrowserTimeZone() {
@@ -315,118 +284,130 @@ function buildRuntimeContext(row?: Partial<FinancialPeriodProfileRow> | null): U
   };
 }
 
+function cacheFinancialPeriodContext(context: UserFinancialPeriodContext) {
+  cachedFinancialPeriodRuntimeContext = context;
+  cachedFinancialPeriodProfileConfig = context.config;
+  return context;
+}
+
+function dispatchFinancialPeriodContextRefreshed() {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(FINANCIAL_PERIOD_CONTEXT_REFRESHED_EVENT));
+}
+
+function isFinancialPeriodAuthError(error: unknown) {
+  const errorMessage = error instanceof Error ? error.message : String(error || '');
+  const normalizedMessage = errorMessage.toLowerCase();
+  const errorStatus =
+    typeof error === 'object' && error !== null && 'status' in error
+      ? Number((error as { status?: unknown }).status)
+      : null;
+  const errorCode =
+    typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: unknown }).code || '').toLowerCase()
+      : '';
+  const errorName =
+    typeof error === 'object' && error !== null && 'name' in error
+      ? String((error as { name?: unknown }).name || '').toLowerCase()
+      : '';
+
+  return errorStatus === 401
+    || errorStatus === 403
+    || errorCode === 'pgrst301'
+    || errorName === 'authapierror'
+    || normalizedMessage.includes('jwt')
+    || normalizedMessage.includes('auth session missing')
+    || normalizedMessage.includes('invalid refresh token')
+    || normalizedMessage.includes('refresh token not found')
+    || normalizedMessage.includes('refresh_token_not_found')
+    || normalizedMessage.includes('session not found');
+}
+
+async function loadFinancialPeriodContextFromProfile(args: {
+  userId: string;
+}): Promise<UserFinancialPeriodContext> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select(FINANCIAL_PERIOD_PROFILE_SELECT)
+    .eq('id', args.userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    throw error;
+  }
+
+  return buildRuntimeContext((data || null) as Partial<FinancialPeriodProfileRow> | null);
+}
+
 export async function loadUserFinancialPeriodContext(
   options: LoadUserFinancialPeriodContextOptions = {}
 ): Promise<UserFinancialPeriodContext> {
   if (cachedFinancialPeriodRuntimeContext) {
-    // #region debug-point A:financial-period-cache-hit
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:cache-hit',
-      msg: '[DEBUG] financial period runtime context cache hit',
-      data: {
-        hasRuntimeContext: true,
-        defaultDashboardPeriod: cachedFinancialPeriodRuntimeContext.defaultDashboardPeriod,
-      },
-    });
-    // #endregion
     return cachedFinancialPeriodRuntimeContext;
   }
 
   if (inFlightFinancialPeriodRuntimeContext) {
-    // #region debug-point A:financial-period-inflight
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:inflight',
-      msg: '[DEBUG] financial period runtime context awaiting in-flight request',
-      data: {
-        hasInFlightRequest: true,
-      },
-    });
-    // #endregion
     return inFlightFinancialPeriodRuntimeContext;
   }
 
   inFlightFinancialPeriodRuntimeContext = (async () => {
-    const supabase = createClient();
-    // #region debug-point A:financial-period-start
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:start',
-      msg: '[DEBUG] starting financial period context load',
-      data: {
-        hasCachedConfig: Boolean(cachedFinancialPeriodProfileConfig),
-      },
-    });
-    // #endregion
     const userIdFromOptions =
       typeof options.userId === 'string' && options.userId.trim()
         ? options.userId.trim()
         : null;
-    const sessionData = userIdFromOptions
-      ? null
-      : await supabase.auth.getSession();
+    const supabase = createClient();
+    let sessionData: Awaited<ReturnType<typeof supabase.auth.getSession>> | null = null;
+
+    if (!userIdFromOptions) {
+      sessionData = await supabase.auth.getSession();
+    }
     const userId = userIdFromOptions || sessionData?.data.session?.user?.id || null;
-    // #region debug-point A:financial-period-auth
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:getUser',
-      msg: '[DEBUG] financial period auth lookup completed',
-      data: {
-        hasUserId: Boolean(userId),
-        userIdSource: userIdFromOptions ? 'options' : 'session',
-      },
-    });
-    // #endregion
 
     if (!userId) {
-      const context = buildRuntimeContext(null);
-      // #region debug-point A:financial-period-no-user
-      reportDashboardFirstLoadEvent({
-        location: 'profile.ts:loadUserFinancialPeriodContext:no-user',
-        msg: '[DEBUG] financial period context built without authenticated user',
-        data: {
-          defaultDashboardPeriod: context.defaultDashboardPeriod,
-          hasConfigurationWarning: context.hasConfigurationWarning,
-          cachedGuestFallback: false,
-        },
-      });
-      // #endregion
-      return context;
+      return buildRuntimeContext(null);
     }
 
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select(FINANCIAL_PERIOD_PROFILE_SELECT)
-      .eq('id', userId)
-      .single();
-
-    // #region debug-point A:financial-period-profile-query
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:profile-query',
-      msg: '[DEBUG] financial period profile query completed',
-      data: {
-        hasRow: Boolean(data),
-        errorCode: error?.code ?? null,
-      },
+    const profileContextPromise = loadFinancialPeriodContextFromProfile({
+      userId,
     });
-    // #endregion
+    const racedResult = await Promise.race([
+      profileContextPromise
+        .then((context) => ({ kind: 'resolved' as const, context }))
+        .catch((error: unknown) => ({ kind: 'rejected' as const, error })),
+      new Promise<{ kind: 'timeout' }>((resolve) => {
+        window.setTimeout(() => resolve({ kind: 'timeout' }), FINANCIAL_PERIOD_PROFILE_FALLBACK_TIMEOUT_MS);
+      }),
+    ]);
 
-    if (error && error.code !== 'PGRST116') {
-      throw error;
+    if (racedResult.kind === 'resolved') {
+      return cacheFinancialPeriodContext(racedResult.context);
     }
 
-    const context = buildRuntimeContext((data || null) as Partial<FinancialPeriodProfileRow> | null);
-    cachedFinancialPeriodRuntimeContext = context;
-    cachedFinancialPeriodProfileConfig = context.config;
-    // #region debug-point A:financial-period-success
-    reportDashboardFirstLoadEvent({
-      location: 'profile.ts:loadUserFinancialPeriodContext:success',
-      msg: '[DEBUG] financial period context built successfully',
-      data: {
-        defaultDashboardPeriod: context.defaultDashboardPeriod,
-        hasConfigurationWarning: context.hasConfigurationWarning,
-        timezone: context.timezone,
-      },
-    });
-    // #endregion
-    return context;
+    if (racedResult.kind === 'rejected') {
+      if (isFinancialPeriodAuthError(racedResult.error)) {
+        throw racedResult.error;
+      }
+
+      return cacheFinancialPeriodContext(buildRuntimeContext(null));
+    }
+
+    const fallbackContext = cacheFinancialPeriodContext(buildRuntimeContext(null));
+
+    if (!inFlightFinancialPeriodBackgroundRefresh) {
+      inFlightFinancialPeriodBackgroundRefresh = profileContextPromise
+        .then((freshContext) => {
+          cacheFinancialPeriodContext(freshContext);
+          dispatchFinancialPeriodContextRefreshed();
+        })
+        .catch(() => {})
+        .finally(() => {
+          inFlightFinancialPeriodBackgroundRefresh = null;
+        });
+    }
+
+    return fallbackContext;
   })();
 
   try {
