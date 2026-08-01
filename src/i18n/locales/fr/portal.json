@@ -2259,6 +2259,7 @@
     "toasts": {
       "reviewPlanningSettings": "Veuillez verifier vos parametres de revenus et de planification.",
       "profileReady": "Profil configure. Bienvenue dans Smart Pocket.",
+      "defaultAccountsFailed": "Nous n avons pas pu terminer la configuration de vos comptes par defaut. Veuillez reessayer.",
       "saveFailed": "Echec de l'enregistrement des preferences."
     },
     "skipForNow": "Ignorer pour le moment et terminer plus tard dans les Parametres"

@@ -389,28 +389,36 @@ export default function OnboardingPage() {
       }
 
       const completedAt = new Date().toISOString();
+      const profileUpdate = {
+        full_name: data.fullName || currentUser.user_metadata?.full_name || '',
+        country: data.country,
+        preferred_language: data.preferredLanguage,
+        default_currency: data.defaultCurrency,
+        monthly_income: data.monthlyIncome ? parseFloat(data.monthlyIncome) : null,
+        month_start_day: parseInt(data.monthStartDay),
+        ...financialPeriodPayload,
+      };
       const { error } = await supabase
         .from('user_profiles')
-        .update({
-          full_name: data.fullName || currentUser.user_metadata?.full_name || '',
-          country: data.country,
-          preferred_language: data.preferredLanguage,
-          default_currency: data.defaultCurrency,
-          monthly_income: data.monthlyIncome ? parseFloat(data.monthlyIncome) : null,
-          month_start_day: parseInt(data.monthStartDay),
-          onboarding_completed_at: completedAt,
-          ...financialPeriodPayload,
-        })
+        .update(profileUpdate)
         .eq('id', currentUser.id);
       if (error) throw error;
 
-      try {
-        await fetch('/api/financial-accounts/ensure-defaults', {
-          method: 'POST',
-          credentials: 'include',
-        });
-      } catch {
+      const ensureDefaultsResponse = await fetch('/api/financial-accounts/ensure-defaults', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!ensureDefaultsResponse.ok) {
+        throw new Error(t('onboarding.toasts.defaultAccountsFailed', { ns: 'portal' }));
       }
+
+      const { error: finalizeOnboardingError } = await supabase
+        .from('user_profiles')
+        .update({
+          onboarding_completed_at: completedAt,
+        })
+        .eq('id', currentUser.id);
+      if (finalizeOnboardingError) throw finalizeOnboardingError;
 
       clearResolvedUserDefaultCurrencyCache();
       clearFinancialPeriodProfileCache();

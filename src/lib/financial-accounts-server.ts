@@ -6,6 +6,11 @@ type EnsureDefaultPersonalAccountsRow = {
   personal_bank_account_id: string | null;
   created_cash: boolean | null;
   created_bank: boolean | null;
+  target_currency: string | null;
+  cash_currency: string | null;
+  bank_currency: string | null;
+  cash_currency_sync_status: string | null;
+  bank_currency_sync_status: string | null;
 };
 
 export type SanitizedSpaceAccountSharing = {

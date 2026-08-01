@@ -2966,6 +2966,7 @@
     "toasts": {
       "reviewPlanningSettings": "Please review your income and planning settings.",
       "profileReady": "Profile set up. Welcome to Smart Pocket.",
+      "defaultAccountsFailed": "We could not finish setting up your default accounts. Please try again.",
       "saveFailed": "Failed to save preferences."
     },
     "skipForNow": "Skip for now and finish later in Settings"
