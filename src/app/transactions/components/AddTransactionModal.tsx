@@ -1757,7 +1757,7 @@ export default function AddTransactionModal({
                                   min="0.01"
                                   inputMode="decimal"
                                   className={getFieldInputClassName('input-base h-10 text-[0.98rem] font-tabular max-[480px]:h-10 max-[480px]:text-[1.05rem] max-[480px]:font-800', hasFieldError('amount'))}
-                                  placeholder={t('transactions.amountPlaceholder', { ns: 'portal' })}
+                                  placeholder="0.00"
                                   value={row.amount}
                                   onChange={(event) => updateDraftRow(row.id, (draft) => ({ ...draft, amount: event.target.value }))}
                                 />
