@@ -25,7 +25,6 @@ import {
 } from '@/lib/voice-ai';
 import {
   loadRuntimeVoiceTranscriptionConfig,
-  loadVoiceTranscriptionStatus,
 } from '@/lib/voice-ai-server';
 import { createClientId } from '@/lib/uuid';
 
@@ -906,8 +905,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const transcriptionStatus = await loadVoiceTranscriptionStatus();
-    if (fileEntry.size > transcriptionStatus.maxAudioBytes) {
+    const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
+    if (fileEntry.size > runtimeConfig.maxAudioBytes) {
       return NextResponse.json(buildError('audio_too_large', 'validation', 'This recording is too large to transcribe.', requestId), { status: 413 });
     }
 
@@ -915,7 +914,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(buildError('empty_audio', 'validation', 'Please record audio before transcribing.', requestId), { status: 400 });
     }
 
-    if (durationSeconds > transcriptionStatus.maxAudioSeconds) {
+    if (durationSeconds > runtimeConfig.maxAudioSeconds) {
       return NextResponse.json(buildError('audio_too_large', 'validation', 'This recording is longer than the allowed voice limit.', requestId), { status: 413 });
     }
 
@@ -940,38 +939,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!transcriptionStatus.ready) {
+    if (!runtimeConfig.ready) {
       const voiceErrorCode =
-        transcriptionStatus.code === 'openrouter_auth_failed'
+        runtimeConfig.code === 'openrouter_auth_failed'
           ? 'openrouter_auth_failed'
-          : transcriptionStatus.code === 'openrouter_provider_unavailable'
+          : runtimeConfig.code === 'openrouter_provider_unavailable'
             ? 'openrouter_provider_unavailable'
-            : transcriptionStatus.code === 'voice_model_missing'
+            : runtimeConfig.code === 'voice_model_missing'
               ? 'voice_model_missing'
-              : transcriptionStatus.code === 'voice_model_audio_unsupported'
+              : runtimeConfig.code === 'voice_model_audio_unsupported'
                 ? 'voice_model_audio_unsupported'
                 : 'openrouter_not_configured';
       return NextResponse.json(
         buildError(
           voiceErrorCode,
-          transcriptionStatus.code === 'openrouter_provider_unavailable' || transcriptionStatus.code === 'openrouter_auth_failed'
+          runtimeConfig.code === 'openrouter_provider_unavailable' || runtimeConfig.code === 'openrouter_auth_failed'
             ? 'technical'
             : 'configuration',
-          transcriptionStatus.code === 'openrouter_provider_unavailable'
+          runtimeConfig.code === 'openrouter_provider_unavailable'
             ? 'Voice transcription is temporarily unavailable.'
-            : transcriptionStatus.code === 'openrouter_auth_failed'
+            : runtimeConfig.code === 'openrouter_auth_failed'
               ? 'Voice transcription is temporarily unavailable.'
-              : transcriptionStatus.code === 'voice_model_missing' || transcriptionStatus.code === 'voice_model_audio_unsupported'
+              : runtimeConfig.code === 'voice_model_missing' || runtimeConfig.code === 'voice_model_audio_unsupported'
                 ? 'The selected AI model does not support voice transcription. Use text entry for now.'
                 : 'The AI service has not been configured by the administrator. Use text entry for now.',
           requestId
         ),
-        { status: transcriptionStatus.code === 'openrouter_provider_unavailable' ? 503 : 409 }
+        { status: runtimeConfig.code === 'openrouter_provider_unavailable' ? 503 : 409 }
       );
     }
 
-    const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
-    if (!runtimeConfig.ready || !runtimeConfig.model) {
+    if (!runtimeConfig.model) {
       return NextResponse.json(
         buildError(
           runtimeConfig.code === 'openrouter_auth_failed'

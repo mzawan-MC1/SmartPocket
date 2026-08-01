@@ -246,6 +246,8 @@ export default function DashboardPage() {
   const lastLifecycleRevalidationRef = useRef(0);
   const initialBootstrapStartedRef = useRef(false);
   const initialBootstrapCompletedRef = useRef(false);
+  const bootstrapInFlightRequestRef = useRef<number | null>(null);
+  const bootstrapUserIdRef = useRef<string | null | undefined>(undefined);
 
   const withDashboardTimeout = useCallback(
     async (promise: Promise<UserFinancialPeriodContext>, timeoutMs = DASHBOARD_BOOTSTRAP_TIMEOUT_MS) => {
@@ -323,11 +325,17 @@ export default function DashboardPage() {
     surfaceToast?: boolean;
     resetState?: boolean;
   }) => {
+    if (authLoading) return;
+    if (bootstrapInFlightRequestRef.current !== null && !options?.forceRefresh) {
+      return;
+    }
+
     const requestId = latestBootstrapRequestRef.current + 1;
     latestBootstrapRequestRef.current = requestId;
-    if (authLoading) return;
+    bootstrapInFlightRequestRef.current = requestId;
 
     if (options?.resetState) {
+      initialBootstrapCompletedRef.current = false;
       resetDashboardBootstrapState();
     }
 
@@ -381,6 +389,9 @@ export default function DashboardPage() {
       }
     } finally {
       window.clearTimeout(slowLoadTimer);
+      if (bootstrapInFlightRequestRef.current === requestId) {
+        bootstrapInFlightRequestRef.current = null;
+      }
       if (latestBootstrapRequestRef.current === requestId) {
         setPeriodLoading(false);
         initialBootstrapCompletedRef.current = true;
@@ -397,6 +408,27 @@ export default function DashboardPage() {
     t,
     user?.id,
   ]);
+
+  useEffect(() => {
+    const nextUserId = user?.id ?? null;
+    if (bootstrapUserIdRef.current === undefined) {
+      bootstrapUserIdRef.current = nextUserId;
+      return;
+    }
+
+    if (bootstrapUserIdRef.current === nextUserId) {
+      return;
+    }
+
+    bootstrapUserIdRef.current = nextUserId;
+    latestBootstrapRequestRef.current += 1;
+    lastLifecycleRevalidationRef.current = 0;
+    initialBootstrapStartedRef.current = false;
+    initialBootstrapCompletedRef.current = false;
+    bootstrapInFlightRequestRef.current = null;
+    resetDashboardBootstrapState();
+    setRouteRecoveryInProgress(false);
+  }, [resetDashboardBootstrapState, user?.id]);
 
   useEffect(() => {
     if (authLoading) return;

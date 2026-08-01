@@ -31,6 +31,21 @@ function createServerClient() {
 }
 
 type ServerSupabaseClient = ReturnType<typeof createServerClient>;
+type ExistingRequestRow = {
+  id: string;
+  user_id: string;
+  request_type: string;
+  status: string;
+  confirmation_status: string | null;
+  idempotency_key: string | null;
+  parsed_result: Record<string, unknown> | null;
+  transcript: string | null;
+  provider_model: string | null;
+  language_provider_used: string | null;
+  fallback_used: boolean | null;
+  error_category: string | null;
+  error_message: string | null;
+};
 
 // Allowlisted request types — never trust caller-supplied values directly
 const ALLOWED_REQUEST_TYPES = new Set(['voice', 'text']);
@@ -76,6 +91,74 @@ async function refundAICreditsSafely(args: {
   }
 }
 
+async function finaliseAICreditsSafely(args: {
+  supabase: ServerSupabaseClient;
+  userId: string;
+  cycleId: string;
+  ledgerId: string;
+  aiRequestId: string | null;
+  providerName: string | null;
+  modelName: string | null;
+  creditCost: number;
+}) {
+  try {
+    const { data, error } = await args.supabase.rpc('finalise_ai_credits', {
+      p_user_id: args.userId,
+      p_cycle_id: args.cycleId,
+      p_ledger_id: args.ledgerId,
+      p_ai_request_id: args.aiRequestId,
+      p_input_tokens: null,
+      p_output_tokens: null,
+      p_total_tokens: null,
+      p_speech_duration_ms: null,
+      p_provider_name: args.providerName,
+      p_model_name: args.modelName,
+      p_estimated_cost: null,
+      p_credit_cost: args.creditCost,
+    });
+
+    return {
+      ok: data === true,
+      error,
+      result: data,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error,
+      result: null,
+    };
+  }
+}
+
+function getStoredRequestType(value: string): RequestType | null {
+  return ALLOWED_REQUEST_TYPES.has(value) ? value as RequestType : null;
+}
+
+function buildMeteringRecoveryError(requestId: string) {
+  return buildErrorResponse({
+    requestId,
+    error: {
+      code: 'AI_CREDIT_FINALISATION_PENDING',
+      category: 'technical',
+      message: 'Your analysis is ready but still being finalized. Please retry with the same reference.',
+      requestId,
+    },
+  });
+}
+
+function buildMeteringUnavailableError(requestId: string) {
+  return buildErrorResponse({
+    requestId,
+    error: {
+      code: 'AI_CREDIT_FINALISATION_FAILED',
+      category: 'technical',
+      message: 'Smart Entry is temporarily unavailable. Please try again.',
+      requestId,
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   try {
     // ── 1. Authenticate — derive user from token, never from body ──────────
@@ -114,31 +197,35 @@ export async function POST(req: NextRequest) {
     if (!requestType) {
       return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
     }
+    const meteringRecovery = body.meteringRecovery === true;
 
     const requestId = typeof body.requestId === 'string' ? body.requestId.trim() : '';
+    if (meteringRecovery && !requestId) {
+      return NextResponse.json({ error: 'A persisted request reference is required for metering recovery.' }, { status: 400 });
+    }
     if (requestId && !UUID_PATTERN.test(requestId)) {
       return NextResponse.json({ error: 'Invalid request id' }, { status: 400 });
     }
 
-    let existingRequest:
-      | { id: string; user_id: string; status: string; confirmation_status: string | null; idempotency_key: string | null }
-      | null
-      = null;
+    let existingRequest: ExistingRequestRow | null = null;
 
     if (requestId) {
       const { data: requestRow, error: requestError } = await supabase
         .from('ai_requests')
-        .select('id, user_id, status, confirmation_status, idempotency_key')
+        .select('id, user_id, request_type, status, confirmation_status, idempotency_key, parsed_result, transcript, provider_model, language_provider_used, fallback_used, error_category, error_message')
         .eq('id', requestId)
         .single();
 
       if (requestError || !requestRow) {
-        return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: meteringRecovery ? 'Invalid metering recovery reference.' : 'Request not found' },
+          { status: meteringRecovery ? 400 : 404 }
+        );
       }
       if (requestRow.user_id !== user.id) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
-      if (!['parsed', 'clarifying'].includes(requestRow.status) || requestRow.confirmation_status !== null) {
+      if (!meteringRecovery && (!['parsed', 'clarifying'].includes(requestRow.status) || requestRow.confirmation_status !== null)) {
         return NextResponse.json(
           { error: 'This Smart Entry clarification flow is no longer editable.' },
           { status: 409 }
@@ -151,6 +238,92 @@ export async function POST(req: NextRequest) {
     const validationError = validatePayload(body, requestType, config.maxTextLength, config.maxAudioSeconds);
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 });
+    }
+
+    if (meteringRecovery) {
+      if (!existingRequest?.parsed_result) {
+        return NextResponse.json(
+          { error: 'This request is not available for metering recovery.' },
+          { status: 409 }
+        );
+      }
+
+      const storedRequestType = getStoredRequestType(existingRequest.request_type);
+      if (!storedRequestType) {
+        return NextResponse.json(buildMeteringUnavailableError(existingRequest.id), { status: 500 });
+      }
+
+      const idempotencyKey = existingRequest.idempotency_key;
+      if (!idempotencyKey) {
+        return NextResponse.json(buildMeteringUnavailableError(existingRequest.id), { status: 500 });
+      }
+
+      const { data: ledgerRow, error: ledgerError } = await supabase
+        .from('ai_credit_ledger')
+        .select('id, cycle_id, ledger_type')
+        .eq('user_id', user.id)
+        .eq('idempotency_key', idempotencyKey)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ledgerError || !ledgerRow?.id || !ledgerRow?.cycle_id) {
+        return NextResponse.json(buildMeteringUnavailableError(existingRequest.id), { status: 500 });
+      }
+
+      if (ledgerRow.ledger_type === 'charge') {
+        return NextResponse.json({
+          requestId: existingRequest.id,
+          status: 'parsed',
+          parsed: {
+            ...existingRequest.parsed_result,
+            requestId: existingRequest.id,
+          },
+          transcript: existingRequest.transcript || undefined,
+          providerUsed: sanitizeProviderName(existingRequest.language_provider_used || undefined) || undefined,
+          fallbackUsed: existingRequest.fallback_used || false,
+          errorCategory: existingRequest.error_category || undefined,
+          errorMessage: existingRequest.error_message || undefined,
+        });
+      }
+
+      if (ledgerRow.ledger_type !== 'reservation') {
+        return NextResponse.json(buildMeteringUnavailableError(existingRequest.id), { status: 500 });
+      }
+
+      const finalisation = await finaliseAICreditsSafely({
+        supabase,
+        userId: user.id,
+        cycleId: ledgerRow.cycle_id,
+        ledgerId: ledgerRow.id,
+        aiRequestId: existingRequest.id,
+        providerName: sanitizeProviderName(existingRequest.language_provider_used || undefined) || null,
+        modelName: existingRequest.provider_model,
+        creditCost: REQUEST_CREDIT_COST[storedRequestType],
+      });
+
+      if (!finalisation.ok) {
+        return NextResponse.json(
+          finalisation.error
+            ? buildMeteringRecoveryError(existingRequest.id)
+            : buildMeteringUnavailableError(existingRequest.id),
+          { status: finalisation.error ? 503 : 500 }
+        );
+      }
+
+      return NextResponse.json({
+        requestId: existingRequest.id,
+        status: 'parsed',
+        parsed: {
+          ...existingRequest.parsed_result,
+          requestId: existingRequest.id,
+        },
+        transcript: existingRequest.transcript || undefined,
+        providerUsed: sanitizeProviderName(existingRequest.language_provider_used || undefined) || undefined,
+        fallbackUsed: existingRequest.fallback_used || false,
+        errorCategory: existingRequest.error_category || undefined,
+        errorMessage: existingRequest.error_message || undefined,
+      });
     }
 
     // ── 4. Subscription & credit enforcement ───────────────────────────────
@@ -337,16 +510,6 @@ export async function POST(req: NextRequest) {
     });
 
     if (responseBody.parsed && (!persistedRequest?.id || !UUID_PATTERN.test(persistedRequest.id))) {
-      if (!existingRequest && creditCycleId && creditLedgerId) {
-        await refundAICreditsSafely({
-          supabase,
-          userId: user.id,
-          cycleId: creditCycleId,
-          ledgerId: creditLedgerId,
-          reason: 'persistence_failure',
-        });
-      }
-
       console.error('[AI Parse] Parsed request persistence failed', {
         code: 'AI_REQUEST_PERSISTENCE_FAILED',
         table: 'ai_requests',
@@ -384,31 +547,44 @@ export async function POST(req: NextRequest) {
     if (!existingRequest && creditCycleId && creditLedgerId) {
       if (responseBody.status === 'failed') {
         // Provider/system failure → refund
-        await supabase.rpc('refund_ai_credits', {
-          p_user_id: user.id,
-          p_cycle_id: creditCycleId,
-          p_ledger_id: creditLedgerId,
-          p_reason: responseBody.errorCategory || 'provider_failure',
+        await refundAICreditsSafely({
+          supabase,
+          userId: user.id,
+          cycleId: creditCycleId,
+          ledgerId: creditLedgerId,
+          reason: responseBody.errorCategory || 'provider_failure',
         });
 
       } else {
         // Success → finalise with provider details
         const creditCost = requestType === 'voice' ? 2 : 1;
-        await supabase.rpc('finalise_ai_credits', {
-          p_user_id: user.id,
-          p_cycle_id: creditCycleId,
-          p_ledger_id: creditLedgerId,
-          p_ai_request_id: persistedRequest?.id || null,
-          p_input_tokens: null,
-          p_output_tokens: null,
-          p_total_tokens: null,
-          p_speech_duration_ms: null,
-          p_provider_name: sanitizeProviderName(responseBody.providerUsed) || null,
-          p_model_name: responseBody.parsed?.modelUsed || null,
-          p_estimated_cost: null,
-          p_credit_cost: creditCost,
+        const finalisation = await finaliseAICreditsSafely({
+          supabase,
+          userId: user.id,
+          cycleId: creditCycleId,
+          ledgerId: creditLedgerId,
+          aiRequestId: persistedRequest?.id || null,
+          providerName: sanitizeProviderName(responseBody.providerUsed) || null,
+          modelName: responseBody.parsed?.modelUsed || null,
+          creditCost,
         });
 
+        if (!finalisation.ok) {
+          if (!persistedRequest?.id || !UUID_PATTERN.test(persistedRequest.id)) {
+            const failureRequestId = createClientId();
+            return NextResponse.json(
+              buildMeteringUnavailableError(failureRequestId),
+              { status: 500 }
+            );
+          }
+
+          return NextResponse.json(
+            finalisation.error
+              ? buildMeteringRecoveryError(persistedRequest.id)
+              : buildMeteringUnavailableError(persistedRequest.id),
+            { status: finalisation.error ? 503 : 500 }
+          );
+        }
       }
     }
 

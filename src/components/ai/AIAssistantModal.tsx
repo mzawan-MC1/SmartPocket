@@ -778,6 +778,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const { isRTL, language: uiLanguage } = useLanguage();
   const router = useRouter();
   const subscriptionDefaultAppliedRef = useRef<string | null>(null);
+  const latestAnalysisRequestRef = useRef(0);
+  const analysisRequestInFlightRef = useRef(false);
   const [step, setStep] = useState<AssistantStep>('entry');
   const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [textInput, setTextInput] = useState('');
@@ -792,6 +794,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [errorMessage, setErrorMessage] = useState('');
   const [apiError, setApiError] = useState<AIErrorPayload | null>(null);
   const [analysisFailureStage, setAnalysisFailureStage] = useState<AnalysisFailureStage>(null);
+  const [isAnalysisSubmitting, setIsAnalysisSubmitting] = useState(false);
   const [usageSummary, setUsageSummary] = useState<AIUsageSummary | null>(null);
   const [executionResult, setExecutionResult] = useState<{ success: boolean; count: number } | null>(null);
   const [receiptInsightAnswer, setReceiptInsightAnswer] = useState<ReceiptInsightAnswer | null>(null);
@@ -1738,7 +1741,13 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     preserveMode?: boolean;
     preserveLanguage?: boolean;
     preserveTranscriptArtifacts?: boolean;
+    invalidateAnalysisRequest?: boolean;
   }) => {
+    if (options?.invalidateAnalysisRequest !== false) {
+      latestAnalysisRequestRef.current += 1;
+      analysisRequestInFlightRef.current = false;
+      setIsAnalysisSubmitting(false);
+    }
     setStep('entry');
     setTextInput(options?.preserveInput ? textInput : '');
     setTranscript('');
@@ -2121,14 +2130,23 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     setStep('confirming');
   }, [handleApiFailure, t]);
 
-  const callParseAPI = useCallback(async (text: string) => {
-    const idempotencyKey = createClientId();
+  const callParseAPI = useCallback(async (text: string, options?: { requestId?: string; meteringRecovery?: boolean }) => {
+    if (analysisRequestInFlightRef.current) {
+      return;
+    }
+
+    const requestGeneration = latestAnalysisRequestRef.current + 1;
+    latestAnalysisRequestRef.current = requestGeneration;
+    analysisRequestInFlightRef.current = true;
+    setIsAnalysisSubmitting(true);
+    const idempotencyKey = options?.requestId ? undefined : createClientId();
     let analysisStage: Exclude<AnalysisFailureStage, null> = 'preparing';
     resetRequestState({
       preserveInput: false,
       preserveMode: true,
       preserveLanguage: true,
       preserveTranscriptArtifacts: true,
+      invalidateAnalysisRequest: false,
     });
     setStep('processing');
     setTranscript(text);
@@ -2149,6 +2167,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         ANALYSIS_PREP_TIMEOUT_MS,
         getAnalysisFailureMessage('preparing')
       );
+      if (latestAnalysisRequestRef.current !== requestGeneration) {
+        return;
+      }
       setContextSnapshot(context);
 
       const body: Record<string, unknown> = {
@@ -2159,9 +2180,17 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         currentDateTime: context.currentDateTime,
         timezone: context.timezone,
         context,
-        idempotencyKey,
         text,
       };
+      if (idempotencyKey) {
+        body.idempotencyKey = idempotencyKey;
+      }
+      if (options?.requestId) {
+        body.requestId = options.requestId;
+      }
+      if (options?.meteringRecovery) {
+        body.meteringRecovery = true;
+      }
 
       analysisStage = 'request';
       const fetchController = new AbortController();
@@ -2181,6 +2210,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       });
 
       const data = await response.json().catch(() => ({}));
+      if (latestAnalysisRequestRef.current !== requestGeneration) {
+        return;
+      }
       if (data.status === 'not_configured') {
         setIsAIConfigured(false);
         setStep('entry');
@@ -2200,6 +2232,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         sourceText: text || data.transcript || '',
       });
     } catch (err) {
+      if (latestAnalysisRequestRef.current !== requestGeneration) {
+        return;
+      }
       const nextFailureStage: Exclude<AnalysisFailureStage, null> =
         err instanceof DOMException && err.name === 'AbortError'
           ? 'timeout'
@@ -2209,15 +2244,29 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       setApiError(null);
       setUsageSummary(null);
       setStep('failed');
+    } finally {
+      if (latestAnalysisRequestRef.current === requestGeneration) {
+        analysisRequestInFlightRef.current = false;
+        setIsAnalysisSubmitting(false);
+      }
     }
   }, [displayLanguage, getAnalysisFailureMessage, handleApiFailure, resetRequestState, t, uiLanguage]);
 
   const callReceiptInsightAPI = useCallback(async (question: string) => {
+    if (analysisRequestInFlightRef.current) {
+      return;
+    }
+
+    const requestGeneration = latestAnalysisRequestRef.current + 1;
+    latestAnalysisRequestRef.current = requestGeneration;
+    analysisRequestInFlightRef.current = true;
+    setIsAnalysisSubmitting(true);
     resetRequestState({
       preserveInput: true,
       preserveMode: true,
       preserveLanguage: true,
       preserveTranscriptArtifacts: true,
+      invalidateAnalysisRequest: false,
     });
     setStep('processing');
     setTranscript(question);
@@ -2237,6 +2286,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
         body: JSON.stringify({ question, language: displayLanguage }),
       });
       const data = await response.json().catch(() => ({}));
+      if (latestAnalysisRequestRef.current !== requestGeneration) {
+        return;
+      }
       if (!response.ok || data?.success !== true) {
         throw new Error(data?.errorMessage || t('smartEntryModal.errors.saveFailed', { ns: 'portal' }));
       }
@@ -2247,13 +2299,21 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
       });
       setStep('receipt_insight');
     } catch (err) {
+      if (latestAnalysisRequestRef.current !== requestGeneration) {
+        return;
+      }
       setErrorMessage(err instanceof Error ? err.message : t('errors.network', { ns: 'common' }));
       setStep('failed');
+    } finally {
+      if (latestAnalysisRequestRef.current === requestGeneration) {
+        analysisRequestInFlightRef.current = false;
+        setIsAnalysisSubmitting(false);
+      }
     }
   }, [displayLanguage, resetRequestState, t]);
 
   const handleTextSubmit = useCallback(() => {
-    if (!textInput.trim()) return;
+    if (!textInput.trim() || analysisRequestInFlightRef.current) return;
     trackAiEntryUsed('text');
     if (isReceiptInsightQuestion(textInput)) {
       void callReceiptInsightAPI(textInput.trim());
@@ -2562,6 +2622,11 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   })();
 
   const analysisRetryText = (transcript || textInput).trim();
+  const meteringRecoveryRequestId = analysisFailureStage && apiError?.code === 'AI_CREDIT_FINALISATION_PENDING'
+    && typeof apiError.requestId === 'string'
+    && UUID_PATTERN.test(apiError.requestId)
+      ? apiError.requestId
+      : null;
   const failedShowsRefresh = !analysisFailureStage
     && apiError?.code !== 'openrouter_not_configured'
     && apiError?.code !== 'voice_model_missing'
@@ -2726,7 +2791,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                 {analysisFailureStage && analysisRetryText ? (
                   <button
                     onClick={() => {
-                      void callParseAPI(analysisRetryText);
+                      void callParseAPI(
+                        analysisRetryText,
+                        meteringRecoveryRequestId
+                          ? { requestId: meteringRecoveryRequestId, meteringRecovery: true }
+                          : undefined
+                      );
                     }}
                     className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
                   >
@@ -3001,7 +3071,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   </p>
                   <button
                     onClick={handleTextSubmit}
-                    disabled={!textInput.trim()}
+                    disabled={!textInput.trim() || isAnalysisSubmitting}
                     className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-accent py-3 text-sm font-600 text-white transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Sparkles size={16} />

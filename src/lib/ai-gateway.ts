@@ -1903,11 +1903,6 @@ export async function processTransactionDocumentAIRequest(
   config: AIGatewayConfig
 ): Promise<TransactionDocumentAIResponse> {
   const startTime = Date.now();
-  const timings = {
-    providerMs: 0,
-    validationMs: 0,
-    totalMs: 0,
-  };
 
   if (!config.aiEnabled) {
     return {
@@ -1930,9 +1925,7 @@ export async function processTransactionDocumentAIRequest(
       pageCount: request.pageCount ?? null,
     });
     const [primaryLang] = getProviderOrder(config);
-    const providerStartedAt = Date.now();
     const result = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
-    timings.providerMs = Date.now() - providerStartedAt;
     const fallbackUsed = false;
 
     logTransactionDocumentGateway('info', 'document-ai.parse_response.start', {
@@ -1943,9 +1936,7 @@ export async function processTransactionDocumentAIRequest(
     });
     let validated;
     try {
-      const validationStartedAt = Date.now();
       validated = validateTransactionDocumentExtraction(result.parsed);
-      timings.validationMs = Date.now() - validationStartedAt;
     } catch (error) {
       throw new TransactionDocumentGatewayError(
         classifyTransactionDocumentError(error) || 'invalid_extraction_response',
@@ -1970,15 +1961,6 @@ export async function processTransactionDocumentAIRequest(
       fallbackUsed,
       durationMs: Date.now() - startTime,
     });
-    timings.totalMs = Date.now() - startTime;
-    if (process.env.NODE_ENV !== 'production') {
-      logTransactionDocumentGateway('info', 'document-ai.timing', {
-        requestId,
-        providerUsed: result.providerUsed,
-        modelUsed: result.modelUsed || null,
-        timings,
-      });
-    }
     return {
       requestId: validated.requestId,
       status: 'parsed',
@@ -2017,14 +1999,6 @@ export async function processTransactionDocumentAIRequest(
       durationMs: Date.now() - startTime,
       internalError: error instanceof Error ? sanitizeError(error.message) : 'Unknown error',
     });
-    timings.totalMs = Date.now() - startTime;
-    if (process.env.NODE_ENV !== 'production') {
-      logTransactionDocumentGateway('info', 'document-ai.timing', {
-        requestId,
-        error: true,
-        timings,
-      });
-    }
     return {
       requestId,
       status: 'failed',
