@@ -29,6 +29,9 @@ export interface TransactionDocumentTransactionDetail {
 export interface TransactionDocumentDetailsResponse {
   success: true;
   transaction: TransactionDocumentTransactionDetail;
+  originalReceiptAmount: number;
+  originalReceiptCurrency: string;
+  originalReceiptTax?: number | null;
   documentState: 'available' | 'missing' | 'processing' | 'unavailable';
   documentMessage?: string | null;
   document: {

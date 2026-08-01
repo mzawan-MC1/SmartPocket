@@ -96,6 +96,7 @@ export default function TransactionDetailsModal({
   const totals = details?.totals ?? null;
   const showTotals = Boolean(details?.document && totals);
   const showLineItems = Boolean(details?.document?.createdFromAI);
+  const originalReceiptCurrency = details?.originalReceiptCurrency || details?.transaction.currency || 'USD';
   const detailItems = details ? [
     {
       id: 'merchant',
@@ -352,8 +353,8 @@ export default function TransactionDetailsModal({
                             </p>
                             <FormattedCurrencyAmount
                               amount={(value as number) || 0}
-                              currencyCode={details.transaction.currency}
-                              fallbackCurrencyCode={details.transaction.currency}
+                              currencyCode={originalReceiptCurrency}
+                              fallbackCurrencyCode={originalReceiptCurrency}
                               className="mt-1 text-[13px] font-700 text-foreground"
                             />
                           </div>
@@ -386,8 +387,8 @@ export default function TransactionDetailsModal({
                                 {typeof item.total === 'number' ? (
                                   <FormattedCurrencyAmount
                                     amount={item.total}
-                                    currencyCode={details.transaction.currency}
-                                    fallbackCurrencyCode={details.transaction.currency}
+                                    currencyCode={item.currency || originalReceiptCurrency}
+                                    fallbackCurrencyCode={item.currency || originalReceiptCurrency}
                                     className="text-xs font-700 text-foreground"
                                   />
                                 ) : null}

@@ -10,6 +10,29 @@ import {
   type TransactionDocumentItemKind,
 } from '@/lib/transaction-documents';
 
+function getObjectPropertyNumber(value: unknown, key: string) {
+  if (!value || typeof value !== 'object' || !(key in value)) {
+    return null;
+  }
+
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
+}
+
+function getObjectPropertyString(value: unknown, key: string) {
+  if (!value || typeof value !== 'object' || !(key in value)) {
+    return null;
+  }
+
+  const candidate = (value as Record<string, unknown>)[key];
+  if (typeof candidate !== 'string') {
+    return null;
+  }
+
+  const normalized = candidate.trim().toUpperCase();
+  return normalized || null;
+}
+
 function jsonWithCookies(
   body: Record<string, unknown>,
   status: number,
@@ -100,6 +123,9 @@ export async function GET(
       mime_type: string | null;
       created_at: string;
     } | null = null;
+    let originalReceiptAmount = Number(transaction.amount || 0);
+    let originalReceiptCurrency = String(transaction.currency || 'USD');
+    let originalReceiptTax: number | null = null;
 
     const [itemResult, attachmentResult] = await Promise.allSettled([
       admin
@@ -149,7 +175,7 @@ export async function GET(
           quantity: typeof item.quantity === 'number' ? item.quantity : item.quantity ? Number(item.quantity) : null,
           unitPrice: typeof item.unit_price === 'number' ? item.unit_price : item.unit_price ? Number(item.unit_price) : null,
           total: typeof item.line_total === 'number' ? item.line_total : item.line_total ? Number(item.line_total) : null,
-          currency: item.currency ? String(item.currency) : transaction.currency,
+          currency: item.currency ? String(item.currency) : null,
           categoryId: item.category_id ? String(item.category_id) : null,
           categoryName:
             typeof item.item_category === 'object' && item.item_category !== null && 'name' in item.item_category
@@ -201,7 +227,7 @@ export async function GET(
     try {
       const documentQuery = admin
         .from('transaction_documents')
-        .select('id, storage_path, file_name, mime_type, merchant_name, receipt_number, source_surface')
+        .select('id, storage_path, file_name, mime_type, merchant_name, receipt_number, source_surface, total_amount, currency_code, tax_amount')
         .eq('user_id', user.id)
         .limit(1);
 
@@ -242,16 +268,29 @@ export async function GET(
         const reviewedIndex = savedTransactionIds.findIndex((value) => value === normalizedTransactionId);
         const reviewedEntry = reviewedIndex >= 0 ? reviewedTransactions[reviewedIndex] : reviewedTransactions[0];
         const parsedEntry = reviewedIndex >= 0 ? parsedTransactions[reviewedIndex] : parsedTransactions[0];
-        const taxValue = typeof reviewedEntry === 'object'
-          && reviewedEntry !== null
-          && 'tax' in reviewedEntry
-          && typeof reviewedEntry.tax === 'number'
-            ? reviewedEntry.tax
+        const reviewedAmount = getObjectPropertyNumber(reviewedEntry, 'amount');
+        const reviewedCurrency = getObjectPropertyString(reviewedEntry, 'currency');
+        const reviewedTax = getObjectPropertyNumber(reviewedEntry, 'tax');
+        const documentAmount = typeof document.total_amount === 'number'
+          ? document.total_amount
+          : document.total_amount
+            ? Number(document.total_amount)
             : null;
+        const documentCurrency = document.currency_code ? String(document.currency_code).trim().toUpperCase() : null;
+        const documentTax = typeof document.tax_amount === 'number'
+          ? document.tax_amount
+          : document.tax_amount
+            ? Number(document.tax_amount)
+            : null;
+        const lineItemCurrency = lineItems.find((item) => item.currency)?.currency?.trim().toUpperCase() || null;
+
+        originalReceiptAmount = reviewedAmount ?? documentAmount ?? Number(transaction.amount || 0);
+        originalReceiptCurrency = reviewedCurrency ?? documentCurrency ?? lineItemCurrency ?? String(transaction.currency || 'USD');
+        originalReceiptTax = reviewedTax ?? documentTax ?? null;
 
         totals = getTransactionDocumentTotalSummary({
-          amount: Number(transaction.amount || 0),
-          tax: taxValue,
+          amount: originalReceiptAmount,
+          tax: originalReceiptTax,
           lineItems: lineItems.map((item) => ({
             quantity: item.quantity,
             unitPrice: item.unitPrice,
@@ -346,6 +385,9 @@ export async function GET(
             : null,
         notes: transaction.notes ? String(transaction.notes) : null,
       },
+      originalReceiptAmount,
+      originalReceiptCurrency,
+      originalReceiptTax,
       documentState,
       documentMessage,
       document: documentPayload,
