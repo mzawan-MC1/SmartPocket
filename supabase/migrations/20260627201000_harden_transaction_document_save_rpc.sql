@@ -32,8 +32,26 @@ DECLARE
   v_category_id UUID;
   v_category RECORD;
   v_amount NUMERIC(15,2);
+  v_original_amount NUMERIC(15,2);
+  v_transaction_amount NUMERIC(15,2);
   v_tax NUMERIC(15,2);
   v_currency TEXT;
+  v_original_currency TEXT;
+  v_transaction_currency TEXT;
+  v_conversion JSONB;
+  v_conversion_source TEXT;
+  v_converted_amount NUMERIC(15,2);
+  v_conversion_original_amount NUMERIC(15,2);
+  v_conversion_original_currency TEXT;
+  v_conversion_account_currency TEXT;
+  v_exchange_rate NUMERIC(20,10);
+  v_exchange_rate_provider TEXT;
+  v_exchange_rate_snapshot_id UUID;
+  v_exchange_rate_date DATE;
+  v_exchange_rate_timestamp TIMESTAMPTZ;
+  v_snapshot RECORD;
+  v_snapshot_base_rate NUMERIC(20,10);
+  v_snapshot_target_rate NUMERIC(20,10);
   v_description TEXT;
   v_merchant TEXT;
   v_notes TEXT;
@@ -160,15 +178,12 @@ BEGIN
         DETAIL = 'save.payload.validation.account';
     END IF;
 
-    v_currency := UPPER(COALESCE(NULLIF(BTRIM(v_tx->>'currency'), ''), v_account.currency, 'USD'));
-    IF v_currency <> UPPER(BTRIM(v_account.currency)) THEN
-      RAISE EXCEPTION USING
-        MESSAGE = format('Reviewed transaction currency must match the selected account currency (%s)', v_account.currency),
-        DETAIL = 'save.payload.validation.currency';
-    END IF;
+    v_original_currency := UPPER(COALESCE(NULLIF(BTRIM(v_tx->>'currency'), ''), v_account.currency, 'USD'));
+    v_currency := v_original_currency;
 
-    v_amount := ROUND(COALESCE(NULLIF(BTRIM(v_tx->>'amount'), '')::NUMERIC, 0), 2);
-    IF v_amount <= 0 THEN
+    v_original_amount := ROUND(COALESCE(NULLIF(BTRIM(v_tx->>'amount'), '')::NUMERIC, 0), 2);
+    v_amount := v_original_amount;
+    IF v_original_amount <= 0 THEN
       RAISE EXCEPTION USING
         MESSAGE = 'Reviewed transaction amount must be greater than 0',
         DETAIL = 'save.payload.validation.amount';
@@ -215,6 +230,161 @@ BEGIN
       WHEN jsonb_typeof(v_tx->'tax') = 'number' THEN ROUND((v_tx->>'tax')::NUMERIC, 2)
       ELSE NULL
     END;
+    v_transaction_currency := UPPER(BTRIM(v_account.currency));
+    v_transaction_amount := v_original_amount;
+    v_conversion := v_tx->'conversion';
+    v_conversion_source := NULL;
+    v_converted_amount := NULL;
+    v_conversion_original_amount := NULL;
+    v_conversion_original_currency := NULL;
+    v_conversion_account_currency := NULL;
+    v_exchange_rate := NULL;
+    v_exchange_rate_provider := NULL;
+    v_exchange_rate_snapshot_id := NULL;
+    v_exchange_rate_date := NULL;
+    v_exchange_rate_timestamp := NULL;
+
+    IF v_original_currency <> v_transaction_currency THEN
+      IF jsonb_typeof(v_conversion) <> 'object' THEN
+        RAISE EXCEPTION USING
+          MESSAGE = 'Cross-currency receipt conversion details are required before saving.',
+          DETAIL = 'save.payload.validation.currency';
+      END IF;
+
+      v_conversion_source := LOWER(COALESCE(NULLIF(BTRIM(v_conversion->>'source'), ''), 'automatic'));
+      IF v_conversion_source NOT IN ('automatic', 'manual') THEN
+        RAISE EXCEPTION USING
+          MESSAGE = 'Cross-currency receipt conversion details are required before saving.',
+          DETAIL = 'save.payload.validation.currency';
+      END IF;
+
+      v_conversion_original_amount := ROUND(
+        COALESCE(NULLIF(BTRIM(v_conversion->>'originalAmount'), '')::NUMERIC, 0),
+        2
+      );
+      v_conversion_original_currency := UPPER(
+        COALESCE(NULLIF(BTRIM(v_conversion->>'originalCurrency'), ''), v_original_currency)
+      );
+      v_conversion_account_currency := UPPER(
+        COALESCE(NULLIF(BTRIM(v_conversion->>'accountCurrency'), ''), v_transaction_currency)
+      );
+      v_converted_amount := ROUND(
+        COALESCE(NULLIF(BTRIM(v_conversion->>'convertedAmount'), '')::NUMERIC, 0),
+        2
+      );
+
+      IF v_conversion_original_currency <> v_original_currency
+        OR v_conversion_account_currency <> v_transaction_currency
+        OR ABS(v_conversion_original_amount - v_original_amount) > 0.02
+      THEN
+        RAISE EXCEPTION USING
+          MESSAGE = 'Cross-currency receipt conversion details are required before saving.',
+          DETAIL = 'save.payload.validation.currency';
+      END IF;
+
+      IF v_converted_amount <= 0 THEN
+        RAISE EXCEPTION USING
+          MESSAGE = 'Cross-currency receipt conversion requires a valid converted amount.',
+          DETAIL = 'save.payload.validation.amount';
+      END IF;
+
+      IF v_conversion_source = 'automatic' THEN
+        v_exchange_rate_snapshot_id := CASE
+          WHEN NULLIF(BTRIM(v_conversion->>'snapshotId'), '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
+            THEN NULLIF(BTRIM(v_conversion->>'snapshotId'), '')::UUID
+          ELSE NULL
+        END;
+
+        IF v_exchange_rate_snapshot_id IS NULL THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Automatic receipt conversion data is invalid.',
+            DETAIL = 'save.payload.validation.currency';
+        END IF;
+
+        SELECT
+          id,
+          provider,
+          base_currency,
+          rate_date,
+          fetched_at,
+          provider_timestamp,
+          rates
+        INTO v_snapshot
+        FROM public.exchange_rate_snapshots
+        WHERE id = v_exchange_rate_snapshot_id
+          AND status = 'success';
+
+        IF NOT FOUND THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Automatic receipt conversion data is invalid.',
+            DETAIL = 'save.payload.validation.currency';
+        END IF;
+
+        v_snapshot_base_rate := CASE
+          WHEN UPPER(COALESCE(v_snapshot.base_currency, '')) = v_original_currency THEN 1
+          WHEN jsonb_typeof(v_snapshot.rates) = 'object' AND v_snapshot.rates ? v_original_currency
+            THEN NULLIF((v_snapshot.rates->>v_original_currency)::NUMERIC, 0)
+          ELSE NULL
+        END;
+        v_snapshot_target_rate := CASE
+          WHEN UPPER(COALESCE(v_snapshot.base_currency, '')) = v_transaction_currency THEN 1
+          WHEN jsonb_typeof(v_snapshot.rates) = 'object' AND v_snapshot.rates ? v_transaction_currency
+            THEN NULLIF((v_snapshot.rates->>v_transaction_currency)::NUMERIC, 0)
+          ELSE NULL
+        END;
+
+        IF v_snapshot_base_rate IS NULL
+          OR v_snapshot_target_rate IS NULL
+          OR v_snapshot_base_rate <= 0
+          OR v_snapshot_target_rate <= 0
+        THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Automatic receipt conversion data is invalid.',
+            DETAIL = 'save.payload.validation.currency';
+        END IF;
+
+        v_exchange_rate := ROUND((v_snapshot_target_rate / v_snapshot_base_rate)::NUMERIC, 10);
+        IF ABS(ROUND((v_original_amount * v_exchange_rate)::NUMERIC, 2) - v_converted_amount) > 0.02 THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Automatic receipt conversion data is invalid.',
+            DETAIL = 'save.payload.validation.currency';
+        END IF;
+
+        v_exchange_rate_provider := NULLIF(BTRIM(COALESCE(v_snapshot.provider, '')), '');
+        v_exchange_rate_date := v_snapshot.rate_date;
+        v_exchange_rate_timestamp := COALESCE(v_snapshot.provider_timestamp, v_snapshot.fetched_at);
+      ELSE
+        v_exchange_rate := CASE
+          WHEN NULLIF(BTRIM(v_conversion->>'exchangeRate'), '') IS NOT NULL
+            THEN ROUND((NULLIF(BTRIM(v_conversion->>'exchangeRate'), '')::NUMERIC)::NUMERIC, 10)
+          ELSE NULL
+        END;
+
+        IF v_exchange_rate IS NULL OR v_exchange_rate <= 0 THEN
+          v_exchange_rate := ROUND((v_converted_amount / v_original_amount)::NUMERIC, 10);
+        END IF;
+
+        IF v_exchange_rate IS NULL OR v_exchange_rate <= 0 THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Cross-currency receipt conversion requires a valid exchange rate.',
+            DETAIL = 'save.payload.validation.amount';
+        END IF;
+
+        IF ABS(ROUND((v_original_amount * v_exchange_rate)::NUMERIC, 2) - v_converted_amount) > 0.02 THEN
+          RAISE EXCEPTION USING
+            MESSAGE = 'Manual receipt conversion data is invalid.',
+            DETAIL = 'save.payload.validation.currency';
+        END IF;
+
+        v_exchange_rate_date := CASE
+          WHEN NULLIF(BTRIM(v_conversion->>'rateDate'), '') ~ '^\d{4}-\d{2}-\d{2}$'
+            THEN NULLIF(BTRIM(v_conversion->>'rateDate'), '')::DATE
+          ELSE v_transaction_date
+        END;
+      END IF;
+
+      v_transaction_amount := v_converted_amount;
+    END IF;
 
     INSERT INTO public.transactions (
       user_id,
@@ -223,6 +393,11 @@ BEGIN
       transaction_type,
       amount,
       currency,
+      exchange_rate,
+      exchange_rate_provider,
+      exchange_rate_snapshot_id,
+      exchange_rate_date,
+      exchange_rate_timestamp,
       description,
       merchant,
       notes,
@@ -235,8 +410,13 @@ BEGIN
       v_account_id,
       v_category_id,
       v_transaction_type::public.transaction_type,
-      v_amount,
-      v_currency,
+      v_transaction_amount,
+      v_transaction_currency,
+      v_exchange_rate,
+      v_exchange_rate_provider,
+      v_exchange_rate_snapshot_id,
+      v_exchange_rate_date,
+      v_exchange_rate_timestamp,
       v_description,
       v_merchant,
       v_notes,

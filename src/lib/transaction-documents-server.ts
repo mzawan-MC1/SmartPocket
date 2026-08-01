@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { FinancialContext } from '@/lib/ai-types';
+import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
+import type { ExchangeRateSnapshotRecord } from '@/lib/exchange-rates/types';
 import {
   getTransactionDocumentLineItemValidation,
   getTransactionDocumentLineItemTotal,
@@ -10,9 +12,12 @@ import {
   TRANSACTION_DOCUMENT_BUCKET,
   transactionDocumentLineItemsHaveValidTotals,
   type TransactionDocumentDuplicateMatch,
+  type TransactionDocumentConversionLookupMode,
+  type TransactionDocumentManualConversionInput,
   type TransactionDocumentItemKind,
   type TransactionDocumentOptionAccount,
   type TransactionDocumentOptionCategory,
+  type TransactionDocumentReviewConversionInput,
   type TransactionDocumentReviewInput,
   type TransactionDocumentSaveRequest,
   type TransactionDocumentSaveResponse,
@@ -39,6 +44,27 @@ function normalizeAmount(value: unknown) {
     return NaN;
   }
   return Math.round(value * 100) / 100;
+}
+
+function normalizeRate(value: unknown) {
+  const numeric = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : NaN;
+  if (!Number.isFinite(numeric)) {
+    return null;
+  }
+  return Math.round(numeric * 1000000) / 1000000;
+}
+
+function normalizeDateOrNull(value: unknown) {
+  const normalized = normalizeDate(value);
+  return normalized || null;
+}
+
+function normalizeUuidOrNull(value: unknown) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+    ? normalized
+    : null;
 }
 
 function normalizeDuplicateLookupText(value: unknown) {
@@ -197,6 +223,242 @@ type TransactionDocumentDuplicateRefreshRow = {
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function numbersMatch(left: number, right: number, tolerance = 0.02) {
+  return Math.abs(left - right) <= tolerance;
+}
+
+function normalizeTransactionDocumentConversionLookupMode(
+  value: unknown
+): TransactionDocumentConversionLookupMode | null {
+  return value === 'exact'
+    || value === 'previous_available'
+    || value === 'same_currency'
+    || value === 'manual'
+      ? value
+      : null;
+}
+
+function normalizeTransactionDocumentManualConversionInput(
+  value: unknown
+): TransactionDocumentManualConversionInput | null {
+  return value === 'exchange_rate' || value === 'converted_amount' ? value : null;
+}
+
+function sanitizeTransactionDocumentReviewConversionInput(args: {
+  rawConversion: unknown;
+  amount: number;
+  currency: string;
+  accountCurrency: string;
+}) {
+  if (!isObject(args.rawConversion)) {
+    return null;
+  }
+
+  const source = args.rawConversion.source === 'manual' ? 'manual' : 'automatic';
+  const originalAmount = normalizeAmount(args.rawConversion.originalAmount);
+  const originalCurrency = normalizeCurrency(
+    typeof args.rawConversion.originalCurrency === 'string' ? args.rawConversion.originalCurrency : args.currency,
+    args.currency
+  );
+  const accountCurrency = normalizeCurrency(
+    typeof args.rawConversion.accountCurrency === 'string' ? args.rawConversion.accountCurrency : args.accountCurrency,
+    args.accountCurrency
+  );
+  const convertedAmount = normalizeAmount(args.rawConversion.convertedAmount);
+  const exchangeRate = (() => {
+    const value = normalizeRate(args.rawConversion.exchangeRate);
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
+  })();
+
+  return {
+    source,
+    originalAmount: Number.isFinite(originalAmount) ? originalAmount : args.amount,
+    originalCurrency,
+    accountCurrency,
+    convertedAmount: Number.isFinite(convertedAmount) ? convertedAmount : NaN,
+    exchangeRate,
+    rateDate: normalizeDateOrNull(args.rawConversion.rateDate),
+    snapshotId: normalizeUuidOrNull(args.rawConversion.snapshotId),
+    provider: normalizeText(typeof args.rawConversion.provider === 'string' ? args.rawConversion.provider : ''),
+    rateTimestamp:
+      typeof args.rawConversion.rateTimestamp === 'string' && args.rawConversion.rateTimestamp.trim()
+        ? args.rawConversion.rateTimestamp.trim()
+        : null,
+    lookupMode: normalizeTransactionDocumentConversionLookupMode(args.rawConversion.lookupMode),
+    manualInput: normalizeTransactionDocumentManualConversionInput(args.rawConversion.manualInput),
+  } satisfies TransactionDocumentReviewConversionInput;
+}
+
+function mapExchangeRateSnapshotRecord(row: Record<string, unknown>): ExchangeRateSnapshotRecord {
+  return {
+    id: String(row.id),
+    provider: String(row.provider || ''),
+    base_currency: String(row.base_currency || ''),
+    rate_date: String(row.rate_date || ''),
+    fetched_at: String(row.fetched_at || ''),
+    provider_timestamp: typeof row.provider_timestamp === 'string' ? row.provider_timestamp : null,
+    rates: isObject(row.rates) ? row.rates as Record<string, number> : {},
+    is_latest: Boolean(row.is_latest),
+    status: String(row.status || ''),
+    created_at: String(row.created_at || ''),
+  };
+}
+
+async function resolveTransactionDocumentReviewConversion(args: {
+  admin: SupabaseClient;
+  transaction: TransactionDocumentReviewInput;
+  account: TransactionDocumentOptionAccount;
+}) {
+  const originalAmount = normalizeAmount(args.transaction.amount);
+  const originalCurrency = normalizeCurrency(args.transaction.currency, args.account.currency);
+  const accountCurrency = normalizeCurrency(args.account.currency, args.account.currency);
+
+  if (!Number.isFinite(originalAmount) || originalAmount <= 0) {
+    throw new Error('Each reviewed transaction must include a valid amount.');
+  }
+
+  if (originalCurrency === accountCurrency) {
+    return {
+      ...args.transaction,
+      conversion: null,
+    } satisfies TransactionDocumentReviewInput;
+  }
+
+  const conversion = args.transaction.conversion;
+  if (!conversion) {
+    throw new Error('Cross-currency receipt conversion details are required before saving.');
+  }
+
+  if (
+    conversion.originalCurrency !== originalCurrency
+    || conversion.accountCurrency !== accountCurrency
+    || !numbersMatch(conversion.originalAmount, originalAmount, 0.000001)
+  ) {
+    throw new Error('Cross-currency receipt conversion details are required before saving.');
+  }
+
+  if (conversion.source === 'automatic') {
+    if (!conversion.snapshotId) {
+      throw new Error('Automatic receipt conversion data is invalid.');
+    }
+
+    const { data: snapshotRow, error: snapshotError } = await args.admin
+      .from('exchange_rate_snapshots')
+      .select('*')
+      .eq('id', conversion.snapshotId)
+      .eq('status', 'success')
+      .limit(1)
+      .maybeSingle();
+
+    if (snapshotError || !snapshotRow || !isObject(snapshotRow)) {
+      throw new Error('Automatic receipt conversion data is invalid.');
+    }
+
+    const snapshot = mapExchangeRateSnapshotRecord(snapshotRow);
+    const resolved = convertWithSnapshot({
+      amount: originalAmount,
+      fromCurrency: originalCurrency,
+      toCurrency: accountCurrency,
+      snapshot,
+      lookupMode: conversion.lookupMode === 'previous_available' ? 'previous_available' : 'exact',
+    });
+    const convertedAmount = normalizeAmount(resolved.convertedAmount);
+
+    if (!Number.isFinite(convertedAmount) || convertedAmount <= 0) {
+      throw new Error('Cross-currency receipt conversion requires a valid converted amount.');
+    }
+
+    if (!numbersMatch(conversion.convertedAmount, convertedAmount)) {
+      throw new Error('Automatic receipt conversion data is invalid.');
+    }
+
+    return {
+      ...args.transaction,
+      conversion: {
+        source: 'automatic',
+        originalAmount,
+        originalCurrency,
+        accountCurrency,
+        convertedAmount,
+        exchangeRate: resolved.rateUsed,
+        rateDate: resolved.rateDate,
+        snapshotId: snapshot.id,
+        provider: resolved.provider,
+        rateTimestamp: resolved.providerTimestamp || resolved.fetchedAt,
+        lookupMode: resolved.lookupMode === 'previous_available' ? 'previous_available' : 'exact',
+        manualInput: null,
+      },
+    } satisfies TransactionDocumentReviewInput;
+  }
+
+  const manualConvertedAmount = normalizeAmount(conversion.convertedAmount);
+  if (!Number.isFinite(manualConvertedAmount) || manualConvertedAmount <= 0) {
+    throw new Error('Cross-currency receipt conversion requires a valid converted amount.');
+  }
+
+  let manualExchangeRate = conversion.exchangeRate;
+  if (!(typeof manualExchangeRate === 'number' && Number.isFinite(manualExchangeRate) && manualExchangeRate > 0)) {
+    manualExchangeRate = originalAmount > 0
+      ? normalizeRate(manualConvertedAmount / originalAmount)
+      : null;
+  }
+
+  if (!(typeof manualExchangeRate === 'number' && Number.isFinite(manualExchangeRate) && manualExchangeRate > 0)) {
+    throw new Error('Cross-currency receipt conversion requires a valid exchange rate.');
+  }
+
+  const expectedConvertedAmount = normalizeAmount(originalAmount * manualExchangeRate);
+  if (!Number.isFinite(expectedConvertedAmount) || expectedConvertedAmount <= 0) {
+    throw new Error('Cross-currency receipt conversion requires a valid converted amount.');
+  }
+
+  if (!numbersMatch(expectedConvertedAmount, manualConvertedAmount)) {
+    throw new Error('Manual receipt conversion data is invalid.');
+  }
+
+  return {
+    ...args.transaction,
+    conversion: {
+      source: 'manual',
+      originalAmount,
+      originalCurrency,
+      accountCurrency,
+      convertedAmount: manualConvertedAmount,
+      exchangeRate: manualExchangeRate,
+      rateDate: conversion.rateDate || args.transaction.transactionDate || null,
+      snapshotId: null,
+      provider: null,
+      rateTimestamp: null,
+      lookupMode: 'manual',
+      manualInput: conversion.manualInput || 'converted_amount',
+    },
+  } satisfies TransactionDocumentReviewInput;
+}
+
+export async function resolveTransactionDocumentSaveRequestPayload(args: {
+  admin: SupabaseClient;
+  payload: TransactionDocumentSaveRequest;
+  accounts: TransactionDocumentOptionAccount[];
+}) {
+  const transactions = await Promise.all(args.payload.transactions.map(async (transaction) => {
+    const account = args.accounts.find((item) => item.id === transaction.accountId);
+    if (!account) {
+      throw new Error('Each reviewed transaction must use a valid account.');
+    }
+
+    return resolveTransactionDocumentReviewConversion({
+      admin: args.admin,
+      transaction,
+      account,
+    });
+  }));
+
+  return {
+    ...args.payload,
+    transactions,
+  } satisfies TransactionDocumentSaveRequest;
 }
 
 export function requireAdminClient() {
@@ -811,10 +1073,6 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
       typeof rawItem.currency === 'string' ? rawItem.currency : account.currency,
       account.currency || args.defaultCurrency
     );
-    if (currency !== account.currency) {
-      throw new Error(`Reviewed transaction currency must match the selected account currency (${account.currency}).`);
-    }
-
     const categoryId = normalizeText(
       typeof rawItem.categoryId === 'string' ? rawItem.categoryId : ''
     );
@@ -926,6 +1184,12 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
       receiptNumber: normalizeText(typeof rawItem.receiptNumber === 'string' ? rawItem.receiptNumber : ''),
       lineItems,
       totalsConfirmed,
+      conversion: sanitizeTransactionDocumentReviewConversionInput({
+        rawConversion: rawItem.conversion,
+        amount,
+        currency,
+        accountCurrency: account.currency,
+      }),
     };
 
     return sanitized;

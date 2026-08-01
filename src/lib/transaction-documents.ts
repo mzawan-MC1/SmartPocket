@@ -31,6 +31,13 @@ export type TransactionDocumentMimeType =
 
 export type TransactionDocumentSourceSurface = 'add_transaction' | 'smart_entry';
 export type TransactionDocumentItemKind = 'regular' | 'discount' | 'tax' | 'fee';
+export type TransactionDocumentConversionSource = 'automatic' | 'manual';
+export type TransactionDocumentConversionLookupMode =
+  | 'exact'
+  | 'previous_available'
+  | 'same_currency'
+  | 'manual';
+export type TransactionDocumentManualConversionInput = 'exchange_rate' | 'converted_amount';
 export type TransactionDocumentKind =
   | 'receipt'
   | 'printed_receipt'
@@ -166,6 +173,21 @@ export interface TransactionDocumentReviewItemInput {
   itemKind?: TransactionDocumentItemKind;
 }
 
+export interface TransactionDocumentReviewConversionInput {
+  source: TransactionDocumentConversionSource;
+  originalAmount: number;
+  originalCurrency: string;
+  accountCurrency: string;
+  convertedAmount: number;
+  exchangeRate?: number | null;
+  rateDate?: string | null;
+  snapshotId?: string | null;
+  provider?: string | null;
+  rateTimestamp?: string | null;
+  lookupMode?: TransactionDocumentConversionLookupMode | null;
+  manualInput?: TransactionDocumentManualConversionInput | null;
+}
+
 export interface TransactionDocumentReviewInput {
   transactionType: 'expense' | 'income';
   merchant?: string;
@@ -181,6 +203,7 @@ export interface TransactionDocumentReviewInput {
   receiptNumber?: string;
   lineItems: TransactionDocumentReviewItemInput[];
   totalsConfirmed?: boolean;
+  conversion?: TransactionDocumentReviewConversionInput | null;
 }
 
 export interface TransactionDocumentSaveRequest {
@@ -631,12 +654,21 @@ export function classifyTransactionDocumentError(input: unknown): TransactionDoc
   if (
     message === 'Each reviewed transaction must include a valid amount.'
     || message === 'Reviewed transaction amount must be greater than 0'
+    || message === 'Cross-currency receipt conversion requires a valid converted amount.'
+    || message === 'Cross-currency receipt conversion requires a valid exchange rate.'
     || message === 'Each reviewed line item must have a valid total.'
     || message === 'Reviewed line item total differs from quantity x unit price by more than the allowed tolerance.'
   ) {
     return 'invalid_amount';
   }
   if (message === 'Confirm the receipt total mismatch before saving.') {
+    return 'invalid_review_payload';
+  }
+  if (
+    message === 'Cross-currency receipt conversion details are required before saving.'
+    || message === 'Automatic receipt conversion data is invalid.'
+    || message === 'Manual receipt conversion data is invalid.'
+  ) {
     return 'invalid_review_payload';
   }
   if (message === 'Confirm the duplicate warning before saving.') {

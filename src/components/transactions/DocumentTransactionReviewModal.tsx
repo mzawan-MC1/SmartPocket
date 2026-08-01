@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrencyText } from '@/lib/currency-formatting';
+import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
+import { getHistoricalExchangeRateSnapshotForDate } from '@/lib/exchange-rates/service';
 import TransactionDetailsModal from '@/components/transactions/TransactionDetailsModal';
 import {
   TRANSACTION_DOCUMENT_ACCEPT_ATTRIBUTE,
@@ -19,7 +21,9 @@ import {
   getTransactionDocumentLineItemValidation,
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
+  roundTransactionDocumentMoney,
   type TransactionDocumentErrorCode,
+  type TransactionDocumentReviewConversionInput,
   type TransactionDocumentDuplicateMatch,
   type TransactionDocumentExtractResponse,
   type TransactionDocumentItemKind,
@@ -33,6 +37,7 @@ import {
   prepareTransactionDocumentUpload,
   submitTransactionDocumentExtraction,
 } from '@/lib/transaction-documents-client';
+import { createClient } from '@/lib/supabase/client';
 import {
   getFinancialAccountDisplayLabel,
   getPreferredDocumentAccount,
@@ -50,6 +55,12 @@ type EditableDocumentTransaction = TransactionDocumentReviewInput & {
   id: string;
   confidence: number;
   needsReview: boolean;
+  conversion: TransactionDocumentReviewConversionInput | null;
+  conversionInputKey: string | null;
+  conversionError: string;
+  conversionPending: boolean;
+  manualExchangeRateInput: string;
+  manualConvertedAmountInput: string;
 };
 
 type TransactionDocumentSaveErrorResponse = {
@@ -191,7 +202,8 @@ type TransactionFieldKey =
   | 'amount'
   | 'currency'
   | 'accountId'
-  | 'description';
+  | 'description'
+  | 'conversion';
 
 type LineItemFieldKey = 'name' | 'total';
 
@@ -206,6 +218,7 @@ type ReviewTransactionValidationState = {
   transactionId: string;
   transactionFields: TransactionFieldKey[];
   lineItemErrors: LineItemValidationState[];
+  conversionBlocking: boolean;
   totalsMismatchActive: boolean;
   totalsMismatchBlocking: boolean;
   totalSummary: ReturnType<typeof getTransactionDocumentTotalSummary>;
@@ -365,6 +378,153 @@ function mapsEqual<T>(left: Record<string, T>, right: Record<string, T>) {
   }
 
   return leftKeys.every((key) => left[key] === right[key]);
+}
+
+function mapArrayIfChanged<T>(items: T[], mapper: (item: T) => T) {
+  let changed = false;
+  const next = items.map((item) => {
+    const mapped = mapper(item);
+    if (mapped !== item) {
+      changed = true;
+    }
+    return mapped;
+  });
+
+  return changed ? next : items;
+}
+
+function getConversionElementId(transactionId: string) {
+  return getTransactionFieldElementId(transactionId, 'conversion');
+}
+
+function formatExchangeRateValue(value: number) {
+  return new Intl.NumberFormat(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  }).format(value);
+}
+
+function roundConversionRate(value: number) {
+  return Math.round(value * 1000000) / 1000000;
+}
+
+function formatConversionRateDate(value: string | null | undefined) {
+  if (!value) {
+    return ' - ';
+  }
+
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(parsed);
+}
+
+function buildConversionInputKey(args: {
+  amount: number;
+  currency: string;
+  accountCurrency: string;
+  transactionDate: string;
+}) {
+  return [
+    roundTransactionDocumentMoney(args.amount).toFixed(2),
+    args.currency.trim().toUpperCase(),
+    args.accountCurrency.trim().toUpperCase(),
+    args.transactionDate.trim(),
+  ].join('|');
+}
+
+function hasValidConversionAmount(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function hasValidExchangeRate(value: number | null | undefined) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function getManualConversionFromInputs(args: {
+  amount: number;
+  currency: string;
+  accountCurrency: string;
+  transactionDate: string;
+  manualExchangeRateInput: string;
+  manualConvertedAmountInput: string;
+}): TransactionDocumentReviewConversionInput | null {
+  const originalAmount = roundTransactionDocumentMoney(args.amount);
+  if (!(Number.isFinite(originalAmount) && originalAmount > 0)) {
+    return null;
+  }
+
+  const normalizedOriginalCurrency = args.currency.trim().toUpperCase();
+  const normalizedAccountCurrency = args.accountCurrency.trim().toUpperCase();
+  const parsedRate = Number(args.manualExchangeRateInput);
+  const parsedConvertedAmount = Number(args.manualConvertedAmountInput);
+  const hasRate = Number.isFinite(parsedRate) && parsedRate > 0;
+  const hasConvertedAmount = Number.isFinite(parsedConvertedAmount) && parsedConvertedAmount > 0;
+
+  if (!hasRate && !hasConvertedAmount) {
+    return null;
+  }
+
+  const exchangeRate = hasRate
+    ? roundConversionRate(parsedRate)
+    : roundConversionRate(parsedConvertedAmount / originalAmount);
+  const convertedAmount = hasConvertedAmount
+    ? roundTransactionDocumentMoney(parsedConvertedAmount)
+    : roundTransactionDocumentMoney(originalAmount * exchangeRate);
+
+  if (!hasValidExchangeRate(exchangeRate) || !hasValidConversionAmount(convertedAmount)) {
+    return null;
+  }
+
+  return {
+    source: 'manual',
+    originalAmount,
+    originalCurrency: normalizedOriginalCurrency,
+    accountCurrency: normalizedAccountCurrency,
+    convertedAmount,
+    exchangeRate,
+    rateDate: args.transactionDate || null,
+    snapshotId: null,
+    provider: null,
+    rateTimestamp: null,
+    lookupMode: 'manual',
+    manualInput: hasRate ? 'exchange_rate' : 'converted_amount',
+  };
+}
+
+function hasValidSavedConversion(args: {
+  transaction: EditableDocumentTransaction;
+  accountCurrency: string | null;
+}) {
+  const { transaction, accountCurrency } = args;
+  if (!accountCurrency) {
+    return false;
+  }
+
+  if (transaction.currency === accountCurrency) {
+    return true;
+  }
+
+  const conversion = transaction.conversion;
+  if (!conversion) {
+    return false;
+  }
+
+  return conversion.originalCurrency === transaction.currency
+    && conversion.accountCurrency === accountCurrency
+    && roundTransactionDocumentMoney(conversion.originalAmount) === roundTransactionDocumentMoney(transaction.amount)
+    && hasValidConversionAmount(conversion.convertedAmount)
+    && (
+      conversion.source === 'manual'
+        ? hasValidExchangeRate(conversion.exchangeRate ?? null)
+        : hasValidExchangeRate(conversion.exchangeRate ?? null) && typeof conversion.snapshotId === 'string' && conversion.snapshotId.length > 0
+    );
 }
 
 function getLocalizedTransactionDocumentError(args: {
@@ -574,6 +734,8 @@ export default function DocumentTransactionReviewModal({
   const lineItemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const extractionAbortControllerRef = useRef<AbortController | null>(null);
   const extractionRequestSequenceRef = useRef(0);
+  const conversionRequestSequenceRef = useRef(0);
+  const supabase = useMemo(() => createClient(), []);
 
   const parseReceiptAllowanceSummary = (value: unknown): ReceiptAllowanceSummary | null => {
     if (!value || typeof value !== 'object') return null;
@@ -1012,6 +1174,12 @@ export default function DocumentTransactionReviewModal({
               itemKind: lineItem.itemKind || 'regular',
             })),
             totalsConfirmed: false,
+              conversion: null,
+              conversionInputKey: null,
+              conversionError: '',
+              conversionPending: false,
+              manualExchangeRateInput: '',
+              manualConvertedAmountInput: '',
             confidence: draft.confidence,
             needsReview: draft.needsReview,
           } satisfies EditableDocumentTransaction;
@@ -1327,6 +1495,8 @@ export default function DocumentTransactionReviewModal({
     const duplicateBlocking = duplicateActive && !duplicateConfirmed;
     const transactions = reviewTransactions.map((transaction) => {
       const transactionFields: TransactionFieldKey[] = [];
+      const selectedAccount = accounts.find((account) => account.id === transaction.accountId) || null;
+      const accountCurrency = selectedAccount?.currency || null;
 
       if (!transaction.transactionDate) {
         transactionFields.push('transactionDate');
@@ -1393,11 +1563,24 @@ export default function DocumentTransactionReviewModal({
         tax: transaction.tax,
         lineItems: transaction.lineItems,
       });
+      const conversionBlocking = Boolean(
+        accountCurrency
+        && transaction.currency
+        && transaction.currency !== accountCurrency
+        && !hasValidSavedConversion({
+          transaction,
+          accountCurrency,
+        })
+      );
+      if (conversionBlocking) {
+        transactionFields.push('conversion');
+      }
 
       return {
         transactionId: transaction.id,
         transactionFields,
         lineItemErrors,
+        conversionBlocking,
         totalsMismatchActive: totalSummary.hasMismatch,
         totalsMismatchBlocking: totalSummary.requiresConfirmation && transaction.totalsConfirmed !== true,
         totalSummary,
@@ -1427,6 +1610,10 @@ export default function DocumentTransactionReviewModal({
             firstLineItemError.itemIndex,
             firstLineItemError.fields[0]
           );
+          break;
+        }
+        if (transaction.conversionBlocking) {
+          firstBlockingTargetId = getConversionElementId(transaction.transactionId);
           break;
         }
         if (transaction.totalsMismatchBlocking) {
@@ -1466,6 +1653,11 @@ export default function DocumentTransactionReviewModal({
         ns: 'portal',
         defaultValue: 'Fix the highlighted receipt items before saving.',
       });
+    } else if (transactions.some((transaction) => transaction.conversionBlocking)) {
+      footerMessage = t('transactions.documentReview.completeConversion', {
+        ns: 'portal',
+        defaultValue: 'Complete the currency conversion details before saving.',
+      });
     } else if (totalsMismatchBlocking) {
       footerMessage = t('transactions.documentReview.confirmTotalsMismatch', {
         ns: 'portal',
@@ -1490,6 +1682,7 @@ export default function DocumentTransactionReviewModal({
       footerMessage,
     };
   }, [
+    accounts,
     duplicateConfirmed,
     duplicates.length,
     extractError,
@@ -1561,6 +1754,250 @@ export default function DocumentTransactionReviewModal({
       transaction.id === id ? updater(transaction) : transaction
     )));
   };
+
+  const updateManualConversion = useCallback((transactionId: string, updater: (current: EditableDocumentTransaction) => {
+    manualExchangeRateInput: string;
+    manualConvertedAmountInput: string;
+  }) => {
+    updateTransaction(transactionId, (current) => {
+      const accountCurrency = accounts.find((account) => account.id === current.accountId)?.currency || '';
+      const nextInputs = updater(current);
+      const nextConversion = getManualConversionFromInputs({
+        amount: current.amount,
+        currency: current.currency,
+        accountCurrency,
+        transactionDate: current.transactionDate,
+        manualExchangeRateInput: nextInputs.manualExchangeRateInput,
+        manualConvertedAmountInput: nextInputs.manualConvertedAmountInput,
+      });
+
+      return {
+        ...current,
+        conversion: nextConversion,
+        conversionInputKey: accountCurrency && current.currency && current.transactionDate
+          ? buildConversionInputKey({
+              amount: current.amount,
+              currency: current.currency,
+              accountCurrency,
+              transactionDate: current.transactionDate,
+            })
+          : null,
+        conversionError: '',
+        conversionPending: false,
+        manualExchangeRateInput: nextInputs.manualExchangeRateInput,
+        manualConvertedAmountInput: nextInputs.manualConvertedAmountInput,
+      };
+    });
+  }, [accounts]);
+
+  useEffect(() => {
+    if (!isOpen || reviewTransactions.length === 0) {
+      return;
+    }
+
+    const sequence = conversionRequestSequenceRef.current + 1;
+    conversionRequestSequenceRef.current = sequence;
+    let cancelled = false;
+
+    const transactionsNeedingAutomaticConversion = reviewTransactions.flatMap((transaction) => {
+      const selectedAccount = accounts.find((account) => account.id === transaction.accountId);
+      const accountCurrency = selectedAccount?.currency || '';
+      if (
+        !selectedAccount
+        || !transaction.currency
+        || !transaction.transactionDate
+        || !(typeof transaction.amount === 'number' && Number.isFinite(transaction.amount) && transaction.amount > 0)
+      ) {
+        return [];
+      }
+
+      if (transaction.currency === accountCurrency) {
+        return [];
+      }
+
+      const inputKey = buildConversionInputKey({
+        amount: transaction.amount,
+        currency: transaction.currency,
+        accountCurrency,
+        transactionDate: transaction.transactionDate,
+      });
+
+      if (transaction.conversion?.source === 'manual' && transaction.conversionInputKey === inputKey) {
+        return [];
+      }
+
+      if (transaction.conversion?.source === 'automatic' && transaction.conversionInputKey === inputKey && !transaction.conversionError) {
+        return [];
+      }
+
+      return [{
+        transactionId: transaction.id,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        accountCurrency,
+        transactionDate: transaction.transactionDate,
+        inputKey,
+      }];
+    });
+
+    setReviewTransactions((current) => mapArrayIfChanged(current, (transaction) => {
+      const selectedAccount = accounts.find((account) => account.id === transaction.accountId);
+      const accountCurrency = selectedAccount?.currency || '';
+      if (!selectedAccount || !transaction.currency) {
+        return transaction;
+      }
+
+      if (transaction.currency === accountCurrency) {
+        if (
+          transaction.conversion === null
+          && !transaction.conversionError
+          && !transaction.conversionPending
+          && !transaction.manualExchangeRateInput
+          && !transaction.manualConvertedAmountInput
+          && transaction.conversionInputKey === null
+        ) {
+          return transaction;
+        }
+
+        return {
+          ...transaction,
+          conversion: null,
+          conversionInputKey: null,
+          conversionError: '',
+          conversionPending: false,
+          manualExchangeRateInput: '',
+          manualConvertedAmountInput: '',
+        };
+      }
+
+      const inputKey = buildConversionInputKey({
+        amount: transaction.amount,
+        currency: transaction.currency,
+        accountCurrency,
+        transactionDate: transaction.transactionDate,
+      });
+      const needsAutomaticRefresh = transactionsNeedingAutomaticConversion.some((item) => item.transactionId === transaction.id);
+      if (!needsAutomaticRefresh) {
+        if (transaction.conversion?.source === 'manual' && transaction.conversionInputKey !== inputKey) {
+          return {
+            ...transaction,
+            conversion: null,
+            conversionInputKey: inputKey,
+            conversionError: '',
+            conversionPending: false,
+            manualExchangeRateInput: '',
+            manualConvertedAmountInput: '',
+          };
+        }
+        return transaction;
+      }
+
+      return {
+        ...transaction,
+        conversionPending: true,
+        conversionError: '',
+        conversionInputKey: inputKey,
+      };
+    }));
+
+    if (transactionsNeedingAutomaticConversion.length === 0) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void Promise.all(transactionsNeedingAutomaticConversion.map(async (transaction) => {
+      try {
+        const lookup = await getHistoricalExchangeRateSnapshotForDate(supabase, transaction.transactionDate);
+        if (!lookup.snapshot) {
+          return {
+            transactionId: transaction.transactionId,
+            inputKey: transaction.inputKey,
+            error: t('transactions.documentReview.manualConversionRequired', {
+              ns: 'portal',
+              defaultValue: 'No saved exchange rate is available for this date. Enter a manual rate or converted amount, or choose an account in the same currency.',
+            }),
+          } as const;
+        }
+
+        const conversion = convertWithSnapshot({
+          amount: transaction.amount,
+          fromCurrency: transaction.currency,
+          toCurrency: transaction.accountCurrency,
+          snapshot: lookup.snapshot,
+          lookupMode: lookup.lookupMode,
+        });
+
+        return {
+          transactionId: transaction.transactionId,
+          inputKey: transaction.inputKey,
+          conversion: {
+            source: 'automatic',
+            originalAmount: roundTransactionDocumentMoney(transaction.amount),
+            originalCurrency: transaction.currency,
+            accountCurrency: transaction.accountCurrency,
+            convertedAmount: roundTransactionDocumentMoney(conversion.convertedAmount),
+            exchangeRate: roundConversionRate(conversion.rateUsed),
+            rateDate: conversion.rateDate,
+            snapshotId: lookup.snapshot.id,
+            provider: conversion.provider,
+            rateTimestamp: conversion.providerTimestamp || conversion.fetchedAt,
+            lookupMode: lookup.lookupMode === 'previous_available' ? 'previous_available' : 'exact',
+            manualInput: null,
+          } satisfies TransactionDocumentReviewConversionInput,
+        } as const;
+      } catch {
+        return {
+          transactionId: transaction.transactionId,
+          inputKey: transaction.inputKey,
+          error: t('transactions.documentReview.manualConversionRequired', {
+            ns: 'portal',
+            defaultValue: 'No saved exchange rate is available for this date. Enter a manual rate or converted amount, or choose an account in the same currency.',
+          }),
+        } as const;
+      }
+    })).then((results) => {
+      if (cancelled || conversionRequestSequenceRef.current !== sequence) {
+        return;
+      }
+
+      setReviewTransactions((current) => mapArrayIfChanged(current, (transaction) => {
+        const result = results.find((item) => item.transactionId === transaction.id);
+        if (!result || transaction.conversionInputKey !== result.inputKey) {
+          return transaction;
+        }
+
+        if ('conversion' in result && result.conversion) {
+          return {
+            ...transaction,
+            conversion: result.conversion,
+            conversionError: '',
+            conversionPending: false,
+            manualExchangeRateInput: '',
+            manualConvertedAmountInput: '',
+          };
+        }
+
+        if (transaction.conversion?.source === 'manual') {
+          return {
+            ...transaction,
+            conversionPending: false,
+          };
+        }
+
+        return {
+          ...transaction,
+          conversion: null,
+          conversionError: result.error,
+          conversionPending: false,
+        };
+      }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accounts, isOpen, reviewTransactions, supabase, t]);
 
   const updateLineItem = (
     transactionId: string,
@@ -1697,6 +2134,7 @@ export default function DocumentTransactionReviewModal({
           receiptNumber: transaction.receiptNumber,
           lineItems: transaction.lineItems,
           totalsConfirmed: transaction.totalsConfirmed === true,
+          conversion: transaction.conversion,
         })),
       };
       const response = await fetch('/api/transaction-documents/save', {
@@ -2269,6 +2707,8 @@ export default function DocumentTransactionReviewModal({
                 const transactionValidation = reviewValidation.transactions.find(
                   (entry) => entry.transactionId === transaction.id
                 );
+                const selectedAccount = accounts.find((account) => account.id === transaction.accountId) || null;
+                const accountCurrency = selectedAccount?.currency || '';
                 const totalSummary = transactionValidation?.totalSummary || getTransactionDocumentTotalSummary({
                   amount: transaction.amount,
                   tax: transaction.tax,
@@ -2304,6 +2744,49 @@ export default function DocumentTransactionReviewModal({
                     const rightPriority = invalidItemIndices.includes(right) ? 0 : 1;
                     return leftPriority - rightPriority || left - right;
                   });
+                const requiresConversion = Boolean(
+                  accountCurrency
+                  && transaction.currency
+                  && transaction.currency !== accountCurrency
+                );
+                const showManualConversionInputs = requiresConversion && (
+                  transaction.conversion?.source === 'manual'
+                  || Boolean(transaction.conversionError)
+                  || Boolean(transaction.manualExchangeRateInput)
+                  || Boolean(transaction.manualConvertedAmountInput)
+                );
+                const conversionBadgeLabel = showManualConversionInputs || transaction.conversion?.source === 'manual'
+                  ? t('transactions.documentReview.manualConversionLabel', {
+                    ns: 'portal',
+                    defaultValue: 'Manual conversion',
+                  })
+                  : t('transactions.documentReview.automaticConversionLabel', {
+                    ns: 'portal',
+                    defaultValue: 'Automatic conversion',
+                  });
+                const originalReceiptAmountText = typeof transaction.amount === 'number' && transaction.amount > 0
+                  ? formatCurrencyText(transaction.amount, {
+                    currencyCode: transaction.currency || undefined,
+                    fallbackCurrencyCode: transaction.currency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
+                const convertedAmountText = transaction.conversion && hasValidConversionAmount(transaction.conversion.convertedAmount)
+                  ? formatCurrencyText(transaction.conversion.convertedAmount, {
+                    currencyCode: accountCurrency || undefined,
+                    fallbackCurrencyCode: accountCurrency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
+                const exchangeRateText = transaction.conversion && hasValidExchangeRate(transaction.conversion.exchangeRate ?? null)
+                  ? t('transactions.documentReview.exchangeRateValue', {
+                    ns: 'portal',
+                    defaultValue: '1 {{fromCurrency}} = {{rate}} {{toCurrency}}',
+                    fromCurrency: transaction.currency,
+                    rate: formatExchangeRateValue(transaction.conversion.exchangeRate ?? 0),
+                    toCurrency: accountCurrency,
+                  })
+                  : '—';
 
                 return (
                   <section key={transaction.id} className="overflow-hidden rounded-3xl border border-blue-200/70 bg-[#F5F9FF]">
@@ -2489,12 +2972,12 @@ export default function DocumentTransactionReviewModal({
                             <div className="min-w-0">
                               <label className="mb-0.5 block text-xs font-600 text-foreground">{t('transactions.currency', { ns: 'portal', defaultValue: 'Currency' })} *</label>
                               <div id={getTransactionFieldElementId(transaction.id, 'currency')}>
-                                <CurrencySelector value={transaction.currency} onChange={(currencyCode) => updateTransaction(transaction.id, (current) => ({ ...current, currency: currencyCode }))} placeholder={t('settlements.chooseCurrency', { ns: 'portal' })} disabled={!!transaction.accountId} helperText={t('transactions.documentReview.accountCurrencyHint', { ns: 'portal', defaultValue: 'Currency follows the selected account.' })} className={`${hasTransactionFieldError('currency') ? '[&>button]:border-negative/60 [&>button]:bg-negative-soft/40' : ''} [&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3`} />
+                                <CurrencySelector value={transaction.currency} onChange={(currencyCode) => updateTransaction(transaction.id, (current) => ({ ...current, currency: currencyCode }))} placeholder={t('settlements.chooseCurrency', { ns: 'portal' })} helperText={t('transactions.documentReview.accountCurrencyHint', { ns: 'portal', defaultValue: 'This is the original receipt currency. The selected account keeps its own currency.' })} className={`${hasTransactionFieldError('currency') ? '[&>button]:border-negative/60 [&>button]:bg-negative-soft/40' : ''} [&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3`} />
                               </div>
                             </div>
                             <div className="min-w-0">
                               <label className="mb-0.5 block text-xs font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>
-                              <select id={getTransactionFieldElementId(transaction.id, 'accountId')} aria-invalid={hasTransactionFieldError('accountId')} className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('accountId'))}`} value={transaction.accountId} onChange={(event) => { const nextAccount = accounts.find((account) => account.id === event.target.value); updateTransaction(transaction.id, (current) => ({ ...current, accountId: event.target.value, currency: nextAccount?.currency || current.currency })); }}>
+                              <select id={getTransactionFieldElementId(transaction.id, 'accountId')} aria-invalid={hasTransactionFieldError('accountId')} className={`input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm ${getFieldErrorClass(hasTransactionFieldError('accountId'))}`} value={transaction.accountId} onChange={(event) => { updateTransaction(transaction.id, (current) => ({ ...current, accountId: event.target.value })); }}>
                                 <option value="">{t('transactions.selectAccount', { ns: 'portal' })}</option>
                                 {accounts.map((account) => (
                                   <option key={account.id} value={account.id}>
@@ -2525,6 +3008,173 @@ export default function DocumentTransactionReviewModal({
                             <label className="mb-0.5 block text-xs font-600 text-foreground">{t('transactions.notes', { ns: 'portal', defaultValue: 'Notes' })}</label>
                             <textarea rows={2} className="input-base min-h-[3.75rem] w-full min-w-0 resize-none px-3 py-2 text-sm" value={transaction.notes} onChange={(event) => updateTransaction(transaction.id, (current) => ({ ...current, notes: event.target.value }))} />
                           </div>
+                        </section>
+                      ) : null}
+
+                      {requiresConversion ? (
+                        <section
+                          id={getConversionElementId(transaction.id)}
+                          className={`rounded-2xl border p-3 sm:p-3.5 ${
+                            hasTransactionFieldError('conversion')
+                              ? 'border-amber-200/80 bg-[#FFF9F0]'
+                              : 'border-blue-200/70 bg-white/75'
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.conversionTitle', {
+                                  ns: 'portal',
+                                  defaultValue: 'Currency conversion',
+                                })}
+                              </h4>
+                              <p className="mt-1 text-sm text-foreground">
+                                {t('transactions.documentReview.conversionDescription', {
+                                  ns: 'portal',
+                                  defaultValue: 'The receipt stays in {{originalCurrency}}. The saved transaction will use {{accountCurrency}} for the selected account.',
+                                  originalCurrency: transaction.currency,
+                                  accountCurrency,
+                                })}
+                              </p>
+                            </div>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-700 ${
+                              transaction.conversion?.source === 'manual'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {conversionBadgeLabel}
+                            </span>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.originalReceiptAmount', {
+                                  ns: 'portal',
+                                  defaultValue: 'Original receipt',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{originalReceiptAmountText}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.exchangeRate', {
+                                  ns: 'portal',
+                                  defaultValue: 'Exchange rate',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{exchangeRateText}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.savedToAccount', {
+                                  ns: 'portal',
+                                  defaultValue: 'Saved to account',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{convertedAmountText}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.selectedAccountCurrency', {
+                                  ns: 'portal',
+                                  defaultValue: 'Selected account currency',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-600 text-foreground">{accountCurrency}</p>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.rateDate', {
+                                  ns: 'portal',
+                                  defaultValue: 'Rate date',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-600 text-foreground">
+                                {formatConversionRateDate(transaction.conversion?.rateDate || transaction.transactionDate)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {transaction.conversionPending ? (
+                            <p className="mt-3 text-sm text-muted-foreground">
+                              {t('transactions.documentReview.fetchingConversionRate', {
+                                ns: 'portal',
+                                defaultValue: 'Looking up the saved exchange rate for this date...',
+                              })}
+                            </p>
+                          ) : null}
+
+                          {transaction.conversion?.source === 'automatic' && transaction.conversion.lookupMode === 'previous_available' ? (
+                            <p className="mt-3 text-sm text-muted-foreground">
+                              {t('transactions.documentReview.usingPreviousRate', {
+                                ns: 'portal',
+                                defaultValue: 'Using the closest saved exchange rate available for {{date}}.',
+                                date: formatConversionRateDate(transaction.conversion.rateDate || transaction.transactionDate),
+                              })}
+                            </p>
+                          ) : null}
+
+                          {showManualConversionInputs ? (
+                            <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-3">
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-700 text-amber-950">
+                                    {t('transactions.documentReview.manualConversionTitle', {
+                                      ns: 'portal',
+                                      defaultValue: 'Manual conversion',
+                                    })}
+                                  </p>
+                                  <p className="mt-1 text-sm text-amber-900/80">
+                                    {transaction.conversionError || t('transactions.documentReview.manualConversionHint', {
+                                      ns: 'portal',
+                                      defaultValue: 'Enter either the exchange rate or the converted amount to save this receipt to the selected account.',
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="min-w-0">
+                                  <label className="mb-0.5 block text-xs font-600 text-foreground">
+                                    {t('transactions.documentReview.manualExchangeRate', {
+                                      ns: 'portal',
+                                      defaultValue: 'Manual exchange rate',
+                                    })}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    step="0.000001"
+                                    min="0.000001"
+                                    className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                                    value={transaction.manualExchangeRateInput}
+                                    onChange={(event) => updateManualConversion(transaction.id, (current) => ({
+                                      manualExchangeRateInput: event.target.value,
+                                      manualConvertedAmountInput: current.manualConvertedAmountInput,
+                                    }))}
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <label className="mb-0.5 block text-xs font-600 text-foreground">
+                                    {t('transactions.documentReview.manualConvertedAmount', {
+                                      ns: 'portal',
+                                      defaultValue: 'Converted amount to save',
+                                    })}
+                                  </label>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.01"
+                                    className="input-base h-10 min-h-10 w-full min-w-0 px-3 py-2 text-sm"
+                                    value={transaction.manualConvertedAmountInput}
+                                    onChange={(event) => updateManualConversion(transaction.id, (current) => ({
+                                      manualExchangeRateInput: current.manualExchangeRateInput,
+                                      manualConvertedAmountInput: event.target.value,
+                                    }))}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
                         </section>
                       ) : null}
 

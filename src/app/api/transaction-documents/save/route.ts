@@ -6,6 +6,7 @@ import {
   loadSavedTransactionDocumentReviewResult,
   mapDocumentOptionsFromContext,
   requireAdminClient,
+  resolveTransactionDocumentSaveRequestPayload,
   sanitizeTransactionDocumentSaveRequestPayload,
 } from '@/lib/transaction-documents-server';
 import {
@@ -242,11 +243,16 @@ export async function POST(request: NextRequest) {
       userId,
     });
 
-    const reviewedPayload = sanitizeTransactionDocumentSaveRequestPayload({
+    const sanitizedPayload = sanitizeTransactionDocumentSaveRequestPayload({
       rawPayload: body,
       accounts: options.accounts,
       categories: options.categories,
       defaultCurrency: options.defaultCurrency,
+    });
+    const reviewedPayload = await resolveTransactionDocumentSaveRequestPayload({
+      admin,
+      payload: sanitizedPayload,
+      accounts: options.accounts,
     });
     jobId = reviewedPayload.jobId;
     draftCount = reviewedPayload.transactions.length;
