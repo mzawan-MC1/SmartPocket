@@ -3592,6 +3592,87 @@
       "cancelAction": "Annuler"
     }
   },
+  "adminCurrency": {
+    "tabs": {
+      "currencySettings": "Parametres des devises",
+      "exchangeRateUpdates": "Mises a jour des taux de change"
+    },
+    "currencySettings": {
+      "title": "Parametres des devises",
+      "description": "Gerez les devises actives, l'ordre des devises mises en avant, les apercus des selecteurs et la devise par defaut de la plateforme depuis le registre de reference global."
+    },
+    "exchangeRateUpdates": {
+      "title": "Mises a jour des taux de change",
+      "description": "Surveillez la synchronisation des taux de change de Smart Pocket, la fraicheur des donnees et l'historique des mises a jour des 30 derniers jours.",
+      "loadingBadge": "Chargement du statut",
+      "refreshAction": "Actualiser le statut",
+      "refreshingAction": "Actualisation...",
+      "loading": "Chargement du statut des mises a jour des taux de change...",
+      "loadFailed": "L'historique des mises a jour des taux de change n'a pas pu etre charge.",
+      "loadFailedTitle": "L'historique des mises a jour des taux de change n'a pas pu etre charge.",
+      "summaryTitle": "Resume des taux de change",
+      "summaryDescription": "Consultez le dernier snapshot reussi, la fraicheur, le planning et le resultat de synchronisation le plus recent.",
+      "historyTitle": "30 derniers jours",
+      "historyDescription": "Smart Pocket enregistre chaque execution de synchronisation des taux de change dans son propre historique d'audit.",
+      "dailyUpdatesTitle": "Mises a jour quotidiennes",
+      "dailyUpdatesDescription": "Affiche uniquement les synchronisations normales du dernier snapshot sur les 30 derniers jours.",
+      "dailyUpdatesEmptyTitle": "Aucune mise a jour quotidienne des taux de change n'est encore disponible.",
+      "dailyUpdatesEmptyDescription": "Les snapshots automatiques executes deux fois par jour apparaitront ici une fois enregistres par Smart Pocket.",
+      "historicalBackfillTitle": "Rattrapage historique",
+      "historicalBackfillDescription": "Affiche les executions de rattrapage historique separement des mises a jour quotidiennes normales.",
+      "historicalBackfillEmptyTitle": "Aucun rattrapage historique n'est encore disponible.",
+      "historicalBackfillEmptyDescription": "Les executions manuelles ou automatiques de rattrapage historique apparaitront ici une fois enregistrees par Smart Pocket.",
+      "legacyUpdatesTitle": "Mises a jour heritage",
+      "legacyUpdatesDescription": "Ces anciennes lignes ont ete enregistrees avant que Smart Pocket commence a classer les executions quotidiennes et historiques.",
+      "legacyUpdatesEmptyTitle": "Aucune mise a jour heritage des taux de change n'est disponible.",
+      "legacyUpdatesEmptyDescription": "Les anciennes executions anterieures a la classification n'apparaitront ici que si elles existent sur les 30 derniers jours.",
+      "emptyTitle": "Aucun historique de mise a jour des taux de change n'est encore disponible.",
+      "emptyDescription": "Les executions automatiques et manuelles apparaitront ici une fois enregistrees par Smart Pocket.",
+      "legacyLabel": "Mise a jour heritage",
+      "rateDateLabel": "Date du taux : {{value}}",
+      "historicalRateDate": "Date du taux historique : {{value}}",
+      "baseCurrency": "Devise de base : {{currency}}",
+      "unavailableShort": "Indisponible",
+      "utcLabel": "UTC {{value}}",
+      "rateCount_one": "{{count}} taux enregistre",
+      "rateCount_other": "{{count}} taux enregistres",
+      "providerTimestamp": "Horodatage du fournisseur : {{value}}",
+      "providerTimestampUnavailable": "Horodatage du fournisseur indisponible.",
+      "lastStarted": "Demarre : {{value}}",
+      "lastFailureTitle": "Dernier echec",
+      "noFailures": "Aucun echec recent de mise a jour des taux de change n'a ete enregistre.",
+      "rowCount_one": "{{count}} execution",
+      "rowCount_other": "{{count}} executions",
+      "historyRateCount_one": "{{count}} taux",
+      "historyRateCount_other": "{{count}} taux",
+      "duration": "Duree : {{value}}",
+      "completedAt": "Termine : {{value}}",
+      "cards": {
+        "provider": "Fournisseur",
+        "latestSuccessfulUpdate": "Derniere mise a jour reussie",
+        "latestRateDate": "Derniere date de taux",
+        "freshness": "Fraicheur",
+        "latestRunStatus": "Statut de la derniere execution",
+        "schedule": "Planning automatique actif"
+      },
+      "freshness": {
+        "fresh": "A jour",
+        "stale": "Ancien",
+        "unavailable": "Indisponible"
+      },
+      "status": {
+        "success": "Succes",
+        "failed": "Echec",
+        "running": "En cours",
+        "unavailable": "Indisponible"
+      },
+      "schedule": {
+        "primary": "06:17 EAU",
+        "secondary": "18:17 EAU",
+        "helper": "GitHub Actions s'execute deux fois par jour a 02:17 et 14:17 UTC."
+      }
+    }
+  },
   "adminFaqs": {
     "title": "FAQ",
     "description": "Gerez les categories FAQ multilingues, les reponses publiees, l'ordre et les apercus publics depuis un seul endroit.",

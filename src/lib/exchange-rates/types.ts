@@ -1,4 +1,5 @@
 export type ExchangeRateSyncStatus = 'success' | 'failed';
+export type ExchangeRateSyncType = 'latest' | 'historical';
 
 export type ExchangeRateFreshness = 'fresh' | 'stale' | 'unavailable';
 
@@ -48,6 +49,8 @@ export interface ExchangeRateSnapshotRecord {
 export interface ExchangeRateSyncRunRecord {
   id: string;
   provider: string;
+  sync_type: ExchangeRateSyncType | null;
+  rate_date: string | null;
   started_at: string;
   completed_at: string | null;
   status: string;

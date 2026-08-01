@@ -3602,6 +3602,93 @@
       "cancelAction": "Отмена"
     }
   },
+  "adminCurrency": {
+    "tabs": {
+      "currencySettings": "Nastroiki valyut",
+      "exchangeRateUpdates": "Obnovleniya kursov valyut"
+    },
+    "currencySettings": {
+      "title": "Nastroiki valyut",
+      "description": "Upravlyayte aktivnymi valyutami, poryadkom prioritetnykh valyut, predprosmotrom selektorov i platformennoy valyutoy po umolchaniyu iz globalnogo spravochnika."
+    },
+    "exchangeRateUpdates": {
+      "title": "Obnovleniya kursov valyut",
+      "description": "Otsezhivayte sinhronizatsiyu kursov valyut v Smart Pocket, aktualnost dannykh i istoriyu obnovleniy za poslednie 30 dney.",
+      "loadingBadge": "Zagruzka statusa",
+      "refreshAction": "Obnovit status",
+      "refreshingAction": "Obnovlenie...",
+      "loading": "Zagruzhaetsya status obnovleniy kursov valyut...",
+      "loadFailed": "Ne udalos zagruzit istoriyu obnovleniy kursov valyut.",
+      "loadFailedTitle": "Ne udalos zagruzit istoriyu obnovleniy kursov valyut.",
+      "summaryTitle": "Svodka po kursam valyut",
+      "summaryDescription": "Prosmotrite posledniy uspeshnyy snyapshot, aktualnost, raspisanie i rezultat poslednego zapuska sinhronizatsii.",
+      "historyTitle": "Poslednie 30 dney",
+      "historyDescription": "Smart Pocket sokhranyaet kazhdyy zapusk sinhronizatsii kursov valyut v sobstvennoy zhurnalnoy istorii.",
+      "dailyUpdatesTitle": "Ezhednevnye obnovleniya",
+      "dailyUpdatesDescription": "Pokazyvaet tolko obychnye zapuski sinhronizatsii poslednego snyapshota za poslednie 30 dney.",
+      "dailyUpdatesEmptyTitle": "Ezhednevnykh obnovleniy kursov valyut eshche net.",
+      "dailyUpdatesEmptyDescription": "Avtomaticheskie snyapshoty, kotorye zapuskayutsya dva raza v den, poyavyatsya zdes posle zapisi Smart Pocket.",
+      "historicalBackfillTitle": "Istoricheskiy dobor",
+      "historicalBackfillDescription": "Pokazyvaet istoricheskie zapuski doborа otdelno ot obychnykh ezhednevnykh obnovleniy.",
+      "historicalBackfillEmptyTitle": "Istoricheskikh zapuskov dobora eshche net.",
+      "historicalBackfillEmptyDescription": "Ruchnye ili avtomaticheskie istoricheskie zapuski dobora poyavyatsya zdes, kak tolko Smart Pocket ikh zafiksiruet.",
+      "legacyUpdatesTitle": "Legacy obnovleniya",
+      "legacyUpdatesDescription": "Eti starye stroki byli zapisany do togo, kak Smart Pocket nachal razdelyat ezhednevnye i istoricheskie zapuski.",
+      "legacyUpdatesEmptyTitle": "Legacy obnovleniy kursov valyut net.",
+      "legacyUpdatesEmptyDescription": "Starye zapuski do klassifikatsii budut pokazany zdes tolko esli oni sushchestvuyut v poslednie 30 dney.",
+      "emptyTitle": "Istoriya obnovleniy kursov valyut eshche nedostupna.",
+      "emptyDescription": "Avtomaticheskie i ruchnye zapuski poyavyatsya zdes, kak tolko Smart Pocket nachnet ikh zapisivat.",
+      "legacyLabel": "Legacy update",
+      "rateDateLabel": "Data kursa: {{value}}",
+      "historicalRateDate": "Istoricheskaya data kursa: {{value}}",
+      "baseCurrency": "Bazovaya valyuta: {{currency}}",
+      "unavailableShort": "Nedostupno",
+      "utcLabel": "UTC {{value}}",
+      "rateCount_one": "{{count}} kurs sokhranen",
+      "rateCount_few": "{{count}} kursa sokhraneno",
+      "rateCount_many": "{{count}} kursov sokhraneno",
+      "rateCount_other": "{{count}} kursa sokhraneno",
+      "providerTimestamp": "Vremennaya metka provaydera: {{value}}",
+      "providerTimestampUnavailable": "Vremennaya metka provaydera nedostupna.",
+      "lastStarted": "Start: {{value}}",
+      "lastFailureTitle": "Poslednyaya oshibka",
+      "noFailures": "Nedavnie sboi obnovleniya kursov valyut ne zafiksirovany.",
+      "rowCount_one": "{{count}} zapusk",
+      "rowCount_few": "{{count}} zapuska",
+      "rowCount_many": "{{count}} zapuskov",
+      "rowCount_other": "{{count}} zapuska",
+      "historyRateCount_one": "{{count}} kurs",
+      "historyRateCount_few": "{{count}} kursa",
+      "historyRateCount_many": "{{count}} kursov",
+      "historyRateCount_other": "{{count}} kursa",
+      "duration": "Dlitelnost: {{value}}",
+      "completedAt": "Zaversheno: {{value}}",
+      "cards": {
+        "provider": "Provayder",
+        "latestSuccessfulUpdate": "Poslednee uspeshnoe obnovlenie",
+        "latestRateDate": "Data poslednego kursa",
+        "freshness": "Aktualnost",
+        "latestRunStatus": "Status poslednego zapuska",
+        "schedule": "Aktivnoe avtomaticheskoe raspisanie"
+      },
+      "freshness": {
+        "fresh": "Aktualno",
+        "stale": "Ustarelo",
+        "unavailable": "Nedostupno"
+      },
+      "status": {
+        "success": "Uspeshno",
+        "failed": "Oshibka",
+        "running": "Vypolnyaetsya",
+        "unavailable": "Nedostupno"
+      },
+      "schedule": {
+        "primary": "06:17 OAE",
+        "secondary": "18:17 OAE",
+        "helper": "GitHub Actions zapuskaetsya dva raza v den v 02:17 i 14:17 UTC."
+      }
+    }
+  },
   "adminFaqs": {
     "title": "FAQ",
     "description": "Управляйте многоязычными категориями FAQ, опубликованными ответами, порядком и публичным предпросмотром из одного места.",

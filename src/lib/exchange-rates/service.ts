@@ -7,6 +7,7 @@ import type {
   ExchangeRateSnapshotRecord,
   ExchangeRateStatusSummary,
   ExchangeRateSyncRunRecord,
+  ExchangeRateSyncType,
 } from '@/lib/exchange-rates/types';
 
 const MIN_REASONABLE_RATE_COUNT = 10;
@@ -219,16 +220,24 @@ export async function listHistoricalExchangeRateSnapshots(
   return (data || []).map(parseSnapshotRow);
 }
 
-async function createExchangeRateSyncRun(client: ExchangeRateQueryClient, providerName: string) {
-  const provider = normalizeProviderId(providerName);
+async function createExchangeRateSyncRun(args: {
+  client: ExchangeRateQueryClient;
+  providerName: string;
+  syncType: ExchangeRateSyncType;
+  rateDate?: string | null;
+}) {
+  const provider = normalizeProviderId(args.providerName);
+  const rateDate = normalizeRateDate(args.rateDate);
   if (!provider) {
     throw new Error('Exchange-rate sync provider is invalid');
   }
 
-  const { data, error } = await client
+  const { data, error } = await args.client
     .from('exchange_rate_sync_runs')
     .insert({
       provider,
+      sync_type: args.syncType,
+      rate_date: rateDate,
       started_at: new Date().toISOString(),
       status: 'running',
       error_message: null,
@@ -251,8 +260,10 @@ async function completeExchangeRateSyncRun(
     status: 'success' | 'failed';
     rateCount: number;
     errorMessage: string | null;
+    rateDate?: string | null;
   }
 ) {
+  const rateDate = normalizeRateDate(args.rateDate);
   const { error } = await client
     .from('exchange_rate_sync_runs')
     .update({
@@ -260,6 +271,7 @@ async function completeExchangeRateSyncRun(
       status: args.status,
       rate_count: args.rateCount,
       error_message: args.errorMessage,
+      rate_date: rateDate,
     })
     .eq('id', args.runId);
 
@@ -386,7 +398,11 @@ export async function syncExchangeRates(args: {
   provider: ExchangeRateProvider;
   supportedCurrencies: string[];
 }) {
-  const runId = await createExchangeRateSyncRun(args.client, args.provider.name);
+  const runId = await createExchangeRateSyncRun({
+    client: args.client,
+    providerName: args.provider.name,
+    syncType: 'latest',
+  });
 
   try {
     const snapshot = validateProviderSnapshot(await args.provider.latestRates(), args.supportedCurrencies);
@@ -401,6 +417,7 @@ export async function syncExchangeRates(args: {
       status: 'success',
       rateCount,
       errorMessage: null,
+      rateDate: snapshot.rateDate,
     });
 
     return {
@@ -457,7 +474,12 @@ export async function syncHistoricalExchangeRatesForDate(args: {
     };
   }
 
-  const runId = await createExchangeRateSyncRun(args.client, args.provider.name);
+  const runId = await createExchangeRateSyncRun({
+    client: args.client,
+    providerName: args.provider.name,
+    syncType: 'historical',
+    rateDate: normalizedDate,
+  });
 
   try {
     const snapshot = validateProviderSnapshot(
@@ -480,6 +502,7 @@ export async function syncHistoricalExchangeRatesForDate(args: {
       status: 'success',
       rateCount,
       errorMessage: null,
+      rateDate: snapshot.rateDate,
     });
 
     return {
@@ -501,6 +524,7 @@ export async function syncHistoricalExchangeRatesForDate(args: {
       status: 'failed',
       rateCount: 0,
       errorMessage: message,
+      rateDate: normalizedDate,
     }).catch(() => undefined);
     throw error;
   }

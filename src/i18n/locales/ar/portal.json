@@ -3612,6 +3612,96 @@
       "cancelAction": "إلغاء"
     }
   },
+  "adminCurrency": {
+    "tabs": {
+      "currencySettings": "إعدادات العملات",
+      "exchangeRateUpdates": "تحديثات أسعار الصرف"
+    },
+    "currencySettings": {
+      "title": "إعدادات العملات",
+      "description": "إدارة العملات النشطة وترتيب العملات المميزة ومعاينات القوائم والعملة الافتراضية للمنصة من السجل المرجعي العالمي."
+    },
+    "exchangeRateUpdates": {
+      "title": "تحديثات أسعار الصرف",
+      "description": "راقب مزامنة أسعار الصرف في Smart Pocket وحداثة البيانات وسجل التحديثات لآخر 30 يوماً.",
+      "loadingBadge": "جارٍ تحميل الحالة",
+      "refreshAction": "تحديث الحالة",
+      "refreshingAction": "جارٍ التحديث...",
+      "loading": "جارٍ تحميل حالة تحديث أسعار الصرف...",
+      "loadFailed": "تعذر تحميل سجل تحديث أسعار الصرف.",
+      "loadFailedTitle": "تعذر تحميل سجل تحديث أسعار الصرف.",
+      "summaryTitle": "ملخص أسعار الصرف",
+      "summaryDescription": "راجع آخر لقطة ناجحة وحداثة البيانات والجدول الزمني وأحدث نتيجة للمزامنة.",
+      "historyTitle": "آخر 30 يوماً",
+      "historyDescription": "يخزن Smart Pocket كل عملية مزامنة لأسعار الصرف في سجل التدقيق الخاص به.",
+      "dailyUpdatesTitle": "التحديثات اليومية",
+      "dailyUpdatesDescription": "يعرض فقط عمليات مزامنة أحدث لقطة يومية خلال آخر 30 يوماً.",
+      "dailyUpdatesEmptyTitle": "لا توجد تحديثات يومية لأسعار الصرف حتى الآن.",
+      "dailyUpdatesEmptyDescription": "ستظهر هنا تحديثات اللقطات التلقائية التي تعمل مرتين يومياً عندما يسجلها Smart Pocket.",
+      "historicalBackfillTitle": "الاستكمال التاريخي",
+      "historicalBackfillDescription": "يعرض عمليات الاستكمال التاريخي بشكل منفصل عن التحديثات اليومية العادية.",
+      "historicalBackfillEmptyTitle": "لا توجد عمليات استكمال تاريخي حتى الآن.",
+      "historicalBackfillEmptyDescription": "ستظهر هنا عمليات الاستكمال التاريخي اليدوية أو التلقائية عندما يسجلها Smart Pocket.",
+      "legacyUpdatesTitle": "تحديثات قديمة",
+      "legacyUpdatesDescription": "تم تسجيل هذه الصفوف الأقدم قبل أن يبدأ Smart Pocket في تصنيف التشغيلات اليومية والتاريخية.",
+      "legacyUpdatesEmptyTitle": "لا توجد تحديثات قديمة لأسعار الصرف.",
+      "legacyUpdatesEmptyDescription": "ستظهر هنا التشغيلات القديمة السابقة للتصنيف فقط إذا كانت موجودة خلال آخر 30 يوماً.",
+      "emptyTitle": "لا يتوفر سجل لتحديثات أسعار الصرف حتى الآن.",
+      "emptyDescription": "ستظهر هنا عمليات المزامنة التلقائية واليدوية عندما يسجلها Smart Pocket.",
+      "legacyLabel": "تحديث قديم",
+      "rateDateLabel": "تاريخ السعر: {{value}}",
+      "historicalRateDate": "تاريخ السعر التاريخي: {{value}}",
+      "baseCurrency": "العملة الأساسية: {{currency}}",
+      "unavailableShort": "غير متاح",
+      "utcLabel": "UTC {{value}}",
+      "rateCount_one": "تم تخزين سعر واحد",
+      "rateCount_two": "تم تخزين سعرين",
+      "rateCount_few": "تم تخزين {{count}} أسعار",
+      "rateCount_many": "تم تخزين {{count}} سعراً",
+      "rateCount_other": "تم تخزين {{count}} سعر",
+      "providerTimestamp": "الطابع الزمني للمزوّد: {{value}}",
+      "providerTimestampUnavailable": "الطابع الزمني للمزوّد غير متاح.",
+      "lastStarted": "بدأ في: {{value}}",
+      "lastFailureTitle": "آخر فشل",
+      "noFailures": "لم يتم تسجيل أي فشل حديث في تحديث أسعار الصرف.",
+      "rowCount_one": "عملية واحدة",
+      "rowCount_two": "عمليتان",
+      "rowCount_few": "{{count}} عمليات",
+      "rowCount_many": "{{count}} عملية",
+      "rowCount_other": "{{count}} عملية",
+      "historyRateCount_one": "سعر واحد",
+      "historyRateCount_two": "سعران",
+      "historyRateCount_few": "{{count}} أسعار",
+      "historyRateCount_many": "{{count}} سعراً",
+      "historyRateCount_other": "{{count}} سعر",
+      "duration": "المدة: {{value}}",
+      "completedAt": "اكتمل في: {{value}}",
+      "cards": {
+        "provider": "المزوّد",
+        "latestSuccessfulUpdate": "آخر تحديث ناجح",
+        "latestRateDate": "أحدث تاريخ للأسعار",
+        "freshness": "الحداثة",
+        "latestRunStatus": "حالة آخر تشغيل",
+        "schedule": "الجدول التلقائي النشط"
+      },
+      "freshness": {
+        "fresh": "حديث",
+        "stale": "متأخر",
+        "unavailable": "غير متاح"
+      },
+      "status": {
+        "success": "نجاح",
+        "failed": "فشل",
+        "running": "قيد التشغيل",
+        "unavailable": "غير متاح"
+      },
+      "schedule": {
+        "primary": "06:17 الإمارات",
+        "secondary": "18:17 الإمارات",
+        "helper": "يعمل GitHub Actions مرتين يومياً عند 02:17 و14:17 UTC."
+      }
+    }
+  },
   "adminFaqs": {
     "title": "الأسئلة الشائعة",
     "description": "أدر فئات الأسئلة الشائعة متعددة اللغات وإجاباتها المنشورة وترتيبها ومعاينتها العامة من مكان واحد.",

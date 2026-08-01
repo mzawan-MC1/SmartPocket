@@ -4,6 +4,9 @@ import { getExchangeRateStatusSummary, syncExchangeRates } from '@/lib/exchange-
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 
+const EXCHANGE_RATE_HISTORY_LOOKBACK_DAYS = 30;
+const EXCHANGE_RATE_HISTORY_LIMIT = 250;
+
 async function requireAdminUser() {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
   const {
@@ -65,18 +68,29 @@ export async function GET() {
       throw new Error('Supabase admin client is not configured');
     }
 
-    const [summary, latestRun] = await Promise.all([
+    const historyWindowStart = new Date(Date.now() - EXCHANGE_RATE_HISTORY_LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    const [summary, latestRun, history] = await Promise.all([
       getExchangeRateStatusSummary(admin),
       admin
         .from('exchange_rate_sync_runs')
-        .select('*')
+        .select('id, provider, sync_type, rate_date, started_at, completed_at, status, rate_count, error_message')
+        .eq('sync_type', 'latest')
         .order('started_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      admin
+        .from('exchange_rate_sync_runs')
+        .select('id, provider, sync_type, rate_date, started_at, completed_at, status, rate_count, error_message')
+        .gte('started_at', historyWindowStart)
+        .order('started_at', { ascending: false })
+        .limit(EXCHANGE_RATE_HISTORY_LIMIT),
     ]);
 
     if (latestRun.error) {
       throw latestRun.error;
+    }
+    if (history.error) {
+      throw history.error;
     }
 
     return applySupabaseCookies(
@@ -84,6 +98,7 @@ export async function GET() {
         configured: true,
         summary,
         latestRun: latestRun.data || null,
+        history: history.data || [],
       }),
       auth.cookieMutations
     );

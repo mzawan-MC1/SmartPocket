@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Loader2, Save, Star } from 'lucide-react';
+import { Activity, CalendarClock, Check, Loader2, RefreshCw, Save, Star } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import CurrencyOptionRow from '@/components/currency/CurrencyOptionRow';
 import CurrencySymbol from '@/components/currency/CurrencySymbol';
 import SearchField from '@/components/ui/SearchField';
+import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -27,6 +29,42 @@ import type {
 } from '@/lib/reference-data/types';
 
 type CurrencyFilter = 'all' | 'active' | 'inactive' | 'featured';
+type AdminCurrencyTab = 'settings' | 'exchangeRateUpdates';
+
+type ExchangeRateRunStatus = 'success' | 'failed' | 'running';
+type ExchangeRateRunSyncType = 'latest' | 'historical' | null;
+
+type ExchangeRateStatusHistoryEntry = {
+  id: string;
+  provider: string | null;
+  sync_type: ExchangeRateRunSyncType;
+  rate_date: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  status: ExchangeRateRunStatus;
+  rate_count: number | null;
+  error_message: string | null;
+};
+
+type ExchangeRateStatusSummaryPayload = {
+  provider: string | null;
+  baseCurrency: string | null;
+  rateDate: string | null;
+  fetchedAt: string | null;
+  providerTimestamp: string | null;
+  rateCount: number;
+  freshness: 'fresh' | 'stale' | 'unavailable';
+  stale: boolean;
+  lastFailureMessage: string | null;
+};
+
+type ExchangeRateStatusResponse = {
+  configured: boolean;
+  summary: ExchangeRateStatusSummaryPayload | null;
+  latestRun: ExchangeRateStatusHistoryEntry | null;
+  history: ExchangeRateStatusHistoryEntry[];
+  error?: string;
+};
 
 interface AdminCurrencySettingsClientProps {
   initialCurrencies: CurrencyReference[];
@@ -102,12 +140,148 @@ function ToggleButton({
   );
 }
 
+function formatExchangeRateProviderName(provider: string | null | undefined) {
+  const normalized = typeof provider === 'string' ? provider.trim().toLowerCase() : '';
+  if (!normalized) {
+    return '—';
+  }
+
+  if (normalized === 'open_exchange_rates') {
+    return 'Open Exchange Rates';
+  }
+
+  return normalized
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatLocalizedDateTime(value: string | null | undefined, locale: string) {
+  if (!value) {
+    return '—';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(parsed);
+}
+
+function formatUtcDateTime(value: string | null | undefined) {
+  if (!value) {
+    return '—';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
+function formatLocalizedDateHeading(value: string | null | undefined, locale: string) {
+  if (!value) {
+    return '—';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'long',
+  }).format(parsed);
+}
+
+function formatLocalizedTime(value: string | null | undefined, locale: string) {
+  if (!value) {
+    return '—';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return '—';
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    timeStyle: 'short',
+  }).format(parsed);
+}
+
+function formatRunDuration(startedAt: string | null | undefined, completedAt: string | null | undefined) {
+  if (!startedAt || !completedAt) {
+    return null;
+  }
+
+  const startMs = Date.parse(startedAt);
+  const endMs = Date.parse(completedAt);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs < startMs) {
+    return null;
+  }
+
+  const totalSeconds = Math.max(0, Math.round((endMs - startMs) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
+}
+
+function getRunStatusBadgeTone(status: ExchangeRateRunStatus | string | null | undefined) {
+  switch (status) {
+    case 'success':
+      return 'success' as const;
+    case 'failed':
+      return 'error' as const;
+    case 'running':
+      return 'pending' as const;
+    default:
+      return 'info' as const;
+  }
+}
+
+function groupExchangeRateHistoryByStartedDate(
+  entries: ExchangeRateStatusHistoryEntry[],
+  locale: string
+) {
+  const groups = new Map<string, ExchangeRateStatusHistoryEntry[]>();
+
+  for (const row of entries) {
+    const groupLabel = formatLocalizedDateHeading(row.started_at, locale);
+    if (!groups.has(groupLabel)) {
+      groups.set(groupLabel, []);
+    }
+    groups.get(groupLabel)?.push(row);
+  }
+
+  return Array.from(groups.entries()).map(([label, rows]) => ({
+    label,
+    rows,
+  }));
+}
+
 export default function AdminCurrencySettingsClient({
   initialCurrencies,
   initialCountries,
   initialCountryCurrencies,
   initialDefaultCurrency,
 }: AdminCurrencySettingsClientProps) {
+  const { t, i18n } = useTranslation('portal');
   const router = useRouter();
   const [currencies, setCurrencies] = useState(initialCurrencies);
   const [defaultCurrency, setDefaultCurrency] = useState(initialDefaultCurrency);
@@ -119,6 +293,12 @@ export default function AdminCurrencySettingsClient({
   const [regionFilter, setRegionFilter] = useState('all');
   const [isSaving, setIsSaving] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+  const [activeTab, setActiveTab] = useState<AdminCurrencyTab>('settings');
+  const [exchangeRateStatus, setExchangeRateStatus] = useState<ExchangeRateStatusResponse | null>(null);
+  const [exchangeRateStatusLoading, setExchangeRateStatusLoading] = useState(false);
+  const [exchangeRateStatusRefreshing, setExchangeRateStatusRefreshing] = useState(false);
+  const [exchangeRateStatusLoaded, setExchangeRateStatusLoaded] = useState(false);
+  const locale = i18n.language || 'en';
 
   const currenciesByCode = useMemo(
     () => new Map(currencies.map((currency) => [currency.code, currency])),
@@ -345,33 +525,616 @@ export default function AdminCurrencySettingsClient({
     }
   };
 
+  const loadExchangeRateStatus = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+    if (mode === 'refresh') {
+      setExchangeRateStatusRefreshing(true);
+    } else {
+      setExchangeRateStatusLoading(true);
+    }
+
+    try {
+      const response = await fetch('/api/admin/exchange-rates/status', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      const payload = await response.json().catch(() => null) as ExchangeRateStatusResponse | null;
+      if (!response.ok) {
+        throw new Error(
+          payload?.error
+          || t('adminCurrency.exchangeRateUpdates.loadFailed', {
+            defaultValue: 'Exchange-rate update history could not be loaded.',
+          })
+        );
+      }
+
+      setExchangeRateStatus({
+        configured: Boolean(payload?.configured),
+        summary: payload?.summary || null,
+        latestRun: payload?.latestRun || null,
+        history: Array.isArray(payload?.history) ? payload.history : [],
+        error: payload?.error,
+      });
+    } catch (error) {
+      setExchangeRateStatus((current) => current ? {
+        ...current,
+        error: error instanceof Error ? error.message : t('adminCurrency.exchangeRateUpdates.loadFailed', {
+          defaultValue: 'Exchange-rate update history could not be loaded.',
+        }),
+      } : {
+        configured: false,
+        summary: null,
+        latestRun: null,
+        history: [],
+        error: error instanceof Error ? error.message : t('adminCurrency.exchangeRateUpdates.loadFailed', {
+          defaultValue: 'Exchange-rate update history could not be loaded.',
+        }),
+      });
+    } finally {
+      setExchangeRateStatusLoaded(true);
+      setExchangeRateStatusLoading(false);
+      setExchangeRateStatusRefreshing(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    if (activeTab !== 'exchangeRateUpdates' || exchangeRateStatusLoaded || exchangeRateStatusLoading) {
+      return;
+    }
+
+    void loadExchangeRateStatus();
+  }, [activeTab, exchangeRateStatusLoaded, exchangeRateStatusLoading, loadExchangeRateStatus]);
+
+  const dailyUpdateHistory = useMemo(
+    () => (exchangeRateStatus?.history || []).filter((row) => row.sync_type === 'latest'),
+    [exchangeRateStatus?.history]
+  );
+  const historicalBackfillHistory = useMemo(
+    () => (exchangeRateStatus?.history || []).filter((row) => row.sync_type === 'historical'),
+    [exchangeRateStatus?.history]
+  );
+  const legacyUpdateHistory = useMemo(
+    () => (exchangeRateStatus?.history || []).filter((row) => !row.sync_type),
+    [exchangeRateStatus?.history]
+  );
+
+  const groupedDailyUpdateHistory = useMemo(
+    () => groupExchangeRateHistoryByStartedDate(dailyUpdateHistory, locale),
+    [dailyUpdateHistory, locale]
+  );
+  const groupedHistoricalBackfillHistory = useMemo(
+    () => groupExchangeRateHistoryByStartedDate(historicalBackfillHistory, locale),
+    [historicalBackfillHistory, locale]
+  );
+  const groupedLegacyUpdateHistory = useMemo(
+    () => groupExchangeRateHistoryByStartedDate(legacyUpdateHistory, locale),
+    [legacyUpdateHistory, locale]
+  );
+
+  const latestDailyRun = exchangeRateStatus?.latestRun || null;
+  const currentExchangeRateProvider = formatExchangeRateProviderName(
+    exchangeRateStatus?.summary?.provider || latestDailyRun?.provider || null
+  );
+  const exchangeRateFreshnessTone = exchangeRateStatus?.summary?.freshness === 'fresh'
+    ? 'success'
+    : exchangeRateStatus?.summary?.freshness === 'stale'
+      ? 'warning'
+      : 'missing';
+  const exchangeRateFreshnessLabel = exchangeRateStatus?.summary?.freshness === 'fresh'
+    ? t('adminCurrency.exchangeRateUpdates.freshness.fresh', { defaultValue: 'Fresh' })
+    : exchangeRateStatus?.summary?.freshness === 'stale'
+      ? t('adminCurrency.exchangeRateUpdates.freshness.stale', { defaultValue: 'Stale' })
+      : t('adminCurrency.exchangeRateUpdates.freshness.unavailable', { defaultValue: 'Unavailable' });
+  const latestRunStatusLabel = latestDailyRun?.status === 'success'
+    ? t('adminCurrency.exchangeRateUpdates.status.success', { defaultValue: 'Success' })
+    : latestDailyRun?.status === 'failed'
+      ? t('adminCurrency.exchangeRateUpdates.status.failed', { defaultValue: 'Failed' })
+      : latestDailyRun?.status === 'running'
+        ? t('adminCurrency.exchangeRateUpdates.status.running', { defaultValue: 'Running' })
+        : t('adminCurrency.exchangeRateUpdates.status.unavailable', { defaultValue: 'Unavailable' });
+
+  const pageHeaderBadge = activeTab === 'settings'
+    ? (
+        hasUnsavedChanges ? (
+          <StatusBadge status="warning" label="Unsaved changes" />
+        ) : saveState === 'saved' ? (
+          <StatusBadge status="success" label="Saved" />
+        ) : (
+          <StatusBadge status="ready" label="Up to date" />
+        )
+      )
+    : exchangeRateStatusLoading && !exchangeRateStatusLoaded ? (
+        <StatusBadge
+          status="pending"
+          label={t('adminCurrency.exchangeRateUpdates.loadingBadge', {
+            defaultValue: 'Loading status',
+          })}
+        />
+      ) : (
+        <StatusBadge
+          status={getRunStatusBadgeTone(latestDailyRun?.status)}
+          label={latestRunStatusLabel}
+        />
+      );
+
+  const pageHeaderActions = activeTab === 'settings'
+    ? (
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving || !hasUnsavedChanges}
+          className="btn-primary w-full sm:w-auto"
+        >
+          {isSaving ? <Loader2 size={15} className="animate-spin" /> : saveState === 'saved' ? <Check size={15} /> : <Save size={15} />}
+          {saveState === 'saved' && !hasUnsavedChanges ? 'Saved' : 'Save Changes'}
+        </button>
+      )
+    : (
+        <button
+          type="button"
+          onClick={() => void loadExchangeRateStatus('refresh')}
+          disabled={exchangeRateStatusLoading || exchangeRateStatusRefreshing}
+          className="btn-secondary w-full sm:w-auto"
+        >
+          {exchangeRateStatusRefreshing ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              {t('adminCurrency.exchangeRateUpdates.refreshingAction', {
+                defaultValue: 'Refreshing...',
+              })}
+            </>
+          ) : (
+            <>
+              <RefreshCw size={15} />
+              {t('adminCurrency.exchangeRateUpdates.refreshAction', {
+                defaultValue: 'Refresh status',
+              })}
+            </>
+          )}
+        </button>
+      );
+
+  const renderExchangeRateHistorySection = (
+    groupedRows: Array<{ label: string; rows: ExchangeRateStatusHistoryEntry[] }>,
+    args: {
+      emptyTitle: string;
+      emptyDescription: string;
+      showHistoricalRateDate?: boolean;
+      showLegacyLabel?: boolean;
+    }
+  ) => {
+    if (exchangeRateStatusLoading && !exchangeRateStatus) {
+      return (
+        <div className="rounded-2xl border border-border px-4 py-6 text-sm text-muted-foreground">
+          {t('adminCurrency.exchangeRateUpdates.loading', {
+            defaultValue: 'Loading exchange-rate update status...',
+          })}
+        </div>
+      );
+    }
+
+    if (exchangeRateStatus?.error && groupedRows.length === 0) {
+      return (
+        <EmptyState
+          icon={CalendarClock}
+          variant="compact"
+          tone="neutral"
+          title={t('adminCurrency.exchangeRateUpdates.loadFailedTitle', {
+            defaultValue: 'Exchange-rate update history could not be loaded.',
+          })}
+          description={exchangeRateStatus.error}
+          action={{
+            label: t('adminCurrency.exchangeRateUpdates.refreshAction', {
+              defaultValue: 'Refresh status',
+            }),
+            onClick: () => void loadExchangeRateStatus('refresh'),
+          }}
+        />
+      );
+    }
+
+    if (groupedRows.length === 0) {
+      return (
+        <EmptyState
+          icon={CalendarClock}
+          variant="compact"
+          tone="neutral"
+          title={args.emptyTitle}
+          description={args.emptyDescription}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-5">
+        {groupedRows.map((group) => (
+          <div key={group.label} className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-700 text-foreground">{group.label}</h3>
+              <p className="text-xs text-muted-foreground">
+                {t('adminCurrency.exchangeRateUpdates.rowCount', {
+                  defaultValue: '{{count}} runs',
+                  count: group.rows.length,
+                })}
+              </p>
+            </div>
+            <div className="space-y-3">
+              {group.rows.map((row) => (
+                <div key={row.id} className="rounded-2xl border border-border bg-card p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-700 text-foreground">
+                          {formatLocalizedTime(row.started_at, locale)}
+                        </p>
+                        <span className="text-sm text-muted-foreground">-</span>
+                        <p className="text-sm text-muted-foreground">
+                          {formatExchangeRateProviderName(row.provider)}
+                        </p>
+                        {args.showLegacyLabel ? (
+                          <StatusBadge
+                            status="info"
+                            label={t('adminCurrency.exchangeRateUpdates.legacyLabel', {
+                              defaultValue: 'Legacy update',
+                            })}
+                          />
+                        ) : null}
+                        <StatusBadge
+                          status={getRunStatusBadgeTone(row.status)}
+                          label={
+                            row.status === 'success'
+                              ? t('adminCurrency.exchangeRateUpdates.status.success', { defaultValue: 'Success' })
+                              : row.status === 'failed'
+                                ? t('adminCurrency.exchangeRateUpdates.status.failed', { defaultValue: 'Failed' })
+                                : t('adminCurrency.exchangeRateUpdates.status.running', { defaultValue: 'Running' })
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                        {args.showHistoricalRateDate ? (
+                          <span>
+                            {t('adminCurrency.exchangeRateUpdates.historicalRateDate', {
+                              defaultValue: 'Historical rate date: {{value}}',
+                              value: row.rate_date || '—',
+                            })}
+                          </span>
+                        ) : row.rate_date ? (
+                          <span>
+                            {t('adminCurrency.exchangeRateUpdates.rateDateLabel', {
+                              defaultValue: 'Rate date: {{value}}',
+                              value: row.rate_date,
+                            })}
+                          </span>
+                        ) : null}
+                        <span>
+                          {t('adminCurrency.exchangeRateUpdates.historyRateCount', {
+                            defaultValue: '{{count}} rates',
+                            count: row.rate_count || 0,
+                          })}
+                        </span>
+                        {formatRunDuration(row.started_at, row.completed_at) ? (
+                          <span>
+                            {t('adminCurrency.exchangeRateUpdates.duration', {
+                              defaultValue: 'Duration: {{value}}',
+                              value: formatRunDuration(row.started_at, row.completed_at),
+                            })}
+                          </span>
+                        ) : null}
+                        <span>
+                          {t('adminCurrency.exchangeRateUpdates.utcLabel', {
+                            defaultValue: 'UTC {{value}}',
+                            value: formatUtcDateTime(row.started_at),
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-xs text-muted-foreground lg:text-right">
+                      <p>
+                        {t('adminCurrency.exchangeRateUpdates.completedAt', {
+                          defaultValue: 'Completed: {{value}}',
+                          value: formatLocalizedDateTime(row.completed_at, locale),
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {row.status === 'failed' && row.error_message ? (
+                    <div className="mt-3 rounded-xl border border-warning/30 bg-warning-soft/20 px-3 py-2 text-sm text-foreground">
+                      {row.error_message}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const exchangeRateUpdatesContent = (
+    <>
+      <SectionCard
+        title={t('adminCurrency.exchangeRateUpdates.summaryTitle', {
+          defaultValue: 'Exchange Rate Summary',
+        })}
+        description={t('adminCurrency.exchangeRateUpdates.summaryDescription', {
+          defaultValue: 'Review the latest successful snapshot, freshness, schedule, and the most recent synchronization result.',
+        })}
+      >
+        {exchangeRateStatusLoading && !exchangeRateStatus ? (
+          <div className="rounded-2xl border border-border px-4 py-6 text-sm text-muted-foreground">
+            {t('adminCurrency.exchangeRateUpdates.loading', {
+              defaultValue: 'Loading exchange-rate update status...',
+            })}
+          </div>
+        ) : exchangeRateStatus?.error && !exchangeRateStatus?.summary && !exchangeRateStatus?.latestRun ? (
+          <EmptyState
+            icon={Activity}
+            variant="compact"
+            tone="neutral"
+            title={t('adminCurrency.exchangeRateUpdates.loadFailedTitle', {
+              defaultValue: 'Exchange-rate update history could not be loaded.',
+            })}
+            description={exchangeRateStatus.error}
+            action={{
+              label: t('adminCurrency.exchangeRateUpdates.refreshAction', {
+                defaultValue: 'Refresh status',
+              }),
+              onClick: () => void loadExchangeRateStatus('refresh'),
+            }}
+          />
+        ) : (
+          <div className="space-y-4">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.provider', {
+                    defaultValue: 'Provider',
+                  })}
+                </p>
+                <p className="mt-2 text-sm font-700 text-foreground">{currentExchangeRateProvider}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {exchangeRateStatus?.summary?.baseCurrency
+                    ? t('adminCurrency.exchangeRateUpdates.baseCurrency', {
+                        defaultValue: 'Base currency: {{currency}}',
+                        currency: exchangeRateStatus.summary.baseCurrency,
+                      })
+                    : t('adminCurrency.exchangeRateUpdates.unavailableShort', {
+                        defaultValue: 'Unavailable',
+                      })}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.latestSuccessfulUpdate', {
+                    defaultValue: 'Latest successful update',
+                  })}
+                </p>
+                <p className="mt-2 text-sm font-700 text-foreground">
+                  {formatLocalizedDateTime(exchangeRateStatus?.summary?.fetchedAt, locale)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.utcLabel', {
+                    defaultValue: 'UTC {{value}}',
+                    value: formatUtcDateTime(exchangeRateStatus?.summary?.fetchedAt),
+                  })}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.latestRateDate', {
+                    defaultValue: 'Latest rate date',
+                  })}
+                </p>
+                <p className="mt-2 text-sm font-700 text-foreground">
+                  {exchangeRateStatus?.summary?.rateDate || '—'}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.rateCount', {
+                    defaultValue: '{{count}} rates stored',
+                    count: exchangeRateStatus?.summary?.rateCount || 0,
+                  })}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.freshness', {
+                    defaultValue: 'Freshness',
+                  })}
+                </p>
+                <div className="mt-2">
+                  <StatusBadge status={exchangeRateFreshnessTone} label={exchangeRateFreshnessLabel} />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {exchangeRateStatus?.summary?.providerTimestamp
+                    ? t('adminCurrency.exchangeRateUpdates.providerTimestamp', {
+                        defaultValue: 'Provider timestamp: {{value}}',
+                        value: formatLocalizedDateTime(exchangeRateStatus.summary.providerTimestamp, locale),
+                      })
+                    : t('adminCurrency.exchangeRateUpdates.providerTimestampUnavailable', {
+                        defaultValue: 'Provider timestamp unavailable.',
+                      })}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.latestRunStatus', {
+                    defaultValue: 'Latest run status',
+                  })}
+                </p>
+                <div className="mt-2">
+                  <StatusBadge
+                    status={getRunStatusBadgeTone(latestDailyRun?.status)}
+                    label={latestRunStatusLabel}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.lastStarted', {
+                    defaultValue: 'Started: {{value}}',
+                    value: formatLocalizedDateTime(latestDailyRun?.started_at, locale),
+                  })}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-4">
+                <p className="text-[11px] font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.cards.schedule', {
+                    defaultValue: 'Active automatic schedule',
+                  })}
+                </p>
+                <p className="mt-2 text-sm font-700 text-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.schedule.primary', {
+                    defaultValue: '06:17 UAE',
+                  })}
+                </p>
+                <p className="mt-1 text-sm font-700 text-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.schedule.secondary', {
+                    defaultValue: '18:17 UAE',
+                  })}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('adminCurrency.exchangeRateUpdates.schedule.helper', {
+                    defaultValue: 'GitHub Actions runs twice daily at 02:17 and 14:17 UTC.',
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-sm font-700 text-foreground">
+                {t('adminCurrency.exchangeRateUpdates.lastFailureTitle', {
+                  defaultValue: 'Last failure',
+                })}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {exchangeRateStatus?.summary?.lastFailureMessage || t('adminCurrency.exchangeRateUpdates.noFailures', {
+                  defaultValue: 'No exchange-rate update failures have been recorded recently.',
+                })}
+              </p>
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title={t('adminCurrency.exchangeRateUpdates.dailyUpdatesTitle', {
+          defaultValue: 'Daily Updates',
+        })}
+        description={t('adminCurrency.exchangeRateUpdates.dailyUpdatesDescription', {
+          defaultValue: 'Shows only normal latest snapshot synchronization runs from the last 30 days.',
+        })}
+      >
+        {renderExchangeRateHistorySection(groupedDailyUpdateHistory, {
+          emptyTitle: t('adminCurrency.exchangeRateUpdates.dailyUpdatesEmptyTitle', {
+            defaultValue: 'No daily exchange-rate updates are available yet.',
+          }),
+          emptyDescription: t('adminCurrency.exchangeRateUpdates.dailyUpdatesEmptyDescription', {
+            defaultValue: 'Twice-daily automatic snapshot updates will appear here once Smart Pocket records them.',
+          }),
+        })}
+      </SectionCard>
+
+      <SectionCard
+        title={t('adminCurrency.exchangeRateUpdates.historicalBackfillTitle', {
+          defaultValue: 'Historical Backfill',
+        })}
+        description={t('adminCurrency.exchangeRateUpdates.historicalBackfillDescription', {
+          defaultValue: 'Shows historical catch-up runs separately from normal daily updates.',
+        })}
+      >
+        {renderExchangeRateHistorySection(groupedHistoricalBackfillHistory, {
+          emptyTitle: t('adminCurrency.exchangeRateUpdates.historicalBackfillEmptyTitle', {
+            defaultValue: 'No historical backfill runs are available yet.',
+          }),
+          emptyDescription: t('adminCurrency.exchangeRateUpdates.historicalBackfillEmptyDescription', {
+            defaultValue: 'Manual or automatic historical catch-up runs will appear here once Smart Pocket records them.',
+          }),
+          showHistoricalRateDate: true,
+        })}
+      </SectionCard>
+
+      {groupedLegacyUpdateHistory.length > 0 ? (
+        <SectionCard
+          title={t('adminCurrency.exchangeRateUpdates.legacyUpdatesTitle', {
+            defaultValue: 'Legacy Updates',
+          })}
+          description={t('adminCurrency.exchangeRateUpdates.legacyUpdatesDescription', {
+            defaultValue: 'These older rows were recorded before Smart Pocket started classifying daily and historical runs.',
+          })}
+        >
+          {renderExchangeRateHistorySection(groupedLegacyUpdateHistory, {
+            emptyTitle: t('adminCurrency.exchangeRateUpdates.legacyUpdatesEmptyTitle', {
+              defaultValue: 'No legacy exchange-rate updates are available.',
+            }),
+            emptyDescription: t('adminCurrency.exchangeRateUpdates.legacyUpdatesEmptyDescription', {
+              defaultValue: 'Older pre-classification exchange-rate runs will appear here only when they exist in the last 30 days.',
+            }),
+            showLegacyLabel: true,
+          })}
+        </SectionCard>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="page-section gap-5 lg:gap-6">
       <PageHeader
-        title="Currency Settings"
-        description="Manage active currencies, featured order, selector previews, and the default platform currency from the global reference registry."
-        badge={
-          hasUnsavedChanges ? (
-            <StatusBadge status="warning" label="Unsaved changes" />
-          ) : saveState === 'saved' ? (
-            <StatusBadge status="success" label="Saved" />
-          ) : (
-            <StatusBadge status="ready" label="Up to date" />
-          )
-        }
-        actions={
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || !hasUnsavedChanges}
-            className="btn-primary w-full sm:w-auto"
-          >
-            {isSaving ? <Loader2 size={15} className="animate-spin" /> : saveState === 'saved' ? <Check size={15} /> : <Save size={15} />}
-            {saveState === 'saved' && !hasUnsavedChanges ? 'Saved' : 'Save Changes'}
-          </button>
-        }
+        title={activeTab === 'settings'
+          ? t('adminCurrency.currencySettings.title', {
+              defaultValue: 'Currency Settings',
+            })
+          : t('adminCurrency.exchangeRateUpdates.title', {
+              defaultValue: 'Exchange Rate Updates',
+            })}
+        description={activeTab === 'settings'
+          ? t('adminCurrency.currencySettings.description', {
+              defaultValue: 'Manage active currencies, featured order, selector previews, and the default platform currency from the global reference registry.',
+            })
+          : t('adminCurrency.exchangeRateUpdates.description', {
+              defaultValue: 'Monitor Smart Pocket exchange-rate synchronization, freshness, and the last 30 days of update history.',
+            })}
+        badge={pageHeaderBadge}
+        actions={pageHeaderActions}
       />
 
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('settings')}
+          className={`rounded-full border px-4 py-2 text-sm font-700 transition ${
+            activeTab === 'settings'
+              ? 'border-accent bg-accent/10 text-accent'
+              : 'border-border bg-card text-muted-foreground hover:border-accent/30 hover:text-foreground'
+          }`}
+        >
+          {t('adminCurrency.tabs.currencySettings', {
+            defaultValue: 'Currency Settings',
+          })}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('exchangeRateUpdates')}
+          className={`rounded-full border px-4 py-2 text-sm font-700 transition ${
+            activeTab === 'exchangeRateUpdates'
+              ? 'border-accent bg-accent/10 text-accent'
+              : 'border-border bg-card text-muted-foreground hover:border-accent/30 hover:text-foreground'
+          }`}
+        >
+          {t('adminCurrency.tabs.exchangeRateUpdates', {
+            defaultValue: 'Exchange Rate Updates',
+          })}
+        </button>
+      </div>
+
+      {activeTab === 'settings' ? (
+      <>
       <SectionCard
         title="Default Platform Currency"
         description="Choose the active default used by platform settings. Featured currencies appear first, followed by all remaining active currencies in alphabetical order."
@@ -676,6 +1439,8 @@ export default function AdminCurrencySettingsClient({
           </ul>
         </SectionCard>
       </div>
+      </>
+      ) : exchangeRateUpdatesContent}
     </div>
   );
 }

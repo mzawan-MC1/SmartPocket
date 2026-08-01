@@ -3960,6 +3960,87 @@
       "cancelAction": "Cancel"
     }
   },
+  "adminCurrency": {
+    "tabs": {
+      "currencySettings": "Currency Settings",
+      "exchangeRateUpdates": "Exchange Rate Updates"
+    },
+    "currencySettings": {
+      "title": "Currency Settings",
+      "description": "Manage active currencies, featured order, selector previews, and the default platform currency from the global reference registry."
+    },
+    "exchangeRateUpdates": {
+      "title": "Exchange Rate Updates",
+      "description": "Monitor Smart Pocket exchange-rate synchronization, freshness, and the last 30 days of update history.",
+      "loadingBadge": "Loading status",
+      "refreshAction": "Refresh status",
+      "refreshingAction": "Refreshing...",
+      "loading": "Loading exchange-rate update status...",
+      "loadFailed": "Exchange-rate update history could not be loaded.",
+      "loadFailedTitle": "Exchange-rate update history could not be loaded.",
+      "summaryTitle": "Exchange Rate Summary",
+      "summaryDescription": "Review the latest successful snapshot, freshness, schedule, and the most recent synchronization result.",
+      "historyTitle": "Last 30 Days",
+      "historyDescription": "Smart Pocket stores every exchange-rate synchronization run in its own audit history.",
+      "dailyUpdatesTitle": "Daily Updates",
+      "dailyUpdatesDescription": "Shows only normal latest snapshot synchronization runs from the last 30 days.",
+      "dailyUpdatesEmptyTitle": "No daily exchange-rate updates are available yet.",
+      "dailyUpdatesEmptyDescription": "Twice-daily automatic snapshot updates will appear here once Smart Pocket records them.",
+      "historicalBackfillTitle": "Historical Backfill",
+      "historicalBackfillDescription": "Shows historical catch-up runs separately from normal daily updates.",
+      "historicalBackfillEmptyTitle": "No historical backfill runs are available yet.",
+      "historicalBackfillEmptyDescription": "Manual or automatic historical catch-up runs will appear here once Smart Pocket records them.",
+      "legacyUpdatesTitle": "Legacy Updates",
+      "legacyUpdatesDescription": "These older rows were recorded before Smart Pocket started classifying daily and historical runs.",
+      "legacyUpdatesEmptyTitle": "No legacy exchange-rate updates are available.",
+      "legacyUpdatesEmptyDescription": "Older pre-classification exchange-rate runs will appear here only when they exist in the last 30 days.",
+      "emptyTitle": "No exchange-rate update history is available yet.",
+      "emptyDescription": "Automatic and manual synchronization runs will appear here once Smart Pocket records them.",
+      "legacyLabel": "Legacy update",
+      "rateDateLabel": "Rate date: {{value}}",
+      "historicalRateDate": "Historical rate date: {{value}}",
+      "baseCurrency": "Base currency: {{currency}}",
+      "unavailableShort": "Unavailable",
+      "utcLabel": "UTC {{value}}",
+      "rateCount_one": "{{count}} rate stored",
+      "rateCount_other": "{{count}} rates stored",
+      "providerTimestamp": "Provider timestamp: {{value}}",
+      "providerTimestampUnavailable": "Provider timestamp unavailable.",
+      "lastStarted": "Started: {{value}}",
+      "lastFailureTitle": "Last failure",
+      "noFailures": "No exchange-rate update failures have been recorded recently.",
+      "rowCount_one": "{{count}} run",
+      "rowCount_other": "{{count}} runs",
+      "historyRateCount_one": "{{count}} rate",
+      "historyRateCount_other": "{{count}} rates",
+      "duration": "Duration: {{value}}",
+      "completedAt": "Completed: {{value}}",
+      "cards": {
+        "provider": "Provider",
+        "latestSuccessfulUpdate": "Latest successful update",
+        "latestRateDate": "Latest rate date",
+        "freshness": "Freshness",
+        "latestRunStatus": "Latest run status",
+        "schedule": "Active automatic schedule"
+      },
+      "freshness": {
+        "fresh": "Fresh",
+        "stale": "Stale",
+        "unavailable": "Unavailable"
+      },
+      "status": {
+        "success": "Success",
+        "failed": "Failed",
+        "running": "Running",
+        "unavailable": "Unavailable"
+      },
+      "schedule": {
+        "primary": "06:17 UAE",
+        "secondary": "18:17 UAE",
+        "helper": "GitHub Actions runs twice daily at 02:17 and 14:17 UTC."
+      }
+    }
+  },
   "adminFaqs": {
     "title": "FAQs",
     "description": "Manage multilingual FAQ categories, published answers, ordering, and public previews from one place.",
