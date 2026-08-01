@@ -782,6 +782,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const [mode, setMode] = useState<EntryMode>(defaultMode);
   const [textInput, setTextInput] = useState('');
   const [spokenLanguage, setSpokenLanguage] = useState<SmartEntrySpokenLanguage>('auto');
+  const [isLanguageSelectorOpen, setIsLanguageSelectorOpen] = useState(false);
   const [parsed, setParsed] = useState<ParsedFinancialInstruction | null>(null);
   const [reviewState, setReviewState] = useState<SmartEntryReview | null>(null);
   const [transcript, setTranscript] = useState('');
@@ -816,6 +817,10 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     () => normalizeDisplayLanguage(uiLanguage),
     [uiLanguage]
   );
+
+  useEffect(() => {
+    setIsLanguageSelectorOpen(false);
+  }, [mode]);
 
   // Check AI configuration on mount
   useEffect(() => {
@@ -2610,6 +2615,8 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const languageChipClassName = 'min-h-9 rounded-full border px-3 py-1.5 text-xs font-600 transition-colors sm:min-h-10';
   const selectedLanguageChipClassName = 'border-accent/30 bg-accent/10 text-accent';
   const unselectedLanguageChipClassName = 'border-border bg-background text-muted-foreground hover:bg-muted/70 hover:text-foreground';
+  const selectedSpokenLanguageLabel = SPOKEN_LANGUAGES.find((entry) => entry.code === spokenLanguage)?.label
+    || t('smartEntryModal.language.autoDetect', { ns: 'portal' });
   const originalTranscriptLanguageLabel = (() => {
     const value = (originalTranscriptLanguage || '').toLowerCase();
     if (value === 'ur') return t('language.ur', { ns: 'common' });
@@ -2834,59 +2841,84 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
               </div>
 
               <div className="rounded-2xl border border-border bg-secondary/20 p-3 sm:p-3.5">
-                <div className="mb-2.5">
-                  <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
-                    {t('smartEntryModal.languageLabel', { ns: 'portal' })}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {t('smartEntryModal.language.helper', { ns: 'portal' })}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsLanguageSelectorOpen((current) => !current)}
+                  className="flex w-full items-center justify-between gap-3 text-start"
+                  aria-expanded={isLanguageSelectorOpen}
+                  aria-controls="smart-entry-language-options"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-700 uppercase tracking-[0.16em] text-muted-foreground">
+                      {t('smartEntryModal.languageLabel', { ns: 'portal' })}
+                    </p>
+                    <p className="mt-1 truncate text-sm font-600 text-foreground">
+                      {selectedSpokenLanguageLabel}
+                    </p>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`shrink-0 text-muted-foreground transition-transform ${isLanguageSelectorOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
 
-                <div className="flex flex-wrap gap-2">
-                  {visibleSpokenLanguages.map((entry) => (
-                    <button
-                      key={entry.code}
-                      type="button"
-                      onClick={() => setSpokenLanguage(entry.code)}
-                      dir={getLanguageDirection(entry.code)}
-                      lang={entry.code === 'auto' ? undefined : entry.code}
-                      aria-pressed={spokenLanguage === entry.code}
-                      className={`${languageChipClassName} ${
-                        spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
-                      }`}
-                    >
-                      {entry.label}
-                    </button>
-                  ))}
-                </div>
-                {mode === 'voice' && advancedSpokenLanguages.length > 0 && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer list-none text-[11px] font-600 text-muted-foreground">
-                      {t('smartEntryModal.language.advancedRecognition', { ns: 'portal' })}
-                    </summary>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {advancedSpokenLanguages.map((entry) => (
+                {isLanguageSelectorOpen ? (
+                  <div id="smart-entry-language-options" className="mt-2.5">
+                    <p className="text-xs text-muted-foreground">
+                      {t('smartEntryModal.language.helper', { ns: 'portal' })}
+                    </p>
+                    <div className="mt-2.5 flex flex-wrap gap-2">
+                      {visibleSpokenLanguages.map((entry) => (
                         <button
                           key={entry.code}
                           type="button"
-                          onClick={() => setSpokenLanguage(entry.code)}
+                          onClick={() => {
+                            setSpokenLanguage(entry.code);
+                            setIsLanguageSelectorOpen(false);
+                          }}
                           dir={getLanguageDirection(entry.code)}
-                          lang={entry.code}
+                          lang={entry.code === 'auto' ? undefined : entry.code}
                           aria-pressed={spokenLanguage === entry.code}
                           className={`${languageChipClassName} ${
                             spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
                           }`}
                         >
                           {entry.label}
-                          <span className="ms-1 text-[10px] font-500 opacity-75">
-                            {t('smartEntryModal.language.recognitionOnly', { ns: 'portal' })}
-                          </span>
                         </button>
                       ))}
                     </div>
-                  </details>
-                )}
+                    {mode === 'voice' && advancedSpokenLanguages.length > 0 && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer list-none text-[11px] font-600 text-muted-foreground">
+                          {t('smartEntryModal.language.advancedRecognition', { ns: 'portal' })}
+                        </summary>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {advancedSpokenLanguages.map((entry) => (
+                            <button
+                              key={entry.code}
+                              type="button"
+                              onClick={() => {
+                                setSpokenLanguage(entry.code);
+                                setIsLanguageSelectorOpen(false);
+                              }}
+                              dir={getLanguageDirection(entry.code)}
+                              lang={entry.code}
+                              aria-pressed={spokenLanguage === entry.code}
+                              className={`${languageChipClassName} ${
+                                spokenLanguage === entry.code ? selectedLanguageChipClassName : unselectedLanguageChipClassName
+                              }`}
+                            >
+                              {entry.label}
+                              <span className="ms-1 text-[10px] font-500 opacity-75">
+                                {t('smartEntryModal.language.recognitionOnly', { ns: 'portal' })}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               {mode === 'document' ? (
@@ -2955,7 +2987,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                     value={textInput}
                     onChange={e => setTextInput(e.target.value)}
                     placeholder={examplePlaceholder}
-                    className="w-full min-h-[7.25rem] resize-y rounded-2xl border border-border bg-background/90 px-4 py-3.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:font-normal placeholder:text-muted-foreground/70 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 sm:min-h-[8.25rem]"
+                    className="w-full min-h-[7.25rem] resize-y rounded-2xl border border-border bg-background/90 px-4 py-3.5 text-sm leading-6 text-foreground shadow-sm outline-none transition-colors placeholder:font-normal placeholder:text-muted-foreground/40 focus:border-accent/40 focus:ring-2 focus:ring-accent/10 sm:min-h-[8.25rem]"
                     dir={getLanguageDirection(displayLanguage)}
                     lang={displayLanguage}
                     onKeyDown={e => {
