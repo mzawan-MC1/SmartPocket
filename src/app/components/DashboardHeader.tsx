@@ -197,7 +197,7 @@ export default function DashboardHeader({
               <div className="flex h-10 min-w-[50px] items-center justify-center rounded-full border border-slate-200/80 bg-white px-1 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_button]:h-8 [&_button]:gap-1 [&_button]:rounded-full [&_button]:border [&_button]:border-slate-200 [&_button]:bg-slate-50 [&_button]:px-1.5 [&_button_svg]:h-[14px] [&_button_svg]:w-[14px]">
                 <LanguageSwitcher variant="compact" theme="light" />
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_.notification-bell-trigger]:h-9 [&_.notification-bell-trigger]:w-9 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[19px] [&_.notification-bell-trigger_svg]:w-[19px]">
+              <div className="[&_.notification-bell-trigger]:flex [&_.notification-bell-trigger]:h-10 [&_.notification-bell-trigger]:w-10 [&_.notification-bell-trigger]:items-center [&_.notification-bell-trigger]:justify-center [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger]:border [&_.notification-bell-trigger]:border-slate-200/80 [&_.notification-bell-trigger]:bg-white [&_.notification-bell-trigger]:p-0 [&_.notification-bell-trigger]:shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_.notification-bell-trigger_svg]:h-[19px] [&_.notification-bell-trigger_svg]:w-[19px]">
                 <NotificationBell />
               </div>
               <div className="relative" ref={profileMenuRef}>

@@ -3,14 +3,17 @@ import Link from 'next/link';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye,
+  Wallet, TrendingUp, TrendingDown, ArrowUpDown, Target, CalendarClock, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Eye, EyeOff,
 } from 'lucide-react';
 import { getDashboardMetrics, type DashboardActivePeriod, type DashboardConvertedMetric, type DashboardMetrics } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
+import CurrencySymbol from '@/components/currency/CurrencySymbol';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import { getBudgetPeriodTypeLabel } from '@/lib/financial-periods/budgets';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 
 const DASHBOARD_METRICS_TIMEOUT_MS = 12000;
 
@@ -242,7 +245,9 @@ export default function DashboardMetrics({
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
+  const { data: referenceData } = useClientReferenceData();
   const locale = getIntlLocale(language);
+  const currencies = referenceData?.snapshot.currencies ?? [];
   const isArabic = language === 'ar';
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -731,11 +736,21 @@ export default function DashboardMetrics({
       return metric.originalTotals[0]?.currency || metrics.defaultCurrency;
     };
 
-    const renderMaskedAmount = (metric: DashboardConvertedMetric, className: string) => {
+    const renderMaskedAmount = (
+      metric: DashboardConvertedMetric,
+      className: string,
+      size: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+    ) => {
       const code = getPrimaryCurrencyCode(metric);
+      const currency = getCurrencyByCode(currencies, code);
       return (
         <span dir="ltr" className={`inline-flex items-baseline whitespace-nowrap font-tabular ${className}`.trim()}>
-          {code} {maskedText}
+          {currency ? (
+            <CurrencySymbol currency={currency} size={size} className="text-inherit" />
+          ) : (
+            <span>{code}</span>
+          )}
+          <span className="ms-[0.18em]">{maskedText}</span>
         </span>
       );
     };
@@ -755,7 +770,7 @@ export default function DashboardMetrics({
       }
     ) => {
       if (hideSensitive) {
-        return renderMaskedAmount(metric, className);
+        return renderMaskedAmount(metric, className, size);
       }
 
       if (metric.reportingAmount === null) {
@@ -887,7 +902,11 @@ export default function DashboardMetrics({
                   aria-pressed={hideSensitive}
                   aria-label={hideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
                 >
-                  <Eye size={16} className="text-white/90" />
+                  {hideSensitive ? (
+                    <EyeOff size={16} className="text-white/90" />
+                  ) : (
+                    <Eye size={16} className="text-white/90" />
+                  )}
                 </button>
               </div>
             </div>
