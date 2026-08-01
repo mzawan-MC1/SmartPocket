@@ -1172,6 +1172,7 @@
       "confidenceLabel": "Confiance {{value}}%",
       "accountCurrencyHint": "Il s'agit de la devise d'origine du reçu. Le compte sélectionné conserve sa propre devise.",
       "completeConversion": "Complétez les détails de conversion de devise avant l'enregistrement.",
+      "currencyRequired": "Choisissez la devise du reçu avant l'enregistrement.",
       "manualConversionRequired": "Aucun taux de change enregistré n'est disponible pour cette date. Saisissez un taux manuel ou le montant converti, ou choisissez un compte dans la même devise.",
       "conversionTitle": "Conversion de devise",
       "conversionDescription": "Le reçu reste en {{originalCurrency}}. La transaction enregistrée utilisera {{accountCurrency}} pour le compte sélectionné.",

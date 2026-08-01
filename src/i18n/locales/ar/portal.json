@@ -1192,6 +1192,7 @@
       "confidenceLabel": "نسبة الثقة {{value}}%",
       "accountCurrencyHint": "هذه هي عملة الإيصال الأصلية. يحتفظ الحساب المحدد بعملته الخاصة.",
       "completeConversion": "أكمل تفاصيل تحويل العملة قبل الحفظ.",
+      "currencyRequired": "اختر عملة الإيصال قبل الحفظ.",
       "manualConversionRequired": "لا يتوفر سعر صرف محفوظ لهذا التاريخ. أدخل سعرًا يدويًا أو المبلغ المحول، أو اختر حسابًا بنفس العملة.",
       "conversionTitle": "تحويل العملة",
       "conversionDescription": "يبقى الإيصال بعملة {{originalCurrency}}. ستُحفَظ المعاملة بعملة {{accountCurrency}} الخاصة بالحساب المحدد.",

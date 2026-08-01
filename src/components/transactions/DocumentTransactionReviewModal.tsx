@@ -229,6 +229,7 @@ type ReviewValidationState = {
   duplicateBlocking: boolean;
   transactions: ReviewTransactionValidationState[];
   hasTransactionErrors: boolean;
+  hasCurrencyMissing: boolean;
   hasLineItemErrors: boolean;
   totalsMismatchBlocking: boolean;
   canSubmit: boolean;
@@ -1588,6 +1589,7 @@ export default function DocumentTransactionReviewModal({
     });
 
     const hasTransactionErrors = transactions.some((transaction) => transaction.transactionFields.length > 0);
+    const hasCurrencyMissing = transactions.some((transaction) => transaction.transactionFields.includes('currency'));
     const hasLineItemErrors = transactions.some((transaction) => transaction.lineItemErrors.length > 0);
     const totalsMismatchBlocking = transactions.some((transaction) => transaction.totalsMismatchBlocking);
 
@@ -1643,6 +1645,11 @@ export default function DocumentTransactionReviewModal({
         ns: 'portal',
         defaultValue: 'No draft transactions were detected from this document.',
       });
+    } else if (hasCurrencyMissing) {
+      footerMessage = t('transactions.documentReview.currencyRequired', {
+        ns: 'portal',
+        defaultValue: 'Choose the receipt currency before saving.',
+      });
     } else if (hasTransactionErrors) {
       footerMessage = t('transactions.documentReview.completeRequiredFields', {
         ns: 'portal',
@@ -1675,6 +1682,7 @@ export default function DocumentTransactionReviewModal({
       duplicateBlocking,
       transactions,
       hasTransactionErrors,
+      hasCurrencyMissing,
       hasLineItemErrors,
       totalsMismatchBlocking,
       canSubmit,
@@ -1823,6 +1831,10 @@ export default function DocumentTransactionReviewModal({
       });
 
       if (transaction.conversion?.source === 'manual' && transaction.conversionInputKey === inputKey) {
+        return [];
+      }
+
+      if (transaction.conversionError && transaction.conversionInputKey === inputKey) {
         return [];
       }
 
@@ -2972,8 +2984,16 @@ export default function DocumentTransactionReviewModal({
                             <div className="min-w-0">
                               <label className="mb-0.5 block text-xs font-600 text-foreground">{t('transactions.currency', { ns: 'portal', defaultValue: 'Currency' })} *</label>
                               <div id={getTransactionFieldElementId(transaction.id, 'currency')}>
-                                <CurrencySelector value={transaction.currency} onChange={(currencyCode) => updateTransaction(transaction.id, (current) => ({ ...current, currency: currencyCode }))} placeholder={t('settlements.chooseCurrency', { ns: 'portal' })} helperText={t('transactions.documentReview.accountCurrencyHint', { ns: 'portal', defaultValue: 'This is the original receipt currency. The selected account keeps its own currency.' })} className={`${hasTransactionFieldError('currency') ? '[&>button]:border-negative/60 [&>button]:bg-negative-soft/40' : ''} [&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:hidden [&>button>div:nth-child(2)]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3`} />
+                                <CurrencySelector value={transaction.currency} onChange={(currencyCode) => updateTransaction(transaction.id, (current) => ({ ...current, currency: currencyCode }))} placeholder={t('settlements.chooseCurrency', { ns: 'portal' })} helperText={t('transactions.documentReview.accountCurrencyHint', { ns: 'portal', defaultValue: 'This is the original receipt currency. The selected account keeps its own currency.' })} className={`${hasTransactionFieldError('currency') ? '[&>button]:border-negative/60 [&>button]:bg-negative-soft/40' : ''} [&>button]:h-10 [&>button]:min-h-10 [&>button]:px-3 [&>button]:py-2 [&>button]:text-sm [&>button]:gap-2 [&>button>div:first-child]:min-w-0 [&>button>div:nth-child(2)>div>span]:text-sm [&>button>div:nth-child(2)>p]:text-xs [&>p]:mt-0.5 [&>p]:text-[11px] [&>p]:leading-3`} />
                               </div>
+                              {hasTransactionFieldError('currency') ? (
+                                <p className="mt-1 text-xs font-600 text-negative">
+                                  {t('transactions.documentReview.currencyRequired', {
+                                    ns: 'portal',
+                                    defaultValue: 'Choose the receipt currency before saving.',
+                                  })}
+                                </p>
+                              ) : null}
                             </div>
                             <div className="min-w-0">
                               <label className="mb-0.5 block text-xs font-600 text-foreground">{t('transactions.account', { ns: 'portal' })} *</label>

@@ -1866,6 +1866,7 @@
       "confidenceLabel": "Confidence {{value}}%",
       "accountCurrencyHint": "This is the original receipt currency. The selected account keeps its own currency.",
       "completeConversion": "Complete the currency conversion details before saving.",
+      "currencyRequired": "Choose the receipt currency before saving.",
       "manualConversionRequired": "No saved exchange rate is available for this date. Enter a manual rate or converted amount, or choose an account in the same currency.",
       "conversionTitle": "Currency conversion",
       "conversionDescription": "The receipt stays in {{originalCurrency}}. The saved transaction will use {{accountCurrency}} for the selected account.",
