@@ -188,7 +188,7 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain scrollbar-thin lg:h-full"
+                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin lg:h-full lg:overflow-y-auto lg:overscroll-contain"
                 style={{ background: 'var(--background)' }}
               >
                 <div className="flex min-h-full flex-col">
