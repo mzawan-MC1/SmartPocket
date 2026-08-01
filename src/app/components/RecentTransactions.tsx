@@ -275,9 +275,7 @@ export default function RecentTransactions({
                     amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
                     currencyCode={txn.currency}
                     size={variant === 'mobile-dashboard' ? 'sm' : 'sm'}
-                    textOnly={variant === 'mobile-dashboard'}
                     className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[13px]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
-                    showCode
                   />
                   {variant === 'mobile-dashboard' ? null : (
                     <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>

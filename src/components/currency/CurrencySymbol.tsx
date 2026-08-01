@@ -100,6 +100,39 @@ export default function CurrencySymbol({
     currency.symbolType === 'asset' &&
     typeof currency.symbolAssetPath === 'string' &&
     currency.symbolAssetPath.trim().length > 0;
+  const shouldRenderMaskedAed = shouldRenderAsset && currency.code === 'AED';
+
+  if (shouldRenderMaskedAed) {
+    return (
+      <span
+        className={`inline-flex shrink-0 justify-center leading-none ${alignment === 'center' ? 'items-center self-center' : 'items-end self-baseline'} ${className}`.trim()}
+        role="img"
+        aria-label={accessibleLabel}
+        style={{
+          minWidth: `${styles.minWidthEm}em`,
+          transform: alignment === 'center' ? undefined : `translateY(${styles.baselineNudgeEm}em)`,
+        }}
+      >
+        <span
+          aria-hidden="true"
+          className="block"
+          style={{
+            height: `${styles.assetHeightEm}em`,
+            width: `${styles.assetMaxWidthEm}em`,
+            backgroundColor: 'currentColor',
+            maskImage: `url("${currency.symbolAssetPath}")`,
+            maskRepeat: 'no-repeat',
+            maskPosition: 'center',
+            maskSize: 'contain',
+            WebkitMaskImage: `url("${currency.symbolAssetPath}")`,
+            WebkitMaskRepeat: 'no-repeat',
+            WebkitMaskPosition: 'center',
+            WebkitMaskSize: 'contain',
+          }}
+        />
+      </span>
+    );
+  }
 
   if (shouldRenderAsset) {
     return (

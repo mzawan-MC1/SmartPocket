@@ -178,8 +178,8 @@ export default function DashboardHeader({
   return (
     <section className="space-y-1.5">
       <div className="md:hidden space-y-3">
-        <div className="flex items-start justify-between gap-2.5">
-          <div className="min-w-0 flex-1 pe-1">
+        <div className="flex items-start justify-between gap-1.5">
+          <div className="min-w-0 flex-1">
             <h1
               className={`min-w-0 truncate whitespace-nowrap font-800 tracking-[-0.028em] text-foreground ${
                 isArabic ? 'text-[20px] leading-[1.08] max-[380px]:text-[19px] max-[360px]:text-[18px]' : 'text-[20px] leading-[1.08] max-[380px]:text-[19px] max-[360px]:text-[18px]'
@@ -193,18 +193,18 @@ export default function DashboardHeader({
             </p>
           </div>
           <div className="shrink-0">
-            <div className="flex items-center gap-1.5">
-              <div className="flex h-10 min-w-[56px] items-center justify-center rounded-full border border-slate-200/80 bg-white px-1.5 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_button]:h-7 [&_button]:rounded-full [&_button]:border [&_button]:border-slate-200 [&_button]:bg-slate-50 [&_button]:px-2.5">
+            <div className="flex items-center gap-1">
+              <div className="flex h-10 min-w-[50px] items-center justify-center rounded-full border border-slate-200/80 bg-white px-1 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_button]:h-8 [&_button]:gap-1 [&_button]:rounded-full [&_button]:border [&_button]:border-slate-200 [&_button]:bg-slate-50 [&_button]:px-1.5 [&_button_svg]:h-[14px] [&_button_svg]:w-[14px]">
                 <LanguageSwitcher variant="compact" theme="light" />
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_.notification-bell-trigger]:h-9 [&_.notification-bell-trigger]:w-9 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[21px] [&_.notification-bell-trigger_svg]:w-[21px]">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)] [&_.notification-bell-trigger]:h-9 [&_.notification-bell-trigger]:w-9 [&_.notification-bell-trigger]:rounded-full [&_.notification-bell-trigger_svg]:h-[19px] [&_.notification-bell-trigger_svg]:w-[19px]">
                 <NotificationBell />
               </div>
               <div className="relative" ref={profileMenuRef}>
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((value) => !value)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-200/80 bg-white shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)]"
+                  className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200/80 bg-white p-0 shadow-[0_10px_22px_-18px_rgba(15,23,42,0.24)]"
                   aria-label={t('dashboardHeader.mobileProfileMenu', { defaultValue: 'Profile menu' })}
                   aria-expanded={userMenuOpen}
                 >
@@ -212,9 +212,9 @@ export default function DashboardHeader({
                     fullName={registeredName}
                     email={displayEmail}
                     avatarUrl={displayAvatarUrl}
-                    className="h-7 w-7 text-[10px]"
-                    textClassName="text-[10px]"
-                    iconClassName="h-3.5 w-3.5"
+                    className="h-full w-full rounded-full text-[11px]"
+                    textClassName="text-[11px]"
+                    iconClassName="h-4 w-4"
                   />
                 </button>
 

@@ -6,7 +6,6 @@ import { ChevronDown, ChevronUp, Download, FileText, Loader2, Paperclip } from '
 import { useTranslation } from 'react-i18next';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import Modal from '@/components/ui/Modal';
-import { formatCurrencyText } from '@/lib/currency-formatting';
 import {
   getTransactionDocumentDetails,
   type TransactionDocumentDetailsResponse,
@@ -214,8 +213,6 @@ export default function TransactionDetailsModal({
                     amount={details.transaction.amount}
                     currencyCode={details.transaction.currency}
                     fallbackCurrencyCode={details.transaction.currency}
-                    textOnly
-                    showCode
                     className="text-[1.55rem] font-800 tracking-[-0.03em] text-foreground sm:text-[1.7rem]"
                   />
                   <p className="mt-1 text-[13px] font-700 text-foreground">
@@ -353,13 +350,12 @@ export default function TransactionDetailsModal({
                                 defaultValue: key,
                               })}
                             </p>
-                            <p className="mt-1 text-[13px] font-700 text-foreground">
-                              {formatCurrencyText((value as number) || 0, {
-                                currencyCode: details.transaction.currency,
-                                fallbackCurrencyCode: details.transaction.currency,
-                                textOnly: true,
-                              })}
-                            </p>
+                            <FormattedCurrencyAmount
+                              amount={(value as number) || 0}
+                              currencyCode={details.transaction.currency}
+                              fallbackCurrencyCode={details.transaction.currency}
+                              className="mt-1 text-[13px] font-700 text-foreground"
+                            />
                           </div>
                         ))}
                       </div>
@@ -388,13 +384,12 @@ export default function TransactionDetailsModal({
                                   ) : null}
                                 </div>
                                 {typeof item.total === 'number' ? (
-                                  <p className="text-xs font-700 text-foreground">
-                                    {formatCurrencyText(item.total, {
-                                      currencyCode: details.transaction.currency,
-                                      fallbackCurrencyCode: details.transaction.currency,
-                                      textOnly: true,
-                                    })}
-                                  </p>
+                                  <FormattedCurrencyAmount
+                                    amount={item.total}
+                                    currencyCode={details.transaction.currency}
+                                    fallbackCurrencyCode={details.transaction.currency}
+                                    className="text-xs font-700 text-foreground"
+                                  />
                                 ) : null}
                               </div>
                             </div>
