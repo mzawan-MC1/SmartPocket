@@ -254,7 +254,7 @@ export default function TransactionDetailsModal({
             </section>
 
             <section className="rounded-[22px] border border-slate-200/80 bg-white p-3.5">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
                     {t('transactions.documentDetails.documentSection', {
@@ -265,11 +265,11 @@ export default function TransactionDetailsModal({
                   <p className="mt-1 text-sm font-700 text-foreground">{receiptSummaryLabel}</p>
                 </div>
                 {hasDocumentPreview && documentDetails ? (
-                  <div className="flex items-center gap-2">
+                  <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
                     <button
                       type="button"
                       onClick={() => openSignedResourceUrl(documentDetails.previewUrl)}
-                      className="btn-secondary min-h-9 px-3 text-xs"
+                      className="btn-secondary min-h-9 w-full justify-center px-3 text-xs sm:w-auto"
                     >
                       {t('transactions.documentDetails.viewOriginal', {
                         ns: 'portal',
@@ -282,7 +282,7 @@ export default function TransactionDetailsModal({
                         download: true,
                         fileName: documentDetails.fileName,
                       })}
-                      className="btn-secondary min-h-9 px-3 text-xs"
+                      className="btn-secondary min-h-9 w-full justify-center px-3 text-xs sm:w-auto"
                     >
                       <Download size={12} />
                       {t('transactions.documentDetails.downloadOriginal', {

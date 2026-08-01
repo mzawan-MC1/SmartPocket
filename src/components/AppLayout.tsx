@@ -18,6 +18,8 @@ interface AppLayoutProps {
   mobileContentPaddingBottomClassName?: string;
 }
 
+const AUTHENTICATED_APP_BACKGROUND = '#DDE4EC';
+
 export default function AppLayout({
   children,
   activeRoute,
@@ -130,7 +132,11 @@ export default function AppLayout({
   return (
     <SubscriptionSummaryProvider>
       <QuickActionsProvider>
-        <div className="min-h-screen min-h-[100dvh] overflow-x-hidden bg-background lg:h-screen lg:overflow-hidden" dir={dir}>
+        <div
+          className="min-h-screen min-h-[100dvh] overflow-x-hidden lg:h-screen lg:overflow-hidden"
+          dir={dir}
+          style={{ backgroundColor: AUTHENTICATED_APP_BACKGROUND }}
+        >
           <div className="flex min-h-screen min-h-[100dvh] w-full items-stretch lg:h-screen lg:flex-row lg:overflow-hidden">
             {/* Desktop Sidebar — left for LTR, right for RTL */}
             <div
@@ -189,7 +195,7 @@ export default function AppLayout({
               <main
                 data-route-scroll-container="true"
                 className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin lg:h-full lg:overflow-y-auto lg:overscroll-contain"
-                style={{ background: 'var(--background)' }}
+                style={{ backgroundColor: AUTHENTICATED_APP_BACKGROUND }}
               >
                 <div className="flex min-h-full flex-col">
                   <div className={`page-shell page-shell-authenticated flex-1 ${resolvedMobileContentPaddingBottomClassName}`}>
