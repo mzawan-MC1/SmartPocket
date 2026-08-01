@@ -1335,7 +1335,6 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     }
   );
   const primaryAccountMetaText = [
-    selectedAccount?.type ? getAccountTypeLabel(selectedAccount.type, t) : null,
     primaryAccountDisplayName,
     primaryAccountDisplayCurrency,
   ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' · ');
@@ -1399,10 +1398,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   const getPrimaryAccountOptionLabel = useCallback((account: NonNullable<typeof primaryAccountOptions[number]>) => (
     [
       account.name,
-      getAccountTypeLabel(account.type, t),
       normalizeReviewCurrency(account.currency),
     ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0).join(' · ')
-  ), [normalizeReviewCurrency, t]);
+  ), [normalizeReviewCurrency]);
   const hasBlockingReviewIssues = unresolvedReviewFields.length > 0 || !!primaryAccountCurrencyMismatch;
 
   const hasMissingField = useCallback(
@@ -3741,7 +3739,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             <Wallet size={15} />
                           </span>
                           <span
-                            className={`pointer-events-none absolute top-2 z-10 text-[10.5px] font-700 uppercase tracking-[0.14em] text-muted-foreground/80 ${isRTL ? 'right-14 left-10 text-right' : 'left-14 right-10 text-left'}`}
+                            className={`pointer-events-none absolute top-1.5 z-10 text-[10px] font-700 uppercase leading-4 tracking-[0.14em] text-muted-foreground/80 sm:top-2 sm:text-[10.5px] ${isRTL ? 'right-14 left-12 text-right sm:left-10' : 'left-14 right-12 text-left sm:right-10'}`}
                           >
                             {primaryAccountLabel}
                             {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
@@ -3753,7 +3751,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             aria-invalid={hasMissingField('account') || primaryAccountCurrencyMismatch ? 'true' : 'false'}
                             aria-label={primaryAccountLabel}
                             title={primaryAccountMetaText}
-                            className={`input-base h-[54px] w-full cursor-pointer appearance-none border-0 bg-transparent text-sm font-600 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 ${isRTL ? 'pr-14 pl-10 text-right' : 'pl-14 pr-10 text-left'} pt-5 pb-1.5`}
+                            className={`input-base h-[60px] w-full cursor-pointer appearance-none border-0 bg-transparent text-[13px] font-600 leading-5 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 sm:h-[54px] sm:text-sm ${isRTL ? 'pr-14 pl-12 text-right sm:pl-10' : 'pl-14 pr-12 text-left sm:pr-10'} pt-[26px] pb-2 sm:pt-5 sm:pb-1.5`}
                           >
                             <option value="">
                               {isSubscriptionFlow
