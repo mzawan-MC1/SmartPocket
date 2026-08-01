@@ -448,11 +448,37 @@ function hasValidExchangeRate(value: number | null | undefined) {
   return typeof value === 'number' && Number.isFinite(value) && value > 0;
 }
 
+function buildTransactionDocumentConversionBreakdown(args: {
+  amount: number;
+  tax: number | null | undefined;
+  lineItems: TransactionDocumentReviewInput['lineItems'];
+  exchangeRate: number;
+}) {
+  const totalSummary = getTransactionDocumentTotalSummary({
+    amount: args.amount,
+    tax: args.tax,
+    lineItems: args.lineItems,
+  });
+
+  return {
+    originalSubtotal: roundTransactionDocumentMoney(totalSummary.subtotal),
+    originalTax: roundTransactionDocumentMoney(totalSummary.tax),
+    originalDiscount: roundTransactionDocumentMoney(totalSummary.discount),
+    originalFee: roundTransactionDocumentMoney(totalSummary.fee),
+    convertedSubtotal: roundTransactionDocumentMoney(totalSummary.subtotal * args.exchangeRate),
+    convertedTax: roundTransactionDocumentMoney(totalSummary.tax * args.exchangeRate),
+    convertedDiscount: roundTransactionDocumentMoney(totalSummary.discount * args.exchangeRate),
+    convertedFee: roundTransactionDocumentMoney(totalSummary.fee * args.exchangeRate),
+  };
+}
+
 function getManualConversionFromInputs(args: {
   amount: number;
+  tax: number | null | undefined;
   currency: string;
   accountCurrency: string;
   transactionDate: string;
+  lineItems: TransactionDocumentReviewInput['lineItems'];
   manualExchangeRateInput: string;
   manualConvertedAmountInput: string;
 }): TransactionDocumentReviewConversionInput | null {
@@ -483,12 +509,20 @@ function getManualConversionFromInputs(args: {
     return null;
   }
 
+  const breakdown = buildTransactionDocumentConversionBreakdown({
+    amount: originalAmount,
+    tax: args.tax,
+    lineItems: args.lineItems,
+    exchangeRate,
+  });
+
   return {
     source: 'manual',
     originalAmount,
     originalCurrency: normalizedOriginalCurrency,
     accountCurrency: normalizedAccountCurrency,
     convertedAmount,
+    ...breakdown,
     exchangeRate,
     rateDate: args.transactionDate || null,
     snapshotId: null,
@@ -1489,6 +1523,22 @@ export default function DocumentTransactionReviewModal({
     expense: categories.filter((category) => category.category_type === 'expense'),
     income: categories.filter((category) => category.category_type === 'income'),
   }), [categories]);
+  const automaticConversionDependency = useMemo(() => reviewTransactions.map((transaction) => {
+    const accountCurrency = accounts.find((account) => account.id === transaction.accountId)?.currency || '';
+    return [
+      transaction.id,
+      roundTransactionDocumentMoney(transaction.amount).toFixed(2),
+      transaction.currency.trim().toUpperCase(),
+      transaction.accountId,
+      accountCurrency.trim().toUpperCase(),
+      transaction.transactionDate.trim(),
+      transaction.conversion?.source || '',
+      transaction.conversionInputKey || '',
+      transaction.conversionError ? '1' : '0',
+      transaction.manualExchangeRateInput,
+      transaction.manualConvertedAmountInput,
+    ].join('|');
+  }).join('||'), [accounts, reviewTransactions]);
 
   const reviewValidation = useMemo<ReviewValidationState>(() => {
     const noTransactions = reviewTransactions.length === 0;
@@ -1772,9 +1822,11 @@ export default function DocumentTransactionReviewModal({
       const nextInputs = updater(current);
       const nextConversion = getManualConversionFromInputs({
         amount: current.amount,
+        tax: current.tax,
         currency: current.currency,
         accountCurrency,
         transactionDate: current.transactionDate,
+        lineItems: current.lineItems,
         manualExchangeRateInput: nextInputs.manualExchangeRateInput,
         manualConvertedAmountInput: nextInputs.manualConvertedAmountInput,
       });
@@ -1845,9 +1897,11 @@ export default function DocumentTransactionReviewModal({
       return [{
         transactionId: transaction.id,
         amount: transaction.amount,
+        tax: transaction.tax,
         currency: transaction.currency,
         accountCurrency,
         transactionDate: transaction.transactionDate,
+        lineItems: transaction.lineItems,
         inputKey,
       }];
     });
@@ -1904,6 +1958,14 @@ export default function DocumentTransactionReviewModal({
         return transaction;
       }
 
+      if (
+        transaction.conversionPending
+        && transaction.conversionInputKey === inputKey
+        && !transaction.conversionError
+      ) {
+        return transaction;
+      }
+
       return {
         ...transaction,
         conversionPending: true,
@@ -1939,6 +2001,12 @@ export default function DocumentTransactionReviewModal({
           snapshot: lookup.snapshot,
           lookupMode: lookup.lookupMode,
         });
+        const breakdown = buildTransactionDocumentConversionBreakdown({
+          amount: transaction.amount,
+          tax: transaction.tax,
+          lineItems: transaction.lineItems,
+          exchangeRate: conversion.rateUsed,
+        });
 
         return {
           transactionId: transaction.transactionId,
@@ -1949,6 +2017,7 @@ export default function DocumentTransactionReviewModal({
             originalCurrency: transaction.currency,
             accountCurrency: transaction.accountCurrency,
             convertedAmount: roundTransactionDocumentMoney(conversion.convertedAmount),
+            ...breakdown,
             exchangeRate: roundConversionRate(conversion.rateUsed),
             rateDate: conversion.rateDate,
             snapshotId: lookup.snapshot.id,
@@ -2009,7 +2078,7 @@ export default function DocumentTransactionReviewModal({
     return () => {
       cancelled = true;
     };
-  }, [accounts, isOpen, reviewTransactions, supabase, t]);
+  }, [accounts, automaticConversionDependency, isOpen, supabase, t]);
 
   const updateLineItem = (
     transactionId: string,
@@ -2799,6 +2868,66 @@ export default function DocumentTransactionReviewModal({
                     toCurrency: accountCurrency,
                   })
                   : '—';
+                const originalSubtotalText = formatCurrencyText(
+                  transaction.conversion?.originalSubtotal ?? totalSummary.subtotal,
+                  {
+                    currencyCode: transaction.currency || undefined,
+                    fallbackCurrencyCode: transaction.currency || 'USD',
+                    textOnly: true,
+                  }
+                );
+                const originalTaxText = formatCurrencyText(
+                  transaction.conversion?.originalTax ?? totalSummary.tax,
+                  {
+                    currencyCode: transaction.currency || undefined,
+                    fallbackCurrencyCode: transaction.currency || 'USD',
+                    textOnly: true,
+                  }
+                );
+                const originalDiscountText = formatCurrencyText(
+                  transaction.conversion?.originalDiscount ?? totalSummary.discount,
+                  {
+                    currencyCode: transaction.currency || undefined,
+                    fallbackCurrencyCode: transaction.currency || 'USD',
+                    textOnly: true,
+                  }
+                );
+                const originalFeeText = formatCurrencyText(
+                  transaction.conversion?.originalFee ?? totalSummary.fee,
+                  {
+                    currencyCode: transaction.currency || undefined,
+                    fallbackCurrencyCode: transaction.currency || 'USD',
+                    textOnly: true,
+                  }
+                );
+                const convertedSubtotalText = transaction.conversion && hasValidExchangeRate(transaction.conversion.exchangeRate ?? null)
+                  ? formatCurrencyText(transaction.conversion.convertedSubtotal ?? 0, {
+                    currencyCode: accountCurrency || undefined,
+                    fallbackCurrencyCode: accountCurrency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
+                const convertedTaxText = transaction.conversion && hasValidExchangeRate(transaction.conversion.exchangeRate ?? null)
+                  ? formatCurrencyText(transaction.conversion.convertedTax ?? 0, {
+                    currencyCode: accountCurrency || undefined,
+                    fallbackCurrencyCode: accountCurrency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
+                const convertedDiscountText = transaction.conversion && hasValidExchangeRate(transaction.conversion.exchangeRate ?? null)
+                  ? formatCurrencyText(transaction.conversion.convertedDiscount ?? 0, {
+                    currencyCode: accountCurrency || undefined,
+                    fallbackCurrencyCode: accountCurrency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
+                const convertedFeeText = transaction.conversion && hasValidExchangeRate(transaction.conversion.exchangeRate ?? null)
+                  ? formatCurrencyText(transaction.conversion.convertedFee ?? 0, {
+                    currencyCode: accountCurrency || undefined,
+                    fallbackCurrencyCode: accountCurrency || 'USD',
+                    textOnly: true,
+                  })
+                  : '—';
 
                 return (
                   <section key={transaction.id} className="overflow-hidden rounded-3xl border border-blue-200/70 bg-[#F5F9FF]">
@@ -3113,6 +3242,81 @@ export default function DocumentTransactionReviewModal({
                               <p className="mt-1 text-sm font-600 text-foreground">
                                 {formatConversionRateDate(transaction.conversion?.rateDate || transaction.transactionDate)}
                               </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.originalSubtotal', {
+                                  ns: 'portal',
+                                  defaultValue: 'Original subtotal',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{originalSubtotalText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.convertedSubtotal', {
+                                  ns: 'portal',
+                                  defaultValue: 'Converted subtotal',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{convertedSubtotalText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.originalTax', {
+                                  ns: 'portal',
+                                  defaultValue: 'Original tax',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{originalTaxText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.convertedTax', {
+                                  ns: 'portal',
+                                  defaultValue: 'Converted tax',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{convertedTaxText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.originalDiscount', {
+                                  ns: 'portal',
+                                  defaultValue: 'Original discount',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{originalDiscountText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.convertedDiscount', {
+                                  ns: 'portal',
+                                  defaultValue: 'Converted discount',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{convertedDiscountText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.originalFee', {
+                                  ns: 'portal',
+                                  defaultValue: 'Original fee',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{originalFeeText}</p>
+                            </div>
+                            <div className="min-w-0 rounded-2xl border border-blue-100/80 bg-blue-50/40 p-3">
+                              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+                                {t('transactions.documentReview.convertedFee', {
+                                  ns: 'portal',
+                                  defaultValue: 'Converted fee',
+                                })}
+                              </p>
+                              <p className="mt-1 text-sm font-700 text-foreground">{convertedFeeText}</p>
                             </div>
                           </div>
 

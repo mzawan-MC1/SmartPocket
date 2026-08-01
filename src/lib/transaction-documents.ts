@@ -177,8 +177,16 @@ export interface TransactionDocumentReviewConversionInput {
   source: TransactionDocumentConversionSource;
   originalAmount: number;
   originalCurrency: string;
+  originalSubtotal?: number | null;
+  originalTax?: number | null;
+  originalDiscount?: number | null;
+  originalFee?: number | null;
   accountCurrency: string;
   convertedAmount: number;
+  convertedSubtotal?: number | null;
+  convertedTax?: number | null;
+  convertedDiscount?: number | null;
+  convertedFee?: number | null;
   exchangeRate?: number | null;
   rateDate?: string | null;
   snapshotId?: string | null;

@@ -8,6 +8,7 @@ import {
   getTransactionDocumentLineItemTotal,
   getTransactionDocumentTotalSummary,
   isTransactionDocumentItemKind,
+  roundTransactionDocumentMoney,
   sanitizeTransactionDocumentFilename,
   TRANSACTION_DOCUMENT_BUCKET,
   transactionDocumentLineItemsHaveValidTotals,
@@ -306,6 +307,30 @@ function mapExchangeRateSnapshotRecord(row: Record<string, unknown>): ExchangeRa
   };
 }
 
+function buildTransactionDocumentConversionBreakdown(args: {
+  amount: number;
+  tax: number | null | undefined;
+  lineItems: TransactionDocumentReviewInput['lineItems'];
+  exchangeRate: number;
+}) {
+  const totalSummary = getTransactionDocumentTotalSummary({
+    amount: args.amount,
+    tax: args.tax,
+    lineItems: args.lineItems,
+  });
+
+  return {
+    originalSubtotal: roundTransactionDocumentMoney(totalSummary.subtotal),
+    originalTax: roundTransactionDocumentMoney(totalSummary.tax),
+    originalDiscount: roundTransactionDocumentMoney(totalSummary.discount),
+    originalFee: roundTransactionDocumentMoney(totalSummary.fee),
+    convertedSubtotal: roundTransactionDocumentMoney(totalSummary.subtotal * args.exchangeRate),
+    convertedTax: roundTransactionDocumentMoney(totalSummary.tax * args.exchangeRate),
+    convertedDiscount: roundTransactionDocumentMoney(totalSummary.discount * args.exchangeRate),
+    convertedFee: roundTransactionDocumentMoney(totalSummary.fee * args.exchangeRate),
+  };
+}
+
 async function resolveTransactionDocumentReviewConversion(args: {
   admin: SupabaseClient;
   transaction: TransactionDocumentReviewInput;
@@ -374,6 +399,13 @@ async function resolveTransactionDocumentReviewConversion(args: {
       throw new Error('Automatic receipt conversion data is invalid.');
     }
 
+    const breakdown = buildTransactionDocumentConversionBreakdown({
+      amount: originalAmount,
+      tax: args.transaction.tax,
+      lineItems: args.transaction.lineItems,
+      exchangeRate: resolved.rateUsed,
+    });
+
     return {
       ...args.transaction,
       conversion: {
@@ -382,6 +414,7 @@ async function resolveTransactionDocumentReviewConversion(args: {
         originalCurrency,
         accountCurrency,
         convertedAmount,
+        ...breakdown,
         exchangeRate: resolved.rateUsed,
         rateDate: resolved.rateDate,
         snapshotId: snapshot.id,
@@ -418,6 +451,13 @@ async function resolveTransactionDocumentReviewConversion(args: {
     throw new Error('Manual receipt conversion data is invalid.');
   }
 
+  const breakdown = buildTransactionDocumentConversionBreakdown({
+    amount: originalAmount,
+    tax: args.transaction.tax,
+    lineItems: args.transaction.lineItems,
+    exchangeRate: manualExchangeRate,
+  });
+
   return {
     ...args.transaction,
     conversion: {
@@ -426,6 +466,7 @@ async function resolveTransactionDocumentReviewConversion(args: {
       originalCurrency,
       accountCurrency,
       convertedAmount: manualConvertedAmount,
+      ...breakdown,
       exchangeRate: manualExchangeRate,
       rateDate: conversion.rateDate || args.transaction.transactionDate || null,
       snapshotId: null,
