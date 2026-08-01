@@ -449,14 +449,18 @@ function hasValidExchangeRate(value: number | null | undefined) {
 }
 
 function buildTransactionDocumentConversionBreakdown(args: {
+  subtotal: number | null | undefined;
   amount: number;
   tax: number | null | undefined;
+  taxIncludedInTotal: boolean | null | undefined;
   lineItems: TransactionDocumentReviewInput['lineItems'];
   exchangeRate: number;
 }) {
   const totalSummary = getTransactionDocumentTotalSummary({
+    subtotal: args.subtotal,
     amount: args.amount,
     tax: args.tax,
+    taxIncludedInTotal: args.taxIncludedInTotal,
     lineItems: args.lineItems,
   });
 
@@ -473,8 +477,10 @@ function buildTransactionDocumentConversionBreakdown(args: {
 }
 
 function getManualConversionFromInputs(args: {
+  subtotal: number | null | undefined;
   amount: number;
   tax: number | null | undefined;
+  taxIncludedInTotal: boolean | null | undefined;
   currency: string;
   accountCurrency: string;
   transactionDate: string;
@@ -510,8 +516,10 @@ function getManualConversionFromInputs(args: {
   }
 
   const breakdown = buildTransactionDocumentConversionBreakdown({
+    subtotal: args.subtotal,
     amount: originalAmount,
     tax: args.tax,
+    taxIncludedInTotal: args.taxIncludedInTotal,
     lineItems: args.lineItems,
     exchangeRate,
   });
@@ -1180,8 +1188,10 @@ export default function DocumentTransactionReviewModal({
             transactionType: draft.transactionType,
             merchant: draft.merchant || '',
             transactionDate: draft.date || '',
+            subtotal: typeof draft.subtotal === 'number' ? draft.subtotal : null,
             amount: typeof draft.total === 'number' ? draft.total : 0,
             tax: typeof draft.tax === 'number' ? draft.tax : null,
+            taxIncludedInTotal: typeof draft.taxIncludedInTotal === 'boolean' ? draft.taxIncludedInTotal : null,
             currency: draft.currency || preferredAccount?.currency || payload.options.defaultCurrency,
             accountId: preferredAccount?.id || '',
             categoryId: matchCategoryId(
@@ -1610,8 +1620,10 @@ export default function DocumentTransactionReviewModal({
       });
 
       const totalSummary = getTransactionDocumentTotalSummary({
+        subtotal: transaction.subtotal,
         amount: transaction.amount,
         tax: transaction.tax,
+        taxIncludedInTotal: transaction.taxIncludedInTotal,
         lineItems: transaction.lineItems,
       });
       const conversionBlocking = Boolean(
@@ -1821,8 +1833,10 @@ export default function DocumentTransactionReviewModal({
       const accountCurrency = accounts.find((account) => account.id === current.accountId)?.currency || '';
       const nextInputs = updater(current);
       const nextConversion = getManualConversionFromInputs({
+        subtotal: current.subtotal,
         amount: current.amount,
         tax: current.tax,
+        taxIncludedInTotal: current.taxIncludedInTotal,
         currency: current.currency,
         accountCurrency,
         transactionDate: current.transactionDate,
@@ -1896,8 +1910,10 @@ export default function DocumentTransactionReviewModal({
 
       return [{
         transactionId: transaction.id,
+        subtotal: transaction.subtotal,
         amount: transaction.amount,
         tax: transaction.tax,
+        taxIncludedInTotal: transaction.taxIncludedInTotal,
         currency: transaction.currency,
         accountCurrency,
         transactionDate: transaction.transactionDate,
@@ -2002,8 +2018,10 @@ export default function DocumentTransactionReviewModal({
           lookupMode: lookup.lookupMode,
         });
         const breakdown = buildTransactionDocumentConversionBreakdown({
+          subtotal: transaction.subtotal,
           amount: transaction.amount,
           tax: transaction.tax,
+          taxIncludedInTotal: transaction.taxIncludedInTotal,
           lineItems: transaction.lineItems,
           exchangeRate: conversion.rateUsed,
         });
@@ -2204,8 +2222,10 @@ export default function DocumentTransactionReviewModal({
           transactionType: transaction.transactionType,
           merchant: transaction.merchant,
           transactionDate: transaction.transactionDate,
+          subtotal: transaction.subtotal,
           amount: transaction.amount,
           tax: transaction.tax,
+          taxIncludedInTotal: transaction.taxIncludedInTotal,
           currency: transaction.currency,
           accountId: transaction.accountId,
           categoryId: transaction.categoryId,
@@ -2791,8 +2811,10 @@ export default function DocumentTransactionReviewModal({
                 const selectedAccount = accounts.find((account) => account.id === transaction.accountId) || null;
                 const accountCurrency = selectedAccount?.currency || '';
                 const totalSummary = transactionValidation?.totalSummary || getTransactionDocumentTotalSummary({
+                  subtotal: transaction.subtotal,
                   amount: transaction.amount,
                   tax: transaction.tax,
+                  taxIncludedInTotal: transaction.taxIncludedInTotal,
                   lineItems: transaction.lineItems,
                 });
                 const hasTransactionFieldError = (field: TransactionFieldKey) =>

@@ -308,14 +308,18 @@ function mapExchangeRateSnapshotRecord(row: Record<string, unknown>): ExchangeRa
 }
 
 function buildTransactionDocumentConversionBreakdown(args: {
+  subtotal: number | null | undefined;
   amount: number;
   tax: number | null | undefined;
+  taxIncludedInTotal: boolean | null | undefined;
   lineItems: TransactionDocumentReviewInput['lineItems'];
   exchangeRate: number;
 }) {
   const totalSummary = getTransactionDocumentTotalSummary({
+    subtotal: args.subtotal,
     amount: args.amount,
     tax: args.tax,
+    taxIncludedInTotal: args.taxIncludedInTotal,
     lineItems: args.lineItems,
   });
 
@@ -400,8 +404,10 @@ async function resolveTransactionDocumentReviewConversion(args: {
     }
 
     const breakdown = buildTransactionDocumentConversionBreakdown({
+      subtotal: args.transaction.subtotal,
       amount: originalAmount,
       tax: args.transaction.tax,
+      taxIncludedInTotal: args.transaction.taxIncludedInTotal,
       lineItems: args.transaction.lineItems,
       exchangeRate: resolved.rateUsed,
     });
@@ -452,8 +458,10 @@ async function resolveTransactionDocumentReviewConversion(args: {
   }
 
   const breakdown = buildTransactionDocumentConversionBreakdown({
+    subtotal: args.transaction.subtotal,
     amount: originalAmount,
     tax: args.transaction.tax,
+    taxIncludedInTotal: args.transaction.taxIncludedInTotal,
     lineItems: args.transaction.lineItems,
     exchangeRate: manualExchangeRate,
   });
@@ -1193,11 +1201,21 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
     }
 
     const totalSummary = getTransactionDocumentTotalSummary({
+      subtotal: (() => {
+        const value = normalizeAmount(rawItem.subtotal);
+        return Number.isFinite(value) ? value : null;
+      })(),
       amount,
       tax: (() => {
         const value = normalizeAmount(rawItem.tax);
         return Number.isFinite(value) ? value : null;
       })(),
+      taxIncludedInTotal:
+        rawItem.taxIncludedInTotal === true
+          ? true
+          : rawItem.taxIncludedInTotal === false
+            ? false
+            : null,
       lineItems,
     });
     const totalsConfirmed = rawItem.totalsConfirmed === true;
@@ -1209,11 +1227,21 @@ export function sanitizeTransactionDocumentReviewPayload(args: {
       transactionType,
       merchant: normalizeText(typeof rawItem.merchant === 'string' ? rawItem.merchant : ''),
       transactionDate,
+      subtotal: (() => {
+        const value = normalizeAmount(rawItem.subtotal);
+        return Number.isFinite(value) ? value : null;
+      })(),
       amount,
       tax: (() => {
         const value = normalizeAmount(rawItem.tax);
         return Number.isFinite(value) ? value : null;
       })(),
+      taxIncludedInTotal:
+        rawItem.taxIncludedInTotal === true
+          ? true
+          : rawItem.taxIncludedInTotal === false
+            ? false
+            : null,
       currency,
       accountId: account.id,
       categoryId: category?.id || null,

@@ -33,6 +33,15 @@ function getObjectPropertyString(value: unknown, key: string) {
   return normalized || null;
 }
 
+function getObjectPropertyBoolean(value: unknown, key: string) {
+  if (!value || typeof value !== 'object' || !(key in value)) {
+    return null;
+  }
+
+  const candidate = (value as Record<string, unknown>)[key];
+  return typeof candidate === 'boolean' ? candidate : null;
+}
+
 function jsonWithCookies(
   body: Record<string, unknown>,
   status: number,
@@ -125,7 +134,9 @@ export async function GET(
     } | null = null;
     let originalReceiptAmount = Number(transaction.amount || 0);
     let originalReceiptCurrency = String(transaction.currency || 'USD');
+    let originalReceiptSubtotal: number | null = null;
     let originalReceiptTax: number | null = null;
+    let originalReceiptTaxIncludedInTotal: boolean | null = null;
 
     const [itemResult, attachmentResult] = await Promise.allSettled([
       admin
@@ -270,7 +281,11 @@ export async function GET(
         const parsedEntry = reviewedIndex >= 0 ? parsedTransactions[reviewedIndex] : parsedTransactions[0];
         const reviewedAmount = getObjectPropertyNumber(reviewedEntry, 'amount');
         const reviewedCurrency = getObjectPropertyString(reviewedEntry, 'currency');
+        const reviewedSubtotal = getObjectPropertyNumber(reviewedEntry, 'subtotal');
         const reviewedTax = getObjectPropertyNumber(reviewedEntry, 'tax');
+        const reviewedTaxIncludedInTotal = getObjectPropertyBoolean(reviewedEntry, 'taxIncludedInTotal');
+        const parsedSubtotal = getObjectPropertyNumber(parsedEntry, 'subtotal');
+        const parsedTaxIncludedInTotal = getObjectPropertyBoolean(parsedEntry, 'taxIncludedInTotal');
         const documentAmount = typeof document.total_amount === 'number'
           ? document.total_amount
           : document.total_amount
@@ -286,11 +301,15 @@ export async function GET(
 
         originalReceiptAmount = reviewedAmount ?? documentAmount ?? Number(transaction.amount || 0);
         originalReceiptCurrency = reviewedCurrency ?? documentCurrency ?? lineItemCurrency ?? String(transaction.currency || 'USD');
+        originalReceiptSubtotal = reviewedSubtotal ?? parsedSubtotal ?? null;
         originalReceiptTax = reviewedTax ?? documentTax ?? null;
+        originalReceiptTaxIncludedInTotal = reviewedTaxIncludedInTotal ?? parsedTaxIncludedInTotal ?? null;
 
         totals = getTransactionDocumentTotalSummary({
+          subtotal: originalReceiptSubtotal,
           amount: originalReceiptAmount,
           tax: originalReceiptTax,
+          taxIncludedInTotal: originalReceiptTaxIncludedInTotal,
           lineItems: lineItems.map((item) => ({
             quantity: item.quantity,
             unitPrice: item.unitPrice,
