@@ -51,6 +51,28 @@ export default function DesktopAuthCallbackPage() {
       return null;
     };
 
+    const syncDesktopSessionCookies = async (accessToken: string, refreshToken: string) => {
+      const response = await fetch('/api/auth/desktop-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }),
+        credentials: 'same-origin',
+      });
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Desktop session sync returned an invalid response.');
+      }
+
+      const result = await response.json() as { success?: boolean; error?: string };
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Desktop session sync failed.');
+      }
+    };
+
     if (providerError) {
       const isCancelled = providerError === 'access_denied';
       navigateTo(buildAuthErrorDestination({
@@ -81,7 +103,7 @@ export default function DesktopAuthCallbackPage() {
       }
 
       const settledSession = await waitForSession();
-      if (!settledSession?.user) {
+      if (!settledSession?.user || !settledSession.access_token || !settledSession.refresh_token) {
         navigateTo(buildAuthErrorDestination({
           code: 'callback_error',
           message: 'Google sign-in completed, but the session was not ready. Please try again.',
@@ -89,6 +111,7 @@ export default function DesktopAuthCallbackPage() {
         return;
       }
 
+      await syncDesktopSessionCookies(settledSession.access_token, settledSession.refresh_token);
       navigateTo('/dashboard?desktop=1');
       })()
       .catch(() => {
