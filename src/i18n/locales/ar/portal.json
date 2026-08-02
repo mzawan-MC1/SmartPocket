@@ -1842,6 +1842,10 @@
           "3": "Переведи 1 000 AED из банка в наличные",
           "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
         }
+      },
+      "pdf": {
+        "downloadComplete": "اكتمل التنزيل",
+        "generateError": "تعذر إنشاء ملف PDF. يرجى المحاولة مرة أخرى."
       }
     },
     "voice": {
@@ -2674,7 +2678,16 @@
       "includeItemInsights": "تضمين تحليلات العناصر",
       "includeUpcomingCommitments": "تضمين الالتزامات القادمة",
       "includeArchivedAccounts": "تضمين الحسابات المؤرشفة أو المرقمة إصداريًا عند الحاجة",
+        "activeFilters": "{{count}} عوامل تصفية نشطة",
+        "moreFilters": "مزيد من عوامل التصفية",
+        "moreFiltersDescription": "الفئة والشخص ونوع المعاملة ووضع العملة وخيارات تفاصيل التقرير.",
+        "showMoreFilters": "إظهار المزيد من عوامل التصفية",
+        "hideMoreFilters": "إخفاء عوامل التصفية",
       "preview": "معاينة التقرير",
+        "generatePdf": "إنشاء PDF",
+        "generatePdfLoading": "جارٍ إنشاء PDF...",
+        "generatePdfComplete": "اكتمل التنزيل",
+        "exportCsv": "تصدير CSV",
       "exportCsvPackage": "تصدير ملف CSV الكامل للتقرير",
       "reset": "إعادة تعيين",
       "previewPrompt": "اختر عوامل التصفية ثم عاين التقرير لبناء المستند المالي الكامل.",
@@ -2928,6 +2941,30 @@
         "budgetAtRisk": "الميزانية الأقرب إلى حدها: {{name}}.",
         "busiestDay": "أكثر أيام الإنفاق ازدحامًا: {{date}}."
       }
+      },
+      "comparison": {
+        "noChange": "لا تغيير",
+        "unavailable": "المقارنة غير متاحة"
+      },
+      "dateBasis": {
+        "activityDuring": "النشاط خلال {{start}} - {{end}}",
+        "balanceAsOf": "الرصيد حتى {{date}}",
+        "commitmentsAfter": "الالتزامات القادمة بعد {{date}}",
+        "relationshipHistory": "سجل العلاقات"
+      },
+      "compact": {
+        "pageDescription": "راجع الأرصدة والنشاط والاتجاهات والالتزامات في مساحة تقارير مدمجة واحدة.",
+        "previewDescription": "تعرض البوابة معاينة تفاعلية مدمجة. استخدم إنشاء PDF لفتح النسخة القابلة للطباعة.",
+        "emptyTitle": "لم يتم العثور على نشاط تقرير ذي معنى.",
+        "emptyDescription": "جرّب فترة أو نطاقًا أو حسابًا مختلفًا لمعاينة تقرير يحتوي على نشاط.",
+        "currencyDescription": "تظهر إجماليات عملة التقارير أولًا، بينما تبقى تفاصيل العملات الأصلية متاحة كتفاصيل ثانوية.",
+        "groups": {
+          "overview": "نظرة عامة",
+          "periodActivity": "نشاط الفترة",
+          "financialPosition": "الوضع المالي",
+          "people": "الأشخاص",
+          "commitments": "الالتزامات"
+        }
     }
   },
   "subscriptionBilling": {

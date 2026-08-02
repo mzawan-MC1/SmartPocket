@@ -1822,6 +1822,10 @@
           "3": "Переведи 1 000 AED из банка в наличные",
           "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
         }
+      },
+      "pdf": {
+        "downloadComplete": "Telechargement termine",
+        "generateError": "La generation du PDF a echoue. Veuillez reessayer."
       }
     },
     "voice": {
@@ -2654,7 +2658,16 @@
       "includeItemInsights": "Inclure les analyses d articles",
       "includeUpcomingCommitments": "Inclure les engagements a venir",
       "includeArchivedAccounts": "Inclure les comptes archives ou versionnes lorsque c est pertinent",
+        "activeFilters": "{{count}} filtres actifs",
+        "moreFilters": "Plus de filtres",
+        "moreFiltersDescription": "Categorie, personne, type de transaction, mode de devise et options de detail du rapport.",
+        "showMoreFilters": "Afficher plus de filtres",
+        "hideMoreFilters": "Masquer les filtres",
       "preview": "Previsualiser le rapport",
+        "generatePdf": "Generer le PDF",
+        "generatePdfLoading": "Generation du PDF...",
+        "generatePdfComplete": "Telechargement termine",
+        "exportCsv": "Exporter le CSV",
       "exportCsvPackage": "Exporter le CSV complet du rapport",
       "reset": "Reinitialiser",
       "previewPrompt": "Choisissez vos filtres puis previsualisez le rapport pour construire le document financier complet.",
@@ -2908,6 +2921,30 @@
         "budgetAtRisk": "Budget le plus proche de sa limite : {{name}}.",
         "busiestDay": "Jour de depense le plus charge : {{date}}."
       }
+      },
+      "comparison": {
+        "noChange": "Aucun changement",
+        "unavailable": "Comparaison indisponible"
+      },
+      "dateBasis": {
+        "activityDuring": "Activite du {{start}} au {{end}}",
+        "balanceAsOf": "Solde au {{date}}",
+        "commitmentsAfter": "Engagements a venir apres le {{date}}",
+        "relationshipHistory": "Historique des relations"
+      },
+      "compact": {
+        "pageDescription": "Consultez soldes, activite, tendances et engagements dans un espace de rapports compact.",
+        "previewDescription": "Le portail affiche un apercu interactif compact. Utilisez Generer le PDF pour ouvrir la version imprimable.",
+        "emptyTitle": "Aucune activite significative n a ete trouvee dans le rapport.",
+        "emptyDescription": "Essayez une autre periode, portee ou un autre compte pour afficher un rapport avec activite.",
+        "currencyDescription": "Les totaux dans la devise de reporting sont prioritaires. Le detail des devises d origine reste disponible en second niveau.",
+        "groups": {
+          "overview": "Vue d ensemble",
+          "periodActivity": "Activite de la periode",
+          "financialPosition": "Situation financiere",
+          "people": "Personnes",
+          "commitments": "Engagements"
+        }
     }
   },
   "subscriptionBilling": {

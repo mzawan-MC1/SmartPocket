@@ -63,6 +63,12 @@ export interface FullReportSupplementalData {
   itemInsightsSnapshot: ItemInsightsSnapshot | null;
 }
 
+type ComparisonDisplay = {
+  percentage: number | null;
+  label: string;
+  unavailable: boolean;
+};
+
 function toDateLabel(value: string | null | undefined, locale: string) {
   if (!value) return '-';
   const date = new Date(`${value}T12:00:00Z`);
@@ -156,6 +162,39 @@ function average(values: number[]) {
   return values.length > 0 ? sum(values) / values.length : 0;
 }
 
+function normalizeCommitmentIdentityPart(value: string | null | undefined) {
+  return (value || '').trim().toLowerCase();
+}
+
+function buildCommitmentIdentity(args: {
+  sourceType: 'subscription' | 'recurring' | 'reimbursement';
+  sourceId: string;
+  linkedRecurringId?: string | null;
+  accountId?: string | null;
+  label: string;
+  dueDate: string;
+  amount: number;
+  currency: string;
+}) {
+  if (args.sourceType === 'subscription' && args.linkedRecurringId) {
+    return `linked:${args.linkedRecurringId}`;
+  }
+
+  if (args.sourceType === 'recurring') {
+    return `recurring:${args.sourceId}`;
+  }
+
+  return [
+    args.sourceType,
+    args.sourceId,
+    normalizeCommitmentIdentityPart(args.accountId || null),
+    normalizeCommitmentIdentityPart(args.label),
+    args.dueDate,
+    args.currency.toUpperCase(),
+    args.amount.toFixed(2),
+  ].join('|');
+}
+
 function buildTransactionRows(args: {
   transactions: Transaction[];
   peopleById: Map<string, ManagedPerson>;
@@ -227,7 +266,7 @@ function buildAccountTransferMap(
 }
 
 function buildGroupTable(
-  rows: Array<{ label: string; value: number; count?: number; comparison?: number | null; helper?: string | null }>,
+  rows: Array<{ label: string; value: number; count?: number; comparison?: string | null; helper?: string | null }>,
   currency: string,
   headers: string[],
   emptyMessage: string
@@ -238,7 +277,7 @@ function buildGroupTable(
       row.label,
       formatMoney(row.value, currency),
       row.count !== undefined ? String(row.count) : '-',
-      row.comparison === null || row.comparison === undefined ? '-' : `${row.comparison > 0 ? '+' : ''}${row.comparison.toFixed(1)}%`,
+      row.comparison || '-',
       row.helper || '-',
     ]),
     emptyMessage
@@ -294,9 +333,44 @@ function buildCommitmentTable(
   );
 }
 
-function differenceInPercent(current: number, previous: number) {
-  if (!Number.isFinite(previous) || previous === 0) return null;
-  return ((current - previous) / previous) * 100;
+function buildComparisonDisplay(
+  current: number | null | undefined,
+  previous: number | null | undefined,
+  t: (key: string, options?: Record<string, unknown>) => string
+): ComparisonDisplay {
+  const currentValue = Number(current);
+  const previousValue = Number(previous);
+
+  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) {
+    return {
+      percentage: null,
+      label: t('reports.comparison.unavailable', { defaultValue: 'Comparison unavailable' }),
+      unavailable: true,
+    };
+  }
+
+  if (currentValue === 0 && previousValue === 0) {
+    return {
+      percentage: 0,
+      label: t('reports.comparison.noChange', { defaultValue: 'No change' }),
+      unavailable: false,
+    };
+  }
+
+  if (previousValue === 0) {
+    return {
+      percentage: null,
+      label: t('reports.comparison.unavailable', { defaultValue: 'Comparison unavailable' }),
+      unavailable: true,
+    };
+  }
+
+  const percentage = ((currentValue - previousValue) / previousValue) * 100;
+  return {
+    percentage,
+    label: `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}%`,
+    unavailable: false,
+  };
 }
 
 export function buildFullFinancialReportData(args: {
@@ -644,11 +718,59 @@ export function buildFullFinancialReportData(args: {
     ]);
 
   const commitments = (() => {
-    const rows: Array<{ bucket: 'overdue' | 'next7' | 'next30' | 'later'; label: string; dueDate: string; amount: string; type: string; account: string }> = [];
+    const rowsByIdentity = new Map<string, {
+      bucket: 'overdue' | 'next7' | 'next30' | 'later';
+      label: string;
+      dueDate: string;
+      amount: string;
+      type: string;
+      account: string;
+    }>();
+    const upsertCommitment = (argsForIdentity: {
+      sourceType: 'subscription' | 'recurring' | 'reimbursement';
+      sourceId: string;
+      linkedRecurringId?: string | null;
+      accountId?: string | null;
+      label: string;
+      dueDateIso: string;
+      amountValue: number;
+      currency: string;
+    }, row: {
+      bucket: 'overdue' | 'next7' | 'next30' | 'later';
+      label: string;
+      dueDate: string;
+      amount: string;
+      type: string;
+      account: string;
+    }) => {
+      const identity = buildCommitmentIdentity({
+        sourceType: argsForIdentity.sourceType,
+        sourceId: argsForIdentity.sourceId,
+        linkedRecurringId: argsForIdentity.linkedRecurringId,
+        accountId: argsForIdentity.accountId,
+        label: argsForIdentity.label,
+        dueDate: argsForIdentity.dueDateIso,
+        amount: argsForIdentity.amountValue,
+        currency: argsForIdentity.currency,
+      });
+      if (!rowsByIdentity.has(identity)) {
+        rowsByIdentity.set(identity, row);
+      }
+    };
+
     for (const subscription of subscriptions) {
       if (!subscription.next_billing_date) continue;
       const dayDiff = Math.round((new Date(`${subscription.next_billing_date}T12:00:00Z`).getTime() - new Date(`${args.todayIso}T12:00:00Z`).getTime()) / 86400000);
-      rows.push({
+      upsertCommitment({
+        sourceType: 'subscription',
+        sourceId: subscription.id,
+        linkedRecurringId: subscription.recurring_transaction_id,
+        accountId: subscription.financial_account_id,
+        label: subscription.name,
+        dueDateIso: subscription.next_billing_date,
+        amountValue: Number(subscription.amount || 0),
+        currency: subscription.currency_code,
+      }, {
         bucket: dayDiff < 0 ? 'overdue' : dayDiff <= 7 ? 'next7' : dayDiff <= 30 ? 'next30' : 'later',
         label: subscription.name,
         dueDate: toDateLabel(subscription.next_billing_date, args.locale),
@@ -659,7 +781,15 @@ export function buildFullFinancialReportData(args: {
     }
     for (const item of args.supplemental.recurringItems) {
       const dayDiff = Math.round((new Date(`${item.next_due_date}T12:00:00Z`).getTime() - new Date(`${args.todayIso}T12:00:00Z`).getTime()) / 86400000);
-      rows.push({
+      upsertCommitment({
+        sourceType: 'recurring',
+        sourceId: item.id,
+        accountId: item.account_id,
+        label: item.description,
+        dueDateIso: item.next_due_date,
+        amountValue: Number(item.amount || 0),
+        currency: item.currency,
+      }, {
         bucket: dayDiff < 0 ? 'overdue' : dayDiff <= 7 ? 'next7' : dayDiff <= 30 ? 'next30' : 'later',
         label: item.description,
         dueDate: toDateLabel(item.next_due_date, args.locale),
@@ -674,7 +804,14 @@ export function buildFullFinancialReportData(args: {
       if (!reimbursement.due_date) continue;
       const outstanding = Math.max(0, Number(reimbursement.amount || 0) - Number(reimbursement.amount_paid || 0));
       const dayDiff = Math.round((new Date(`${reimbursement.due_date}T12:00:00Z`).getTime() - new Date(`${args.todayIso}T12:00:00Z`).getTime()) / 86400000);
-      rows.push({
+      upsertCommitment({
+        sourceType: 'reimbursement',
+        sourceId: reimbursement.id,
+        label: reimbursement.description,
+        dueDateIso: reimbursement.due_date,
+        amountValue: outstanding,
+        currency: reimbursement.currency,
+      }, {
         bucket: dayDiff < 0 ? 'overdue' : dayDiff <= 7 ? 'next7' : dayDiff <= 30 ? 'next30' : 'later',
         label: reimbursement.description,
         dueDate: toDateLabel(reimbursement.due_date, args.locale),
@@ -683,6 +820,8 @@ export function buildFullFinancialReportData(args: {
         account: '-',
       });
     }
+
+    const rows = Array.from(rowsByIdentity.values());
 
     return {
       overdue: rows.filter((row) => row.bucket === 'overdue'),
@@ -693,6 +832,29 @@ export function buildFullFinancialReportData(args: {
   })();
 
   const topExpenseCategory = expenseCategories[0];
+  const incomeComparison = buildComparisonDisplay(
+    incomeMetric.reportingAmount,
+    previousIncomeMetric?.reportingAmount,
+    args.t
+  );
+  const expenseComparison = buildComparisonDisplay(
+    expensesMetric.reportingAmount,
+    previousExpensesMetric?.reportingAmount,
+    args.t
+  );
+  const activityDateLabel = args.t('reports.dateBasis.activityDuring', {
+    defaultValue: 'Activity during {{start}} - {{end}}',
+    start: toDateLabel(args.activeRange.startDate, args.locale),
+    end: toDateLabel(args.activeRange.endDate, args.locale),
+  });
+  const balanceDateLabel = args.t('reports.dateBasis.balanceAsOf', {
+    defaultValue: 'Balance as of {{date}}',
+    date: toDateLabel(args.activeRange.endDate, args.locale),
+  });
+  const commitmentsDateLabel = args.t('reports.dateBasis.commitmentsAfter', {
+    defaultValue: 'Upcoming commitments after {{date}}',
+    date: toDateLabel(args.todayIso, args.locale),
+  });
   const executiveNarratives: string[] = [];
   if (netMetric.reportingAmount !== null && incomeMetric.reportingAmount !== null && expensesMetric.reportingAmount !== null) {
     if (netMetric.reportingAmount < 0) {
@@ -785,12 +947,8 @@ export function buildFullFinancialReportData(args: {
       comparisonSummary: previousIncomeMetric && previousExpensesMetric
         ? args.t('reports.fullReport.incomeExpenses.comparisonSummary', {
             defaultValue: 'Income changed {{incomeChange}} and expenses changed {{expenseChange}} compared with the previous comparable period.',
-            incomeChange: previousIncomeMetric.reportingAmount !== null && incomeMetric.reportingAmount !== null && differenceInPercent(incomeMetric.reportingAmount, previousIncomeMetric.reportingAmount) !== null
-              ? `${differenceInPercent(incomeMetric.reportingAmount, previousIncomeMetric.reportingAmount)!.toFixed(1)}%`
-              : args.t('reports.unavailable'),
-            expenseChange: previousExpensesMetric.reportingAmount !== null && expensesMetric.reportingAmount !== null && differenceInPercent(expensesMetric.reportingAmount, previousExpensesMetric.reportingAmount) !== null
-              ? `${differenceInPercent(expensesMetric.reportingAmount, previousExpensesMetric.reportingAmount)!.toFixed(1)}%`
-              : args.t('reports.unavailable'),
+            incomeChange: incomeComparison.label,
+            expenseChange: expenseComparison.label,
           })
         : null,
       incomeVsExpenseChart: args.incomeExpenseChartState,
@@ -804,7 +962,7 @@ export function buildFullFinancialReportData(args: {
           label: row.label,
           value: row.value,
           count: row.count,
-          comparison: differenceInPercent(row.value, previousExpenseCategoryMap.get(row.label) || 0),
+          comparison: buildComparisonDisplay(row.value, previousExpenseCategoryMap.get(row.label), args.t).label,
           helper: formatMoney(row.largest, args.reportData.reportingCurrency),
         })),
         args.reportData.reportingCurrency,
@@ -1061,6 +1219,15 @@ export function buildFullFinancialReportData(args: {
           defaultValue: 'Original AED, USD, CAD, GBP and other currencies remain separated so mixed-currency totals are not misleading.',
         }),
       ],
+    },
+    dateBasis: {
+      overview: activityDateLabel,
+      periodActivity: activityDateLabel,
+      financialPosition: balanceDateLabel,
+      people: args.t('reports.dateBasis.relationshipHistory', {
+        defaultValue: 'Relationship history',
+      }),
+      commitments: commitmentsDateLabel,
     },
     observations: [
       topExpenseCategory

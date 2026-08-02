@@ -49,10 +49,18 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@dhiwise/component-tagger": "^1.0.15",
     "@heroicons/react": "^2.2.0",
-    "@supabase/supabase-js": "2.108.2",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "0.12.0",
+    "@supabase/supabase-js": "2.108.2",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "i18next": "26.3.1",
@@ -68,6 +76,7 @@
     "sonner": "latest"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@eslint/eslintrc": "^3",
     "@netlify/plugin-nextjs": "^5.11.1",
     "@types/node": "latest",

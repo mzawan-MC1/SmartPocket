@@ -463,8 +463,8 @@
       "csvExport": "CSV Export",
       "applicableBudgetsInRange": "{{count}} applicable budgets in range",
       "transactionsInRange": "{{count}} transactions in range",
-      "printPdf": "Print / Save as PDF",
-      "printPdfDescription": "Open the print dialog for a printer-friendly version."
+      "printPdf": "Generate PDF",
+      "printPdfDescription": "Download a generated PDF version of this report."
     },
     "accountStatement": {
       "emptyDescription": "No account-statement transactions match the selected report range.",
@@ -559,7 +559,16 @@
       "includeItemInsights": "Include item insights",
       "includeUpcomingCommitments": "Include upcoming commitments",
       "includeArchivedAccounts": "Include archived or versioned accounts when relevant",
+        "activeFilters": "{{count}} active filters",
+        "moreFilters": "More filters",
+        "moreFiltersDescription": "Category, person, transaction type, currency mode, and report detail options.",
+        "showMoreFilters": "Show more filters",
+        "hideMoreFilters": "Hide filters",
       "preview": "Preview report",
+        "generatePdf": "Generate PDF",
+        "generatePdfLoading": "Generating PDF...",
+        "generatePdfComplete": "Download complete",
+        "exportCsv": "Export CSV",
       "exportCsvPackage": "Export full report CSV",
       "reset": "Reset",
       "previewPrompt": "Choose your filters and preview the report to build the full financial document.",
@@ -813,6 +822,30 @@
         "budgetAtRisk": "Budget closest to its limit: {{name}}.",
         "busiestDay": "Busiest spending day: {{date}}."
       }
+      },
+      "comparison": {
+        "noChange": "No change",
+        "unavailable": "Comparison unavailable"
+      },
+      "dateBasis": {
+        "activityDuring": "Activity during {{start}} - {{end}}",
+        "balanceAsOf": "Balance as of {{date}}",
+        "commitmentsAfter": "Upcoming commitments after {{date}}",
+        "relationshipHistory": "Relationship history"
+      },
+      "compact": {
+        "pageDescription": "Review balances, activity, trends, and commitments in one compact reporting workspace.",
+        "previewDescription": "The portal shows a compact interactive preview. Generate PDF to open the printable version.",
+        "emptyTitle": "No meaningful report activity was found.",
+        "emptyDescription": "Try a different period, scope, or account to preview a report with activity.",
+        "currencyDescription": "Reporting totals are primary. Original currency breakdowns stay available as secondary details.",
+        "groups": {
+          "overview": "Overview",
+          "periodActivity": "Period Activity",
+          "financialPosition": "Financial Position",
+          "people": "People",
+          "commitments": "Commitments"
+        }
     }
   },
   "dashboardMetrics": {
@@ -2525,6 +2558,10 @@
           "3": "Переведи 1 000 AED из банка в наличные",
           "4": "Я оплатил 600 AED за подписку Ахмеда с кредитной карты"
         }
+      },
+      "pdf": {
+        "downloadComplete": "Download complete",
+        "generateError": "PDF generation failed. Please try again."
       }
     },
     "voice": {
