@@ -1,7 +1,7 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
@@ -19,7 +19,6 @@ function buildAuthErrorDestination(args: {
 
 export default function DesktopAuthCallbackPage() {
   const { t } = useTranslation(['auth', 'public']);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const hasStartedRef = useRef(false);
 
@@ -33,10 +32,28 @@ export default function DesktopAuthCallbackPage() {
     const code = searchParams.get('code');
     const providerError = searchParams.get('error');
     const providerErrorDescription = searchParams.get('error_description');
+    const navigateTo = (destination: string) => {
+      window.location.replace(destination);
+    };
+
+    const waitForSession = async () => {
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const { data, error } = await supabase.auth.getSession();
+        if (!error && data.session?.user) {
+          return data.session;
+        }
+
+        if (attempt < 4) {
+          await new Promise((resolve) => window.setTimeout(resolve, 150));
+        }
+      }
+
+      return null;
+    };
 
     if (providerError) {
       const isCancelled = providerError === 'access_denied';
-      router.replace(buildAuthErrorDestination({
+      navigateTo(buildAuthErrorDestination({
         code: isCancelled ? 'oauth_cancelled' : 'oauth_provider_error',
         message: isCancelled
           ? 'Google sign-in was cancelled before completion.'
@@ -46,7 +63,7 @@ export default function DesktopAuthCallbackPage() {
     }
 
     if (!code) {
-      router.replace(buildAuthErrorDestination({
+      navigateTo(buildAuthErrorDestination({
         code: 'callback_error',
         message: 'The Google sign-in callback was incomplete. Please try again.',
       }));
@@ -55,24 +72,32 @@ export default function DesktopAuthCallbackPage() {
 
     void (async () => {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error || !data.user) {
-          router.replace(buildAuthErrorDestination({
-            code: 'callback_error',
-            message: error?.message || 'Google sign-in could not be completed.',
-          }));
-          return;
-        }
+      if (error || !data.user) {
+        navigateTo(buildAuthErrorDestination({
+          code: 'callback_error',
+          message: error?.message || 'Google sign-in could not be completed.',
+        }));
+        return;
+      }
 
-        router.replace('/dashboard');
-        router.refresh();
+      const settledSession = await waitForSession();
+      if (!settledSession?.user) {
+        navigateTo(buildAuthErrorDestination({
+          code: 'callback_error',
+          message: 'Google sign-in completed, but the session was not ready. Please try again.',
+        }));
+        return;
+      }
+
+      navigateTo('/dashboard?desktop=1');
       })()
       .catch(() => {
-        router.replace(buildAuthErrorDestination({
+        navigateTo(buildAuthErrorDestination({
           code: 'callback_error',
           message: 'We could not complete sign-in after returning from Google. Please try again.',
         }));
       });
-  }, [router, searchParams]);
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
