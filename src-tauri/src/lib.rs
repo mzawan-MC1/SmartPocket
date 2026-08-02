@@ -1,3 +1,5 @@
+mod updater;
+
 use std::{
     fs,
     path::PathBuf,
@@ -6,12 +8,14 @@ use std::{
 
 use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
+use updater::NativeUpdaterState;
 use tauri_plugin_opener::{Builder as OpenerPluginBuilder, OpenerExt};
 
 const DEV_APP_URL: &str = "http://localhost:4028";
 const PROD_APP_URL: &str = "https://1smartpocket.com";
 const DESKTOP_ENTRY_PATH: &str = "/sign-up-login?desktop=1";
 const DESKTOP_OAUTH_LAUNCH_PATH: &str = "/desktop/oauth-launch";
+const DESKTOP_CHECK_UPDATES_PATH: &str = "/desktop/check-updates";
 const DESKTOP_INTERNAL_CALLBACK_PATH: &str = "/auth/desktop-callback";
 const MAIN_WINDOW_LABEL: &str = "main";
 const DESKTOP_CALLBACK_SCHEME: &str = "smartpocket";
@@ -568,6 +572,11 @@ fn handle_navigation<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
         return false;
     }
 
+    if is_allowed_app_navigation(url) && url.path() == DESKTOP_CHECK_UPDATES_PATH {
+        updater::trigger_manual_check(app);
+        return false;
+    }
+
     if is_allowed_app_navigation(url) {
         return true;
     }
@@ -583,6 +592,7 @@ fn handle_navigation<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(NativeUpdaterState::default())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
             let handled_deep_link = args
                 .iter()
@@ -595,6 +605,8 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(OpenerPluginBuilder::new().open_js_links_on_click(false).build())
         .setup(|app| {
             let mut main_window = app
@@ -645,6 +657,7 @@ pub fn run() {
 
             focus_main_window(&main_window);
             register_desktop_callback_handler(&callback_handle);
+            updater::schedule_automatic_check(&app.handle().clone());
 
             Ok(())
         })

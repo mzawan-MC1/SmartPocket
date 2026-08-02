@@ -15,6 +15,8 @@ import type { PlanCode, PublicSubscriptionPlan, SubscriptionSummary } from '@/li
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
+import { isTauriNativeShellRuntime } from '@/lib/app-runtime';
+import { DESKTOP_CHECK_UPDATES_PATH } from '@/lib/desktop-shell';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -39,6 +41,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
   const displayEmail = authLoading ? null : user?.email ?? null;
   const displayAvatarUrl = authLoading ? null : profile?.avatar_url ?? null;
   const isAdmin = !authLoading && user?.app_metadata?.role === 'admin';
+  const isDesktopShell = useMemo(() => isTauriNativeShellRuntime(), []);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -239,6 +242,19 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
                   <CircleHelp size={14} className="text-muted-foreground" />
                   {t('topbar.faqs', { ns: 'portal' })}
                 </Link>
+                {isDesktopShell ? (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2.5 px-3 py-2 text-sm text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      window.location.assign(DESKTOP_CHECK_UPDATES_PATH);
+                    }}
+                  >
+                    <ArrowUpRight size={14} className="text-muted-foreground" />
+                    {t('topbar.checkForUpdates', { ns: 'portal', defaultValue: 'Check for updates' })}
+                  </button>
+                ) : null}
                 {subscriptionSummary?.entitlements?.aiHistory ? (
                   <Link
                     href="/ai-history"

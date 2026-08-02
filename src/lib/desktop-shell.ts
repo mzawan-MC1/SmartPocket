@@ -3,6 +3,7 @@ export const DESKTOP_MODE_COOKIE_NAME = 'sp-desktop-mode';
 export const DESKTOP_ENTRY_PATH = '/sign-up-login?desktop=1';
 export const DESKTOP_CALLBACK_PATH = '/auth/desktop-callback';
 export const DESKTOP_OAUTH_LAUNCH_PATH = '/desktop/oauth-launch';
+export const DESKTOP_CHECK_UPDATES_PATH = '/desktop/check-updates';
 
 export function hasDesktopShellUserAgent(userAgent: string | null | undefined) {
   return typeof userAgent === 'string' && userAgent.includes(TAURI_DESKTOP_USER_AGENT_MARKER);

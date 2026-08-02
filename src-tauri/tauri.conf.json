@@ -39,6 +39,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": [
       "nsis",
       "msi",
@@ -71,6 +72,15 @@
         "schemes": [
           "smartpocket"
         ]
+      }
+    },
+    "updater": {
+      "endpoints": [
+        "https://github.com/mzawan-MC1/SmartPocket/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgyQzc2NkJGRTVBMzhBMTMKUldRVGlxUGx2MmJIZ3ZtYmp1MVM2WTlZTVN5ZENWd2tWU21MeU1xVXM4UTNLT0xjb01HcGtBS0UK",
+      "windows": {
+        "installMode": "passive"
       }
     }
   }
