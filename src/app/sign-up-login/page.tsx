@@ -1,10 +1,30 @@
 import React from 'react';
+import { cookies, headers } from 'next/headers';
 import PublicBackToTop from '@/components/public/PublicBackToTop';
 import PublicHeader from '@/components/public/PublicHeader';
 import PublicFooter from '@/components/public/PublicFooter';
 import AuthScreen from './components/AuthScreen';
+import { DESKTOP_MODE_COOKIE_NAME, isDesktopShellModeEnabled } from '@/lib/desktop-shell';
 
-export default function SignUpLoginPage() {
+export default async function SignUpLoginPage() {
+  const requestHeaders = await headers();
+  const cookieStore = await cookies();
+  const isDesktopShell = isDesktopShellModeEnabled({
+    userAgent: requestHeaders.get('user-agent'),
+    desktopQuery: requestHeaders.get('x-sp-desktop-query'),
+    desktopCookie: cookieStore.get(DESKTOP_MODE_COOKIE_NAME)?.value ?? null,
+  });
+
+  if (isDesktopShell) {
+    return (
+      <main className="min-h-screen bg-background">
+        <div className="min-h-screen">
+          <AuthScreen />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PublicHeader />

@@ -9,7 +9,13 @@ import { useTranslation } from 'react-i18next';
 import { createClient } from '@/lib/supabase/client';
 import { trackMarketingEvent, trackSignupClick } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
-import { buildAuthCallbackUrl } from '@/lib/auth/urls';
+import {
+  buildAuthCallbackUrl,
+  buildDesktopOAuthLaunchUrl,
+  getConfiguredSupabaseOrigin,
+  isDesktopGoogleOAuthStartUrl,
+} from '@/lib/auth/urls';
+import { isTauriNativeShellRuntime } from '@/lib/app-runtime';
 
 interface LoginFormData {
   email: string;
@@ -120,15 +126,37 @@ export default function LoginForm({
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
     try {
+      const isTauriDesktop = isTauriNativeShellRuntime();
+
       const supabase = createClient();
-      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')));
-      const { error } = await supabase.auth.signInWithOAuth({
+      const callbackUrl = buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')), {
+        target: isTauriDesktop ? 'native' : 'web',
+      });
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: callbackUrl,
+          ...(isTauriDesktop ? { skipBrowserRedirect: true } : {}),
         },
       });
       if (error) throw error;
+
+      if (isTauriDesktop) {
+        if (!data?.url) {
+          const message = 'Google sign-in did not return an OAuth URL.';
+          console.error('[LoginForm] Missing Supabase OAuth URL', { data });
+          toast.error(message);
+          throw new Error(message);
+        }
+
+        const supabaseOrigin = getConfiguredSupabaseOrigin();
+        if (!supabaseOrigin || !isDesktopGoogleOAuthStartUrl(data.url, { supabaseOrigin })) {
+          throw new Error('Google sign-in returned an invalid OAuth origin.');
+        }
+
+        window.location.assign(buildDesktopOAuthLaunchUrl(data.url));
+        return;
+      }
     } catch (err: any) {
       toast.error(err?.message || t('signIn.oauthFailed', { ns: 'auth', provider: 'Google' }));
       setIsGoogleLoading(false);

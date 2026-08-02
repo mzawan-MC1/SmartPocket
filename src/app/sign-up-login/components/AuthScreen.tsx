@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getSettingsAssetUrl } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { type AppRuntime, getAppRuntime } from '@/lib/app-runtime';
+import { type AppRuntime, getAppRuntime, isTauriNativeShellRuntime } from '@/lib/app-runtime';
 
 
 type AuthMode = 'login' | 'signup' | 'forgot';
@@ -61,7 +61,8 @@ export default function AuthScreen() {
   const brandHeadline = showSingleLanguageBrandingTagline && branding.tagline
     ? branding.tagline
     : t('authScreen.brandHeadline', { ns: 'public', defaultValue: branding.appName });
-  const suppressOauthInNativeShell = runtime === 'native-shell';
+  const suppressGoogleOauth = runtime === 'native-shell' && !isTauriNativeShellRuntime();
+  const suppressAppleOauth = runtime === 'native-shell';
 
   useEffect(() => {
     setRuntime(getAppRuntime());
@@ -197,16 +198,16 @@ export default function AuthScreen() {
               <LoginForm
                 onSwitchToSignUp={() => setMode('signup')}
                 onForgotPassword={() => setMode('forgot')}
-                showGoogle={auth.googleOauthEnabled && !suppressOauthInNativeShell}
-                showApple={auth.appleOauthEnabled && !suppressOauthInNativeShell}
+                showGoogle={auth.googleOauthEnabled && !suppressGoogleOauth}
+                showApple={auth.appleOauthEnabled && !suppressAppleOauth}
                 showMagicLink={auth.magicLinkEnabled}
                 showEmailPassword={auth.emailPasswordEnabled}
               />
             ) : mode === 'signup' ? (
               <SignUpForm
                 onSwitchToLogin={() => setMode('login')}
-                showGoogle={auth.googleOauthEnabled && !suppressOauthInNativeShell}
-                showApple={auth.appleOauthEnabled && !suppressOauthInNativeShell}
+                showGoogle={auth.googleOauthEnabled && !suppressGoogleOauth}
+                showApple={auth.appleOauthEnabled && !suppressAppleOauth}
                 showMagicLink={auth.magicLinkEnabled}
                 showEmailPassword={auth.emailPasswordEnabled}
               />

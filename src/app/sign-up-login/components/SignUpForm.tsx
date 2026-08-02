@@ -8,7 +8,13 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAccountCreated, trackMarketingEvent } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
-import { buildAuthCallbackUrl } from '@/lib/auth/urls';
+import {
+  buildAuthCallbackUrl,
+  buildDesktopOAuthLaunchUrl,
+  getConfiguredSupabaseOrigin,
+  isDesktopGoogleOAuthStartUrl,
+} from '@/lib/auth/urls';
+import { isTauriNativeShellRuntime } from '@/lib/app-runtime';
 
 interface SignUpFormData {
   fullName: string;
@@ -56,8 +62,13 @@ export default function SignUpForm({
   } = useForm<SignUpFormData>();
 
   const passwordValue = watch('password', '');
-  const buildSignupCallbackUrl = (method: 'google' | 'apple' | 'magic_link') => {
-    const callbackUrl = new URL(buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next'))));
+  const buildSignupCallbackUrl = (
+    method: 'google' | 'apple' | 'magic_link',
+    target: 'web' | 'native' = 'web'
+  ) => {
+    const callbackUrl = new URL(buildAuthCallbackUrl(getSafeNextPath(searchParams.get('next')), {
+      target,
+    }));
     callbackUrl.searchParams.set('signup_method', method);
     return callbackUrl.toString();
   };
@@ -90,17 +101,40 @@ export default function SignUpForm({
   const handleGoogleSignUp = async () => {
     setIsGoogleLoading(true);
     try {
+      const isTauriDesktop = isTauriNativeShellRuntime();
+
       trackMarketingEvent('sign_up_started', { method: 'google' });
       const { createClient } = await import('@/lib/supabase/client');
       const supabase = createClient();
-      const callbackUrl = buildSignupCallbackUrl('google');
-      const { error } = await supabase.auth.signInWithOAuth({
+      const callbackUrl = buildSignupCallbackUrl(
+        'google',
+        isTauriDesktop ? 'native' : 'web'
+      );
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: callbackUrl,
+          ...(isTauriDesktop ? { skipBrowserRedirect: true } : {}),
         },
       });
       if (error) throw error;
+
+      if (isTauriDesktop) {
+        if (!data?.url) {
+          const message = 'Google sign-in did not return an OAuth URL.';
+          console.error('[SignUpForm] Missing Supabase OAuth URL', { data });
+          toast.error(message);
+          throw new Error(message);
+        }
+
+        const supabaseOrigin = getConfiguredSupabaseOrigin();
+        if (!supabaseOrigin || !isDesktopGoogleOAuthStartUrl(data.url, { supabaseOrigin })) {
+          throw new Error('Google sign-in returned an invalid OAuth origin.');
+        }
+
+        window.location.assign(buildDesktopOAuthLaunchUrl(data.url));
+        return;
+      }
     } catch (err: any) {
       toast.error(err?.message || t('signUp.oauthFailed', { ns: 'auth', provider: 'Google' }));
       setIsGoogleLoading(false);

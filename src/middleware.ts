@@ -6,6 +6,11 @@ import {
 } from '@/lib/auth/redirects';
 import { buildAppUrl } from '@/lib/auth/urls';
 import {
+  buildDesktopEntryPath,
+  DESKTOP_MODE_COOKIE_NAME,
+  isDesktopShellModeEnabled,
+} from '@/lib/desktop-shell';
+import {
   copySupabaseCookies,
   createMiddlewareSupabaseClient,
 } from '@/lib/supabase/server';
@@ -15,10 +20,36 @@ export async function middleware(request: NextRequest) {
   const pathWithSearch = `${pathname}${request.nextUrl.search}`;
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-sp-pathname', pathname);
+  const userAgent = request.headers.get('user-agent');
+  const desktopQuery = request.nextUrl.searchParams.get('desktop');
+  requestHeaders.set('x-sp-desktop-query', desktopQuery === '1' ? '1' : '');
+  const desktopCookie = request.cookies.get(DESKTOP_MODE_COOKIE_NAME)?.value ?? null;
+  const isDesktopShellRequest = isDesktopShellModeEnabled({
+    userAgent,
+    desktopQuery,
+    desktopCookie,
+  });
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto');
   const rawHost = (forwardedHost || request.headers.get('host') || '').split(',')[0].trim().toLowerCase();
   const rawProto = (forwardedProto || request.nextUrl.protocol.replace(/:$/, '') || '').split(',')[0].trim().toLowerCase();
+
+  function applyDesktopModeCookie(response: NextResponse) {
+    if (isDesktopShellRequest) {
+      response.cookies.set(DESKTOP_MODE_COOKIE_NAME, '1', {
+        path: '/',
+        sameSite: 'lax',
+        secure: request.nextUrl.protocol === 'https:',
+      });
+    } else if (desktopCookie === '1') {
+      response.cookies.set(DESKTOP_MODE_COOKIE_NAME, '', {
+        path: '/',
+        maxAge: 0,
+      });
+    }
+
+    return response;
+  }
 
   if (process.env.NODE_ENV === 'production') {
     const isWww = rawHost === 'www.1smartpocket.com';
@@ -30,7 +61,7 @@ export async function middleware(request: NextRequest) {
       canonicalUrl.protocol = 'https:';
       canonicalUrl.hostname = '1smartpocket.com';
       canonicalUrl.port = '';
-      return NextResponse.redirect(canonicalUrl, 308);
+      return applyDesktopModeCookie(NextResponse.redirect(canonicalUrl, 308));
     }
   }
 
@@ -41,19 +72,19 @@ export async function middleware(request: NextRequest) {
   ]);
 
   if (pathname.startsWith('/api/')) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return applyDesktopModeCookie(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   if (pathname.startsWith('/_next/')) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return applyDesktopModeCookie(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   if (pathname.startsWith('/@vite/')) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return applyDesktopModeCookie(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   if (publicTechnicalRoutes.has(pathname)) {
-    return NextResponse.next({ request: { headers: requestHeaders } });
+    return applyDesktopModeCookie(NextResponse.next({ request: { headers: requestHeaders } }));
   }
 
   const { supabase, getResponse } = createMiddlewareSupabaseClient(request, requestHeaders);
@@ -97,10 +128,14 @@ export async function middleware(request: NextRequest) {
   }
 
   function redirectWithCookies(destination: string): NextResponse {
-    return copySupabaseCookies(
+    return applyDesktopModeCookie(copySupabaseCookies(
       supabaseResponse,
       NextResponse.redirect(buildAppUrl(destination, request))
-    );
+    ));
+  }
+
+  function redirectDesktopEntry() {
+    return redirectWithCookies(buildDesktopEntryPath());
   }
 
   const publicPrefixes = [
@@ -130,10 +165,39 @@ export async function middleware(request: NextRequest) {
     publicTechnicalRoutes.has(pathname) ||
     publicPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
 
+  const blockedDesktopPublicPrefixes = [
+    '/home',
+    '/about',
+    '/features',
+    '/pricing',
+    '/blog',
+    '/security',
+    '/ai-receipt-scanner',
+    '/ai-voice-expense-tracker',
+    '/family-budget-app',
+    '/shared-expenses',
+    '/multi-currency-expense-tracker',
+    '/expense-tracker-uae',
+    '/contact',
+    '/faqs',
+    '/privacy',
+    '/terms',
+    '/offline',
+    '/invite',
+  ];
+
+  const isBlockedDesktopPublicRoute =
+    pathname === '/'
+    || blockedDesktopPublicPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
+
+  if (isDesktopShellRequest && isBlockedDesktopPublicRoute) {
+    return user ? redirectWithCookies('/dashboard') : redirectDesktopEntry();
+  }
+
   if (pathname === '/') {
     if (!user) {
       // Unauthenticated users stay on public homepage
-      return NextResponse.next({ request: { headers: requestHeaders } });
+      return applyDesktopModeCookie(NextResponse.next({ request: { headers: requestHeaders } }));
     }
 
     const { destination, profileError } = await getPostAuthDestination(supabase, user.id, null);
@@ -147,13 +211,16 @@ export async function middleware(request: NextRequest) {
     // /home permanently redirects to canonical homepage /
     const canonicalUrl = new URL(request.nextUrl.href);
     canonicalUrl.pathname = '/';
-    return NextResponse.redirect(canonicalUrl, 308);
+    return applyDesktopModeCookie(NextResponse.redirect(canonicalUrl, 308));
   }
 
   if (!user && !isPublicRoute) {
-    const redirectUrl = buildAppUrl('/sign-up-login', request);
+    const redirectUrl = buildAppUrl(
+      isDesktopShellRequest ? buildDesktopEntryPath() : '/sign-up-login',
+      request
+    );
     redirectUrl.searchParams.set('next', pathWithSearch);
-    return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+    return applyDesktopModeCookie(copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl)));
   }
 
   if (user) {
@@ -183,9 +250,12 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/admin')) {
     if (!user) {
-      const redirectUrl = buildAppUrl('/sign-up-login', request);
+      const redirectUrl = buildAppUrl(
+        isDesktopShellRequest ? buildDesktopEntryPath() : '/sign-up-login',
+        request
+      );
       redirectUrl.searchParams.set('next', pathWithSearch);
-      return copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl));
+      return applyDesktopModeCookie(copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl)));
     }
 
     const appMetadata = user.app_metadata || {};
@@ -196,7 +266,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return supabaseResponse;
+  return applyDesktopModeCookie(supabaseResponse);
 }
 
 export const config = {

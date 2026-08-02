@@ -1,14 +1,29 @@
 import type { NextRequest } from 'next/server';
 import { getSafeNextPath } from '@/lib/auth/redirects';
+import { DESKTOP_OAUTH_LAUNCH_PATH } from '@/lib/desktop-shell';
 
 const LOCAL_DEV_ORIGIN = 'http://localhost:4028';
 const PRODUCTION_CANONICAL_ORIGIN = 'https://1smartpocket.com';
+const DESKTOP_AUTH_CALLBACK_URL = 'smartpocket://auth/callback';
 
 export type AuthUrlTarget = 'web' | 'native';
 
 function normalizeOrigin(value?: string | null) {
   if (!value) return null;
   return value.replace(/\/+$/, '');
+}
+
+export function getConfiguredSupabaseOrigin() {
+  const value = normalizeOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL ?? null);
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
 }
 
 function canonicalizeOrigin(origin: string | null) {
@@ -119,10 +134,12 @@ export function buildAppUrl(path: string, request?: Pick<NextRequest, 'headers' 
 }
 
 function getConfiguredNativeAuthUrl(kind: 'callback' | 'password_reset') {
-  const value = kind === 'callback'
-    ? process.env.NEXT_PUBLIC_NATIVE_AUTH_CALLBACK_URL
-    : process.env.NEXT_PUBLIC_NATIVE_PASSWORD_RESET_URL;
+  if (kind === 'callback') {
+    // Desktop OAuth must always return through the native deep link.
+    return DESKTOP_AUTH_CALLBACK_URL;
+  }
 
+  const value = process.env.NEXT_PUBLIC_NATIVE_PASSWORD_RESET_URL;
   if (!value) {
     return null;
   }
@@ -178,4 +195,54 @@ export function buildPasswordResetUrl(options?: { target?: AuthUrlTarget }) {
   return buildAuthFlowUrl('password_reset', {
     target: options?.target,
   });
+}
+
+export function buildDesktopOAuthLaunchUrl(oauthUrl: string) {
+  const url = new URL(DESKTOP_OAUTH_LAUNCH_PATH, getAppOrigin());
+  url.searchParams.set('url', oauthUrl);
+  return url.toString();
+}
+
+export function isDesktopAuthCallbackUrl(value: string | URL) {
+  try {
+    const url = value instanceof URL ? value : new URL(value);
+    if (url.protocol !== 'smartpocket:' || url.hostname !== 'auth' || url.pathname !== '/callback') {
+      return false;
+    }
+
+    const safeNext = getSafeNextPath(url.searchParams.get('next'));
+    if (url.searchParams.has('next') && !safeNext) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isDesktopGoogleOAuthStartUrl(
+  value: string | URL,
+  options?: { supabaseOrigin?: string | null }
+) {
+  try {
+    const url = value instanceof URL ? value : new URL(value);
+    const expectedSupabaseOrigin = options?.supabaseOrigin ?? getConfiguredSupabaseOrigin();
+    if (!expectedSupabaseOrigin || url.origin !== expectedSupabaseOrigin) {
+      return false;
+    }
+
+    if (url.protocol !== 'https:' || url.pathname !== '/auth/v1/authorize') {
+      return false;
+    }
+
+    if (url.searchParams.get('provider') !== 'google') {
+      return false;
+    }
+
+    const redirectTo = url.searchParams.get('redirect_to');
+    return Boolean(redirectTo && isDesktopAuthCallbackUrl(redirectTo));
+  } catch {
+    return false;
+  }
 }
