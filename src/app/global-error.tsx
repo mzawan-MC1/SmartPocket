@@ -170,6 +170,33 @@ export default function GlobalError({
                 We couldn&apos;t load this page. Please try again.
               </p>
             </div>
+            {isDesktopRuntime ? (
+              <div className="mt-4 rounded-2xl border border-border bg-card px-4 py-3 text-left">
+                <p className="text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                  Desktop diagnostics
+                </p>
+                <dl className="mt-3 space-y-2 text-sm">
+                  <div>
+                    <dt className="font-600 text-foreground">Error name</dt>
+                    <dd className="break-words text-muted-foreground">{error?.name || 'Error'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-600 text-foreground">Error message</dt>
+                    <dd className="break-words text-muted-foreground">{error?.message || 'Unknown error'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-600 text-foreground">Digest</dt>
+                    <dd className="break-words text-muted-foreground">{error?.digest || 'Unavailable'}</dd>
+                  </div>
+                  <div>
+                    <dt className="font-600 text-foreground">Current URL</dt>
+                    <dd className="break-all text-muted-foreground">
+                      {typeof window !== 'undefined' ? window.location.href : 'Unavailable'}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            ) : null}
             <div className="mt-6 flex flex-wrap gap-3">
               <button type="button" className="btn-primary" onClick={handleTryAgain}>
                 Try again

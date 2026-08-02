@@ -88,7 +88,6 @@ export async function middleware(request: NextRequest) {
   }
 
   const { supabase, getResponse } = createMiddlewareSupabaseClient(request, requestHeaders);
-  const supabaseResponse = getResponse();
   let user: Awaited<ReturnType<typeof supabase.auth.getUser>>['data']['user'] | null = null;
 
   try {
@@ -101,9 +100,10 @@ export async function middleware(request: NextRequest) {
         || message.includes('Invalid Refresh Token');
 
       if (isRefreshTokenMissing) {
+        const latestResponse = getResponse();
         request.cookies.getAll().forEach((cookie) => {
           if (!cookie.name.startsWith('sb-')) return;
-          supabaseResponse.cookies.set(cookie.name, '', { path: '/', maxAge: 0 });
+          latestResponse.cookies.set(cookie.name, '', { path: '/', maxAge: 0 });
         });
         user = null;
       } else {
@@ -113,9 +113,10 @@ export async function middleware(request: NextRequest) {
       user = data.user ?? null;
     }
   } catch {
+    const latestResponse = getResponse();
     request.cookies.getAll().forEach((cookie) => {
       if (!cookie.name.startsWith('sb-')) return;
-      supabaseResponse.cookies.set(cookie.name, '', { path: '/', maxAge: 0 });
+      latestResponse.cookies.set(cookie.name, '', { path: '/', maxAge: 0 });
     });
     user = null;
   }
@@ -129,7 +130,7 @@ export async function middleware(request: NextRequest) {
 
   function redirectWithCookies(destination: string): NextResponse {
     return applyDesktopModeCookie(copySupabaseCookies(
-      supabaseResponse,
+      getResponse(),
       NextResponse.redirect(buildAppUrl(destination, request))
     ));
   }
@@ -220,7 +221,7 @@ export async function middleware(request: NextRequest) {
       request
     );
     redirectUrl.searchParams.set('next', pathWithSearch);
-    return applyDesktopModeCookie(copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl)));
+    return applyDesktopModeCookie(copySupabaseCookies(getResponse(), NextResponse.redirect(redirectUrl)));
   }
 
   if (user) {
@@ -255,7 +256,7 @@ export async function middleware(request: NextRequest) {
         request
       );
       redirectUrl.searchParams.set('next', pathWithSearch);
-      return applyDesktopModeCookie(copySupabaseCookies(supabaseResponse, NextResponse.redirect(redirectUrl)));
+      return applyDesktopModeCookie(copySupabaseCookies(getResponse(), NextResponse.redirect(redirectUrl)));
     }
 
     const appMetadata = user.app_metadata || {};
@@ -266,7 +267,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return applyDesktopModeCookie(supabaseResponse);
+  return applyDesktopModeCookie(getResponse());
 }
 
 export const config = {
