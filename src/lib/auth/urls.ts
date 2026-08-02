@@ -5,6 +5,7 @@ import { DESKTOP_OAUTH_LAUNCH_PATH } from '@/lib/desktop-shell';
 const LOCAL_DEV_ORIGIN = 'http://localhost:4028';
 const PRODUCTION_CANONICAL_ORIGIN = 'https://1smartpocket.com';
 const DESKTOP_AUTH_CALLBACK_URL = 'smartpocket://auth/callback';
+const DESKTOP_BROWSER_COMPLETE_PATH = '/auth/desktop-browser-complete';
 
 export type AuthUrlTarget = 'web' | 'native';
 
@@ -133,12 +134,7 @@ export function buildAppUrl(path: string, request?: Pick<NextRequest, 'headers' 
   return new URL(path, getPublicOrigin(request));
 }
 
-function getConfiguredNativeAuthUrl(kind: 'callback' | 'password_reset') {
-  if (kind === 'callback') {
-    // Desktop OAuth must always return through the native deep link.
-    return DESKTOP_AUTH_CALLBACK_URL;
-  }
-
+function getConfiguredNativeAuthUrl(kind: 'password_reset') {
   const value = process.env.NEXT_PUBLIC_NATIVE_PASSWORD_RESET_URL;
   if (!value) {
     return null;
@@ -161,14 +157,18 @@ function buildAuthFlowUrl(
   const target = options?.target ?? 'web';
   const safeNext = getSafeNextPath(options?.next ?? null);
 
-  if (target === 'native') {
+  if (target === 'native' && kind === 'callback') {
+    const url = new URL(DESKTOP_BROWSER_COMPLETE_PATH, PRODUCTION_CANONICAL_ORIGIN);
+    if (safeNext) {
+      url.searchParams.set('next', safeNext);
+    }
+    return url.toString();
+  }
+
+  if (target === 'native' && kind === 'password_reset') {
     const nativeUrl = getConfiguredNativeAuthUrl(kind);
     if (nativeUrl) {
-      const url = new URL(nativeUrl);
-      if (kind === 'callback' && safeNext) {
-        url.searchParams.set('next', safeNext);
-      }
-      return url.toString();
+      return nativeUrl;
     }
   }
 
@@ -221,6 +221,120 @@ export function isDesktopAuthCallbackUrl(value: string | URL) {
   }
 }
 
+function getSingleSearchParam(searchParams: URLSearchParams, key: string) {
+  const values = searchParams.getAll(key);
+  if (values.length > 1) {
+    throw new Error(`Duplicate ${key} parameter.`);
+  }
+
+  return values[0] ?? null;
+}
+
+function isSafeCallbackToken(value: string) {
+  return value.length > 0
+    && value.length <= 64
+    && /^[A-Za-z0-9_-]+$/.test(value);
+}
+
+function isSafePkceCode(value: string) {
+  return value.length > 0
+    && value.length <= 2048
+    && /^[A-Za-z0-9._~-]+$/.test(value);
+}
+
+function isSafeSignupMethod(value: string) {
+  return ['google', 'apple', 'magic_link', 'email_link'].includes(value);
+}
+
+export function buildDesktopAuthCallbackDeepLink(searchParams: URLSearchParams) {
+  const code = getSingleSearchParam(searchParams, 'code');
+  const error = getSingleSearchParam(searchParams, 'error');
+  const errorDescription = getSingleSearchParam(searchParams, 'error_description');
+  const next = getSingleSearchParam(searchParams, 'next');
+  const authType = getSingleSearchParam(searchParams, 'type');
+  const signupMethod = getSingleSearchParam(searchParams, 'signup_method');
+
+  if ((code ? 1 : 0) === (error ? 1 : 0)) {
+    throw new Error('The Google sign-in callback was incomplete.');
+  }
+
+  const deepLink = new URL(DESKTOP_AUTH_CALLBACK_URL);
+
+  if (code) {
+    if (!isSafePkceCode(code)) {
+      throw new Error('The Google sign-in callback included an invalid code.');
+    }
+    deepLink.searchParams.set('code', code);
+  }
+
+  if (error) {
+    if (!isSafeCallbackToken(error)) {
+      throw new Error('The Google sign-in callback included an invalid error.');
+    }
+    deepLink.searchParams.set('error', error);
+  }
+
+  if (errorDescription) {
+    deepLink.searchParams.set('error_description', errorDescription);
+  }
+
+  if (next) {
+    const safeNext = getSafeNextPath(next);
+    if (!safeNext) {
+      throw new Error('The requested post-login page was invalid.');
+    }
+    deepLink.searchParams.set('next', safeNext);
+  }
+
+  if (authType) {
+    if (!isSafeCallbackToken(authType)) {
+      throw new Error('The Google sign-in callback included an invalid type.');
+    }
+    deepLink.searchParams.set('type', authType);
+  }
+
+  if (signupMethod) {
+    if (!isSafeSignupMethod(signupMethod)) {
+      throw new Error('The Google sign-in callback included an invalid signup method.');
+    }
+    deepLink.searchParams.set('signup_method', signupMethod);
+  }
+
+  return deepLink.toString();
+}
+
+export function buildDesktopBrowserCompletionUrl(next?: string | null) {
+  return buildAuthCallbackUrl(next, { target: 'native' });
+}
+
+export function isDesktopBrowserCompletionUrl(value: string | URL) {
+  try {
+    const url = value instanceof URL ? value : new URL(value);
+    if (url.origin !== PRODUCTION_CANONICAL_ORIGIN || url.pathname !== DESKTOP_BROWSER_COMPLETE_PATH) {
+      return false;
+    }
+
+    const safeNext = getSafeNextPath(url.searchParams.get('next'));
+    if (url.searchParams.has('next') && !safeNext) {
+      return false;
+    }
+
+    const authType = url.searchParams.get('type');
+    if (authType && !isSafeCallbackToken(authType)) {
+      return false;
+    }
+
+    const signupMethod = url.searchParams.get('signup_method');
+    if (signupMethod && !isSafeSignupMethod(signupMethod)) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function isDesktopGoogleOAuthStartUrl(
   value: string | URL,
   options?: { supabaseOrigin?: string | null }
@@ -241,7 +355,7 @@ export function isDesktopGoogleOAuthStartUrl(
     }
 
     const redirectTo = url.searchParams.get('redirect_to');
-    return Boolean(redirectTo && isDesktopAuthCallbackUrl(redirectTo));
+    return Boolean(redirectTo && isDesktopBrowserCompletionUrl(redirectTo));
   } catch {
     return false;
   }
