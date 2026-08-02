@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   logo: {
-    width: 28,
+    width: 72,
     height: 28,
     objectFit: 'contain',
   },
@@ -207,6 +207,9 @@ const styles = StyleSheet.create({
   tableGroup: {
     marginTop: 6,
   },
+  tableBlock: {
+    marginTop: 3,
+  },
   tableTitle: {
     fontSize: 9,
     fontWeight: 700,
@@ -222,14 +225,13 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderRadius: 8,
     overflow: 'hidden',
-    marginTop: 3,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   tableHeaderCell: {
     fontSize: 7,
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   tableRowLast: {
     borderBottomWidth: 0,
@@ -249,7 +251,6 @@ const styles = StyleSheet.create({
   tableCell: {
     fontSize: 8,
     color: '#0f172a',
-    paddingHorizontal: 6,
   },
   tableCellSecondary: {
     fontSize: 7.25,
@@ -278,29 +279,54 @@ const styles = StyleSheet.create({
   rtlRow: {
     flexDirection: 'row-reverse',
   },
+  moneyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  moneyRowRight: {
+    justifyContent: 'flex-end',
+  },
+  moneySymbol: {
+    width: 8,
+    height: 8,
+    objectFit: 'contain',
+  },
+  moneySymbolSecondary: {
+    width: 7,
+    height: 7,
+    objectFit: 'contain',
+  },
 });
 
 function mergeStyles(...items: Array<unknown>) {
   return items.filter((item) => item !== undefined) as any[];
 }
 
-function splitDisplayValue(value: string | null | undefined) {
-  if (!value) return ['—'];
+const PDF_BIDI_CONTROL_REGEX = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/gu;
 
-  const parts = value
+function sanitizePdfText(value: string | null | undefined) {
+  return (value || '').replace(PDF_BIDI_CONTROL_REGEX, '').trim();
+}
+
+function splitDisplayValue(value: string | null | undefined) {
+  const sanitizedValue = sanitizePdfText(value);
+  if (!sanitizedValue) return ['—'];
+
+  const parts = sanitizedValue
     .split('|')
     .map((part) => part.trim())
     .filter(Boolean);
 
   if (parts.length <= 1) {
-    return [value];
+    return [sanitizedValue];
   }
 
   return Array.from(new Set(parts));
 }
 
 function isMeaningfulValue(value: string | null | undefined) {
-  const normalized = (value || '').trim();
+  const normalized = sanitizePdfText(value);
   if (!normalized || normalized === '—' || normalized === '-') return false;
   if (/^(0|0\.0+)\s*$/.test(normalized)) return false;
   if (/^[A-Z]{3}\s0(?:\.0+)?$/.test(normalized)) return false;
@@ -332,34 +358,87 @@ function chunkRows(rows: string[][], size: number) {
   return chunks;
 }
 
-function renderInlineValue(value: string, tone: ReportPdfMetric['tone']) {
+function matchCurrencyAmount(value: string) {
+  const sanitizedValue = sanitizePdfText(value);
+  const match = sanitizedValue.match(/^([−-]\s*)?([A-Z]{3})\s+(.+)$/u);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    sign: match[1] ? '−' : '',
+    currencyCode: sanitizePdfText(match[2]).toUpperCase(),
+    numberText: sanitizePdfText(match[3]) || '0.00',
+  };
+}
+
+function renderValueLine(args: {
+  snapshot: ReportPdfSnapshot;
+  value: string;
+  textStyle: any;
+  align?: 'left' | 'right';
+  secondary?: boolean;
+}) {
+  const sanitizedValue = sanitizePdfText(args.value) || '—';
+  const matchedAmount = matchCurrencyAmount(sanitizedValue);
+
+  if (matchedAmount?.currencyCode === 'AED' && args.snapshot.officialDirhamSymbolUrl) {
+    return (
+      <View
+        style={mergeStyles(
+          styles.moneyRow,
+          args.align === 'right' ? styles.moneyRowRight : undefined,
+        )}
+      >
+        {matchedAmount.sign ? (
+          <Text style={args.textStyle}>{matchedAmount.sign}</Text>
+        ) : null}
+        <Image
+          src={args.snapshot.officialDirhamSymbolUrl}
+          style={args.secondary ? styles.moneySymbolSecondary : styles.moneySymbol}
+        />
+        <Text style={args.textStyle}>{matchedAmount.numberText}</Text>
+      </View>
+    );
+  }
+
+  return <Text style={args.textStyle}>{sanitizedValue}</Text>;
+}
+
+function renderInlineValue(snapshot: ReportPdfSnapshot, value: string, tone: ReportPdfMetric['tone']) {
   const parts = splitDisplayValue(value);
+  const toneStyle = tone === 'positive' ? styles.positive : tone === 'negative' ? styles.negative : styles.neutral;
+
   return (
     <View>
-      <Text style={[
-        styles.metricValue,
-        tone === 'positive' ? styles.positive : tone === 'negative' ? styles.negative : styles.neutral,
-      ]}>
-        {parts[0]}
-      </Text>
+      {renderValueLine({
+        snapshot,
+        value: parts[0],
+        textStyle: mergeStyles(styles.metricValue, toneStyle),
+      })}
       {parts.slice(1).map((part) => (
-        <Text key={`${value}-${part}`} style={styles.metricHelper}>
-          {part}
-        </Text>
+        <View key={`${value}-${part}`}>
+          {renderValueLine({
+            snapshot,
+            value: part,
+            textStyle: styles.metricHelper,
+            secondary: true,
+          })}
+        </View>
       ))}
     </View>
   );
 }
 
-function PdfMetricGrid({ items }: { items: ReportPdfMetric[] }) {
+function PdfMetricGrid({ items, snapshot }: { items: ReportPdfMetric[]; snapshot: ReportPdfSnapshot }) {
   return (
     <View style={styles.metricsGrid}>
       {items.map((item) => (
         <View key={`${item.label}-${item.value}`} style={styles.metricCard} wrap={false}>
-          <Text style={styles.metricLabel}>{item.label}</Text>
-          {renderInlineValue(item.value, item.tone)}
+          <Text style={styles.metricLabel}>{sanitizePdfText(item.label)}</Text>
+          {renderInlineValue(snapshot, item.value, item.tone)}
           {item.helper ? (
-            <Text style={styles.metricHelper}>{item.helper}</Text>
+            <Text style={styles.metricHelper}>{sanitizePdfText(item.helper)}</Text>
           ) : null}
         </View>
       ))}
@@ -367,112 +446,206 @@ function PdfMetricGrid({ items }: { items: ReportPdfMetric[] }) {
   );
 }
 
-function PdfTable({ table, rtl = false }: { table: ReportPdfTable; rtl?: boolean }) {
-  if (table.rows.length === 0) {
-    return <Text style={styles.emptyMessage}>{table.emptyMessage}</Text>;
+function buildProjectedTable(snapshot: ReportPdfSnapshot, table: ReportPdfTable) {
+  const firstHeader = sanitizePdfText(table.headers[0]);
+  const secondHeader = sanitizePdfText(table.headers[1]);
+  const normalizedTitle = sanitizePdfText(table.title);
+
+  const isLoanTable = normalizedTitle === sanitizePdfText(snapshot.labels.loans)
+    || (/lender|person/i.test(firstHeader) && /original/i.test(secondHeader));
+  if (isLoanTable && table.headers.length >= 8) {
+    return {
+      table: {
+        ...table,
+        headers: [table.headers[0], table.headers[1], table.headers[2], table.headers[3], table.headers[5], table.headers[7]],
+        rows: table.rows.map((row) => [row[0], row[1], row[2], row[3], row[5], row[7]]),
+      },
+      widths: ['24%', '15%', '15%', '15%', '18%', '13%'],
+      chunkSize: 16,
+    };
   }
 
-  const chunkSize = table.headers.length >= 6 ? 18 : table.compact ? 24 : 20;
-  const chunks = chunkRows(table.rows, chunkSize);
+  const isPeopleTable = normalizedTitle === sanitizePdfText(snapshot.labels.people)
+    || (/person/i.test(firstHeader) && table.headers.some((header) => /receivable|payable/i.test(sanitizePdfText(header))));
+  if (isPeopleTable && table.headers.length >= 9) {
+    return {
+      table: {
+        ...table,
+        headers: [table.headers[0], table.headers[3], table.headers[4], table.headers[5], table.headers[6], table.headers[8]],
+        rows: table.rows.map((row) => [row[0], row[3], row[4], row[5], row[6], row[8]]),
+      },
+      widths: ['24%', '16%', '16%', '12%', '12%', '20%'],
+      chunkSize: 16,
+    };
+  }
+
+  return {
+    table,
+    widths: table.headers.map((_, index) => getCellWidth(table.headers.length, index)),
+    chunkSize: table.headers.length >= 6 ? 15 : table.compact ? 22 : 18,
+  };
+}
+
+function renderTableChunk(args: {
+  snapshot: ReportPdfSnapshot;
+  table: ReportPdfTable;
+  rows: string[][];
+  chunkIndex: number;
+  widths: string[];
+}) {
+  const rtl = args.snapshot.dir === 'rtl';
 
   return (
-    <View style={styles.tableGroup}>
-      {table.title ? <Text style={mergeStyles(styles.tableTitle, rtl ? styles.rtlText : undefined)}>{table.title}</Text> : null}
-      {table.description ? <Text style={mergeStyles(styles.tableDescription, rtl ? styles.rtlText : undefined)}>{table.description}</Text> : null}
-      {chunks.map((rows, chunkIndex) => (
-        <View key={`${table.title || 'table'}-${chunkIndex}`} style={styles.table} wrap={false}>
-          <View style={mergeStyles(styles.tableHeader, rtl ? styles.rtlRow : undefined)}>
-            {table.headers.map((header, index) => (
-              <Text
-                key={`${header}-${index}`}
-                style={[
-                  styles.tableHeaderCell,
-                  {
-                    width: getCellWidth(table.headers.length, index),
-                    textAlign: rtl ? 'right' : 'left',
-                  },
-                ]}
+    <View key={`${args.table.title || 'table'}-${args.chunkIndex}`} style={styles.table} wrap={false}>
+      <View style={mergeStyles(styles.tableHeader, rtl ? styles.rtlRow : undefined)}>
+        {args.table.headers.map((header, index) => (
+          <Text
+            key={`${header}-${index}`}
+            style={[
+              styles.tableHeaderCell,
+              {
+                width: args.widths[index] || getCellWidth(args.table.headers.length, index),
+                textAlign: rtl ? 'right' : 'left',
+              },
+            ]}
+          >
+            {sanitizePdfText(header)}
+          </Text>
+        ))}
+      </View>
+      {args.rows.map((row, rowIndex) => (
+        <View
+          key={`${args.table.title || 'row'}-${args.chunkIndex}-${rowIndex}`}
+          style={mergeStyles(
+            styles.tableRow,
+            rtl ? styles.rtlRow : undefined,
+            rowIndex === args.rows.length - 1 ? styles.tableRowLast : undefined,
+          )}
+        >
+          {row.map((cell, cellIndex) => {
+            const parts = splitDisplayValue(cell || '—');
+            const header = args.table.headers[cellIndex] || '';
+            const align = isAmountLike(header, parts[0]) ? 'right' : rtl ? 'right' : 'left';
+
+            return (
+              <View
+                key={`${cell}-${cellIndex}`}
+                style={{
+                  width: args.widths[cellIndex] || getCellWidth(args.table.headers.length, cellIndex),
+                  paddingHorizontal: 0,
+                }}
               >
-                {header}
-              </Text>
-            ))}
-          </View>
-          {rows.map((row, rowIndex) => (
-            <View
-              key={`${table.title || 'row'}-${chunkIndex}-${rowIndex}`}
-              style={mergeStyles(
-                styles.tableRow,
-                rtl ? styles.rtlRow : undefined,
-                rowIndex === rows.length - 1 ? styles.tableRowLast : undefined,
-              )}
-            >
-              {row.map((cell, cellIndex) => {
-                const parts = splitDisplayValue(cell || '—');
-                const header = table.headers[cellIndex] || '';
-                return (
-                  <View
-                    key={`${cell}-${cellIndex}`}
-                    style={{
-                      width: getCellWidth(table.headers.length, cellIndex),
-                      paddingHorizontal: 0,
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.tableCell,
-                        {
-                          textAlign: isAmountLike(header, parts[0]) ? 'right' : rtl ? 'right' : 'left',
-                        },
-                      ]}
-                    >
-                      {parts[0]}
-                    </Text>
-                    {parts.slice(1).map((part) => (
-                      <Text
-                        key={`${cell}-${part}`}
-                        style={[
-                          styles.tableCellSecondary,
-                          {
-                            textAlign: isAmountLike(header, part) ? 'right' : rtl ? 'right' : 'left',
-                            paddingHorizontal: 6,
-                          },
-                        ]}
-                      >
-                        {part}
-                      </Text>
-                    ))}
-                  </View>
-                );
-              })}
-            </View>
-          ))}
+                <View style={{ paddingHorizontal: 6 }}>
+                  {renderValueLine({
+                    snapshot: args.snapshot,
+                    value: parts[0],
+                    textStyle: mergeStyles(styles.tableCell, { textAlign: align }),
+                    align,
+                  })}
+                </View>
+                {parts.slice(1).map((part) => {
+                  const partAlign = isAmountLike(header, part) ? 'right' : rtl ? 'right' : 'left';
+                  return (
+                    <View key={`${cell}-${part}`} style={{ paddingHorizontal: 6 }}>
+                      {renderValueLine({
+                        snapshot: args.snapshot,
+                        value: part,
+                        textStyle: mergeStyles(styles.tableCellSecondary, { textAlign: partAlign }),
+                        secondary: true,
+                        align: partAlign,
+                      })}
+                    </View>
+                  );
+                })}
+              </View>
+            );
+          })}
         </View>
       ))}
     </View>
   );
 }
 
-function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
-  const preparedForName = snapshot.identity.fullName || snapshot.labels.userFallback;
+function PdfTable({ table, snapshot }: { table: ReportPdfTable; snapshot: ReportPdfSnapshot }) {
+  const projected = buildProjectedTable(snapshot, table);
+  const normalizedTable = projected.table;
+
+  if (normalizedTable.rows.length === 0) {
+    return <Text style={styles.emptyMessage}>{sanitizePdfText(normalizedTable.emptyMessage)}</Text>;
+  }
+
+  const chunks = chunkRows(normalizedTable.rows, projected.chunkSize);
+  const firstChunk = chunks[0] || [];
+  const remainingChunks = chunks.slice(1);
 
   return (
-    <View style={styles.header} fixed={false}>
+    <View style={styles.tableGroup}>
+      <View style={styles.tableBlock} wrap={false} minPresenceAhead={58}>
+        {normalizedTable.title ? (
+          <Text style={mergeStyles(styles.tableTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+            {sanitizePdfText(normalizedTable.title)}
+          </Text>
+        ) : null}
+        {normalizedTable.description ? (
+          <Text style={mergeStyles(styles.tableDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+            {sanitizePdfText(normalizedTable.description)}
+          </Text>
+        ) : null}
+        {renderTableChunk({
+          snapshot,
+          table: normalizedTable,
+          rows: firstChunk,
+          chunkIndex: 0,
+          widths: projected.widths,
+        })}
+      </View>
+      {remainingChunks.map((rows, index) =>
+        renderTableChunk({
+          snapshot,
+          table: normalizedTable,
+          rows,
+          chunkIndex: index + 1,
+          widths: projected.widths,
+        })
+      )}
+    </View>
+  );
+}
+
+function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
+  const preparedForName = sanitizePdfText(snapshot.identity.fullName) || sanitizePdfText(snapshot.labels.userFallback);
+
+  return (
+    <View
+      style={mergeStyles(styles.header, {
+        borderBottomColor: snapshot.branding.accentColor || '#e2e8f0',
+      })}
+      fixed={false}
+    >
       <View style={mergeStyles(styles.headerTop, snapshot.dir === 'rtl' ? styles.rtlRow : undefined)}>
         <View style={styles.headerBrand}>
-          <Image
-            src={`${snapshot.assetBaseUrl}/assets/images/app_logo.png`}
-            style={styles.logo}
-          />
+          {snapshot.branding.logoUrl ? (
+            <Image
+              src={snapshot.branding.logoUrl}
+              style={styles.logo}
+            />
+          ) : null}
           <View style={{ flexGrow: 1, flexShrink: 1 }}>
             <Text style={mergeStyles(styles.brandEyebrow, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              Smart Pocket
+              {sanitizePdfText(snapshot.branding.appName || snapshot.branding.shortBrandName)}
             </Text>
-            <Text style={mergeStyles(styles.title, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.title}
+            <Text
+              style={mergeStyles(
+                styles.title,
+                { color: snapshot.branding.primaryColor || '#0f172a' },
+                snapshot.dir === 'rtl' ? styles.rtlText : undefined,
+              )}
+            >
+              {sanitizePdfText(snapshot.title)}
             </Text>
             {snapshot.subtitle ? (
               <Text style={mergeStyles(styles.subtitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-                {snapshot.subtitle}
+                {sanitizePdfText(snapshot.subtitle)}
               </Text>
             ) : null}
           </View>
@@ -480,19 +653,19 @@ function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
 
         <View style={styles.identityCard}>
           <Text style={mergeStyles(styles.identityLabel, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-            {snapshot.labels.preparedFor}
+            {sanitizePdfText(snapshot.labels.preparedFor)}
           </Text>
           <Text style={mergeStyles(styles.identityName, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
             {preparedForName}
           </Text>
           {snapshot.identity.email ? (
             <Text style={mergeStyles(styles.identityMeta, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.identity.email}
+              {sanitizePdfText(snapshot.identity.email)}
             </Text>
           ) : null}
           {snapshot.identity.country ? (
             <Text style={mergeStyles(styles.identityMeta, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.identity.country}
+              {sanitizePdfText(snapshot.identity.country)}
             </Text>
           ) : null}
         </View>
@@ -502,10 +675,10 @@ function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
         {snapshot.metadata.map((item) => (
           <View key={`${item.label}-${item.value}`} style={styles.metaItem} wrap={false}>
             <Text style={mergeStyles(styles.metaLabel, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {item.label}
+              {sanitizePdfText(item.label)}
             </Text>
             <Text style={mergeStyles(styles.metaValue, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {item.value}
+              {sanitizePdfText(item.value)}
             </Text>
           </View>
         ))}
@@ -517,12 +690,12 @@ function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
 function PdfFooter({ snapshot }: { snapshot: ReportPdfSnapshot }) {
   return (
     <View style={mergeStyles(styles.footer, snapshot.dir === 'rtl' ? styles.rtlRow : undefined)} fixed>
-      <Text style={styles.footerText}>Smart Pocket</Text>
-      <Text style={styles.footerText}>{snapshot.periodLabel}</Text>
-        <Text
-          style={styles.footerText}
-          render={({ pageNumber, totalPages }) => `${snapshot.labels.page} ${pageNumber} of ${totalPages}`}
-        />
+      <Text style={styles.footerText}>{sanitizePdfText(snapshot.branding.shortBrandName || snapshot.branding.appName)}</Text>
+      <Text style={styles.footerText}>{sanitizePdfText(snapshot.periodLabel)}</Text>
+      <Text
+        style={styles.footerText}
+        render={({ pageNumber, totalPages }) => `${sanitizePdfText(snapshot.labels.page)} ${pageNumber} of ${totalPages}`}
+      />
     </View>
   );
 }
@@ -536,10 +709,10 @@ function renderStandardSections(snapshot: StandardReportPdfSnapshot) {
     return (
       <View style={styles.section}>
         <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-          {snapshot.title}
+          {sanitizePdfText(snapshot.title)}
         </Text>
         <Text style={mergeStyles(styles.emptyMessage, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-          {snapshot.labels.noActivity}
+          {sanitizePdfText(snapshot.labels.noActivity)}
         </Text>
       </View>
     );
@@ -549,21 +722,21 @@ function renderStandardSections(snapshot: StandardReportPdfSnapshot) {
     <View key={section.title} style={styles.section} minPresenceAhead={90}>
       <View style={styles.sectionHeader}>
         <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-          {section.title}
+          {sanitizePdfText(section.title)}
         </Text>
         {section.description ? (
           <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-            {section.description}
+            {sanitizePdfText(section.description)}
           </Text>
         ) : null}
       </View>
       {(section.paragraphs || []).map((paragraph) => (
         <Text key={`${section.title}-${paragraph}`} style={mergeStyles(styles.paragraph, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-          {paragraph}
+          {sanitizePdfText(paragraph)}
         </Text>
       ))}
       {section.tables.map((table, index) => (
-        <PdfTable key={`${section.title}-${index}`} table={table} rtl={snapshot.dir === 'rtl'} />
+        <PdfTable key={`${section.title}-${index}`} table={table} snapshot={snapshot} />
       ))}
     </View>
   ));
@@ -702,26 +875,26 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       <View style={styles.section} minPresenceAhead={110}>
         <View style={styles.sectionHeader}>
           <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-            {snapshot.labels.executiveSummary}
+            {sanitizePdfText(snapshot.labels.executiveSummary)}
           </Text>
           <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-            {data.dateBasis.overview}
+            {sanitizePdfText(data.dateBasis.overview)}
           </Text>
         </View>
-        <PdfMetricGrid items={executiveMetrics} />
+        <PdfMetricGrid items={executiveMetrics} snapshot={snapshot} />
         {data.executiveSummary.narratives.map((paragraph) => (
           <Text key={paragraph} style={mergeStyles(styles.paragraph, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-            {paragraph}
+            {sanitizePdfText(paragraph)}
           </Text>
         ))}
         {data.currencySummary.converted.rows.length > 0 || data.currencySummary.originals.rows.length > 0 ? (
-          <View style={styles.section}>
+          <View style={styles.section} minPresenceAhead={70}>
             <Text style={mergeStyles(styles.tableTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.currencySummary}
+              {sanitizePdfText(snapshot.labels.currencySummary)}
             </Text>
             {data.currencySummary.notes.slice(0, 2).map((note) => (
               <Text key={note} style={mergeStyles(styles.inlineNote, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-                {note}
+                {sanitizePdfText(note)}
               </Text>
             ))}
             {data.currencySummary.converted.rows.length > 0 ? (
@@ -733,7 +906,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
                   emptyMessage: data.currencySummary.converted.emptyMessage,
                   compact: true,
                 }}
-                rtl={snapshot.dir === 'rtl'}
+                snapshot={snapshot}
               />
             ) : null}
             {data.currencySummary.originals.rows.length > 0 ? (
@@ -745,7 +918,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
                   emptyMessage: data.currencySummary.originals.emptyMessage,
                   compact: true,
                 }}
-                rtl={snapshot.dir === 'rtl'}
+                snapshot={snapshot}
               />
             ) : null}
           </View>
@@ -756,20 +929,20 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
         <View style={styles.section} minPresenceAhead={110}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.periodActivity}
+              {sanitizePdfText(snapshot.labels.periodActivity)}
             </Text>
             <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.dateBasis.periodActivity}
+              {sanitizePdfText(data.dateBasis.periodActivity)}
             </Text>
           </View>
-          <PdfMetricGrid items={data.incomeExpenses.metrics.filter((metric) => isMeaningfulValue(metric.value))} />
+          <PdfMetricGrid items={data.incomeExpenses.metrics.filter((metric) => isMeaningfulValue(metric.value))} snapshot={snapshot} />
           {data.incomeExpenses.comparisonSummary ? (
             <Text style={mergeStyles(styles.paragraph, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.incomeExpenses.comparisonSummary}
+              {sanitizePdfText(data.incomeExpenses.comparisonSummary)}
             </Text>
           ) : null}
           {periodTables.map((table, index) => (
-            <PdfTable key={`period-${index}`} table={table} rtl={snapshot.dir === 'rtl'} />
+            <PdfTable key={`period-${index}`} table={table} snapshot={snapshot} />
           ))}
         </View>
       ) : null}
@@ -778,15 +951,15 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
         <View style={styles.section} minPresenceAhead={110}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.financialPosition}
+              {sanitizePdfText(snapshot.labels.financialPosition)}
             </Text>
             <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.dateBasis.financialPosition}
+              {sanitizePdfText(data.dateBasis.financialPosition)}
             </Text>
           </View>
-          <PdfMetricGrid items={data.accounts.summary.filter((metric) => isMeaningfulValue(metric.value))} />
+          <PdfMetricGrid items={data.accounts.summary.filter((metric) => isMeaningfulValue(metric.value))} snapshot={snapshot} />
           {financialPositionTables.map((table, index) => (
-            <PdfTable key={`position-${index}`} table={table} rtl={snapshot.dir === 'rtl'} />
+            <PdfTable key={`position-${index}`} table={table} snapshot={snapshot} />
           ))}
         </View>
       ) : null}
@@ -795,21 +968,22 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
         <View style={styles.section} minPresenceAhead={90}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.people}
+              {sanitizePdfText(snapshot.labels.people)}
             </Text>
             <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.dateBasis.people}
+              {sanitizePdfText(data.dateBasis.people)}
             </Text>
           </View>
-          <PdfMetricGrid items={data.people.summary.filter((metric) => isMeaningfulValue(metric.value))} />
+          <PdfMetricGrid items={data.people.summary.filter((metric) => isMeaningfulValue(metric.value))} snapshot={snapshot} />
           <PdfTable
             table={{
+              title: snapshot.labels.people,
               headers: data.people.table.headers,
               rows: data.people.table.rows,
               emptyMessage: data.people.table.emptyMessage,
               compact: true,
             }}
-            rtl={snapshot.dir === 'rtl'}
+            snapshot={snapshot}
           />
         </View>
       ) : null}
@@ -818,15 +992,15 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
         <View style={styles.section} minPresenceAhead={90}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.commitments}
+              {sanitizePdfText(snapshot.labels.commitments)}
             </Text>
             <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.dateBasis.commitments}
+              {sanitizePdfText(data.dateBasis.commitments)}
             </Text>
           </View>
-          <PdfMetricGrid items={data.subscriptions.summary.filter((metric) => isMeaningfulValue(metric.value))} />
+          <PdfMetricGrid items={data.subscriptions.summary.filter((metric) => isMeaningfulValue(metric.value))} snapshot={snapshot} />
           {commitmentsTables.map((table, index) => (
-            <PdfTable key={`commitment-${index}`} table={table} rtl={snapshot.dir === 'rtl'} />
+            <PdfTable key={`commitment-${index}`} table={table} snapshot={snapshot} />
           ))}
           {snapshot.includeItemInsights && data.itemInsights && data.itemInsights.recurringSuggestions.rows.length > 0 ? (
             <PdfTable
@@ -837,7 +1011,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
                 emptyMessage: data.itemInsights.recurringSuggestions.emptyMessage,
                 compact: true,
               }}
-              rtl={snapshot.dir === 'rtl'}
+              snapshot={snapshot}
             />
           ) : null}
         </View>
@@ -847,10 +1021,10 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
         <View style={styles.section} minPresenceAhead={90}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {snapshot.labels.detailedTransactions}
+              {sanitizePdfText(snapshot.labels.detailedTransactions)}
             </Text>
             <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {data.dateBasis.periodActivity}
+              {sanitizePdfText(data.dateBasis.periodActivity)}
             </Text>
           </View>
           <PdfTable
@@ -876,7 +1050,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
               emptyMessage: 'No transactions match the selected report filters.',
               compact: true,
             }}
-            rtl={snapshot.dir === 'rtl'}
+            snapshot={snapshot}
           />
         </View>
       ) : null}
@@ -889,9 +1063,9 @@ export default function ReportPdfDocument({ snapshot }: { snapshot: ReportPdfSna
 
   return (
     <Document
-      title={snapshot.title}
-      author="Smart Pocket"
-      subject={snapshot.subtitle || snapshot.title}
+      title={sanitizePdfText(snapshot.title)}
+      author={sanitizePdfText(snapshot.branding.appName)}
+      subject={sanitizePdfText(snapshot.subtitle || snapshot.title)}
       language={snapshot.language}
     >
       <Page size="A4" style={styles.page} wrap>
@@ -904,13 +1078,13 @@ export default function ReportPdfDocument({ snapshot }: { snapshot: ReportPdfSna
             <View style={styles.section} minPresenceAhead={110}>
               <View style={styles.sectionHeader}>
                 <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-                  {snapshot.labels.executiveSummary}
+                  {sanitizePdfText(snapshot.labels.executiveSummary)}
                 </Text>
                 <Text style={mergeStyles(styles.sectionDescription, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-                  {snapshot.periodLabel}
+                  {sanitizePdfText(snapshot.periodLabel)}
                 </Text>
               </View>
-              <PdfMetricGrid items={snapshot.summary.filter((metric) => isMeaningfulValue(metric.value))} />
+              <PdfMetricGrid items={snapshot.summary.filter((metric) => isMeaningfulValue(metric.value))} snapshot={snapshot} />
             </View>
             {renderStandardSections(snapshot)}
           </>

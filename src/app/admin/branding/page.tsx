@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getPlatformSettings, savePlatformSettings } from '@/lib/finance';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
+import type { PlatformFontFamily } from '@/lib/platform-settings';
 
 const MediaUploadCard = dynamic(() => import('@/components/ui/MediaUploadCard'), {
   ssr: false,
@@ -104,18 +105,18 @@ export default function AdminBrandingPage() {
   const [uploadProgress, setUploadProgress] = useState<Partial<Record<BrandingUploadField, number>>>({});
   const [uploadErrors, setUploadErrors] = useState<Partial<Record<BrandingUploadField, string>>>({});
   const [settings, setSettings] = useState({
-    app_name: 'Smart Pocket',
-    short_brand_name: 'Smart Pocket',
-    tagline: 'Personal Finance, Simplified',
-    primary_color: '#0f3460',
-    accent_color: '#00b4d8',
-    logo_url: '/assets/images/app_logo.png',
-    compact_logo_url: '/assets/images/smart-pocket-mark.svg',
-    favicon_url: '/favicon.ico',
-    apple_touch_icon_url: '/assets/images/smart-pocket-icon.svg',
-    email_logo_url: '/assets/images/app_logo.png',
-    organization_logo_url: '/assets/images/app_logo.png',
-    font_family: 'Plus Jakarta Sans',
+    app_name: branding.appName,
+    short_brand_name: branding.shortBrandName,
+    tagline: branding.tagline,
+    primary_color: branding.primaryColor,
+    accent_color: branding.accentColor,
+    logo_url: branding.logoUrl,
+    compact_logo_url: branding.compactLogoUrl,
+    favicon_url: branding.faviconUrl,
+    apple_touch_icon_url: branding.appleTouchIconUrl,
+    email_logo_url: branding.emailLogoUrl,
+    organization_logo_url: branding.organizationLogoUrl,
+    font_family: branding.fontFamily,
   });
 
   useEffect(() => {
@@ -376,7 +377,10 @@ export default function AdminBrandingPage() {
             className="input-base"
             value={settings.font_family}
             onChange={(event) =>
-              setSettings((current) => ({ ...current, font_family: event.target.value }))
+              setSettings((current) => ({
+                ...current,
+                font_family: event.target.value as PlatformFontFamily,
+              }))
             }
           >
             <option value="Plus Jakarta Sans">Plus Jakarta Sans (Default)</option>

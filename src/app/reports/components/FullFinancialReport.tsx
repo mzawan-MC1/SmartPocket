@@ -402,6 +402,8 @@ function PortalFinancialReport({
     || hasTableRows(data.accounts.spaces)
     || hasTableRows(data.loans.table);
   const hasMeaningfulPeople = hasTableRows(data.people.table);
+  const hasConvertedCurrencySummary = hasTableRows(data.currencySummary.converted);
+  const hasOriginalCurrencySummary = hasTableRows(data.currencySummary.originals);
   const hasMeaningfulCommitments = (includeUpcomingCommitments && (
     hasTableRows(data.commitments.overdue)
     || hasTableRows(data.commitments.next7Days)
@@ -716,7 +718,7 @@ function PortalFinancialReport({
         </CompactGroup>
       ) : null}
 
-      {(hasTableRows(data.currencySummary.converted) || hasTableRows(data.currencySummary.originals)) ? (
+      {(hasConvertedCurrencySummary || hasOriginalCurrencySummary) ? (
         <div className="rounded-[24px] border border-border/80 bg-card p-4 shadow-card-sm sm:p-5">
           <div className="mb-3">
             <h3 className="text-sm font-800 text-foreground sm:text-base">
@@ -726,17 +728,13 @@ function PortalFinancialReport({
               {t('reports.compact.currencyDescription', { defaultValue: 'Reporting totals are primary. Original currency breakdowns stay available as secondary details.' })}
             </p>
           </div>
-          <div className="grid gap-4 xl:grid-cols-2">
-            {hasTableRows(data.currencySummary.converted) ? (
+          <div className={`grid gap-4 ${hasConvertedCurrencySummary && hasOriginalCurrencySummary ? 'xl:grid-cols-2' : ''}`.trim()}>
+            {hasConvertedCurrencySummary ? (
               <SummaryTable table={data.currencySummary.converted} compact />
-            ) : (
-              <CompactInlineEmpty message={data.currencySummary.converted.emptyMessage} />
-            )}
-            {hasTableRows(data.currencySummary.originals) ? (
+            ) : null}
+            {hasOriginalCurrencySummary ? (
               <SummaryTable table={data.currencySummary.originals} compact />
-            ) : (
-              <CompactInlineEmpty message={data.currencySummary.originals.emptyMessage} />
-            )}
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -1072,19 +1070,28 @@ export default function FullFinancialReport({
       ) : null}
 
       <SectionCard title={t('reports.fullReport.sections.currency', { defaultValue: 'Currency Summary' })}>
-        <div className="grid gap-5 xl:grid-cols-2">
-          <div>
+        <div className={`grid gap-5 ${hasTableRows(data.currencySummary.converted) && hasTableRows(data.currencySummary.originals) ? 'xl:grid-cols-2' : ''}`.trim()}>
+          {hasTableRows(data.currencySummary.originals) ? (
+            <div>
+              <h3 className="mb-3 text-base font-700 text-foreground">
+                {t('reports.fullReport.currency.originalTotals', { defaultValue: 'Original totals by currency' })}
+              </h3>
+              <SummaryTable table={data.currencySummary.originals} compact />
+            </div>
+          ) : null}
+          {hasTableRows(data.currencySummary.converted) ? (
+            <div>
+              <h3 className="mb-3 text-base font-700 text-foreground">
+                {t('reports.fullReport.currency.reportingTotals', { defaultValue: 'Reporting-currency totals' })}
+              </h3>
+              <SummaryTable table={data.currencySummary.converted} compact />
+            </div>
+          ) : null}
+          {!hasTableRows(data.currencySummary.originals) && !hasTableRows(data.currencySummary.converted) ? (
             <h3 className="mb-3 text-base font-700 text-foreground">
-              {t('reports.fullReport.currency.originalTotals', { defaultValue: 'Original totals by currency' })}
+              {t('reports.noData', { defaultValue: 'No data available.' })}
             </h3>
-            <SummaryTable table={data.currencySummary.originals} compact />
-          </div>
-          <div>
-            <h3 className="mb-3 text-base font-700 text-foreground">
-              {t('reports.fullReport.currency.reportingTotals', { defaultValue: 'Reporting-currency totals' })}
-            </h3>
-            <SummaryTable table={data.currencySummary.converted} compact />
-          </div>
+          ) : null}
         </div>
         {data.currencySummary.notes.length > 0 ? (
           <div className="mt-5 space-y-2">

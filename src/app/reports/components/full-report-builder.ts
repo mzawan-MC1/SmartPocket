@@ -69,6 +69,8 @@ type ComparisonDisplay = {
   unavailable: boolean;
 };
 
+const REPORT_COMPARISON_ZERO_EPSILON = 0.000001;
+
 function toDateLabel(value: string | null | undefined, locale: string) {
   if (!value) return '-';
   const date = new Date(`${value}T12:00:00Z`);
@@ -160,6 +162,10 @@ function sum(values: number[]) {
 
 function average(values: number[]) {
   return values.length > 0 ? sum(values) / values.length : 0;
+}
+
+function normalizeReportComparisonValue(value: number) {
+  return Math.abs(value) <= REPORT_COMPARISON_ZERO_EPSILON ? 0 : value;
 }
 
 function normalizeCommitmentIdentityPart(value: string | null | undefined) {
@@ -338,8 +344,8 @@ function buildComparisonDisplay(
   previous: number | null | undefined,
   t: (key: string, options?: Record<string, unknown>) => string
 ): ComparisonDisplay {
-  const currentValue = Number(current);
-  const previousValue = Number(previous);
+  const currentValue = normalizeReportComparisonValue(Number(current));
+  const previousValue = normalizeReportComparisonValue(Number(previous));
 
   if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) {
     return {
@@ -371,6 +377,41 @@ function buildComparisonDisplay(
     label: `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}%`,
     unavailable: false,
   };
+}
+
+function shouldShowOriginalCurrencySummary(args: {
+  reportingCurrency: string;
+  metrics: Array<{
+    reportingAmount: number | null;
+    originalTotals: Array<{ currency: string; amount: number }>;
+  }>;
+}) {
+  const normalizedReportingCurrency = args.reportingCurrency.trim().toUpperCase();
+
+  return args.metrics.some((metric) => {
+    if (metric.originalTotals.length === 0) {
+      return false;
+    }
+
+    if (metric.originalTotals.length > 1) {
+      return true;
+    }
+
+    const [originalTotal] = metric.originalTotals;
+    if (!originalTotal) {
+      return false;
+    }
+
+    if (originalTotal.currency.trim().toUpperCase() !== normalizedReportingCurrency) {
+      return true;
+    }
+
+    if (metric.reportingAmount === null || !Number.isFinite(metric.reportingAmount)) {
+      return true;
+    }
+
+    return Math.abs(originalTotal.amount - metric.reportingAmount) > REPORT_COMPARISON_ZERO_EPSILON;
+  });
 }
 
 export function buildFullFinancialReportData(args: {
@@ -908,6 +949,10 @@ export function buildFullFinancialReportData(args: {
     [args.t('reports.summary.totalExpenses'), formatOriginalTotals(expensesMetric.originalTotals)],
     [args.t('reports.summary.net'), formatOriginalTotals(netMetric.originalTotals)],
   ];
+  const showOriginalCurrencyBreakdown = shouldShowOriginalCurrencySummary({
+    reportingCurrency: args.reportData.reportingCurrency,
+    metrics: [incomeMetric, expensesMetric, netMetric],
+  });
 
   return {
     title: args.title,
@@ -1200,7 +1245,7 @@ export function buildFullFinancialReportData(args: {
           args.t('reports.fullReport.currency.columns.metric', { defaultValue: 'Metric' }),
           args.t('reports.fullReport.currency.columns.originalTotals', { defaultValue: 'Original totals' }),
         ],
-        originalSummaryRows,
+        showOriginalCurrencyBreakdown ? originalSummaryRows : [],
         args.t('reports.noData')
       ),
       converted: buildTable(
@@ -1215,9 +1260,11 @@ export function buildFullFinancialReportData(args: {
         args.t('reports.fullReport.currency.noteConvertedView', {
           defaultValue: 'Reporting values are converted views based on stored exchange-rate snapshots for the selected period.',
         }),
-        args.t('reports.fullReport.currency.noteOriginalTotals', {
-          defaultValue: 'Original AED, USD, CAD, GBP and other currencies remain separated so mixed-currency totals are not misleading.',
-        }),
+        ...(showOriginalCurrencyBreakdown ? [
+          args.t('reports.fullReport.currency.noteOriginalTotals', {
+            defaultValue: 'Original AED, USD, CAD, GBP and other currencies remain separated so mixed-currency totals are not misleading.',
+          }),
+        ] : []),
       ],
     },
     dateBasis: {

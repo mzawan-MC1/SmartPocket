@@ -64,6 +64,14 @@ export interface ReportPdfLabels {
   amount: string;
 }
 
+export interface ReportPdfBranding {
+  appName: string;
+  shortBrandName: string;
+  logoUrl: string;
+  primaryColor: string;
+  accentColor: string;
+}
+
 interface BaseReportPdfSnapshot {
   title: string;
   subtitle?: string | null;
@@ -76,6 +84,8 @@ interface BaseReportPdfSnapshot {
   language: string;
   dir: 'ltr' | 'rtl';
   assetBaseUrl: string;
+  branding: ReportPdfBranding;
+  officialDirhamSymbolUrl: string;
   labels: ReportPdfLabels;
 }
 

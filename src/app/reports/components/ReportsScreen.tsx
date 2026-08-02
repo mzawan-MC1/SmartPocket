@@ -31,6 +31,8 @@ import EmptyState from '@/components/ui/EmptyState';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { loadUserFinancialPeriodContext, type UserFinancialPeriodContext } from '@/lib/financial-periods/profile';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
@@ -51,10 +53,12 @@ import { getFinancialAccountDisplayLabel } from '@/lib/financial-account-utils';
 import { getMySpaceMemberships, type Space } from '@/lib/spaces';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getManagedPeople, getPersonLoanReportItems, getReimbursements, getSettlements, getSpaceSettlements, type ManagedPerson, type PersonLoanReportItem, type Reimbursement, type Settlement } from '@/lib/people';
 import { getPersonalSubscriptions } from '@/lib/personal-subscriptions';
 import type { PersonalSubscription } from '@/lib/personal-subscriptions-shared';
 import { getItemInsightsSnapshot, type ItemInsightsSnapshot } from '@/lib/transaction-item-insights';
+import { getSettingsAssetUrl } from '@/lib/platform-settings';
 import FullFinancialReport, { type FullFinancialReportData, type FullReportChartState, type FullReportSummaryTable } from './FullFinancialReport';
 import { buildFullFinancialReportData, type FullReportFilters, type FullReportSupplementalData } from './full-report-builder';
 import type { PrintableReportIdentity, ReportMetadataItem } from './full-report-types';
@@ -585,6 +589,39 @@ function formatConvertedMetricText(
   return formatCurrencyText(metric.reportingAmount, metric.reportingCurrency, locale);
 }
 
+function resolveBrowserAssetUrl(url: string, updatedAt?: string) {
+  const resolved = getSettingsAssetUrl(url, updatedAt);
+  if (!resolved || typeof window === 'undefined') {
+    return '';
+  }
+
+  try {
+    const absoluteUrl = new URL(resolved, window.location.origin);
+    if (absoluteUrl.protocol === 'http:') {
+      absoluteUrl.protocol = 'https:';
+    }
+    return absoluteUrl.toString();
+  } catch {
+    return resolved;
+  }
+}
+
+function CompactPreviewState({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof FileText | typeof Target | typeof BarChart3 | typeof PieChart;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="py-2">
+      <EmptyState icon={Icon} title={title} description={description} />
+    </div>
+  );
+}
+
 function buildPrintableTransactionDetailRows(args: {
   transactions: Transaction[];
   reportingCurrency: string;
@@ -957,6 +994,8 @@ export default function ReportsScreen() {
   const { t } = useTranslation(['portal', 'common']);
   const { dir, language } = useLanguage();
   const { user, profile } = useAuth();
+  const { branding, updatedAt } = usePlatformSettings();
+  const { data: referenceData } = useClientReferenceData();
   const locale = getIntlLocale(language);
   const isArabic = language === 'ar';
   const [generatedAtLabel, setGeneratedAtLabel] = useState<string | null>(null);
@@ -1478,6 +1517,14 @@ export default function ReportsScreen() {
         fullReportData.incomeExpenses.metrics[2],
       ].filter(Boolean)
     : [];
+  const officialDirhamSymbolUrl = useMemo(() => {
+    const aedCurrency = getCurrencyByCode(referenceData?.snapshot.currencies ?? [], 'AED');
+    return resolveBrowserAssetUrl(aedCurrency?.symbolAssetPath || '');
+  }, [referenceData]);
+  const resolvedPrimaryLogoUrl = useMemo(
+    () => resolveBrowserAssetUrl(branding.logoUrl, updatedAt),
+    [branding.logoUrl, updatedAt]
+  );
 
   const summaryByType: Record<ReportType, Array<{
     id: string;
@@ -1917,6 +1964,14 @@ export default function ReportsScreen() {
         language,
         dir,
         assetBaseUrl,
+        branding: {
+          appName: branding.appName,
+          shortBrandName: branding.shortBrandName,
+          logoUrl: resolvedPrimaryLogoUrl,
+          primaryColor: branding.primaryColor,
+          accentColor: branding.accentColor,
+        },
+        officialDirhamSymbolUrl,
         labels: reportPdfLabels,
         data: fullReportData,
         includeTransactionDetails,
@@ -1943,6 +1998,14 @@ export default function ReportsScreen() {
       language,
       dir,
       assetBaseUrl,
+      branding: {
+        appName: branding.appName,
+        shortBrandName: branding.shortBrandName,
+        logoUrl: resolvedPrimaryLogoUrl,
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+      officialDirhamSymbolUrl,
       labels: reportPdfLabels,
       summary: printableSummaryMetrics,
       sections: standardReportPdfSections,
@@ -1950,6 +2013,10 @@ export default function ReportsScreen() {
   }, [
     activeRange,
     activeReport,
+    branding.accentColor,
+    branding.appName,
+    branding.primaryColor,
+    branding.shortBrandName,
     dir,
     fullReportData,
     generatedAtLabel,
@@ -1957,11 +2024,13 @@ export default function ReportsScreen() {
     includeTransactionDetails,
     includeUpcomingCommitments,
     language,
+    officialDirhamSymbolUrl,
     printableReportIdentity,
     printableReportMetadata,
     printableSummaryMetrics,
     reportPdfLabels,
     reportData,
+    resolvedPrimaryLogoUrl,
     selectedScopeLabel,
     standardReportPdfSections,
     t,
@@ -2533,7 +2602,7 @@ export default function ReportsScreen() {
         </div>
 
         {loading || periodLoading ? (
-          <div className="flex h-[300px] items-center justify-center">
+          <div className="flex min-h-[180px] items-center justify-center">
             <div className="text-center">
               <Loader2 size={24} className="mx-auto mb-2 animate-spin text-accent" />
               <p className="text-sm text-muted-foreground">{t('reports.loadingData')}</p>
@@ -2541,30 +2610,26 @@ export default function ReportsScreen() {
           </div>
         ) : activeReport === 'full-financial' ? (
           fullReportLoading ? (
-            <div className="flex h-[300px] items-center justify-center">
+            <div className="flex min-h-[180px] items-center justify-center">
               <div className="text-center">
                 <Loader2 size={24} className="mx-auto mb-2 animate-spin text-accent" />
                 <p className="text-sm text-muted-foreground">{t('reports.loadingData')}</p>
               </div>
             </div>
           ) : fullReportError ? (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <EmptyState
-                icon={FileText}
-                title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
-                description={fullReportError}
-              />
-            </div>
+            <CompactPreviewState
+              icon={FileText}
+              title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
+              description={fullReportError}
+            />
           ) : fullFinancialPortalPreview ? (
             fullFinancialPortalPreview
           ) : (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <EmptyState
-                icon={FileText}
-                title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
-                description={t('reports.controls.previewPrompt', { defaultValue: 'Choose your filters and preview the report to build the full financial document.' })}
-              />
-            </div>
+            <CompactPreviewState
+              icon={FileText}
+              title={t('reports.types.fullFinancial', { defaultValue: 'Full Financial Report' })}
+              description={t('reports.controls.previewPrompt', { defaultValue: 'Choose your filters and preview the report to build the full financial document.' })}
+            />
           )
         ) : activeReport === 'account-statement' ? (
           <AccountStatementTable
@@ -2577,13 +2642,17 @@ export default function ReportsScreen() {
           />
         ) : activeReport === 'budget-performance' ? (
           reportData?.budgetPerformance.unavailableReason ? (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <EmptyState icon={Target} title={t('reports.historicalRateUnavailable')} description={localizeReportMessage(reportData.budgetPerformance.unavailableReason, t) || reportData.budgetPerformance.unavailableReason} />
-            </div>
+            <CompactPreviewState
+              icon={Target}
+              title={t('reports.historicalRateUnavailable')}
+              description={localizeReportMessage(reportData.budgetPerformance.unavailableReason, t) || reportData.budgetPerformance.unavailableReason}
+            />
           ) : reportData?.budgetPerformance.emptyReason ? (
-            <div className="flex min-h-[300px] items-center justify-center">
-              <EmptyState icon={Target} title={t('reports.noBudgetsApply')} description={localizeReportMessage(reportData.budgetPerformance.emptyReason, t) || reportData.budgetPerformance.emptyReason} />
-            </div>
+            <CompactPreviewState
+              icon={Target}
+              title={t('reports.noBudgetsApply')}
+              description={localizeReportMessage(reportData.budgetPerformance.emptyReason, t) || reportData.budgetPerformance.emptyReason}
+            />
           ) : (
             <div className="space-y-5">
               <div className="h-[260px] sm:h-[300px]">
@@ -2646,21 +2715,21 @@ export default function ReportsScreen() {
             </div>
           )
         ) : activeChartState?.unavailableReason ? (
-          <div className="flex h-[300px] items-center justify-center">
-            <EmptyState icon={BarChart3} title={t('reports.historicalRateUnavailable')} description={activeChartState.unavailableReason} />
-          </div>
+          <CompactPreviewState
+            icon={BarChart3}
+            title={t('reports.historicalRateUnavailable')}
+            description={activeChartState.unavailableReason}
+          />
         ) : activeChartState?.emptyReason ? (
-          <div className="flex h-[300px] items-center justify-center">
-            <EmptyState
-              icon={activeReport === 'spending-category' ? PieChart : BarChart3}
-              title={t('reports.noTransactionsInPeriod')}
-              description={
-                activeChartState.emptyReason === 'NO_EXPENSES'
-                  ? t('reports.noExpensesInPeriod')
-                  : t('reports.noTransactionsInPeriod')
-              }
-            />
-          </div>
+          <CompactPreviewState
+            icon={activeReport === 'spending-category' ? PieChart : BarChart3}
+            title={t('reports.noTransactionsInPeriod')}
+            description={
+              activeChartState.emptyReason === 'NO_EXPENSES'
+                ? t('reports.noExpensesInPeriod')
+                : t('reports.noTransactionsInPeriod')
+            }
+          />
         ) : (
           <div className="h-[260px] sm:h-[300px]">
             {activeReport === 'income-expense' ? (
@@ -2701,13 +2770,11 @@ function AccountStatementTable(args: {
 }) {
   if (args.transactions.length === 0) {
     return (
-      <div className="flex min-h-[300px] items-center justify-center">
-        <EmptyState
-          icon={FileText}
-          title={args.t('reports.noTransactionsInPeriod')}
-          description={args.t('reports.accountStatement.emptyDescription')}
-        />
-      </div>
+      <CompactPreviewState
+        icon={FileText}
+        title={args.t('reports.noTransactionsInPeriod')}
+        description={args.t('reports.accountStatement.emptyDescription')}
+      />
     );
   }
 

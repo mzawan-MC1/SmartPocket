@@ -6,6 +6,7 @@ import { Check, Loader2, Mail, ShieldCheck, TestTube } from 'lucide-react';
 import { toast } from 'sonner';
 import EmailModuleNav from '@/app/admin/email/components/EmailModuleNav';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
+import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { isSupportedUploadFile, uploadPublicMedia } from '@/lib/media-upload';
 
 const IMAGE_UPLOAD = {
@@ -19,6 +20,7 @@ const IMAGE_UPLOAD = {
 
 export default function AdminEmailPage() {
   const router = useRouter();
+  const { branding } = usePlatformSettings();
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,9 +42,9 @@ export default function AdminEmailPage() {
     smtp_user: '',
     smtp_password: '',
     from_email: 'no-reply@1smartpocket.com',
-    from_name: 'Smart Pocket',
+    from_name: branding.appName,
     reply_to_email: 'info@1smartpocket.com',
-    email_logo_url: '/assets/images/app_logo.png',
+    email_logo_url: branding.emailLogoUrl || branding.logoUrl,
     test_recipient_email: '',
   });
 

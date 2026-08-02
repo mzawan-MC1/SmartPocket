@@ -138,14 +138,14 @@ export interface PlatformSettingsSnapshot {
 }
 
 export const PRODUCTION_CANONICAL_ORIGIN = 'https://1smartpocket.com';
-export const SMART_POCKET_DEFAULT_LOGO = '/assets/images/app_logo.png';
+export const SMART_POCKET_DEFAULT_LOGO = '';
 export const SMART_POCKET_DEFAULT_COMPACT_LOGO = SMART_POCKET_DEFAULT_LOGO;
 export const SMART_POCKET_DEFAULT_SOCIAL_IMAGE = '/assets/images/smart-pocket-social-card.png';
 export const SMART_POCKET_LEGACY_SOCIAL_IMAGE_SVG = '/assets/images/smart-pocket-social-card.svg';
-export const SMART_POCKET_DEFAULT_ICON = SMART_POCKET_DEFAULT_LOGO;
+export const SMART_POCKET_DEFAULT_ICON = '/favicon.ico';
 export const SMART_POCKET_DEFAULT_FAVICON = '/favicon.ico';
 export const SMART_POCKET_SAFE_FALLBACK_IMAGE = '/assets/images/no_image.png';
-export const SMART_POCKET_LEGACY_WALLET_IMAGE = SMART_POCKET_DEFAULT_LOGO;
+export const SMART_POCKET_LEGACY_WALLET_IMAGE = '/assets/images/app_logo.png';
 export const SMART_POCKET_DEFAULT_SITE_TITLE = 'Smart Pocket — Personal Finance, Simplified';
 export const SMART_POCKET_DEFAULT_SITE_DESCRIPTION =
   'Smart Pocket helps you track income, expenses, budgets, and financial accounts with professional reporting and a clean mobile-first interface.';
