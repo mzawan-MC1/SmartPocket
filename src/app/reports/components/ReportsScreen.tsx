@@ -1905,6 +1905,7 @@ export default function ReportsScreen() {
     preparedFor: t('reports.fullReport.header.preparedFor', { defaultValue: 'Prepared for' }),
     page: t('reports.fullReport.footer.page', { defaultValue: 'Page' }),
     noActivity: t('reports.compact.emptyTitle', { defaultValue: 'No meaningful report activity was found.' }),
+    upcomingPayments: t('reports.upcomingPayments', { defaultValue: 'Upcoming payments' }),
     executiveSummary: t('reports.fullReport.sections.executiveSummary', { defaultValue: 'Executive Summary' }),
     periodActivity: t('reports.compact.groups.periodActivity', { defaultValue: 'Period Activity' }),
     financialPosition: t('reports.compact.groups.financialPosition', { defaultValue: 'Financial Position' }),

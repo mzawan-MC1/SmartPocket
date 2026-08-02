@@ -35,150 +35,151 @@ function ensurePdfFontsRegistered() {
     fontStyle: 'normal',
     fontWeight: 400,
   });
+  Font.registerHyphenationCallback((word) => [word]);
 
   pdfFontsRegistered = true;
 }
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 30,
-    paddingBottom: 38,
-    paddingHorizontal: 30,
+    paddingTop: 22,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
     fontFamily: 'SmartPocketPdf',
-    fontSize: 9,
+    fontSize: 8.5,
     color: '#0f172a',
     backgroundColor: '#ffffff',
-    lineHeight: 1.35,
+    lineHeight: 1.2,
   },
   header: {
-    marginBottom: 14,
+    marginBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    paddingBottom: 10,
+    paddingBottom: 6,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    alignItems: 'flex-start',
+    gap: 10,
   },
   headerBrand: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: 4,
+    alignItems: 'flex-start',
     flexGrow: 1,
     flexShrink: 1,
   },
   logo: {
-    width: 72,
-    height: 28,
+    width: 92,
+    height: 24,
     objectFit: 'contain',
   },
   brandEyebrow: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#64748b',
   },
   title: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 700,
-    marginTop: 2,
+    marginTop: 1,
   },
   subtitle: {
-    fontSize: 9,
+    fontSize: 8,
     color: '#475569',
-    marginTop: 2,
+    marginTop: 1,
   },
   identityCard: {
-    minWidth: 138,
-    maxWidth: 200,
+    minWidth: 126,
+    maxWidth: 176,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 9,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     backgroundColor: '#f8fafc',
   },
   identityLabel: {
     fontSize: 7,
     color: '#64748b',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   identityName: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: 700,
   },
   identityMeta: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#475569',
-    marginTop: 2,
+    marginTop: 1,
   },
   metaWrap: {
-    marginTop: 10,
+    marginTop: 6,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
   },
   metaItem: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 7,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     backgroundColor: '#f8fafc',
-    minWidth: '31%',
-    maxWidth: '48%',
+    minWidth: '24%',
+    maxWidth: '32%',
     flexGrow: 1,
   },
   metaLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
   },
   metaValue: {
-    fontSize: 8.5,
+    fontSize: 7.5,
     color: '#0f172a',
-    marginTop: 2,
+    marginTop: 1,
   },
   section: {
-    marginTop: 10,
+    marginTop: 7,
   },
   sectionHeader: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: 700,
   },
   sectionDescription: {
-    fontSize: 8,
+    fontSize: 7.25,
     color: '#475569',
-    marginTop: 2,
+    marginTop: 1,
   },
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 4,
   },
   metricCard: {
-    width: '48%',
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 10,
-    paddingVertical: 7,
-    paddingHorizontal: 8,
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
     backgroundColor: '#f8fafc',
   },
   metricLabel: {
-    fontSize: 7,
+    fontSize: 6.5,
     color: '#64748b',
   },
   metricValue: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 700,
-    marginTop: 3,
+    marginTop: 2,
   },
   metricHelper: {
-    fontSize: 7.5,
+    fontSize: 6.75,
     color: '#475569',
-    marginTop: 3,
+    marginTop: 2,
   },
   positive: {
     color: '#15803d',
@@ -190,40 +191,40 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   paragraph: {
-    fontSize: 8.5,
+    fontSize: 7.75,
     color: '#0f172a',
-    marginTop: 4,
+    marginTop: 2,
   },
   inlineNote: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#475569',
-    marginTop: 4,
+    marginTop: 2,
   },
   emptyMessage: {
-    marginTop: 4,
-    fontSize: 8,
+    marginTop: 3,
+    fontSize: 7.25,
     color: '#64748b',
   },
   tableGroup: {
-    marginTop: 6,
+    marginTop: 4,
   },
   tableBlock: {
-    marginTop: 3,
+    marginTop: 2,
   },
   tableTitle: {
-    fontSize: 9,
+    fontSize: 8.25,
     fontWeight: 700,
   },
   tableDescription: {
-    fontSize: 7.5,
+    fontSize: 6.75,
     color: '#475569',
-    marginTop: 2,
-    marginBottom: 3,
+    marginTop: 1,
+    marginBottom: 2,
   },
   table: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 8,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   tableHeader: {
@@ -231,46 +232,46 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   tableHeaderCell: {
-    fontSize: 7,
+    fontSize: 6.25,
     color: '#64748b',
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     fontWeight: 700,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
-    paddingVertical: 4,
+    paddingVertical: 3,
   },
   tableRowLast: {
     borderBottomWidth: 0,
   },
   tableCell: {
-    fontSize: 8,
+    fontSize: 7.25,
     color: '#0f172a',
   },
   tableCellSecondary: {
-    fontSize: 7.25,
+    fontSize: 6.5,
     color: '#475569',
-    marginTop: 2,
+    marginTop: 1,
   },
   footer: {
     position: 'absolute',
-    left: 30,
-    right: 30,
-    bottom: 16,
+    left: 24,
+    right: 24,
+    bottom: 12,
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
-    paddingTop: 6,
+    paddingTop: 4,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   footerText: {
-    fontSize: 7.5,
+    fontSize: 6.75,
     color: '#64748b',
   },
   rtlText: {
@@ -288,14 +289,92 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   moneySymbol: {
-    width: 8,
-    height: 8,
-    objectFit: 'contain',
-  },
-  moneySymbolSecondary: {
     width: 7,
     height: 7,
     objectFit: 'contain',
+  },
+  moneySymbolSecondary: {
+    width: 6,
+    height: 6,
+    objectFit: 'contain',
+  },
+  visualGroup: {
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  visualRow: {
+    marginTop: 3,
+  },
+  visualRowTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  visualLabel: {
+    fontSize: 6.75,
+    color: '#0f172a',
+    flexGrow: 1,
+    flexShrink: 1,
+  },
+  visualValue: {
+    fontSize: 6.5,
+    color: '#475569',
+  },
+  visualTrack: {
+    marginTop: 2,
+    height: 5,
+    borderRadius: 999,
+    backgroundColor: '#e2e8f0',
+    overflow: 'hidden',
+    flexDirection: 'row',
+  },
+  visualFillPrimary: {
+    height: '100%',
+    backgroundColor: '#0f3460',
+    borderRadius: 999,
+  },
+  visualFillAccent: {
+    height: '100%',
+    backgroundColor: '#00b4d8',
+    borderRadius: 999,
+  },
+  visualFillPositive: {
+    height: '100%',
+    backgroundColor: '#15803d',
+    borderRadius: 999,
+  },
+  visualLegend: {
+    marginTop: 3,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  visualLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  visualLegendSwatchPrimary: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#0f3460',
+  },
+  visualLegendSwatchAccent: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#00b4d8',
+  },
+  visualLegendSwatchPositive: {
+    width: 6,
+    height: 6,
+    borderRadius: 999,
+    backgroundColor: '#15803d',
+  },
+  visualLegendText: {
+    fontSize: 6.25,
+    color: '#475569',
   },
 });
 
@@ -416,25 +495,17 @@ function renderInlineValue(snapshot: ReportPdfSnapshot, value: string, tone: Rep
         value: parts[0],
         textStyle: mergeStyles(styles.metricValue, toneStyle),
       })}
-      {parts.slice(1).map((part) => (
-        <View key={`${value}-${part}`}>
-          {renderValueLine({
-            snapshot,
-            value: part,
-            textStyle: styles.metricHelper,
-            secondary: true,
-          })}
-        </View>
-      ))}
     </View>
   );
 }
 
 function PdfMetricGrid({ items, snapshot }: { items: ReportPdfMetric[]; snapshot: ReportPdfSnapshot }) {
+  const itemWidth = items.length <= 4 ? '24%' : items.length <= 6 ? '32%' : '24%';
+
   return (
     <View style={styles.metricsGrid}>
       {items.map((item) => (
-        <View key={`${item.label}-${item.value}`} style={styles.metricCard} wrap={false}>
+        <View key={`${item.label}-${item.value}`} style={mergeStyles(styles.metricCard, { width: itemWidth })} wrap={false}>
           <Text style={styles.metricLabel}>{sanitizePdfText(item.label)}</Text>
           {renderInlineValue(snapshot, item.value, item.tone)}
           {item.helper ? (
@@ -450,6 +521,24 @@ function buildProjectedTable(snapshot: ReportPdfSnapshot, table: ReportPdfTable)
   const firstHeader = sanitizePdfText(table.headers[0]);
   const secondHeader = sanitizePdfText(table.headers[1]);
   const normalizedTitle = sanitizePdfText(table.title);
+  const isAccountTable = [
+    sanitizePdfText(snapshot.labels.accountSummary),
+    sanitizePdfText(snapshot.labels.sharedAccounts),
+    sanitizePdfText(snapshot.labels.spaceAccounts),
+  ].includes(normalizedTitle)
+    || (/account/i.test(firstHeader) && table.headers.some((header) => /opening|inflow|outflow|closing|current/i.test(sanitizePdfText(header))));
+
+  if (isAccountTable && table.headers.length >= 13) {
+    return {
+      table: {
+        ...table,
+        headers: [table.headers[0], table.headers[1], table.headers[4], table.headers[5], table.headers[6], table.headers[9], table.headers[12]],
+        rows: table.rows.map((row) => [row[0], row[1], row[4], row[5], row[6], row[9], row[12]]),
+      },
+      widths: ['24%', '12%', '13%', '13%', '13%', '13%', '12%'],
+      chunkSize: 18,
+    };
+  }
 
   const isLoanTable = normalizedTitle === sanitizePdfText(snapshot.labels.loans)
     || (/lender|person/i.test(firstHeader) && /original/i.test(secondHeader));
@@ -471,18 +560,18 @@ function buildProjectedTable(snapshot: ReportPdfSnapshot, table: ReportPdfTable)
     return {
       table: {
         ...table,
-        headers: [table.headers[0], table.headers[3], table.headers[4], table.headers[5], table.headers[6], table.headers[8]],
+        headers: [table.headers[0], table.headers[3], table.headers[4], table.headers[5], table.headers[6], 'Total'],
         rows: table.rows.map((row) => [row[0], row[3], row[4], row[5], row[6], row[8]]),
       },
       widths: ['24%', '16%', '16%', '12%', '12%', '20%'],
-      chunkSize: 16,
+      chunkSize: 18,
     };
   }
 
   return {
     table,
     widths: table.headers.map((_, index) => getCellWidth(table.headers.length, index)),
-    chunkSize: table.headers.length >= 6 ? 15 : table.compact ? 22 : 18,
+    chunkSize: table.headers.length >= 6 ? 18 : table.compact ? 26 : 22,
   };
 }
 
@@ -614,6 +703,7 @@ function PdfTable({ table, snapshot }: { table: ReportPdfTable; snapshot: Report
 
 function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
   const preparedForName = sanitizePdfText(snapshot.identity.fullName) || sanitizePdfText(snapshot.labels.userFallback);
+  const periodLabel = sanitizePdfText(snapshot.periodLabel || snapshot.subtitle || '');
 
   return (
     <View
@@ -630,25 +720,23 @@ function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
               style={styles.logo}
             />
           ) : null}
-          <View style={{ flexGrow: 1, flexShrink: 1 }}>
-            <Text style={mergeStyles(styles.brandEyebrow, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-              {sanitizePdfText(snapshot.branding.appName || snapshot.branding.shortBrandName)}
+          <Text style={mergeStyles(styles.brandEyebrow, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+            {sanitizePdfText(snapshot.branding.appName || snapshot.branding.shortBrandName)}
+          </Text>
+          <Text
+            style={mergeStyles(
+              styles.title,
+              { color: snapshot.branding.primaryColor || '#0f172a' },
+              snapshot.dir === 'rtl' ? styles.rtlText : undefined,
+            )}
+          >
+            {sanitizePdfText(snapshot.title)}
+          </Text>
+          {periodLabel ? (
+            <Text style={mergeStyles(styles.subtitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+              {periodLabel}
             </Text>
-            <Text
-              style={mergeStyles(
-                styles.title,
-                { color: snapshot.branding.primaryColor || '#0f172a' },
-                snapshot.dir === 'rtl' ? styles.rtlText : undefined,
-              )}
-            >
-              {sanitizePdfText(snapshot.title)}
-            </Text>
-            {snapshot.subtitle ? (
-              <Text style={mergeStyles(styles.subtitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
-                {sanitizePdfText(snapshot.subtitle)}
-              </Text>
-            ) : null}
-          </View>
+          ) : null}
         </View>
 
         <View style={styles.identityCard}>
@@ -685,6 +773,146 @@ function PdfHeader({ snapshot }: { snapshot: ReportPdfSnapshot }) {
       </View>
     </View>
   );
+}
+
+function parseDisplayNumber(value: string) {
+  const normalized = sanitizePdfText(splitDisplayValue(value)[0]);
+  const match = normalized.match(/[-−]?\d[\d,]*(?:\.\d+)?/u);
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[0].replace('−', '-').replace(/,/g, ''));
+}
+
+function clampPercentage(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, value));
+}
+
+function renderStandardVisualSummary(snapshot: StandardReportPdfSnapshot) {
+  const primaryColor = snapshot.branding.primaryColor || '#0f3460';
+  const accentColor = snapshot.branding.accentColor || '#00b4d8';
+
+  if (snapshot.sections.length === 0) {
+    return null;
+  }
+
+  if (snapshot.reportType === 'income-expense' || snapshot.reportType === 'monthly-trends') {
+    const table = snapshot.sections[0]?.tables[0];
+    if (!table || table.rows.length === 0) return null;
+
+    const rows = table.rows.slice(0, 8).map((row) => {
+      const income = Math.max(0, parseDisplayNumber(row[1]) || 0);
+      const expenses = Math.max(0, parseDisplayNumber(row[2]) || 0);
+      const maxValue = Math.max(income, expenses, 1);
+      return {
+        label: sanitizePdfText(row[0]),
+        income,
+        expenses,
+        incomePct: clampPercentage((income / maxValue) * 100),
+        expensesPct: clampPercentage((expenses / maxValue) * 100),
+      };
+    });
+
+    return (
+      <View style={styles.visualGroup}>
+        {rows.map((row) => (
+          <View key={row.label} style={styles.visualRow}>
+            <View style={styles.visualRowTop}>
+              <Text style={mergeStyles(styles.visualLabel, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+                {row.label}
+              </Text>
+              <Text style={styles.visualValue}>
+                {table.rows.find((candidate) => sanitizePdfText(candidate[0]) === row.label)?.[3] || ''}
+              </Text>
+            </View>
+            <View style={styles.visualTrack}>
+              <View style={mergeStyles(styles.visualFillPrimary, { width: `${row.incomePct}%`, backgroundColor: primaryColor })} />
+              <View style={mergeStyles(styles.visualFillAccent, { width: `${row.expensesPct}%`, backgroundColor: accentColor })} />
+            </View>
+          </View>
+        ))}
+        <View style={styles.visualLegend}>
+          <View style={styles.visualLegendItem}>
+            <View style={mergeStyles(styles.visualLegendSwatchPrimary, { backgroundColor: primaryColor })} />
+            <Text style={styles.visualLegendText}>{sanitizePdfText(table.headers[1])}</Text>
+          </View>
+          <View style={styles.visualLegendItem}>
+            <View style={mergeStyles(styles.visualLegendSwatchAccent, { backgroundColor: accentColor })} />
+            <Text style={styles.visualLegendText}>{sanitizePdfText(table.headers[2])}</Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  if (snapshot.reportType === 'spending-category') {
+    const table = snapshot.sections[0]?.tables[0];
+    if (!table || table.rows.length === 0) return null;
+    const rows = table.rows
+      .slice(0, 8)
+      .map((row) => ({
+        label: sanitizePdfText(row[0]),
+        valueText: sanitizePdfText(row[1]),
+        value: Math.max(0, parseDisplayNumber(row[1]) || 0),
+      }));
+    const maxValue = Math.max(...rows.map((row) => row.value), 1);
+
+    return (
+      <View style={styles.visualGroup}>
+        {rows.map((row) => (
+          <View key={row.label} style={styles.visualRow}>
+            <View style={styles.visualRowTop}>
+              <Text style={mergeStyles(styles.visualLabel, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+                {row.label}
+              </Text>
+              <Text style={styles.visualValue}>{row.valueText}</Text>
+            </View>
+            <View style={styles.visualTrack}>
+              <View style={mergeStyles(styles.visualFillPrimary, { width: `${clampPercentage((row.value / maxValue) * 100)}%`, backgroundColor: primaryColor })} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  if (snapshot.reportType === 'budget-performance') {
+    const table = snapshot.sections[0]?.tables[0];
+    if (!table || table.rows.length === 0) return null;
+    const rows = table.rows.slice(0, 8).map((row) => {
+      const budget = Math.max(0, parseDisplayNumber(row[3]) || 0);
+      const spent = Math.max(0, parseDisplayNumber(row[4]) || 0);
+      return {
+        label: sanitizePdfText(row[0]),
+        spentText: sanitizePdfText(row[4]),
+        progressPct: clampPercentage(budget <= 0 ? 0 : (spent / budget) * 100),
+      };
+    });
+
+    return (
+      <View style={styles.visualGroup}>
+        {rows.map((row) => (
+          <View key={row.label} style={styles.visualRow}>
+            <View style={styles.visualRowTop}>
+              <Text style={mergeStyles(styles.visualLabel, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
+                {row.label}
+              </Text>
+              <Text style={styles.visualValue}>{row.spentText}</Text>
+            </View>
+            <View style={styles.visualTrack}>
+              <View style={mergeStyles(styles.visualFillPositive, { width: `${row.progressPct}%` })} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  return null;
 }
 
 function PdfFooter({ snapshot }: { snapshot: ReportPdfSnapshot }) {
@@ -735,6 +963,7 @@ function renderStandardSections(snapshot: StandardReportPdfSnapshot) {
           {sanitizePdfText(paragraph)}
         </Text>
       ))}
+      {section === meaningfulSections[0] ? renderStandardVisualSummary(snapshot) : null}
       {section.tables.map((table, index) => (
         <PdfTable key={`${section.title}-${index}`} table={table} snapshot={snapshot} />
       ))}
@@ -818,28 +1047,14 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
     }] : []),
   ];
 
+  const upcomingCommitmentRows = snapshot.includeUpcomingCommitments
+    ? [
+        ...data.commitments.next7Days.rows,
+        ...data.commitments.next30Days.rows,
+        ...data.commitments.later.rows,
+      ]
+    : [];
   const commitmentsTables: ReportPdfTable[] = [
-    ...(data.subscriptions.table.rows.length > 0 ? [{
-      title: snapshot.labels.activeSubscriptions,
-      headers: data.subscriptions.table.headers,
-      rows: data.subscriptions.table.rows,
-      emptyMessage: data.subscriptions.table.emptyMessage,
-      compact: true,
-    }] : []),
-    ...(data.subscriptions.upcomingTable.rows.length > 0 ? [{
-      title: snapshot.labels.upcomingSubscriptionRenewals,
-      headers: data.subscriptions.upcomingTable.headers,
-      rows: data.subscriptions.upcomingTable.rows,
-      emptyMessage: data.subscriptions.upcomingTable.emptyMessage,
-      compact: true,
-    }] : []),
-    ...(data.recurring.table.rows.length > 0 ? [{
-      title: snapshot.labels.recurringTransactions,
-      headers: data.recurring.table.headers,
-      rows: data.recurring.table.rows,
-      emptyMessage: data.recurring.table.emptyMessage,
-      compact: true,
-    }] : []),
     ...(snapshot.includeUpcomingCommitments && data.commitments.overdue.rows.length > 0 ? [{
       title: snapshot.labels.overdueCommitments,
       headers: data.commitments.overdue.headers,
@@ -847,32 +1062,19 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       emptyMessage: data.commitments.overdue.emptyMessage,
       compact: true,
     }] : []),
-    ...(snapshot.includeUpcomingCommitments && data.commitments.next7Days.rows.length > 0 ? [{
-      title: snapshot.labels.next7Days,
+    ...(snapshot.includeUpcomingCommitments && upcomingCommitmentRows.length > 0 ? [{
+      title: snapshot.labels.upcomingPayments,
+      description: [snapshot.labels.next7Days, snapshot.labels.next30Days, snapshot.labels.laterCommitments].join(' | '),
       headers: data.commitments.next7Days.headers,
-      rows: data.commitments.next7Days.rows,
+      rows: upcomingCommitmentRows,
       emptyMessage: data.commitments.next7Days.emptyMessage,
-      compact: true,
-    }] : []),
-    ...(snapshot.includeUpcomingCommitments && data.commitments.next30Days.rows.length > 0 ? [{
-      title: snapshot.labels.next30Days,
-      headers: data.commitments.next30Days.headers,
-      rows: data.commitments.next30Days.rows,
-      emptyMessage: data.commitments.next30Days.emptyMessage,
-      compact: true,
-    }] : []),
-    ...(snapshot.includeUpcomingCommitments && data.commitments.later.rows.length > 0 ? [{
-      title: snapshot.labels.laterCommitments,
-      headers: data.commitments.later.headers,
-      rows: data.commitments.later.rows,
-      emptyMessage: data.commitments.later.emptyMessage,
       compact: true,
     }] : []),
   ];
 
   return (
     <>
-      <View style={styles.section} minPresenceAhead={110}>
+      <View style={styles.section} minPresenceAhead={80}>
         <View style={styles.sectionHeader}>
           <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
             {sanitizePdfText(snapshot.labels.executiveSummary)}
@@ -888,7 +1090,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
           </Text>
         ))}
         {data.currencySummary.converted.rows.length > 0 || data.currencySummary.originals.rows.length > 0 ? (
-          <View style={styles.section} minPresenceAhead={70}>
+          <View style={styles.section} minPresenceAhead={50}>
             <Text style={mergeStyles(styles.tableTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.currencySummary)}
             </Text>
@@ -926,7 +1128,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       </View>
 
       {periodTables.some((table) => table.rows.length > 0) ? (
-        <View style={styles.section} minPresenceAhead={110}>
+        <View style={styles.section} minPresenceAhead={70}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.periodActivity)}
@@ -948,7 +1150,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       ) : null}
 
       {financialPositionTables.some((table) => table.rows.length > 0) ? (
-        <View style={styles.section} minPresenceAhead={110}>
+        <View style={styles.section} minPresenceAhead={70}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.financialPosition)}
@@ -965,7 +1167,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       ) : null}
 
       {data.people.table.rows.length > 0 ? (
-        <View style={styles.section} minPresenceAhead={90}>
+        <View style={styles.section} minPresenceAhead={65}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.people)}
@@ -989,7 +1191,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       ) : null}
 
       {commitmentsTables.some((table) => table.rows.length > 0) ? (
-        <View style={styles.section} minPresenceAhead={90}>
+        <View style={styles.section} minPresenceAhead={65}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.commitments)}
@@ -1018,7 +1220,7 @@ function renderFullFinancialSections(snapshot: FullFinancialReportPdfSnapshot) {
       ) : null}
 
       {snapshot.includeTransactionDetails && data.transactions.rows.length > 0 ? (
-        <View style={styles.section} minPresenceAhead={90}>
+        <View style={styles.section} minPresenceAhead={65}>
           <View style={styles.sectionHeader}>
             <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
               {sanitizePdfText(snapshot.labels.detailedTransactions)}
@@ -1075,7 +1277,7 @@ export default function ReportPdfDocument({ snapshot }: { snapshot: ReportPdfSna
           renderFullFinancialSections(snapshot)
         ) : (
           <>
-            <View style={styles.section} minPresenceAhead={110}>
+            <View style={styles.section} minPresenceAhead={80}>
               <View style={styles.sectionHeader}>
                 <Text style={mergeStyles(styles.sectionTitle, snapshot.dir === 'rtl' ? styles.rtlText : undefined)}>
                   {sanitizePdfText(snapshot.labels.executiveSummary)}

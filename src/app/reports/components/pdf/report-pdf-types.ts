@@ -30,6 +30,7 @@ export interface ReportPdfLabels {
   preparedFor: string;
   page: string;
   noActivity: string;
+  upcomingPayments: string;
   executiveSummary: string;
   periodActivity: string;
   financialPosition: string;
