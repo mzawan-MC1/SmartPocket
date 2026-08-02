@@ -1,0 +1,9 @@
+{
+  "identifier": "no-ipc",
+  "description": "Matches no local or remote content and exposes no Tauri, app, or plugin permissions to remote frontend content.",
+  "local": false,
+  "windows": [
+    "main"
+  ],
+  "permissions": []
+}

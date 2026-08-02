@@ -1,0 +1,25 @@
+[package]
+name = "smart-pocket-desktop"
+version = "0.1.0"
+description = "Smart Pocket desktop shell powered by Tauri 2"
+authors = ["Smart Pocket"]
+license = "MIT"
+repository = "https://1smartpocket.com"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "smart_pocket_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-deep-link = "2"
+tauri-plugin-opener = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }

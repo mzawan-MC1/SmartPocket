@@ -42,3 +42,4 @@ turbo/
 # Local debug files
 .dbg/
 debug-*.md
+src-tauri/target/
