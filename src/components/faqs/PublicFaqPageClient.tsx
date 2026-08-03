@@ -2,40 +2,42 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { ChevronDown, LifeBuoy, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CmsHtml from '@/components/cms/CmsHtml';
 import SearchField from '@/components/ui/SearchField';
 import FaqCategoryIcon from '@/components/faqs/FaqCategoryIcon';
+import { useLanguage } from '@/contexts/LanguageContext';
 import type { PublicFaqCategory, PublicFaqItem } from '@/lib/faqs';
 import { formatFaqHash, hashToFaqSlug, normalizeFaqLanguage } from '@/lib/faqs';
+import type { SupportedLanguage } from '@/i18n/resources';
 
 function normalizeQuery(value: string) {
   return value.trim().toLowerCase();
 }
 
 export default function PublicFaqPageClient({
-  categories,
-  items,
+  dataByLanguage,
   supportHref,
-  initialLanguage,
 }: {
-  categories: PublicFaqCategory[];
-  items: PublicFaqItem[];
+  dataByLanguage: Record<SupportedLanguage, {
+    categories: PublicFaqCategory[];
+    items: PublicFaqItem[];
+  }>;
   supportHref: string;
-  initialLanguage: string;
 }) {
-  const { t, i18n } = useTranslation('public');
+  const { t } = useTranslation('public');
+  const { language, dir } = useLanguage();
   const pathname = usePathname();
-  const router = useRouter();
   const [query, setQuery] = React.useState('');
   const [openSlug, setOpenSlug] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('all');
-  const requestedRefreshLanguageRef = React.useRef<string | null>(null);
-  const activeLanguage = normalizeFaqLanguage(i18n.resolvedLanguage || i18n.language || initialLanguage);
-  const initialFaqLanguage = normalizeFaqLanguage(initialLanguage);
-  const isRtl = activeLanguage === 'ar';
+  const activeLanguage = normalizeFaqLanguage(language);
+  const categories =
+    dataByLanguage[activeLanguage]?.categories || dataByLanguage.en.categories || [];
+  const items = dataByLanguage[activeLanguage]?.items || dataByLanguage.en.items || [];
+  const isRtl = dir === 'rtl';
 
   const itemBySlug = React.useMemo(
     () => new Map(items.map((item) => [item.slug, item] as const)),
@@ -128,20 +130,6 @@ export default function PublicFaqPageClient({
   const resultLabel =
     filteredItems.length === 1 ? t('faqs.questionSingular') : t('faqs.questionPlural');
 
-  React.useEffect(() => {
-    if (activeLanguage === initialFaqLanguage) {
-      requestedRefreshLanguageRef.current = null;
-      return;
-    }
-
-    if (requestedRefreshLanguageRef.current === activeLanguage) {
-      return;
-    }
-
-    requestedRefreshLanguageRef.current = activeLanguage;
-    router.refresh();
-  }, [activeLanguage, initialFaqLanguage, router]);
-
   const handleCategoryChange = (slug: string) => {
     setSelectedCategory(slug);
     setOpenSlug('');
@@ -155,7 +143,7 @@ export default function PublicFaqPageClient({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir={dir}>
       <section className="rounded-[28px] border border-border bg-card px-5 py-6 shadow-card-sm sm:px-6 sm:py-7">
         <div className="max-w-3xl">
           <h1 className="text-3xl font-800 text-foreground sm:text-4xl">

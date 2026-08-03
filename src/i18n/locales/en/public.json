@@ -12,18 +12,23 @@
     },
     "rights": "All rights reserved.",
     "poweredBy": "Powered by",
+    "copyright": "{{appName}}. All rights reserved.",
+    "contactAddress": "Al Majaz 2, Sharjah - UAE",
     "pages": "Pages",
     "privacy": "Privacy",
     "terms": "Terms",
+    "sectionCompany": "Company",
     "sectionProduct": "Product",
     "sectionSupport": "Support",
     "sectionLegal": "Legal",
     "linkAbout": "About",
+    "linkBlog": "Blogs",
     "linkFeatures": "Features",
     "linkPricing": "Pricing",
     "linkContact": "Contact",
     "linkHelp": "Help Center",
     "linkDesktopApp": "Desktop App",
+    "linkSecurity": "Security",
     "backToTop": "Back to top",
     "linkFaqs": "FAQs"
   },
@@ -33,7 +38,7 @@
       "subtitle": "Smart Pocket is an AI-powered daily money companion that helps you track spending, scan receipts, manage subscriptions, plan budgets, handle shared money, and stay clear across currencies.",
       "aiBadge": "AI-powered daily money companion",
       "primaryCta": "Get Started Free",
-      "secondaryCta": "Explore Features"
+      "secondaryCta": "Desktop App"
     },
     "trust": {
       "noCard": "No credit card required",
@@ -727,14 +732,15 @@
     "ctaDescription": "Use Smart Pocket to track budgets, receipts, subscriptions, and everyday spending with review-based AI assistance and clear account control."
   },
   "desktopAppPage": {
-    "seoTitle": "Smart Pocket Desktop App for Windows and macOS",
+    "seoTitle": "Smart Pocket Desktop App",
     "seoDescription": "Download Smart Pocket for Windows and manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop. The macOS version is coming soon.",
     "ogTitle": "Smart Pocket Desktop App",
     "ogDescription": "Manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop with Smart Pocket.",
     "eyebrow": "Desktop App",
     "hero": {
-      "title": "Smart Pocket Desktop App for Windows and macOS",
-      "description": "Manage expenses, budgets, subscriptions, receipts, and everyday finances with a polished Smart Pocket desktop experience.",
+      "title": "Smart Pocket Desktop App",
+      "description": "Manage expenses, budgets, subscriptions, receipts, and everyday finances with a focused Smart Pocket desktop experience.",
+      "showcaseLabel": "{{appName}} Desktop App",
       "windowsCta": "Download for Windows",
       "macosCta": "Download for macOS",
       "trustBadges": [
@@ -792,8 +798,10 @@
       "eyebrow": "Download",
       "title": "Choose the desktop app for your computer",
       "description": "Choose the desktop app that fits your computer.",
-      "windowsDescription": "Install Smart Pocket on Windows for a faster, cleaner desktop workspace.",
-      "macosDescription": "Use Smart Pocket on macOS with a focused desktop experience built for daily money management.",
+      "versionLabel": "Current version",
+      "releaseDateLabel": "Release date",
+      "windowsDescription": "Install Smart Pocket on Windows for a faster, cleaner desktop finance experience.",
+      "macosDescription": "Use Smart Pocket on macOS with a focused desktop experience for daily money management.",
       "windowsCta": "Download for Windows",
       "macosCta": "Download for macOS",
       "earlyAccessLabel": "Early Access",
@@ -808,8 +816,8 @@
         "Desktop account synchronization",
         "Secure Smart Pocket experience"
       ],
-      "windowsSmartScreenNote": "Windows may show a SmartScreen warning while this early-access build is being verified.",
-      "macosNotNotarizedNote": "This early-access build is not yet Apple-notarized."
+      "windowsSmartScreenNote": "Windows may show a SmartScreen notice while public signing is being completed.",
+      "macosNotNotarizedNote": "This Apple Silicon early-access build is not yet Apple-notarized."
     },
     "updates": {
       "eyebrow": "What's new",

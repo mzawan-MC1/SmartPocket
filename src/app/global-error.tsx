@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { isTauriNativeShellRuntime } from '@/lib/app-runtime';
+import { runLegacyRuntimeCleanup } from '@/lib/runtime-cache';
 
 const DESKTOP_CHUNK_RELOAD_KEY = 'smartpocket.desktop.chunk-reload-once';
 
@@ -17,18 +18,6 @@ function isDesktopChunkLoadError(error: Error & { digest?: string }) {
     || haystack.includes('loading chunk')
     || haystack.includes('failed to fetch dynamically imported module')
     || haystack.includes('importing a module script failed');
-}
-
-async function clearDesktopRuntimeCaches() {
-  if ('serviceWorker' in navigator) {
-    const registrations = await navigator.serviceWorker.getRegistrations();
-    await Promise.allSettled(registrations.map((registration) => registration.unregister()));
-  }
-
-  if ('caches' in window) {
-    const cacheKeys = await caches.keys();
-    await Promise.allSettled(cacheKeys.map((cacheKey) => caches.delete(cacheKey)));
-  }
 }
 
 export default function GlobalError({
@@ -128,7 +117,7 @@ export default function GlobalError({
     }
 
     window.sessionStorage.setItem(DESKTOP_CHUNK_RELOAD_KEY, '1');
-    void clearDesktopRuntimeCaches()
+    void runLegacyRuntimeCleanup({ force: true })
       .catch(() => {
         // Ignore cache cleanup failures and still retry once.
       })

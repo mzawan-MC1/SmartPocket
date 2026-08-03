@@ -1,0 +1,27 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="windows-bg" x1="18" y1="14" x2="108" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4FD1FF"/>
+      <stop offset="0.52" stop-color="#3298FF"/>
+      <stop offset="1" stop-color="#3B5BFF"/>
+    </linearGradient>
+    <linearGradient id="windows-gloss" x1="64" y1="14" x2="64" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="windows-shadow" x="6" y="10" width="116" height="116" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="7" flood-color="#246BFF" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <g filter="url(#windows-shadow)">
+    <rect x="12" y="14" width="104" height="104" rx="30" fill="url(#windows-bg)"/>
+    <rect x="13.5" y="15.5" width="101" height="101" rx="28.5" stroke="white" stroke-opacity="0.32" stroke-width="3"/>
+    <path d="M31 29C31 22.3726 36.3726 17 43 17H85C91.6274 17 97 22.3726 97 29V45H31V29Z" fill="url(#windows-gloss)"/>
+    <g>
+      <path d="M25.5 35.5L58.8 31.2V62.4H25.5V35.5Z" fill="white" fill-opacity="0.98"/>
+      <path d="M64.6 30.5L102.5 25.6V62.4H64.6V30.5Z" fill="white" fill-opacity="0.95"/>
+      <path d="M25.5 68.2H58.8V99L25.5 94.4V68.2Z" fill="white" fill-opacity="0.92"/>
+      <path d="M64.6 68.2H102.5V103L64.6 98.3V68.2Z" fill="white" fill-opacity="0.88"/>
+    </g>
+  </g>
+</svg>

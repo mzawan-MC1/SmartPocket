@@ -12,18 +12,23 @@
     },
     "rights": "جميع الحقوق محفوظة.",
     "poweredBy": "بدعم من",
+    "copyright": "جميع الحقوق محفوظة لـ {{appName}}.",
+    "contactAddress": "المجاز 2، الشارقة - الإمارات العربية المتحدة",
     "pages": "الصفحات",
     "privacy": "الخصوصية",
     "terms": "الشروط",
+    "sectionCompany": "الشركة",
     "sectionProduct": "المنتج",
     "sectionSupport": "الدعم",
     "sectionLegal": "القانونية",
     "linkAbout": "حول",
+    "linkBlog": "المدونة",
     "linkFeatures": "الميزات",
     "linkPricing": "الأسعار",
     "linkContact": "اتصل بنا",
     "linkHelp": "مركز المساعدة",
     "linkDesktopApp": "تطبيق سطح المكتب",
+    "linkSecurity": "الأمان",
     "backToTop": "العودة إلى الأعلى",
     "linkFaqs": "الأسئلة الشائعة"
   },
@@ -33,7 +38,7 @@
       "subtitle": "Smart Pocket رفيق يومي مدعوم بالذكاء الاصطناعي يساعدك على تتبع المصروفات ومسح الإيصالات وإدارة الاشتراكات ووضع الميزانيات وتنظيم الأموال المشتركة ومتابعة العملات المتعددة ببساطة.",
       "aiBadge": "رفيقك اليومي الذكي لإدارة المال",
       "primaryCta": "ابدأ مجانا",
-      "secondaryCta": "استكشف الميزات"
+      "secondaryCta": "تطبيق سطح المكتب"
     },
     "trust": {
       "noCard": "لا حاجة إلى بطاقة ائتمان",
@@ -74,8 +79,6 @@
       }
     },
     "contact": {
-      "primary": "إنشاء حساب",
-      "secondary": "تواصل معنا",
       "badge": "تواصل معنا",
       "title": "هل لديك أسئلة؟ نحن هنا.",
       "description": "سواء كنت تحتاج إلى مساعدة في البداية، أو تريد فهم الخطط، أو لديك سؤال عن Smart Pocket، تواصل معنا وسنرد خلال 24 ساعة."
@@ -729,14 +732,15 @@
     "ctaDescription": "استخدم Smart Pocket لتتبع الميزانيات والإيصالات والاشتراكات والمصروفات اليومية مع مساعدة بالذكاء الاصطناعي قائمة على المراجعة وتحكم واضح في الحساب."
   },
   "desktopAppPage": {
-    "seoTitle": "تطبيق Smart Pocket لسطح المكتب على Windows وmacOS",
+    "seoTitle": "تطبيق Smart Pocket لسطح المكتب",
     "seoDescription": "نزّل Smart Pocket على Windows لإدارة المصروفات والميزانيات والاشتراكات والإيصالات والشؤون المالية اليومية من سطح المكتب. إصدار macOS قادم قريباً.",
     "ogTitle": "تطبيق Smart Pocket لسطح المكتب",
     "ogDescription": "أدر المصروفات والميزانيات والاشتراكات والإيصالات والشؤون المالية اليومية من سطح المكتب مع Smart Pocket.",
     "eyebrow": "تطبيق سطح المكتب",
     "hero": {
-      "title": "تطبيق Smart Pocket لسطح المكتب على Windows وmacOS",
-      "description": "أدر المصروفات والميزانيات والاشتراكات والإيصالات والشؤون المالية اليومية عبر تجربة Smart Pocket محسّنة على سطح المكتب.",
+      "title": "تطبيق Smart Pocket لسطح المكتب",
+      "description": "أدر المصروفات والميزانيات والاشتراكات والإيصالات والشؤون المالية اليومية عبر تجربة Smart Pocket مركزة على سطح المكتب.",
+      "showcaseLabel": "{{appName}} لسطح المكتب",
       "windowsCta": "تنزيل لـ Windows",
       "macosCta": "تنزيل لـ macOS",
       "trustBadges": [
@@ -794,8 +798,10 @@
       "eyebrow": "التنزيل",
       "title": "اختر تطبيق سطح المكتب المناسب لجهازك",
       "description": "اختر تطبيق سطح المكتب المناسب لجهازك.",
-      "windowsDescription": "ثبّت Smart Pocket على Windows لتجربة أسرع وأنظف على سطح المكتب.",
-      "macosDescription": "استخدم Smart Pocket على macOS عبر تجربة سطح مكتب مركزة لإدارة المال يومياً.",
+      "versionLabel": "الإصدار الحالي",
+      "releaseDateLabel": "تاريخ الإصدار",
+      "windowsDescription": "ثبّت Smart Pocket على Windows لتجربة مالية أسرع وأنظف على سطح المكتب.",
+      "macosDescription": "استخدم Smart Pocket على macOS عبر تجربة سطح مكتب مركزة لإدارة الأموال يومياً.",
       "windowsCta": "تنزيل لـ Windows",
       "macosCta": "تنزيل لـ macOS",
       "earlyAccessLabel": "وصول مبكر",
@@ -810,8 +816,8 @@
         "مزامنة الحساب على سطح المكتب",
         "تجربة Smart Pocket آمنة"
       ],
-      "windowsSmartScreenNote": "قد يعرض Windows تحذير SmartScreen أثناء التحقق من هذه النسخة ذات الوصول المبكر.",
-      "macosNotNotarizedNote": "هذه النسخة ذات الوصول المبكر لم تحصل بعد على توثيق Apple."
+      "windowsSmartScreenNote": "قد يعرض Windows إشعار SmartScreen أثناء استكمال التوقيع العام.",
+      "macosNotNotarizedNote": "هذه النسخة المبكرة لـ Apple Silicon لم تحصل بعد على توثيق Apple."
     },
     "updates": {
       "eyebrow": "ما الجديد",

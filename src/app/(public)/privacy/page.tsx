@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import CmsPageView from '@/components/cms/CmsPageView';
+import PublicLegalPageClient from '@/components/public/PublicLegalPageClient';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
-import { resolveInitialI18nState } from '@/i18n/server';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
@@ -48,13 +47,20 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-async function LegacyPrivacyPage() {
+export default async function PrivacyPage() {
   const settings = await getPlatformSettingsSnapshot();
-  const initialI18nState = await resolveInitialI18nState(settings);
-  const publicText = BASE_I18N_RESOURCES[initialI18nState.language].public as Record<string, any>;
-  const englishPublicText = BASE_I18N_RESOURCES.en.public as Record<string, any>;
-  const legalText = publicText.legal?.privacy || englishPublicText.legal?.privacy || {};
-  const sections = Array.isArray(legalText.sections) ? legalText.sections : [];
+  const [cmsPage, anyPage, metadataLanguage] = await Promise.all([
+    getPublicCmsPageBySlug('privacy'),
+    getAnyCmsPageBySlug('privacy'),
+    resolveMetadataLanguage(settings),
+  ]);
+
+  if (!cmsPage && anyPage) {
+    notFound();
+  }
+
+  const publicText = BASE_I18N_RESOURCES[metadataLanguage].public as Record<string, any>;
+  const legalText = publicText.legal?.privacy || {};
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
       { name: settings.branding.appName, path: '/' },
@@ -65,36 +71,7 @@ async function LegacyPrivacyPage() {
   return (
     <>
       <StructuredDataScripts entries={structuredData} />
-      <div className="py-16 px-4">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl font-700 text-foreground mb-2">{legalText.title}</h1>
-          <p className="text-sm text-muted-foreground mb-8">
-            {legalText.lastUpdatedLabel} {legalText.lastUpdatedDate}
-          </p>
-          <div className="space-y-8 text-muted-foreground">
-            {sections.map((section: { title: string; content: string }) => (
-              <div key={section?.title}>
-                <h2 className="text-lg font-700 text-foreground mb-2">{section?.title}</h2>
-                <p className="leading-relaxed">{section?.content}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <PublicLegalPageClient pageKey="privacy" />
     </>
   );
-}
-
-export default async function PrivacyPage() {
-  const cmsPage = await getPublicCmsPageBySlug('privacy');
-  if (cmsPage) {
-    return <CmsPageView page={cmsPage} />;
-  }
-
-  const anyPage = await getAnyCmsPageBySlug('privacy');
-  if (anyPage) {
-    notFound();
-  }
-
-  return <LegacyPrivacyPage />;
 }

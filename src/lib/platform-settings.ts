@@ -231,6 +231,19 @@ export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
   },
 ];
 
+const LEGACY_FOOTER_SECTION_TITLE_TO_ID = {
+  company: 'fs-company',
+  product: 'fs-product',
+  support: 'fs-support',
+  legal: 'fs-legal',
+} as const;
+
+const DEFAULT_PUBLIC_CONTACT_ADDRESS = 'Al Majaz 2, Sharjah - UAE';
+
+function normalizeLegacyPublicLabel(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
   branding: {
     appName: 'Smart Pocket',
@@ -505,13 +518,27 @@ function normalizeFooterSections(value: unknown, fallback: PlatformFooterSection
   if (!Array.isArray(value)) return fallback;
   const sections = value
     .filter(isObject)
-    .map((entry, index) => ({
-      id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `section-${index}`,
-      title: typeof entry.title === 'string' && entry.title.trim() ? entry.title.trim() : '',
-      links: normalizeNavLinks(entry.links, []),
-    }))
+    .map((entry, index) => {
+      const title = typeof entry.title === 'string' && entry.title.trim() ? entry.title.trim() : '';
+      const normalizedTitle = normalizeLegacyPublicLabel(title);
+      const stableSectionId =
+        LEGACY_FOOTER_SECTION_TITLE_TO_ID[
+          normalizedTitle as keyof typeof LEGACY_FOOTER_SECTION_TITLE_TO_ID
+        ];
+      const rawId = typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : '';
+
+      return {
+        id: stableSectionId || rawId || `section-${index}`,
+        title,
+        links: normalizeNavLinks(entry.links, []),
+      };
+    })
     .filter((section) => section.title && section.links.length > 0);
   return sections.length > 0 ? sections : fallback;
+}
+
+export function isDefaultPublicContactAddress(value: string) {
+  return normalizeLegacyPublicLabel(value) === normalizeLegacyPublicLabel(DEFAULT_PUBLIC_CONTACT_ADDRESS);
 }
 
 function hexToRgb(hex: string) {

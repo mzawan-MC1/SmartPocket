@@ -11,19 +11,24 @@
       "linkedin": "LinkedIn"
     },
     "rights": "Все права защищены.",
-    "poweredBy": "Работает на",
+    "poweredBy": "При поддержке",
+    "copyright": "Все права защищены {{appName}}.",
+    "contactAddress": "Аль-Маджаз 2, Шарджа — ОАЭ",
     "pages": "Страницы",
     "privacy": "Конфиденциальность",
     "terms": "Условия",
+    "sectionCompany": "Компания",
     "sectionProduct": "Продукт",
     "sectionSupport": "Поддержка",
     "sectionLegal": "Правовая информация",
     "linkAbout": "О сервисе",
+    "linkBlog": "Блог",
     "linkFeatures": "Возможности",
     "linkPricing": "Тарифы",
     "linkContact": "Контакты",
     "linkHelp": "Центр помощи",
     "linkDesktopApp": "Десктоп-приложение",
+    "linkSecurity": "Безопасность",
     "backToTop": "Наверх",
     "linkFaqs": "FAQ"
   },
@@ -33,7 +38,7 @@
       "subtitle": "Smart Pocket — это ИИ-помощник для повседневных денег: он помогает отслеживать расходы, сканировать чеки, управлять подписками, планировать бюджеты, разбираться с общими тратами и сохранять ясность по нескольким валютам.",
       "aiBadge": "ИИ-помощник для денег на каждый день",
       "primaryCta": "Начать бесплатно",
-      "secondaryCta": "Изучить возможности"
+      "secondaryCta": "Приложение для компьютера"
     },
     "trust": {
       "noCard": "Карта не требуется",
@@ -479,7 +484,13 @@
     "submitting": "Обновление...",
     "togglePassword": "Показать или скрыть пароль",
     "toastSuccess": "Пароль успешно обновлен!",
-    "toastError": "Не удалось обновить пароль."
+    "toastError": "Не удалось обновить пароль.",
+    "errors": {
+      "passwordRequired": "Пароль обязателен",
+      "passwordMinLength": "Требуется не менее 8 символов",
+      "confirmRequired": "Пожалуйста, подтвердите пароль",
+      "confirmMismatch": "Пароли не совпадают"
+    }
   },
   "legal": {
     "privacy": {
@@ -721,14 +732,15 @@
     "ctaDescription": "Используйте Smart Pocket, чтобы отслеживать бюджеты, чеки, подписки и повседневные расходы с ИИ-помощью на основе проверки и понятным контролем аккаунта."
   },
   "desktopAppPage": {
-    "seoTitle": "Десктоп-приложение Smart Pocket для Windows и macOS",
+    "seoTitle": "Десктоп-приложение Smart Pocket",
     "seoDescription": "Скачайте Smart Pocket для Windows, чтобы управлять расходами, бюджетами, подписками, чеками и повседневными финансами с рабочего стола. Версия для macOS скоро появится.",
     "ogTitle": "Десктоп-приложение Smart Pocket",
     "ogDescription": "Управляйте расходами, бюджетами, подписками, чеками и повседневными финансами с рабочего стола вместе со Smart Pocket.",
     "eyebrow": "Десктоп-приложение",
     "hero": {
-      "title": "Десктоп-приложение Smart Pocket для Windows и macOS",
-      "description": "Управляйте расходами, бюджетами, подписками, чеками и повседневными финансами в более аккуратном десктоп-формате Smart Pocket.",
+      "title": "Десктоп-приложение Smart Pocket",
+      "description": "Управляйте расходами, бюджетами, подписками, чеками и повседневными финансами в более сфокусированном десктоп-формате Smart Pocket.",
+      "showcaseLabel": "Десктоп-приложение {{appName}}",
       "windowsCta": "Скачать для Windows",
       "macosCta": "Скачать для macOS",
       "trustBadges": [
@@ -786,8 +798,10 @@
       "eyebrow": "Скачать",
       "title": "Выберите десктоп-приложение для своего компьютера",
       "description": "Выберите десктоп-приложение для своего компьютера.",
-      "windowsDescription": "Установите Smart Pocket на Windows для более быстрого и чистого десктоп-режима.",
-      "macosDescription": "Пользуйтесь Smart Pocket на macOS в спокойном и удобном десктоп-интерфейсе для ежедневных финансов.",
+      "versionLabel": "Текущая версия",
+      "releaseDateLabel": "Дата релиза",
+      "windowsDescription": "Установите Smart Pocket на Windows для более быстрого и аккуратного десктоп-интерфейса для финансов.",
+      "macosDescription": "Пользуйтесь Smart Pocket на macOS в сфокусированном десктоп-интерфейсе для ежедневного управления деньгами.",
       "windowsCta": "Скачать для Windows",
       "macosCta": "Скачать для macOS",
       "earlyAccessLabel": "Ранний доступ",
@@ -802,8 +816,8 @@
         "Синхронизация аккаунта на компьютере",
         "Безопасная среда Smart Pocket"
       ],
-      "windowsSmartScreenNote": "Windows может показать предупреждение SmartScreen, пока эта ранняя сборка проходит проверку.",
-      "macosNotNotarizedNote": "Эта сборка раннего доступа еще не notarized Apple."
+      "windowsSmartScreenNote": "Windows может показать уведомление SmartScreen, пока завершается публичная подпись.",
+      "macosNotNotarizedNote": "Эта ранняя сборка Apple Silicon еще не notarized Apple."
     },
     "updates": {
       "eyebrow": "Что нового",

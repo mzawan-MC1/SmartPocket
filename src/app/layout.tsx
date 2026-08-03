@@ -16,6 +16,7 @@ import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import AnalyticsScripts from '@/components/analytics/AnalyticsScripts';
 import MarketingEventBridge from '@/components/analytics/MarketingEventBridge';
 import RouteScrollManager from '@/components/navigation/RouteScrollManager';
+import LegacyRuntimeCacheCleanup from '@/components/app-mode/LegacyRuntimeCacheCleanup';
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -80,10 +81,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={initialI18nState.language}
       dir={initialI18nState.dir}
+      translate="no"
       className={fontVariables}
       style={brandingCssVariables}
     >
-      <body suppressHydrationWarning>
+      <head>
+        <meta name="google" content="notranslate" />
+      </head>
+      <body suppressHydrationWarning translate="no">
         <StructuredDataScripts entries={structuredData} />
         {shouldLoadAnalytics ? (
           <>
@@ -98,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <AuthProvider>
             <LanguageProvider initialLanguage={initialI18nState.language}>
               <I18nProvider>
+                <LegacyRuntimeCacheCleanup />
                 <RouteScrollManager />
                 {children}
               </I18nProvider>

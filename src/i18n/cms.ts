@@ -14,6 +14,7 @@ type CmsTranslationRow = {
   value: string;
 };
 
+type CmsTranslationNamespace = Exclude<TranslationNamespace, 'public'>;
 type NamespaceResources = Partial<Record<TranslationNamespace, Record<string, unknown>>>;
 type CachedLanguageResources = Partial<Record<SupportedLanguage, NamespaceResources>>;
 
@@ -24,6 +25,9 @@ type CacheEntry = {
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const STORAGE_PREFIX = 'smartpocket.cms-i18n.';
+const CMS_TRANSLATION_NAMESPACES = I18N_NAMESPACES.filter(
+  (namespace): namespace is CmsTranslationNamespace => namespace !== 'public'
+);
 const memoryCache = new Map<SupportedLanguage, CacheEntry>();
 const inFlight = new Map<SupportedLanguage, Promise<CachedLanguageResources>>();
 
@@ -43,7 +47,20 @@ function safeReadCachedResources(language: SupportedLanguage) {
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as CacheEntry;
-    return shouldUseCache(parsed) ? parsed : null;
+    if (!shouldUseCache(parsed)) {
+      return null;
+    }
+
+    const sanitized = {
+      ...parsed,
+      resources: sanitizeCachedLanguageResources(parsed.resources),
+    } satisfies CacheEntry;
+
+    if (JSON.stringify(sanitized) !== raw) {
+      safeWriteCachedResources(language, sanitized);
+    }
+
+    return sanitized;
   } catch {
     return null;
   }
@@ -90,9 +107,38 @@ function buildEmptyResourceMap(): CachedLanguageResources {
   };
 }
 
-function normalizeContentType(value: string): TranslationNamespace | null {
-  return I18N_NAMESPACES.includes(value as TranslationNamespace)
-    ? (value as TranslationNamespace)
+function sanitizeCachedLanguageResources(resources: CachedLanguageResources) {
+  const nextResources = buildEmptyResourceMap();
+
+  for (const language of Object.keys(resources) as SupportedLanguage[]) {
+    const namespaces = resources[language];
+    if (!namespaces) {
+      continue;
+    }
+
+    nextResources[language] = {};
+
+    for (const namespace of Object.keys(namespaces) as TranslationNamespace[]) {
+      if (namespace === 'public') {
+        continue;
+      }
+
+      const bundle = namespaces[namespace];
+      if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+        continue;
+      }
+
+      const clonedBundle = JSON.parse(JSON.stringify(bundle)) as Record<string, unknown>;
+      nextResources[language]![namespace] = clonedBundle;
+    }
+  }
+
+  return nextResources;
+}
+
+function normalizeContentType(value: string): CmsTranslationNamespace | null {
+  return CMS_TRANSLATION_NAMESPACES.includes(value as CmsTranslationNamespace)
+    ? (value as CmsTranslationNamespace)
     : null;
 }
 
@@ -124,7 +170,7 @@ async function fetchCmsResources(language: SupportedLanguage) {
   const { data, error } = await supabase
     .from('cms_translations')
     .select('content_type,content_key,language,value')
-    .in('content_type', I18N_NAMESPACES)
+    .in('content_type', CMS_TRANSLATION_NAMESPACES)
     .in('language', languages)
     .eq('is_approved', true)
     .eq('is_published', true);
@@ -139,7 +185,12 @@ async function fetchCmsResources(language: SupportedLanguage) {
 export async function loadCmsResourcesForLanguage(language: SupportedLanguage) {
   const memoryEntry = memoryCache.get(language);
   if (shouldUseCache(memoryEntry)) {
-    return memoryEntry!.resources;
+    const sanitizedResources = sanitizeCachedLanguageResources(memoryEntry!.resources);
+    memoryCache.set(language, {
+      ...memoryEntry!,
+      resources: sanitizedResources,
+    });
+    return sanitizedResources;
   }
 
   const storedEntry = safeReadCachedResources(language);
@@ -157,7 +208,7 @@ export async function loadCmsResourcesForLanguage(language: SupportedLanguage) {
     .then((resources) => {
       const entry = {
         fetchedAt: Date.now(),
-        resources,
+        resources: sanitizeCachedLanguageResources(resources),
       };
       memoryCache.set(language, entry);
       safeWriteCachedResources(language, entry);

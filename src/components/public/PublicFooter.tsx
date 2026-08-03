@@ -5,10 +5,17 @@ import { usePathname } from 'next/navigation';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import FooterLegalLine from '@/components/footer/FooterLegalLine';
 import { useTranslation } from 'react-i18next';
+import {
+  getTranslatedFooterSectionTitle,
+  getTranslatedPublicNavLabel,
+} from '@/components/public/public-labels';
 import AppLogo from '@/components/ui/AppLogo';
 import { trackContactClick } from '@/lib/analytics';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
-import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import {
+  isDefaultPublicContactAddress,
+  shouldShowBrandTextBesideLogo,
+} from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 // Social icon components using SVG to avoid lucide-react version issues
@@ -36,44 +43,6 @@ function LinkedinIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-function getFooterSectionTitle(sectionId: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  switch (sectionId) {
-    case 'fs-product':
-      return t('footer.sectionProduct', { defaultValue: fallback });
-    case 'fs-support':
-      return t('footer.sectionSupport', { defaultValue: fallback });
-    case 'fs-legal':
-      return t('footer.sectionLegal', { defaultValue: fallback });
-    default:
-      return fallback;
-  }
-}
-
-function getFooterLinkLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  switch (href) {
-    case '/home#about':
-      return t('footer.linkAbout', { defaultValue: fallback });
-    case '/home#features':
-      return t('footer.linkFeatures', { defaultValue: fallback });
-    case '/home#pricing':
-      return t('footer.linkPricing', { defaultValue: fallback });
-    case '/contact':
-      return t('footer.linkContact', { defaultValue: fallback });
-    case '/faqs':
-      return t('footer.linkFaqs', { defaultValue: fallback });
-    case '/privacy':
-      return t('footer.privacy', { defaultValue: fallback });
-    case '/terms':
-      return t('footer.terms', { defaultValue: fallback });
-    case '/help':
-      return t('footer.linkHelp', { defaultValue: fallback });
-    case '/desktop-app':
-      return t('footer.linkDesktopApp', { defaultValue: fallback });
-    default:
-      return fallback;
-  }
-}
-
 export default function PublicFooter() {
   const pathname = usePathname();
   const { t } = useTranslation('public');
@@ -83,7 +52,7 @@ export default function PublicFooter() {
   const showSingleLanguageFooterTagline = language === 'en';
   const contactEmail = publicUi.contactEmail;
   const legalSection = publicUi.footerSections.find(
-    (section) => section.title.trim().toLowerCase() === 'legal'
+    (section) => section.id === 'fs-legal'
   );
   const legalLinks = legalSection?.links ?? [];
   const topSections = publicUi.footerSections.filter((section) => section.id !== legalSection?.id);
@@ -146,7 +115,11 @@ export default function PublicFooter() {
               {publicUi.contactAddress && (
                 <p className="flex items-start gap-2 leading-relaxed">
                   <MapPin size={13} className="mt-0.5 shrink-0" />
-                  <span>{publicUi.contactAddress}</span>
+                  <span>
+                    {isDefaultPublicContactAddress(publicUi.contactAddress)
+                      ? t('footer.contactAddress', { defaultValue: publicUi.contactAddress })
+                      : publicUi.contactAddress}
+                  </span>
                 </p>
               )}
             </div>
@@ -172,7 +145,7 @@ export default function PublicFooter() {
           {topSections.map((section) => (
             <div key={section.id} className={isAuthPage ? 'hidden sm:block' : ''}>
               <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
-                {getFooterSectionTitle(section.id, section.title, t)}
+                {getTranslatedFooterSectionTitle(section.id, section.title, t)}
               </p>
               <ul className="space-y-2">
                 {section.links.map((link) => (
@@ -182,7 +155,7 @@ export default function PublicFooter() {
                       onClick={link.href === '/contact' ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
                       className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}
                     >
-                      {getFooterLinkLabel(link.href, link.label, t)}
+                      {getTranslatedPublicNavLabel(link.href, link.label, t)}
                     </Link>
                   </li>
                 ))}
@@ -196,7 +169,7 @@ export default function PublicFooter() {
           <div className="flex flex-wrap items-center gap-4">
             {legalLinks.map((link) => (
               <Link key={link.id} href={link.href} className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>
-                {getFooterLinkLabel(link.href, link.label, t)}
+                {getTranslatedPublicNavLabel(link.href, link.label, t)}
               </Link>
             ))}
             {legalLinks.length === 0 && (

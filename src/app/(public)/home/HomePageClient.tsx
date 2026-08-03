@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -26,18 +26,9 @@ import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import FeaturedBlogSection from '@/components/public/blog/FeaturedBlogSection';
 import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
-import { getPlatformSettings } from '@/lib/finance';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-interface HeroSettings {
-  hero_title?: string;
-  hero_subtitle?: string;
-  hero_cta_primary?: string;
-  hero_cta_secondary?: string;
-  app_name?: string;
-}
 
 const HOW_IT_WORKS = [
   { id: 'create', step: '01' },
@@ -531,24 +522,10 @@ export default function HomePage({
 }) {
   const { t } = useTranslation(['public', 'common']);
   const { language } = useLanguage();
-  const [hero, setHero] = useState<HeroSettings>({});
-
-  useEffect(() => {
-    getPlatformSettings()
-      .then((data) => {
-        if (data) setHero(data as HeroSettings);
-      })
-      .catch(() => {});
-  }, []);
-
-  const canUseSingleLanguageHeroOverride = language === 'en';
-  const heroTitle = canUseSingleLanguageHeroOverride && hero.hero_title ? hero.hero_title : t('home.hero.title');
-  const heroSubtitle =
-    canUseSingleLanguageHeroOverride && hero.hero_subtitle ? hero.hero_subtitle : t('home.hero.subtitle');
-  const heroCTAPrimary =
-    canUseSingleLanguageHeroOverride && hero.hero_cta_primary ? hero.hero_cta_primary : t('home.hero.primaryCta');
-  const heroCTASecondary =
-    canUseSingleLanguageHeroOverride && hero.hero_cta_secondary ? hero.hero_cta_secondary : t('home.hero.secondaryCta');
+  const heroTitle = t('home.hero.title');
+  const heroSubtitle = t('home.hero.subtitle');
+  const heroCTAPrimary = t('home.hero.primaryCta');
+  const heroCTASecondary = t('home.hero.secondaryCta');
   const heroTitleLines = heroTitle.split('\n');
   const heroAccentIndex = Math.max(heroTitleLines.length - 1, 0);
 
@@ -590,7 +567,7 @@ export default function HomePage({
                 <ArrowRight size={18} />
               </TrackedAnalyticsLink>
               <Link
-                href="/#features"
+                href="/desktop-app"
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-7 py-4 text-base font-700 text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#041229]"
               >
                 {heroCTASecondary}

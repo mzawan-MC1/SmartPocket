@@ -7,32 +7,10 @@ import { useTranslation } from 'react-i18next';
 import AppLogo from '@/components/ui/AppLogo';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
+import { getTranslatedPublicNavLabel } from '@/components/public/public-labels';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-function getTranslatedNavLabel(href: string, fallback: string, t: (key: string, options?: Record<string, unknown>) => string) {
-  switch (href) {
-    case '/home#about':
-      return t('footer.linkAbout', { ns: 'public', defaultValue: fallback });
-    case '/home#features':
-      return t('footer.linkFeatures', { ns: 'public', defaultValue: fallback });
-    case '/home#pricing':
-      return t('footer.linkPricing', { ns: 'public', defaultValue: fallback });
-    case '/contact':
-      return t('footer.linkContact', { ns: 'public', defaultValue: fallback });
-    case '/faqs':
-      return t('footer.linkFaqs', { ns: 'public', defaultValue: fallback });
-    case '/privacy':
-      return t('footer.privacy', { ns: 'public', defaultValue: fallback });
-    case '/terms':
-      return t('footer.terms', { ns: 'public', defaultValue: fallback });
-    case '/help':
-      return t('footer.linkHelp', { ns: 'public', defaultValue: fallback });
-    default:
-      return fallback;
-  }
-}
 
 export default function PublicHeader() {
   const pathname = usePathname();
@@ -147,7 +125,7 @@ export default function PublicHeader() {
                       : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                {getTranslatedNavLabel(item.href, item.label, t)}
+                {getTranslatedPublicNavLabel(item.href, item.label, t)}
               </Link>
             ))}
           </nav>
@@ -230,7 +208,7 @@ export default function PublicHeader() {
                             : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
                       }`}
                     >
-                      {getTranslatedNavLabel(item.href, item.label, t)}
+                      {getTranslatedPublicNavLabel(item.href, item.label, t)}
                     </Link>
                   ))}
                   <div className={`mt-3 flex flex-col gap-2 pt-3 ${isHomePage ? 'border-t border-slate-200' : 'border-t border-border'}`}>

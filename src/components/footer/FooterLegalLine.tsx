@@ -15,7 +15,16 @@ function joinClasses(...values: Array<string | undefined>) {
 export default function FooterLegalLine({ className }: FooterLegalLineProps) {
   const { t } = useTranslation('public');
   const { branding, publicUi } = usePlatformSettings();
-  const copyrightText = publicUi.footerCopyright || `© ${branding.appName}. All rights reserved.`;
+  const defaultCopyright = `© ${branding.appName}. All rights reserved.`;
+  const normalizedCopyright = publicUi.footerCopyright.replace(/^©\s*/, '').trim().toLowerCase();
+  const defaultNormalizedCopyright = `${branding.appName}. all rights reserved.`.toLowerCase();
+  const copyrightText =
+    !publicUi.footerCopyright || normalizedCopyright === defaultNormalizedCopyright
+      ? t('footer.copyright', {
+          appName: branding.appName,
+          defaultValue: defaultCopyright,
+        })
+      : publicUi.footerCopyright;
   const poweredByText = publicUi.footerPoweredByText.trim();
   const poweredByUrl = publicUi.footerPoweredByUrl.trim();
 

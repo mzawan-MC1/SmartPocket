@@ -1,0 +1,31 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mac-bg" x1="24" y1="18" x2="106" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9FBFD"/>
+      <stop offset="0.42" stop-color="#D7DEE7"/>
+      <stop offset="1" stop-color="#8F9AAC"/>
+    </linearGradient>
+    <radialGradient id="mac-highlight" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(48 28) rotate(41.3478) scale(54.0269 42.8411)">
+      <stop stop-color="white" stop-opacity="0.88"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mac-shine" x1="64" y1="18" x2="64" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="white" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="mac-shadow" x="4" y="8" width="120" height="120" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="8" flood-color="#0F172A" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <g filter="url(#mac-shadow)">
+    <rect x="12" y="14" width="104" height="104" rx="30" fill="url(#mac-bg)"/>
+    <rect x="13.5" y="15.5" width="101" height="101" rx="28.5" stroke="white" stroke-opacity="0.58" stroke-width="2.6"/>
+    <rect x="14.5" y="16.5" width="99" height="99" rx="27.5" stroke="#7D8798" stroke-opacity="0.18" stroke-width="1.4"/>
+    <path d="M32 28C32 21.9249 36.9249 17 43 17H85C91.0751 17 96 21.9249 96 28V42H32V28Z" fill="url(#mac-shine)"/>
+    <rect x="20" y="22" width="88" height="80" rx="24" fill="url(#mac-highlight)"/>
+    <g transform="translate(24 16) scale(1.08)">
+      <path d="M46.2 20.5C41.9 20.5 36.1 25.4 32.1 25.4C28 25.4 21.9 20.7 18.8 20.7C11.4 20.8 3.4 26.6 -0.4 33.3C-8.6 47.4 -2.5 68.3 5.4 79.6C9.2 85.1 13.7 91.2 19.4 91C24.8 90.8 26.8 87.5 33.3 87.5C39.7 87.5 41.6 91 47.4 90.9C53.2 90.8 56.9 85.5 60.7 80C65.1 73.7 66.8 67.6 66.9 67.2C66.8 67.2 54.9 62.6 54.8 48.9C54.7 37.5 64 32.1 64.5 31.8C59.1 24 50.9 23 48.1 22.8C41 22.2 34.9 26.9 32.1 26.9C29.3 26.9 24.4 22.8 18.8 22.9C15.1 22.9 11.1 24 7.6 26C11.9 19.9 19 16 25.8 16.5C30.3 16.9 34.1 19.2 36.1 22.8C40.3 22.5 44.3 20.3 46.9 16.8C49.6 13.4 51.1 9.1 50.8 4.9C46.2 5.1 41 7.7 37.8 11.7C34.9 15.2 32.8 19.9 33.4 24.3C38.1 24.7 43.2 22.1 46.2 18.3C49.3 14.7 51.2 10.1 50.7 5.6C45.5 5.8 40.7 8.7 37.8 12.2C35 15.5 33 20.1 33.5 24.5C38.1 24.9 43 22.4 46.2 18.6V20.5Z" fill="#F8FAFC" fill-opacity="0.98"/>
+      <path d="M39.7 3.6C36.5 7.5 34.4 12.8 34.9 18C39.8 18.4 45.1 15.6 48.4 11.7C51.4 8.2 53.6 3 53.1 -2C48.2 -1.8 42.9 0.7 39.7 3.6Z" fill="#F8FAFC"/>
+    </g>
+  </g>
+</svg>

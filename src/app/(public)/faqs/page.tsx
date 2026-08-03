@@ -1,19 +1,21 @@
 import type { Metadata } from 'next';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import PublicFaqPageClient from '@/components/faqs/PublicFaqPageClient';
-import { BASE_I18N_RESOURCES } from '@/i18n/resources';
-import { resolveInitialI18nState } from '@/i18n/server';
+import { BASE_I18N_RESOURCES, type SupportedLanguage } from '@/i18n/resources';
 import { getPublicFaqPageData } from '@/lib/faqs-server';
 import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import {
+  buildAbsoluteSiteUrl,
   buildBreadcrumbStructuredData,
   buildFaqStructuredData,
   buildPageMetadata,
-  buildAbsoluteSiteUrl,
   resolveMetadataLanguage,
   type StructuredDataValue,
 } from '@/lib/site-metadata';
+
+const PUBLIC_LANGUAGES: SupportedLanguage[] = ['en', 'ar', 'fr', 'ru'];
+type FaqPageLanguageData = Awaited<ReturnType<typeof getPublicFaqPageData>>;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();
@@ -51,16 +53,25 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function FaqPage() {
   const settings = await getPlatformSettingsSnapshot();
-  const initialI18nState = await resolveInitialI18nState(settings);
-  const [faqData, supabase] = await Promise.all([
-    getPublicFaqPageData(initialI18nState.language),
+  const metadataLanguage = await resolveMetadataLanguage(settings);
+  const [supabase, ...faqPageDataResults] = await Promise.all([
     createServerComponentSupabaseClient(),
+    ...PUBLIC_LANGUAGES.map((language) => getPublicFaqPageData(language)),
   ]);
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const publicText = BASE_I18N_RESOURCES[initialI18nState.language].public as Record<string, any>;
+  const faqDataByLanguage = PUBLIC_LANGUAGES.reduce((accumulator, language, index) => {
+    const pageData = faqPageDataResults[index];
+    accumulator[language] = {
+      categories: pageData.categories,
+      items: pageData.items,
+    };
+    return accumulator;
+  }, {} as Record<SupportedLanguage, { categories: FaqPageLanguageData['categories']; items: FaqPageLanguageData['items'] }>);
+  const publicText = BASE_I18N_RESOURCES[metadataLanguage].public as Record<string, any>;
   const faqText = publicText.faqs || {};
+  const structuredFaqData = faqDataByLanguage[metadataLanguage];
 
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
@@ -69,8 +80,8 @@ export default async function FaqPage() {
     ]),
     buildFaqStructuredData({
       pageUrl: buildAbsoluteSiteUrl('/faqs', settings),
-      language: initialI18nState.language,
-      items: faqData.items.map((item) => ({
+      language: metadataLanguage,
+      items: structuredFaqData.items.map((item) => ({
         question: item.question,
         answerText: item.answerText,
       })),
@@ -83,10 +94,8 @@ export default async function FaqPage() {
       <div className="bg-background px-4 py-10 sm:px-6 sm:py-12">
         <div className="mx-auto max-w-6xl">
           <PublicFaqPageClient
-            categories={faqData.categories}
-            items={faqData.items}
+            dataByLanguage={faqDataByLanguage}
             supportHref={user ? '/support/new' : '/contact'}
-            initialLanguage={initialI18nState.language}
           />
         </div>
       </div>

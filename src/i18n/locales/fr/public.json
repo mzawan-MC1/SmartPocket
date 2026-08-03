@@ -12,18 +12,23 @@
     },
     "rights": "Tous droits réservés.",
     "poweredBy": "Propulsé par",
+    "copyright": "Tous droits réservés à {{appName}}.",
+    "contactAddress": "Al Majaz 2, Charjah - Émirats arabes unis",
     "pages": "Pages",
     "privacy": "Confidentialité",
     "terms": "Conditions",
+    "sectionCompany": "Entreprise",
     "sectionProduct": "Produit",
     "sectionSupport": "Support",
     "sectionLegal": "Juridique",
     "linkAbout": "À propos",
+    "linkBlog": "Blog",
     "linkFeatures": "Fonctionnalités",
     "linkPricing": "Tarifs",
     "linkContact": "Contact",
     "linkHelp": "Centre d'aide",
     "linkDesktopApp": "Application Desktop",
+    "linkSecurity": "Sécurité",
     "backToTop": "Retour en haut",
     "linkFaqs": "FAQ"
   },
@@ -33,7 +38,7 @@
       "subtitle": "Smart Pocket est un compagnon du quotidien, alimenté par l'IA, qui vous aide à suivre vos dépenses, scanner vos reçus, gérer vos abonnements, planifier vos budgets, organiser l'argent partagé et garder une vue claire sur plusieurs devises.",
       "aiBadge": "Votre compagnon IA pour l'argent au quotidien",
       "primaryCta": "Commencer gratuitement",
-      "secondaryCta": "Explorer les fonctionnalités"
+      "secondaryCta": "Application de bureau"
     },
     "trust": {
       "noCard": "Aucune carte bancaire requise",
@@ -145,7 +150,6 @@
       "readSecurity": "Voir Sécurité et confiance"
     },
     "pricing": {
-      "aboutTitle": "Une seule application pour toute votre vie financière",
       "freeName": "Gratuit",
       "freePrice": "Gratuit",
       "freePeriod": "à vie",
@@ -480,7 +484,13 @@
     "submitting": "Mise à jour...",
     "togglePassword": "Afficher ou masquer le mot de passe",
     "toastSuccess": "Mot de passe mis à jour avec succès !",
-    "toastError": "Impossible de mettre à jour le mot de passe."
+    "toastError": "Impossible de mettre à jour le mot de passe.",
+    "errors": {
+      "passwordRequired": "Le mot de passe est requis",
+      "passwordMinLength": "Au moins 8 caractères sont requis",
+      "confirmRequired": "Veuillez confirmer votre mot de passe",
+      "confirmMismatch": "Les mots de passe ne correspondent pas"
+    }
   },
   "legal": {
     "privacy": {
@@ -722,14 +732,15 @@
     "ctaDescription": "Utilisez Smart Pocket pour suivre budgets, reçus, abonnements et dépenses du quotidien avec une aide IA basée sur la relecture et un contrôle clair du compte."
   },
   "desktopAppPage": {
-    "seoTitle": "Application Smart Pocket Desktop pour Windows et macOS",
+    "seoTitle": "Application Smart Pocket Desktop",
     "seoDescription": "Téléchargez Smart Pocket pour Windows afin de gérer dépenses, budgets, abonnements, reçus et finances du quotidien depuis votre bureau. La version macOS arrive bientôt.",
     "ogTitle": "Application Smart Pocket Desktop",
     "ogDescription": "Gérez dépenses, budgets, abonnements, reçus et finances du quotidien depuis votre bureau avec Smart Pocket.",
     "eyebrow": "Application Desktop",
     "hero": {
-      "title": "Application Smart Pocket Desktop pour Windows et macOS",
-      "description": "Gérez dépenses, budgets, abonnements, reçus et finances du quotidien avec une expérience Smart Pocket desktop plus soignée.",
+      "title": "Application Smart Pocket Desktop",
+      "description": "Gérez dépenses, budgets, abonnements, reçus et finances du quotidien avec une expérience Smart Pocket desktop plus ciblée.",
+      "showcaseLabel": "Application desktop {{appName}}",
       "windowsCta": "Télécharger pour Windows",
       "macosCta": "Télécharger pour macOS",
       "trustBadges": [
@@ -787,8 +798,10 @@
       "eyebrow": "Téléchargement",
       "title": "Choisissez l'application desktop pour votre ordinateur",
       "description": "Choisissez l'application desktop adaptée à votre ordinateur.",
-      "windowsDescription": "Installez Smart Pocket sur Windows pour un espace de travail desktop plus rapide et plus net.",
-      "macosDescription": "Utilisez Smart Pocket sur macOS avec une expérience desktop pensée pour la gestion quotidienne de vos finances.",
+      "versionLabel": "Version actuelle",
+      "releaseDateLabel": "Date de publication",
+      "windowsDescription": "Installez Smart Pocket sur Windows pour une expérience finance desktop plus rapide et plus soignée.",
+      "macosDescription": "Utilisez Smart Pocket sur macOS avec une expérience desktop ciblée pour la gestion quotidienne de vos finances.",
       "windowsCta": "Télécharger pour Windows",
       "macosCta": "Télécharger pour macOS",
       "earlyAccessLabel": "Accès anticipé",
@@ -803,8 +816,8 @@
         "Synchronisation du compte sur desktop",
         "Expérience Smart Pocket sécurisée"
       ],
-      "windowsSmartScreenNote": "Windows peut afficher un avertissement SmartScreen pendant la vérification de cette build en accès anticipé.",
-      "macosNotNotarizedNote": "Cette build en accès anticipé n'est pas encore notarisee par Apple."
+      "windowsSmartScreenNote": "Windows peut afficher un avis SmartScreen pendant la finalisation de la signature publique.",
+      "macosNotNotarizedNote": "Cette build Apple Silicon en accès anticipé n'est pas encore notarisee par Apple."
     },
     "updates": {
       "eyebrow": "Nouveautés",
