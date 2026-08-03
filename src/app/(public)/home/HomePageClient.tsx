@@ -26,8 +26,6 @@ import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import FeaturedBlogSection from '@/components/public/blog/FeaturedBlogSection';
 import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
-import { formatCurrencyText } from '@/lib/currency-formatting';
-import { getIntlLocale } from '@/lib/locale';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const HOW_IT_WORKS = [
@@ -299,13 +297,12 @@ function SecurityVisual() {
 
 function DashboardPreview() {
   const { t } = useTranslation('public');
-  const { language } = useLanguage();
-  const locale = getIntlLocale(language);
   const previewAmounts = {
-    totalBalance: formatCurrencyText(12480, { currencyCode: 'USD', locale }),
-    income: formatCurrencyText(4200, { currencyCode: 'USD', locale }),
-    expenses: formatCurrencyText(-2760, { currencyCode: 'USD', locale }),
-    netFlow: formatCurrencyText(1440, { currencyCode: 'USD', locale }),
+    totalBalance: '$12,480.00',
+    income: '$4,200.00',
+    expenses: '-$2,760.00',
+    netFlow: '$1,440.00',
+    upcomingBill: '$180.00',
   };
 
   return (
@@ -509,7 +506,7 @@ function DashboardPreview() {
           <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-amber-200">{t('home.preview.upcomingBill.dueIn')}</span>
         </div>
         <p className="mt-2.5 text-sm font-700 text-white">{t('home.preview.upcomingBill.item')}</p>
-        <p className="mt-1 text-xs text-slate-300">{formatCurrencyText(180, { currencyCode: 'USD', locale })}</p>
+        <p className="mt-1 text-xs text-slate-300">{previewAmounts.upcomingBill}</p>
       </div>
     </div>
   );
@@ -534,7 +531,7 @@ export default function HomePage({
       <section className="relative overflow-hidden bg-[#041229] px-4 pb-16 pt-8 text-white sm:px-6 lg:px-8 lg:pb-20 lg:pt-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.16),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.14),transparent_24%)]" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[#061426]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-8 lg:grid-cols-[0.92fr_1.08fr] lg:gap-8">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 xl:grid-cols-[0.92fr_1.08fr] xl:gap-8">
           <div className="max-w-2xl py-5 lg:py-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-2 text-xs font-700 uppercase tracking-[0.22em] text-cyan-200">
               <Sparkles size={12} className="text-cyan-300" />
@@ -588,7 +585,9 @@ export default function HomePage({
               </span>
             </div>
           </div>
-          <DashboardPreview />
+          <div className="hidden xl:block">
+            <DashboardPreview />
+          </div>
         </div>
       </section>
 
