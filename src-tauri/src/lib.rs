@@ -657,7 +657,11 @@ pub fn run() {
 
             focus_main_window(&main_window);
             register_desktop_callback_handler(&callback_handle);
-            updater::schedule_automatic_check(&app.handle().clone());
+            if updater::is_store_managed_runtime() {
+                updater::log_store_managed_updates_message();
+            } else {
+                updater::schedule_automatic_check(&app.handle().clone());
+            }
 
             Ok(())
         })

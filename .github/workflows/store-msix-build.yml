@@ -1,0 +1,76 @@
+name: Store MSIX Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smartpocket-store-msix-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  build-store-msix:
+    name: Build Store MSIX artifact
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      STORE_IDENTITY_NAME: ${{ vars.STORE_IDENTITY_NAME }}
+      STORE_PUBLISHER: ${{ vars.STORE_PUBLISHER }}
+      STORE_PUBLISHER_DISPLAY_NAME: ${{ vars.STORE_PUBLISHER_DISPLAY_NAME }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate required Store repository variables
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($entry in @(
+            @{ Name = 'STORE_IDENTITY_NAME'; Value = $env:STORE_IDENTITY_NAME },
+            @{ Name = 'STORE_PUBLISHER'; Value = $env:STORE_PUBLISHER },
+            @{ Name = 'STORE_PUBLISHER_DISPLAY_NAME'; Value = $env:STORE_PUBLISHER_DISPLAY_NAME }
+          )) {
+            if ([string]::IsNullOrWhiteSpace($entry.Value)) {
+              throw "Missing required GitHub repository variable: $($entry.Name)"
+            }
+          }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            src-tauri -> target
+
+      - name: Build Store MSIX artifact
+        shell: pwsh
+        run: |
+          ./scripts/build-store-msix.ps1
+
+      - name: Run Store MSIX preflight
+        shell: pwsh
+        run: |
+          ./scripts/validate-store-msix.ps1
+
+      - name: Upload Store MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: smartpocket-store-msix-x64
+          path: dist/store-msix/*.msix
+          if-no-files-found: error

@@ -1,5 +1,8 @@
 import { isTauri } from '@tauri-apps/api/core';
-import { TAURI_DESKTOP_USER_AGENT_MARKER } from '@/lib/desktop-shell';
+import {
+  hasDesktopShellUserAgent,
+  hasStoreDesktopShellUserAgent,
+} from '@/lib/desktop-shell';
 
 export type AppRuntime = 'web' | 'native-shell';
 
@@ -23,8 +26,15 @@ function hasTauriDesktopUserAgent() {
     return false;
   }
 
-  const userAgent = window.navigator?.userAgent;
-  return typeof userAgent === 'string' && userAgent.includes(TAURI_DESKTOP_USER_AGENT_MARKER);
+  return hasDesktopShellUserAgent(window.navigator?.userAgent);
+}
+
+function hasStoreTauriDesktopUserAgent() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return hasStoreDesktopShellUserAgent(window.navigator?.userAgent);
 }
 
 function hasTauriRuntime() {
@@ -70,4 +80,8 @@ export function isNativeShellRuntime() {
 
 export function isTauriNativeShellRuntime() {
   return hasTauriRuntime() || hasTauriDesktopUserAgent();
+}
+
+export function isStoreTauriNativeShellRuntime() {
+  return hasStoreTauriDesktopUserAgent();
 }

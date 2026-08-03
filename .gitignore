@@ -42,4 +42,5 @@ turbo/
 # Local debug files
 .dbg/
 debug-*.md
+dist/store-msix/
 src-tauri/target/

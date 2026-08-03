@@ -14,6 +14,15 @@ const UPDATE_STATE_FILE_NAME: &str = "updater-state.json";
 const AUTO_CHECK_DELAY_SECONDS: u64 = 5;
 const AUTO_CHECK_INTERVAL_SECONDS: u64 = 60 * 60 * 24;
 const MAIN_WINDOW_LABEL: &str = "main";
+#[cfg(target_os = "windows")]
+const APPMODEL_ERROR_NO_PACKAGE: i32 = 15700;
+#[cfg(target_os = "windows")]
+const ERROR_INSUFFICIENT_BUFFER: i32 = 122;
+
+#[cfg(target_os = "windows")]
+unsafe extern "system" {
+    fn GetCurrentPackageFullName(package_full_name_length: *mut u32, package_full_name: *mut u16) -> i32;
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum UpdateCheckSource {
@@ -41,6 +50,32 @@ impl<R: Runtime> Drop for UpdateRunGuard<R> {
     fn drop(&mut self) {
         finish_update_run(&self.app);
     }
+}
+
+#[cfg(target_os = "windows")]
+fn has_msix_package_identity() -> bool {
+    let mut length = 0u32;
+    let result = unsafe { GetCurrentPackageFullName(&mut length, std::ptr::null_mut()) };
+    if result == APPMODEL_ERROR_NO_PACKAGE {
+        return false;
+    }
+
+    matches!(result, ERROR_INSUFFICIENT_BUFFER | 0)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn has_msix_package_identity() -> bool {
+    false
+}
+
+pub fn is_store_managed_runtime() -> bool {
+    has_msix_package_identity()
+}
+
+pub fn log_store_managed_updates_message() {
+    println!(
+        "[SmartPocketDesktop] store-managed runtime detected; updates are managed by Microsoft Store"
+    );
 }
 
 fn updater_state_file_path<R: Runtime>(app: &AppHandle<R>) -> Option<PathBuf> {
@@ -246,6 +281,11 @@ fn show_error_dialog<R: Runtime>(app: &AppHandle<R>, title: &str, message: &str)
 }
 
 async fn run_update_check<R: Runtime>(app: AppHandle<R>, source: UpdateCheckSource) {
+    if is_store_managed_runtime() {
+        log_store_managed_updates_message();
+        return;
+    }
+
     if source == UpdateCheckSource::Automatic && should_skip_automatic_check(&app) {
         return;
     }
@@ -370,6 +410,11 @@ async fn run_update_check<R: Runtime>(app: AppHandle<R>, source: UpdateCheckSour
 }
 
 pub fn schedule_automatic_check<R: Runtime>(app: &AppHandle<R>) {
+    if is_store_managed_runtime() {
+        log_store_managed_updates_message();
+        return;
+    }
+
     if cfg!(debug_assertions) {
         return;
     }
@@ -382,6 +427,11 @@ pub fn schedule_automatic_check<R: Runtime>(app: &AppHandle<R>) {
 }
 
 pub fn trigger_manual_check<R: Runtime>(app: &AppHandle<R>) {
+    if is_store_managed_runtime() {
+        log_store_managed_updates_message();
+        return;
+    }
+
     let app_handle = app.clone();
     thread::spawn(move || {
         tauri::async_runtime::block_on(run_update_check(app_handle, UpdateCheckSource::Manual));
