@@ -1,47 +1,147 @@
 {
-    "title": "Portail Admin",
-    "nav": {
-        "dashboard": "Tableau de bord",
-        "branding": "Marque",
-        "header": "En-t\u00eate",
-        "footer": "Pied de page",
-        "pages": "Pages",
-        "contact": "Param\u00e8tres de contact",
-        "email": "Param\u00e8tres e-mail",
-        "auth": "Param\u00e8tres d'authentification",
-        "payment": "Param\u00e8tres de paiement",
-        "reports": "Param\u00e8tres des rapports",
-        "seo": "Param\u00e8tres SEO",
-        "currency": "Param\u00e8tres de devise",
-        "users": "Utilisateurs",
-        "activity": "Journal d'activit\u00e9",
-        "general": "Param\u00e8tres g\u00e9n\u00e9raux"
+  "title": "Portail Admin",
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "branding": "Marque",
+    "header": "En-tête",
+    "footer": "Pied de page",
+    "pages": "Pages",
+    "contact": "Paramètres de contact",
+    "email": "Paramètres e-mail",
+    "auth": "Paramètres d'authentification",
+    "payment": "Paramètres de paiement",
+    "reports": "Paramètres des rapports",
+    "seo": "Paramètres SEO",
+    "currency": "Paramètres de devise",
+    "users": "Utilisateurs",
+    "activity": "Journal d'activité",
+    "general": "Paramètres généraux"
+  },
+  "branding": {
+    "pageTitle": "Marque et apparence",
+    "pageDescription": "Centralisez les éléments de marque utilisés sur {{appName}} et gérez la page publique de téléchargement desktop depuis un seul endroit.",
+    "actions": {
+      "save": "Enregistrer les paramètres",
+      "saved": "Enregistré"
     },
-    "currency": {
-        "title": "Param\u00e8tres de devise",
-        "defaultCurrency": "Devise par d\u00e9faut de la plateforme",
-        "enabledCurrencies": "Devises activ\u00e9es",
-        "symbolDisplay": "Mode d'affichage du symbole",
-        "symbolMode": "Utiliser le symbole officiel",
-        "codeMode": "Utiliser le code ISO",
-        "preview": "Aper\u00e7u",
-        "decimalPlaces": "D\u00e9cimales",
-        "symbolPosition": "Position du symbole",
-        "before": "Avant le montant",
-        "after": "Apr\u00e8s le montant",
-        "spacing": "Espace entre le symbole et le montant",
-        "uploadSymbol": "T\u00e9l\u00e9verser un symbole",
-        "testPDF": "Tester le rendu PDF",
-        "saved": "Param\u00e8tres de devise enregistr\u00e9s",
-        "warning": "Modifier les codes ISO apr\u00e8s des transactions peut affecter les donn\u00e9es historiques."
+    "toasts": {
+      "saved": "Les paramètres de marque ont été enregistrés",
+      "saveFailed": "Impossible d'enregistrer les paramètres de marque.",
+      "loadFailed": "Impossible de charger les paramètres de marque.",
+      "desktopMigrationRequired": "Les paramètres de téléchargement desktop ne peuvent pas encore être enregistrés. Exécutez d'abord la migration desktop de platform_settings."
     },
-    "users": {
-        "title": "Utilisateurs",
-        "name": "Nom",
-        "email": "E-mail",
-        "role": "R\u00f4le",
-        "status": "Statut",
-        "joined": "Inscrit le",
-        "lastActive": "Derni\u00e8re activit\u00e9"
+    "sections": {
+      "identity": "Identité de marque",
+      "colors": "Couleurs de marque",
+      "assets": "Ressources de marque",
+      "desktop": "Téléchargements de l'application desktop",
+      "typography": "Typographie"
+    },
+    "fields": {
+      "brandName": "Nom de marque",
+      "shortBrandName": "Nom de marque court",
+      "tagline": "Signature",
+      "primaryColor": "Couleur principale",
+      "accentColor": "Couleur d'accent",
+      "fontFamily": "Famille de police"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans (par défaut)",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "Logo principal",
+        "helper": "Utilisé dans l'en-tête public, le pied de page, les écrans d'authentification et l'interface de l'application."
+      },
+      "compactLogo": {
+        "label": "Logo compact / symbole",
+        "helper": "Utilisé dans les espaces plus restreints comme les surfaces compactes de marque et les mises en page centrées sur l'icône."
+      },
+      "favicon": {
+        "label": "Favicon",
+        "helper": "Utilisé pour les onglets du navigateur et les icônes de raccourci."
+      },
+      "appleTouchIcon": {
+        "label": "Icône Apple Touch",
+        "helper": "Utilisée lorsque Smart Pocket est ajouté à l'écran d'accueil sur iPhone ou iPad."
+      },
+      "emailLogo": {
+        "label": "Logo e-mail",
+        "helper": "Utilisé dans les e-mails personnalisés et les recommandations de modèles Supabase."
+      },
+      "organizationLogo": {
+        "label": "Logo de données structurées",
+        "helper": "Utilisé dans le schéma Organization et d'autres surfaces de marque lisibles par machine."
+      }
+    },
+    "desktop": {
+      "description": "Gérez l'image héroïque de /desktop-app, la disponibilité des plateformes, les URL de téléchargement direct, les versions, les dates de sortie et les notes de dernière mise à jour.",
+      "heroImageLabel": "Image héroïque desktop",
+      "heroImageHelper": "Affichée dans la section héroïque de la page publique de téléchargement desktop. Téléversez, remplacez ou supprimez l'image produit actuelle.",
+      "fields": {
+        "available": "Disponible"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "Cette carte reste toujours visible publiquement. Le bouton ne devient actif que lorsque la disponibilité est activée et qu'une URL HTTPS valide est enregistrée.",
+          "downloadUrl": "URL de téléchargement direct",
+          "version": "Version",
+          "releaseDate": "Date de sortie",
+          "statusLabel": "Libellé de statut court"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "Cette carte reste toujours visible publiquement. Laissez-la désactivée tant qu'un paquet macOS public sûr n'est pas prêt.",
+          "downloadUrl": "URL de téléchargement direct",
+          "version": "Version",
+          "releaseDate": "Date de sortie",
+          "statusLabel": "Libellé de statut court"
+        }
+      },
+      "latestUpdate": {
+        "title": "Dernière mise à jour",
+        "description": "Mettez en avant la dernière version desktop ou une amélioration avec jusqu'à trois notes courtes.",
+        "updateTitle": "Titre de la mise à jour",
+        "date": "Date de mise à jour",
+        "noteLabel": "Note de mise à jour {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "Fichier invalide.",
+      "invalidDate": "{{field}} doit utiliser le format AAAA-MM-JJ.",
+      "invalidHttpsUrl": "{{field}} doit être une URL HTTPS valide.",
+      "invalidMediaUrl": "L'URL de l'image héroïque desktop doit être une URL HTTPS valide ou un chemin relatif sûr du site."
     }
+  },
+  "currency": {
+    "title": "Paramètres de devise",
+    "defaultCurrency": "Devise par défaut de la plateforme",
+    "enabledCurrencies": "Devises activées",
+    "symbolDisplay": "Mode d'affichage du symbole",
+    "symbolMode": "Utiliser le symbole officiel",
+    "codeMode": "Utiliser le code ISO",
+    "preview": "Aperçu",
+    "decimalPlaces": "Décimales",
+    "symbolPosition": "Position du symbole",
+    "before": "Avant le montant",
+    "after": "Après le montant",
+    "spacing": "Espace entre le symbole et le montant",
+    "uploadSymbol": "Téléverser un symbole",
+    "testPDF": "Tester le rendu PDF",
+    "saved": "Paramètres de devise enregistrés",
+    "warning": "Modifier les codes ISO après des transactions peut affecter les données historiques."
+  },
+  "users": {
+    "title": "Utilisateurs",
+    "name": "Nom",
+    "email": "E-mail",
+    "role": "Rôle",
+    "status": "Statut",
+    "joined": "Inscrit le",
+    "lastActive": "Dernière activité"
+  }
 }

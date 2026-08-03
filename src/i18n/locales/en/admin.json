@@ -18,6 +18,106 @@
     "general": "General Settings",
     "support": "Support"
   },
+  "branding": {
+    "pageTitle": "Branding & Appearance",
+    "pageDescription": "Centralize the production brand surfaces used across {{appName}} and manage the public desktop download page from one place.",
+    "actions": {
+      "save": "Save Settings",
+      "saved": "Saved"
+    },
+    "toasts": {
+      "saved": "Branding settings saved",
+      "saveFailed": "Failed to save branding settings.",
+      "loadFailed": "Failed to load branding settings.",
+      "desktopMigrationRequired": "Desktop App download settings cannot be saved yet. Run the desktop platform_settings migration first."
+    },
+    "sections": {
+      "identity": "Brand Identity",
+      "colors": "Brand Colours",
+      "assets": "Brand Assets",
+      "desktop": "Desktop App Downloads",
+      "typography": "Typography"
+    },
+    "fields": {
+      "brandName": "Brand Name",
+      "shortBrandName": "Short Brand Name",
+      "tagline": "Tagline",
+      "primaryColor": "Primary Colour",
+      "accentColor": "Accent Colour",
+      "fontFamily": "Font Family"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans (Default)",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "Primary Logo",
+        "helper": "Used in the public header, footer, auth screens, and app chrome."
+      },
+      "compactLogo": {
+        "label": "Compact Logo / Mark",
+        "helper": "Used for tighter spaces such as compact branding surfaces and icon-first layouts."
+      },
+      "favicon": {
+        "label": "Favicon",
+        "helper": "Used for browser tabs and shortcut icons."
+      },
+      "appleTouchIcon": {
+        "label": "Apple Touch Icon",
+        "helper": "Used when Smart Pocket is saved to an iPhone or iPad home screen."
+      },
+      "emailLogo": {
+        "label": "Email Logo",
+        "helper": "Used in branded email layouts and Supabase email template guidance."
+      },
+      "organizationLogo": {
+        "label": "Structured Data Logo",
+        "helper": "Used in Organization schema and other machine-readable brand surfaces."
+      }
+    },
+    "desktop": {
+      "description": "Manage the public /desktop-app hero image, platform availability, direct download URLs, versions, release dates, and latest update notes.",
+      "heroImageLabel": "Desktop hero image",
+      "heroImageHelper": "Shown on the public desktop download page hero. Upload, replace, or remove the current product image.",
+      "fields": {
+        "available": "Available"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "This card stays visible publicly. The button only becomes active when availability is enabled and a valid HTTPS URL is saved.",
+          "downloadUrl": "Direct download URL",
+          "version": "Version",
+          "releaseDate": "Release date",
+          "statusLabel": "Short status label"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "This card stays visible publicly. Keep it disabled until a safe public macOS package is ready.",
+          "downloadUrl": "Direct download URL",
+          "version": "Version",
+          "releaseDate": "Release date",
+          "statusLabel": "Short status label"
+        }
+      },
+      "latestUpdate": {
+        "title": "Latest update",
+        "description": "Highlight the newest desktop release or improvement with up to three short notes.",
+        "updateTitle": "Update title",
+        "date": "Update date",
+        "noteLabel": "Update note {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "Invalid file.",
+      "invalidDate": "{{field}} must use YYYY-MM-DD.",
+      "invalidHttpsUrl": "{{field}} must be a valid HTTPS URL.",
+      "invalidMediaUrl": "Desktop hero image URL must be a valid HTTPS or site-relative URL."
+    }
+  },
   "currency": {
     "title": "Currency Settings",
     "defaultCurrency": "Default Platform Currency",

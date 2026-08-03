@@ -23,6 +23,7 @@
     "linkPricing": "Tarifs",
     "linkContact": "Contact",
     "linkHelp": "Centre d'aide",
+    "linkDesktopApp": "Application Desktop",
     "backToTop": "Retour en haut",
     "linkFaqs": "FAQ"
   },
@@ -719,6 +720,149 @@
     "ctaEyebrow": "Commencez en confiance",
     "ctaTitle": "Prêt à gérer votre argent avec plus de confiance ?",
     "ctaDescription": "Utilisez Smart Pocket pour suivre budgets, reçus, abonnements et dépenses du quotidien avec une aide IA basée sur la relecture et un contrôle clair du compte."
+  },
+  "desktopAppPage": {
+    "seoTitle": "Application Smart Pocket Desktop pour Windows et macOS",
+    "seoDescription": "Téléchargez Smart Pocket pour Windows afin de gérer dépenses, budgets, abonnements, reçus et finances du quotidien depuis votre bureau. La version macOS arrive bientôt.",
+    "ogTitle": "Application Smart Pocket Desktop",
+    "ogDescription": "Gérez dépenses, budgets, abonnements, reçus et finances du quotidien depuis votre bureau avec Smart Pocket.",
+    "eyebrow": "Application Desktop",
+    "hero": {
+      "title": "Application Smart Pocket Desktop pour Windows et macOS",
+      "description": "Gérez dépenses, budgets, abonnements, reçus et finances du quotidien avec une expérience Smart Pocket desktop plus soignée.",
+      "windowsCta": "Télécharger pour Windows",
+      "macosCta": "Télécharger pour macOS",
+      "trustBadges": [
+        "Téléchargement direct en un clic",
+        "Toujours à jour",
+        "Sûr et fiable"
+      ]
+    },
+    "platformLabels": {
+      "windows": "Windows",
+      "macos": "macOS"
+    },
+    "availability": {
+      "available": "Disponible maintenant",
+      "windowsEarlyAccess": "Accès anticipé Windows",
+      "comingSoon": "Bientôt disponible"
+    },
+    "warnings": {
+      "windowsSmartScreen": "Windows peut afficher un avertissement SmartScreen tant que la signature publique ou la distribution via le Microsoft Store n'est pas finalisée.",
+      "macosPreparing": "La version macOS de production est encore en préparation, donc le DMG non signé n'est pas publié publiquement.",
+      "officialInstallers": "Les liens d'installation officiels sont gérés depuis une seule source de version afin de pouvoir mettre à jour les téléchargements de façon centralisée."
+    },
+    "benefits": {
+      "eyebrow": "Pourquoi l'utiliser",
+      "title": "Des fonctionnalités puissantes. Une meilleure gestion de l'argent.",
+      "description": "Smart Pocket Desktop garde une expérience compacte, lisible et pratique tout en vous laissant plus d'espace pour vous concentrer sur vos finances.",
+      "items": [
+        {
+          "title": "Accès rapide depuis le bureau",
+          "description": "Lancez l'application rapidement et avancez avec une expérience desktop fluide."
+        },
+        {
+          "title": "Aide intelligente par IA",
+          "description": "Demandez des insights utiles et laissez Smart Pocket vous aider à mieux décider au quotidien."
+        },
+        {
+          "title": "Suivi des reçus et documents",
+          "description": "Scannez, stockez et relisez vos reçus et documents dans un espace de travail plus large."
+        },
+        {
+          "title": "Connexion sécurisée",
+          "description": "Protégez vos données grâce au chiffrement standard du secteur et à une authentification sécurisée."
+        },
+        {
+          "title": "Mises à jour en temps réel",
+          "description": "Restez à jour avec les dernières améliorations et correctifs automatiquement."
+        },
+        {
+          "title": "Une concentration plus claire",
+          "description": "Une expérience desktop plus calme et mieux ajustée pour la gestion de l'argent au quotidien."
+        }
+      ]
+    },
+    "download": {
+      "eyebrow": "Téléchargement",
+      "title": "Choisissez l'application desktop pour votre ordinateur",
+      "description": "Choisissez l'application desktop adaptée à votre ordinateur.",
+      "windowsDescription": "Installez Smart Pocket sur Windows pour un espace de travail desktop plus rapide et plus net.",
+      "macosDescription": "Utilisez Smart Pocket sur macOS avec une expérience desktop pensée pour la gestion quotidienne de vos finances.",
+      "windowsCta": "Télécharger pour Windows",
+      "macosCta": "Télécharger pour macOS",
+      "earlyAccessLabel": "Accès anticipé",
+      "versionDateLabel": "Version {{version}} • Mise à jour {{date}}",
+      "windowsBenefits": [
+        "Installateur en un clic",
+        "Prise en charge des mises à jour automatiques",
+        "Expérience desktop sécurisée"
+      ],
+      "macosBenefits": [
+        "Installation DMG simple",
+        "Synchronisation du compte sur desktop",
+        "Expérience Smart Pocket sécurisée"
+      ],
+      "windowsSmartScreenNote": "Windows peut afficher un avertissement SmartScreen pendant la vérification de cette build en accès anticipé.",
+      "macosNotNotarizedNote": "Cette build en accès anticipé n'est pas encore notarisee par Apple."
+    },
+    "updates": {
+      "eyebrow": "Nouveautés",
+      "title": "Nouveautés et mises à jour",
+      "description": "La version desktop actuelle continue d'améliorer la connexion, la livraison de l'installeur et la stabilité au quotidien.",
+      "cta": "Voir toutes les mises à jour",
+      "labels": {
+        "new": "Nouveau",
+        "improved": "Amélioré",
+        "fix": "Correctif"
+      },
+      "items": {
+        "desktop_auth": {
+          "title": "Améliorations de connexion et d'accès au compte",
+          "description": "Le flux de connexion desktop est maintenant plus fluide pour arriver plus vite sur votre tableau de bord."
+        },
+        "windows_installer": {
+          "title": "Base de livraison de l'installeur Windows",
+          "description": "Le téléchargement desktop s'appuie désormais sur une seule source de version directe pour l'installeur Windows."
+        },
+        "desktop_stability": {
+          "title": "Mises à jour de stabilité du shell desktop",
+          "description": "Les derniers correctifs rendent le shell natif et le parcours de mise à jour plus fiables au quotidien."
+        }
+      }
+    },
+    "howToUse": {
+      "eyebrow": "Comment l'utiliser",
+      "title": "Comment utiliser Smart Pocket Desktop",
+      "description": "Commencez en quelques étapes simples et gardez vos finances à portée de main sur ordinateur.",
+      "steps": [
+        {
+          "title": "Téléchargez l'application pour votre appareil",
+          "description": "Choisissez l'installeur Windows depuis la source officielle de version desktop."
+        },
+        {
+          "title": "Installez Smart Pocket",
+          "description": "Ouvrez l'installeur et suivez les étapes de configuration rapides."
+        },
+        {
+          "title": "Connectez-vous à votre compte",
+          "description": "Utilisez votre compte Smart Pocket pour reprendre là où vous vous étiez arrêté."
+        },
+        {
+          "title": "Suivez et gérez",
+          "description": "Ajoutez des transactions, suivez vos budgets, scannez vos reçus et gérez vos abonnements."
+        },
+        {
+          "title": "Restez à jour",
+          "description": "Recevez les derniers correctifs et améliorations pendant que la version desktop continue de mûrir."
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "Prêt à télécharger ?",
+      "title": "Prêt à mieux piloter vos finances ?",
+      "description": "Téléchargez Smart Pocket sur desktop et gardez vos finances à portée de main."
+    }
   },
   "landingPages": {
     "shared": {

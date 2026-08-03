@@ -1,0 +1,15 @@
+ALTER TABLE public.platform_settings
+  ADD COLUMN IF NOT EXISTS desktop_app_hero_image_url TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_windows_available BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS desktop_windows_download_url TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_windows_version TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_windows_release_date DATE,
+  ADD COLUMN IF NOT EXISTS desktop_windows_status_label TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_macos_available BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS desktop_macos_download_url TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_macos_version TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_macos_release_date DATE,
+  ADD COLUMN IF NOT EXISTS desktop_macos_status_label TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_update_title TEXT DEFAULT '',
+  ADD COLUMN IF NOT EXISTS desktop_update_date DATE,
+  ADD COLUMN IF NOT EXISTS desktop_update_notes JSONB DEFAULT '[]'::jsonb;

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { normalizePlatformSettings, normalizePublicNavHref, type PlatformSettingsSnapshot } from '@/lib/platform-settings';
 import { listPublicCmsPages } from '@/lib/cms-pages-server';
 import { isMarketingHomeSlug } from '@/lib/cms-pages';
+import { DESKTOP_APP_ROUTE } from '@/lib/desktop-downloads';
 import {
   buildNormalizedPhoneParts,
   formatNormalizedPhoneForDisplay,
@@ -150,6 +151,39 @@ function injectFaqNavigation(settings: PlatformSettingsSnapshot) {
   };
 }
 
+function injectDesktopAppNavigation(settings: PlatformSettingsSnapshot) {
+  const desktopHref = normalizePublicNavHref(DESKTOP_APP_ROUTE);
+  const footerHasDesktopApp = settings.publicUi.footerSections.some((section) =>
+    section.links.some((link) => normalizePublicNavHref(link.href) === desktopHref)
+  );
+
+  if (footerHasDesktopApp) {
+    return settings;
+  }
+
+  return {
+    ...settings,
+    publicUi: {
+      ...settings.publicUi,
+      footerSections: settings.publicUi.footerSections.map((section, index) =>
+        index === 0
+          ? {
+              ...section,
+              links: [
+                ...section.links,
+                {
+                  id: 'sp-desktop-app',
+                  label: 'Desktop App',
+                  href: DESKTOP_APP_ROUTE,
+                },
+              ],
+            }
+          : section
+      ),
+    },
+  };
+}
+
 function mergePublicCmsNavigation(
   settings: PlatformSettingsSnapshot,
   pages: Awaited<ReturnType<typeof listPublicCmsPages>>
@@ -198,14 +232,14 @@ function mergePublicCmsNavigation(
         ]
       : settings.publicUi.footerSections;
 
-  return injectFaqNavigation({
+  return injectFaqNavigation(injectDesktopAppNavigation({
     ...settings,
     publicUi: {
       ...settings.publicUi,
       headerMenu: [...settings.publicUi.headerMenu, ...headerPages],
       footerSections,
     },
-  });
+  }));
 }
 
 function enrichPlatformContactPhone(

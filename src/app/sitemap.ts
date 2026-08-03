@@ -24,6 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/',
     '/blog',
     '/security',
+    '/desktop-app',
     '/ai-receipt-scanner',
     '/ai-voice-expense-tracker',
     '/family-budget-app',

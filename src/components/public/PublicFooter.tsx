@@ -67,6 +67,8 @@ function getFooterLinkLabel(href: string, fallback: string, t: (key: string, opt
       return t('footer.terms', { defaultValue: fallback });
     case '/help':
       return t('footer.linkHelp', { defaultValue: fallback });
+    case '/desktop-app':
+      return t('footer.linkDesktopApp', { defaultValue: fallback });
     default:
       return fallback;
   }

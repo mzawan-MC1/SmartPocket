@@ -23,6 +23,7 @@
     "linkPricing": "Pricing",
     "linkContact": "Contact",
     "linkHelp": "Help Center",
+    "linkDesktopApp": "Desktop App",
     "backToTop": "Back to top",
     "linkFaqs": "FAQs"
   },
@@ -724,6 +725,149 @@
     "ctaEyebrow": "Start with confidence",
     "ctaTitle": "Ready to manage money with more confidence?",
     "ctaDescription": "Use Smart Pocket to track budgets, receipts, subscriptions, and everyday spending with review-based AI assistance and clear account control."
+  },
+  "desktopAppPage": {
+    "seoTitle": "Smart Pocket Desktop App for Windows and macOS",
+    "seoDescription": "Download Smart Pocket for Windows and manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop. The macOS version is coming soon.",
+    "ogTitle": "Smart Pocket Desktop App",
+    "ogDescription": "Manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop with Smart Pocket.",
+    "eyebrow": "Desktop App",
+    "hero": {
+      "title": "Smart Pocket Desktop App for Windows and macOS",
+      "description": "Manage expenses, budgets, subscriptions, receipts, and everyday finances with a polished Smart Pocket desktop experience.",
+      "windowsCta": "Download for Windows",
+      "macosCta": "Download for macOS",
+      "trustBadges": [
+        "One-click download",
+        "Always up to date",
+        "Secure and reliable"
+      ]
+    },
+    "platformLabels": {
+      "windows": "Windows",
+      "macos": "macOS"
+    },
+    "availability": {
+      "available": "Available now",
+      "windowsEarlyAccess": "Windows Early Access",
+      "comingSoon": "Coming soon"
+    },
+    "warnings": {
+      "windowsSmartScreen": "Windows may show a SmartScreen warning until public signing or Microsoft Store distribution is complete.",
+      "macosPreparing": "The macOS production release is still being prepared, so the unsigned DMG is not exposed publicly.",
+      "officialInstallers": "Official installer links are managed from one release source so downloads can be updated centrally."
+    },
+    "benefits": {
+      "eyebrow": "Why use it",
+      "title": "Powerful features. Better money management.",
+      "description": "Smart Pocket Desktop keeps the experience compact, readable, and practical while giving you more room to focus on your finances.",
+      "items": [
+        {
+          "title": "Fast desktop access",
+          "description": "Launch quickly and get things done with a smooth desktop experience."
+        },
+        {
+          "title": "Smart AI assistance",
+          "description": "Ask AI, get insights, and let Smart Pocket help you make better decisions."
+        },
+        {
+          "title": "Receipt and document tracking",
+          "description": "Scan, store, and review receipts and documents from one larger workspace."
+        },
+        {
+          "title": "Secure sign-in",
+          "description": "Protect your data with industry-standard encryption and secure authentication."
+        },
+        {
+          "title": "Real-time updates",
+          "description": "Stay up to date with the latest features and improvements automatically."
+        },
+        {
+          "title": "Cleaner focus",
+          "description": "A calmer, fine-tuned desktop experience built for daily money management."
+        }
+      ]
+    },
+    "download": {
+      "eyebrow": "Download",
+      "title": "Choose the desktop app for your computer",
+      "description": "Choose the desktop app that fits your computer.",
+      "windowsDescription": "Install Smart Pocket on Windows for a faster, cleaner desktop workspace.",
+      "macosDescription": "Use Smart Pocket on macOS with a focused desktop experience built for daily money management.",
+      "windowsCta": "Download for Windows",
+      "macosCta": "Download for macOS",
+      "earlyAccessLabel": "Early Access",
+      "versionDateLabel": "Version {{version}} • Updated {{date}}",
+      "windowsBenefits": [
+        "One-click installer",
+        "Automatic update support",
+        "Secure desktop experience"
+      ],
+      "macosBenefits": [
+        "Simple DMG installation",
+        "Desktop account synchronization",
+        "Secure Smart Pocket experience"
+      ],
+      "windowsSmartScreenNote": "Windows may show a SmartScreen warning while this early-access build is being verified.",
+      "macosNotNotarizedNote": "This early-access build is not yet Apple-notarized."
+    },
+    "updates": {
+      "eyebrow": "What's new",
+      "title": "What's new and updates",
+      "description": "The current desktop release keeps improving sign-in, installer delivery, and everyday stability.",
+      "cta": "View all updates",
+      "labels": {
+        "new": "New",
+        "improved": "Improved",
+        "fix": "Fix"
+      },
+      "items": {
+        "desktop_auth": {
+          "title": "Desktop login and account access improvements",
+          "description": "A smoother desktop sign-in flow helps you reach your dashboard faster."
+        },
+        "windows_installer": {
+          "title": "Windows installer delivery foundation",
+          "description": "The desktop download flow is now structured around one central Windows installer release source."
+        },
+        "desktop_stability": {
+          "title": "Desktop shell stability updates",
+          "description": "Recent fixes keep the native shell and update flow more reliable during daily use."
+        }
+      }
+    },
+    "howToUse": {
+      "eyebrow": "How to use",
+      "title": "How to use Smart Pocket Desktop",
+      "description": "Get started in a few simple steps and keep your finances close at hand on desktop.",
+      "steps": [
+        {
+          "title": "Download the app for your device",
+          "description": "Choose the Windows installer from the official desktop release source."
+        },
+        {
+          "title": "Install Smart Pocket",
+          "description": "Open the installer and follow the quick setup steps."
+        },
+        {
+          "title": "Sign in to your account",
+          "description": "Use your Smart Pocket account to continue where you left off."
+        },
+        {
+          "title": "Track and manage",
+          "description": "Add transactions, follow budgets, scan receipts, and manage subscriptions."
+        },
+        {
+          "title": "Stay updated with new improvements",
+          "description": "Get the latest fixes and improvements as the desktop release continues to mature."
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "Ready to download?",
+      "title": "Ready to take control of your finances?",
+      "description": "Download Smart Pocket on desktop and keep your finances close at hand."
+    }
   },
   "landingPages": {
     "shared": {

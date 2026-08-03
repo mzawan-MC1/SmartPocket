@@ -143,6 +143,7 @@ export async function middleware(request: NextRequest) {
     '/sign-up-login',
     '/auth/',
     '/home',
+    '/desktop-app',
     '/about',
     '/features',
     '/pricing',
@@ -159,7 +160,7 @@ export async function middleware(request: NextRequest) {
     '/privacy',
     '/terms',
     '/offline',
-  '/invite',
+    '/invite',
   ];
 
   const isPublicRoute =
@@ -168,6 +169,7 @@ export async function middleware(request: NextRequest) {
 
   const blockedDesktopPublicPrefixes = [
     '/home',
+    '/desktop-app',
     '/about',
     '/features',
     '/pricing',
