@@ -43,9 +43,21 @@ const LANGUAGES = [
 ] as const;
 
 const HOME_DEVICES = [
-  { icon: Smartphone, labelKey: 'home.platform.mobileTitle' },
-  { icon: Monitor, labelKey: 'home.platform.desktopTitle' },
-  { icon: Tablet, labelKey: 'home.platform.tabletTitle' },
+  {
+    icon: Smartphone,
+    titleKey: 'home.platform.mobileTitle',
+    descriptionKey: 'home.platform.mobileDescription',
+  },
+  {
+    icon: Monitor,
+    titleKey: 'home.platform.desktopTitle',
+    descriptionKey: 'home.platform.desktopDescription',
+  },
+  {
+    icon: Tablet,
+    titleKey: 'home.platform.tabletTitle',
+    descriptionKey: 'home.platform.tabletDescription',
+  },
 ] as const;
 
 type IconComponent = React.ComponentType<{
@@ -70,8 +82,9 @@ function FeatureCard({
 }) {
   return (
     <article
-      className={`group h-full rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_48px_rgba(15,23,42,0.1)] motion-reduce:transform-none motion-reduce:transition-none ${className}`}
+      className={`group relative h-full overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-[linear-gradient(180deg,#ffffff,rgba(248,250,252,0.92))] p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/80 hover:shadow-[0_22px_48px_rgba(15,23,42,0.1)] motion-reduce:transform-none motion-reduce:transition-none ${className}`}
     >
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-transparent" />
       <div className="flex items-start justify-between gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 via-sky-50 to-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <Icon size={20} className="text-cyan-700" />
@@ -607,8 +620,8 @@ export default function HomePage({
             </p>
           </div>
 
-          <div className="mt-8 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+          <div className="mt-10 grid gap-5 lg:grid-cols-[1.12fr_0.88fr]">
+            <div className="rounded-[1.9rem] border border-slate-200 bg-white p-6 shadow-[0_18px_44px_rgba(15,23,42,0.07)] sm:p-7">
               <p className="text-xs font-700 uppercase tracking-[0.2em] text-cyan-600">
                 {t('home.about.audienceEyebrow')}
               </p>
@@ -634,22 +647,57 @@ export default function HomePage({
                   </span>
                 ))}
               </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {['1', '2', '3'].map((point) => (
+                  <div
+                    key={point}
+                    className="rounded-[1.2rem] border border-slate-200 bg-slate-50/80 px-4 py-3 text-sm font-600 leading-6 text-slate-700"
+                  >
+                    <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
+                      <CheckCircle2 size={16} />
+                    </div>
+                    {t(`home.about.points.${point}`)}
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="rounded-[1.75rem] border border-cyan-100 bg-[linear-gradient(180deg,#ecfeff,#ffffff)] p-6 shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700">
+            <div className="rounded-[1.9rem] border border-cyan-100 bg-[linear-gradient(180deg,#ecfeff,#ffffff)] p-6 shadow-[0_18px_44px_rgba(15,23,42,0.05)] sm:p-7">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                 <Sparkles size={20} />
               </div>
               <h3 className="mt-4 text-xl font-800 tracking-tight text-slate-950">
-                {t('home.about.noteTitle')}
+                {t('home.about.coverageTitle')}
               </h3>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                {t('home.about.noteDescription')}
+                {t('home.about.coverageDescription')}
+              </p>
+              <div className="mt-6 grid gap-3">
+                {['accounts', 'shared', 'capture', 'languages'].map((tag) => (
+                  <div
+                    key={tag}
+                    className="flex items-center gap-3 rounded-[1.15rem] border border-white/70 bg-white/80 px-4 py-3 text-sm font-700 text-slate-800 shadow-[0_10px_24px_rgba(34,211,238,0.08)]"
+                  >
+                    <span className="h-2.5 w-2.5 rounded-full bg-cyan-400" />
+                    {t(`home.about.coverageTags.${tag}`)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-xs font-800 uppercase tracking-[0.2em] text-cyan-600">
+                {t('home.sections.featuresTitle')}
+              </p>
+              <p className="mt-2 text-sm leading-7 text-slate-600 sm:text-base">
+                {t('home.sections.featuresDescription')}
               </p>
             </div>
           </div>
 
-          <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-12">
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
             <FeatureCard
               icon={Wallet}
               title={t('home.features.accountsTitle')}
@@ -744,24 +792,51 @@ export default function HomePage({
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
-                    { icon: Mail, title: t('home.ai.features.1'), desc: t('home.ai.roadmap.descriptions.1') },
-                    { icon: Smartphone, title: t('home.ai.features.2'), desc: t('home.ai.roadmap.descriptions.2') },
-                    { icon: FileText, title: t('home.ai.features.3'), desc: t('home.ai.roadmap.descriptions.3') },
-                    { icon: CheckCircle2, title: t('home.ai.features.4'), desc: t('home.ai.roadmap.descriptions.4') },
+                    {
+                      icon: Mail,
+                      title: t('home.ai.features.1'),
+                      desc: t('home.ai.roadmap.descriptions.1'),
+                      sample: t('home.ai.samples.1'),
+                      step: '01',
+                    },
+                    {
+                      icon: Smartphone,
+                      title: t('home.ai.features.2'),
+                      desc: t('home.ai.roadmap.descriptions.2'),
+                      sample: t('home.ai.samples.2'),
+                      step: '02',
+                    },
+                    {
+                      icon: FileText,
+                      title: t('home.ai.features.3'),
+                      desc: t('home.ai.roadmap.descriptions.3'),
+                      sample: t('home.ai.samples.3'),
+                      step: '03',
+                    },
+                    {
+                      icon: CheckCircle2,
+                      title: t('home.ai.features.4'),
+                      desc: t('home.ai.roadmap.descriptions.4'),
+                      sample: t('home.ai.samples.4'),
+                      step: '04',
+                    },
                   ].map((item) => {
                     const Icon = item.icon;
                     return (
-                      <div key={item.title} className="rounded-[1.35rem] border border-white/10 bg-[#07192d]/90 p-4">
+                      <div key={item.title} className="rounded-[1.35rem] border border-white/10 bg-[#07192d]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-400/12">
                             <Icon size={18} className="text-cyan-300" />
                           </div>
                           <span className="rounded-full bg-white/10 px-2.5 py-1 text-[10px] font-700 uppercase tracking-[0.12em] text-slate-200">
-                            {t('home.ai.cardLabel')}
+                            {item.step}
                           </span>
                         </div>
                         <p className="mt-4 text-sm font-700 text-white">{item.title}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-300">{item.desc}</p>
+                        <div className="mt-3 rounded-2xl border border-cyan-400/10 bg-cyan-400/10 px-3 py-2 text-xs leading-5 text-cyan-100">
+                          {item.sample}
+                        </div>
                       </div>
                     );
                   })}
@@ -772,6 +847,21 @@ export default function HomePage({
                     <span className="text-emerald-300">{t('home.ai.reviewBadge')}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-300">{t('home.ai.reviewNote')}</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                      t('home.ai.highlights.type'),
+                      t('home.ai.highlights.voice'),
+                      t('home.ai.highlights.receipts'),
+                      t('home.ai.highlights.review'),
+                    ].map((item, index) => (
+                      <span
+                        key={item}
+                        className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] font-700 tracking-[0.08em] text-slate-200"
+                      >
+                        {String(index + 1).padStart(2, '0')} {item}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -781,51 +871,71 @@ export default function HomePage({
 
       <section className="px-4 pb-16 sm:px-6 lg:px-8 lg:pb-20">
         <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-3">
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+          <article className="rounded-[1.85rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.07)]">
             <h3 className="text-xl font-800 text-slate-950">{t('home.sections.stepsTitle')}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">{t('home.sections.stepsDescription')}</p>
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="mt-5 space-y-3">
               {HOW_IT_WORKS.slice(0, 4).map((step, index) => (
                 <div
                   key={step.id}
-                  className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-700 text-slate-700"
+                  className="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3"
                 >
-                  <span className="text-cyan-600">{String(index + 1).padStart(2, '0')}</span>
-                  {t(`home.steps.${step.id}Title`)}
+                  <div className="flex items-start gap-3">
+                    <span className="mt-0.5 inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-100 text-xs font-800 text-cyan-700">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <div>
+                      <p className="text-sm font-800 text-slate-900">{t(`home.steps.${step.id}Title`)}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">
+                        {t(`home.steps.${step.id}Description`)}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+          <article className="rounded-[1.85rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.07)]">
             <h3 className="text-xl font-800 text-slate-950">{t('home.sections.platformTitle')}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">{t('home.sections.platformDescription')}</p>
             <div className="mt-5 space-y-4">
               {HOME_DEVICES.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.labelKey} className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-50">
+                  <div key={item.titleKey} className="flex items-start gap-3 rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-50">
                       <Icon size={18} className="text-cyan-700" />
                     </div>
-                    <span className="text-sm font-600 text-slate-700">{t(item.labelKey)}</span>
+                    <div>
+                      <p className="text-sm font-700 text-slate-900">{t(item.titleKey)}</p>
+                      <p className="mt-1 text-xs leading-5 text-slate-600">{t(item.descriptionKey)}</p>
+                    </div>
                   </div>
                 );
               })}
             </div>
-            <div className="mt-5 flex flex-wrap gap-2">
-              {LANGUAGES.map((languageOption) => (
-                <span
-                  key={languageOption.code}
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-700 text-slate-700"
-                >
-                  {t(languageOption.nameKey)}
-                </span>
-              ))}
+            <div className="mt-5">
+              <p className="text-xs font-800 uppercase tracking-[0.18em] text-slate-500">
+                {t('home.sections.languagesTitle')}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {LANGUAGES.map((languageOption) => (
+                  <span
+                    key={languageOption.code}
+                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-700 text-slate-700"
+                  >
+                    {t(languageOption.nameKey)}
+                  </span>
+                ))}
+              </div>
             </div>
           </article>
 
-          <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+          <article className="rounded-[1.85rem] border border-slate-200 bg-white p-6 shadow-[0_16px_40px_rgba(15,23,42,0.07)]">
+            <p className="text-xs font-800 uppercase tracking-[0.18em] text-emerald-600">
+              {t('home.security.label')}
+            </p>
             <h3 className="text-xl font-800 text-slate-950">{t('home.security.heading')}</h3>
             <p className="mt-2 text-sm leading-6 text-slate-600">{t('home.security.body')}</p>
             <div className="mt-5 space-y-3">
@@ -836,13 +946,15 @@ export default function HomePage({
               ].map((item) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.id} className="flex gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50">
-                      <Icon size={14} className="text-emerald-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-700 text-slate-900">{t(`home.security.${item.id}Title`)}</p>
-                      <p className="text-xs leading-5 text-slate-600">{t(`home.security.${item.id}Description`)}</p>
+                  <div key={item.id} className="rounded-[1.2rem] border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50">
+                        <Icon size={14} className="text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-700 text-slate-900">{t(`home.security.${item.id}Title`)}</p>
+                        <p className="text-xs leading-5 text-slate-600">{t(`home.security.${item.id}Description`)}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -868,6 +980,9 @@ export default function HomePage({
         title={t('blog.home.title', { ns: 'public' })}
         description={t('blog.home.description', { ns: 'public' })}
         viewAllLabel={t('blog.home.viewAll', { ns: 'public' })}
+        fallbackTitle={t('blog.common.fallbackTitle', { ns: 'public' })}
+        fallbackExcerpt={t('blog.common.fallbackExcerpt', { ns: 'public' })}
+        fallbackBadgeLabel={t('blog.common.fallbackBadgeLabel', { ns: 'public' })}
         readTimeLabel={(minutes) =>
           t('blog.common.readTime', {
             ns: 'public',

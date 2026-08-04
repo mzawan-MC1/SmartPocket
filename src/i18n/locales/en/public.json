@@ -47,14 +47,14 @@
     },
     "sections": {
       "aboutEyebrow": "What is Smart Pocket?",
-      "aboutTitle": "Simple money clarity for everyday life",
-      "aboutDescription": "Smart Pocket helps ordinary people understand what they spend, what is coming up, and what needs attention without spreadsheets or complicated finance tools.",
-      "featuresTitle": "Built for real financial clarity",
-      "featuresDescription": "Every feature is designed around one question: does this help you understand your money better?",
-      "stepsTitle": "How Smart Pocket helps in daily life",
-      "stepsDescription": "Type a transaction like a message, speak it by voice, upload a receipt, then review before you save.",
+      "aboutTitle": "A simple daily money companion for real life",
+      "aboutDescription": "Smart Pocket helps ordinary people keep up with accounts, spending, budgets, subscriptions, shared money, and receipts in one calm place.",
+      "featuresTitle": "What Smart Pocket covers",
+      "featuresDescription": "Clear cards, practical summaries, and friendly workflows help you see what happened, what is due, and what needs a quick decision.",
+      "stepsTitle": "How Smart Pocket helps",
+      "stepsDescription": "Capture everyday money in the way that feels easiest, then keep budgets, shared money, and follow-ups moving without clutter.",
       "platformTitle": "Built for real life",
-      "platformDescription": "Use Smart Pocket on your phone, tablet, or computer and choose the interface language that feels most comfortable.",
+      "platformDescription": "Use the same clear workflow on phone, tablet, and desktop, with interface languages that help more people feel at home.",
       "securityTitle": "Security and privacy first",
       "securityDescription": "Your account stays protected, your data stays private, and AI suggestions stay review-based.",
       "pricingTitle": "Simple pricing, clear next step",
@@ -66,10 +66,23 @@
     },
     "about": {
       "audienceEyebrow": "Made for people, not accountants",
-      "audienceTitle": "For ordinary people, families, freelancers, expats, and anyone tired of money guesswork",
-      "audienceDescription": "Use Smart Pocket to understand daily spending, shared money, bills, budgets, subscriptions, and receipts without learning accounting software.",
+      "audienceTitle": "For ordinary people who want clearer money habits without accounting stress",
+      "audienceDescription": "Smart Pocket is for families, freelancers, couples, flatmates, and anyone who wants to understand daily spending, shared money, bills, subscriptions, and receipts without learning finance jargon.",
       "noteTitle": "A warmer way to stay on top of money",
       "noteDescription": "Smart Pocket is designed to feel simple, readable, and helpful so you can build better money habits without stress.",
+      "points": {
+        "1": "Keep accounts, balances, and everyday transactions together.",
+        "2": "Follow budgets, subscriptions, and recurring payments before they drift.",
+        "3": "Handle shared spending, reimbursements, and settlements with less confusion."
+      },
+      "coverageTitle": "Covers the parts of money that usually get scattered",
+      "coverageDescription": "From daily spending to shared reimbursements, Smart Pocket keeps the important details connected and easy to review.",
+      "coverageTags": {
+        "accounts": "Accounts, transactions, and budgets",
+        "shared": "People, spaces, reimbursements, and settlements",
+        "capture": "Receipts, documents, text, and voice capture",
+        "languages": "Mobile, tablet, desktop, and multilingual support"
+      },
       "audiences": {
         "ordinaryPeople": "Ordinary people",
         "families": "Families",
@@ -93,38 +106,38 @@
       "rlsDescription": "Your data stays private to your account and is kept separate from every other user."
     },
     "features": {
-      "accountsTitle": "Know where your money goes",
-      "accountsDescription": "See accounts, balances, and day-to-day spending in one clear view instead of jumping between apps.",
-      "dashboardTitle": "Share expenses clearly",
-      "dashboardDescription": "Keep shared spending easy to follow so everyone knows what was paid, what is owed, and what needs attention.",
-      "budgetsTitle": "Plan budgets simply",
-      "budgetsDescription": "Set simple limits, follow progress visually, and spot overspending early.",
-      "exportsTitle": "Track receipts faster",
-      "exportsDescription": "Keep receipts, monthly summaries, and shareable reports together without extra busywork.",
-      "recurringTitle": "Manage subscriptions clearly",
-      "recurringDescription": "Stay ahead of recurring bills, subscriptions, rent, and salary entries in one routine.",
-      "securityTitle": "Handle multiple currencies",
-      "securityDescription": "Keep everyday money organized across currencies when you travel, freelance, or live internationally."
+      "accountsTitle": "Keep accounts and balances easy to follow",
+      "accountsDescription": "See cash, bank, cards, and wallets together so daily decisions start from a clear balance.",
+      "dashboardTitle": "Shared money without awkward guesswork",
+      "dashboardDescription": "Track people, reimbursements, settlements, and shared spaces so everyone can see who paid and what is still open.",
+      "budgetsTitle": "Budgets that stay practical",
+      "budgetsDescription": "Plan categories, notice overspending early, and keep everyday spending grounded without overcomplicating it.",
+      "exportsTitle": "Capture receipts and documents with context",
+      "exportsDescription": "Keep receipts, invoices, and supporting notes close to the transaction instead of losing them later.",
+      "recurringTitle": "Stay ahead of subscriptions and recurring payments",
+      "recurringDescription": "Know what is coming next, what renews soon, and what needs to be reviewed before the charge lands.",
+      "securityTitle": "Handle multi-currency life with less friction",
+      "securityDescription": "Track everyday money across currencies while keeping the original details readable and the final record clear."
     },
     "steps": {
-      "createTitle": "Create your account",
-      "createDescription": "Sign up with the authentication methods currently enabled for your platform.",
-      "accountsTitle": "Add your accounts",
-      "accountsDescription": "Add bank accounts, credit cards, cash, or any wallet type you want to track.",
-      "transactionsTitle": "Log transactions",
-      "transactionsDescription": "Record income, expenses, and transfers, and attach receipts when needed.",
-      "budgetsTitle": "Set budgets",
-      "budgetsDescription": "Create category budgets and watch your spending in real time.",
+      "createTitle": "Capture money your way",
+      "createDescription": "Type a quick note, speak naturally, or start from a receipt when writing everything out feels slow.",
+      "accountsTitle": "Keep accounts and activity together",
+      "accountsDescription": "Follow balances, transactions, and the accounts behind them without bouncing between screens.",
+      "transactionsTitle": "Make shared money easier to settle",
+      "transactionsDescription": "Track who paid, what should be reimbursed, and what still needs a follow-up across people and spaces.",
+      "budgetsTitle": "Stay ahead of budgets and recurring bills",
+      "budgetsDescription": "Spot upcoming payments, subscriptions, and budget pressure before they turn into surprises.",
       "reportsTitle": "Review reports",
       "reportsDescription": "Generate PDF or CSV reports for any period, then share or archive them."
     },
     "platform": {
-      "mobileTitle": "Mobile (iOS and Android)",
-      "mobileDescription": "Install from the browser without an app store.",
-      "desktopTitle": "Desktop (Windows, macOS, Linux)",
-      "desktopDescription": "Use the full experience in any modern browser.",
-      "tabletTitle": "Tablet and iPad",
-      "tabletDescription": "Responsive layouts adapt cleanly to every screen size.",
+      "mobileTitle": "Phone-first when life is moving",
+      "mobileDescription": "Log spending, upload receipts, and check what is due while you are out.",
+      "desktopTitle": "Desktop when you need more room",
+      "desktopDescription": "Review receipts, reports, shared money, and account history with a wider view.",
+      "tabletTitle": "Tablet for comfortable review",
+      "tabletDescription": "Use a balanced layout for household planning, approvals, and quick edits.",
       "pwaTitle": "Install as an app",
       "pwaDescription": "Add Smart Pocket to your home screen and keep it available offline with background sync."
     },
@@ -138,15 +151,15 @@
       "privacyTitle": "Your data stays yours",
       "privacyDescription": "Smart Pocket does not sell your financial data.",
       "label": "Security & Privacy",
-      "heading": "Why people can trust Smart Pocket",
-      "body": "Your money data stays private, sign-in stays protected, AI suggestions stay review-based, and you stay in control of what gets saved.",
+      "heading": "Why people trust Smart Pocket with daily money",
+      "body": "Privacy, review-before-save controls, and clear account ownership help you stay in charge even when AI prepares the details.",
       "readPrivacy": "Read our Privacy Policy",
-      "simplePrivacyTitle": "Private and separate",
-      "simplePrivacyDescription": "Your money data stays tied to your own account, not casually visible to other people.",
-      "simpleReviewTitle": "Review before save",
-      "simpleReviewDescription": "AI can help prepare details, but you confirm what should be saved.",
-      "simpleControlTitle": "You stay in control",
-      "simpleControlDescription": "If something looks wrong, you can review, correct, or contact support.",
+      "simplePrivacyTitle": "Private by default",
+      "simplePrivacyDescription": "Your money data stays tied to your own account, and shared workflows still keep ownership clear.",
+      "simpleReviewTitle": "Review before anything is saved",
+      "simpleReviewDescription": "AI prepares the details from text, voice, or receipts, but you confirm the final record.",
+      "simpleControlTitle": "Clear enough to correct quickly",
+      "simpleControlDescription": "If something looks off, you can review, adjust, or choose not to save it.",
       "readSecurity": "See Security & Trust"
     },
     "pricing": {
@@ -383,34 +396,40 @@
       "chartsDescription": "Income vs expense trends, spending by category, and budget performance are all interactive."
     },
     "ai": {
-      "badge": "AI that stays review-based",
-      "title": "Let AI help with the busy parts, then review before you save",
-      "description": "Smart Pocket can help you capture daily money activity in simple ways so you spend less time typing and more time understanding what happened.",
-      "panelTitle": "How AI helps",
-      "panelSubtitle": "Simple inputs, clear review",
-      "reviewBadge": "You confirm",
+      "badge": "AI help that stays under your control",
+      "title": "Type it, say it, or upload it. Smart Pocket prepares the details for review.",
+      "description": "Smart Pocket uses AI to turn everyday money inputs into a draft you can review before saving, so the flow stays fast without taking control away from you.",
+      "panelTitle": "AI review flow",
+      "panelSubtitle": "Input, prepare, review, save",
+      "reviewBadge": "Review first",
       "cardLabel": "Easy input",
-      "reviewNote": "Smart Pocket prepares the details for review, then you confirm what should be saved.",
+      "reviewNote": "The prepared draft stays editable. You can adjust amounts, accounts, categories, people, and notes before anything is saved.",
       "highlights": {
-        "type": "Type a transaction like a message",
-        "voice": "Speak a transaction by voice",
-        "receipts": "Upload a receipt and prepare details faster",
-        "review": "Review before saving"
+        "type": "Type a quick money note",
+        "voice": "Speak naturally on the go",
+        "receipts": "Upload a receipt or document",
+        "review": "Review before save"
       },
       "features": {
-        "1": "Type it like a message",
-        "2": "Speak it by voice",
-        "3": "Upload a receipt",
-        "4": "Review before saving"
+        "1": "Type it",
+        "2": "Speak it",
+        "3": "Upload it",
+        "4": "Review it"
+      },
+      "samples": {
+        "1": "Example: Paid 180 AED for groceries from my cash wallet.",
+        "2": "Example: Taxi to the airport, 42 dirhams, add it to travel.",
+        "3": "Example: Receipt, invoice, or bill with totals, tax, and merchant details.",
+        "4": "Example: Confirm the amount, currency, account, category, people, and notes."
       },
       "roadmap": {
-        "previewLabel": "Daily money help",
-        "cashFlowSignal": "AI-assisted, always reviewable",
+        "previewLabel": "AI draft",
+        "cashFlowSignal": "AI prepares. You stay in control.",
         "descriptions": {
-          "1": "Write what happened in plain words and let Smart Pocket prepare the details.",
-          "2": "Capture spending quickly when typing feels slow or inconvenient.",
-          "3": "Upload receipts, invoices, or bills and review the prepared transaction details.",
-          "4": "Nothing is saved automatically. You stay in charge of the final record."
+          "1": "Write what happened in plain language and let Smart Pocket prepare the key fields.",
+          "2": "Record the transaction by voice when your hands are busy or the moment would otherwise be lost.",
+          "3": "Upload a receipt, invoice, or bill and let Smart Pocket pull out the important details for review.",
+          "4": "Check the prepared draft, make any edits you want, and then decide what should be saved."
         }
       }
     },
@@ -584,12 +603,15 @@
       "homeLabel": "Home",
       "blogLabel": "Blog",
       "readTime": "{{count}} min read",
-      "readArticleLabel": "Read article"
+      "readArticleLabel": "Read article",
+      "fallbackTitle": "Smart Pocket article",
+      "fallbackExcerpt": "Read practical Smart Pocket guidance on receipts, budgets, subscriptions, and everyday money habits.",
+      "fallbackBadgeLabel": "Smart Pocket Blog"
     },
     "home": {
       "eyebrow": "Blog",
-      "title": "Useful guides for receipts, budgets, and everyday money habits",
-      "description": "Explore simple Smart Pocket articles that help you stay clear on spending, shared money, subscriptions, and daily routines.",
+      "title": "Fresh guides for clearer daily money habits",
+      "description": "Explore practical Smart Pocket articles on receipts, budgets, shared money, subscriptions, and calmer everyday money routines.",
       "viewAll": "View all blog posts"
     },
     "listing": {

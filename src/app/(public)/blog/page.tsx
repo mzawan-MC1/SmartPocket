@@ -146,6 +146,12 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
         emptyPublishedDescription={listing.emptyPublishedDescription || 'Check back soon.'}
         readTimeTemplate={common.readTime || '{{count}} min read'}
         readArticleLabel={common.readArticleLabel || 'Read article'}
+        fallbackTitle={common.fallbackTitle || 'Smart Pocket article'}
+        fallbackExcerpt={
+          common.fallbackExcerpt ||
+          'Read practical Smart Pocket guidance on receipts, budgets, subscriptions, and everyday money habits.'
+        }
+        fallbackBadgeLabel={common.fallbackBadgeLabel || 'Smart Pocket Blog'}
       />
 
       <section className="border-t border-white/10 bg-[linear-gradient(180deg,rgba(6,12,23,0.96),rgba(3,7,14,0.98))] py-20">

@@ -283,6 +283,12 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                     common.readTime?.replace('{{count}}', String(minutes)) || `${minutes} min read`
                   }
                   readArticleLabel={common.readArticleLabel || 'Read article'}
+                  fallbackTitle={common.fallbackTitle || 'Smart Pocket article'}
+                  fallbackExcerpt={
+                    common.fallbackExcerpt ||
+                    'Read practical Smart Pocket guidance on receipts, budgets, subscriptions, and everyday money habits.'
+                  }
+                  fallbackBadgeLabel={common.fallbackBadgeLabel || 'Smart Pocket Blog'}
                 />
               ))}
             </div>

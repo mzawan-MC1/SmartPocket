@@ -24,6 +24,9 @@ export default function BlogArchiveClient({
   emptyPublishedDescription,
   readTimeTemplate,
   readArticleLabel,
+  fallbackTitle,
+  fallbackExcerpt,
+  fallbackBadgeLabel,
 }: {
   posts: BlogCardData[];
   locale: string;
@@ -45,6 +48,9 @@ export default function BlogArchiveClient({
   emptyPublishedDescription: string;
   readTimeTemplate: string;
   readArticleLabel: string;
+  fallbackTitle: string;
+  fallbackExcerpt: string;
+  fallbackBadgeLabel: string;
 }) {
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState(initialCategory);
@@ -160,6 +166,9 @@ export default function BlogArchiveClient({
               locale={locale}
               readTimeLabel={renderReadTimeLabel}
               readArticleLabel={readArticleLabel}
+              fallbackTitle={fallbackTitle}
+              fallbackExcerpt={fallbackExcerpt}
+              fallbackBadgeLabel={fallbackBadgeLabel}
             />
           ))}
         </div>

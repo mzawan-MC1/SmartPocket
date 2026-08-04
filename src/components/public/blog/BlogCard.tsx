@@ -29,13 +29,13 @@ function formatDate(value?: string | null, locale = 'en') {
   }
 }
 
-function getSafeExcerpt(value: string) {
+function getSafeExcerpt(value: string, fallbackExcerpt: string) {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (normalized) {
     return normalized;
   }
 
-  return 'Read the latest Smart Pocket guide on budgeting, receipts, and everyday money habits.';
+  return fallbackExcerpt;
 }
 
 export default function BlogCard({
@@ -44,17 +44,24 @@ export default function BlogCard({
   href,
   readTimeLabel,
   readArticleLabel,
+  fallbackTitle,
+  fallbackExcerpt,
+  fallbackBadgeLabel,
 }: {
   post: BlogCardData;
   locale: string;
   href?: string;
   readTimeLabel: (minutes: number) => string;
   readArticleLabel: string;
+  fallbackTitle: string;
+  fallbackExcerpt: string;
+  fallbackBadgeLabel: string;
 }) {
   const linkHref = href || `/blog/${post.slug}`;
   const publishedLabel = formatDate(post.publishedAt, locale);
-  const safeTitle = typeof post.title === 'string' && post.title.trim() ? post.title.trim() : 'Untitled post';
-  const safeExcerpt = getSafeExcerpt(post.excerpt);
+  const safeTitle =
+    typeof post.title === 'string' && post.title.trim() ? post.title.trim() : fallbackTitle;
+  const safeExcerpt = getSafeExcerpt(post.excerpt, fallbackExcerpt);
   const safeTags = Array.isArray(post.tags)
     ? post.tags.map((tag) => (typeof tag === 'string' ? tag.trim() : '')).filter(Boolean)
     : [];
@@ -72,7 +79,7 @@ export default function BlogCard({
       ) : (
         <div className="flex aspect-[16/9] w-full items-end bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_45%),linear-gradient(135deg,#0b1324,#09101d_48%,#101a2f)] p-5">
           <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-700 uppercase tracking-[0.18em] text-cyan-100">
-            Smart Pocket Blog
+            {fallbackBadgeLabel}
           </div>
         </div>
       )}
