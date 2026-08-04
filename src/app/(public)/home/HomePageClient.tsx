@@ -89,12 +89,12 @@ function FeatureCard({
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 via-sky-50 to-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <Icon size={20} className="text-cyan-700" />
         </div>
-        <div className={`w-full max-w-[180px] ${visualClassName}`}>{visual}</div>
+        <div className={`w-full max-w-[136px] ${visualClassName}`}>{visual}</div>
       </div>
-      <h3 className="mt-5 text-lg font-800 tracking-tight text-slate-950 sm:text-xl">
+      <h3 className="mt-4 text-lg font-800 tracking-tight text-slate-950 sm:text-xl">
         {title}
       </h3>
-      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{description}</p>
     </article>
   );
 }
@@ -228,33 +228,6 @@ function BudgetVisual() {
   );
 }
 
-function ReportsVisual() {
-  const { t } = useTranslation('public');
-
-  return (
-    <div className="flex gap-3">
-      <div className="flex-1 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-xs font-800 text-rose-700">
-          {t('home.homeVisuals.reports.pdf')}
-        </div>
-        <div className="mt-3 space-y-2">
-          <div className="h-2 rounded-full bg-slate-200" />
-          <div className="h-2 w-4/5 rounded-full bg-slate-200" />
-        </div>
-      </div>
-      <div className="flex-1 rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-xs font-800 text-emerald-700">
-          {t('home.homeVisuals.reports.csv')}
-        </div>
-        <div className="mt-3 space-y-2">
-          <div className="h-2 rounded-full bg-slate-200" />
-          <div className="h-2 w-3/5 rounded-full bg-slate-200" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RecurringVisual() {
   const { t } = useTranslation('public');
 
@@ -277,31 +250,6 @@ function RecurringVisual() {
         </div>
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100">
           <RefreshCw size={18} className="text-cyan-700" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SecurityVisual() {
-  const { t } = useTranslation('public');
-
-  return (
-    <div className="rounded-[1.2rem] border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center gap-3">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 to-cyan-100">
-          <Shield size={26} className="text-emerald-700" />
-        </div>
-        <div className="flex-1 rounded-xl border border-slate-200 bg-white p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-700 uppercase tracking-[0.16em] text-slate-500">{t('home.homeVisuals.security.vault')}</span>
-            <Lock size={12} className="text-slate-500" />
-          </div>
-          <div className="mt-3 flex gap-1.5">
-            <span className="h-8 flex-1 rounded-lg bg-slate-200" />
-            <span className="h-8 flex-1 rounded-lg bg-cyan-200" />
-            <span className="h-8 flex-1 rounded-lg bg-slate-200" />
-          </div>
         </div>
       </div>
     </div>
@@ -686,7 +634,7 @@ export default function HomePage({
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="mt-10 hidden xl:block">
             <div className="max-w-2xl">
               <p className="text-xs font-800 uppercase tracking-[0.2em] text-cyan-600">
                 {t('home.sections.featuresTitle')}
@@ -695,49 +643,34 @@ export default function HomePage({
                 {t('home.sections.featuresDescription')}
               </p>
             </div>
-          </div>
-
-          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-12">
-            <FeatureCard
-              icon={Wallet}
-              title={t('home.features.accountsTitle')}
-              description={t('home.features.accountsDescription')}
-              visual={<MultiAccountVisual />}
-              visualClassName="max-w-none"
-              className="lg:col-span-4 lg:row-span-2"
-            />
-            <FeatureCard
-              icon={BarChart3}
-              title={t('home.features.dashboardTitle')}
-              description={t('home.features.dashboardDescription')}
-              visual={<DashboardMiniVisual />}
-              className="lg:col-span-4"
-            />
-            <FeatureCard
-              icon={PieChart}
-              title={t('home.features.budgetsTitle')}
-              description={t('home.features.budgetsDescription')}
-              visual={<BudgetVisual />}
-              className="lg:col-span-4"
-            />
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:col-span-8 lg:grid-cols-3">
+            <div className="mt-6 grid gap-5 xl:grid-cols-4">
+              <FeatureCard
+                icon={Wallet}
+                title={t('home.features.accountsTitle')}
+                description={t('home.features.accountsDescription')}
+                visual={<MultiAccountVisual />}
+                visualClassName="max-w-[132px]"
+              />
+              <FeatureCard
+                icon={BarChart3}
+                title={t('home.features.dashboardTitle')}
+                description={t('home.features.dashboardDescription')}
+                visual={<DashboardMiniVisual />}
+                visualClassName="max-w-[122px]"
+              />
+              <FeatureCard
+                icon={PieChart}
+                title={t('home.features.budgetsTitle')}
+                description={t('home.features.budgetsDescription')}
+                visual={<BudgetVisual />}
+                visualClassName="max-w-[120px]"
+              />
               <FeatureCard
                 icon={FileText}
                 title={t('home.features.exportsTitle')}
                 description={t('home.features.exportsDescription')}
-                visual={<ReportsVisual />}
-              />
-              <FeatureCard
-                icon={RefreshCw}
-                title={t('home.features.recurringTitle')}
-                description={t('home.features.recurringDescription')}
                 visual={<RecurringVisual />}
-              />
-              <FeatureCard
-                icon={Shield}
-                title={t('home.features.securityTitle')}
-                description={t('home.features.securityDescription')}
-                visual={<SecurityVisual />}
+                visualClassName="max-w-[118px]"
               />
             </div>
           </div>
