@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
+import OAuthProviderButton from './OAuthProviderButton';
 import { createClient } from '@/lib/supabase/client';
 import { trackMarketingEvent, trackSignupClick } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
@@ -220,26 +221,29 @@ export default function LoginForm({
       {hasOauthProviders ? (
         <div className="space-y-2.5 mb-6">
           {showGoogle ? (
-            <button
-              type="button"
-              className="btn-secondary w-full justify-center py-2.5"
+            <OAuthProviderButton
+              label={t('signIn.google', { ns: 'auth' })}
               onClick={handleGoogleSignIn}
               disabled={isGoogleLoading}
-            >
-              {isGoogleLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-              {t('signIn.google', { ns: 'auth' })}
-            </button>
+              isLoading={isGoogleLoading}
+              icon={
+                <img
+                  src="/assets/icons/google-g-logo.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px]"
+                />
+              }
+            />
           ) : null}
           {showApple ? (
-            <button
-              type="button"
-              className="btn-secondary w-full justify-center py-2.5"
+            <OAuthProviderButton
+              label={t('signIn.apple', { ns: 'auth' })}
               onClick={handleAppleSignIn}
               disabled={isAppleLoading}
-            >
-              {isAppleLoading ? <Loader2 size={16} className="animate-spin" /> : <Apple size={17} />}
-              {t('signIn.apple', { ns: 'auth' })}
-            </button>
+              isLoading={isAppleLoading}
+              icon={<Apple size={17} />}
+            />
           ) : null}
         </div>
       ) : null}

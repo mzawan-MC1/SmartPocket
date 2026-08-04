@@ -5,6 +5,7 @@ import { Eye, EyeOff, Loader2, Globe, Apple, CheckCircle2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import OAuthProviderButton from './OAuthProviderButton';
 import { useAuth } from '@/contexts/AuthContext';
 import { trackAccountCreated, trackMarketingEvent } from '@/lib/analytics';
 import { getSafeNextPath } from '@/lib/auth/redirects';
@@ -234,26 +235,29 @@ export default function SignUpForm({
       {hasOauthProviders ? (
         <div className="space-y-2.5 mb-6">
           {showGoogle ? (
-            <button
-              type="button"
-              className="btn-secondary w-full justify-center py-2.5"
+            <OAuthProviderButton
+              label={t('signIn.google', { ns: 'auth' })}
               onClick={handleGoogleSignUp}
               disabled={isGoogleLoading}
-            >
-              {isGoogleLoading ? <Loader2 size={16} className="animate-spin" /> : <Globe size={17} />}
-              {t('signUp.google', { ns: 'auth' })}
-            </button>
+              isLoading={isGoogleLoading}
+              icon={
+                <img
+                  src="/assets/icons/google-g-logo.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-[18px] w-[18px]"
+                />
+              }
+            />
           ) : null}
           {showApple ? (
-            <button
-              type="button"
-              className="btn-secondary w-full justify-center py-2.5"
+            <OAuthProviderButton
+              label={t('signUp.apple', { ns: 'auth' })}
               onClick={handleAppleSignUp}
               disabled={isAppleLoading}
-            >
-              {isAppleLoading ? <Loader2 size={16} className="animate-spin" /> : <Apple size={17} />}
-              {t('signUp.apple', { ns: 'auth' })}
-            </button>
+              isLoading={isAppleLoading}
+              icon={<Apple size={17} />}
+            />
           ) : null}
         </div>
       ) : null}

@@ -82,19 +82,19 @@ function FeatureCard({
 }) {
   return (
     <article
-      className={`group relative h-full overflow-hidden rounded-[1.75rem] border border-slate-200/90 bg-[linear-gradient(180deg,#ffffff,rgba(248,250,252,0.92))] p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/80 hover:shadow-[0_22px_48px_rgba(15,23,42,0.1)] motion-reduce:transform-none motion-reduce:transition-none ${className}`}
+      className={`group relative flex h-full flex-col rounded-[1.75rem] border border-slate-200/90 bg-[linear-gradient(180deg,#ffffff,rgba(248,250,252,0.92))] p-5 shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200/80 hover:shadow-[0_22px_48px_rgba(15,23,42,0.1)] motion-reduce:transform-none motion-reduce:transition-none ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200 to-transparent" />
       <div className="flex items-start justify-between gap-4">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-100 via-sky-50 to-white shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
           <Icon size={20} className="text-cyan-700" />
         </div>
-        <div className={`w-full max-w-[136px] ${visualClassName}`}>{visual}</div>
+        <div className={`shrink-0 ${visualClassName}`}>{visual}</div>
       </div>
       <h3 className="mt-4 text-lg font-800 tracking-tight text-slate-950 sm:text-xl">
         {title}
       </h3>
-      <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{description}</p>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
     </article>
   );
 }
@@ -643,34 +643,81 @@ export default function HomePage({
                 {t('home.sections.featuresDescription')}
               </p>
             </div>
-            <div className="mt-6 grid gap-5 xl:grid-cols-4">
+            <div className="mt-6 grid gap-5 xl:auto-rows-fr xl:grid-cols-4">
               <FeatureCard
                 icon={Wallet}
                 title={t('home.features.accountsTitle')}
                 description={t('home.features.accountsDescription')}
-                visual={<MultiAccountVisual />}
-                visualClassName="max-w-[132px]"
+                visual={
+                  <div className="rounded-[1.1rem] border border-cyan-100 bg-cyan-50/80 p-3 shadow-[0_10px_24px_rgba(34,211,238,0.08)]">
+                    <div className="flex items-end gap-1.5">
+                      <span className="h-9 w-7 rounded-t-[0.8rem] bg-cyan-200" />
+                      <span className="h-12 w-7 rounded-t-[0.8rem] bg-cyan-300" />
+                      <span className="h-8 w-7 rounded-t-[0.8rem] bg-sky-200" />
+                    </div>
+                    <div className="mt-2.5 h-2 rounded-full bg-white">
+                      <div className="h-2 w-[68%] rounded-full bg-gradient-to-r from-cyan-400 to-sky-400" />
+                    </div>
+                  </div>
+                }
+                visualClassName="w-[96px]"
               />
               <FeatureCard
                 icon={BarChart3}
                 title={t('home.features.dashboardTitle')}
                 description={t('home.features.dashboardDescription')}
-                visual={<DashboardMiniVisual />}
-                visualClassName="max-w-[122px]"
+                visual={
+                  <div className="rounded-[1.1rem] border border-violet-100 bg-violet-50/80 p-3 shadow-[0_10px_24px_rgba(139,92,246,0.08)]">
+                    <div className="flex items-center gap-2">
+                      <span className="h-7 w-7 rounded-full bg-violet-200" />
+                      <span className="h-7 w-7 rounded-full bg-fuchsia-200" />
+                      <span className="h-7 w-7 rounded-full bg-sky-200" />
+                    </div>
+                    <div className="mt-2.5 flex items-center gap-1.5">
+                      <span className="h-2 w-10 rounded-full bg-violet-300" />
+                      <span className="h-2 w-6 rounded-full bg-fuchsia-200" />
+                      <span className="h-2 w-8 rounded-full bg-sky-200" />
+                    </div>
+                  </div>
+                }
+                visualClassName="w-[96px]"
               />
               <FeatureCard
                 icon={PieChart}
                 title={t('home.features.budgetsTitle')}
                 description={t('home.features.budgetsDescription')}
-                visual={<BudgetVisual />}
-                visualClassName="max-w-[120px]"
+                visual={
+                  <div className="rounded-[1.1rem] border border-emerald-100 bg-emerald-50/80 p-3 shadow-[0_10px_24px_rgba(16,185,129,0.08)]">
+                    <div className="flex items-center gap-3">
+                      <div className="relative h-10 w-10 rounded-full border-[5px] border-emerald-200 border-t-emerald-400" />
+                      <div className="flex-1 space-y-1.5">
+                        <span className="block h-2 rounded-full bg-emerald-200" />
+                        <span className="block h-2 w-4/5 rounded-full bg-emerald-300" />
+                      </div>
+                    </div>
+                  </div>
+                }
+                visualClassName="w-[98px]"
               />
               <FeatureCard
                 icon={FileText}
                 title={t('home.features.exportsTitle')}
                 description={t('home.features.exportsDescription')}
-                visual={<RecurringVisual />}
-                visualClassName="max-w-[118px]"
+                visual={
+                  <div className="rounded-[1.1rem] border border-amber-100 bg-amber-50/80 p-3 shadow-[0_10px_24px_rgba(245,158,11,0.08)]">
+                    <div className="space-y-1.5 rounded-[0.9rem] border border-white/80 bg-white/90 p-2.5">
+                      <span className="block h-2 w-8 rounded-full bg-amber-200" />
+                      <span className="block h-2 w-12 rounded-full bg-slate-200" />
+                      <span className="block h-2 w-9 rounded-full bg-slate-200" />
+                    </div>
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="h-2 w-5 rounded-full bg-amber-300" />
+                      <span className="h-2 w-5 rounded-full bg-orange-200" />
+                      <span className="h-2 w-5 rounded-full bg-amber-200" />
+                    </div>
+                  </div>
+                }
+                visualClassName="w-[96px]"
               />
             </div>
           </div>
