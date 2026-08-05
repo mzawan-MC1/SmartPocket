@@ -82,7 +82,7 @@ export default function DashboardCharts({
             <h2 className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('dashboardCharts.title')}</h2>
             <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[13.5px] leading-6' : 'text-[13px] leading-5'}`}>{description}</p>
           </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(11.5rem,auto)] sm:items-center lg:w-[27rem]">
+          <div className="flex min-w-0 flex-wrap items-stretch gap-2 lg:max-w-[34rem] lg:justify-end">
             <Tabs
               items={[
                 { id: 'trend', label: t('dashboardCharts.tabs.trend') },
@@ -90,9 +90,9 @@ export default function DashboardCharts({
               ]}
               activeId={activeTab}
               onChange={setActiveTab}
-              className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-[2.1rem] [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-2.5 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-nowrap"
+              className="!flex !w-full !min-w-0 !flex-wrap !overflow-visible sm:!w-auto sm:!min-w-[20rem] sm:!flex-1 lg:!min-w-[22rem] [&_.tab-button]:min-h-[2.35rem] [&_.tab-button]:min-w-0 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-4 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-normal [&_.tab-button]:text-center"
             />
-            <div className={`inline-flex min-w-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem] ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+            <div className={`inline-flex min-w-0 flex-none items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem] ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
               {activePeriod.label}
             </div>
           </div>
