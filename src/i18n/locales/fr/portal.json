@@ -3094,11 +3094,13 @@
       },
       "managedPeople": {
         "title": "Gerez l'argent avec les personnes qui comptent",
-        "description": "Suivez les depenses partagees, les remboursements et les reglements au meme endroit."
+        "description": "Suivez les depenses partagees, les remboursements et les reglements au meme endroit.",
+        "unavailableDescription": "Personnes gerees est disponible dans l'offre Famille."
       },
       "sharedSpaces": {
         "title": "Organisez les finances dans des espaces partages",
-        "description": "Creez des espaces distincts pour le foyer, la famille ou une activite financiere partagee."
+        "description": "Creez des espaces distincts pour le foyer, la famille ou une activite financiere partagee.",
+        "unavailableDescription": "Espaces partages est disponible dans l'offre Famille."
       },
       "standardReports": {
         "title": "Comprenez ou va votre argent",

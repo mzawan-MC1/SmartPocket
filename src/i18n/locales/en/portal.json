@@ -3462,11 +3462,13 @@
       },
       "managedPeople": {
         "title": "Manage money with the people who matter",
-        "description": "Track shared expenses, reimbursements and settlements in one place."
+        "description": "Track shared expenses, reimbursements and settlements in one place.",
+        "unavailableDescription": "Managed People is available on the Family plan."
       },
       "sharedSpaces": {
         "title": "Organise finances in shared spaces",
-        "description": "Create separate spaces for household, family or shared financial activity."
+        "description": "Create separate spaces for household, family or shared financial activity.",
+        "unavailableDescription": "Shared Spaces is available on the Family plan."
       },
       "standardReports": {
         "title": "Understand where your money goes",

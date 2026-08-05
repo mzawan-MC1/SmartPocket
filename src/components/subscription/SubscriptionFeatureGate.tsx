@@ -60,6 +60,15 @@ function planSupportsFeature(plan: PublicSubscriptionPlan, feature: Subscription
   }
 }
 
+function planTierRank(planCode: PublicSubscriptionPlan['planCode']): number {
+  switch (planCode) {
+    case 'personal': return 0;
+    case 'family': return 1;
+    case 'free_trial': return 98;
+    default: return 99;
+  }
+}
+
 function getRecommendedPlanCode(plans: PublicSubscriptionPlan[], feature: SubscriptionFeatureCode): PlanCode | null {
   const rankedPlans = plans
     .filter((plan) => plan.isActive && plan.planCode !== 'free_trial' && planSupportsFeature(plan, feature))
@@ -70,7 +79,8 @@ function getRecommendedPlanCode(plans: PublicSubscriptionPlan[], feature: Subscr
         return 2;
       };
 
-      return left.displayOrder - right.displayOrder
+      return planTierRank(left.planCode) - planTierRank(right.planCode)
+        || left.displayOrder - right.displayOrder
         || intervalRank(left.billingInterval) - intervalRank(right.billingInterval)
         || left.priceAmount - right.priceAmount;
     });
@@ -180,14 +190,22 @@ export default function SubscriptionFeatureGate({
         <p className="mt-1 text-sm leading-6 text-muted-foreground">
           {isTrialExpired
             ? t('featureGate.expiredDescription', { ns: 'portal' })
-            : t('featureGate.unavailableDescription', {
+            : t(`featureGate.featureCopy.${featureKey}.unavailableDescription`, {
                 ns: 'portal',
-                feature: t(`featureGate.features.${featureKey}`, { ns: 'portal' }),
+                defaultValue: t('featureGate.unavailableDescription', {
+                  ns: 'portal',
+                  feature: t(`featureGate.features.${featureKey}`, { ns: 'portal' }),
+                }),
               })}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-3 px-6 pb-6">
-        <Link href="/settings/subscription" className="btn-primary">
+        <Link
+          href={recommendedPlanCode
+            ? `/settings/subscription?plan=${recommendedPlanCode}`
+            : '/settings/subscription'}
+          className="btn-primary"
+        >
           {t('featureGate.upgradeAction', { ns: 'portal' })}
         </Link>
         <Link href="/dashboard" className="btn-secondary">
