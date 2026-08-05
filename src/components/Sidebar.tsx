@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
-import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import { getSettingsAssetUrl, shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
@@ -43,9 +43,19 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const { user, profile, signOut } = useAuth();
   const router = useRouter();
   const { pathname, isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
-  const { branding } = usePlatformSettings();
+  const { branding, updatedAt } = usePlatformSettings();
   const { summary } = useSubscriptionSummary();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
+  const collapsedLogoSrc = React.useMemo(() => {
+    const primaryLogoUrl = branding.logoUrl.trim();
+    const compactLogoUrl = branding.compactLogoUrl.trim();
+
+    if (!compactLogoUrl || compactLogoUrl === primaryLogoUrl) {
+      return undefined;
+    }
+
+    return getSettingsAssetUrl(compactLogoUrl, updatedAt);
+  }, [branding.compactLogoUrl, branding.logoUrl, updatedAt]);
   const isReportsRoute = pathname === '/reports' || pathname.startsWith('/reports/');
   const [reportsExpanded, setReportsExpanded] = React.useState(isReportsRoute);
   const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
@@ -334,9 +344,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             }`}
           >
             <AppLogo
-              width={collapsed ? 28 : isMobileDrawer ? 160 : 146}
-              height={isMobileDrawer ? 36 : 32}
+              src={collapsed ? collapsedLogoSrc : undefined}
+              width={collapsed ? (isMobileDrawer ? 24 : 22) : isMobileDrawer ? 160 : 146}
+              height={collapsed ? (isMobileDrawer ? 24 : 22) : isMobileDrawer ? 36 : 32}
+              alt={collapsed ? `${branding.appName} mark` : `${branding.appName} logo`}
               className={collapsed ? 'justify-center' : 'w-full justify-start'}
+              imageClassName={collapsed ? 'h-full w-full max-w-full object-contain' : ''}
             />
           </div>
           {!collapsed && showBrandText && (
