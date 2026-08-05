@@ -161,6 +161,7 @@
       "support": "Support",
       "faqs": "FAQs"
     },
+    "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
     "accountTitle": "Account",
@@ -186,6 +187,7 @@
     "reports": "Reports",
     "accounts": "Accounts",
     "people": "People",
+    "spaces": "Spaces",
     "reimbursements": "Reimbursements",
     "settlements": "Settlements",
     "aiHistory": "AI History",
@@ -3426,8 +3428,23 @@
   "featureGate": {
     "title": "Feature unavailable",
     "description": "{{feature}} is not available on your current subscription.",
-    "upgradeAction": "Upgrade plan",
+    "unavailableTitle": "This feature is not included in your current plan.",
+    "unavailableDescription": "{{feature}} is available on higher plans.",
+    "expiredTitle": "Your free trial access to this feature has expired.",
+    "expiredDescription": "Your existing data remains in Smart Pocket. Upgrade to continue using this feature.",
+    "recommendedPlan": "Recommended: {{plan}}",
+    "upgradeAction": "Compare plans",
     "backAction": "Back to dashboard",
+    "badges": {
+      "locked": "Locked",
+      "upgrade": "Upgrade",
+      "family": "Family",
+      "expired": "Trial expired"
+    },
+    "planCodes": {
+      "personal": "Personal",
+      "family": "Family"
+    },
     "features": {
       "textAi": "Text AI",
       "voiceAi": "Voice AI",
@@ -3437,6 +3454,24 @@
       "sharedSpaces": "Shared Spaces",
       "standardReports": "Standard Reports",
       "familyReports": "Family Reports"
+    },
+    "featureCopy": {
+      "aiHistory": {
+        "title": "Review your Smart AI activity",
+        "description": "Access and revisit your previous AI-generated entries and results."
+      },
+      "managedPeople": {
+        "title": "Manage money with the people who matter",
+        "description": "Track shared expenses, reimbursements and settlements in one place."
+      },
+      "sharedSpaces": {
+        "title": "Organise finances in shared spaces",
+        "description": "Create separate spaces for household, family or shared financial activity."
+      },
+      "standardReports": {
+        "title": "Understand where your money goes",
+        "description": "Unlock detailed financial reports and insights."
+      }
     }
   },
   "subscriptionTopUps": {

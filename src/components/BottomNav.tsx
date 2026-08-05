@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X, ShoppingBag, CreditCard, LifeBuoy, CircleHelp } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, Home, Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { useQuickActions, type QuickActionId } from '@/components/quick-actions/QuickActionsContext';
@@ -22,7 +22,13 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   const canUseVoiceAi = hasSubscriptionFeature(summary, 'voice_ai');
   const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
   const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
+  const canUseSharedSpaces = hasSubscriptionFeature(summary, 'shared_spaces');
   const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
+  const getRestrictionBadgeLabel = (badge: 'upgrade' | 'family') => (
+    badge === 'family'
+      ? t('featureGate.badges.family', { ns: 'portal' })
+      : t('featureGate.badges.upgrade', { ns: 'portal' })
+  );
 
   const navItems = [
     { id: 'bottom-dashboard', label: t('nav.dashboard', { ns: 'common' }), icon: LayoutDashboard, href: '/dashboard' },
@@ -73,23 +79,51 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
     })),
   ];
 
-  const moreItems = [
+  const moreItems: Array<{
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>;
+    href: string;
+    restrictionBadge?: 'upgrade' | 'family';
+  }> = [
     { id: 'more-transfers', label: t('bottomNav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
     { id: 'more-recurring', label: t('bottomNav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
     { id: 'more-personal-subscriptions', label: t('bottomNav.personalSubscriptions', { ns: 'portal' }), icon: CreditCard, href: '/personal-subscriptions' },
     { id: 'more-categories', label: t('bottomNav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
+    {
+      id: 'more-reports',
+      label: t('bottomNav.reports', { ns: 'portal' }),
+      icon: BarChart3,
+      href: '/reports',
+      restrictionBadge: canUseStandardReports ? undefined : 'upgrade',
+    },
     ...(canUseStandardReports
-      ? [
-          { id: 'more-reports', label: t('bottomNav.reports', { ns: 'portal' }), icon: BarChart3, href: '/reports' },
-          { id: 'more-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' },
-        ]
+      ? [{ id: 'more-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' }]
       : []),
     { id: 'more-accounts', label: t('bottomNav.accounts', { ns: 'portal' }), icon: Wallet, href: '/financial-accounts' },
+    {
+      id: 'more-ai-history',
+      label: t('bottomNav.aiHistory', { ns: 'portal' }),
+      icon: Sparkles,
+      href: '/ai-history',
+      restrictionBadge: canUseAiHistory ? undefined : 'upgrade',
+    },
+    {
+      id: 'more-people',
+      label: t('bottomNav.people', { ns: 'portal' }),
+      icon: Users,
+      href: '/people',
+      restrictionBadge: canUseManagedPeople ? undefined : 'family',
+    },
+    {
+      id: 'more-spaces',
+      label: t('bottomNav.spaces', { ns: 'portal' }),
+      icon: Home,
+      href: '/spaces',
+      restrictionBadge: canUseSharedSpaces ? undefined : 'family',
+    },
     { id: 'more-faqs', label: t('bottomNav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
     { id: 'more-support', label: t('bottomNav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
-    ...(canUseManagedPeople
-      ? [{ id: 'more-people', label: t('bottomNav.people', { ns: 'portal' }), icon: Users, href: '/people' }]
-      : []),
     { id: 'more-reimbursements', label: t('bottomNav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
     { id: 'more-settlements', label: t('bottomNav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
   ];
@@ -192,34 +226,22 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
                     aria-busy={pending ? 'true' : undefined}
                   >
                     {pending ? <Loader2 size={16} className="animate-spin text-accent" /> : <ItemIcon size={16} className={active ? 'text-accent' : 'text-muted-foreground'} />}
-                    <span className="truncate">{item.label}</span>
+                    <span className="flex min-w-0 flex-1 items-center gap-2">
+                      <span className="truncate">{item.label}</span>
+                      {item.restrictionBadge ? (
+                        <span className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.12em] ${
+                          item.restrictionBadge === 'family'
+                            ? 'border-violet-200 bg-violet-50 text-violet-700'
+                            : 'border-border/80 bg-white/80 text-muted-foreground'
+                        }`}>
+                          <Lock size={10} />
+                          {getRestrictionBadgeLabel(item.restrictionBadge)}
+                        </span>
+                      ) : null}
+                    </span>
                   </Link>
                 );
               })}
-              {canUseAiHistory ? (
-                <div className="mt-2 border-t border-border pt-2">
-                  <Link
-                    href="/ai-history"
-                    className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-500 transition-colors ${
-                      isRouteActive('/ai-history') ? 'bg-accent/8 text-accent' : 'text-foreground hover:bg-muted'
-                    }`}
-                    onClick={(event) => {
-                      const shouldNavigate = handleNavigationIntent('/ai-history', event);
-                      if (shouldNavigate) {
-                        setMoreOpen(false);
-                      }
-                    }}
-                    aria-current={isRouteActive('/ai-history') ? 'page' : undefined}
-                    aria-busy={isRoutePending('/ai-history') ? 'true' : undefined}
-                  >
-                    {isRoutePending('/ai-history')
-                      ? <Loader2 size={16} className="animate-spin text-accent" />
-                      : <Sparkles size={16} className="text-accent" />
-                    }
-                    {t('bottomNav.aiHistory', { ns: 'portal' })}
-                  </Link>
-                </div>
-              ) : null}
             </div>
           </div>
         </div>

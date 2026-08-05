@@ -2,7 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X, Lock } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,7 @@ type NavItem = {
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   href: string;
+  restrictionBadge?: 'upgrade' | 'family';
 };
 
 type SectionHeading = {
@@ -62,6 +63,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
   const canUseSharedSpaces = hasSubscriptionFeature(summary, 'shared_spaces');
   const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
+  const getRestrictionBadgeLabel = React.useCallback((badge: 'upgrade' | 'family') => (
+    badge === 'family'
+      ? t('featureGate.badges.family', { ns: 'portal' })
+      : t('featureGate.badges.upgrade', { ns: 'portal' })
+  ), [t]);
 
   React.useEffect(() => {
     if (isReportsRoute) {
@@ -94,12 +100,20 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       items: [
         { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
         { id: 'nav-settlements', label: t('sidebar.nav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
-        ...(canUseManagedPeople
-          ? [{ id: 'nav-people', label: t('sidebar.nav.people', { ns: 'portal' }), icon: Users, href: '/people' }]
-          : []),
-        ...(canUseSharedSpaces
-          ? [{ id: 'nav-spaces', label: t('sidebar.nav.spaces', { ns: 'portal' }), icon: Home, href: '/spaces' }]
-          : []),
+        {
+          id: 'nav-people',
+          label: t('sidebar.nav.people', { ns: 'portal' }),
+          icon: Users,
+          href: '/people',
+          restrictionBadge: canUseManagedPeople ? undefined : ('family' as const),
+        },
+        {
+          id: 'nav-spaces',
+          label: t('sidebar.nav.spaces', { ns: 'portal' }),
+          icon: Home,
+          href: '/spaces',
+          restrictionBadge: canUseSharedSpaces ? undefined : ('family' as const),
+        },
       ],
     },
     {
@@ -108,9 +122,13 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         icon: BarChart3,
       },
       items: [
-        ...(canUseAiHistory
-          ? [{ id: 'nav-ai-history', label: t('sidebar.nav.aiHistory', { ns: 'portal' }), icon: History, href: '/ai-history' }]
-          : []),
+        {
+          id: 'nav-ai-history',
+          label: t('sidebar.nav.aiHistory', { ns: 'portal' }),
+          icon: History,
+          href: '/ai-history',
+          restrictionBadge: canUseAiHistory ? undefined : ('upgrade' as const),
+        },
       ],
     },
     {
@@ -163,6 +181,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     const Icon = item.icon;
     const active = typeof activeOverride === 'boolean' ? activeOverride : isRouteActive(item.href);
     const pending = isRoutePending(item.href);
+    const restrictionBadgeLabel = item.restrictionBadge ? getRestrictionBadgeLabel(item.restrictionBadge) : null;
+    const tooltipLabel = restrictionBadgeLabel
+      ? t('sidebar.lockedTooltip', { ns: 'portal', label: item.label, restriction: restrictionBadgeLabel })
+      : item.label;
 
     return (
       <li key={item.id}>
@@ -177,11 +199,13 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           className={`group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
             active
               ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
-              : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
+              : item.restrictionBadge
+                ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
+                : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
           } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'} ${compact ? 'px-3 py-2.5' : ''}`}
           aria-current={active ? 'page' : undefined}
           aria-busy={pending ? 'true' : undefined}
-          title={collapsed ? item.label : undefined}
+          title={collapsed ? tooltipLabel : undefined}
         >
           <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
             active ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
@@ -191,15 +215,30 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           {!collapsed && (
             <span className="flex min-w-0 flex-1 items-center gap-2">
               <span className="truncate">{item.label}</span>
+              {restrictionBadgeLabel ? (
+                <span className={`inline-flex flex-shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.12em] ${
+                  item.restrictionBadge === 'family'
+                    ? 'border-violet-200 bg-violet-50 text-violet-700'
+                    : 'border-border/80 bg-white/80 text-muted-foreground'
+                }`}>
+                  <Lock size={10} />
+                  {restrictionBadgeLabel}
+                </span>
+              ) : null}
               {pending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
             </span>
           )}
           {collapsed && pending ? (
             <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
           ) : null}
+          {collapsed && restrictionBadgeLabel ? (
+            <span className="absolute end-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90">
+              <Lock size={9} />
+            </span>
+          ) : null}
           {collapsed && (
             <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>
-              {item.label}
+              {tooltipLabel}
             </span>
           )}
         </Link>
@@ -238,14 +277,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   };
 
   const renderReportsSection = () => {
-    if (!canUseStandardReports) {
-      return null;
-    }
-
     const parentActive = isRouteActive('/reports');
     const parentPending = isRoutePending('/reports');
     const ReportsIcon = BarChart3;
     const shouldShowSubmenu = !collapsed;
+    const reportsRestrictionBadge = canUseStandardReports ? null : getRestrictionBadgeLabel('upgrade');
 
     return (
       <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
@@ -254,7 +290,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           <button
             type="button"
             onClick={() => {
-              if (!shouldShowSubmenu) {
+              if (!shouldShowSubmenu || !canUseStandardReports) {
                 const shouldNavigate = handleNavigationIntent('/reports');
                 if (shouldNavigate) {
                   onNavigateItem?.();
@@ -268,12 +304,18 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             className={`group relative flex w-full items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
               parentActive
                 ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
-                : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
+                : !canUseStandardReports
+                  ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
+                  : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
             } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'}`}
             aria-current={parentActive ? 'page' : undefined}
             aria-busy={parentPending ? 'true' : undefined}
             aria-expanded={shouldShowSubmenu ? reportsExpanded : undefined}
-            title={collapsed ? t('nav.reports') : undefined}
+            title={collapsed ? (
+              reportsRestrictionBadge
+                ? t('sidebar.lockedTooltip', { ns: 'portal', label: t('nav.reports'), restriction: reportsRestrictionBadge })
+                : t('nav.reports')
+            ) : undefined}
           >
             <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
               parentActive ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
@@ -283,6 +325,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             {!collapsed && (
               <span className="flex min-w-0 flex-1 items-center gap-2">
                 <span className="truncate">{t('nav.reports')}</span>
+                {reportsRestrictionBadge ? (
+                  <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border border-border/80 bg-white/80 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.12em] text-muted-foreground">
+                    <Lock size={10} />
+                    {reportsRestrictionBadge}
+                  </span>
+                ) : null}
                 {parentPending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
               </span>
             )}
@@ -295,14 +343,21 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             {collapsed && parentPending ? (
               <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
             ) : null}
+            {collapsed && reportsRestrictionBadge ? (
+              <span className="absolute end-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90">
+                <Lock size={9} />
+              </span>
+            ) : null}
             {collapsed && (
               <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>
-                {t('nav.reports')}
+                {reportsRestrictionBadge
+                  ? t('sidebar.lockedTooltip', { ns: 'portal', label: t('nav.reports'), restriction: reportsRestrictionBadge })
+                  : t('nav.reports')}
               </span>
             )}
           </button>
 
-          {shouldShowSubmenu && reportsExpanded ? (
+          {canUseStandardReports && shouldShowSubmenu && reportsExpanded ? (
             <ul className={`space-y-1 ${isRTL ? 'me-4 border-e ps-0 pe-3' : 'ms-4 border-s ps-3 pe-0'} border-border/70`}>
               {renderNavItem(reportsOverviewItem, true, isExactRouteActive('/reports'))}
               {renderNavItem(itemInsightsItem, true, pathname === '/reports/item-insights' || pathname.startsWith('/reports/item-insights/'))}

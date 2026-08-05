@@ -152,6 +152,7 @@
       "personalSubscriptions": "Abonnements personnels",
       "faqs": "FAQ"
     },
+    "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Développer la barre latérale",
     "collapse": "Réduire la barre latérale",
     "accountTitle": "Compte",
@@ -174,6 +175,7 @@
     "reports": "Rapports",
     "accounts": "Comptes",
     "people": "Personnes",
+    "spaces": "Espaces",
     "aiHistory": "Historique IA",
     "personalSubscriptions": "Abonnements personnels",
     "faqs": "FAQ"
@@ -3058,8 +3060,23 @@
   "featureGate": {
     "title": "Fonctionnalite indisponible",
     "description": "{{feature}} n'est pas disponible avec votre abonnement actuel.",
-    "upgradeAction": "Mettre a niveau l'offre",
+    "unavailableTitle": "Cette fonctionnalite n'est pas incluse dans votre offre actuelle.",
+    "unavailableDescription": "{{feature}} est disponible dans les offres superieures.",
+    "expiredTitle": "Votre acces d'essai gratuit a cette fonctionnalite a expire.",
+    "expiredDescription": "Vos donnees existantes restent dans Smart Pocket. Passez a une offre payante pour continuer a utiliser cette fonctionnalite.",
+    "recommendedPlan": "Offre recommandee : {{plan}}",
+    "upgradeAction": "Comparer les offres",
     "backAction": "Retour au tableau de bord",
+    "badges": {
+      "locked": "Verrouille",
+      "upgrade": "Upgrade",
+      "family": "Famille",
+      "expired": "Essai expire"
+    },
+    "planCodes": {
+      "personal": "Personnel",
+      "family": "Famille"
+    },
     "features": {
       "textAi": "IA texte",
       "voiceAi": "IA vocale",
@@ -3069,6 +3086,24 @@
       "sharedSpaces": "Espaces partages",
       "standardReports": "Rapports standards",
       "familyReports": "Rapports famille"
+    },
+    "featureCopy": {
+      "aiHistory": {
+        "title": "Revoyez votre activite Smart AI",
+        "description": "Accedez a vos entrees et resultats generes par l'IA et consultez-les a nouveau."
+      },
+      "managedPeople": {
+        "title": "Gerez l'argent avec les personnes qui comptent",
+        "description": "Suivez les depenses partagees, les remboursements et les reglements au meme endroit."
+      },
+      "sharedSpaces": {
+        "title": "Organisez les finances dans des espaces partages",
+        "description": "Creez des espaces distincts pour le foyer, la famille ou une activite financiere partagee."
+      },
+      "standardReports": {
+        "title": "Comprenez ou va votre argent",
+        "description": "Debloquez des rapports financiers detailles et des insights."
+      }
     }
   },
   "subscriptionTopUps": {

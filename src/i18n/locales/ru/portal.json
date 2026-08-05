@@ -152,6 +152,7 @@
       "personalSubscriptions": "Личные подписки",
       "faqs": "FAQ"
     },
+    "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Развернуть боковую панель",
     "collapse": "Свернуть боковую панель",
     "accountTitle": "Аккаунт",
@@ -174,6 +175,7 @@
     "reports": "Отчеты",
     "accounts": "Счета",
     "people": "Люди",
+    "spaces": "Пространства",
     "aiHistory": "История AI",
     "personalSubscriptions": "Личные подписки",
     "faqs": "FAQ"
@@ -3066,8 +3068,23 @@
   "featureGate": {
     "title": "Функция недоступна",
     "description": "Функция {{feature}} недоступна в вашей текущей подписке.",
-    "upgradeAction": "Повысить план",
+    "unavailableTitle": "Эта функция не входит в ваш текущий план.",
+    "unavailableDescription": "{{feature}} доступна на более высоких планах.",
+    "expiredTitle": "Ваш пробный доступ к этой функции закончился.",
+    "expiredDescription": "Ваши текущие данные остаются в Smart Pocket. Обновите план, чтобы продолжить пользоваться этой функцией.",
+    "recommendedPlan": "Рекомендуемый план: {{plan}}",
+    "upgradeAction": "Сравнить планы",
     "backAction": "Вернуться на панель",
+    "badges": {
+      "locked": "Закрыто",
+      "upgrade": "Апгрейд",
+      "family": "Семейный",
+      "expired": "Пробный период истек"
+    },
+    "planCodes": {
+      "personal": "Персональный",
+      "family": "Семейный"
+    },
     "features": {
       "textAi": "Текстовый AI",
       "voiceAi": "Голосовой AI",
@@ -3077,6 +3094,24 @@
       "sharedSpaces": "Общие пространства",
       "standardReports": "Стандартные отчеты",
       "familyReports": "Семейные отчеты"
+    },
+    "featureCopy": {
+      "aiHistory": {
+        "title": "Просматривайте свою активность Smart AI",
+        "description": "Открывайте и заново просматривайте прошлые AI-созданные записи и результаты."
+      },
+      "managedPeople": {
+        "title": "Управляйте деньгами вместе с важными для вас людьми",
+        "description": "Отслеживайте общие расходы, возмещения и расчеты в одном месте."
+      },
+      "sharedSpaces": {
+        "title": "Организуйте финансы в общих пространствах",
+        "description": "Создавайте отдельные пространства для дома, семьи или совместной финансовой активности."
+      },
+      "standardReports": {
+        "title": "Понимайте, куда уходят ваши деньги",
+        "description": "Откройте подробные финансовые отчеты и аналитические выводы."
+      }
     }
   },
   "subscriptionTopUps": {

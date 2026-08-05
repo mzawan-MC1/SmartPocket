@@ -152,6 +152,7 @@
       "personalSubscriptions": "الاشتراكات الشخصية",
       "faqs": "الأسئلة الشائعة"
     },
+    "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "توسيع الشريط الجانبي",
     "collapse": "طي الشريط الجانبي",
     "accountTitle": "الحساب",
@@ -177,6 +178,7 @@
     "reports": "التقارير",
     "accounts": "الحسابات",
     "people": "الأشخاص",
+    "spaces": "المساحات",
     "reimbursements": "التعويضات",
     "settlements": "التسويات",
     "aiHistory": "سجل الذكاء الاصطناعي",
@@ -3078,8 +3080,23 @@
   "featureGate": {
     "title": "الميزة غير متاحة",
     "description": "ميزة {{feature}} غير متاحة ضمن اشتراكك الحالي.",
-    "upgradeAction": "ترقية الخطة",
+    "unavailableTitle": "هذه الميزة غير مضمنة في خطتك الحالية.",
+    "unavailableDescription": "ميزة {{feature}} متاحة في الخطط الأعلى.",
+    "expiredTitle": "انتهى وصول الفترة التجريبية المجانية لهذه الميزة.",
+    "expiredDescription": "بياناتك الحالية ما زالت محفوظة في Smart Pocket. قم بالترقية لمتابعة استخدام هذه الميزة.",
+    "recommendedPlan": "الخطة المقترحة: {{plan}}",
+    "upgradeAction": "قارن الخطط",
     "backAction": "العودة إلى لوحة التحكم",
+    "badges": {
+      "locked": "مقفل",
+      "upgrade": "ترقية",
+      "family": "عائلية",
+      "expired": "انتهت التجربة"
+    },
+    "planCodes": {
+      "personal": "شخصية",
+      "family": "عائلية"
+    },
     "features": {
       "textAi": "الذكاء النصي",
       "voiceAi": "الذكاء الصوتي",
@@ -3089,6 +3106,24 @@
       "sharedSpaces": "المساحات المشتركة",
       "standardReports": "التقارير القياسية",
       "familyReports": "تقارير العائلة"
+    },
+    "featureCopy": {
+      "aiHistory": {
+        "title": "راجع نشاط Smart AI الخاص بك",
+        "description": "يمكنك الوصول إلى إدخالاتك ونتائجك التي أنشأها الذكاء الاصطناعي ومراجعتها من جديد."
+      },
+      "managedPeople": {
+        "title": "أدر المال مع الأشخاص الذين يهمونك",
+        "description": "تابع المصروفات المشتركة والتعويضات والتسويات في مكان واحد."
+      },
+      "sharedSpaces": {
+        "title": "نظّم الشؤون المالية داخل مساحات مشتركة",
+        "description": "أنشئ مساحات منفصلة للمنزل أو العائلة أو أي نشاط مالي مشترك."
+      },
+      "standardReports": {
+        "title": "افهم أين يذهب مالك",
+        "description": "افتح تقارير مالية ورؤى تفصيلية."
+      }
     }
   },
   "subscriptionTopUps": {

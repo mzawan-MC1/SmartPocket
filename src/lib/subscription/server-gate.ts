@@ -11,6 +11,11 @@ import {
 } from '@/lib/subscription/server';
 import type { SubscriptionFeatureCode } from '@/lib/subscription/types';
 
+type SubscriptionRouteGateOptions = {
+  redirectOnDenied?: boolean;
+  redirectPath?: string;
+};
+
 type FeatureAccessResolver = (userId: string) => Promise<{ ok: boolean }>;
 
 const FEATURE_ACCESS_RESOLVERS: Record<
@@ -35,8 +40,9 @@ export async function enforceSubscriptionFeatureRoute(
     SubscriptionFeatureCode,
     'ai_history' | 'managed_people' | 'shared_spaces' | 'standard_reports'
   >,
-  redirectPath?: string
+  options: SubscriptionRouteGateOptions = {}
 ) {
+  const { redirectOnDenied = true, redirectPath } = options;
   const supabase = await createServerComponentSupabaseClient();
   const {
     data: { user },
@@ -48,11 +54,18 @@ export async function enforceSubscriptionFeatureRoute(
 
   const access = await FEATURE_ACCESS_RESOLVERS[feature](user.id);
   if (!access.ok) {
-    redirect(redirectPath || buildFeatureRedirect(feature));
+    if (redirectOnDenied) {
+      redirect(redirectPath || buildFeatureRedirect(feature));
+    }
+
+    return false;
   }
+
+  return true;
 }
 
-export async function enforceSharedSpacesWorkspaceRoute(redirectPath?: string) {
+export async function enforceSharedSpacesWorkspaceRoute(options: SubscriptionRouteGateOptions = {}) {
+  const { redirectOnDenied = true, redirectPath } = options;
   const supabase = await createServerComponentSupabaseClient();
   const {
     data: { user },
@@ -64,13 +77,17 @@ export async function enforceSharedSpacesWorkspaceRoute(redirectPath?: string) {
 
   const access = await requireSharedSpacesAccess(user.id, { skipUsageCheck: true });
   if (access.ok) {
-    return;
+    return true;
   }
 
   const email = user.email?.trim().toLowerCase();
   const admin = createAdminClient();
   if (!admin || !email) {
-    redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
+    if (redirectOnDenied) {
+      redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
+    }
+
+    return false;
   }
 
   const [memberAccess, inviteAccessByUserId, inviteAccessByEmail] = await Promise.all([
@@ -99,6 +116,12 @@ export async function enforceSharedSpacesWorkspaceRoute(redirectPath?: string) {
     || (inviteAccessByEmail.count || 0) > 0;
 
   if (!hasInvitationOrMembership) {
-    redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
+    if (redirectOnDenied) {
+      redirect(redirectPath || buildFeatureRedirect('shared_spaces'));
+    }
+
+    return false;
   }
+
+  return true;
 }
