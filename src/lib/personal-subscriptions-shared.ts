@@ -66,6 +66,7 @@ export interface PersonalSubscription {
   id: string;
   user_id: string;
   name: string;
+  provider_key: string | null;
   provider: string | null;
   description: string | null;
   category_id: string | null;
@@ -116,6 +117,7 @@ export interface PersonalSubscription {
 
 export interface PersonalSubscriptionUpsertInput {
   name?: string;
+  provider_key?: string | null;
   provider?: string | null;
   description?: string | null;
   category_id?: string | null;

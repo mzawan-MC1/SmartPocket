@@ -22,6 +22,19 @@ export interface PersonalSubscriptionProviderComboboxProps {
   valueName: string;
   onChange: (next: { providerKey: string | null; name: string; provider?: string | null; websiteUrl?: string | null }) => void;
   onNameQueryEdited?: () => void;
+  registerNameField?: {
+    ref: React.RefCallback<HTMLInputElement> | React.MutableRefObject<HTMLInputElement | null>;
+    name: string;
+    onBlur: React.FocusEventHandler<HTMLInputElement>;
+    onChange: React.ChangeEventHandler<HTMLInputElement>;
+    min?: string | number;
+    max?: string | number;
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    required?: boolean;
+    disabled?: boolean;
+  };
   id?: string;
   label?: string;
   placeholder?: string;
@@ -75,6 +88,7 @@ export default function PersonalSubscriptionProviderCombobox({
   valueName,
   onChange,
   onNameQueryEdited,
+  registerNameField,
   id = 'subscription-provider-combobox',
   label,
   placeholder,
@@ -287,6 +301,16 @@ export default function PersonalSubscriptionProviderCombobox({
         </span>
       </button>
 
+      {registerNameField ? (
+        <input
+          type="hidden"
+          aria-hidden="true"
+          tabIndex={-1}
+          value={valueName}
+          {...registerNameField}
+        />
+      ) : null}
+
       {isOpen ? (
         <div
           className="absolute z-50 mt-1.5 w-full overflow-hidden rounded-xl border border-border bg-card shadow-[0_18px_40px_-18px_rgba(15,23,42,0.28)] ring-1 ring-black/5"
@@ -357,10 +381,6 @@ export default function PersonalSubscriptionProviderCombobox({
                     role="option"
                     aria-selected={selectedByKey}
                     onMouseEnter={() => setHighlightedIndex(index)}
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                      selectOption(option);
-                    }}
                     onPointerDown={(event) => {
                       event.preventDefault();
                       selectOption(option);

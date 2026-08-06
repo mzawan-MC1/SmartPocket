@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ExternalLink, ReceiptText, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import PersonalSubscriptionBrandLogo from '@/components/personal-subscriptions/PersonalSubscriptionBrandLogo';
 import FormSection from '@/components/ui/FormSection';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
@@ -115,22 +116,32 @@ export default function PersonalSubscriptionDetailsContent({
     <div className="space-y-3 max-[480px]:space-y-2.5">
       <div className="rounded-[20px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(249,250,252,0.98)_100%)] px-3.5 py-3 shadow-card-sm">
         <div className={`flex flex-wrap items-start justify-between gap-2.5 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge
-                status={getStatusTone(subscription.status)}
-                label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })}
-              />
-              {highestWarning ? (
-                <PersonalSubscriptionWarningBadge
-                  subscription={subscription}
-                  todayIso={todayIso}
+          <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <PersonalSubscriptionBrandLogo
+              providerKey={subscription.provider_key}
+              fallbackName={subscription.name}
+              size="md"
+            />
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-[17px] font-800 tracking-[-0.02em] text-foreground">
+                {subscription.name}
+              </h2>
+              <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                <StatusBadge
+                  status={getStatusTone(subscription.status)}
+                  label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })}
                 />
-              ) : null}
+                {highestWarning ? (
+                  <PersonalSubscriptionWarningBadge
+                    subscription={subscription}
+                    todayIso={todayIso}
+                  />
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
+                {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
+              </p>
             </div>
-            <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
-              {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
-            </p>
           </div>
           {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>

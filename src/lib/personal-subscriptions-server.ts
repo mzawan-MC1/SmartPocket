@@ -252,6 +252,9 @@ export function sanitizePersonalSubscriptionPayload(
   if (!partial || Object.prototype.hasOwnProperty.call(body, 'name')) {
     payload.name = normalizeString(body.name);
   }
+  if (!partial || Object.prototype.hasOwnProperty.call(body, 'provider_key')) {
+    payload.provider_key = normalizeNullableText(body.provider_key);
+  }
   if (!partial || Object.prototype.hasOwnProperty.call(body, 'provider')) {
     payload.provider = normalizeNullableText(body.provider);
   }

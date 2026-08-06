@@ -68,7 +68,7 @@ export const PERSONAL_SUBSCRIPTION_PROVIDERS: PersonalSubscriptionProvider[] = [
     provider: 'Microsoft',
     category: 'ai',
     websiteDomain: 'copilot.microsoft.com',
-    logo: { kind: 'brand', brandKey: 'microsoft', baseColor: '#00A4EF' },
+    logo: { kind: 'brand', brandKey: 'microsoft', baseColor: '#0078D4' },
   },
   {
     key: 'perplexity',
@@ -140,7 +140,7 @@ export const PERSONAL_SUBSCRIPTION_PROVIDERS: PersonalSubscriptionProvider[] = [
     provider: 'GitHub',
     category: 'ai',
     websiteDomain: 'github.com/features/copilot',
-    logo: { kind: 'brand', brandKey: 'github', baseColor: '#0D1117' },
+    logo: { kind: 'brand', brandKey: 'github', baseColor: '#181717' },
   },
 
   {
@@ -195,7 +195,7 @@ export const PERSONAL_SUBSCRIPTION_PROVIDERS: PersonalSubscriptionProvider[] = [
     provider: 'Apple',
     category: 'entertainment',
     websiteDomain: 'music.apple.com',
-    logo: { kind: 'brand', brandKey: 'apple', baseColor: '#FB233B' },
+    logo: { kind: 'brand', brandKey: 'apple', baseColor: '#FA233B' },
   },
   {
     key: 'apple_tv',

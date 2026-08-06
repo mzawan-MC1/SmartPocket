@@ -15,6 +15,7 @@ import {
   getUpcomingPersonalSubscriptionCharges,
   type PersonalSubscription,
 } from '@/lib/personal-subscriptions-shared';
+import PersonalSubscriptionBrandLogo from '@/components/personal-subscriptions/PersonalSubscriptionBrandLogo';
 import type { DashboardActivePeriod } from '@/lib/finance';
 import PersonalSubscriptionWarningBadge from '@/app/personal-subscriptions/components/PersonalSubscriptionWarningBadge';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -102,6 +103,8 @@ export default function UpcomingPersonalSubscriptions({
 
       return {
         id: subscription.id,
+        providerKey: subscription.provider_key,
+        name: subscription.name,
         title: t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' }),
         badge: t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' }),
         message: dueInDays !== null
@@ -121,10 +124,21 @@ export default function UpcomingPersonalSubscriptions({
       };
     });
 
-    const visibleSuggestions = suggestions.length > 0
+    const visibleSuggestions: Array<{
+      id: string;
+      providerKey?: string | null;
+      name?: string;
+      title: string;
+      badge: string;
+      message: string;
+      helper: string;
+      href: string;
+    }> = suggestions.length > 0
       ? suggestions
       : [{
           id: 'general-suggestion',
+          providerKey: undefined,
+          name: undefined,
           title: t('personalSubscriptions.widget.dashboardSuggestionTitle', { ns: 'portal' }),
           badge: t('personalSubscriptions.widget.dashboardSuggestionBadge', { ns: 'portal' }),
           message: t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' }),
@@ -185,9 +199,18 @@ export default function UpcomingPersonalSubscriptions({
                 className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.22)]"
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100/90 text-blue-700 shadow-[0_8px_18px_-14px_rgba(37,99,235,0.25)]">
-                    <ShieldCheck size={18} />
-                  </div>
+                  {suggestion.providerKey !== undefined ? (
+                    <PersonalSubscriptionBrandLogo
+                      providerKey={suggestion.providerKey}
+                      fallbackName={suggestion.name}
+                      size="sm"
+                      className="!h-10 !w-10"
+                    />
+                  ) : (
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100/90 text-blue-700 shadow-[0_8px_18px_-14px_rgba(37,99,235,0.25)]">
+                      <ShieldCheck size={18} />
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="truncate text-[13px] font-800 tracking-[-0.02em] text-foreground">
@@ -279,24 +302,31 @@ export default function UpcomingPersonalSubscriptions({
                 ? 'border-violet-100/70 bg-white/75 py-2.5 hover:border-violet-200/80 hover:bg-white/90'
                 : 'border-transparent bg-muted/15 py-3 hover:border-border/70 hover:bg-muted/30'
             }`}>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Link
-                    href={`/personal-subscriptions/${subscription.id}`}
-                    className={`truncate font-700 text-foreground hover:text-accent ${compact ? 'text-[13px]' : 'text-sm'}`}
-                  >
-                    {subscription.name}
-                  </Link>
-                  {getHighestPriorityPersonalSubscriptionWarning(subscription, todayIso) ? (
-                    <PersonalSubscriptionWarningBadge
-                      subscription={subscription}
-                      todayIso={todayIso}
-                    />
-                  ) : null}
+              <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                <PersonalSubscriptionBrandLogo
+                  providerKey={subscription.provider_key}
+                  fallbackName={subscription.name}
+                  size="sm"
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/personal-subscriptions/${subscription.id}`}
+                      className={`truncate font-700 text-foreground hover:text-accent ${compact ? 'text-[13px]' : 'text-sm'}`}
+                    >
+                      {subscription.name}
+                    </Link>
+                    {getHighestPriorityPersonalSubscriptionWarning(subscription, todayIso) ? (
+                      <PersonalSubscriptionWarningBadge
+                        subscription={subscription}
+                        todayIso={todayIso}
+                      />
+                    ) : null}
+                  </div>
+                  <p className={`mt-1 text-muted-foreground ${compact ? (isArabic ? 'text-[12px] leading-5' : 'text-[11px]') : (isArabic ? 'text-[12.5px] leading-5' : 'text-xs')}`}>
+                    {subscription.next_billing_date || notAvailableLabel}
+                  </p>
                 </div>
-                <p className={`mt-1 text-muted-foreground ${compact ? (isArabic ? 'text-[12px] leading-5' : 'text-[11px]') : (isArabic ? 'text-[12.5px] leading-5' : 'text-xs')}`}>
-                  {subscription.next_billing_date || notAvailableLabel}
-                </p>
               </div>
               <FormattedCurrencyAmount
                 amount={subscription.amount}

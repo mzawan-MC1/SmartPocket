@@ -37,6 +37,7 @@ import {
   PERSONAL_SUBSCRIPTION_LIST_FILTERS,
   type PersonalSubscription,
 } from '@/lib/personal-subscriptions-shared';
+import PersonalSubscriptionBrandLogo from '@/components/personal-subscriptions/PersonalSubscriptionBrandLogo';
 import PersonalSubscriptionWarningBadge from './components/PersonalSubscriptionWarningBadge';
 import PersonalSubscriptionDetailsContent from './components/PersonalSubscriptionDetailsContent';
 
@@ -420,13 +421,22 @@ export default function PersonalSubscriptionsPage() {
           >
             {nearestUpcomingCharge ? (
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="truncate text-[14px] font-800 text-foreground">{nearestUpcomingCharge.name}</p>
-                  <StatusBadge status="pending" label={t('personalSubscriptions.summary.upcomingCharges', { ns: 'portal', count: summary?.upcomingChargesCount || 0 })} />
+                <div className="flex items-start gap-3">
+                  <PersonalSubscriptionBrandLogo
+                    providerKey={nearestUpcomingCharge.provider_key}
+                    fallbackName={nearestUpcomingCharge.name}
+                    size="sm"
+                  />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-[14px] font-800 text-foreground">{nearestUpcomingCharge.name}</p>
+                      <StatusBadge status="pending" label={t('personalSubscriptions.summary.upcomingCharges', { ns: 'portal', count: summary?.upcomingChargesCount || 0 })} />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(nearestUpcomingCharge.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {formatDateValue(nearestUpcomingCharge.next_billing_date) || notAvailableLabel}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  {(nearestUpcomingCharge.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {formatDateValue(nearestUpcomingCharge.next_billing_date) || notAvailableLabel}
-                </p>
                 <FormattedCurrencyAmount
                   amount={nearestUpcomingCharge.amount}
                   currencyCode={nearestUpcomingCharge.currency_code}
@@ -509,9 +519,12 @@ export default function PersonalSubscriptionsPage() {
           {loading ? (
             <div className="divide-y divide-border">
               {Array.from({ length: 4 }).map((_, index) => (
-                <div key={`subscription-skeleton-${index}`} className="animate-pulse px-5 py-4">
-                  <div className="mb-2 h-4 w-40 rounded bg-muted" />
-                  <div className="h-3 w-64 rounded bg-muted" />
+                <div key={`subscription-skeleton-${index}`} className="flex items-start gap-3 px-3.5 py-3">
+                  <div className="h-8 w-8 shrink-0 animate-pulse rounded-[16px] border border-black/5 bg-muted" />
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="h-4 w-40 animate-pulse rounded bg-muted" />
+                    <div className="h-3 w-64 animate-pulse rounded bg-muted" />
+                  </div>
                 </div>
               ))}
             </div>
@@ -534,6 +547,12 @@ export default function PersonalSubscriptionsPage() {
               {filteredSubscriptions.map((subscription) => (
                 <article key={subscription.id} className="space-y-2.5 px-3.5 py-3">
                   <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <PersonalSubscriptionBrandLogo
+                      providerKey={subscription.provider_key}
+                      fallbackName={subscription.name}
+                      size="sm"
+                    />
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <button
@@ -556,6 +575,7 @@ export default function PersonalSubscriptionsPage() {
                         {t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}: {formatDateValue(subscription.next_billing_date) || notAvailableLabel}
                       </p>
                     </div>
+                  </div>
                     <div className={`shrink-0 ${isRTL ? 'text-start' : 'text-end'}`}>
                       <FormattedCurrencyAmount
                         amount={subscription.amount}

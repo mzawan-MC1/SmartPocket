@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import CurrencySelector from '@/components/CurrencySelector';
 import FormSection from '@/components/ui/FormSection';
 import CategoryIcon from '@/components/categories/CategoryIcon';
+import PersonalSubscriptionBrandLogo from '@/components/personal-subscriptions/PersonalSubscriptionBrandLogo';
+import PersonalSubscriptionProviderCombobox from '@/components/personal-subscriptions/PersonalSubscriptionProviderCombobox';
+import { findPersonalSubscriptionProvider, getPersonalSubscriptionProviderByKey } from '@/lib/personal-subscription-providers';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dispatchSmartPocketDataChanged, useSmartPocketDataChanged } from '@/lib/data-change';
 import { resolveCurrencyPreference } from '@/lib/currency-totals';
@@ -45,8 +48,48 @@ import {
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import { translateSystemCategoryName } from '@/lib/system-category-display';
 
+const SYSTEM_CATEGORY_KEY_BY_NAME_INTERNAL: Record<string, string> = {
+  salary: 'salary',
+  freelance: 'freelance',
+  'freelance income': 'freelance',
+  investment: 'investments',
+  investments: 'investments',
+  'investment returns': 'investmentReturns',
+  'other income': 'otherIncome',
+  'business income': 'businessIncome',
+  'rental income': 'rentalIncome',
+  'gifts received': 'giftsReceived',
+  'food & dining': 'diningOut',
+  'food and dining': 'diningOut',
+  'dining out': 'diningOut',
+  dining: 'diningOut',
+  'dining & restaurants': 'diningOut',
+  housing: 'housing',
+  'housing & rent': 'housingRent',
+  grocery: 'groceriesHousehold',
+  groceries: 'groceriesHousehold',
+  'groceries & household': 'groceriesHousehold',
+  'groceries and household': 'groceriesHousehold',
+  transport: 'transport',
+  utilities: 'utilities',
+  shopping: 'shopping',
+  healthcare: 'healthcare',
+  'personal care': 'personalCare',
+  entertainment: 'entertainment',
+  travel: 'travel',
+  education: 'education',
+  subscriptions: 'subscriptions',
+  insurance: 'insurance',
+  savings: 'savings',
+  'other expense': 'otherExpense',
+  'other expenses': 'otherExpense',
+  other: 'other',
+  transfer: 'transfer',
+};
+
 interface PersonalSubscriptionFormValues {
   name: string;
+  provider_key: string;
   provider: string;
   description: string;
   category_id: string;
@@ -75,6 +118,7 @@ interface PersonalSubscriptionFormValues {
 function mapSubscriptionToFormValues(subscription?: PersonalSubscription | null): PersonalSubscriptionFormValues {
   return {
     name: subscription?.name || '',
+    provider_key: subscription?.provider_key || '',
     provider: subscription?.provider || '',
     description: subscription?.description || '',
     category_id: subscription?.category_id || '',
@@ -144,6 +188,90 @@ export default function PersonalSubscriptionForm({
   const linkedRecurringToggle = watch('create_linked_recurring_expense');
   const selectedCurrencyCode = watch('currency_code');
   const reminderDaysBefore = watch('reminder_days_before');
+  const watchedProviderKey = watch('provider_key');
+  const watchedName = watch('name');
+  const watchedProvider = watch('provider');
+  const watchedWebsite = watch('website_url');
+
+  const PROVIDER_CATEGORY_TO_SYSTEM_CATEGORY_NAME: Record<string, string> = {
+    ai: 'Subscriptions',
+    entertainment: 'Entertainment',
+    cloud: 'Subscriptions',
+    shopping: 'Shopping',
+    gaming: 'Entertainment',
+    security: 'Utilities',
+    telecom: 'Utilities',
+    education: 'Education',
+    fitness: 'Healthcare',
+    generic: 'Other Expense',
+  };
+
+  const [initialProviderKey, setInitialProviderKey] = useState<string | null>(subscription?.provider_key || null);
+  const [initialNameNormalized, setInitialNameNormalized] = useState<string>('');
+  const [initialCategoryId, setInitialCategoryId] = useState<string>(subscription?.category_id || '');
+  const [userEditedNameRef, setUserEditedNameRef] = useState(false);
+  const [userEditedProviderRef, setUserEditedProviderRef] = useState(false);
+  const [userEditedWebsiteRef, setUserEditedWebsiteRef] = useState(false);
+  const [userEditedCategoryRef, setUserEditedCategoryRef] = useState(false);
+
+  useEffect(() => {
+    if (subscription?.id) {
+      setInitialProviderKey(subscription.provider_key || null);
+      setInitialNameNormalized((subscription.name || '').trim().toLowerCase());
+      setInitialCategoryId(subscription.category_id || '');
+      setUserEditedNameRef(false);
+      setUserEditedProviderRef(false);
+      setUserEditedWebsiteRef(false);
+      setUserEditedCategoryRef(false);
+    } else {
+      setInitialProviderKey(null);
+      setInitialNameNormalized('');
+      setInitialCategoryId('');
+      setUserEditedNameRef(false);
+      setUserEditedProviderRef(false);
+      setUserEditedWebsiteRef(false);
+      setUserEditedCategoryRef(false);
+    }
+  }, [subscription]);
+
+  useEffect(() => {
+    if (watchedProviderKey && !userEditedNameRef) {
+      const provider = getPersonalSubscriptionProviderByKey(watchedProviderKey);
+      if (provider?.name) {
+        const shouldSet = subscription?.id
+          ? initialNameNormalized === '' || (subscription.name || '').trim().toLowerCase() === initialNameNormalized
+          : watchedName.trim() === '';
+        if (shouldSet) {
+          setValue('name', provider.name, { shouldDirty: true });
+        }
+      }
+    }
+  }, [watchedProviderKey, watchedName, subscription, setValue, userEditedNameRef, initialNameNormalized]);
+
+  useEffect(() => {
+    if (watchedProviderKey && !userEditedProviderRef) {
+      const provider = getPersonalSubscriptionProviderByKey(watchedProviderKey);
+      const target = (watchedProvider || '').trim();
+      if (provider?.provider && target === '') {
+        setValue('provider', provider.provider, { shouldDirty: false });
+      }
+    }
+  }, [watchedProviderKey, watchedProvider, setValue, userEditedProviderRef]);
+
+  useEffect(() => {
+    const target = (watchedWebsite || '').trim().toLowerCase();
+    if (
+      !userEditedWebsiteRef &&
+      watchedProviderKey &&
+      target === ''
+    ) {
+      const provider = getPersonalSubscriptionProviderByKey(watchedProviderKey);
+      if (provider?.websiteDomain) {
+        setValue('website_url', `https://${provider.websiteDomain}`, { shouldDirty: false });
+      }
+    }
+  }, [watchedProviderKey, watchedWebsite, subscription, setValue, userEditedWebsiteRef]);
+
   const accountOptions = useMemo(
     () => getActivePersonalFinancialAccounts(accounts),
     [accounts]
@@ -163,6 +291,32 @@ export default function PersonalSubscriptionForm({
   const linkedRecurringSupported = supportsLinkedRecurringExpense(
     isPersonalSubscriptionBillingFrequency(frequency) ? frequency : 'monthly'
   );
+
+  useEffect(() => {
+    if (!watchedProviderKey || userEditedCategoryRef) return;
+    const provider = getPersonalSubscriptionProviderByKey(watchedProviderKey);
+    if (!provider?.category) return;
+
+    const categoryUnchanged =
+      !subscription?.id || selectedCategoryId === '' || selectedCategoryId === initialCategoryId;
+    if (!categoryUnchanged) return;
+
+    const systemName = PROVIDER_CATEGORY_TO_SYSTEM_CATEGORY_NAME[provider.category];
+    if (!systemName) return;
+
+    const normalizedSystem = systemName.toLowerCase().trim();
+    const match = expenseCategories.find((cat) => {
+      const catLower = (cat.name || '').toLowerCase().trim();
+      if (catLower === normalizedSystem) return true;
+      const displayKey = SYSTEM_CATEGORY_KEY_BY_NAME_INTERNAL[catLower];
+      if (displayKey && SYSTEM_CATEGORY_KEY_BY_NAME_INTERNAL[normalizedSystem] === displayKey) return true;
+      return false;
+    });
+
+    if (match?.id) {
+      setValue('category_id', match.id, { shouldDirty: false });
+    }
+  }, [watchedProviderKey, expenseCategories, subscription, selectedCategoryId, initialCategoryId, setValue, userEditedCategoryRef]);
 
   useEffect(() => {
     reset(mapSubscriptionToFormValues(subscription));
@@ -388,6 +542,7 @@ export default function PersonalSubscriptionForm({
     try {
       const payload = {
         name: data.name.trim(),
+        provider_key: data.provider_key || null,
         provider: data.provider || null,
         description: data.description || null,
         category_id: data.category_id || null,
@@ -456,16 +611,33 @@ export default function PersonalSubscriptionForm({
         bodyClassName="space-y-3 px-3.5 py-3 max-[640px]:space-y-2.5 max-[640px]:px-3 max-[640px]:py-2.5"
       >
         <div>
-          <label htmlFor="subscription-name" className={compactFieldLabelClassName(Boolean(errors.name))}>
-            {t('personalSubscriptions.form.fields.name', { ns: 'portal' })}
-            <span className={getRequiredMarkerClassName()}> *</span>
-          </label>
-          <input
+          <PersonalSubscriptionProviderCombobox
             id="subscription-name"
-            type="text"
-            aria-invalid={errors.name ? 'true' : 'false'}
-            className={getFieldInputClassName(compactInputClassName, Boolean(errors.name))}
-            {...register('name', { required: t('personalSubscriptions.form.errors.nameRequired', { ns: 'portal' }) })}
+            label={t('personalSubscriptions.form.fields.name', { ns: 'portal' })}
+            required
+            valueKey={watchedProviderKey || null}
+            valueName={watchedName}
+            error={errors.name?.message}
+            placeholder={t('personalSubscriptions.form.placeholders.searchProvider', {
+              ns: 'portal',
+              defaultValue: 'Search or type a service name…',
+            })}
+            userEditedName={userEditedNameRef}
+            userEditedProvider={userEditedProviderRef}
+            onNameQueryEdited={() => setUserEditedNameRef(true)}
+            registerNameField={register('name', {
+              required: t('personalSubscriptions.form.errors.nameRequired', { ns: 'portal' }),
+            })}
+            onChange={({ providerKey, name, provider, websiteUrl }) => {
+              setValue('provider_key', providerKey || '', { shouldDirty: true });
+              setValue('name', name, { shouldDirty: true });
+              if (provider !== undefined) {
+                setValue('provider', provider || '', { shouldDirty: userEditedProviderRef });
+              }
+              if (websiteUrl && !userEditedWebsiteRef) {
+                setValue('website_url', websiteUrl, { shouldDirty: false });
+              }
+            }}
           />
           {errors.name ? <p className={fieldErrorClassName}>{errors.name.message}</p> : null}
         </div>
@@ -565,7 +737,13 @@ export default function PersonalSubscriptionForm({
             <label htmlFor="subscription-category" className={compactFieldLabelClassName(false)}>
               {t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
             </label>
-            <select id="subscription-category" className={compactSelectClassName} {...register('category_id')}>
+            <select
+              id="subscription-category"
+              className={compactSelectClassName}
+              {...register('category_id')}
+              onInput={() => setUserEditedCategoryRef(true)}
+              onBlur={() => setUserEditedCategoryRef(true)}
+            >
               <option value="">{t('transactions.noCategory', { ns: 'portal' })}</option>
               {expenseCategories.map((category) => (
                 <option key={category.id} value={category.id}>
@@ -619,13 +797,22 @@ export default function PersonalSubscriptionForm({
         {moreOptionsOpen ? (
         <section className="space-y-3 max-[640px]:space-y-2.5">
           <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
-            <div className="md:col-span-6">
+            <div className="md:col-span-12">
               <label htmlFor="subscription-provider" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.provider', { ns: 'portal' })}
               </label>
-              <input id="subscription-provider" type="text" className={compactInputClassName} {...register('provider')} />
+              <input
+                id="subscription-provider"
+                type="text"
+                className={compactInputClassName}
+                {...register('provider')}
+                onInput={() => setUserEditedProviderRef(true)}
+                onBlur={() => setUserEditedProviderRef(true)}
+              />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-3 max-[640px]:gap-2.5 md:grid-cols-12">
             <div className="md:col-span-6">
               <label htmlFor="subscription-status" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.status', { ns: 'portal' })}
@@ -780,7 +967,14 @@ export default function PersonalSubscriptionForm({
               <label htmlFor="subscription-website-url" className={compactFieldLabelClassName(false)}>
                 {t('personalSubscriptions.form.fields.websiteUrl', { ns: 'portal' })}
               </label>
-              <input id="subscription-website-url" type="url" className={compactInputClassName} {...register('website_url')} />
+              <input
+                id="subscription-website-url"
+                type="url"
+                className={compactInputClassName}
+                {...register('website_url')}
+                onInput={() => setUserEditedWebsiteRef(true)}
+                onBlur={() => setUserEditedWebsiteRef(true)}
+              />
             </div>
 
             <div className="md:col-span-6">
