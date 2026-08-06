@@ -752,25 +752,16 @@ export default function PersonalSubscriptionsPage() {
             subscription={viewingSubscription}
             todayIso={todayIso}
             actions={(
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewingSubscriptionId(null);
-                    router.push(`/personal-subscriptions/${viewingSubscription.id}/edit`);
-                  }}
-                  className="inline-flex min-h-9 items-center justify-center rounded-xl border border-border bg-card px-3 text-[13px] font-700 text-foreground"
-                >
-                  {t('actions.edit', { ns: 'common' })}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewingSubscriptionId(null)}
-                  className="inline-flex min-h-9 items-center justify-center rounded-xl bg-[#eef2f7] px-3 text-[13px] font-700 text-[#30435f]"
-                >
-                  {t('actions.close', { ns: 'common' })}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewingSubscriptionId(null);
+                  router.push(`/personal-subscriptions/${viewingSubscription.id}/edit`);
+                }}
+                className="inline-flex min-h-9 items-center justify-center rounded-xl border border-border/80 bg-card px-3 text-[13px] font-700 text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/40"
+              >
+                {t('actions.edit', { ns: 'common' })}
+              </button>
             )}
           />
         ) : null}

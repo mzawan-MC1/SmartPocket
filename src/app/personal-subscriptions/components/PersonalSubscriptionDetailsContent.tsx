@@ -2,7 +2,14 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ExternalLink, ReceiptText, Wallet } from 'lucide-react';
+import {
+  BellRing,
+  ExternalLink,
+  Link2,
+  ReceiptText,
+  RefreshCw,
+  Wallet,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import PersonalSubscriptionBrandLogo from '@/components/personal-subscriptions/PersonalSubscriptionBrandLogo';
 import FormSection from '@/components/ui/FormSection';
@@ -46,49 +53,79 @@ function getStatusTone(status: PersonalSubscription['status']): 'info' | 'warnin
   }
 }
 
-function CompactMetricCard({
-  label,
-  value,
-}: {
+interface KeyMetricProps {
   label: string;
   value: React.ReactNode;
-}) {
+}
+
+function KeyMetric({ label, value }: KeyMetricProps) {
   return (
-    <div className="rounded-[18px] border border-border/80 bg-card px-3 py-2.5 shadow-card-sm">
-      <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <div className="mt-1.5 text-[14px] font-800 leading-5 text-foreground">{value}</div>
+    <div className="rounded-2xl bg-muted/25 px-3.5 py-3 ring-1 ring-inset ring-border/50">
+      <p className="text-[11.5px] font-600 leading-4 text-muted-foreground">{label}</p>
+      <div className="mt-1.5 text-[14.5px] font-800 leading-5 text-foreground">{value}</div>
     </div>
   );
 }
 
-function StatusMiniCard({
-  label,
-  value,
-  toneClassName = 'text-foreground',
-}: {
+interface OverviewStatusProps {
+  icon: React.ReactNode;
   label: string;
   value: string;
-  toneClassName?: string;
-}) {
+  tone: 'positive' | 'accent' | 'muted' | 'warning' | 'negative';
+}
+
+function OverviewStatus({ icon, label, value, tone }: OverviewStatusProps) {
+  const toneColors: Record<OverviewStatusProps['tone'], string> = {
+    positive: 'text-positive',
+    accent: 'text-accent',
+    muted: 'text-muted-foreground',
+    warning: 'text-warning',
+    negative: 'text-negative',
+  };
+  const toneBg: Record<OverviewStatusProps['tone'], string> = {
+    positive: 'bg-positive-soft/60',
+    accent: 'bg-accent/12',
+    muted: 'bg-muted/60',
+    warning: 'bg-warning-soft/60',
+    negative: 'bg-negative-soft/70',
+  };
   return (
-    <div className="rounded-2xl border border-border/70 bg-card px-3 py-2">
-      <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <p className={`mt-1 text-[13px] font-700 ${toneClassName}`}>{value}</p>
+    <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2">
+      <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${toneBg[tone]}`}>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11.5px] font-600 leading-4 text-muted-foreground">{label}</p>
+        <p className={`mt-0.5 truncate text-[13px] font-800 leading-5 ${toneColors[tone]}`}>{value}</p>
+      </div>
     </div>
   );
 }
 
-function DetailItem({
-  label,
-  value,
-}: {
+interface DefRowProps {
   label: string;
   value: React.ReactNode;
-}) {
+  wide?: boolean;
+  mono?: boolean;
+  multiline?: boolean;
+}
+
+function DefRow({ label, value, wide = false, mono = false, multiline = false }: DefRowProps) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-card px-3 py-2.5">
-      <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
-      <div className="mt-1.5 text-[13px] leading-5 text-foreground">{value}</div>
+    <div
+      className={`flex flex-col gap-1 border-b border-border/60 py-3 last:border-b-0 sm:gap-2 ${wide ? 'sm:col-span-2' : ''}`}
+    >
+      <dt className="text-[11.5px] font-600 leading-4 text-muted-foreground">{label}</dt>
+      <dd
+        className={[
+          'text-[13.5px] leading-5 text-foreground',
+          multiline ? 'whitespace-pre-wrap break-words' : 'truncate',
+          mono ? 'font-mono tracking-tight' : 'font-700',
+        ].join(' ')}
+        title={typeof value === 'string' ? value : undefined}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -112,171 +149,186 @@ export default function PersonalSubscriptionDetailsContent({
     [subscription, todayIso]
   );
 
+  const autoRenewTone: OverviewStatusProps['tone'] = subscription.auto_renew ? 'positive' : 'muted';
+  const remindersTone: OverviewStatusProps['tone'] = subscription.reminder_days_before.length > 0 ? 'accent' : 'muted';
+  const linkedTone: OverviewStatusProps['tone'] = subscription.recurring_transaction_id ? 'accent' : 'muted';
+
+  const providerDisplay =
+    subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' });
+  const categoryDisplay =
+    subscription.category?.name || t('transactions.noCategory', { ns: 'portal' });
+
   return (
-    <div className="space-y-3 max-[480px]:space-y-2.5">
-      <div className="rounded-[20px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(249,250,252,0.98)_100%)] px-3.5 py-3 shadow-card-sm">
-        <div className={`flex flex-wrap items-start justify-between gap-2.5 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-          <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <PersonalSubscriptionBrandLogo
-              providerKey={subscription.provider_key}
-              fallbackName={subscription.name}
-              size="md"
-            />
-            <div className="min-w-0 flex-1">
+    <div className="space-y-4 max-[480px]:space-y-3">
+      <div className={`flex items-start justify-between gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+        <div className={`flex min-w-0 flex-1 items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <PersonalSubscriptionBrandLogo
+            providerKey={subscription.provider_key}
+            fallbackName={subscription.name}
+            size="md"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-[17px] font-800 tracking-[-0.02em] text-foreground">
                 {subscription.name}
               </h2>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <StatusBadge
-                  status={getStatusTone(subscription.status)}
-                  label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })}
-                />
-                {highestWarning ? (
-                  <PersonalSubscriptionWarningBadge
-                    subscription={subscription}
-                    todayIso={todayIso}
-                  />
-                ) : null}
-              </div>
-              <p className="mt-1.5 text-[13px] leading-5 text-muted-foreground">
-                {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
-              </p>
+              <StatusBadge
+                status={getStatusTone(subscription.status)}
+                label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })}
+              />
+              {highestWarning ? (
+                <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
+              ) : null}
             </div>
+            <p className="mt-1 truncate text-[13px] leading-5 text-muted-foreground">
+              {providerDisplay} · {categoryDisplay}
+            </p>
           </div>
-          {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
+        {actions ? (
+          <div className="flex flex-wrap items-center gap-2">{actions}</div>
+        ) : null}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        <CompactMetricCard
+      <div className="grid grid-cols-1 gap-2 max-[480px]:grid-cols-1 sm:grid-cols-2">
+        <KeyMetric
           label={t('personalSubscriptions.detail.metrics.amount', { ns: 'portal' })}
           value={(
             <FormattedCurrencyAmount
               amount={subscription.amount}
               currencyCode={subscription.currency_code}
-              className="text-[14px] font-800 text-foreground"
+              className="text-[14.5px] font-800 text-foreground"
               showCode
             />
           )}
         />
-        <CompactMetricCard
+        <KeyMetric
           label={t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}
           value={t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
         />
-        <CompactMetricCard
+        <KeyMetric
           label={t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}
           value={formatDateValue(subscription.next_billing_date) || notAvailableLabel}
         />
-        <CompactMetricCard
+        <KeyMetric
           label={t('personalSubscriptions.labels.paymentAccount', { ns: 'portal' })}
           value={subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
         />
       </div>
 
-      <div className="rounded-[20px] border border-border/80 bg-[#fbfcfe] px-3 py-3 shadow-card-sm">
-        <p className="text-[11px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
+      <div className="rounded-2xl bg-muted/20 p-2 ring-1 ring-inset ring-border/50">
+        <p className="px-2 pt-1 pb-0.5 text-[11.5px] font-700 uppercase tracking-[0.06em] text-muted-foreground">
           {t('personalSubscriptions.detail.sections.overview', { ns: 'portal' })}
         </p>
-        <div className="mt-2.5 grid grid-cols-1 gap-2 min-[390px]:grid-cols-3">
-          <StatusMiniCard
+        <div className="grid grid-cols-1 gap-1 max-[480px]:grid-cols-1 min-[390px]:grid-cols-3 sm:gap-0.5">
+          <OverviewStatus
+            icon={<RefreshCw size={14} strokeWidth={2} className={autoRenewTone === 'positive' ? 'text-positive' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.labels.autoRenew', { ns: 'portal' })}
             value={subscription.auto_renew
               ? t('personalSubscriptions.labels.enabled', { ns: 'portal' })
               : t('personalSubscriptions.labels.disabled', { ns: 'portal' })}
-            toneClassName={subscription.auto_renew ? 'text-positive' : 'text-muted-foreground'}
+            tone={autoRenewTone}
           />
-          <StatusMiniCard
+          <OverviewStatus
+            icon={<BellRing size={14} strokeWidth={2} className={remindersTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.detail.metrics.reminders', { ns: 'portal' })}
             value={subscription.reminder_days_before.length > 0
               ? t('personalSubscriptions.labels.enabled', { ns: 'portal' })
               : t('personalSubscriptions.labels.off', { ns: 'portal' })}
-            toneClassName={subscription.reminder_days_before.length > 0 ? 'text-accent' : 'text-muted-foreground'}
+            tone={remindersTone}
           />
-          <StatusMiniCard
+          <OverviewStatus
+            icon={<Link2 size={14} strokeWidth={2} className={linkedTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}
             value={subscription.recurring_transaction_id
               ? t('personalSubscriptions.labels.linked', { ns: 'portal' })
               : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
-            toneClassName={subscription.recurring_transaction_id ? 'text-accent' : 'text-muted-foreground'}
+            tone={linkedTone}
           />
         </div>
       </div>
 
       <FormSection
-        variant="secondary"
+        variant="neutral"
         title={t('personalSubscriptions.detail.sections.additional', { ns: 'portal' })}
         description={t('personalSubscriptions.detail.sections.additionalDescription', { ns: 'portal' })}
         collapsible
         expanded={showMoreDetails}
         onExpandedChange={setShowMoreDetails}
-        className="border-border/80 bg-[#fcfcfd]"
-        headerClassName="px-3 py-2.5"
-        bodyClassName="space-y-2.5 px-3 py-2.5"
+        className="overflow-hidden rounded-2xl bg-card ring-1 ring-inset ring-border/60"
+        headerClassName="px-4 py-2.5"
+        bodyClassName="px-4 pb-3.5"
       >
-        <div className="grid grid-cols-1 gap-2 min-[390px]:grid-cols-2">
-          <DetailItem
+        <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+          <DefRow
             label={t('personalSubscriptions.form.fields.provider', { ns: 'portal' })}
             value={subscription.provider || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.category', { ns: 'portal' })}
             value={subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.paymentMethod', { ns: 'portal' })}
             value={subscription.payment_method || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.accountReference', { ns: 'portal' })}
             value={subscription.account_reference || notAvailableLabel}
+            wide
+            multiline
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.startDate', { ns: 'portal' })}
             value={formatDateValue(subscription.start_date) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.trialEndDate', { ns: 'portal' })}
             value={formatDateValue(subscription.trial_end_date) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.contractEndDate', { ns: 'portal' })}
             value={formatDateValue(subscription.contract_end_date) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.cancellationDeadline', { ns: 'portal' })}
             value={formatDateValue(subscription.cancellation_deadline) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.form.fields.reminderDaysBefore', { ns: 'portal' })}
             value={subscription.reminder_days_before.length > 0
               ? subscription.reminder_days_before.join(', ')
               : t('personalSubscriptions.labels.off', { ns: 'portal' })}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.cancellation.effectiveDate', { ns: 'portal' })}
             value={formatDateValue(subscription.cancel_effective_date) || notAvailableLabel}
           />
           {normalizedWebsiteUrl ? (
-            <DetailItem
+            <DefRow
               label={t('personalSubscriptions.form.fields.websiteUrl', { ns: 'portal' })}
               value={(
                 <a
                   href={normalizedWebsiteUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 font-700 text-accent hover:text-teal-600"
+                  className="inline-flex items-center gap-1 font-700 text-accent hover:underline"
                 >
-                  {normalizedWebsiteUrl}
-                  <ExternalLink size={13} />
+                  <span className="truncate">{normalizedWebsiteUrl}</span>
+                  <ExternalLink size={13} className="shrink-0" />
                 </a>
               )}
+              wide
             />
           ) : null}
           {subscription.recurring_transaction_id ? (
-            <DetailItem
+            <DefRow
               label={t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}
               value={(
-                <Link href="/recurring" className="inline-flex items-center gap-1 font-700 text-accent hover:text-teal-600">
+                <Link
+                  href="/recurring"
+                  className="inline-flex items-center gap-1 font-700 text-accent hover:underline"
+                >
                   {t('personalSubscriptions.labels.linked', { ns: 'portal' })}
                   <ExternalLink size={13} />
                 </Link>
@@ -284,38 +336,44 @@ export default function PersonalSubscriptionDetailsContent({
             />
           ) : null}
           {subscription.notes ? (
-            <DetailItem
+            <DefRow
               label={t('personalSubscriptions.form.fields.notes', { ns: 'portal' })}
               value={subscription.notes}
+              wide
+              multiline
             />
           ) : null}
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.detail.createdAt', { ns: 'portal' })}
             value={formatDateValue(subscription.created_at.slice(0, 10)) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.detail.updatedAt', { ns: 'portal' })}
             value={formatDateValue(subscription.updated_at.slice(0, 10)) || notAvailableLabel}
           />
-          <DetailItem
+          <DefRow
             label="ID"
             value={subscription.id}
+            wide
+            mono
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.detail.linkCards.account', { ns: 'portal' })}
             value={(
-              <span className="inline-flex items-center gap-1.5">
-                <Wallet size={13} className="text-muted-foreground" />
-                <span>{subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</span>
+              <span className="inline-flex items-center gap-1.5 font-700">
+                <Wallet size={14} className="shrink-0 text-muted-foreground" />
+                <span className="truncate">
+                  {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
+                </span>
               </span>
             )}
           />
-          <DetailItem
+          <DefRow
             label={t('personalSubscriptions.detail.linkCards.recurring', { ns: 'portal' })}
             value={(
-              <span className="inline-flex items-center gap-1.5">
-                <ReceiptText size={13} className="text-muted-foreground" />
-                <span>
+              <span className="inline-flex items-center gap-1.5 font-700">
+                <ReceiptText size={14} className="shrink-0 text-muted-foreground" />
+                <span className="truncate">
                   {subscription.recurring_transaction_id
                     ? t('personalSubscriptions.labels.linked', { ns: 'portal' })
                     : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
@@ -323,7 +381,7 @@ export default function PersonalSubscriptionDetailsContent({
               </span>
             )}
           />
-        </div>
+        </dl>
       </FormSection>
     </div>
   );
