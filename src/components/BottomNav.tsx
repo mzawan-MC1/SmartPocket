@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { useQuickActions, type QuickActionId } from '@/components/quick-actions/QuickActionsContext';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
-import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
+import { getSubscriptionFeatureAccess } from '@/lib/subscription/entitlements';
+import type { SubscriptionFeatureAccessState } from '@/lib/subscription/entitlements';
 interface BottomNavProps {
   activeRoute: string;
 }
@@ -17,13 +18,20 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   const { t } = useTranslation(['common', 'portal']);
   const { isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const quickActionsController = useQuickActions();
-  const { summary } = useSubscriptionSummary();
-  const canUseTextAi = hasSubscriptionFeature(summary, 'text_ai');
-  const canUseVoiceAi = hasSubscriptionFeature(summary, 'voice_ai');
-  const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
-  const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
-  const canUseSharedSpaces = hasSubscriptionFeature(summary, 'shared_spaces');
-  const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
+  const { summary, loading: subscriptionLoading } = useSubscriptionSummary();
+  const textAiAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'text_ai');
+  const voiceAiAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'voice_ai');
+  const aiHistoryAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'ai_history');
+  const managedPeopleAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'managed_people');
+  const sharedSpacesAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'shared_spaces');
+  const standardReportsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'standard_reports');
+  const canUseTextAi = textAiAccess === 'allowed';
+  const canUseVoiceAi = voiceAiAccess === 'allowed';
+  const canUseAiHistory = aiHistoryAccess === 'allowed';
+  const canUseManagedPeople = managedPeopleAccess === 'allowed';
+  const canUseSharedSpaces = sharedSpacesAccess === 'allowed';
+  const canUseStandardReports = standardReportsAccess === 'allowed';
+  const shouldShowRestrictedUi = (state: SubscriptionFeatureAccessState) => state === 'restricted';
   const getRestrictionBadgeLabel = (badge: 'upgrade' | 'family') => (
     badge === 'family'
       ? t('featureGate.badges.family', { ns: 'portal' })
@@ -95,7 +103,7 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       label: t('bottomNav.reports', { ns: 'portal' }),
       icon: BarChart3,
       href: '/reports',
-      restrictionBadge: canUseStandardReports ? undefined : 'upgrade',
+      restrictionBadge: shouldShowRestrictedUi(standardReportsAccess) ? 'upgrade' : undefined,
     },
     ...(canUseStandardReports
       ? [{ id: 'more-item-insights', label: t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' }), icon: ShoppingBag, href: '/reports/item-insights' }]
@@ -106,21 +114,21 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       label: t('bottomNav.aiHistory', { ns: 'portal' }),
       icon: Sparkles,
       href: '/ai-history',
-      restrictionBadge: canUseAiHistory ? undefined : 'upgrade',
+      restrictionBadge: shouldShowRestrictedUi(aiHistoryAccess) ? 'upgrade' : undefined,
     },
     {
       id: 'more-people',
       label: t('bottomNav.people', { ns: 'portal' }),
       icon: Users,
       href: '/people',
-      restrictionBadge: canUseManagedPeople ? undefined : 'family',
+      restrictionBadge: shouldShowRestrictedUi(managedPeopleAccess) ? 'family' : undefined,
     },
     {
       id: 'more-spaces',
       label: t('bottomNav.spaces', { ns: 'portal' }),
       icon: Home,
       href: '/spaces',
-      restrictionBadge: canUseSharedSpaces ? undefined : 'family',
+      restrictionBadge: shouldShowRestrictedUi(sharedSpacesAccess) ? 'family' : undefined,
     },
     { id: 'more-faqs', label: t('bottomNav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
     { id: 'more-support', label: t('bottomNav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },

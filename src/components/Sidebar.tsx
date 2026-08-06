@@ -13,7 +13,8 @@ import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { getSettingsAssetUrl, shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import UserAvatar from '@/components/ui/UserAvatar';
-import { hasSubscriptionFeature } from '@/lib/subscription/entitlements';
+import { getSubscriptionFeatureAccess } from '@/lib/subscription/entitlements';
+import type { SubscriptionFeatureAccessState } from '@/lib/subscription/entitlements';
 
 
 interface SidebarProps {
@@ -45,7 +46,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const router = useRouter();
   const { pathname, isRouteActive, isRoutePending, handleNavigationIntent } = usePendingNavigation(activeRoute);
   const { branding, updatedAt } = usePlatformSettings();
-  const { summary } = useSubscriptionSummary();
+  const { summary, loading: subscriptionLoading } = useSubscriptionSummary();
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const collapsedLogoSrc = React.useMemo(() => {
     const primaryLogoUrl = branding.logoUrl.trim();
@@ -59,10 +60,15 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   }, [branding.compactLogoUrl, branding.logoUrl, updatedAt]);
   const isReportsRoute = pathname === '/reports' || pathname.startsWith('/reports/');
   const [reportsExpanded, setReportsExpanded] = React.useState(isReportsRoute);
-  const canUseAiHistory = hasSubscriptionFeature(summary, 'ai_history');
-  const canUseManagedPeople = hasSubscriptionFeature(summary, 'managed_people');
-  const canUseSharedSpaces = hasSubscriptionFeature(summary, 'shared_spaces');
-  const canUseStandardReports = hasSubscriptionFeature(summary, 'standard_reports');
+  const aiHistoryAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'ai_history');
+  const managedPeopleAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'managed_people');
+  const sharedSpacesAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'shared_spaces');
+  const standardReportsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'standard_reports');
+  const canUseAiHistory = aiHistoryAccess === 'allowed';
+  const canUseManagedPeople = managedPeopleAccess === 'allowed';
+  const canUseSharedSpaces = sharedSpacesAccess === 'allowed';
+  const canUseStandardReports = standardReportsAccess === 'allowed';
+  const shouldShowRestrictedUi = (state: SubscriptionFeatureAccessState) => state === 'restricted';
   const getRestrictionBadgeLabel = React.useCallback((badge: 'upgrade' | 'family') => (
     badge === 'family'
       ? t('featureGate.badges.family', { ns: 'portal' })
@@ -105,14 +111,14 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           label: t('sidebar.nav.people', { ns: 'portal' }),
           icon: Users,
           href: '/people',
-          restrictionBadge: canUseManagedPeople ? undefined : ('family' as const),
+          restrictionBadge: shouldShowRestrictedUi(managedPeopleAccess) ? ('family' as const) : undefined,
         },
         {
           id: 'nav-spaces',
           label: t('sidebar.nav.spaces', { ns: 'portal' }),
           icon: Home,
           href: '/spaces',
-          restrictionBadge: canUseSharedSpaces ? undefined : ('family' as const),
+          restrictionBadge: shouldShowRestrictedUi(sharedSpacesAccess) ? ('family' as const) : undefined,
         },
       ],
     },
@@ -127,7 +133,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           label: t('sidebar.nav.aiHistory', { ns: 'portal' }),
           icon: History,
           href: '/ai-history',
-          restrictionBadge: canUseAiHistory ? undefined : ('upgrade' as const),
+          restrictionBadge: shouldShowRestrictedUi(aiHistoryAccess) ? ('upgrade' as const) : undefined,
         },
       ],
     },
@@ -181,7 +187,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     const Icon = item.icon;
     const active = typeof activeOverride === 'boolean' ? activeOverride : isRouteActive(item.href);
     const pending = isRoutePending(item.href);
-    const restrictionBadgeLabel = item.restrictionBadge ? getRestrictionBadgeLabel(item.restrictionBadge) : null;
+    const itemIsRestricted = Boolean(item.restrictionBadge);
+    const restrictionBadgeLabel = itemIsRestricted && item.restrictionBadge
+      ? getRestrictionBadgeLabel(item.restrictionBadge)
+      : null;
     const tooltipLabel = restrictionBadgeLabel
       ? t('sidebar.lockedTooltip', { ns: 'portal', label: item.label, restriction: restrictionBadgeLabel })
       : item.label;
@@ -199,7 +208,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           className={`group relative flex items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
             active
               ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
-              : item.restrictionBadge
+              : itemIsRestricted
                 ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
                 : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
           } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'} ${compact ? 'px-3 py-2.5' : ''}`}
@@ -281,7 +290,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     const parentPending = isRoutePending('/reports');
     const ReportsIcon = BarChart3;
     const shouldShowSubmenu = !collapsed;
-    const reportsRestrictionBadge = canUseStandardReports ? null : getRestrictionBadgeLabel('upgrade');
+    const reportsRestrictionBadge = shouldShowRestrictedUi(standardReportsAccess)
+      ? getRestrictionBadgeLabel('upgrade')
+      : null;
+    const reportsButtonIsRestricted = Boolean(reportsRestrictionBadge);
 
     return (
       <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
@@ -304,7 +316,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             className={`group relative flex w-full items-center gap-2.5 overflow-hidden rounded-2xl border text-sm font-600 transition-all duration-150 ${
               parentActive
                 ? 'border-cyan-200/70 bg-cyan-50 text-cyan-700 shadow-sm'
-                : !canUseStandardReports
+                : reportsButtonIsRestricted
                   ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
                   : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
             } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'}`}

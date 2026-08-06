@@ -4,6 +4,8 @@ import type {
   SubscriptionSummary,
 } from '@/lib/subscription/types';
 
+export type SubscriptionFeatureAccessState = 'unresolved' | 'allowed' | 'restricted';
+
 export function getSubscriptionEntitlements(summary: SubscriptionSummary | null | undefined): SubscriptionEntitlements | null {
   return summary?.entitlements ?? null;
 }
@@ -37,4 +39,21 @@ export function hasSubscriptionFeature(
     default:
       return false;
   }
+}
+
+export function getSubscriptionFeatureAccess(
+  summary: SubscriptionSummary | null | undefined,
+  loading: boolean,
+  feature: SubscriptionFeatureCode
+): SubscriptionFeatureAccessState {
+  if (loading) {
+    return 'unresolved';
+  }
+
+  const entitlements = getSubscriptionEntitlements(summary);
+  if (!entitlements) {
+    return 'unresolved';
+  }
+
+  return hasSubscriptionFeature(summary, feature) ? 'allowed' : 'restricted';
 }
