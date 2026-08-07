@@ -617,7 +617,7 @@ export default function PersonalSubscriptionsPage() {
                         </div>
                       </div>
 
-                      <div className={`order-2 sm:col-span-4 min-w-0 rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 border border-border/70 bg-muted/10 px-2.5 py-2 grid grid-cols-3 gap-x-2 sm:gap-x-2.5 md:gap-x-3 lg:gap-x-4 ${isRTL ? 'direction-rtl sm:direction-inherit text-right sm:text-right' : 'text-left sm:text-left'}`}>
+                      <div className={`order-2 sm:col-span-4 min-w-0 rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 border border-border/70 bg-muted/10 px-2.5 py-2 grid grid-cols-3 gap-x-2 sm:gap-x-2.5 md:gap-x-3 lg:gap-x-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)] lg:grid-cols-3 ${isRTL ? 'direction-rtl sm:direction-inherit text-right sm:text-right' : 'text-left sm:text-left'}`}>
                         <div className="min-w-0">
                           <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{freqLabel}</p>
                           <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
@@ -632,7 +632,7 @@ export default function PersonalSubscriptionsPage() {
                         </div>
                         <div className="min-w-0">
                           <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{nextLabel}</p>
-                          <p className="mt-0.5 sm:mt-1 break-words text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
+                          <p className="mt-0.5 sm:mt-1 break-words sm:whitespace-nowrap lg:whitespace-normal text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
                             {nextChargeValue}
                           </p>
                         </div>
