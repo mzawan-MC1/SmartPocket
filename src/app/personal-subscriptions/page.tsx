@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { CalendarClock, CreditCard, Edit2, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
+import { CalendarClock, CreditCard, Edit2, Eye, Filter, Loader2, MoreVertical, Pause, Play, Trash2, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
@@ -543,165 +543,233 @@ export default function PersonalSubscriptionsPage() {
               {t('personalSubscriptions.empty.filtered', { ns: 'portal' })}
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {filteredSubscriptions.map((subscription) => (
-                <article key={subscription.id} className="space-y-2.5 px-3.5 py-3">
-                  <div className={`flex items-start justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <PersonalSubscriptionBrandLogo
-                      providerKey={subscription.provider_key}
-                      fallbackName={subscription.name}
-                      size="sm"
-                    />
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewingSubscriptionId(subscription.id);
-                            setOpenMenuId(null);
-                          }}
-                          className="truncate text-[15px] font-800 text-foreground hover:text-accent"
-                        >
-                          {subscription.name}
-                        </button>
-                        <StatusBadge status={getStatusTone(subscription.status)} label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })} />
-                        <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
-                      </div>
-                      <p className="text-[13px] text-muted-foreground">
-                        {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
-                      </p>
-                      <p className="text-[12px] text-muted-foreground">
-                        {t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}: {formatDateValue(subscription.next_billing_date) || notAvailableLabel}
-                      </p>
-                    </div>
-                  </div>
-                    <div className={`shrink-0 ${isRTL ? 'text-start' : 'text-end'}`}>
-                      <FormattedCurrencyAmount
-                        amount={subscription.amount}
-                        currencyCode={subscription.currency_code}
-                        className="text-[15px] font-800 text-foreground"
-                        showCode
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="inline-flex rounded-full border border-border/80 bg-[#f3f6fb] px-2.5 py-1 text-[10.5px] font-700 text-muted-foreground">
-                      {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
-                    </span>
-                    <span className="inline-flex rounded-full border border-border/80 bg-[#f3f6fb] px-2.5 py-1 text-[10.5px] font-700 text-muted-foreground">
-                      {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
-                    </span>
-                    <span className="inline-flex rounded-full border border-border/80 bg-[#f3f6fb] px-2.5 py-1 text-[10.5px] font-700 text-muted-foreground">
-                      {formatDateValue(subscription.next_billing_date) || notAvailableLabel}
-                    </span>
-                  </div>
-
-                  <div className={`flex flex-wrap items-center gap-1.5 ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setViewingSubscriptionId(subscription.id);
-                        setOpenMenuId(null);
-                      }}
-                      className="inline-flex min-h-9 items-center justify-center rounded-xl border border-[#d8e3f2] bg-[#edf4ff] px-3 text-[13px] font-700 text-[#24467d]"
-                    >
-                      {t('actions.view', { ns: 'common' })}
-                    </button>
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setOpenMenuId(openMenuId === subscription.id ? null : subscription.id)}
-                        className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-border bg-card px-3 text-[13px] font-700 text-foreground"
-                        aria-haspopup="menu"
-                        aria-expanded={openMenuId === subscription.id}
-                      >
-                        <MoreVertical size={12} />
-                        {t('actions.more', { ns: 'common' })}
-                      </button>
-                      {openMenuId === subscription.id ? (
-                        <div
-                          role="menu"
-                          className={`absolute top-full z-20 mt-1.5 flex w-[min(13rem,calc(100vw-2.25rem))] flex-col overflow-hidden rounded-[18px] border border-border bg-card p-1.5 shadow-card-lg sm:min-w-[12.5rem] sm:w-auto ${isRTL ? 'left-0' : 'right-0'}`}
-                        >
-                          <div className="mb-1 rounded-xl border border-border/70 bg-muted/15 px-2.5 py-1.5 text-[10.5px] leading-4 text-muted-foreground">
-                            <p>{t('personalSubscriptions.labels.autoRenew', { ns: 'portal' })}: {subscription.auto_renew ? t('personalSubscriptions.labels.enabled', { ns: 'portal' }) : t('personalSubscriptions.labels.disabled', { ns: 'portal' })}</p>
-                            <p>{t('personalSubscriptions.labels.reminders', { ns: 'portal' })}: {subscription.reminder_days_before.length > 0 ? subscription.reminder_days_before.join(', ') : t('personalSubscriptions.labels.off', { ns: 'portal' })}</p>
-                            <p>{t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}: {subscription.recurring_transaction_id ? t('personalSubscriptions.labels.linked', { ns: 'portal' }) : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</p>
+            <div className="divide-y divide-border/80">
+              {filteredSubscriptions.map((subscription) => {
+                const openView = () => {
+                  setViewingSubscriptionId(subscription.id);
+                  setOpenMenuId(null);
+                };
+                return (
+                  <article
+                    key={subscription.id}
+                    className={`group/item relative px-3 py-2.5 sm:px-3.5 sm:py-3 ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}
+                  >
+                    <div className={`hidden sm:flex items-center justify-between gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                      <div className={`flex flex-1 items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <PersonalSubscriptionBrandLogo
+                          providerKey={subscription.provider_key}
+                          fallbackName={subscription.name}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={openView}
+                              className="truncate text-[15px] font-800 tracking-[-0.01em] text-foreground hover:text-accent"
+                            >
+                              {subscription.name}
+                            </button>
+                            <StatusBadge status={getStatusTone(subscription.status)} label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })} />
+                            <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
                           </div>
-                          <Link
-                            href={`/personal-subscriptions/${subscription.id}/edit`}
-                            role="menuitem"
-                            onClick={() => setOpenMenuId(null)}
-                            className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
-                          >
-                            <Edit2 size={14} className="text-muted-foreground" />
-                            {t('actions.edit', { ns: 'common' })}
-                          </Link>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => void handleMarkPaid(subscription)}
-                            disabled={processingId === subscription.id || !subscription.financial_account_id}
-                            className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
-                          >
-                            {processingId === subscription.id ? <Loader2 size={14} className="animate-spin text-muted-foreground" /> : <CreditCard size={14} className="text-muted-foreground" />}
-                            {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
-                          </button>
-                          {canPauseOrResumePersonalSubscription(subscription.status) ? (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => void handlePauseToggle(subscription)}
-                              className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
-                            >
-                              {subscription.status === 'paused' ? <Play size={14} className="text-muted-foreground" /> : <Pause size={14} className="text-muted-foreground" />}
-                              {subscription.status === 'paused'
-                                ? t('personalSubscriptions.actions.resume', { ns: 'portal' })
-                                : t('personalSubscriptions.actions.pause', { ns: 'portal' })}
-                            </button>
-                          ) : null}
-                          {canRequestPersonalSubscriptionCancellation(subscription.status) ? (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => {
-                                setCancellationTarget(subscription);
-                                setOpenMenuId(null);
-                              }}
-                              className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
-                            >
-                              <CalendarClock size={14} className="text-muted-foreground" />
-                              {t('personalSubscriptions.actions.requestCancellation', { ns: 'portal' })}
-                            </button>
-                          ) : null}
-                          {canMarkPersonalSubscriptionCancelled(subscription.status) ? (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              onClick={() => void handleMarkCancelled(subscription)}
-                              className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
-                            >
-                              <XCircle size={14} className="text-muted-foreground" />
-                              {t('personalSubscriptions.actions.markCancelled', { ns: 'portal' })}
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => void handleDelete(subscription)}
-                            className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-negative transition-colors hover:bg-negative-soft"
-                          >
-                            <Trash2 size={14} />
-                            {t('actions.delete', { ns: 'common' })}
-                          </button>
+                          <p className="mt-0.5 truncate text-[12.5px] leading-5 text-muted-foreground">
+                            {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
+                          </p>
                         </div>
-                      ) : null}
+                        <div className={`hidden shrink-0 sm:flex items-center gap-5 md:gap-6 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                          <div className="grid grid-cols-3 gap-x-5 md:gap-x-6 gap-y-0 text-[11.5px]">
+                            <div className={`min-w-0 ${isRTL ? 'sm:text-end' : 'sm:text-start'}`}>
+                              <p className="font-600 text-muted-foreground">{t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}</p>
+                              <p className="mt-0.5 truncate font-800 text-foreground">
+                                {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
+                              </p>
+                            </div>
+                            <div className={`min-w-0 ${isRTL ? 'sm:text-end' : 'sm:text-start'}`}>
+                              <p className="font-600 text-muted-foreground">{t('personalSubscriptions.labels.paymentAccount', { ns: 'portal' })}</p>
+                              <p className="mt-0.5 truncate font-800 text-foreground">
+                                {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
+                              </p>
+                            </div>
+                            <div className={`min-w-0 ${isRTL ? 'sm:text-end' : 'sm:text-start'}`}>
+                              <p className="font-600 text-muted-foreground">{t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}</p>
+                              <p className="mt-0.5 truncate font-800 text-foreground">
+                                {formatDateValue(subscription.next_billing_date) || notAvailableLabel}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
-                </article>
-              ))}
+
+                    <div className={`sm:hidden space-y-2 ${isRTL ? 'text-end' : 'text-start'}`}>
+                      <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <div className={`flex min-w-0 flex-1 items-start gap-2.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <PersonalSubscriptionBrandLogo
+                            providerKey={subscription.provider_key}
+                            fallbackName={subscription.name}
+                            size="sm"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={openView}
+                                className="truncate text-[14.5px] font-800 tracking-[-0.01em] text-foreground hover:text-accent"
+                              >
+                                {subscription.name}
+                              </button>
+                              <StatusBadge status={getStatusTone(subscription.status)} label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })} />
+                              <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
+                            </div>
+                            <p className="mt-0.5 line-clamp-1 text-[11.5px] leading-4 text-muted-foreground">
+                              {(subscription.provider || t('personalSubscriptions.labels.customProvider', { ns: 'portal' }))} · {subscription.category?.name || t('transactions.noCategory', { ns: 'portal' })}
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`shrink-0 sm:hidden ${isRTL ? 'text-start' : 'text-end'}`}>
+                          <FormattedCurrencyAmount
+                            amount={subscription.amount}
+                            currencyCode={subscription.currency_code}
+                            className="text-[15px] font-900 tracking-[-0.015em] text-foreground"
+                            showCode
+                          />
+                        </div>
+                      </div>
+                      <div className="min-w-0 flex-1 space-y-0.5 sm:hidden">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0 text-[11px] text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="font-600">{t('personalSubscriptions.form.fields.billingFrequency', { ns: 'portal' })}:</span>
+                            <span className="truncate font-800 text-foreground">{t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="font-600">{t('personalSubscriptions.labels.nextCharge', { ns: 'portal' })}:</span>
+                            <span className="truncate font-800 text-foreground">{formatDateValue(subscription.next_billing_date) || notAvailableLabel}</span>
+                          </span>
+                        </div>
+                        <p className="truncate text-[11px] text-muted-foreground">
+                          <span className="font-600">{t('personalSubscriptions.labels.paymentAccount', { ns: 'portal' })}:</span>
+                          <span className="ml-1 truncate font-800 text-foreground">{subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`mt-2 sm:mt-0 flex items-center justify-between sm:static sm:absolute sm:top-1/2 sm:translate-y-[-50%] gap-1.5 sm:gap-2.5 ${isRTL ? 'sm:left-[max(0.875rem,env(safe-area-inset-left))]' : 'sm:right-[max(0.875rem,env(safe-area-inset-right))]'} ${isRTL ? 'sm:flex-row-reverse' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <div className="flex-1 sm:hidden" />
+                      <div className={`shrink-0 sm:flex sm:items-center sm:gap-2.5 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                        <div className={`hidden sm:block min-w-[7.5rem] ${isRTL ? 'sm:text-start' : 'sm:text-end'}`}>
+                          <FormattedCurrencyAmount
+                            amount={subscription.amount}
+                            currencyCode={subscription.currency_code}
+                            className="text-[16px] font-900 tracking-[-0.02em] text-foreground"
+                            showCode
+                          />
+                        </div>
+                        <div className={`flex items-center gap-1.5 order-last sm:order-none ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={openView}
+                            className="inline-flex h-9 min-w-[3.25rem] items-center justify-center rounded-lg border border-border/80 bg-card px-2 text-[12.5px] font-700 text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/50 sm:min-w-0 sm:px-2.5"
+                          >
+                            <Eye size={14} className="hidden sm:inline-flex mr-1 shrink-0 text-muted-foreground" />
+                            {t('actions.view', { ns: 'common' })}
+                          </button>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setOpenMenuId(openMenuId === subscription.id ? null : subscription.id)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/80 bg-card text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/50"
+                            aria-haspopup="menu"
+                            aria-expanded={openMenuId === subscription.id}
+                          >
+                            <MoreVertical size={16} />
+                          </button>
+                          {openMenuId === subscription.id ? (
+                            <div
+                              role="menu"
+                              className={`absolute top-full z-20 mt-1.5 flex w-[min(13rem,calc(100vw-2.25rem))] flex-col overflow-hidden rounded-[18px] border border-border bg-card p-1.5 shadow-card-lg sm:min-w-[12.5rem] sm:w-auto ${isRTL ? 'left-0' : 'right-0'}`}
+                            >
+                              <div className="mb-1 rounded-xl border border-border/70 bg-muted/15 px-2.5 py-1.5 text-[10.5px] leading-4 text-muted-foreground">
+                                <p>{t('personalSubscriptions.labels.autoRenew', { ns: 'portal' })}: {subscription.auto_renew ? t('personalSubscriptions.labels.enabled', { ns: 'portal' }) : t('personalSubscriptions.labels.disabled', { ns: 'portal' })}</p>
+                                <p>{t('personalSubscriptions.labels.reminders', { ns: 'portal' })}: {subscription.reminder_days_before.length > 0 ? subscription.reminder_days_before.join(', ') : t('personalSubscriptions.labels.off', { ns: 'portal' })}</p>
+                                <p>{t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}: {subscription.recurring_transaction_id ? t('personalSubscriptions.labels.linked', { ns: 'portal' }) : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}</p>
+                              </div>
+                              <Link
+                                href={`/personal-subscriptions/${subscription.id}/edit`}
+                                role="menuitem"
+                                onClick={() => setOpenMenuId(null)}
+                                className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
+                              >
+                                <Edit2 size={14} className="text-muted-foreground" />
+                                {t('actions.edit', { ns: 'common' })}
+                              </Link>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => void handleMarkPaid(subscription)}
+                                disabled={processingId === subscription.id || !subscription.financial_account_id}
+                                className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
+                              >
+                                {processingId === subscription.id ? <Loader2 size={14} className="animate-spin text-muted-foreground" /> : <CreditCard size={14} className="text-muted-foreground" />}
+                                {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
+                              </button>
+                              {canPauseOrResumePersonalSubscription(subscription.status) ? (
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => void handlePauseToggle(subscription)}
+                                  className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
+                                >
+                                  {subscription.status === 'paused' ? <Play size={14} className="text-muted-foreground" /> : <Pause size={14} className="text-muted-foreground" />}
+                                  {subscription.status === 'paused'
+                                    ? t('personalSubscriptions.actions.resume', { ns: 'portal' })
+                                    : t('personalSubscriptions.actions.pause', { ns: 'portal' })}
+                                </button>
+                              ) : null}
+                              {canRequestPersonalSubscriptionCancellation(subscription.status) ? (
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => {
+                                    setCancellationTarget(subscription);
+                                    setOpenMenuId(null);
+                                  }}
+                                  className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
+                                >
+                                  <CalendarClock size={14} className="text-muted-foreground" />
+                                  {t('personalSubscriptions.actions.requestCancellation', { ns: 'portal' })}
+                                </button>
+                              ) : null}
+                              {canMarkPersonalSubscriptionCancelled(subscription.status) ? (
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  onClick={() => void handleMarkCancelled(subscription)}
+                                  className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
+                                >
+                                  <XCircle size={14} className="text-muted-foreground" />
+                                  {t('personalSubscriptions.actions.markCancelled', { ns: 'portal' })}
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => void handleDelete(subscription)}
+                                className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-negative transition-colors hover:bg-negative-soft"
+                              >
+                                <Trash2 size={14} />
+                                {t('actions.delete', { ns: 'common' })}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )}
         </SectionCard>
