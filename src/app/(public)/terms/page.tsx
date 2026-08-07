@@ -1,16 +1,18 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import PublicLegalPageClient from '@/components/public/PublicLegalPageClient';
+import CmsPageView from '@/components/cms/CmsPageView';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
-import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import { getAnyCmsPageBySlug, getPublicCmsPageBySlug } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import {
+  buildArticleStructuredData,
   buildBreadcrumbStructuredData,
   buildPageMetadata,
   getEmergencyPageMetadataFallback,
   resolveMetadataLanguage,
 } from '@/lib/site-metadata';
+
+export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPlatformSettingsSnapshot();
@@ -55,23 +57,34 @@ export default async function TermsPage() {
     resolveMetadataLanguage(settings),
   ]);
 
-  if (!cmsPage && anyPage) {
+  if (!cmsPage) {
+    if (anyPage) {
+      notFound();
+    }
     notFound();
   }
 
-  const publicText = BASE_I18N_RESOURCES[metadataLanguage].public as Record<string, any>;
-  const legalText = publicText.legal?.terms || {};
   const structuredData = [
     buildBreadcrumbStructuredData(settings, [
       { name: settings.branding.appName, path: '/' },
-      { name: legalText.title || 'Terms of Service', path: '/terms' },
+      { name: cmsPage.title, path: '/terms' },
     ]),
+    buildArticleStructuredData({
+      settings,
+      title: cmsPage.seo_title_resolved,
+      description: cmsPage.seo_description_resolved,
+      pathname: '/terms',
+      imageUrl: cmsPage.seo_image_url || undefined,
+      publishedAt: cmsPage.published_at,
+      updatedAt: cmsPage.updated_at,
+      language: metadataLanguage,
+    }),
   ];
 
   return (
     <>
       <StructuredDataScripts entries={structuredData} />
-      <PublicLegalPageClient pageKey="terms" />
+      <CmsPageView page={cmsPage} />
     </>
   );
 }
