@@ -652,12 +652,12 @@ export default function PersonalSubscriptionsPage() {
                             </span>
                           </span>
                         </div>
-                        <div className={`sm:grid sm:grid-cols-2 sm:gap-x-1 sm:gap-y-1.5 sm:w-auto sm:shrink-0 sm:min-w-[10.5rem] flex flex-wrap items-center justify-end sm:justify-end gap-1.5 w-full ${isRTL ? 'sm:[&>*:nth-child(odd)]:text-right sm:[&>*:nth-child(even)]:text-left flex-row-reverse' : ''}`}>
+                        <div className={`lg:grid lg:grid-cols-2 lg:gap-x-1 lg:gap-y-1.5 lg:w-auto lg:shrink-0 lg:min-w-[10.5rem] flex flex-wrap items-center justify-end gap-1.5 w-full ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <button
                             type="button"
                             onClick={() => void handleMarkPaid(subscription)}
                             disabled={processingId === subscription.id || !subscription.financial_account_id}
-                            className="inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-positive-500/25 bg-positive-500/8 sm:text-[11px] text-[12px] font-700 text-positive-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-positive-500/15 disabled:opacity-50 sm:px-2 px-2.5 dark:border-positive-400/30 dark:bg-positive-400/10 dark:text-positive-300 dark:hover:bg-positive-400/18 sm:gap-1"
+                            className="inline-flex sm:hidden lg:inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-positive-500/25 bg-positive-500/8 sm:text-[11px] text-[12px] font-700 text-positive-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-positive-500/15 disabled:opacity-50 sm:px-2 px-2.5 dark:border-positive-400/30 dark:bg-positive-400/10 dark:text-positive-300 dark:hover:bg-positive-400/18 sm:gap-1"
                           >
                             {processingId === subscription.id ? <Loader2 size={12} className="sm:w-3 sm:h-3 animate-spin" /> : <CreditCard size={12} className="sm:w-3 sm:h-3" />}
                             <span>{t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}</span>
@@ -666,7 +666,7 @@ export default function PersonalSubscriptionsPage() {
                             <button
                               type="button"
                               onClick={() => void handlePauseToggle(subscription)}
-                              className={`inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 sm:text-[11px] text-[12px] font-700 text-amber-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-amber-500/18 sm:px-2 px-2.5 dark:border-amber-400/35 dark:bg-amber-400/12 dark:text-amber-300 dark:hover:bg-amber-400/22 sm:gap-1`}
+                              className={`inline-flex sm:hidden lg:inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 sm:text-[11px] text-[12px] font-700 text-amber-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-amber-500/18 sm:px-2 px-2.5 dark:border-amber-400/35 dark:bg-amber-400/12 dark:text-amber-300 dark:hover:bg-amber-400/22 sm:gap-1`}
                             >
                               {subscription.status === 'paused' ? <Play size={12} className="sm:w-3 sm:h-3" /> : <Pause size={12} className="sm:w-3 sm:h-3" />}
                               <span>
@@ -676,7 +676,7 @@ export default function PersonalSubscriptionsPage() {
                               </span>
                             </button>
                           ) : (
-                            <span className={`hidden sm:block sm:h-8 sm:w-full`} aria-hidden="true" />
+                            <span className={`hidden sm:hidden lg:block lg:h-8 lg:w-full`} aria-hidden="true" />
                           )}
                           <button
                             type="button"
@@ -686,7 +686,7 @@ export default function PersonalSubscriptionsPage() {
                             <Eye size={13} className={`sm:w-3.5 sm:h-3.5 shrink-0 text-muted-foreground ${isRTL ? 'sm:ml-0 sm:mr-1' : 'sm:mr-1 sm:ml-0'} ${isRTL ? 'mr-1 ml-0' : 'ml-1 mr-0'}`} />
                             <span>{t('actions.view', { ns: 'common' })}</span>
                           </button>
-                          <div className="relative flex sm:justify-start justify-end">
+                          <div className="relative flex justify-end">
                             <button
                               type="button"
                               onClick={() => setOpenMenuId(openMenuId === subscription.id ? null : subscription.id)}
@@ -715,6 +715,31 @@ export default function PersonalSubscriptionsPage() {
                                   <Edit2 size={14} className="text-muted-foreground" />
                                   {t('actions.edit', { ns: 'common' })}
                                 </Link>
+                                <div className={`sm:flex lg:hidden flex-col`}>
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    onClick={() => void handleMarkPaid(subscription)}
+                                    disabled={processingId === subscription.id || !subscription.financial_account_id}
+                                    className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-positive-700 transition-colors hover:bg-positive-500/8 dark:text-positive-300 dark:hover:bg-positive-400/10 disabled:opacity-50"
+                                  >
+                                    {processingId === subscription.id ? <Loader2 size={14} className="animate-spin text-positive-600 dark:text-positive-300" /> : <CreditCard size={14} className="text-positive-600 dark:text-positive-300" />}
+                                    {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
+                                  </button>
+                                  {canPauseOrResumePersonalSubscription(subscription.status) ? (
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      onClick={() => void handlePauseToggle(subscription)}
+                                      className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-amber-700 transition-colors hover:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-400/15"
+                                    >
+                                      {subscription.status === 'paused' ? <Play size={14} className="text-amber-600 dark:text-amber-300" /> : <Pause size={14} className="text-amber-600 dark:text-amber-300" />}
+                                      {subscription.status === 'paused'
+                                        ? t('personalSubscriptions.actions.resume', { ns: 'portal' })
+                                        : t('personalSubscriptions.actions.pause', { ns: 'portal' })}
+                                    </button>
+                                  ) : null}
+                                </div>
                                 {canRequestPersonalSubscriptionCancellation(subscription.status) ? (
                                   <button
                                     type="button"
