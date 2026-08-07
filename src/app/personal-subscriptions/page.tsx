@@ -562,8 +562,8 @@ export default function PersonalSubscriptionsPage() {
                   >
                     <div className={`pointer-events-none absolute inset-x-0 top-0 h-[2px] rounded-t-[15px] overflow-hidden ${getStatusTone(subscription.status) === 'ready' ? 'bg-gradient-to-r from-transparent via-accent/25 to-transparent' : 'bg-gradient-to-r from-transparent via-muted-foreground/15 to-transparent'}`} aria-hidden="true" />
 
-                    <div className="flex flex-col gap-y-2.5 sm:gap-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-x-3.5 md:gap-x-4 lg:gap-x-5 sm:min-h-[88px]">
-                      <div className={`order-1 sm:col-span-4 flex min-w-0 sm:flex-row sm:items-center gap-0 sm:gap-3 flex-col ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                    <div className="flex flex-col gap-y-2.5 sm:gap-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-x-2.5 md:gap-x-3.5 lg:gap-x-5 sm:min-h-[88px]">
+                      <div className={`order-1 sm:col-span-3 flex min-w-0 sm:flex-row sm:items-center gap-0 sm:gap-3 flex-col ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                         <div className={`flex items-start sm:items-center justify-between gap-2 sm:gap-0 ${isRTL ? 'sm:flex-row-reverse flex-row-reverse' : ''}`}>
                           <div className={`flex items-start sm:items-center gap-2.5 sm:gap-0 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                             <div className={`shrink-0 ${isRTL ? 'sm:ml-3 sm:mr-0' : 'sm:mr-3 sm:ml-0'}`}>
@@ -617,7 +617,7 @@ export default function PersonalSubscriptionsPage() {
                         </div>
                       </div>
 
-                      <div className={`order-2 sm:col-span-4 min-w-0 rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 border border-border/70 bg-muted/10 px-2.5 py-2 grid grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-4 lg:gap-x-5 ${isRTL ? 'direction-rtl sm:direction-inherit text-right sm:text-right' : 'text-left sm:text-left'}`}>
+                      <div className={`order-2 sm:col-span-4 min-w-0 rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 border border-border/70 bg-muted/10 px-2.5 py-2 grid grid-cols-3 gap-x-2 sm:gap-x-2.5 md:gap-x-3 lg:gap-x-4 ${isRTL ? 'direction-rtl sm:direction-inherit text-right sm:text-right' : 'text-left sm:text-left'}`}>
                         <div className="min-w-0">
                           <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{freqLabel}</p>
                           <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
@@ -638,19 +638,21 @@ export default function PersonalSubscriptionsPage() {
                         </div>
                       </div>
 
-                      <div className={`order-3 sm:col-span-4 min-w-0 sm:flex sm:items-center sm:justify-end sm:gap-2.5 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-                        <div className={`hidden sm:block min-w-0 flex-1 ${isRTL ? 'sm:text-left' : 'sm:text-right'}`}>
-                          <FormattedCurrencyAmount
-                            amount={subscription.amount}
-                            currencyCode={subscription.currency_code}
-                            className="text-[17px] font-900 tracking-[-0.02em] text-foreground"
-                            showCode
-                          />
-                          <p className="mt-0.5 text-[11px] font-600 leading-4 text-muted-foreground/85">
-                            / {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
-                          </p>
+                      <div className={`order-3 sm:col-span-5 min-w-0 sm:flex sm:items-center sm:justify-end sm:gap-3 md:gap-3.5 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                        <div className={`hidden sm:flex sm:shrink-0 sm:items-center sm:justify-end whitespace-nowrap ${isRTL ? 'sm:text-left' : 'sm:text-right'}`}>
+                          <span className={`inline-flex sm:items-center sm:gap-1.5 whitespace-nowrap ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                            <FormattedCurrencyAmount
+                              amount={subscription.amount}
+                              currencyCode={subscription.currency_code}
+                              className="sm:text-[16.5px] md:text-[17px] sm:font-900 sm:tracking-[-0.02em] sm:leading-none text-foreground"
+                              showCode
+                            />
+                            <span className={`sm:shrink-0 sm:text-[11px] sm:font-600 sm:leading-none text-muted-foreground/85 ${isRTL ? 'sm:mr-1 sm:ml-0' : 'sm:ml-1 sm:mr-0'}`}>
+                              / {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
+                            </span>
+                          </span>
                         </div>
-                        <div className={`sm:grid sm:grid-cols-2 sm:gap-x-1.5 sm:gap-y-1.5 sm:w-auto flex flex-wrap items-center justify-end sm:justify-end gap-1.5 w-full sm:shrink-0 sm:min-w-[11.5rem] ${isRTL ? 'sm:[&>*:nth-child(odd)]:text-right sm:[&>*:nth-child(even)]:text-left sm:flex-row-reverse flex-row-reverse' : ''}`}>
+                        <div className={`sm:grid sm:grid-cols-2 sm:gap-x-1 sm:gap-y-1.5 sm:w-auto sm:shrink-0 sm:min-w-[10.5rem] flex flex-wrap items-center justify-end sm:justify-end gap-1.5 w-full ${isRTL ? 'sm:[&>*:nth-child(odd)]:text-right sm:[&>*:nth-child(even)]:text-left flex-row-reverse' : ''}`}>
                           <button
                             type="button"
                             onClick={() => void handleMarkPaid(subscription)}
