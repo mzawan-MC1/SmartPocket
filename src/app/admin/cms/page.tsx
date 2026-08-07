@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getPlatformSettings } from '@/lib/finance';
@@ -286,6 +286,59 @@ export default function AdminCmsPage() {
     setFooterSections((s) => s.filter((sec) => sec.id !== id));
   };
 
+  function swapSectionPositions(indexA: number, indexB: number) {
+    if (indexA < 0 || indexB < 0) return;
+    setFooterSections((sections) => {
+      if (indexA >= sections.length || indexB >= sections.length) return sections;
+      const next = sections.slice();
+      const sectionA = next[indexA]!;
+      const sectionB = next[indexB]!;
+      next[indexB] = sectionA;
+      next[indexA] = sectionB;
+      return next;
+    });
+  }
+
+  const moveFooterSectionUp = (sectionId: string) => {
+    const index = footerSections.findIndex((s) => s.id === sectionId);
+    if (index > 0) swapSectionPositions(index, index - 1);
+  };
+
+  const moveFooterSectionDown = (sectionId: string) => {
+    const index = footerSections.findIndex((s) => s.id === sectionId);
+    if (index >= 0 && index < footerSections.length - 1) swapSectionPositions(index, index + 1);
+  };
+
+  function swapLinkPositionsWithinSection(sectionId: string, indexA: number, indexB: number) {
+    if (indexA < 0 || indexB < 0) return;
+    setFooterSections((sections) =>
+      sections.map((section) => {
+        if (section.id !== sectionId) return section;
+        if (indexA >= section.links.length || indexB >= section.links.length) return section;
+        const nextLinks = section.links.slice();
+        const linkA = nextLinks[indexA]!;
+        const linkB = nextLinks[indexB]!;
+        nextLinks[indexB] = linkA;
+        nextLinks[indexA] = linkB;
+        return { ...section, links: nextLinks };
+      })
+    );
+  }
+
+  const moveFooterLinkUp = (sectionId: string, linkId: string) => {
+    const section = footerSections.find((s) => s.id === sectionId);
+    if (!section) return;
+    const index = section.links.findIndex((l) => l.id === linkId);
+    if (index > 0) swapLinkPositionsWithinSection(sectionId, index, index - 1);
+  };
+
+  const moveFooterLinkDown = (sectionId: string, linkId: string) => {
+    const section = footerSections.find((s) => s.id === sectionId);
+    if (!section) return;
+    const index = section.links.findIndex((l) => l.id === linkId);
+    if (index >= 0 && index < section.links.length - 1) swapLinkPositionsWithinSection(sectionId, index, index + 1);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -408,9 +461,31 @@ export default function AdminCmsPage() {
             </div>
           </div>
 
-          {footerSections.map((section) => (
+          {footerSections.map((section, sectionIndex) => (
             <div key={section.id} className="card-elevated p-5 space-y-3">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="flex-shrink-0 inline-flex items-center gap-1" aria-hidden>
+                  <button
+                    type="button"
+                    onClick={() => moveFooterSectionUp(section.id)}
+                    disabled={sectionIndex === 0}
+                    aria-label="Move section up"
+                    title="Move section up"
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors ${sectionIndex === 0 ? 'text-muted-foreground/50 opacity-60 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                  >
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveFooterSectionDown(section.id)}
+                    disabled={sectionIndex === footerSections.length - 1}
+                    aria-label="Move section down"
+                    title="Move section down"
+                    className={`inline-flex h-8 w-8 items-center justify-center rounded-md border border-border transition-colors ${sectionIndex === footerSections.length - 1 ? 'text-muted-foreground/50 opacity-60 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </span>
                 <input
                   type="text"
                   className="input-base flex-1 font-600"
@@ -418,28 +493,50 @@ export default function AdminCmsPage() {
                   value={section.title}
                   onChange={(e) => updateFooterSectionTitle(section.id, e.target.value)}
                 />
-                <button onClick={() => removeFooterSection(section.id)} className="text-negative hover:opacity-70 flex-shrink-0">
+                <button onClick={() => removeFooterSection(section.id)} aria-label="Delete section" title="Delete section" className="text-negative hover:opacity-70 flex-shrink-0">
                   <Trash2 size={14} />
                 </button>
               </div>
               <div className="space-y-2 ps-2">
-                {section.links.map((link) => (
-                  <div key={link.id} className="flex items-center gap-2">
+                {section.links.map((link, linkIndex) => (
+                  <div key={link.id} className="flex items-center gap-1.5 sm:gap-2">
+                    <span className="flex-shrink-0 inline-flex items-center gap-1" aria-hidden>
+                      <button
+                        type="button"
+                        onClick={() => moveFooterLinkUp(section.id, link.id)}
+                        disabled={linkIndex === 0}
+                        aria-label="Move link up"
+                        title="Move link up"
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-border transition-colors ${linkIndex === 0 ? 'text-muted-foreground/50 opacity-60 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                      >
+                        <ChevronUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveFooterLinkDown(section.id, link.id)}
+                        disabled={linkIndex === section.links.length - 1}
+                        aria-label="Move link down"
+                        title="Move link down"
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-md border border-border transition-colors ${linkIndex === section.links.length - 1 ? 'text-muted-foreground/50 opacity-60 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                      >
+                        <ChevronDown size={13} />
+                      </button>
+                    </span>
                     <input
                       type="text"
-                      className="input-base flex-1 text-sm"
+                      className="input-base flex-1 text-sm min-w-0"
                       placeholder="Label"
                       value={link.label}
                       onChange={(e) => updateFooterLink(section.id, link.id, 'label', e.target.value)}
                     />
                     <input
                       type="text"
-                      className="input-base flex-1 text-sm font-mono"
+                      className="input-base flex-1 text-sm font-mono min-w-0"
                       placeholder="/path"
                       value={link.href}
                       onChange={(e) => updateFooterLink(section.id, link.id, 'href', e.target.value)}
                     />
-                    <button onClick={() => removeFooterLink(section.id, link.id)} className="text-negative hover:opacity-70 flex-shrink-0">
+                    <button onClick={() => removeFooterLink(section.id, link.id)} aria-label="Delete link" title="Delete link" className="text-negative hover:opacity-70 flex-shrink-0">
                       <Trash2 size={13} />
                     </button>
                   </div>
