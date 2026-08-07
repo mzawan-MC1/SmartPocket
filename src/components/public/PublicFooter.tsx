@@ -18,6 +18,29 @@ import {
 } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
 
+function isExternalHref(href: string) {
+  try {
+    if (/^https?:\/\//i.test(href)) {
+      return true;
+    }
+    const normalized = href.trim().toLowerCase();
+    return normalized.startsWith('http:') || normalized.startsWith('https:') || normalized.startsWith('//');
+  } catch {
+    return false;
+  }
+}
+
+function isInternalAnchor(href: string) {
+  if (!href || typeof href !== 'string') return false;
+  const clean = href.trim();
+  return (
+    clean.startsWith('/') ||
+    clean.startsWith('#') ||
+    clean.startsWith('?') ||
+    clean.startsWith('.')
+  );
+}
+
 // Social icon components using SVG to avoid lucide-react version issues
 function TwitterIcon({ size = 18 }: { size?: number }) {
   return (
@@ -51,13 +74,13 @@ export default function PublicFooter() {
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const showSingleLanguageFooterTagline = language === 'en';
   const contactEmail = publicUi.contactEmail;
-  const legalSection = publicUi.footerSections.find(
-    (section) => section.id === 'fs-legal'
-  );
-  const legalLinks = legalSection?.links ?? [];
-  const topSections = publicUi.footerSections.filter((section) => section.id !== legalSection?.id);
+  const footerSections = publicUi.footerSections ?? [];
   const isHomePage = pathname === '/home' || pathname === '/';
   const isAuthPage = pathname === '/sign-up-login';
+  const contactSectionClasses = `mt-4 space-y-2 text-sm ${isHomePage ? 'text-slate-300' : 'text-muted-foreground'} ${isAuthPage ? 'hidden sm:block' : ''}`;
+  const linkClasses = isHomePage
+    ? 'text-sm leading-relaxed break-words text-slate-400 transition-colors hover:text-white'
+    : 'text-sm leading-relaxed break-words text-muted-foreground hover:text-foreground transition-colors';
 
   return (
     <footer
@@ -65,8 +88,8 @@ export default function PublicFooter() {
       suppressHydrationWarning
     >
       <div className={`page-shell ${isAuthPage ? 'py-5 sm:py-8' : 'py-8 md:py-10'}`}>
-        <div className={`grid ${isAuthPage ? 'gap-5 sm:gap-8' : 'gap-8'} md:grid-cols-[minmax(0,1.2fr)_repeat(3,minmax(0,0.75fr))]`}>
-          <div className="max-w-sm">
+        <div className={`grid ${isAuthPage ? 'gap-5 sm:gap-8 md:gap-10 lg:gap-12' : 'gap-8 md:gap-10 lg:gap-12'} md:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))]`}>
+          <div className="max-w-none">
             <Link href="/" className="inline-flex items-center gap-3">
               <AppLogo
                 width={224}
@@ -79,7 +102,7 @@ export default function PublicFooter() {
                     {publicUi.footerCompanyName || branding.appName}
                   </span>
                   {showSingleLanguageFooterTagline && publicUi.footerTagline ? (
-                    <span className={`block mt-1 text-xs ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
+                    <span className={`block mt-1 text-xs break-words ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
                       {publicUi.footerTagline}
                     </span>
                   ) : null}
@@ -87,35 +110,37 @@ export default function PublicFooter() {
               )}
             </Link>
             {!showBrandText && showSingleLanguageFooterTagline && publicUi.footerTagline && (
-              <p className={`mt-3 text-sm leading-relaxed ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
+              <p className={`mt-3 text-sm leading-relaxed break-words ${isHomePage ? 'text-slate-400' : 'text-muted-foreground'}`}>
                 {publicUi.footerTagline}
               </p>
             )}
-            <div className={`mt-4 space-y-2 text-sm ${isHomePage ? 'text-slate-300' : 'text-muted-foreground'} ${isAuthPage ? 'hidden sm:block' : ''}`}>
+            <div className={contactSectionClasses}>
               {contactEmail && (
                 <a
                   href={`mailto:${contactEmail}`}
                   onClick={() => trackContactClick({ source: 'public_footer_email' })}
-                  className={isHomePage ? 'inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200' : 'inline-flex items-center gap-2 text-accent hover:underline'}
+                  className={isHomePage ? 'inline-flex items-center gap-2 text-cyan-300 hover:text-cyan-200 break-words' : 'inline-flex items-center gap-2 text-accent hover:underline break-words'}
                 >
                   <Mail size={13} />
-                  {contactEmail}
+                  <span className="min-w-0 break-words">{contactEmail}</span>
                 </a>
               )}
               {publicUi.contactPhone && (
                 <a
                   href={`tel:${publicUi.contactPhone}`}
                   onClick={() => trackContactClick({ source: 'public_footer_phone' })}
-                  className={isHomePage ? 'flex items-center gap-2 transition-colors hover:text-white' : 'flex items-center gap-2 hover:text-foreground transition-colors'}
+                  className={isHomePage ? 'flex items-center gap-2 transition-colors hover:text-white break-words' : 'flex items-center gap-2 hover:text-foreground transition-colors break-words'}
                 >
                   <Phone size={13} />
-                  {publicUi.contactPhoneFormatted || publicUi.contactPhone}
+                  <span className="min-w-0 break-words">
+                    {publicUi.contactPhoneFormatted || publicUi.contactPhone}
+                  </span>
                 </a>
               )}
               {publicUi.contactAddress && (
-                <p className="flex items-start gap-2 leading-relaxed">
+                <p className="flex items-start gap-2 leading-relaxed break-words">
                   <MapPin size={13} className="mt-0.5 shrink-0" />
-                  <span>
+                  <span className="min-w-0 break-words">
                     {isDefaultPublicContactAddress(publicUi.contactAddress)
                       ? t('footer.contactAddress', { defaultValue: publicUi.contactAddress })
                       : publicUi.contactAddress}
@@ -142,43 +167,131 @@ export default function PublicFooter() {
             </div>
           </div>
 
-          {topSections.map((section) => (
-            <div key={section.id} className={isAuthPage ? 'hidden sm:block' : ''}>
-              <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
-                {getTranslatedFooterSectionTitle(section.id, section.title, t)}
-              </p>
-              <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link.id}>
-                    <Link
-                      href={link.href}
-                      onClick={link.href === '/contact' ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
-                      className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}
-                    >
-                      {getTranslatedPublicNavLabel(link.href, link.label, t)}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className={`hidden lg:contents`}>
+            {footerSections.map((section) => (
+              <div key={section.id} className={`min-w-0 ${isAuthPage ? 'hidden sm:block' : ''}`}>
+                <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] break-words ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
+                  {getTranslatedFooterSectionTitle(section.id, section.title, t)}
+                </p>
+                <ul className="space-y-2.5 sm:space-y-2">
+                  {section.links.map((link) => {
+                    const normalizedHref = (link.href || '').trim();
+                    const label = getTranslatedPublicNavLabel(link.href, link.label, t);
+                    const isContactClick = normalizedHref === '/contact';
+                    const external = isExternalHref(normalizedHref);
+                    const internal = !external && isInternalAnchor(normalizedHref);
+
+                    if (external) {
+                      return (
+                        <li key={link.id}>
+                          <a
+                            href={normalizedHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                            className={linkClasses}
+                          >
+                            {label}
+                          </a>
+                        </li>
+                      );
+                    }
+
+                    if (internal) {
+                      return (
+                        <li key={link.id}>
+                          <Link
+                            href={normalizedHref}
+                            onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                            className={linkClasses}
+                          >
+                            {label}
+                          </Link>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={link.id}>
+                        <a
+                          href={normalizedHref || '#'}
+                          onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                          className={linkClasses}
+                        >
+                          {label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className={`lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10 ${isAuthPage ? 'hidden sm:grid' : ''}`}>
+            {footerSections.map((section) => (
+              <div key={section.id} className="min-w-0">
+                <p className={`mb-3 text-[11px] font-800 uppercase tracking-[0.16em] break-words ${isHomePage ? 'text-slate-200' : 'text-foreground'}`}>
+                  {getTranslatedFooterSectionTitle(section.id, section.title, t)}
+                </p>
+                <ul className="space-y-2.5 sm:space-y-2">
+                  {section.links.map((link) => {
+                    const normalizedHref = (link.href || '').trim();
+                    const label = getTranslatedPublicNavLabel(link.href, link.label, t);
+                    const isContactClick = normalizedHref === '/contact';
+                    const external = isExternalHref(normalizedHref);
+                    const internal = !external && isInternalAnchor(normalizedHref);
+
+                    if (external) {
+                      return (
+                        <li key={link.id}>
+                          <a
+                            href={normalizedHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                            className={linkClasses}
+                          >
+                            {label}
+                          </a>
+                        </li>
+                      );
+                    }
+
+                    if (internal) {
+                      return (
+                        <li key={link.id}>
+                          <Link
+                            href={normalizedHref}
+                            onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                            className={linkClasses}
+                          >
+                            {label}
+                          </Link>
+                        </li>
+                      );
+                    }
+
+                    return (
+                      <li key={link.id}>
+                        <a
+                          href={normalizedHref || '#'}
+                          onClick={isContactClick ? () => trackContactClick({ source: 'public_footer_nav' }) : undefined}
+                          className={linkClasses}
+                        >
+                          {label}
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className={`mt-8 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between ${isHomePage ? 'border-t border-white/10' : 'border-t border-border'}`}>
           <FooterLegalLine />
-          <div className="flex flex-wrap items-center gap-4">
-            {legalLinks.map((link) => (
-              <Link key={link.id} href={link.href} className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>
-                {getTranslatedPublicNavLabel(link.href, link.label, t)}
-              </Link>
-            ))}
-            {legalLinks.length === 0 && (
-              <>
-                <Link href="/privacy" className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>{t('footer.privacy')}</Link>
-                <Link href="/terms" className={isHomePage ? 'text-sm text-slate-400 transition-colors hover:text-white' : 'text-sm text-muted-foreground hover:text-foreground transition-colors'}>{t('footer.terms')}</Link>
-              </>
-            )}
-          </div>
         </div>
       </div>
     </footer>

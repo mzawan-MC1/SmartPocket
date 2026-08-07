@@ -21,6 +21,8 @@
     "sectionProduct": "المنتج",
     "sectionSupport": "الدعم",
     "sectionLegal": "القانونية",
+    "sectionLearn": "تعلّم",
+    "sectionLegalTrust": "القانونية والثقة",
     "linkAbout": "حول",
     "linkBlog": "المدونة",
     "linkFeatures": "الميزات",
@@ -30,7 +32,10 @@
     "linkDesktopApp": "تطبيق سطح المكتب",
     "linkSecurity": "الأمان",
     "backToTop": "العودة إلى الأعلى",
-    "linkFaqs": "الأسئلة الشائعة"
+    "linkFaqs": "الأسئلة الشائعة",
+    "linkAiReceiptScanner": "ماسح الإيصالات بالذكاء الاصطناعي",
+    "linkAiVoiceExpenseTracker": "متتبع المصروفات بالصوت والذكاء الاصطناعي",
+    "linkTermsAndConditions": "الشروط والأحكام"
   },
   "home": {
     "hero": {

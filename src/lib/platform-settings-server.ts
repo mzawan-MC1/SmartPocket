@@ -13,6 +13,10 @@ import {
 } from '@/lib/phone';
 import { getReferenceDataSnapshot } from '@/lib/reference-data/store';
 import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  isCanonicalCompanySection,
+  isCanonicalProductSection,
+} from '@/components/public/public-labels';
 
 export const PLATFORM_SETTINGS_CACHE_TAG = 'platform-settings';
 
@@ -125,21 +129,47 @@ function injectFaqNavigation(settings: PlatformSettingsSnapshot) {
 
   const footerSections = footerHasFaq
     ? settings.publicUi.footerSections
-    : settings.publicUi.footerSections.map((section, index) =>
-        index === 1
-          ? {
-              ...section,
-              links: [
-                ...section.links,
-                {
-                  id: 'sp-faqs',
-                  label: 'FAQs',
-                  href: '/faqs',
-                },
-              ],
-            }
-          : section
-      );
+    : (() => {
+        const companySection = settings.publicUi.footerSections.find((section) =>
+          isCanonicalCompanySection(section.id, section.title)
+        );
+        if (companySection) {
+          return settings.publicUi.footerSections.map((section) =>
+            isCanonicalCompanySection(section.id, section.title)
+              ? {
+                  ...section,
+                  links: [
+                    ...section.links,
+                    {
+                      id: 'sp-faqs',
+                      label: 'FAQs',
+                      href: '/faqs',
+                    },
+                  ],
+                }
+              : section
+          );
+        }
+        const fallbackIndex = Math.min(
+          2,
+          Math.max(0, settings.publicUi.footerSections.length - 1)
+        );
+        return settings.publicUi.footerSections.map((section, index) =>
+          index === fallbackIndex
+            ? {
+                ...section,
+                links: [
+                  ...section.links,
+                  {
+                    id: 'sp-faqs',
+                    label: 'FAQs',
+                    href: '/faqs',
+                  },
+                ],
+              }
+            : section
+        );
+      })();
 
   return {
     ...settings,
@@ -161,12 +191,43 @@ function injectDesktopAppNavigation(settings: PlatformSettingsSnapshot) {
     return settings;
   }
 
+  const productSection = settings.publicUi.footerSections.find((section) =>
+    isCanonicalProductSection(section.id, section.title)
+  );
+  if (productSection) {
+    return {
+      ...settings,
+      publicUi: {
+        ...settings.publicUi,
+        footerSections: settings.publicUi.footerSections.map((section) =>
+          isCanonicalProductSection(section.id, section.title)
+            ? {
+                ...section,
+                links: [
+                  ...section.links,
+                  {
+                    id: 'sp-desktop-app',
+                    label: 'Desktop App',
+                    href: DESKTOP_APP_ROUTE,
+                  },
+                ],
+              }
+            : section
+        ),
+      },
+    };
+  }
+
+  const fallbackIndex = Math.min(
+    0,
+    Math.max(0, settings.publicUi.footerSections.length - 1)
+  );
   return {
     ...settings,
     publicUi: {
       ...settings.publicUi,
       footerSections: settings.publicUi.footerSections.map((section, index) =>
-        index === 0
+        index === fallbackIndex
           ? {
               ...section,
               links: [

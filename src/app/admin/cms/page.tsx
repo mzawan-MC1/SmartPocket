@@ -6,26 +6,35 @@ import { Check, Layout, Loader2, Plus, Trash2, GripVertical, FileText } from 'lu
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { getPlatformSettings } from '@/lib/finance';
-import { normalizePublicNavHref } from '@/lib/platform-settings';
+import {
+  DEFAULT_FOOTER_SECTIONS,
+  DEFAULT_HEADER_MENU,
+  normalizePublicNavHref,
+  type PlatformFooterSection,
+  type PlatformNavLink,
+} from '@/lib/platform-settings';
 import InternationalPhoneInput, { type InternationalPhoneValue } from '@/components/phone/InternationalPhoneInput';
 import { buildNormalizedPhoneParts, getPlatformContactPhoneCountryCode } from '@/lib/phone';
 import { useClientReferenceData } from '@/lib/reference-data/client';
 import BlogPostsTab from '@/app/admin/cms/components/BlogPostsTab';
 import CmsPagesTab from '@/app/admin/cms/components/CmsPagesTab';
 
-interface MenuItem {
-  id: string;
-  label: string;
-  href: string;
-}
+type MenuItem = PlatformNavLink;
 
-interface FooterSection {
-  id: string;
-  title: string;
-  links: { id: string; label: string; href: string }[];
-}
+type FooterSection = PlatformFooterSection;
 
 type CmsAdminTab = 'header' | 'footer' | 'contact' | 'payment' | 'pages' | 'blog';
+
+function cloneDefaultFooterSections(): FooterSection[] {
+  return DEFAULT_FOOTER_SECTIONS.map((section) => ({
+    ...section,
+    links: section.links.map((link) => ({ ...link })),
+  }));
+}
+
+function cloneDefaultHeaderMenu(): MenuItem[] {
+  return DEFAULT_HEADER_MENU.map((item) => ({ ...item }));
+}
 
 export default function AdminCmsPage() {
   const { t } = useTranslation('portal');
@@ -45,40 +54,9 @@ export default function AdminCmsPage() {
       ? requestedTab
       : 'header';
 
-  const [headerMenu, setHeaderMenu] = useState<MenuItem[]>([
-    { id: 'hm-1', label: 'About', href: '/home#about' },
-    { id: 'hm-2', label: 'Features', href: '/home#features' },
-    { id: 'hm-3', label: 'Pricing', href: '/home#pricing' },
-    { id: 'hm-4', label: 'Contact', href: '/contact' },
-  ]);
+  const [headerMenu, setHeaderMenu] = useState<MenuItem[]>(cloneDefaultHeaderMenu);
 
-  const [footerSections, setFooterSections] = useState<FooterSection[]>([
-    {
-      id: 'fs-1',
-      title: 'Product',
-      links: [
-        { id: 'fl-1', label: 'Features', href: '/home#features' },
-        { id: 'fl-2', label: 'Pricing', href: '/home#pricing' },
-        { id: 'fl-3', label: 'About', href: '/home#about' },
-      ],
-    },
-    {
-      id: 'fs-2',
-      title: 'Company',
-      links: [
-        { id: 'fl-4', label: 'Contact', href: '/contact' },
-        { id: 'fl-5', label: 'Help Center', href: '/help' },
-      ],
-    },
-    {
-      id: 'fs-3',
-      title: 'Legal',
-      links: [
-        { id: 'fl-6', label: 'Privacy Policy', href: '/privacy' },
-        { id: 'fl-7', label: 'Terms of Service', href: '/terms' },
-      ],
-    },
-  ]);
+  const [footerSections, setFooterSections] = useState<FooterSection[]>(cloneDefaultFooterSections);
 
   const [contact, setContact] = useState({
     contact_email: '',

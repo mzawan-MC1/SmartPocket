@@ -21,6 +21,8 @@
     "sectionProduct": "Produit",
     "sectionSupport": "Support",
     "sectionLegal": "Juridique",
+    "sectionLearn": "En savoir plus",
+    "sectionLegalTrust": "Juridique et confiance",
     "linkAbout": "À propos",
     "linkBlog": "Blog",
     "linkFeatures": "Fonctionnalités",
@@ -30,7 +32,10 @@
     "linkDesktopApp": "Application Desktop",
     "linkSecurity": "Sécurité",
     "backToTop": "Retour en haut",
-    "linkFaqs": "FAQ"
+    "linkFaqs": "FAQ",
+    "linkAiReceiptScanner": "Scanner de reçus IA",
+    "linkAiVoiceExpenseTracker": "Suivi vocal des dépenses par IA",
+    "linkTermsAndConditions": "Conditions générales"
   },
   "home": {
     "hero": {

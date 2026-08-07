@@ -21,6 +21,8 @@
     "sectionProduct": "Product",
     "sectionSupport": "Support",
     "sectionLegal": "Legal",
+    "sectionLearn": "Learn",
+    "sectionLegalTrust": "Legal & Trust",
     "linkAbout": "About",
     "linkBlog": "Blogs",
     "linkFeatures": "Features",
@@ -30,7 +32,10 @@
     "linkDesktopApp": "Desktop App",
     "linkSecurity": "Security",
     "backToTop": "Back to top",
-    "linkFaqs": "FAQs"
+    "linkFaqs": "FAQs",
+    "linkAiReceiptScanner": "AI Receipt Scanner",
+    "linkAiVoiceExpenseTracker": "AI Voice Expense Tracker",
+    "linkTermsAndConditions": "Terms and Conditions"
   },
   "home": {
     "hero": {

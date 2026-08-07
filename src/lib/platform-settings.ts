@@ -205,28 +205,39 @@ export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
 
 export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
   {
-    id: 'fs-product',
+    id: 'footer-section-product',
     title: 'Product',
     links: [
       { id: 'fl-features', label: 'Features', href: '/home#features' },
       { id: 'fl-pricing', label: 'Pricing', href: '/home#pricing' },
+      { id: 'fl-desktop-app', label: 'Desktop App', href: '/desktop-app' },
+    ],
+  },
+  {
+    id: 'footer-section-learn',
+    title: 'Learn',
+    links: [
+      { id: 'fl-blog', label: 'Blog', href: '/blog' },
+      { id: 'fl-ai-receipt-scanner', label: 'AI Receipt Scanner', href: '/ai-receipt-scanner' },
+      { id: 'fl-ai-voice-expense-tracker', label: 'AI Voice Expense Tracker', href: '/ai-voice-expense-tracker' },
+    ],
+  },
+  {
+    id: 'footer-section-company',
+    title: 'Company',
+    links: [
       { id: 'fl-about', label: 'About', href: '/home#about' },
+      { id: 'fl-contact', label: 'Contact Us', href: '/contact' },
+      { id: 'fl-faqs', label: 'FAQs', href: '/faqs' },
     ],
   },
   {
-    id: 'fs-support',
-    title: 'Support',
+    id: 'footer-section-legal',
+    title: 'Legal & Trust',
     links: [
-      { id: 'fl-contact', label: 'Contact', href: '/contact' },
-      { id: 'fl-help', label: 'Help Center', href: '/help' },
-    ],
-  },
-  {
-    id: 'fs-legal',
-    title: 'Legal',
-    links: [
+      { id: 'fl-security', label: 'Security', href: '/security' },
       { id: 'fl-privacy', label: 'Privacy Policy', href: '/privacy' },
-      { id: 'fl-terms', label: 'Terms of Service', href: '/terms' },
+      { id: 'fl-terms', label: 'Terms and Conditions', href: '/terms' },
     ],
   },
 ];

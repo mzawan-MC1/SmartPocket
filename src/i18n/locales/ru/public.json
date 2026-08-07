@@ -21,6 +21,8 @@
     "sectionProduct": "Продукт",
     "sectionSupport": "Поддержка",
     "sectionLegal": "Правовая информация",
+    "sectionLearn": "Обучение",
+    "sectionLegalTrust": "Правовая информация и доверие",
     "linkAbout": "О сервисе",
     "linkBlog": "Блог",
     "linkFeatures": "Возможности",
@@ -30,7 +32,10 @@
     "linkDesktopApp": "Десктоп-приложение",
     "linkSecurity": "Безопасность",
     "backToTop": "Наверх",
-    "linkFaqs": "FAQ"
+    "linkFaqs": "FAQ",
+    "linkAiReceiptScanner": "ИИ-сканер чеков",
+    "linkAiVoiceExpenseTracker": "ИИ-голосовой учёт расходов",
+    "linkTermsAndConditions": "Условия использования"
   },
   "home": {
     "hero": {
