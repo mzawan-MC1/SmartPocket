@@ -398,18 +398,18 @@ export default function PersonalSubscriptionsPage() {
             className="h-full overflow-hidden border border-[#d5e7df] bg-[linear-gradient(180deg,#f7fdf9_0%,#ffffff_100%)] shadow-[0_8px_22px_rgba(15,23,42,0.045)] [&_.section-card-header]:gap-2 [&_.section-card-header]:border-b [&_.section-card-header]:border-[#e0eee6] [&_.section-card-header]:bg-[#f3fbf7] [&_.section-card-header]:px-3 [&_.section-card-header]:py-2.75 [&_.section-title]:text-[12.5px] [&_.section-title]:font-800 [&_.section-title]:tracking-[-0.01em] [&_.section-title]:text-foreground [&_.section-description]:mt-0.5 [&_.section-description]:text-[10px] [&_.section-description]:leading-4 [&_.section-description]:text-muted-foreground/68 max-[360px]:[&_.section-card-header]:gap-1.5 max-[360px]:[&_.section-card-header]:px-2.5 max-[360px]:[&_.section-card-header]:py-2.5 max-[360px]:[&_.section-title]:text-[11px] max-[360px]:[&_.section-title]:leading-4 max-[360px]:[&_.section-description]:text-[8.75px] max-[360px]:[&_.section-description]:leading-3.5"
             bodyClassName="px-2.5 py-2.75"
           >
-            <div className="grid grid-cols-3 gap-1.5">
-              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
-                <p className="text-[13px] font-800 leading-4 text-foreground">{summary?.activeCount || 0}</p>
-                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.active', { ns: 'portal' })}</p>
+            <div className="grid grid-cols-3 gap-1 sm:gap-1.5 gap-x-1 sm:gap-x-1.5">
+              <div className="min-w-0 rounded-[14px] sm:rounded-[16px] border border-[#e6edf3] bg-white/90 sm:px-2 sm:py-1.5 px-1.5 py-1 text-center">
+                <p className="sm:text-[13px] text-[11.5px] font-800 sm:leading-4 leading-4 text-foreground">{summary?.activeCount || 0}</p>
+                <p className="sm:mt-0.5 mt-0 sm:text-[9.5px] text-[9px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.active', { ns: 'portal' })}</p>
               </div>
-              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
-                <p className="text-[13px] font-800 leading-4 text-warning">{summary?.trialCount || 0}</p>
-                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.trials', { ns: 'portal' })}</p>
+              <div className="min-w-0 rounded-[14px] sm:rounded-[16px] border border-[#e6edf3] bg-white/90 sm:px-2 sm:py-1.5 px-1.5 py-1 text-center">
+                <p className="sm:text-[13px] text-[11.5px] font-800 sm:leading-4 leading-4 text-warning">{summary?.trialCount || 0}</p>
+                <p className="sm:mt-0.5 mt-0 sm:text-[9.5px] text-[9px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.trials', { ns: 'portal' })}</p>
               </div>
-              <div className="rounded-[16px] border border-[#e6edf3] bg-white/90 px-2 py-1.5 text-center">
-                <p className="text-[13px] font-800 leading-4 text-negative">{summary?.cancellationDeadlineCount || 0}</p>
-                <p className="mt-0.5 text-[9.5px] leading-3.5 text-muted-foreground">{t('personalSubscriptions.summary.deadlines', { ns: 'portal' })}</p>
+              <div className="min-w-0 rounded-[14px] sm:rounded-[16px] border border-[#e6edf3] bg-white/90 sm:px-2 sm:py-1.5 px-1.5 py-1 text-center">
+                <p className="sm:text-[13px] text-[11.5px] font-800 sm:leading-4 leading-4 text-negative">{summary?.cancellationDeadlineCount || 0}</p>
+                <p className="sm:mt-0.5 mt-0 sm:text-[9.5px] text-[9px] leading-3.5 text-muted-foreground break-words">{t('personalSubscriptions.summary.deadlines', { ns: 'portal' })}</p>
               </div>
             </div>
           </SectionCard>
@@ -563,16 +563,34 @@ export default function PersonalSubscriptionsPage() {
                     <div className={`pointer-events-none absolute inset-x-0 top-0 h-[2px] rounded-t-[15px] overflow-hidden ${getStatusTone(subscription.status) === 'ready' ? 'bg-gradient-to-r from-transparent via-accent/25 to-transparent' : 'bg-gradient-to-r from-transparent via-muted-foreground/15 to-transparent'}`} aria-hidden="true" />
 
                     <div className="flex flex-col gap-y-2.5 sm:gap-y-0 sm:grid sm:grid-cols-12 sm:items-center sm:gap-x-3.5 md:gap-x-4 lg:gap-x-5 sm:min-h-[88px]">
-                      <div className={`order-1 sm:col-span-4 flex min-w-0 flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-                        <div className={`flex items-start sm:items-center gap-2.5 sm:gap-0 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
-                          <div className={`shrink-0 ${isRTL ? 'sm:ml-3 sm:mr-0' : 'sm:mr-3 sm:ml-0'}`}>
-                            <PersonalSubscriptionBrandLogo
-                              providerKey={subscription.provider_key}
-                              fallbackName={subscription.name}
-                              size="md"
-                            />
+                      <div className={`order-1 sm:col-span-4 flex min-w-0 sm:flex-row sm:items-center gap-0 sm:gap-3 flex-col ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                        <div className={`flex items-start sm:items-center justify-between gap-2 sm:gap-0 ${isRTL ? 'sm:flex-row-reverse flex-row-reverse' : ''}`}>
+                          <div className={`flex items-start sm:items-center gap-2.5 sm:gap-0 ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
+                            <div className={`shrink-0 ${isRTL ? 'sm:ml-3 sm:mr-0' : 'sm:mr-3 sm:ml-0'}`}>
+                              <PersonalSubscriptionBrandLogo
+                                providerKey={subscription.provider_key}
+                                fallbackName={subscription.name}
+                                size="md"
+                              />
+                            </div>
+                            <div className={`sm:hidden min-w-0 flex-1`}>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={openView}
+                                  className="truncate text-[15px] font-800 tracking-[-0.01em] text-foreground hover:text-accent"
+                                >
+                                  {subscription.name}
+                                </button>
+                                <StatusBadge status={getStatusTone(subscription.status)} label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })} className="sm:px-2.5 sm:py-1 sm:text-xs sm:gap-1.5 sm:[&_svg]:w-3 sm:[&_svg]:h-3 px-2 py-0.5 text-[10.5px] gap-1 [&_svg]:w-2.5 [&_svg]:h-2.5" />
+                                <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
+                              </div>
+                              <p className="mt-0.5 truncate text-[12px] leading-4 text-muted-foreground">
+                                {providerSubtitle}
+                              </p>
+                            </div>
                           </div>
-                          <div className={`sm:hidden shrink-0 ${isRTL ? 'text-left ml-auto mr-0' : 'text-right mr-auto ml-0'}`}>
+                          <div className={`sm:hidden shrink-0 whitespace-nowrap ${isRTL ? 'text-left' : 'text-right'}`}>
                             <FormattedCurrencyAmount
                               amount={subscription.amount}
                               currencyCode={subscription.currency_code}
@@ -581,7 +599,7 @@ export default function PersonalSubscriptionsPage() {
                             />
                           </div>
                         </div>
-                        <div className={`min-w-0 flex-1 ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}>
+                        <div className={`hidden sm:block min-w-0 flex-1 ${isRTL ? 'sm:text-right' : 'sm:text-left'}`}>
                           <div className="flex flex-wrap items-center gap-1.5">
                             <button
                               type="button"
@@ -593,7 +611,7 @@ export default function PersonalSubscriptionsPage() {
                             <StatusBadge status={getStatusTone(subscription.status)} label={t(`personalSubscriptions.statuses.${subscription.status}`, { ns: 'portal' })} />
                             <PersonalSubscriptionWarningBadge subscription={subscription} todayIso={todayIso} />
                           </div>
-                          <p className="mt-0.5 truncate text-[12px] sm:text-[12.5px] leading-4 sm:leading-5 text-muted-foreground">
+                          <p className="mt-0.5 truncate text-[12.5px] leading-5 text-muted-foreground">
                             {providerSubtitle}
                           </p>
                         </div>
@@ -601,29 +619,20 @@ export default function PersonalSubscriptionsPage() {
 
                       <div className={`order-2 sm:col-span-4 min-w-0 rounded-xl sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0 border border-border/70 bg-muted/10 px-2.5 py-2 grid grid-cols-3 gap-x-2 sm:gap-x-3 md:gap-x-4 lg:gap-x-5 ${isRTL ? 'direction-rtl sm:direction-inherit text-right sm:text-right' : 'text-left sm:text-left'}`}>
                         <div className="min-w-0">
-                          <div className={`inline-flex items-center gap-1 text-[10px] sm:text-[10.5px] font-600 sm:font-600 uppercase tracking-wider text-muted-foreground/85 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <CreditCard size={11} className="opacity-70" />
-                            {freqLabel}
-                          </div>
-                          <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-foreground">
+                          <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{freqLabel}</p>
+                          <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
                             {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
                           </p>
                         </div>
                         <div className="min-w-0">
-                          <div className={`inline-flex items-center gap-1 text-[10px] sm:text-[10.5px] font-600 sm:font-600 uppercase tracking-wider text-muted-foreground/85 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <Wallet size={11} className="opacity-70" />
-                            {acctLabel}
-                          </div>
-                          <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-foreground">
+                          <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{acctLabel}</p>
+                          <p className="mt-0.5 sm:mt-1 truncate text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
                             {accountValue}
                           </p>
                         </div>
                         <div className="min-w-0">
-                          <div className={`inline-flex items-center gap-1 text-[10px] sm:text-[10.5px] font-600 sm:font-600 uppercase tracking-wider text-muted-foreground/85 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <CalendarClock size={11} className="opacity-70" />
-                            {nextLabel}
-                          </div>
-                          <p className="mt-0.5 sm:mt-1 break-words text-[12.5px] sm:text-[13px] font-800 leading-5 text-foreground">
+                          <p className={`text-[10px] sm:text-[10.5px] font-600 uppercase tracking-wider text-accent/80 dark:text-accent/75 ${isRTL ? 'text-right' : 'text-left'}`}>{nextLabel}</p>
+                          <p className="mt-0.5 sm:mt-1 break-words text-[12.5px] sm:text-[13px] font-800 leading-5 text-positive-600/95 dark:text-positive-400/90">
                             {nextChargeValue}
                           </p>
                         </div>
@@ -641,24 +650,49 @@ export default function PersonalSubscriptionsPage() {
                             / {t(`personalSubscriptions.frequencies.${subscription.billing_frequency}`, { ns: 'portal' })}
                           </p>
                         </div>
-                        <div className={`flex items-center justify-end sm:justify-end gap-1.5 w-full sm:w-auto ${isRTL ? 'sm:flex-row-reverse flex-row-reverse' : ''}`}>
+                        <div className={`sm:grid sm:grid-cols-2 sm:gap-x-1.5 sm:gap-y-1.5 sm:w-auto flex flex-wrap items-center justify-end sm:justify-end gap-1.5 w-full sm:shrink-0 sm:min-w-[11.5rem] ${isRTL ? 'sm:[&>*:nth-child(odd)]:text-right sm:[&>*:nth-child(even)]:text-left sm:flex-row-reverse flex-row-reverse' : ''}`}>
+                          <button
+                            type="button"
+                            onClick={() => void handleMarkPaid(subscription)}
+                            disabled={processingId === subscription.id || !subscription.financial_account_id}
+                            className="inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-positive-500/25 bg-positive-500/8 sm:text-[11px] text-[12px] font-700 text-positive-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-positive-500/15 disabled:opacity-50 sm:px-2 px-2.5 dark:border-positive-400/30 dark:bg-positive-400/10 dark:text-positive-300 dark:hover:bg-positive-400/18 sm:gap-1"
+                          >
+                            {processingId === subscription.id ? <Loader2 size={12} className="sm:w-3 sm:h-3 animate-spin" /> : <CreditCard size={12} className="sm:w-3 sm:h-3" />}
+                            <span>{t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}</span>
+                          </button>
+                          {canPauseOrResumePersonalSubscription(subscription.status) ? (
+                            <button
+                              type="button"
+                              onClick={() => void handlePauseToggle(subscription)}
+                              className={`inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 sm:text-[11px] text-[12px] font-700 text-amber-700 shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-amber-500/18 sm:px-2 px-2.5 dark:border-amber-400/35 dark:bg-amber-400/12 dark:text-amber-300 dark:hover:bg-amber-400/22 sm:gap-1`}
+                            >
+                              {subscription.status === 'paused' ? <Play size={12} className="sm:w-3 sm:h-3" /> : <Pause size={12} className="sm:w-3 sm:h-3" />}
+                              <span>
+                                {subscription.status === 'paused'
+                                  ? t('personalSubscriptions.actions.resume', { ns: 'portal' })
+                                  : t('personalSubscriptions.actions.pause', { ns: 'portal' })}
+                              </span>
+                            </button>
+                          ) : (
+                            <span className={`hidden sm:block sm:h-8 sm:w-full`} aria-hidden="true" />
+                          )}
                           <button
                             type="button"
                             onClick={openView}
-                            className="inline-flex h-9 items-center justify-center gap-1 rounded-lg border border-border/85 bg-card px-2.5 text-[12.5px] font-700 text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/55 sm:min-w-0 sm:px-2.5 min-w-[3.25rem]"
+                            className="inline-flex sm:h-8 h-9 items-center justify-center gap-1 rounded-lg border border-border/85 bg-card sm:px-2 px-2.5 sm:text-[11px] text-[12.5px] font-700 text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/55 sm:min-w-0 min-w-[3.25rem] sm:gap-1"
                           >
-                            <Eye size={14} className={`shrink-0 text-muted-foreground ${isRTL ? 'sm:ml-0 sm:mr-1' : 'sm:mr-1 sm:ml-0'} ${isRTL ? 'mr-1 ml-0' : 'ml-1 mr-0'}`} />
-                            <span className={`sm:hidden lg:inline`}>{t('actions.view', { ns: 'common' })}</span>
+                            <Eye size={13} className={`sm:w-3.5 sm:h-3.5 shrink-0 text-muted-foreground ${isRTL ? 'sm:ml-0 sm:mr-1' : 'sm:mr-1 sm:ml-0'} ${isRTL ? 'mr-1 ml-0' : 'ml-1 mr-0'}`} />
+                            <span>{t('actions.view', { ns: 'common' })}</span>
                           </button>
-                          <div className="relative">
+                          <div className="relative flex sm:justify-start justify-end">
                             <button
                               type="button"
                               onClick={() => setOpenMenuId(openMenuId === subscription.id ? null : subscription.id)}
-                              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/85 bg-card text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/55"
+                              className="inline-flex sm:h-8 sm:w-8 h-9 w-9 items-center justify-center rounded-lg border border-border/85 bg-card text-foreground shadow-[0_1px_1px_rgba(15,23,42,0.04)] transition-colors hover:bg-muted/55"
                               aria-haspopup="menu"
                               aria-expanded={openMenuId === subscription.id}
                             >
-                              <MoreVertical size={16} />
+                              <MoreVertical size={14} className="sm:w-3.5 sm:h-3.5" />
                             </button>
                             {openMenuId === subscription.id ? (
                               <div
@@ -679,29 +713,6 @@ export default function PersonalSubscriptionsPage() {
                                   <Edit2 size={14} className="text-muted-foreground" />
                                   {t('actions.edit', { ns: 'common' })}
                                 </Link>
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  onClick={() => void handleMarkPaid(subscription)}
-                                  disabled={processingId === subscription.id || !subscription.financial_account_id}
-                                  className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
-                                >
-                                  {processingId === subscription.id ? <Loader2 size={14} className="animate-spin text-muted-foreground" /> : <CreditCard size={14} className="text-muted-foreground" />}
-                                  {t('personalSubscriptions.actions.markPaid', { ns: 'portal' })}
-                                </button>
-                                {canPauseOrResumePersonalSubscription(subscription.status) ? (
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    onClick={() => void handlePauseToggle(subscription)}
-                                    className="inline-flex min-h-8 items-center gap-2 rounded-xl px-2.5 py-2 text-start text-[13px] font-600 text-foreground transition-colors hover:bg-muted/70"
-                                  >
-                                    {subscription.status === 'paused' ? <Play size={14} className="text-muted-foreground" /> : <Pause size={14} className="text-muted-foreground" />}
-                                    {subscription.status === 'paused'
-                                      ? t('personalSubscriptions.actions.resume', { ns: 'portal' })
-                                      : t('personalSubscriptions.actions.pause', { ns: 'portal' })}
-                                  </button>
-                                ) : null}
                                 {canRequestPersonalSubscriptionCancellation(subscription.status) ? (
                                   <button
                                     type="button"
