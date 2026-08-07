@@ -90,13 +90,13 @@ function OverviewStatus({ icon, label, value, tone }: OverviewStatusProps) {
     negative: 'bg-negative-soft/70',
   };
   return (
-    <div className="flex items-center gap-2.5 rounded-xl px-2.5 py-2">
-      <span className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${toneBg[tone]}`}>
+    <div className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 sm:gap-2.5 sm:rounded-xl sm:px-2.5 sm:py-2">
+      <span className={`inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${toneBg[tone]} sm:h-7 sm:w-7 sm:rounded-lg`}>
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[11.5px] font-600 leading-4 text-muted-foreground">{label}</p>
-        <p className={`mt-0.5 truncate text-[13px] font-800 leading-5 ${toneColors[tone]}`}>{value}</p>
+        <p className="text-[10.5px] font-600 leading-4 text-muted-foreground sm:text-[11.5px]">{label}</p>
+        <p className={`mt-0.5 truncate text-[12px] font-800 leading-5 ${toneColors[tone]} sm:text-[13px]`}>{value}</p>
       </div>
     </div>
   );
@@ -113,13 +113,13 @@ interface DefRowProps {
 function DefRow({ label, value, wide = false, mono = false, multiline = false }: DefRowProps) {
   return (
     <div
-      className={`flex flex-col gap-1 border-b border-border/60 py-3 last:border-b-0 sm:gap-2 ${wide ? 'sm:col-span-2' : ''}`}
+      className={`flex flex-col gap-0.5 border-b border-border/60 py-2 last:border-b-0 sm:gap-2 sm:py-3 ${wide ? 'col-span-2' : ''}`}
     >
-      <dt className="text-[11.5px] font-600 leading-4 text-muted-foreground">{label}</dt>
+      <dt className="text-[10.5px] font-600 leading-4 text-muted-foreground sm:text-[11.5px]">{label}</dt>
       <dd
         className={[
-          'text-[13.5px] leading-5 text-foreground',
-          multiline ? 'whitespace-pre-wrap break-words' : 'truncate',
+          'text-[12.5px] leading-5 text-foreground sm:text-[13.5px]',
+          multiline ? 'whitespace-pre-wrap break-words' : 'break-words',
           mono ? 'font-mono tracking-tight' : 'font-700',
         ].join(' ')}
         title={typeof value === 'string' ? value : undefined}
@@ -190,7 +190,7 @@ export default function PersonalSubscriptionDetailsContent({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 gap-2 max-[480px]:grid-cols-1 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
         <KeyMetric
           label={t('personalSubscriptions.detail.metrics.amount', { ns: 'portal' })}
           value={(
@@ -216,13 +216,13 @@ export default function PersonalSubscriptionDetailsContent({
         />
       </div>
 
-      <div className="rounded-2xl bg-muted/20 p-2 ring-1 ring-inset ring-border/50">
-        <p className="px-2 pt-1 pb-0.5 text-[11.5px] font-700 uppercase tracking-[0.06em] text-muted-foreground">
+      <div className="rounded-2xl bg-muted/20 p-1.5 ring-1 ring-inset ring-border/50 sm:p-2">
+        <p className="px-2 pt-0.5 pb-0.5 text-[10.5px] font-700 uppercase tracking-[0.06em] text-muted-foreground sm:text-[11.5px]">
           {t('personalSubscriptions.detail.sections.overview', { ns: 'portal' })}
         </p>
-        <div className="grid grid-cols-1 gap-1 max-[480px]:grid-cols-1 min-[390px]:grid-cols-3 sm:gap-0.5">
+        <div className="grid grid-cols-3 gap-0 sm:gap-0.5">
           <OverviewStatus
-            icon={<RefreshCw size={14} strokeWidth={2} className={autoRenewTone === 'positive' ? 'text-positive' : 'text-muted-foreground'} />}
+            icon={<RefreshCw size={12} strokeWidth={2} className={autoRenewTone === 'positive' ? 'text-positive' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.labels.autoRenew', { ns: 'portal' })}
             value={subscription.auto_renew
               ? t('personalSubscriptions.labels.enabled', { ns: 'portal' })
@@ -230,7 +230,7 @@ export default function PersonalSubscriptionDetailsContent({
             tone={autoRenewTone}
           />
           <OverviewStatus
-            icon={<BellRing size={14} strokeWidth={2} className={remindersTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
+            icon={<BellRing size={12} strokeWidth={2} className={remindersTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.detail.metrics.reminders', { ns: 'portal' })}
             value={subscription.reminder_days_before.length > 0
               ? t('personalSubscriptions.labels.enabled', { ns: 'portal' })
@@ -238,7 +238,7 @@ export default function PersonalSubscriptionDetailsContent({
             tone={remindersTone}
           />
           <OverviewStatus
-            icon={<Link2 size={14} strokeWidth={2} className={linkedTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
+            icon={<Link2 size={12} strokeWidth={2} className={linkedTone === 'accent' ? 'text-accent' : 'text-muted-foreground'} />}
             label={t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}
             value={subscription.recurring_transaction_id
               ? t('personalSubscriptions.labels.linked', { ns: 'portal' })
@@ -256,10 +256,10 @@ export default function PersonalSubscriptionDetailsContent({
         expanded={showMoreDetails}
         onExpandedChange={setShowMoreDetails}
         className="overflow-hidden rounded-2xl bg-card ring-1 ring-inset ring-border/60"
-        headerClassName="px-4 py-2.5"
-        bodyClassName="px-4 pb-3.5"
+        headerClassName="px-3 py-2.5 sm:px-4 sm:py-2.5"
+        bodyClassName="px-3 pb-2.5 sm:px-4 sm:pb-3.5"
       >
-        <dl className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-0 sm:gap-x-6">
           <DefRow
             label={t('personalSubscriptions.form.fields.provider', { ns: 'portal' })}
             value={subscription.provider || notAvailableLabel}
@@ -271,6 +271,17 @@ export default function PersonalSubscriptionDetailsContent({
           <DefRow
             label={t('personalSubscriptions.form.fields.paymentMethod', { ns: 'portal' })}
             value={subscription.payment_method || notAvailableLabel}
+          />
+          <DefRow
+            label={t('personalSubscriptions.detail.linkCards.account', { ns: 'portal' })}
+            value={(
+              <span className="inline-flex items-center gap-1.5 font-700">
+                <Wallet size={13} className="shrink-0 text-muted-foreground sm:size-[14px]" />
+                <span className="break-words">
+                  {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
+                </span>
+              </span>
+            )}
           />
           <DefRow
             label={t('personalSubscriptions.form.fields.accountReference', { ns: 'portal' })}
@@ -304,6 +315,43 @@ export default function PersonalSubscriptionDetailsContent({
             label={t('personalSubscriptions.cancellation.effectiveDate', { ns: 'portal' })}
             value={formatDateValue(subscription.cancel_effective_date) || notAvailableLabel}
           />
+          <DefRow
+            label={t('personalSubscriptions.detail.linkCards.recurring', { ns: 'portal' })}
+            value={(
+              <span className="inline-flex items-center gap-1.5 font-700">
+                <ReceiptText size={13} className="shrink-0 text-muted-foreground sm:size-[14px]" />
+                <span className="break-words">
+                  {subscription.recurring_transaction_id
+                    ? t('personalSubscriptions.labels.linked', { ns: 'portal' })
+                    : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
+                </span>
+              </span>
+            )}
+          />
+          {subscription.recurring_transaction_id ? (
+            <DefRow
+              label={t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}
+              value={(
+                <Link
+                  href="/recurring"
+                  className="inline-flex items-center gap-1 font-700 text-accent hover:underline"
+                >
+                  {t('personalSubscriptions.labels.linked', { ns: 'portal' })}
+                  <ExternalLink size={12} className="shrink-0 sm:size-[13px]" />
+                </Link>
+              )}
+            />
+          ) : (
+            <div />
+          )}
+          <DefRow
+            label={t('personalSubscriptions.detail.createdAt', { ns: 'portal' })}
+            value={formatDateValue(subscription.created_at.slice(0, 10)) || notAvailableLabel}
+          />
+          <DefRow
+            label={t('personalSubscriptions.detail.updatedAt', { ns: 'portal' })}
+            value={formatDateValue(subscription.updated_at.slice(0, 10)) || notAvailableLabel}
+          />
           {normalizedWebsiteUrl ? (
             <DefRow
               label={t('personalSubscriptions.form.fields.websiteUrl', { ns: 'portal' })}
@@ -314,25 +362,11 @@ export default function PersonalSubscriptionDetailsContent({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 font-700 text-accent hover:underline"
                 >
-                  <span className="truncate">{normalizedWebsiteUrl}</span>
-                  <ExternalLink size={13} className="shrink-0" />
+                  <span className="break-all">{normalizedWebsiteUrl}</span>
+                  <ExternalLink size={12} className="shrink-0 sm:size-[13px]" />
                 </a>
               )}
               wide
-            />
-          ) : null}
-          {subscription.recurring_transaction_id ? (
-            <DefRow
-              label={t('personalSubscriptions.labels.linkedRecurring', { ns: 'portal' })}
-              value={(
-                <Link
-                  href="/recurring"
-                  className="inline-flex items-center gap-1 font-700 text-accent hover:underline"
-                >
-                  {t('personalSubscriptions.labels.linked', { ns: 'portal' })}
-                  <ExternalLink size={13} />
-                </Link>
-              )}
             />
           ) : null}
           {subscription.notes ? (
@@ -344,42 +378,10 @@ export default function PersonalSubscriptionDetailsContent({
             />
           ) : null}
           <DefRow
-            label={t('personalSubscriptions.detail.createdAt', { ns: 'portal' })}
-            value={formatDateValue(subscription.created_at.slice(0, 10)) || notAvailableLabel}
-          />
-          <DefRow
-            label={t('personalSubscriptions.detail.updatedAt', { ns: 'portal' })}
-            value={formatDateValue(subscription.updated_at.slice(0, 10)) || notAvailableLabel}
-          />
-          <DefRow
             label="ID"
             value={subscription.id}
             wide
             mono
-          />
-          <DefRow
-            label={t('personalSubscriptions.detail.linkCards.account', { ns: 'portal' })}
-            value={(
-              <span className="inline-flex items-center gap-1.5 font-700">
-                <Wallet size={14} className="shrink-0 text-muted-foreground" />
-                <span className="truncate">
-                  {subscription.account?.name || t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
-                </span>
-              </span>
-            )}
-          />
-          <DefRow
-            label={t('personalSubscriptions.detail.linkCards.recurring', { ns: 'portal' })}
-            value={(
-              <span className="inline-flex items-center gap-1.5 font-700">
-                <ReceiptText size={14} className="shrink-0 text-muted-foreground" />
-                <span className="truncate">
-                  {subscription.recurring_transaction_id
-                    ? t('personalSubscriptions.labels.linked', { ns: 'portal' })
-                    : t('personalSubscriptions.labels.unlinked', { ns: 'portal' })}
-                </span>
-              </span>
-            )}
           />
         </dl>
       </FormSection>
