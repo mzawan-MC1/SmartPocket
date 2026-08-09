@@ -2,12 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CalendarDays, Eye, FilePlus2, Loader2, Pencil, Search, Sparkles, Trash2 } from 'lucide-react';
+import { CalendarDays, Eye, FilePlus2, Loader2, Pencil, Search, Sparkles, Square, Trash2, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import Modal from '@/components/ui/Modal';
 import CmsHtml from '@/components/cms/CmsHtml';
 import RichTextEditor from '@/components/cms/RichTextEditor';
 import MediaUploadCard from '@/components/ui/MediaUploadCard';
+import { CONTENT_TRANSLATION_ENABLED_LANGS, type SupportedLanguage } from '@/i18n/registry';
 import {
   deriveReadingTimeMinutes,
   normalizeTagList,
@@ -66,6 +68,30 @@ const EMPTY_FORM: CmsBlogAdminInput = {
   robots_index: true,
   robots_follow: true,
 };
+
+type LocalizedImageState = {
+  selectedFile: File | null;
+  uploadProgress: number;
+  uploadError: string | null;
+  cover_image_url: string;
+  seo_image_url: string;
+  twitter_image_url: string;
+};
+
+function buildEmptyLocalizedImageStates(): Record<SupportedLanguage, LocalizedImageState> {
+  const result = {} as Record<SupportedLanguage, LocalizedImageState>;
+  for (const lang of CONTENT_TRANSLATION_ENABLED_LANGS) {
+    result[lang] = {
+      selectedFile: null,
+      uploadProgress: 0,
+      uploadError: null,
+      cover_image_url: '',
+      seo_image_url: '',
+      twitter_image_url: '',
+    };
+  }
+  return result;
+}
 
 function formatAdminDate(value: string | null, locale: string) {
   if (!value) {
@@ -127,6 +153,52 @@ export default function BlogPostsTab() {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [coverUploadProgress, setCoverUploadProgress] = useState(0);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [translationStatuses, setTranslationStatuses] = useState<{ language: string; status: string; sourceHashMatch?: boolean; updatedAt?: string; errorMessage?: string }[]>([]);
+  const [translationSourceHash, setTranslationSourceHash] = useState<string>('');
+  const [isRegeneratingTranslations, setIsRegeneratingTranslations] = useState(false);
+  const [isBackfilling, setIsBackfilling] = useState(false);
+  const [localizedImageStates, setLocalizedImageStates] = useState<Record<SupportedLanguage, LocalizedImageState>>(
+    buildEmptyLocalizedImageStates()
+  );
+
+  type WorkItem = { type: 'blog'; id: string; language: string };
+  const [workQueue, setWorkQueue] = useState<WorkItem[]>([]);
+  const [stopProcessing, setStopProcessing] = useState(false);
+  const stopProcessingRef = React.useRef(false);
+  const [processingProgress, setProcessingProgress] = useState({ completed: 0, total: 0 });
+  const [isProcessingLoopRunning, setIsProcessingLoopRunning] = useState(false);
+
+  type BackfillDialogState = {
+    open: boolean;
+    scope: 'all' | 'blog' | 'faq';
+    completedScanCount: number;
+    totalScannedEstimate: number;
+    completedTranslations: number;
+    pendingTranslations: number;
+    failedTranslations: number;
+    failures: any[];
+    failedWorkSet: any[];
+    pendingWork: any[];
+    nextCursor: { blogCursor?: string; faqCategoryCursor?: string; faqItemCursor?: string } | null;
+    stopBackfill: boolean;
+    isStopped: boolean;
+  };
+  const [backfillDialog, setBackfillDialog] = useState<BackfillDialogState>({
+    open: false,
+    scope: 'blog',
+    completedScanCount: 0,
+    totalScannedEstimate: 0,
+    completedTranslations: 0,
+    pendingTranslations: 0,
+    failedTranslations: 0,
+    failures: [],
+    failedWorkSet: [],
+    pendingWork: [],
+    nextCursor: null,
+    stopBackfill: false,
+    isStopped: false,
+  });
+  const stopBackfillRef = React.useRef(false);
 
   const loadPosts = React.useCallback(async (preferredId?: string | null) => {
     setIsLoading(true);
@@ -164,6 +236,11 @@ export default function BlogPostsTab() {
   useEffect(() => {
     void loadPosts();
   }, [loadPosts]);
+
+  useEffect(() => {
+    if (isNewPost || !activeId) return;
+    void loadLocalizedImages(activeId);
+  }, [activeId, isNewPost]);
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -229,6 +306,66 @@ export default function BlogPostsTab() {
     setCoverImageFile(null);
     setCoverUploadError(null);
     setCoverUploadProgress(0);
+    setLocalizedImageStates(buildEmptyLocalizedImageStates());
+    setTranslationStatuses([]);
+    setTranslationSourceHash(String((post as any).en_source_version_hash || ''));
+  }
+
+  async function loadLocalizedImages(postId: string) {
+    try {
+      const res = await fetch(`/api/admin/cms/blog-posts/${postId}/localized-images`);
+      if (!res.ok) {
+        return;
+      }
+      const json = await res.json();
+      const incoming = (json?.localized_images || {}) as Partial<
+        Record<SupportedLanguage, { cover_image_url?: string; seo_image_url?: string; twitter_image_url?: string }>
+      >;
+      setLocalizedImageStates((current) => {
+        const next = { ...current };
+        for (const lang of CONTENT_TRANSLATION_ENABLED_LANGS) {
+          const entry = incoming[lang];
+          next[lang] = {
+            selectedFile: null,
+            uploadProgress: 0,
+            uploadError: null,
+            cover_image_url: String(entry?.cover_image_url || '').trim(),
+            seo_image_url: String(entry?.seo_image_url || '').trim(),
+            twitter_image_url: String(entry?.twitter_image_url || '').trim(),
+          };
+        }
+        return next;
+      });
+    } catch {
+    }
+  }
+
+  async function removeLocalizedImageOverride(lang: SupportedLanguage) {
+    if (!activeId) return;
+    try {
+      const res = await fetch(
+        `/api/admin/cms/blog-posts/${activeId}/localized-images?lang=${encodeURIComponent(lang)}`,
+        { method: 'DELETE' }
+      );
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error(json?.error || 'Failed to remove override.');
+      }
+      setLocalizedImageStates((current) => ({
+        ...current,
+        [lang]: {
+          selectedFile: null,
+          uploadProgress: 0,
+          uploadError: null,
+          cover_image_url: '',
+          seo_image_url: '',
+          twitter_image_url: '',
+        },
+      }));
+      toast.success(tp('adminBlog.toasts.localizedOverrideRemoved', 'Localized image override removed.', { lng: lang }));
+    } catch (error: any) {
+      toast.error(error?.message || tp('adminBlog.errors.localizedOverrideRemove', 'Failed to remove override.'));
+    }
   }
 
   function startNewPost() {
@@ -239,12 +376,132 @@ export default function BlogPostsTab() {
     setCoverImageFile(null);
     setCoverUploadError(null);
     setCoverUploadProgress(0);
+    setLocalizedImageStates(buildEmptyLocalizedImageStates());
+    setTranslationStatuses([]);
+    setTranslationSourceHash('');
+    setWorkQueue([]);
+    setProcessingProgress({ completed: 0, total: 0 });
+    setStopProcessing(false);
+    stopProcessingRef.current = false;
   }
 
   function selectPost(post: BlogPostListItem) {
     setIsNewPost(false);
     setActiveId(post.id);
     hydrateForm(post);
+    setWorkQueue([]);
+    setProcessingProgress({ completed: 0, total: 0 });
+    setStopProcessing(false);
+    stopProcessingRef.current = false;
+  }
+
+  async function loadBlogTranslationStatus(postId: string) {
+    try {
+      const res = await fetch(`/api/admin/cms/blog-posts/${postId}/translation-status`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json?.statuses)) {
+          setTranslationStatuses(json.statuses);
+        }
+        if (json?.sourceHash) {
+          setTranslationSourceHash(json.sourceHash);
+        }
+      }
+    } catch {
+    }
+  }
+
+  async function processWorkQueue(initialQueue: WorkItem[]) {
+    if (initialQueue.length === 0) return;
+
+    setStopProcessing(false);
+    stopProcessingRef.current = false;
+    setIsProcessingLoopRunning(true);
+    setProcessingProgress({ completed: 0, total: initialQueue.length });
+    let currentQueue = [...initialQueue];
+    let completedCount = 0;
+
+    while (!stopProcessingRef.current && currentQueue.length > 0) {
+      const item = currentQueue[0];
+
+      setTranslationStatuses((prev) =>
+        prev.map((s) =>
+          s.language === item.language
+            ? { ...s, status: 'pending', errorMessage: undefined }
+            : s
+        )
+      );
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+
+        if (completedItem) {
+          if (!completedItem.success) {
+            toast.warning(
+              tp(
+                'adminBlog.toasts.translationFailedPerLang',
+                '{{language}} translation failed: {{message}}',
+                {
+                  language: completedItem.language.toUpperCase(),
+                  message: completedItem.errorMessage || 'Unknown error',
+                }
+              )
+            );
+            setTranslationStatuses((prev) =>
+              prev.map((s) =>
+                s.language === completedItem.language
+                  ? { ...s, status: 'failed', errorMessage: completedItem.errorMessage }
+                  : s
+              )
+            );
+          } else {
+            setTranslationStatuses((prev) =>
+              prev.map((s) =>
+                s.language === completedItem.language
+                  ? { ...s, status: 'current', sourceHashMatch: true, errorMessage: undefined }
+                  : s
+              )
+            );
+          }
+        }
+
+        currentQueue = currentQueue.slice(1);
+        setWorkQueue(currentQueue);
+        completedCount += 1;
+        setProcessingProgress({ completed: completedCount, total: initialQueue.length });
+
+        if (completedCount % 2 === 0 && activeId) {
+          await loadBlogTranslationStatus(activeId);
+        }
+      } catch (error: any) {
+        toast.warning(
+          tp(
+            'adminBlog.toasts.translationFailedPerLang',
+            '{{language}} translation failed: {{message}}',
+            {
+              language: item.language.toUpperCase(),
+              message: error?.message || 'Unknown error',
+            }
+          )
+        );
+        currentQueue = currentQueue.slice(1);
+        setWorkQueue(currentQueue);
+        completedCount += 1;
+        setProcessingProgress({ completed: completedCount, total: initialQueue.length });
+      }
+    }
+
+    if (activeId) {
+      await loadBlogTranslationStatus(activeId);
+    }
+    setIsProcessingLoopRunning(false);
+    setWorkQueue([]);
   }
 
   const handleFieldChange = <K extends keyof CmsBlogAdminInput>(key: K, value: CmsBlogAdminInput[K]) => {
@@ -312,11 +569,83 @@ export default function BlogPostsTab() {
     }
   }
 
-  async function savePost() {
+  async function maybeUploadLocalizedCoverImages(): Promise<
+    Partial<Record<SupportedLanguage, { cover_image_url: string; seo_image_url: string; twitter_image_url: string }>>
+  > {
+    const result: Partial<
+      Record<SupportedLanguage, { cover_image_url: string; seo_image_url: string; twitter_image_url: string }>
+    > = {};
+
+    for (const lang of CONTENT_TRANSLATION_ENABLED_LANGS) {
+      const state = localizedImageStates[lang];
+      const file = state.selectedFile;
+
+      let coverUrl = state.cover_image_url;
+
+      if (file) {
+        try {
+          setLocalizedImageStates((current) => ({
+            ...current,
+            [lang]: { ...current[lang], uploadError: null, uploadProgress: 0 },
+          }));
+          isSupportedUploadFile({
+            file,
+            allowedMimeTypes: COVER_IMAGE_UPLOAD.allowedMimeTypes,
+            allowedExtensions: COVER_IMAGE_UPLOAD.allowedExtensions,
+            maxSizeBytes: COVER_IMAGE_UPLOAD.maxSizeBytes,
+          });
+
+          const uploadResult = await uploadPublicMedia({
+            file,
+            folder: 'blog',
+            filePrefix: `${form.slug || 'blog-cover'}-${lang}`,
+            maxSizeBytes: COVER_IMAGE_UPLOAD.maxSizeBytes,
+            allowedMimeTypes: COVER_IMAGE_UPLOAD.allowedMimeTypes,
+            allowedExtensions: COVER_IMAGE_UPLOAD.allowedExtensions,
+            onProgress: (progress) => {
+              setLocalizedImageStates((current) => ({
+                ...current,
+                [lang]: { ...current[lang], uploadProgress: progress },
+              }));
+            },
+          });
+          coverUrl = uploadResult.publicUrl;
+        } catch (error: any) {
+          const message =
+            error?.message ||
+            tp('adminBlog.errors.localizedCoverUpload', 'Failed to upload the {{language}} cover image.', {
+              language: lang.toUpperCase(),
+            });
+          setLocalizedImageStates((current) => ({
+            ...current,
+            [lang]: { ...current[lang], uploadError: message },
+          }));
+          throw new Error(message);
+        }
+      }
+
+      const seoUrl = state.seo_image_url;
+      const twitterUrl = state.twitter_image_url;
+      const hasAny = coverUrl.trim() || seoUrl.trim() || twitterUrl.trim();
+      if (hasAny) {
+        result[lang] = {
+          cover_image_url: coverUrl.trim(),
+          seo_image_url: seoUrl.trim(),
+          twitter_image_url: twitterUrl.trim(),
+        };
+      }
+    }
+
+    return result;
+  }
+
+  async function savePost(regenerateTranslations = false) {
     setIsSaving(true);
+    if (regenerateTranslations) setIsRegeneratingTranslations(true);
 
     try {
       const uploadedImages = await maybeUploadCoverImage();
+      const localizedImagesUploaded = await maybeUploadLocalizedCoverImages();
       const payload: CmsBlogAdminInput = {
         ...form,
         content_type: 'blog',
@@ -329,10 +658,15 @@ export default function BlogPostsTab() {
 
       const endpoint = isNewPost ? '/api/admin/cms/blog-posts' : `/api/admin/cms/blog-posts/${activeId}`;
       const method = isNewPost ? 'POST' : 'PATCH';
+      const body: any = { ...payload };
+      body.localized_images = localizedImagesUploaded;
+      if (regenerateTranslations && !isNewPost) {
+        body.regenerate_translations = true;
+      }
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
 
@@ -340,21 +674,347 @@ export default function BlogPostsTab() {
         throw new Error(json?.error || tp('adminBlog.errors.save', 'Failed to save the blog post.'));
       }
 
+      setTranslationSourceHash(json?.translation?.sourceHash || '');
+      setTranslationStatuses(Array.isArray(json?.translation?.statuses) ? json.translation.statuses : []);
+      const hasFailed = (json?.translation?.perLanguage || []).some((p: any) => p.status === 'failed');
+      if (hasFailed) {
+        const failedLangs = ((json.translation.perLanguage || []) as any[])
+          .filter((p) => p.status === 'failed')
+          .map((p) => p.language)
+          .join(', ');
+        toast.warning(
+          tp(
+            'adminBlog.toasts.savedWithFailedTranslations',
+            'Saved. Translations failed for: {{languages}}.',
+            { languages: failedLangs }
+          )
+        );
+      } else if (regenerateTranslations) {
+        toast.success(tp('adminBlog.toasts.regenerated', 'Translations regenerated.'));
+      } else {
+        toast.success(
+          isNewPost
+            ? tp('adminBlog.toasts.created', 'Blog post created.')
+            : tp('adminBlog.toasts.updated', 'Blog post updated.')
+        );
+      }
       const nextId = json?.post?.id || activeId;
-      toast.success(
-        isNewPost
-          ? tp('adminBlog.toasts.created', 'Blog post created.')
-          : tp('adminBlog.toasts.updated', 'Blog post updated.')
-      );
       await loadPosts(nextId);
       setIsNewPost(false);
       setCoverImageFile(null);
       setCoverUploadProgress(0);
+      setLocalizedImageStates((current) => {
+        const next = { ...current };
+        for (const lang of CONTENT_TRANSLATION_ENABLED_LANGS) {
+          next[lang] = { ...next[lang], selectedFile: null, uploadProgress: 0, uploadError: null };
+        }
+        return next;
+      });
+
+      const pendingWork = json?.translation?.pendingWork === true;
+      const scheduledLanguages = Array.isArray(json?.translation?.scheduledLanguages)
+        ? json.translation.scheduledLanguages
+        : [];
+      if ((pendingWork || scheduledLanguages.length > 0) && nextId) {
+        const langsToProcess =
+          scheduledLanguages.length > 0
+            ? scheduledLanguages
+            : CONTENT_TRANSLATION_ENABLED_LANGS.filter((l) =>
+                (json?.translation?.statuses || []).some(
+                  (s: any) => s.language === l && (s.status === 'pending' || s.status === 'missing' || s.status === 'outdated')
+                )
+              );
+        const queue: WorkItem[] = langsToProcess.map((L: string) => ({
+          type: 'blog',
+          id: nextId,
+          language: L,
+        }));
+        if (queue.length > 0) {
+          void processWorkQueue(queue);
+        }
+      }
     } catch (error: any) {
       toast.error(error?.message || tp('adminBlog.errors.save', 'Failed to save the blog post.'));
     } finally {
       setIsSaving(false);
+      setIsRegeneratingTranslations(false);
     }
+  }
+
+  async function runBackfillStageB(scope: 'all' | 'blog' | 'faq', pendingWork: any[]): Promise<void> {
+    let localPending = [...pendingWork];
+
+    while (!stopBackfillRef.current && localPending.length > 0) {
+      const item = localPending.shift()!;
+
+      setBackfillDialog((prev) => ({
+        ...prev,
+        pendingTranslations: localPending.length,
+        pendingWork: localPending,
+      }));
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+
+        if (completedItem && completedItem.success) {
+          setBackfillDialog((prev) => ({
+            ...prev,
+            completedTranslations: prev.completedTranslations + 1,
+          }));
+        } else {
+          setBackfillDialog((prev) => ({
+            ...prev,
+            failedTranslations: prev.failedTranslations + 1,
+            failures: [...prev.failures, item],
+            failedWorkSet: [...prev.failedWorkSet, item],
+          }));
+          if (completedItem?.errorMessage) {
+            toast.warning(
+              tp(
+                'adminBlog.toasts.translationFailedPerLang',
+                '{{language}} translation failed: {{message}}',
+                {
+                  language: completedItem.language?.toUpperCase() || '?',
+                  message: completedItem.errorMessage || 'Unknown error',
+                }
+              )
+            );
+          }
+        }
+      } catch (e: any) {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          failedTranslations: prev.failedTranslations + 1,
+          failures: [...prev.failures, item],
+          failedWorkSet: [...prev.failedWorkSet, item],
+        }));
+      }
+    }
+  }
+
+  async function runBackfillLoop(scope: 'all' | 'blog' | 'faq') {
+    setBackfillDialog((prev) => ({ ...prev, stopBackfill: false, isStopped: false }));
+    stopBackfillRef.current = false;
+    let cursor = backfillDialog.nextCursor;
+    let completedScanCount = backfillDialog.completedScanCount;
+    let nextCursor = cursor;
+
+    while (!stopBackfillRef.current) {
+      if (stopBackfillRef.current) break;
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/backfill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope,
+            cursor: nextCursor,
+            batchSize: 5,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || tp('adminBlog.errors.backfill', 'Backfill failed.'));
+
+        completedScanCount += json?.completedScanCount || 0;
+        nextCursor = json?.nextCursor || {};
+        const totalRemaining = json?.totalRemainingEstimate || 0;
+        const failures = json?.failures || [];
+        const scheduledWorkItems = json?.scheduledWorkItems || [];
+        const failedWorkFromStage = [...scheduledWorkItems];
+
+        setBackfillDialog((prev) => ({
+          ...prev,
+          completedScanCount,
+          totalScannedEstimate: completedScanCount + totalRemaining,
+          pendingTranslations: failedWorkFromStage.length,
+          failures: [...prev.failures, ...failures],
+          pendingWork: failedWorkFromStage,
+          nextCursor: nextCursor || null,
+        }));
+
+        await runBackfillStageB(scope, failedWorkFromStage);
+
+        const hasMore =
+          nextCursor &&
+          (nextCursor.blogCursor || nextCursor.faqCategoryCursor || nextCursor.faqItemCursor);
+
+        if (!hasMore) {
+          break;
+        }
+      } catch (e: any) {
+        toast.error(e?.message || tp('adminBlog.errors.backfill', 'Backfill failed.'));
+        break;
+      }
+    }
+
+    const stopped = stopBackfillRef.current;
+    if (stopped) {
+      setBackfillDialog((prev) => ({
+        ...prev,
+        stopBackfill: true,
+        isStopped: true,
+        pendingTranslations: 0,
+        pendingWork: [],
+      }));
+      toast.info(tp('adminBlog.toasts.backfillStopped', 'Backfill stopped by user.'));
+    } else {
+      if (backfillDialog.failedWorkSet.length === 0) {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          open: false,
+          nextCursor: null,
+          stopBackfill: false,
+          isStopped: false,
+        }));
+        setIsBackfilling(false);
+        toast.success(tp('adminBlog.toasts.backfillDone', 'Backfill finished. Existing translations preserved.'));
+      } else {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          stopBackfill: true,
+          isStopped: true,
+          pendingTranslations: 0,
+          pendingWork: [],
+        }));
+        toast.info(tp('adminBlog.toasts.backfillDoneWithFailures', 'Backfill scan complete. Some translations failed. Use Retry to retry them.'));
+      }
+    }
+    if (activeId) await loadPosts(activeId);
+  }
+
+  async function resumeBackfill() {
+    const scope = backfillDialog.scope;
+
+    if (backfillDialog.failedWorkSet.length > 0) {
+      await retryBackfillFailures();
+      return;
+    }
+
+    setBackfillDialog((prev) => ({
+      ...prev,
+      stopBackfill: false,
+      isStopped: false,
+    }));
+    stopBackfillRef.current = false;
+    void runBackfillLoop(scope);
+  }
+
+  async function retryBackfillFailures() {
+    const scope = backfillDialog.scope;
+    const snapshot = [...backfillDialog.failedWorkSet];
+
+    if (snapshot.length === 0) return;
+
+    setBackfillDialog((prev) => ({
+      ...prev,
+      stopBackfill: false,
+      isStopped: false,
+      failedWorkSet: [],
+      failedTranslations: 0,
+      pendingTranslations: snapshot.length,
+      pendingWork: snapshot,
+    }));
+    stopBackfillRef.current = false;
+
+    let todo = [...snapshot];
+    let stillFailed = [] as typeof snapshot;
+    while (!stopBackfillRef.current && todo.length > 0) {
+      const item = todo.shift()!;
+
+      setBackfillDialog((prev) => ({
+        ...prev,
+        pendingTranslations: todo.length,
+        pendingWork: todo,
+      }));
+
+      let success = false;
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+        success = Boolean(completedItem && completedItem.success);
+      } catch {}
+
+      if (success) {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          completedTranslations: prev.completedTranslations + 1,
+        }));
+      } else {
+        stillFailed.push(item);
+        setBackfillDialog((prev) => ({
+          ...prev,
+          failedTranslations: prev.failedTranslations + 1,
+        }));
+      }
+    }
+
+    if (stillFailed.length > 0) {
+      setBackfillDialog((prev) => ({
+        ...prev,
+        failedWorkSet: stillFailed,
+      }));
+    }
+
+    if (stopBackfillRef.current) {
+      setBackfillDialog((prev) => ({
+        ...prev,
+        isStopped: true,
+        stopBackfill: true,
+        pendingWork: [],
+        pendingTranslations: 0,
+      }));
+      toast.info(tp('adminBlog.toasts.backfillStopped', 'Backfill stopped by user.'));
+    } else {
+      if (stillFailed.length === 0) {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          stopBackfill: false,
+          isStopped: false,
+        }));
+        stopBackfillRef.current = false;
+        void runBackfillLoop(scope);
+      } else {
+        setBackfillDialog((prev) => ({
+          ...prev,
+          isStopped: true,
+          stopBackfill: true,
+          pendingWork: [],
+          pendingTranslations: 0,
+        }));
+        toast.info(tp('adminBlog.toasts.retryPassComplete', 'Retry pass complete. Some items still failed; retry again when ready.'));
+      }
+    }
+  }
+
+  async function runBackfill(scope: 'all' | 'blog' | 'faq' = 'blog') {
+    setBackfillDialog({
+      open: true,
+      scope,
+      completedScanCount: 0,
+      totalScannedEstimate: 0,
+      completedTranslations: 0,
+      pendingTranslations: 0,
+      failedTranslations: 0,
+      failures: [],
+      failedWorkSet: [],
+      pendingWork: [],
+      nextCursor: null,
+      stopBackfill: false,
+      isStopped: false,
+    });
+    setIsBackfilling(true);
+    void runBackfillLoop(scope);
   }
 
   async function patchPost(post: BlogPostListItem, payload: Partial<CmsBlogAdminInput>, successMessage: string) {
@@ -699,6 +1359,30 @@ export default function BlogPostsTab() {
                   ? tp('adminBlog.actions.create', 'Create Post')
                   : tp('adminBlog.actions.save', 'Save Changes')}
               </button>
+              {!isNewPost && activeId ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void savePost(true)}
+                    disabled={isSaving}
+                    className="btn-secondary py-2 text-xs"
+                    title={tp('adminBlog.actions.regenerateHint', 'Regenerate all language translations from the latest English.')}
+                  >
+                    {isRegeneratingTranslations ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                    {tp('adminBlog.actions.regenerate', 'Regenerate translations')}
+                  </button>
+                </>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void runBackfill('blog')}
+                disabled={isBackfilling || isSaving}
+                className="btn-secondary py-2 text-xs"
+                title={tp('adminBlog.actions.backfillHint', 'Controlled backfill: translates only missing/outdated blog entries; preserves English + existing current translations.')}
+              >
+                {isBackfilling ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {tp('adminBlog.actions.backfill', 'Backfill Blog translations')}
+              </button>
             </div>
           </div>
 
@@ -889,6 +1573,121 @@ export default function BlogPostsTab() {
             </div>
           </BlogEditorSection>
 
+          {CONTENT_TRANSLATION_ENABLED_LANGS.map((lang) => {
+            const state = localizedImageStates[lang];
+            const hasAnyOverride =
+              state.cover_image_url?.trim() ||
+              state.seo_image_url?.trim() ||
+              state.twitter_image_url?.trim() ||
+              state.selectedFile;
+            return (
+              <BlogEditorSection
+                key={lang}
+                title={`Localized image — ${lang.toUpperCase()}`}
+                description="Per-language cover and social image overrides. Leave blank to inherit the default English images."
+              >
+                <div className="space-y-4">
+                  <MediaUploadCard
+                    label={`${lang.toUpperCase()} cover image override`}
+                    value={state.cover_image_url}
+                    onValueChange={(value) =>
+                      setLocalizedImageStates((current) => ({
+                        ...current,
+                        [lang]: { ...current[lang], cover_image_url: value },
+                      }))
+                    }
+                    selectedFile={state.selectedFile}
+                    onFileSelect={(file) =>
+                      setLocalizedImageStates((current) => ({
+                        ...current,
+                        [lang]: { ...current[lang], selectedFile: file },
+                      }))
+                    }
+                    accept={COVER_IMAGE_UPLOAD.accept}
+                    acceptedFormatsLabel={COVER_IMAGE_UPLOAD.acceptedFormatsLabel}
+                    maxSizeLabel={COVER_IMAGE_UPLOAD.maxSizeLabel}
+                    isUploading={isSaving && Boolean(state.selectedFile)}
+                    uploadProgress={state.uploadProgress}
+                    error={state.uploadError}
+                    previewVariant="wide"
+                    helperText={tp(
+                      'adminBlog.fields.localizedCoverHint',
+                      'Optional localized cover for {{language}} readers.',
+                      { language: lang.toUpperCase() }
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <label className="mb-1.5 block text-sm font-600 text-foreground">
+                        {`${lang.toUpperCase()} SEO / Open Graph image URL`}
+                      </label>
+                      <input
+                        value={state.seo_image_url}
+                        onChange={(event) =>
+                          setLocalizedImageStates((current) => ({
+                            ...current,
+                            [lang]: { ...current[lang], seo_image_url: event.target.value },
+                          }))
+                        }
+                        className="input-base"
+                        placeholder={tp(
+                          'adminBlog.placeholders.localizedSeoImage',
+                          'Optional override for social share preview'
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-600 text-foreground">
+                        {`${lang.toUpperCase()} Twitter card image URL`}
+                      </label>
+                      <input
+                        value={state.twitter_image_url}
+                        onChange={(event) =>
+                          setLocalizedImageStates((current) => ({
+                            ...current,
+                            [lang]: { ...current[lang], twitter_image_url: event.target.value },
+                          }))
+                        }
+                        className="input-base"
+                        placeholder={tp(
+                          'adminBlog.placeholders.localizedTwitterImage',
+                          'Optional override for Twitter/X card preview'
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {hasAnyOverride ? (
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              tp(
+                                'adminBlog.actions.confirmRemoveLocalizedOverride',
+                                'Remove all image overrides for {{language}}?',
+                                { language: lang.toUpperCase() }
+                              )
+                            )
+                          ) {
+                            return;
+                          }
+                          void removeLocalizedImageOverride(lang);
+                        }}
+                        className="btn-secondary py-2 text-xs text-muted-foreground hover:text-negative"
+                      >
+                        <Trash2 size={14} />
+                        {tp('adminBlog.actions.removeLocalizedOverride', 'Remove override')}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </BlogEditorSection>
+            );
+          })}
+
           <BlogEditorSection
             title={tp('adminBlog.sections.content.title', 'Blog Content')}
             description={tp('adminBlog.sections.content.description', 'Use headings, short paragraphs, bullets, and quotes for better readability.')}
@@ -973,6 +1772,91 @@ export default function BlogPostsTab() {
                 </div>
               </div>
             </div>
+          </BlogEditorSection>
+
+          <BlogEditorSection
+            title={tp('adminBlog.translation.title', 'Translation status')}
+            description={tp('adminBlog.translation.description', 'English is the single source of truth. Saved translations appear here; per-language failures preserve prior valid translations.')}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {translationStatuses.length > 0 ? (
+                translationStatuses.map((row) => {
+                  const displayStatus =
+                    row.status === 'current' && row.sourceHashMatch === false
+                      ? 'outdated'
+                      : row.status || 'missing';
+                  const label =
+                    displayStatus === 'current'
+                      ? tp('adminBlog.translation.statusCurrent', 'Current')
+                      : displayStatus === 'outdated' || (row.status === 'current' && row.sourceHashMatch === false)
+                      ? tp('adminBlog.translation.statusOutdated', 'Missing/Outdated')
+                      : displayStatus === 'failed'
+                      ? tp('adminBlog.translation.statusFailed', 'Failed')
+                      : displayStatus === 'pending'
+                      ? tp('adminBlog.translation.statusPending', 'Translating')
+                      : tp('adminBlog.translation.statusMissing', 'Missing/Outdated');
+                  const chipClass =
+                    displayStatus === 'current'
+                      ? 'bg-positive-soft text-positive'
+                      : displayStatus === 'failed'
+                      ? 'bg-danger-soft text-danger'
+                      : displayStatus === 'pending'
+                      ? 'bg-info-soft text-info'
+                      : 'bg-warning/10 text-warning';
+                  return (
+                    <span
+                      key={row.language}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-700 uppercase tracking-[0.14em] ${chipClass}`}
+                      title={row.errorMessage ? `${row.language}: ${row.errorMessage}` : row.language}
+                    >
+                      <span>{row.language.toUpperCase()}</span>
+                      <span className="opacity-80">{label}</span>
+                    </span>
+                  );
+                })
+              ) : (
+                <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+                  {tp('adminBlog.translation.noStatuses', 'No statuses yet. Translations run automatically after save.')}
+                </span>
+              )}
+              {translationSourceHash ? (
+                <span className="ml-auto rounded-full bg-muted px-3 py-1 font-mono text-[10px] text-muted-foreground">
+                  EN {translationSourceHash.slice(0, 8)}
+                </span>
+              ) : null}
+            </div>
+            {isProcessingLoopRunning ? (
+              <div className="mt-4 space-y-2 rounded-2xl border border-border bg-muted/30 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs font-600 text-foreground">
+                    {tp(
+                      'adminBlog.translation.progressCount',
+                      '{{completed}} of {{total}} languages processed',
+                      {
+                        completed: processingProgress.completed,
+                        total: processingProgress.total,
+                      }
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => { setStopProcessing(true); stopProcessingRef.current = true; }}
+                    className="btn-secondary !h-7 !min-h-0 !rounded-xl !px-2.5 !py-0 !text-[11px] !gap-1"
+                  >
+                    <Square size={11} />
+                    {tp('adminBlog.actions.stopProcessing', 'Stop')}
+                  </button>
+                </div>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-accent transition-all duration-300"
+                    style={{
+                      width: `${processingProgress.total > 0 ? Math.min(100, Math.round((processingProgress.completed / processingProgress.total) * 100)) : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
           </BlogEditorSection>
 
           {!isNewPost && selectedPost?.status === 'published' && selectedPost.is_enabled ? (
@@ -1074,6 +1958,127 @@ export default function BlogPostsTab() {
           </aside>
         ) : null}
       </div>
+
+      <Modal
+        isOpen={backfillDialog.open}
+        onClose={() => {}}
+        title={tp('adminBlog.backfill.title', 'Backfill translations')}
+        description={tp(
+          'adminBlog.backfill.description',
+          'Scans all Blog content from the beginning and translates missing or outdated entries. Safe to stop and resume within this open session. If you refresh or close the page, the next run safely re-scans from the start (already-current translations are skipped without duplication).'
+        )}
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminBlog.backfill.scannedLabel', 'Scanned content')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-info">
+                {backfillDialog.completedScanCount}
+                <span className="text-sm font-500 text-muted-foreground">
+                  {' / '}{backfillDialog.totalScannedEstimate || '—'}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminBlog.backfill.completedLabel', 'Completed translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-positive">
+                {backfillDialog.completedTranslations}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminBlog.backfill.pendingLabel', 'Pending translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-warning">
+                {backfillDialog.pendingTranslations}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminBlog.backfill.failedLabel', 'Failed translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-danger">
+                {backfillDialog.failedTranslations}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-300"
+              style={{
+                width: `${(backfillDialog.completedTranslations + backfillDialog.pendingTranslations + backfillDialog.failedTranslations) > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (backfillDialog.completedTranslations /
+                            (backfillDialog.completedTranslations + backfillDialog.pendingTranslations + backfillDialog.failedTranslations)) *
+                            100
+                        )
+                      )
+                    : 0
+                  }%`,
+              }}
+            />
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            {!backfillDialog.isStopped ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setBackfillDialog((prev) => ({ ...prev, stopBackfill: true }));
+                  stopBackfillRef.current = true;
+                }}
+              >
+                <Square size={14} />
+                {tp('adminBlog.actions.stopBackfill', 'Stop')}
+              </button>
+            ) : null}
+            {backfillDialog.isStopped ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void resumeBackfill()}
+              >
+                <Play size={14} />
+                {tp('adminBlog.actions.resumeBackfill', 'Resume')}
+              </button>
+            ) : null}
+            {backfillDialog.failedWorkSet.length > 0 ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void retryBackfillFailures()}
+              >
+                <Sparkles size={14} />
+                {tp('adminBlog.actions.retryFailures', 'Retry failures')}
+                <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-700 text-danger">
+                  {backfillDialog.failedWorkSet.length}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                setBackfillDialog((prev) => ({ ...prev, stopBackfill: true, open: false }));
+                stopBackfillRef.current = true;
+                setIsBackfilling(false);
+              }}
+            >
+              <Square size={14} />
+              {tp('adminBlog.actions.closeBackfill', 'Stop and close')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

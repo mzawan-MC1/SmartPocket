@@ -104,6 +104,8 @@ export const SUPPORTED_LANGUAGES: LanguageRegistryEntry[] = LANGUAGE_CODES.map(
 
 export const SUPPORTED_LANGUAGE_CODES: SupportedLanguage[] = [...LANGUAGE_CODES];
 
+export const CONTENT_TRANSLATION_ENABLED_LANGS = SUPPORTED_LANGUAGE_CODES.filter((l) => l !== 'en');
+
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
 
 export const I18N_STORAGE_KEY = 'sp_language';

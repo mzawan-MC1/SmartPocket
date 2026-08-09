@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies } from '@/lib/supabase/server';
 import {
+  autoTranslateFaqCategory,
   deleteFaqCategory,
+  enCategoryChanged,
   ensureUniqueFaqCategorySlug,
   loadFaqCategoryInputOrNull,
   loadFaqCategoryOrNull,
   loadFaqCategoryQuestionCount,
+  loadFaqCategoryTranslationStatus,
   mergeCategoryInputWithExisting,
   updateFaqCategory,
 } from '@/lib/faqs-admin-server';
@@ -43,13 +46,10 @@ export async function PATCH(
       );
     }
 
-    const body = (await request.json()) as Partial<FaqCategoryInput>;
-    const input = normalizeFaqCategoryInput(
-      mergeCategoryInputWithExisting({
-        existing,
-        input: body,
-      })
-    );
+    const rawBody = (await request.json()) as Partial<FaqCategoryInput> & { regenerate_translations?: boolean };
+    const { regenerate_translations, ...body } = rawBody;
+    const merged = mergeCategoryInputWithExisting({ existing, input: body });
+    const input = normalizeFaqCategoryInput(merged);
     const validationError = validateFaqCategoryInput(input);
 
     if (validationError) {
@@ -72,19 +72,48 @@ export async function PATCH(
       );
     }
 
+    const enChanged = enCategoryChanged(existing, input);
+    const shouldTranslate = regenerate_translations === true || enChanged;
+
     const category = await updateFaqCategory({
       admin: auth.admin,
       categoryId: id,
       input,
+      enChanged: false,
     });
 
+    let scheduleResult: { sourceHash: string; scheduledLanguages: any[]; totalEnabled: number } | null = null;
+    if (shouldTranslate) {
+      scheduleResult = await autoTranslateFaqCategory(auth.admin, id, input, { regenerateAll: regenerate_translations === true });
+    }
+
+    const statusSummary = await loadFaqCategoryTranslationStatus(
+      auth.admin,
+      id,
+      input.translations.en?.name || '',
+      input.translations.en?.description || ''
+    );
+
     return applySupabaseCookies(
-      NextResponse.json({ category }, { status: 200 }),
+      NextResponse.json(
+        {
+          category,
+          translation: {
+            statuses: statusSummary.statuses,
+            enSourceHash: statusSummary.enSourceHash,
+            perLanguage: [],
+            scheduledLanguages: scheduleResult?.scheduledLanguages ?? [],
+            totalEnabled: scheduleResult?.totalEnabled ?? 0,
+            skippedTranslations: !shouldTranslate,
+          },
+        },
+        { status: 200 }
+      ),
       auth.cookieMutations
     );
-  } catch {
+  } catch (e) {
     return applySupabaseCookies(
-      NextResponse.json({ error: 'Failed to update FAQ category.' }, { status: 500 }),
+      NextResponse.json({ error: (e as any)?.message || 'Failed to update FAQ category.' }, { status: 500 }),
       auth.cookieMutations
     );
   }

@@ -95,7 +95,7 @@ async function readFaqTablesWithAnonClient(client: AnonClient) {
         .order('created_at', { ascending: true }),
       client
         .from('faq_category_translations')
-        .select('*')
+        .select('id,category_id,language_code,name,description,source_version_hash,translation_status,last_error_message,created_at,updated_at')
         .order('language_code', { ascending: true }),
       client
         .from('faq_items')
@@ -104,7 +104,7 @@ async function readFaqTablesWithAnonClient(client: AnonClient) {
         .order('created_at', { ascending: true }),
       client
         .from('faq_item_translations')
-        .select('*')
+        .select('id,item_id,language_code,question,answer_html,keywords,source_version_hash,translation_status,last_error_message,created_at,updated_at')
         .order('language_code', { ascending: true }),
     ]);
 
@@ -291,12 +291,27 @@ function buildPublicPageData(args: {
     itemTranslationsByItem.set(translation.item_id, current);
   }
 
+  const categoryHashes: Record<string, string> = {};
+  for (const category of args.categories) {
+    if (category.en_source_version_hash) {
+      categoryHashes[category.id] = category.en_source_version_hash;
+    }
+  }
+
+  const itemHashes: Record<string, string> = {};
+  for (const item of args.items) {
+    if (item.en_source_version_hash) {
+      itemHashes[item.id] = item.en_source_version_hash;
+    }
+  }
+
   const categories = args.categories
     .filter((category) => category.is_active)
     .map((category) => {
       const resolved = resolveFaqTranslation(
         categoryTranslationsByCategory.get(category.id) || [],
-        args.language
+        args.language,
+        categoryHashes
       );
 
       if (!resolved) {
@@ -321,7 +336,7 @@ function buildPublicPageData(args: {
   const items = args.items
     .filter((item) => item.is_active && activeCategoryIds.has(item.category_id))
     .map((item) => {
-      const resolved = resolveFaqTranslation(itemTranslationsByItem.get(item.id) || [], args.language);
+      const resolved = resolveFaqTranslation(itemTranslationsByItem.get(item.id) || [], args.language, itemHashes);
       if (!resolved) {
         return null;
       }

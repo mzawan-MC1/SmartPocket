@@ -1,7 +1,6 @@
 import React from 'react';
 import { FileText, ImageIcon, Loader2, Paperclip, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { isSupportedUploadFile } from '@/lib/media-upload';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS,
@@ -73,8 +72,8 @@ export default function SupportAttachmentUploader({
     try {
       const nextFiles = selected.map((file) => {
         const extension = file.name.split('.').pop()?.trim().toLowerCase() || '';
-        const hasAllowedExtension = SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS.includes(extension);
-        const hasAllowedMimeType = SUPPORT_ATTACHMENT_ALLOWED_MIME_TYPES.includes(file.type);
+        const hasAllowedExtension = SUPPORT_ATTACHMENT_ALLOWED_EXTENSIONS.some((item) => item === extension);
+        const hasAllowedMimeType = SUPPORT_ATTACHMENT_ALLOWED_MIME_TYPES.some((item) => item === file.type);
 
         if (!hasAllowedExtension || (!hasAllowedMimeType && file.type)) {
           throw new Error(

@@ -84,6 +84,7 @@ export type CmsPageRecord = {
   allow_delete: boolean;
   published_at: string | null;
   reading_time_minutes: number | null;
+  en_source_version_hash: string | null;
   created_at: string;
   updated_at: string;
 };

@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies } from '@/lib/supabase/server';
 import {
+  autoTranslateFaqItem,
   deleteFaqItem,
+  enItemChanged,
   ensureUniqueFaqItemSlug,
   loadFaqCategoryOrNull,
   loadFaqItemInputOrNull,
   loadFaqItemOrNull,
+  loadFaqItemTranslationStatus,
   mergeItemInputWithExisting,
   updateFaqItem,
 } from '@/lib/faqs-admin-server';
@@ -43,13 +46,10 @@ export async function PATCH(
       );
     }
 
-    const body = (await request.json()) as Partial<FaqItemInput>;
-    const input = normalizeFaqItemInput(
-      mergeItemInputWithExisting({
-        existing,
-        input: body,
-      })
-    );
+    const rawBody = (await request.json()) as Partial<FaqItemInput> & { regenerate_translations?: boolean };
+    const { regenerate_translations, ...body } = rawBody;
+    const merged = mergeItemInputWithExisting({ existing, input: body });
+    const input = normalizeFaqItemInput(merged);
     const validationError = validateFaqItemInput(input);
 
     if (validationError) {
@@ -80,19 +80,49 @@ export async function PATCH(
       );
     }
 
+    const enChanged = enItemChanged(existing, input);
+    const shouldTranslate = regenerate_translations === true || enChanged;
+
     const item = await updateFaqItem({
       admin: auth.admin,
       itemId: id,
       input,
+      enChanged: false,
     });
 
+    let scheduleResult: { sourceHash: string; scheduledLanguages: any[]; totalEnabled: number } | null = null;
+    if (shouldTranslate) {
+      scheduleResult = await autoTranslateFaqItem(auth.admin, id, input, { regenerateAll: regenerate_translations === true });
+    }
+
+    const statusSummary = await loadFaqItemTranslationStatus(
+      auth.admin,
+      id,
+      input.translations.en?.question || '',
+      input.translations.en?.answer_html || '',
+      Array.isArray(input.translations.en?.keywords) ? input.translations.en.keywords : []
+    );
+
     return applySupabaseCookies(
-      NextResponse.json({ item }, { status: 200 }),
+      NextResponse.json(
+        {
+          item,
+          translation: {
+            statuses: statusSummary.statuses,
+            enSourceHash: statusSummary.enSourceHash,
+            perLanguage: [],
+            scheduledLanguages: scheduleResult?.scheduledLanguages ?? [],
+            totalEnabled: scheduleResult?.totalEnabled ?? 0,
+            skippedTranslations: !shouldTranslate,
+          },
+        },
+        { status: 200 }
+      ),
       auth.cookieMutations
     );
-  } catch {
+  } catch (e) {
     return applySupabaseCookies(
-      NextResponse.json({ error: 'Failed to update FAQ.' }, { status: 500 }),
+      NextResponse.json({ error: (e as any)?.message || 'Failed to update FAQ.' }, { status: 500 }),
       auth.cookieMutations
     );
   }

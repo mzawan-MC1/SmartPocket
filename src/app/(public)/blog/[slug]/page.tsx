@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+export const revalidate = 0;
+
 import Link from 'next/link';
 import { ArrowRight, ChevronRight } from 'lucide-react';
 import { notFound } from 'next/navigation';
@@ -7,7 +9,7 @@ import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import CmsHtml from '@/components/cms/CmsHtml';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import BlogCard from '@/components/public/blog/BlogCard';
-import { getPublicBlogPostBySlug, listRelatedBlogPosts } from '@/lib/cms-pages-server';
+import { getPublicBlogPostBySlug, listRelatedBlogPosts, resolveLocalizedBlogList, resolveLocalizedBlogPost } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import {
   buildArticleStructuredData,
@@ -45,7 +47,8 @@ export async function generateMetadata({ params }: BlogDetailPageProps): Promise
   const { slug } = await params;
   const settings = await getPlatformSettingsSnapshot();
   const language = await resolveMetadataLanguage(settings);
-  const post = await getPublicBlogPostBySlug(slug);
+  const rawPost = await getPublicBlogPostBySlug(slug);
+  const post = await resolveLocalizedBlogPost(rawPost, language);
 
   if (!post) {
     return buildPageMetadata({
@@ -88,13 +91,19 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   const blogText = getBlogText(publicText);
   const common = blogText.common || {};
   const detail = blogText.detail || {};
-  const post = await getPublicBlogPostBySlug(slug);
+  const rawPost = await getPublicBlogPostBySlug(slug);
+  const post = await resolveLocalizedBlogPost(rawPost, language);
 
   if (!post) {
     notFound();
   }
 
-  const relatedPosts = await listRelatedBlogPosts(post, 3);
+  const rawRelated = await listRelatedBlogPosts(
+    { id: post.id,
+    category: post.category,
+    tags: post.tags,
+  }, 3);
+  const relatedPosts = await resolveLocalizedBlogList(rawRelated, language);
   const postUrl = buildAbsoluteSiteUrl(`/blog/${post.slug}`, settings);
   const dateLabel = formatDate(post.published_at || post.updated_at, language);
   const readingTimeLabel = common.readTime?.replace('{{count}}', String(post.reading_time_minutes || 1)) || `${post.reading_time_minutes || 1} min read`;

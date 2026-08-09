@@ -32,6 +32,7 @@ export type FaqCategoryRecord = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  en_source_version_hash?: string;
 };
 
 export type FaqCategoryTranslationRecord = {
@@ -42,6 +43,9 @@ export type FaqCategoryTranslationRecord = {
   description: string;
   created_at: string;
   updated_at: string;
+  source_version_hash?: string;
+  translation_status?: string;
+  last_error_message?: string | null;
 };
 
 export type FaqItemRecord = {
@@ -53,6 +57,7 @@ export type FaqItemRecord = {
   is_featured: boolean;
   created_at: string;
   updated_at: string;
+  en_source_version_hash?: string;
 };
 
 export type FaqItemTranslationRecord = {
@@ -64,6 +69,9 @@ export type FaqItemTranslationRecord = {
   keywords: string[];
   created_at: string;
   updated_at: string;
+  source_version_hash?: string;
+  translation_status?: string;
+  last_error_message?: string | null;
 };
 
 export type FaqCategoryTranslationInput = {
@@ -118,6 +126,7 @@ export type PublicFaqItem = {
 
 type TranslationPair<TLanguage extends string, TValue> = {
   language_code: TLanguage;
+  translation_status?: string;
 } & TValue;
 
 function hasFaqTranslationContent(value: Record<string, unknown>) {
@@ -127,6 +136,26 @@ function hasFaqTranslationContent(value: Record<string, unknown>) {
     }
     return typeof entry === 'string' && entry.trim().length > 0;
   });
+}
+
+function isFaqTranslationStatusPublicEligible(
+  status: string | undefined,
+  language_code: string,
+  source_version_hash: string | undefined
+): boolean {
+  if (language_code === 'en') return true;
+  const statusOk = status === 'current';
+  const hashNonEmpty = typeof source_version_hash === 'string' && source_version_hash.trim().length > 0;
+  return statusOk && hashNonEmpty;
+}
+
+function hasFaqHashMatch(
+  translation: { source_version_hash?: string },
+  parentHash: string | undefined
+): boolean {
+  const txHash = typeof translation.source_version_hash === 'string' ? translation.source_version_hash.trim() : '';
+  const pHash = typeof parentHash === 'string' ? parentHash.trim() : '';
+  return txHash.length > 0 && pHash.length > 0 && txHash === pHash;
 }
 
 const FAQ_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -316,12 +345,26 @@ export function validateFaqItemInput(input: FaqItemInput) {
 
 export function resolveFaqTranslation<TValue extends Record<string, unknown>, TLanguage extends FaqLanguageCode>(
   translations: Array<TranslationPair<TLanguage, TValue>>,
-  language: TLanguage
+  language: TLanguage,
+  parentHashes?: Record<string, string>
 ) {
   const exact = translations.find(
-    (translation) =>
-      translation.language_code === language &&
-      hasFaqTranslationContent(translation as Record<string, unknown>)
+    (translation) => {
+      if (
+        translation.language_code !== language ||
+        !isFaqTranslationStatusPublicEligible(translation.translation_status, translation.language_code, (translation as any).source_version_hash) ||
+        !hasFaqTranslationContent(translation as Record<string, unknown>)
+      ) {
+        return false;
+      }
+      if (translation.language_code === 'en') return true;
+      if (parentHashes) {
+        const parentId = (translation as any).category_id ?? (translation as any).item_id;
+        const parentHash = typeof parentId === 'string' ? parentHashes[parentId] : undefined;
+        if (!hasFaqHashMatch(translation as any, parentHash)) return false;
+      }
+      return true;
+    }
   );
   if (exact) {
     return {
@@ -344,16 +387,7 @@ export function resolveFaqTranslation<TValue extends Record<string, unknown>, TL
     };
   }
 
-  const first = translations.find((translation) =>
-    hasFaqTranslationContent(translation as Record<string, unknown>)
-  );
-  return first
-    ? {
-        translation: first,
-        usedFallback: true,
-        translationLanguage: first.language_code,
-      }
-    : null;
+  return null;
 }
 
 export function buildFaqTranslationCompleteness(

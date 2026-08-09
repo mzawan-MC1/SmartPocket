@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+export const revalidate = 0;
+
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import { BASE_I18N_RESOURCES } from '@/i18n/resources';
 import BlogArchiveClient from '@/components/public/blog/BlogArchiveClient';
-import { listPublicBlogPosts, type PublicCmsPage } from '@/lib/cms-pages-server';
+import { listPublicBlogPosts, resolveLocalizedBlogList, type PublicCmsPage } from '@/lib/cms-pages-server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildBreadcrumbStructuredData, buildPageMetadata, resolveMetadataLanguage } from '@/lib/site-metadata';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
@@ -81,7 +83,7 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
   let posts: PublicCmsPage[] = [];
 
   try {
-    posts = await listPublicBlogPosts();
+    posts = await resolveLocalizedBlogList(await listPublicBlogPosts(), language);
   } catch {
     posts = [];
   }

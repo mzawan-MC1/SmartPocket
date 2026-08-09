@@ -18,6 +18,7 @@ import {
   type CmsContentType,
   type CmsPageRecord,
 } from '@/lib/cms-pages';
+import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
 export type PublicCmsPage = CmsPageRecord & {
   navigation_label_resolved: string;
@@ -298,4 +299,253 @@ export async function listRelatedBlogPosts(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((entry) => entry.post);
+}
+
+type CmsPageTranslationRow = {
+  page_id: string;
+  language_code: string;
+  title: string;
+  excerpt: string;
+  content_html: string;
+  category: string;
+  tags: string[];
+  cover_image_alt: string;
+  seo_title: string;
+  seo_description: string;
+  seo_keywords: string;
+  og_title: string;
+  og_description: string;
+  twitter_title: string;
+  twitter_description: string;
+  translation_status: string;
+  source_version_hash?: string;
+  last_error_message?: string | null;
+};
+
+type CmsPageLocalizedImageRow = {
+  page_id: string;
+  language_code: string;
+  cover_image_url: string | null;
+  seo_image_url: string | null;
+  twitter_image_url: string | null;
+};
+
+function isPublicTranslationRowEligible(
+  r: CmsPageTranslationRow,
+  languageCode: SupportedLanguage,
+  parentEnSourceHash: string
+): boolean {
+  if (!r) return false;
+  if (languageCode === 'en') return true;
+  const statusOk = r.translation_status === 'current';
+  const hashNonEmpty = Boolean(r.source_version_hash && String(r.source_version_hash).trim().length > 0);
+  const hashMatch = hashNonEmpty && Boolean(parentEnSourceHash) && r.source_version_hash === parentEnSourceHash;
+  const titleOk = Boolean(r.title && String(r.title).trim().length > 0);
+  return statusOk && hashNonEmpty && hashMatch && titleOk;
+}
+
+export const loadBlogPostTranslationsForPage = cache(async (pageId: string) => {
+  noStore();
+  const admin = createAdminClient();
+  try {
+    if (!admin) return [] as CmsPageTranslationRow[];
+    const { data, error } = await admin
+      .from('cms_page_translations')
+      .select(
+        'page_id,language_code,title,excerpt,content_html,category,tags,cover_image_alt,seo_title,seo_description,seo_keywords,og_title,og_description,twitter_title,twitter_description,translation_status,source_version_hash'
+      )
+      .eq('page_id', pageId);
+    if (error) return [] as CmsPageTranslationRow[];
+    return ((data as CmsPageTranslationRow[] | null) || []);
+  } catch {
+    return [] as CmsPageTranslationRow[];
+  }
+});
+
+export const loadBlogPostLocalizedImagesForPage = cache(async (pageId: string) => {
+  noStore();
+  const admin = createAdminClient();
+  try {
+    if (!admin) return [] as CmsPageLocalizedImageRow[];
+    const { data, error } = await admin
+      .from('cms_page_localized_images')
+      .select('page_id,language_code,cover_image_url,seo_image_url,twitter_image_url')
+      .eq('page_id', pageId);
+    if (error) return [] as CmsPageLocalizedImageRow[];
+    return ((data as CmsPageLocalizedImageRow[] | null) || []).filter(
+      (r) =>
+        Boolean(r.cover_image_url?.trim()) ||
+        Boolean(r.seo_image_url?.trim()) ||
+        Boolean(r.twitter_image_url?.trim())
+    );
+  } catch {
+    return [] as CmsPageLocalizedImageRow[];
+  }
+});
+
+function pickSupportedLanguageCode(code: string | SupportedLanguage): SupportedLanguage | null {
+  return SUPPORTED_LANGUAGE_CODES.includes(code as SupportedLanguage)
+    ? (code as SupportedLanguage)
+    : null;
+}
+
+function splitKeywordsCsvOrNull(value: string | null | undefined): string[] | null {
+  if (value == null) return null;
+  const parts = value
+    .split(/[,，、]/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return parts.length > 0 ? parts : null;
+}
+
+function useTranslationFieldOrFallback<T>(
+  txValue: T | null | undefined,
+  fallback: T
+): T {
+  if (typeof txValue === 'string') {
+    return txValue.trim().length > 0 ? (txValue as T) : fallback;
+  }
+  if (Array.isArray(txValue)) {
+    return txValue.length > 0 ? (txValue as T) : fallback;
+  }
+  return fallback;
+}
+
+export function applyBlogTranslation(
+  page: PublicCmsPage,
+  options: {
+    selectedLanguage: SupportedLanguage;
+    translations: CmsPageTranslationRow[];
+    localizedImages?: CmsPageLocalizedImageRow[] | null;
+    parentEnSourceHash: string;
+  }
+): PublicCmsPage {
+  const lang = pickSupportedLanguageCode(options.selectedLanguage);
+  if (!lang || lang === 'en') return page;
+
+  const translations = options.translations || [];
+  const images = options.localizedImages || [];
+  const primary = translations.find((t) => t.language_code === lang);
+
+  if (!primary || !isPublicTranslationRowEligible(primary, lang, options.parentEnSourceHash)) {
+    return page;
+  }
+
+  const p = primary;
+
+  const title = useTranslationFieldOrFallback(p.title, page.title);
+  const excerpt = useTranslationFieldOrFallback(p.excerpt, page.excerpt);
+  const contentHtml = useTranslationFieldOrFallback(p.content_html, page.content_html);
+  const category = useTranslationFieldOrFallback(p.category, page.category);
+  const tags = useTranslationFieldOrFallback<string[] | null>(p.tags, page.tags);
+  const coverImageAlt = useTranslationFieldOrFallback(p.cover_image_alt, page.cover_image_alt);
+  const seoTitle = useTranslationFieldOrFallback(p.seo_title, page.seo_title);
+  const seoDesc = useTranslationFieldOrFallback(p.seo_description, page.seo_description);
+  const seoKeywords = useTranslationFieldOrFallback(p.seo_keywords, page.seo_keywords);
+  const ogTitle = useTranslationFieldOrFallback(p.og_title, page.og_title);
+  const ogDesc = useTranslationFieldOrFallback(p.og_description, page.og_description);
+  const twitterTitle = useTranslationFieldOrFallback(p.twitter_title, page.twitter_title);
+  const twitterDesc = useTranslationFieldOrFallback(p.twitter_description, page.twitter_description);
+
+  const img = images.find((r) => r.language_code === lang) || null;
+  const coverImageUrl =
+    img && img.cover_image_url && img.cover_image_url.trim()
+      ? img.cover_image_url
+      : page.cover_image_url;
+  const seoImageUrl =
+    img && img.seo_image_url && img.seo_image_url.trim() ? img.seo_image_url : page.seo_image_url;
+  const twitterImageUrl =
+    img && img.twitter_image_url && img.twitter_image_url.trim()
+      ? img.twitter_image_url
+      : page.twitter_image_url;
+
+  const baseRecord: CmsPageRecord = {
+    ...page,
+    title,
+    excerpt,
+    content_html: contentHtml,
+    category,
+    tags,
+    cover_image_alt: coverImageAlt,
+    cover_image_url: coverImageUrl,
+    seo_title: seoTitle,
+    seo_description: seoDesc,
+    seo_keywords: seoKeywords,
+    seo_image_url: seoImageUrl,
+    og_title: ogTitle,
+    og_description: ogDesc,
+    twitter_title: twitterTitle,
+    twitter_description: twitterDesc,
+    twitter_image_url: twitterImageUrl,
+  };
+
+  return {
+    ...baseRecord,
+    navigation_label_resolved: getCmsPageNavigationLabel(baseRecord),
+    excerpt_resolved: deriveCmsExcerpt(baseRecord),
+    seo_title_resolved: deriveCmsSeoTitle(baseRecord),
+    seo_description_resolved: deriveCmsSeoDescription(baseRecord),
+    seo_keywords_resolved: deriveCmsSeoKeywords(baseRecord),
+    og_title_resolved: deriveCmsOgTitle(baseRecord),
+    og_description_resolved: deriveCmsOgDescription(baseRecord),
+    twitter_title_resolved: deriveCmsTwitterTitle(baseRecord),
+    twitter_description_resolved: deriveCmsTwitterDescription(baseRecord),
+    content_html_sanitized: sanitizeRichTextHtml(baseRecord.content_html || ''),
+  } satisfies PublicCmsPage;
+}
+
+export async function resolveLocalizedBlogPost(
+  page: PublicCmsPage | null,
+  language: SupportedLanguage
+): Promise<PublicCmsPage | null> {
+  if (!page) return null;
+  if (language === 'en') return page;
+  const [translations, localizedImages] = await Promise.all([
+    loadBlogPostTranslationsForPage(page.id),
+    loadBlogPostLocalizedImagesForPage(page.id),
+  ]);
+  return applyBlogTranslation(page, { selectedLanguage: language, translations, localizedImages, parentEnSourceHash: page.en_source_version_hash ?? '' });
+}
+
+export async function resolveLocalizedBlogList(
+  pages: PublicCmsPage[],
+  language: SupportedLanguage
+): Promise<PublicCmsPage[]> {
+  if (!pages.length || language === 'en') return pages;
+  const ids = pages.map((p) => p.id);
+  noStore();
+  const admin = createAdminClient();
+  let translations: CmsPageTranslationRow[] = [];
+  let images: CmsPageLocalizedImageRow[] = [];
+  if (admin) {
+    try {
+      const [tRes, iRes] = await Promise.all([
+        admin
+          .from('cms_page_translations')
+          .select(
+            'page_id,language_code,title,excerpt,content_html,category,tags,cover_image_alt,seo_title,seo_description,seo_keywords,og_title,og_description,twitter_title,twitter_description,translation_status,source_version_hash'
+          )
+          .in('page_id', ids),
+        admin
+          .from('cms_page_localized_images')
+          .select('page_id,language_code,cover_image_url,seo_image_url,twitter_image_url')
+          .in('page_id', ids),
+      ]);
+      if (!tRes.error) translations = (tRes.data as CmsPageTranslationRow[] | null) || [];
+      if (!iRes.error) images = ((iRes.data as CmsPageLocalizedImageRow[] | null) || []).filter(
+        (r) =>
+          Boolean(r.cover_image_url?.trim()) ||
+          Boolean(r.seo_image_url?.trim()) ||
+          Boolean(r.twitter_image_url?.trim())
+      );
+    } catch {}
+  }
+  return pages.map((p) =>
+    applyBlogTranslation(p, {
+      selectedLanguage: language,
+      translations: translations.filter((t) => t.page_id === p.id),
+      localizedImages: images.filter((r) => r.page_id === p.id),
+      parentEnSourceHash: p.en_source_version_hash ?? '',
+    })
+  );
 }

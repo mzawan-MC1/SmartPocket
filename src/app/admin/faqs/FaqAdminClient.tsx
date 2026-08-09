@@ -13,6 +13,8 @@ import {
   Trash2,
   ArrowUp,
   ArrowDown,
+  Square,
+  Play,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -22,6 +24,7 @@ import RichTextEditor from '@/components/cms/RichTextEditor';
 import CmsHtml from '@/components/cms/CmsHtml';
 import SupportConfirmationModal from '@/components/support/SupportConfirmationModal';
 import FaqCategoryIcon from '@/components/faqs/FaqCategoryIcon';
+import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/i18n/registry';
 import type { AdminFaqCategory, AdminFaqDashboardData, AdminFaqItem } from '@/lib/faqs-server';
 import {
   FAQ_ICON_OPTIONS,
@@ -144,6 +147,102 @@ function TranslationStatusBadges({
   );
 }
 
+function AutoTranslateStatusChips({
+  statuses,
+  title,
+  description,
+  showProgress,
+  progressCompleted,
+  progressTotal,
+  onStop,
+}: {
+  statuses: { language: string; status: string; sourceHashMatch?: boolean; updatedAt?: string; errorMessage?: string }[];
+  title?: string;
+  description?: string;
+  showProgress?: boolean;
+  progressCompleted?: number;
+  progressTotal?: number;
+  onStop?: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-muted/30 p-4">
+      <div className="mb-2">
+        {title ? <p className="text-sm font-700 text-foreground">{title}</p> : null}
+        {description ? <p className="mt-0.5 text-xs text-muted-foreground">{description}</p> : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {statuses.length ? (
+          statuses.map((row) => {
+            const displayStatus =
+              row.status === 'current' && row.sourceHashMatch === false
+                ? 'outdated'
+                : row.status || 'missing';
+            const label =
+              displayStatus === 'current'
+                ? 'Current'
+                : displayStatus === 'outdated' || (row.status === 'current' && row.sourceHashMatch === false)
+                ? 'Missing/Outdated'
+                : displayStatus === 'failed'
+                ? 'Failed'
+                : displayStatus === 'pending'
+                ? 'Translating'
+                : 'Missing/Outdated';
+            const chipClass =
+              displayStatus === 'current'
+                ? 'bg-positive-soft text-positive'
+                : displayStatus === 'failed'
+                ? 'bg-danger-soft text-danger'
+                : displayStatus === 'pending'
+                ? 'bg-info-soft text-info'
+                : 'bg-warning/10 text-warning';
+            return (
+              <span
+                key={row.language}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-700 uppercase tracking-[0.14em] ${chipClass}`}
+                title={row.errorMessage ? `${row.language}: ${row.errorMessage}` : row.language}
+              >
+                <span>{row.language.toUpperCase()}</span>
+                <span className="opacity-80">{label}</span>
+              </span>
+            );
+          })
+        ) : (
+          <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
+            Statuses refresh after save.
+          </span>
+        )}
+      </div>
+      {showProgress ? (
+        <div className="mt-4 space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-600 text-foreground">
+              {progressCompleted ?? 0} of {progressTotal ?? 0} languages processed
+            </p>
+            {onStop ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="btn-secondary !h-7 !min-h-0 !rounded-xl !px-2.5 !py-0 !text-[11px] !gap-1"
+              >
+                <Square size={11} />
+                Stop
+              </button>
+            ) : null}
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-300"
+              style={{
+                width: `${(progressTotal ?? 0) > 0 ? Math.min(100, Math.round(((progressCompleted ?? 0) / (progressTotal ?? 1)) * 100)) : 0}%`,
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function MetricCard({
   label,
   value,
@@ -184,6 +283,52 @@ export default function FaqAdminClient({
   const [itemStatusFilter, setItemStatusFilter] = React.useState<'all' | 'active' | 'inactive'>('all');
   const [itemFeaturedFilter, setItemFeaturedFilter] = React.useState<'all' | 'featured' | 'standard'>('all');
   const [activeView, setActiveView] = React.useState<AdminFaqView>('categories');
+  const [categoryTranslationStatuses, setCategoryTranslationStatuses] = React.useState<{ language: string; status: string; sourceHashMatch?: boolean; updatedAt?: string; errorMessage?: string }[]>([]);
+  const [itemTranslationStatuses, setItemTranslationStatuses] = React.useState<{ language: string; status: string; sourceHashMatch?: boolean; updatedAt?: string; errorMessage?: string }[]>([]);
+  const [isRegeneratingCategory, setIsRegeneratingCategory] = React.useState(false);
+  const [isRegeneratingItem, setIsRegeneratingItem] = React.useState(false);
+  const [isBackfilling, setIsBackfilling] = React.useState(false);
+
+  type FaqWorkItem =
+    | { type: 'faq_category'; id: string; language: string }
+    | { type: 'faq_item'; id: string; language: string };
+  const [faqWorkQueue, setFaqWorkQueue] = React.useState<FaqWorkItem[]>([]);
+  const [stopFaqProcessing, setStopFaqProcessing] = React.useState(false);
+  const stopFaqProcessingRef = React.useRef(false);
+  const [faqProcessingProgress, setFaqProcessingProgress] = React.useState({ completed: 0, total: 0 });
+  const [isFaqProcessingLoopRunning, setIsFaqProcessingLoopRunning] = React.useState(false);
+
+  type FaqBackfillDialogState = {
+    open: boolean;
+    scope: 'all' | 'blog' | 'faq';
+    completedScanCount: number;
+    totalScannedEstimate: number;
+    completedTranslations: number;
+    pendingTranslations: number;
+    failedTranslations: number;
+    failures: any[];
+    failedWorkSet: any[];
+    pendingWork: any[];
+    nextCursor: { blogCursor?: string; faqCategoryCursor?: string; faqItemCursor?: string } | null;
+    stopBackfill: boolean;
+    isStopped: boolean;
+  };
+  const [faqBackfillDialog, setFaqBackfillDialog] = React.useState<FaqBackfillDialogState>({
+    open: false,
+    scope: 'faq',
+    completedScanCount: 0,
+    totalScannedEstimate: 0,
+    completedTranslations: 0,
+    pendingTranslations: 0,
+    failedTranslations: 0,
+    failures: [],
+    failedWorkSet: [],
+    pendingWork: [],
+    nextCursor: null,
+    stopBackfill: false,
+    isStopped: false,
+  });
+  const faqStopBackfillRef = React.useRef(false);
   const [categoryModal, setCategoryModal] = React.useState<CategoryModalState>({
     open: false,
     mode: 'create',
@@ -291,6 +436,166 @@ export default function FaqAdminClient({
     }
   }, [tp]);
 
+  async function loadFaqCategoryTranslationStatus(categoryId: string) {
+    try {
+      const res = await fetch(`/api/admin/faqs/categories/${categoryId}/translation-status`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json?.statuses)) {
+          setCategoryTranslationStatuses(json.statuses);
+        }
+      }
+    } catch {
+    }
+  }
+
+  async function loadFaqItemTranslationStatus(itemId: string) {
+    try {
+      const res = await fetch(`/api/admin/faqs/items/${itemId}/translation-status`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json?.statuses)) {
+          setItemTranslationStatuses(json.statuses);
+        }
+      }
+    } catch {
+    }
+  }
+
+  async function processFaqWorkQueue(initialQueue: FaqWorkItem[]) {
+    if (initialQueue.length === 0) return;
+
+    setStopFaqProcessing(false);
+    stopFaqProcessingRef.current = false;
+    setIsFaqProcessingLoopRunning(true);
+    setFaqProcessingProgress({ completed: 0, total: initialQueue.length });
+    let currentQueue = [...initialQueue];
+    let completedCount = 0;
+
+    while (!stopFaqProcessingRef.current && currentQueue.length > 0) {
+      const item = currentQueue[0] as any;
+
+      if (item.type === 'faq_category') {
+        setCategoryTranslationStatuses((prev) =>
+          prev.map((s) =>
+            s.language === item.language
+              ? { ...s, status: 'pending', errorMessage: undefined }
+              : s
+          )
+        );
+      } else if (item.type === 'faq_item') {
+        setItemTranslationStatuses((prev) =>
+          prev.map((s) =>
+            s.language === item.language
+              ? { ...s, status: 'pending', errorMessage: undefined }
+              : s
+          )
+        );
+      }
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+
+        if (completedItem) {
+          if (!completedItem.success) {
+            toast.warning(
+              tp(
+                'adminFaqs.toasts.translationFailedPerLang',
+                '{{language}} translation failed ({{type}}): {{message}}',
+                {
+                  language: completedItem.language.toUpperCase(),
+                  type: completedItem.type === 'faq_category' ? 'category' : 'FAQ',
+                  message: completedItem.errorMessage || 'Unknown error',
+                }
+              )
+            );
+            if (completedItem.type === 'faq_category') {
+              setCategoryTranslationStatuses((prev) =>
+                prev.map((s) =>
+                  s.language === completedItem.language
+                    ? { ...s, status: 'failed', errorMessage: completedItem.errorMessage }
+                    : s
+                )
+              );
+            } else if (completedItem.type === 'faq_item') {
+              setItemTranslationStatuses((prev) =>
+                prev.map((s) =>
+                  s.language === completedItem.language
+                    ? { ...s, status: 'failed', errorMessage: completedItem.errorMessage }
+                    : s
+                )
+              );
+            }
+          } else {
+            if (completedItem.type === 'faq_category') {
+              setCategoryTranslationStatuses((prev) =>
+                prev.map((s) =>
+                  s.language === completedItem.language
+                    ? { ...s, status: 'current', sourceHashMatch: true, errorMessage: undefined }
+                    : s
+                )
+              );
+            } else if (completedItem.type === 'faq_item') {
+              setItemTranslationStatuses((prev) =>
+                prev.map((s) =>
+                  s.language === completedItem.language
+                    ? { ...s, status: 'current', sourceHashMatch: true, errorMessage: undefined }
+                    : s
+                )
+              );
+            }
+          }
+        }
+
+        currentQueue = currentQueue.slice(1);
+        setFaqWorkQueue(currentQueue);
+        completedCount += 1;
+        setFaqProcessingProgress({ completed: completedCount, total: initialQueue.length });
+
+        if (completedCount % 2 === 0) {
+          if (item.type === 'faq_category') {
+            await loadFaqCategoryTranslationStatus(item.id);
+          } else if (item.type === 'faq_item') {
+            await loadFaqItemTranslationStatus(item.id);
+          }
+        }
+      } catch (error: any) {
+        toast.warning(
+          tp(
+            'adminFaqs.toasts.translationFailedPerLang',
+            '{{language}} translation failed ({{type}}): {{message}}',
+            {
+              language: item.language.toUpperCase(),
+              type: item.type === 'faq_category' ? 'category' : 'FAQ',
+              message: error?.message || 'Unknown error',
+            }
+          )
+        );
+        currentQueue = currentQueue.slice(1);
+        setFaqWorkQueue(currentQueue);
+        completedCount += 1;
+        setFaqProcessingProgress({ completed: completedCount, total: initialQueue.length });
+      }
+    }
+
+    const lastCategoryIds = initialQueue.filter((i) => i.type === 'faq_category').map((i) => i.id);
+    const lastItemIds = initialQueue.filter((i) => i.type === 'faq_item').map((i) => i.id);
+    for (const catId of [...new Set(lastCategoryIds)]) {
+      await loadFaqCategoryTranslationStatus(catId);
+    }
+    for (const itemId of [...new Set(lastItemIds)]) {
+      await loadFaqItemTranslationStatus(itemId);
+    }
+    setIsFaqProcessingLoopRunning(false);
+    setFaqWorkQueue([]);
+  }
+
   const filteredCategories = React.useMemo(() => {
     const query = categorySearch.trim().toLowerCase();
     return categories.filter((category) => {
@@ -335,6 +640,7 @@ export default function FaqAdminClient({
 
   const openCreateCategory = () => {
     setActiveView('categories');
+    setCategoryTranslationStatuses([]);
     setCategoryModal({
       open: true,
       mode: 'create',
@@ -349,6 +655,7 @@ export default function FaqAdminClient({
 
   const openEditCategory = (category: AdminFaqCategory) => {
     setActiveView('categories');
+    setCategoryTranslationStatuses([]);
     setCategoryModal({
       open: true,
       mode: 'edit',
@@ -366,6 +673,7 @@ export default function FaqAdminClient({
 
   const openCreateItem = () => {
     setActiveView('items');
+    setItemTranslationStatuses([]);
     setItemModal({
       open: true,
       mode: 'create',
@@ -384,6 +692,7 @@ export default function FaqAdminClient({
 
   const openEditItem = (item: AdminFaqItem) => {
     setActiveView('items');
+    setItemTranslationStatuses([]);
     setItemModal({
       open: true,
       mode: 'edit',
@@ -402,6 +711,7 @@ export default function FaqAdminClient({
 
   const openDuplicateItem = (item: AdminFaqItem) => {
     setActiveView('items');
+    setItemTranslationStatuses([]);
     setItemModal({
       open: true,
       mode: 'duplicate',
@@ -418,8 +728,9 @@ export default function FaqAdminClient({
     });
   };
 
-  const saveCategory = async () => {
+  const saveCategory = async (regenerateTranslations = false) => {
     setIsSaving(true);
+    if (regenerateTranslations) setIsRegeneratingCategory(true);
     try {
       const endpoint =
         categoryModal.mode === 'create'
@@ -429,7 +740,12 @@ export default function FaqAdminClient({
       const response = await fetch(endpoint, {
         method: categoryModal.mode === 'create' ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(categoryModal.form),
+        body: JSON.stringify({
+          ...categoryModal.form,
+          ...(regenerateTranslations && categoryModal.mode !== 'create'
+            ? { regenerate_translations: true }
+            : null),
+        }),
       });
       const json = await response.json();
 
@@ -437,13 +753,58 @@ export default function FaqAdminClient({
         throw new Error(json?.error || tp('adminFaqs.errors.saveCategory', 'Failed to save FAQ category.'));
       }
 
-      toast.success(
-        categoryModal.mode === 'create'
-          ? tp('adminFaqs.toasts.categoryCreated', 'Category created.')
-          : tp('adminFaqs.toasts.categoryUpdated', 'Category updated.')
-      );
+      if (Array.isArray(json?.translation?.statuses)) {
+        setCategoryTranslationStatuses(json.translation.statuses);
+      } else if (categoryModal.mode === 'create') {
+        setCategoryTranslationStatuses([]);
+      }
+      const hasFailed = (json?.translation?.perLanguage || []).some((p: any) => p.status === 'failed');
+
+      if (hasFailed) {
+        const failedLangs = ((json.translation.perLanguage || []) as any[])
+          .filter((p) => p.status === 'failed')
+          .map((p) => p.language)
+          .join(', ');
+        toast.warning(
+          tp(
+            'adminFaqs.toasts.savedWithFailedTranslations',
+            'Saved. Translations failed for: {{languages}}.',
+            { languages: failedLangs }
+          )
+        );
+      } else {
+        toast.success(
+          categoryModal.mode === 'create'
+            ? tp('adminFaqs.toasts.categoryCreated', 'Category created.')
+            : tp('adminFaqs.toasts.categoryUpdated', 'Category updated.')
+        );
+      }
       setCategoryModal((current) => ({ ...current, open: false }));
       await reload();
+
+      const pendingWork = json?.translation?.pendingWork === true;
+      const scheduledLanguages = Array.isArray(json?.translation?.scheduledLanguages)
+        ? json.translation.scheduledLanguages
+        : [];
+      const savedCategoryId = json?.category?.id || categoryModal.editingId;
+      if ((pendingWork || scheduledLanguages.length > 0) && savedCategoryId) {
+        const langsToProcess =
+          scheduledLanguages.length > 0
+            ? scheduledLanguages
+            : CONTENT_TRANSLATION_ENABLED_LANGS.filter((l) =>
+                (json?.translation?.statuses || []).some(
+                  (s: any) => s.language === l && (s.status === 'pending' || s.status === 'missing' || s.status === 'outdated')
+                )
+              );
+        const queue: FaqWorkItem[] = langsToProcess.map((L: string) => ({
+          type: 'faq_category',
+          id: savedCategoryId,
+          language: L,
+        }));
+        if (queue.length > 0) {
+          void processFaqWorkQueue(queue);
+        }
+      }
     } catch (error) {
       toast.error(
         error instanceof Error
@@ -452,11 +813,13 @@ export default function FaqAdminClient({
       );
     } finally {
       setIsSaving(false);
+      setIsRegeneratingCategory(false);
     }
   };
 
-  const saveItem = async () => {
+  const saveItem = async (regenerateTranslations = false) => {
     setIsSaving(true);
+    if (regenerateTranslations) setIsRegeneratingItem(true);
     try {
       const endpoint =
         itemModal.mode === 'create' || itemModal.mode === 'duplicate'
@@ -466,7 +829,12 @@ export default function FaqAdminClient({
       const response = await fetch(endpoint, {
         method: itemModal.mode === 'create' || itemModal.mode === 'duplicate' ? 'POST' : 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemModal.form),
+        body: JSON.stringify({
+          ...itemModal.form,
+          ...(regenerateTranslations && itemModal.mode === 'edit'
+            ? { regenerate_translations: true }
+            : null),
+        }),
       });
       const json = await response.json();
 
@@ -474,20 +842,343 @@ export default function FaqAdminClient({
         throw new Error(json?.error || tp('adminFaqs.errors.saveItem', 'Failed to save FAQ.'));
       }
 
-      toast.success(
-        itemModal.mode === 'edit'
-          ? tp('adminFaqs.toasts.itemUpdated', 'FAQ updated.')
-          : itemModal.mode === 'duplicate'
-            ? tp('adminFaqs.toasts.itemDuplicated', 'FAQ duplicated as a draft.')
-            : tp('adminFaqs.toasts.itemCreated', 'FAQ created.')
-      );
+      if (Array.isArray(json?.translation?.statuses)) {
+        setItemTranslationStatuses(json.translation.statuses);
+      } else if (itemModal.mode !== 'edit') {
+        setItemTranslationStatuses([]);
+      }
+      const hasFailed = (json?.translation?.perLanguage || []).some((p: any) => p.status === 'failed');
+
+      if (hasFailed) {
+        const failedLangs = ((json.translation.perLanguage || []) as any[])
+          .filter((p) => p.status === 'failed')
+          .map((p) => p.language)
+          .join(', ');
+        toast.warning(
+          tp(
+            'adminFaqs.toasts.savedWithFailedTranslations',
+            'Saved. Translations failed for: {{languages}}.',
+            { languages: failedLangs }
+          )
+        );
+      } else {
+        toast.success(
+          itemModal.mode === 'edit'
+            ? tp('adminFaqs.toasts.itemUpdated', 'FAQ updated.')
+            : itemModal.mode === 'duplicate'
+              ? tp('adminFaqs.toasts.itemDuplicated', 'FAQ duplicated as a draft.')
+              : tp('adminFaqs.toasts.itemCreated', 'FAQ created.')
+        );
+      }
       setItemModal((current) => ({ ...current, open: false }));
       await reload();
+
+      const pendingWork = json?.translation?.pendingWork === true;
+      const scheduledLanguages = Array.isArray(json?.translation?.scheduledLanguages)
+        ? json.translation.scheduledLanguages
+        : [];
+      const savedItemId = json?.item?.id || itemModal.editingId;
+      if ((pendingWork || scheduledLanguages.length > 0) && savedItemId) {
+        const langsToProcess =
+          scheduledLanguages.length > 0
+            ? scheduledLanguages
+            : CONTENT_TRANSLATION_ENABLED_LANGS.filter((l) =>
+                (json?.translation?.statuses || []).some(
+                  (s: any) => s.language === l && (s.status === 'pending' || s.status === 'missing' || s.status === 'outdated')
+                )
+              );
+        const queue: FaqWorkItem[] = langsToProcess.map((L: string) => ({
+          type: 'faq_item',
+          id: savedItemId,
+          language: L,
+        }));
+        if (queue.length > 0) {
+          void processFaqWorkQueue(queue);
+        }
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : tp('adminFaqs.errors.saveItem', 'Failed to save FAQ.'));
     } finally {
       setIsSaving(false);
+      setIsRegeneratingItem(false);
     }
+  };
+
+  async function runFaqBackfillStageB(scope: 'all' | 'blog' | 'faq', pendingWork: any[]): Promise<void> {
+    let localPending = [...pendingWork];
+
+    while (!faqStopBackfillRef.current && localPending.length > 0) {
+      const item = localPending.shift()!;
+
+      setFaqBackfillDialog((prev) => ({
+        ...prev,
+        pendingTranslations: localPending.length,
+        pendingWork: localPending,
+      }));
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+
+        if (completedItem && completedItem.success) {
+          setFaqBackfillDialog((prev) => ({
+            ...prev,
+            completedTranslations: prev.completedTranslations + 1,
+          }));
+        } else {
+          setFaqBackfillDialog((prev) => ({
+            ...prev,
+            failedTranslations: prev.failedTranslations + 1,
+            failures: [...prev.failures, item],
+            failedWorkSet: [...prev.failedWorkSet, item],
+          }));
+          if (completedItem?.errorMessage) {
+            toast.warning(
+              tp(
+                'adminFaqs.toasts.translationFailedPerLang',
+                '{{language}} translation failed ({{type}}): {{message}}',
+                {
+                  language: completedItem.language?.toUpperCase() || '?',
+                  type: completedItem.type === 'faq_category' ? 'category' : 'FAQ',
+                  message: completedItem.errorMessage || 'Unknown error',
+                }
+              )
+            );
+          }
+        }
+      } catch (e: any) {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          failedTranslations: prev.failedTranslations + 1,
+          failures: [...prev.failures, item],
+          failedWorkSet: [...prev.failedWorkSet, item],
+        }));
+      }
+    }
+  }
+
+  async function runFaqBackfillLoop(scope: 'all' | 'blog' | 'faq') {
+    setFaqBackfillDialog((prev) => ({ ...prev, stopBackfill: false, isStopped: false }));
+    faqStopBackfillRef.current = false;
+    let cursor = faqBackfillDialog.nextCursor;
+    let completedScanCount = faqBackfillDialog.completedScanCount;
+    let nextCursor = cursor;
+
+    while (!faqStopBackfillRef.current) {
+      if (faqStopBackfillRef.current) break;
+
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/backfill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scope,
+            cursor: nextCursor,
+            batchSize: 5,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json?.error || tp('adminFaqs.errors.backfill', 'FAQ backfill failed.'));
+
+        completedScanCount += json?.completedScanCount || 0;
+        nextCursor = json?.nextCursor || {};
+        const totalRemaining = json?.totalRemainingEstimate || 0;
+        const failures = json?.failures || [];
+        const scheduledWorkItems = json?.scheduledWorkItems || [];
+        const failedWorkFromStage = [...scheduledWorkItems];
+
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          completedScanCount,
+          totalScannedEstimate: completedScanCount + totalRemaining,
+          pendingTranslations: failedWorkFromStage.length,
+          failures: [...prev.failures, ...failures],
+          pendingWork: failedWorkFromStage,
+          nextCursor: nextCursor || null,
+        }));
+
+        await runFaqBackfillStageB(scope, failedWorkFromStage);
+
+        const hasMore =
+          nextCursor &&
+          (nextCursor.blogCursor || nextCursor.faqCategoryCursor || nextCursor.faqItemCursor);
+
+        if (!hasMore) {
+          break;
+        }
+      } catch (e: any) {
+        toast.error(e?.message || tp('adminFaqs.errors.backfill', 'FAQ backfill failed.'));
+        break;
+      }
+    }
+
+    const stopped = faqStopBackfillRef.current;
+    if (stopped) {
+      setFaqBackfillDialog((prev) => ({
+        ...prev,
+        stopBackfill: true,
+        isStopped: true,
+        pendingTranslations: 0,
+        pendingWork: [],
+      }));
+      toast.info(tp('adminFaqs.toasts.backfillStopped', 'Backfill stopped by user.'));
+    } else {
+      if (faqBackfillDialog.failedWorkSet.length === 0) {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          open: false,
+          nextCursor: null,
+          stopBackfill: false,
+          isStopped: false,
+        }));
+        setIsBackfilling(false);
+        toast.success(tp('adminFaqs.toasts.backfillDone', 'FAQ backfill finished. Existing valid translations preserved.'));
+      } else {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          stopBackfill: true,
+          isStopped: true,
+          pendingTranslations: 0,
+          pendingWork: [],
+        }));
+        toast.info(tp('adminFaqs.toasts.backfillDoneWithFailures', 'FAQ backfill scan complete. Some translations failed. Use Retry to retry them.'));
+      }
+    }
+    await reload();
+  }
+
+  async function resumeFaqBackfill() {
+    const scope = faqBackfillDialog.scope;
+
+    if (faqBackfillDialog.failedWorkSet.length > 0) {
+      await retryFaqBackfillFailures();
+      return;
+    }
+
+    setFaqBackfillDialog((prev) => ({
+      ...prev,
+      stopBackfill: false,
+      isStopped: false,
+    }));
+    faqStopBackfillRef.current = false;
+    void runFaqBackfillLoop(scope);
+  }
+
+  async function retryFaqBackfillFailures() {
+    const scope = faqBackfillDialog.scope;
+    const snapshot = [...faqBackfillDialog.failedWorkSet];
+
+    if (snapshot.length === 0) return;
+
+    setFaqBackfillDialog((prev) => ({
+      ...prev,
+      stopBackfill: false,
+      isStopped: false,
+      failedWorkSet: [],
+      failedTranslations: 0,
+      pendingTranslations: snapshot.length,
+      pendingWork: snapshot,
+    }));
+    faqStopBackfillRef.current = false;
+
+    let todo = [...snapshot];
+    let stillFailed = [] as typeof snapshot;
+    while (!faqStopBackfillRef.current && todo.length > 0) {
+      const item = todo.shift()!;
+
+      setFaqBackfillDialog((prev) => ({
+        ...prev,
+        pendingTranslations: todo.length,
+        pendingWork: todo,
+      }));
+
+      let success = false;
+      try {
+        const res = await fetch('/api/admin/content/auto-translate/process-next', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item }),
+        });
+        const json = await res.json();
+        const completedItem = json?.completedItem;
+        success = Boolean(completedItem && completedItem.success);
+      } catch {}
+
+      if (success) {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          completedTranslations: prev.completedTranslations + 1,
+        }));
+      } else {
+        stillFailed.push(item);
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          failedTranslations: prev.failedTranslations + 1,
+        }));
+      }
+    }
+
+    if (stillFailed.length > 0) {
+      setFaqBackfillDialog((prev) => ({
+        ...prev,
+        failedWorkSet: stillFailed,
+      }));
+    }
+
+    if (faqStopBackfillRef.current) {
+      setFaqBackfillDialog((prev) => ({
+        ...prev,
+        isStopped: true,
+        stopBackfill: true,
+        pendingWork: [],
+        pendingTranslations: 0,
+      }));
+      toast.info(tp('adminFaqs.toasts.backfillStopped', 'Backfill stopped by user.'));
+    } else {
+      if (stillFailed.length === 0) {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          stopBackfill: false,
+          isStopped: false,
+        }));
+        faqStopBackfillRef.current = false;
+        void runFaqBackfillLoop(scope);
+      } else {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          isStopped: true,
+          stopBackfill: true,
+          pendingWork: [],
+          pendingTranslations: 0,
+        }));
+        toast.info(tp('adminFaqs.toasts.retryPassComplete', 'Retry pass complete. Some items still failed; retry again when ready.'));
+      }
+    }
+  }
+
+  const runBackfillFaqs = async () => {
+    setFaqBackfillDialog({
+      open: true,
+      scope: 'faq',
+      completedScanCount: 0,
+      totalScannedEstimate: 0,
+      completedTranslations: 0,
+      pendingTranslations: 0,
+      failedTranslations: 0,
+      failures: [],
+      failedWorkSet: [],
+      pendingWork: [],
+      nextCursor: null,
+      stopBackfill: false,
+      isStopped: false,
+    });
+    setIsBackfilling(true);
+    void runFaqBackfillLoop('faq');
   };
 
   const handleDelete = async () => {
@@ -733,6 +1424,15 @@ export default function FaqAdminClient({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void runBackfillFaqs()}
+            disabled={isBackfilling || isSaving}
+            className="btn-secondary"
+          >
+            {isBackfilling ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+            {tp('adminFaqs.actions.backfill', 'Backfill FAQ translations')}
+          </button>
           <button type="button" onClick={openCreateCategory} className="btn-secondary">
             <Plus size={15} />
             {tp('adminFaqs.actions.addCategory', 'Add Category')}
@@ -1252,10 +1952,34 @@ export default function FaqAdminClient({
             </div>
           </div>
 
+          <AutoTranslateStatusChips
+            statuses={categoryTranslationStatuses}
+            title={tp('adminFaqs.modals.categoryTranslationTitle', 'Category translation status')}
+            description={tp(
+              'adminFaqs.modals.categoryTranslationHint',
+              'English is the source of truth. Statuses refresh after Save; Regenerate re-translates all enabled languages.'
+            )}
+            showProgress={isFaqProcessingLoopRunning && faqWorkQueue.some((w) => w.type === 'faq_category')}
+            progressCompleted={faqProcessingProgress.completed}
+            progressTotal={faqProcessingProgress.total}
+            onStop={() => { setStopFaqProcessing(true); stopFaqProcessingRef.current = true; }}
+          />
+
           <div className="flex justify-end gap-3">
             <button type="button" className="btn-secondary" onClick={() => setCategoryModal((current) => ({ ...current, open: false }))}>
               {tp('adminFaqs.actions.cancel', 'Cancel')}
             </button>
+            {categoryModal.mode === 'edit' ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void saveCategory(true)}
+                disabled={isSaving}
+              >
+                {isRegeneratingCategory ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                {tp('adminFaqs.actions.regenerate', 'Regenerate translations')}
+              </button>
+            ) : null}
             <button type="button" className="btn-primary" onClick={() => void saveCategory()} disabled={isSaving}>
               {isSaving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {categoryModal.mode === 'create'
@@ -1461,10 +2185,34 @@ export default function FaqAdminClient({
             </div>
           </div>
 
+          <AutoTranslateStatusChips
+            statuses={itemTranslationStatuses}
+            title={tp('adminFaqs.modals.itemTranslationTitle', 'FAQ translation status')}
+            description={tp(
+              'adminFaqs.modals.itemTranslationHint',
+              'English is the source of truth. Translations run automatically when English fields change; use Regenerate to refresh all languages.'
+            )}
+            showProgress={isFaqProcessingLoopRunning && faqWorkQueue.some((w) => w.type === 'faq_item')}
+            progressCompleted={faqProcessingProgress.completed}
+            progressTotal={faqProcessingProgress.total}
+            onStop={() => { setStopFaqProcessing(true); stopFaqProcessingRef.current = true; }}
+          />
+
           <div className="flex justify-end gap-3">
             <button type="button" className="btn-secondary" onClick={() => setItemModal((current) => ({ ...current, open: false }))}>
               {tp('adminFaqs.actions.cancel', 'Cancel')}
             </button>
+            {itemModal.mode === 'edit' ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void saveItem(true)}
+                disabled={isSaving}
+              >
+                {isRegeneratingItem ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                {tp('adminFaqs.actions.regenerate', 'Regenerate translations')}
+              </button>
+            ) : null}
             <button type="button" className="btn-primary" onClick={() => void saveItem()} disabled={isSaving}>
               {isSaving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
               {itemModal.mode === 'edit'
@@ -1491,6 +2239,127 @@ export default function FaqAdminClient({
         onClose={() => setDeleteState(null)}
         pending={isSaving}
       />
+
+      <Modal
+        isOpen={faqBackfillDialog.open}
+        onClose={() => {}}
+        title={tp('adminFaqs.backfill.title', 'Backfill FAQ translations')}
+        description={tp(
+          'adminFaqs.backfill.description',
+          'Scans all FAQ content from the beginning and translates missing or outdated entries. Safe to stop and resume within this open session. If you refresh or close the page, the next run safely re-scans from the start (already-current translations are skipped without duplication).'
+        )}
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminFaqs.backfill.scannedLabel', 'Scanned content')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-info">
+                {faqBackfillDialog.completedScanCount}
+                <span className="text-sm font-500 text-muted-foreground">
+                  {' / '}{faqBackfillDialog.totalScannedEstimate || '—'}
+                </span>
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminFaqs.backfill.completedLabel', 'Completed translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-positive">
+                {faqBackfillDialog.completedTranslations}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminFaqs.backfill.pendingLabel', 'Pending translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-warning">
+                {faqBackfillDialog.pendingTranslations}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+                {tp('adminFaqs.backfill.failedLabel', 'Failed translations')}
+              </p>
+              <p className="mt-2 text-2xl font-800 text-danger">
+                {faqBackfillDialog.failedTranslations}
+              </p>
+            </div>
+          </div>
+
+          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-accent transition-all duration-300"
+              style={{
+                width: `${(faqBackfillDialog.completedTranslations + faqBackfillDialog.pendingTranslations + faqBackfillDialog.failedTranslations) > 0
+                    ? Math.min(
+                        100,
+                        Math.round(
+                          (faqBackfillDialog.completedTranslations /
+                            (faqBackfillDialog.completedTranslations + faqBackfillDialog.pendingTranslations + faqBackfillDialog.failedTranslations)) *
+                            100
+                        )
+                      )
+                    : 0
+                  }%`,
+              }}
+            />
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-2">
+            {!faqBackfillDialog.isStopped ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => {
+                  setFaqBackfillDialog((prev) => ({ ...prev, stopBackfill: true }));
+                  faqStopBackfillRef.current = true;
+                }}
+              >
+                <Square size={14} />
+                {tp('adminFaqs.actions.stopBackfill', 'Stop')}
+              </button>
+            ) : null}
+            {faqBackfillDialog.isStopped ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void resumeFaqBackfill()}
+              >
+                <Play size={14} />
+                {tp('adminFaqs.actions.resumeBackfill', 'Resume')}
+              </button>
+            ) : null}
+            {faqBackfillDialog.failedWorkSet.length > 0 ? (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => void retryFaqBackfillFailures()}
+              >
+                <CheckCircle2 size={14} />
+                {tp('adminFaqs.actions.retryFailures', 'Retry failures')}
+                <span className="rounded-full bg-danger-soft px-1.5 py-0.5 text-[10px] font-700 text-danger">
+                  {faqBackfillDialog.failedWorkSet.length}
+                </span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => {
+                setFaqBackfillDialog((prev) => ({ ...prev, stopBackfill: true, open: false }));
+                faqStopBackfillRef.current = true;
+                setIsBackfilling(false);
+              }}
+            >
+              <Square size={14} />
+              {tp('adminFaqs.actions.closeBackfill', 'Stop and close')}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+export const revalidate = 0;
+
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import PublicFaqPageClient from '@/components/faqs/PublicFaqPageClient';
 import { BASE_I18N_RESOURCES, type SupportedLanguage } from '@/i18n/resources';

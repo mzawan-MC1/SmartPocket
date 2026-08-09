@@ -10,6 +10,14 @@ import {
   type CmsBlogAdminInput,
   type CmsPageRecord,
 } from '@/lib/cms-pages';
+import {
+  blogSourceInputChanged,
+  loadBlogTranslationStatus,
+  saveBlogTranslationsForPage,
+  upsertBlogLocalizedImages,
+} from '@/lib/blog-translate-server';
+import { buildBlogEnglishSourceHash } from '@/lib/content-translate-server';
+import type { SupportedLanguage } from '@/i18n/registry';
 
 async function requireAdminUser() {
   const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
@@ -111,7 +119,12 @@ export async function POST(request: Request) {
   const { admin, cookieMutations } = auth;
 
   try {
-    const body = (await request.json()) as Partial<CmsBlogAdminInput>;
+    const rawBody = (await request.json()) as Partial<
+      CmsBlogAdminInput & {
+        localized_images?: Partial<Record<SupportedLanguage, { cover_image_url?: string | null; seo_image_url?: string | null; twitter_image_url?: string | null }>>;
+      }
+    >;
+    const { localized_images, ...body } = rawBody;
     const contentPayload = normalizeCmsPagePayload({
       ...body,
       content_type: 'blog',
@@ -178,8 +191,50 @@ export async function POST(request: Request) {
       throw error;
     }
 
+    const saved = data as CmsPageRecord;
+    if (localized_images) {
+      await upsertBlogLocalizedImages(admin, saved.id, localized_images);
+    }
+
+    const translationResult = await saveBlogTranslationsForPage(
+      admin,
+      saved.id,
+      {
+        title: saved.title,
+        excerpt: saved.excerpt || '',
+        content_html: saved.content_html || '',
+        category: saved.category || '',
+        tags: Array.isArray(saved.tags) ? saved.tags : [],
+        cover_image_alt: saved.cover_image_alt || '',
+        seo_title: saved.seo_title || '',
+        seo_description: saved.seo_description || '',
+        seo_keywords: saved.seo_keywords || '',
+        og_title: saved.og_title || '',
+        og_description: saved.og_description || '',
+        twitter_title: saved.twitter_title || '',
+        twitter_description: saved.twitter_description || '',
+      },
+      { regenerateAll: true }
+    );
+
+    const statuses = (
+      await loadBlogTranslationStatus(admin, saved.id, translationResult.sourceHash)
+    ).statuses;
+
     return applySupabaseCookies(
-      NextResponse.json({ post: serializePost(data as CmsPageRecord) }, { status: 201 }),
+      NextResponse.json(
+        {
+          post: serializePost(saved),
+          translation: {
+            statuses,
+            enSourceHash: translationResult.sourceHash,
+            scheduledLanguages: translationResult.scheduledLanguages,
+            totalEnabled: translationResult.totalEnabled,
+            pendingWork: translationResult.scheduledLanguages.length > 0,
+          },
+        },
+        { status: 201 }
+      ),
       cookieMutations
     );
   } catch (error: any) {
