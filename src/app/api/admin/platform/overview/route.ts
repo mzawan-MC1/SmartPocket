@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import type { CmsPageRecord } from '@/lib/cms-pages';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 
 type PlatformSettingsRow = {
   id: string;
@@ -166,9 +167,25 @@ export async function GET() {
     },
     localization: {
       default_language: platform.default_language || 'en',
-      enabled_languages: platform.enabled_languages || [],
+      enabled_languages: Array.isArray(platform.enabled_languages) ? platform.enabled_languages : [],
       default_currency: platform.default_currency || '',
-      enabled_currencies: platform.enabled_currencies || [],
+      enabled_currencies: Array.isArray(platform.enabled_currencies) ? platform.enabled_currencies : [],
+    },
+    platform: {
+      defaultLanguage: (SUPPORTED_LANGUAGE_CODES as readonly string[]).includes(platform.default_language || '')
+        ? platform.default_language!
+        : 'en',
+      enabledLanguages: (
+        Array.isArray(platform.enabled_languages) && platform.enabled_languages.length > 0
+          ? platform.enabled_languages.filter((c) =>
+              (SUPPORTED_LANGUAGE_CODES as readonly string[]).includes(c)
+            )
+          : []
+      ),
+      persistSource:
+        Array.isArray(platform.enabled_languages) && platform.enabled_languages.length > 0
+          ? 'database'
+          : 'fallback',
     },
     cms: {
       header_menu_count: headerMenuCount,
