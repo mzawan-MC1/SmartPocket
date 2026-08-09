@@ -471,6 +471,7 @@ export default function FaqAdminClient({
     setFaqProcessingProgress({ completed: 0, total: initialQueue.length });
     let currentQueue = [...initialQueue];
     let completedCount = 0;
+    let consecutiveFailures = 0;
 
     while (!stopFaqProcessingRef.current && currentQueue.length > 0) {
       const item = currentQueue[0] as any;
@@ -504,6 +505,7 @@ export default function FaqAdminClient({
 
         if (completedItem) {
           if (!completedItem.success) {
+            consecutiveFailures += 1;
             toast.warning(
               tp(
                 'adminFaqs.toasts.translationFailedPerLang',
@@ -532,7 +534,20 @@ export default function FaqAdminClient({
                 )
               );
             }
+            if (consecutiveFailures >= 3) {
+              stopFaqProcessingRef.current = true;
+              setStopFaqProcessing(true);
+              setIsFaqProcessingLoopRunning(false);
+              toast.error(
+                tp(
+                  'adminFaqs.toasts.circuitBreakerStop',
+                  'Processing stopped after 3 consecutive translation failures. Retry manually when ready.'
+                )
+              );
+              break;
+            }
           } else {
+            consecutiveFailures = 0;
             if (completedItem.type === 'faq_category') {
               setCategoryTranslationStatuses((prev) =>
                 prev.map((s) =>
@@ -551,6 +566,20 @@ export default function FaqAdminClient({
               );
             }
           }
+        } else {
+          consecutiveFailures += 1;
+          if (consecutiveFailures >= 3) {
+            stopFaqProcessingRef.current = true;
+            setStopFaqProcessing(true);
+            setIsFaqProcessingLoopRunning(false);
+            toast.error(
+              tp(
+                'adminFaqs.toasts.circuitBreakerStop',
+                'Processing stopped after 3 consecutive translation failures. Retry manually when ready.'
+              )
+            );
+            break;
+          }
         }
 
         currentQueue = currentQueue.slice(1);
@@ -566,6 +595,7 @@ export default function FaqAdminClient({
           }
         }
       } catch (error: any) {
+        consecutiveFailures += 1;
         toast.warning(
           tp(
             'adminFaqs.toasts.translationFailedPerLang',
@@ -581,6 +611,18 @@ export default function FaqAdminClient({
         setFaqWorkQueue(currentQueue);
         completedCount += 1;
         setFaqProcessingProgress({ completed: completedCount, total: initialQueue.length });
+        if (consecutiveFailures >= 3) {
+          stopFaqProcessingRef.current = true;
+          setStopFaqProcessing(true);
+          setIsFaqProcessingLoopRunning(false);
+          toast.error(
+            tp(
+              'adminFaqs.toasts.circuitBreakerStop',
+              'Processing stopped after 3 consecutive translation failures. Retry manually when ready.'
+            )
+          );
+          break;
+        }
       }
     }
 
@@ -906,6 +948,7 @@ export default function FaqAdminClient({
 
   async function runFaqBackfillStageB(scope: 'all' | 'blog' | 'faq', pendingWork: any[]): Promise<void> {
     let localPending = [...pendingWork];
+    let consecutiveFailures = 0;
 
     while (!faqStopBackfillRef.current && localPending.length > 0) {
       const item = localPending.shift()!;
@@ -926,11 +969,13 @@ export default function FaqAdminClient({
         const completedItem = json?.completedItem;
 
         if (completedItem && completedItem.success) {
+          consecutiveFailures = 0;
           setFaqBackfillDialog((prev) => ({
             ...prev,
             completedTranslations: prev.completedTranslations + 1,
           }));
         } else {
+          consecutiveFailures += 1;
           setFaqBackfillDialog((prev) => ({
             ...prev,
             failedTranslations: prev.failedTranslations + 1,
@@ -950,14 +995,49 @@ export default function FaqAdminClient({
               )
             );
           }
+          if (consecutiveFailures >= 3) {
+            faqStopBackfillRef.current = true;
+            setFaqBackfillDialog((prev) => ({
+              ...prev,
+              stopBackfill: true,
+              isStopped: true,
+              pendingTranslations: localPending.length,
+              pendingWork: localPending,
+            }));
+            toast.error(
+              tp(
+                'adminFaqs.toasts.circuitBreakerStop',
+                'Processing stopped after 3 consecutive translation failures. Retry manually when ready.'
+              )
+            );
+            break;
+          }
         }
       } catch (e: any) {
+        consecutiveFailures += 1;
         setFaqBackfillDialog((prev) => ({
           ...prev,
           failedTranslations: prev.failedTranslations + 1,
           failures: [...prev.failures, item],
           failedWorkSet: [...prev.failedWorkSet, item],
         }));
+        if (consecutiveFailures >= 3) {
+          faqStopBackfillRef.current = true;
+          setFaqBackfillDialog((prev) => ({
+            ...prev,
+            stopBackfill: true,
+            isStopped: true,
+            pendingTranslations: localPending.length,
+            pendingWork: localPending,
+          }));
+          toast.error(
+            tp(
+              'adminFaqs.toasts.circuitBreakerStop',
+              'Processing stopped after 3 consecutive translation failures. Retry manually when ready.'
+            )
+          );
+          break;
+        }
       }
     }
   }

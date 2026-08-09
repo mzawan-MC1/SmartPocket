@@ -100,7 +100,7 @@ async function callOpenRouterTranslation(
   fields: Record<string, string>,
   timeoutMs: number
 ): Promise<Record<string, string> | null> {
-  if (Object.keys(fields).length === 0) return {};
+  if (Object.keys(fields).length === 0) return null;
   const config = loadAIConfig();
   if (!config.aiEnabled) return null;
 
@@ -135,19 +135,80 @@ ${JSON.stringify(fields, null, 2)}`;
     });
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      throw new Error(`Provider HTTP ${response.status}: ${errText.slice(0, 200)}`);
+      const msg = `Provider HTTP ${response.status}: ${errText.slice(0, 200)}`;
+      console.error('[translate:%s:%s] %s', targetLanguage, 'http_error', msg);
+      throw new Error(msg);
     }
     const raw = await response.json() as OpenRouterTextRewriteResponse['rawOutput'];
     const choices = (raw as any)?.choices as Array<{ message?: { content?: unknown } }> | undefined;
     const content = choices?.[0]?.message?.content;
-    const contentText = typeof content === 'string' ? content : Array.isArray(content) ? (content.map((c: any) => String(c?.text || '')).join('')) : '';
-    if (!contentText) return null;
+
+    let contentText: string;
+    if (typeof content === 'string') {
+      contentText = content.trim();
+    } else if (Array.isArray(content)) {
+      contentText = content
+        .filter((b: any) => b?.type === 'text')
+        .map((b: any) => String(b.text || ''))
+        .join('')
+        .trim();
+    } else {
+      contentText = '';
+    }
+
+    contentText = contentText
+      .replace(/^```[\w-]*\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+
+    if (!contentText) {
+      console.error('[translate:%s:%s] %s', targetLanguage, 'empty_text', 'Provider returned no text content.');
+      throw new Error('EMPTY: Provider returned no text content.');
+    }
+
     const parsed = safeParseJSON(contentText) as Record<string, unknown> | null;
-    if (!parsed || typeof parsed !== 'object') return null;
+    if (!parsed || typeof parsed !== 'object') {
+      const snippet = String(contentText).slice(0, 240);
+      console.error('[translate:%s:%s] %s', targetLanguage, 'invalid_json', 'Could not parse structured response.');
+      throw new Error(`INVALID_JSON: Could not parse structured response. First 240 chars: ${snippet}`);
+    }
+
+    const requiredCoreFields = ['title', 'content_html'];
+    const missing: string[] = [];
+    for (const key of Object.keys(fields)) {
+      const sourceHasContent = fields[key].trim().length > 0;
+      const isRequiredCore = requiredCoreFields.includes(key);
+      if (sourceHasContent || isRequiredCore) {
+        const outVal = (parsed as Record<string, unknown>)[key];
+        if (typeof outVal !== 'string') {
+          missing.push(key);
+        }
+      }
+    }
+    if (missing.length > 0) {
+      const firstKeys = JSON.stringify(Object.keys(parsed)).slice(0, 120);
+      console.error('[translate:%s:%s] Missing keys=%s', targetLanguage, 'schema_mismatch', missing.join(','));
+      throw new Error(`SCHEMA: Missing or wrong-typed translated fields. Missing keys=${missing.join(',')}; first_keys=${firstKeys}`);
+    }
+
     const result: Record<string, string> = {};
     for (const key of Object.keys(fields)) {
       result[key] = typeof parsed[key] === 'string' ? String(parsed[key]) : fields[key];
     }
+
+    let anyNonEmptyRequired = false;
+    for (const key of Object.keys(fields)) {
+      const sourceHasContent = fields[key].trim().length > 0;
+      const isRequiredCore = requiredCoreFields.includes(key);
+      if ((sourceHasContent || isRequiredCore) && result[key].trim().length > 0) {
+        anyNonEmptyRequired = true;
+        break;
+      }
+    }
+    if (!anyNonEmptyRequired) {
+      return null;
+    }
+
     return result;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err || 'Unknown');

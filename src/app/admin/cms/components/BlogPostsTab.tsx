@@ -420,6 +420,7 @@ export default function BlogPostsTab() {
     setProcessingProgress({ completed: 0, total: initialQueue.length });
     let currentQueue = [...initialQueue];
     let completedCount = 0;
+    let consecutiveFailures = 0;
 
     while (!stopProcessingRef.current && currentQueue.length > 0) {
       const item = currentQueue[0];
@@ -443,6 +444,7 @@ export default function BlogPostsTab() {
 
         if (completedItem) {
           if (!completedItem.success) {
+            consecutiveFailures += 1;
             toast.warning(
               tp(
                 'adminBlog.toasts.translationFailedPerLang',
@@ -460,7 +462,20 @@ export default function BlogPostsTab() {
                   : s
               )
             );
+            if (consecutiveFailures >= 3) {
+              stopProcessingRef.current = true;
+              setStopProcessing(true);
+              setIsProcessingLoopRunning(false);
+              toast.error(
+                tp(
+                  'adminBlog.toasts.circuitBreakerStop',
+                  'Processing stopped after 3 consecutive translation failures. Check logs and retry manually when ready.'
+                )
+              );
+              break;
+            }
           } else {
+            consecutiveFailures = 0;
             setTranslationStatuses((prev) =>
               prev.map((s) =>
                 s.language === completedItem.language
@@ -468,6 +483,20 @@ export default function BlogPostsTab() {
                   : s
               )
             );
+          }
+        } else {
+          consecutiveFailures += 1;
+          if (consecutiveFailures >= 3) {
+            stopProcessingRef.current = true;
+            setStopProcessing(true);
+            setIsProcessingLoopRunning(false);
+            toast.error(
+              tp(
+                'adminBlog.toasts.circuitBreakerStop',
+                'Processing stopped after 3 consecutive translation failures. Check logs and retry manually when ready.'
+              )
+            );
+            break;
           }
         }
 
@@ -480,6 +509,7 @@ export default function BlogPostsTab() {
           await loadBlogTranslationStatus(activeId);
         }
       } catch (error: any) {
+        consecutiveFailures += 1;
         toast.warning(
           tp(
             'adminBlog.toasts.translationFailedPerLang',
@@ -494,6 +524,18 @@ export default function BlogPostsTab() {
         setWorkQueue(currentQueue);
         completedCount += 1;
         setProcessingProgress({ completed: completedCount, total: initialQueue.length });
+        if (consecutiveFailures >= 3) {
+          stopProcessingRef.current = true;
+          setStopProcessing(true);
+          setIsProcessingLoopRunning(false);
+          toast.error(
+            tp(
+              'adminBlog.toasts.circuitBreakerStop',
+              'Processing stopped after 3 consecutive translation failures. Check logs and retry manually when ready.'
+            )
+          );
+          break;
+        }
       }
     }
 
@@ -743,6 +785,7 @@ export default function BlogPostsTab() {
 
   async function runBackfillStageB(scope: 'all' | 'blog' | 'faq', pendingWork: any[]): Promise<void> {
     let localPending = [...pendingWork];
+    let consecutiveFailures = 0;
 
     while (!stopBackfillRef.current && localPending.length > 0) {
       const item = localPending.shift()!;
@@ -763,11 +806,13 @@ export default function BlogPostsTab() {
         const completedItem = json?.completedItem;
 
         if (completedItem && completedItem.success) {
+          consecutiveFailures = 0;
           setBackfillDialog((prev) => ({
             ...prev,
             completedTranslations: prev.completedTranslations + 1,
           }));
         } else {
+          consecutiveFailures += 1;
           setBackfillDialog((prev) => ({
             ...prev,
             failedTranslations: prev.failedTranslations + 1,
@@ -786,14 +831,49 @@ export default function BlogPostsTab() {
               )
             );
           }
+          if (consecutiveFailures >= 3) {
+            stopBackfillRef.current = true;
+            setBackfillDialog((prev) => ({
+              ...prev,
+              stopBackfill: true,
+              isStopped: true,
+              pendingTranslations: localPending.length,
+              pendingWork: localPending,
+            }));
+            toast.error(
+              tp(
+                'adminBlog.toasts.circuitBreakerStop',
+                'Processing stopped after 3 consecutive translation failures. Check logs and retry manually when ready.'
+              )
+            );
+            break;
+          }
         }
       } catch (e: any) {
+        consecutiveFailures += 1;
         setBackfillDialog((prev) => ({
           ...prev,
           failedTranslations: prev.failedTranslations + 1,
           failures: [...prev.failures, item],
           failedWorkSet: [...prev.failedWorkSet, item],
         }));
+        if (consecutiveFailures >= 3) {
+          stopBackfillRef.current = true;
+          setBackfillDialog((prev) => ({
+            ...prev,
+            stopBackfill: true,
+            isStopped: true,
+            pendingTranslations: localPending.length,
+            pendingWork: localPending,
+          }));
+          toast.error(
+            tp(
+              'adminBlog.toasts.circuitBreakerStop',
+              'Processing stopped after 3 consecutive translation failures. Check logs and retry manually when ready.'
+            )
+          );
+          break;
+        }
       }
     }
   }

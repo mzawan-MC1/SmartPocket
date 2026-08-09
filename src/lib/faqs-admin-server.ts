@@ -480,29 +480,36 @@ export async function processOneFaqCategoryTranslation(
 
   if (aiResult) {
     const sanitized = sanitizeFaqCategoryTranslation(aiResult as any);
-    const { error } = await admin.from('faq_category_translations').upsert(
-      [
-        {
-          category_id: categoryId,
-          language_code: language,
-          name: sanitized.name,
-          description: sanitized.description,
-          source_version_hash: sourceHash,
-          translation_status: 'current' as TranslationStatus,
-          last_error_message: null,
-        },
-      ],
-      { onConflict: 'category_id,language_code' }
-    );
-    if (error) {
-      return {
-        language,
-        status: 'failed',
-        errorMessage:
-          error instanceof Error ? error.message : 'Failed to persist translation row.',
-      };
+    const enNameNonEmpty = en.name.trim() !== '';
+    const translatedNameEmpty = sanitized.name.trim() === '';
+    if (enNameNonEmpty && translatedNameEmpty) {
+      const schemaErrorMsg = 'Schema/empty-error: translated category name is empty while English source has content.';
+      errorMsg = schemaErrorMsg;
+    } else {
+      const { error } = await admin.from('faq_category_translations').upsert(
+        [
+          {
+            category_id: categoryId,
+            language_code: language,
+            name: sanitized.name,
+            description: sanitized.description,
+            source_version_hash: sourceHash,
+            translation_status: 'current' as TranslationStatus,
+            last_error_message: null,
+          },
+        ],
+        { onConflict: 'category_id,language_code' }
+      );
+      if (error) {
+        return {
+          language,
+          status: 'failed',
+          errorMessage:
+            error instanceof Error ? error.message : 'Failed to persist translation row.',
+        };
+      }
+      return { language, status: 'current', result: sanitized };
     }
-    return { language, status: 'current', result: sanitized };
   }
 
   const preserve: any = priorHasContent
@@ -631,30 +638,38 @@ export async function processOneFaqItemTranslation(
 
   if (aiResult) {
     const sanitized = sanitizeFaqItemTranslation(aiResult as any);
-    const { error } = await admin.from('faq_item_translations').upsert(
-      [
-        {
-          item_id: itemId,
-          language_code: language,
-          question: sanitized.question,
-          answer_html: sanitized.answer_html,
-          keywords: sanitized.keywords,
-          source_version_hash: sourceHash,
-          translation_status: 'current' as TranslationStatus,
-          last_error_message: null,
-        },
-      ],
-      { onConflict: 'item_id,language_code' }
-    );
-    if (error) {
-      return {
-        language,
-        status: 'failed',
-        errorMessage:
-          error instanceof Error ? error.message : 'Failed to persist translation row.',
-      };
+    const enQuestionNonEmpty = en.question.trim() !== '';
+    const translatedQuestionEmpty = sanitized.question.trim() === '';
+    const translatedAnswerEmpty = sanitized.answer_html.trim() === '';
+    if (enQuestionNonEmpty && (translatedQuestionEmpty || translatedAnswerEmpty)) {
+      const schemaErrorMsg = 'Schema/empty-error: translated question or answer_html is empty while English source has content.';
+      errorMsg = schemaErrorMsg;
+    } else {
+      const { error } = await admin.from('faq_item_translations').upsert(
+        [
+          {
+            item_id: itemId,
+            language_code: language,
+            question: sanitized.question,
+            answer_html: sanitized.answer_html,
+            keywords: sanitized.keywords,
+            source_version_hash: sourceHash,
+            translation_status: 'current' as TranslationStatus,
+            last_error_message: null,
+          },
+        ],
+        { onConflict: 'item_id,language_code' }
+      );
+      if (error) {
+        return {
+          language,
+          status: 'failed',
+          errorMessage:
+            error instanceof Error ? error.message : 'Failed to persist translation row.',
+        };
+      }
+      return { language, status: 'current', result: sanitized };
     }
-    return { language, status: 'current', result: sanitized };
   }
 
   const preserve: any = priorHasContent

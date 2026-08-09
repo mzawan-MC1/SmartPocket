@@ -360,22 +360,39 @@ export async function processOneBlogTranslation(
       err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
   }
 
-  const priorRow = (
+  const priorRowFull = (
     await admin
       .from('cms_page_translations')
       .select(
-        'title, excerpt, content_html, category, tags, cover_image_alt, seo_title, seo_description, seo_keywords, og_title, og_description, twitter_title, twitter_description, source_version_hash'
+        'title, excerpt, content_html, category, tags, cover_image_alt, seo_title, seo_description, seo_keywords, og_title, og_description, twitter_title, twitter_description, source_version_hash, translation_status'
       )
       .eq('page_id', pageId)
       .eq('language_code', language)
       .maybeSingle()
   ).data as any;
+  const priorRow = priorRowFull;
   const priorHasContent = Boolean(
     priorRow && (String(priorRow.title || '') || String(priorRow.content_html || ''))
   );
+  const priorWasCurrent = priorRow?.translation_status === 'current';
+  const priorSourceHash = String(priorRow?.source_version_hash ?? '');
+  const priorSuccessfulWithMatchingHash = priorWasCurrent && priorSourceHash === sourceHash;
 
+  let effectivelyFailed = !aiResult;
+  let sanitized: ReturnType<typeof sanitizeBlogTranslation> | null = null;
   if (aiResult) {
-    const sanitized = sanitizeBlogTranslation(aiResult as any);
+    sanitized = sanitizeBlogTranslation(aiResult as any);
+    const titleEmptyAfterFallback = !String(sanitized.title || '').trim();
+    const contentEmptyAfterFallback = !String(sanitized.content_html || '').trim();
+    if (titleEmptyAfterFallback || contentEmptyAfterFallback) {
+      effectivelyFailed = true;
+      if (!errorMsg) {
+        errorMsg = `Translation produced empty core fields.${titleEmptyAfterFallback ? ' title' : ''}${contentEmptyAfterFallback ? ' content_html' : ''}`;
+      }
+    }
+  }
+
+  if (aiResult && sanitized && !effectivelyFailed) {
     const { error } = await admin.from('cms_page_translations').upsert(
       [
         {
@@ -413,7 +430,8 @@ export async function processOneBlogTranslation(
     return { language, status: 'current', result: bundle, errorMessage: undefined };
   }
 
-  const preserve: any = priorHasContent
+  const shouldPreservePrior = priorHasContent || priorSuccessfulWithMatchingHash;
+  const preserve: any = shouldPreservePrior
     ? {
         title: String(priorRow?.title || ''),
         excerpt: String(priorRow?.excerpt || ''),
@@ -466,7 +484,7 @@ export async function processOneBlogTranslation(
   }
   return {
     language,
-    status: (priorHasContent ? 'outdated' : 'failed') as TranslationStatus,
+    status: (shouldPreservePrior ? 'outdated' : 'failed') as TranslationStatus,
     result: undefined,
     errorMessage: errorMsg || 'Translation failed.',
   };
