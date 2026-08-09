@@ -1,0 +1,15 @@
+{
+    "required": "{{field}}为必填项",
+    "minLength": "{{field}}至少需要{{min}}个字符",
+    "maxLength": "{{field}}不能超过{{max}}个字符",
+    "email": "请输入有效的电子邮箱地址",
+    "passwordMatch": "两次输入的密码不匹配",
+    "passwordStrength": "密码至少需要8个字符，包含数字和特殊字符",
+    "positiveNumber": "请输入正数",
+    "invalidAmount": "请输入有效金额",
+    "futureDate": "日期不能是未来日期",
+    "required_field": "此字段为必填项",
+    "invalidCurrency": "请选择有效的货币",
+    "fileTooLarge": "文件大小不能超过{{size}}MB",
+    "invalidFileType": "不支持的文件类型。允许的类型：{{types}}"
+}

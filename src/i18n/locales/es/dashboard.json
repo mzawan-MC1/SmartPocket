@@ -1,0 +1,34 @@
+{
+    "title": "Panel",
+    "greeting": "Buen {{time}}, {{name}}",
+    "greetingMorning": "día",
+    "greetingAfternoon": "tarde",
+    "greetingEvening": "noches",
+    "metrics": {
+        "totalBalance": "Saldo Total",
+        "monthlyIncome": "Ingresos Mensuales",
+        "monthlyExpenses": "Gastos Mensuales",
+        "netCashFlow": "Flujo de Caja Neto",
+        "remainingBudget": "Presupuesto Restante",
+        "savingsRate": "Tasa de Ahorro"
+    },
+    "sections": {
+        "recentTransactions": "Transacciones Recientes",
+        "accountBalances": "Saldos de Cuentas",
+        "upcomingRecurring": "Pagos Recurrentes Próximos",
+        "spendingByCategory": "Gasto por Categoría",
+        "incomeVsExpenses": "Ingresos vs Gastos",
+        "quickAdd": "Agregado Rápido"
+    },
+    "quickAdd": {
+        "expense": "Agregar Gasto",
+        "income": "Agregar Ingreso",
+        "transfer": "Transferencia",
+        "account": "Agregar Cuenta"
+    },
+    "noTransactions": "Sin transacciones este mes",
+    "noAccounts": "Aún no se han agregado cuentas",
+    "noUpcoming": "Sin pagos próximos",
+    "mixedCurrencies": "Múltiples monedas — totales no combinados",
+    "viewAll": "Ver todos"
+}

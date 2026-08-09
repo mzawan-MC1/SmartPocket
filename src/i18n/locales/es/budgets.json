@@ -1,0 +1,34 @@
+{
+    "title": "Presupuestos",
+    "addBudget": "Agregar Presupuesto",
+    "editBudget": "Editar Presupuesto",
+    "overview": "Resumen de Presupuestos",
+    "monthly": "Presupuesto Mensual",
+    "fields": {
+        "name": "Nombre del Presupuesto",
+        "amount": "Monto del Presupuesto",
+        "category": "Categoría",
+        "period": "Periodo",
+        "startDate": "Fecha de Inicio",
+        "endDate": "Fecha de Fin"
+    },
+    "stats": {
+        "spent": "Gastado",
+        "remaining": "Restante",
+        "usage": "Uso",
+        "total": "Presupuesto Total"
+    },
+    "status": {
+        "onTrack": "En Ruta",
+        "warning": "Cerca del Límite",
+        "exceeded": "Excedido",
+        "unused": "No Iniciado"
+    },
+    "empty": {
+        "title": "Sin presupuestos establecidos",
+        "description": "Crea un presupuesto para controlar tus gastos"
+    },
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar este presupuesto?",
+    "deleted": "Presupuesto eliminado",
+    "saved": "Presupuesto guardado"
+}

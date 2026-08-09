@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createHash } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendTransactionalEmail } from '@/lib/email/transactional';
 import { sendContactAcknowledgementEmail } from '@/lib/support-email';
 import { hasTooManyLinks, isValidEmail, sanitizeMultilineText, sanitizeSingleLineText } from '@/lib/support';
 import { insertContactEvent } from '@/lib/support-server';
+import { I18N_COOKIE_NAME, isSupportedLanguage, type SupportedLanguage, DEFAULT_LANGUAGE } from '@/i18n/registry';
 
 type ContactPayload = {
   name?: string;
@@ -14,6 +15,7 @@ type ContactPayload = {
   message?: string;
   sourcePage?: string;
   website?: string;
+  language?: string;
 };
 
 const CONTACT_MAX_LENGTHS = {
@@ -35,6 +37,40 @@ function sha256(value: string) {
   return createHash('sha256').update(value).digest('hex');
 }
 
+function normalizeAcceptLanguage(headerValue: string): SupportedLanguage | null {
+  const segments = headerValue.split(',').map((segment) => {
+    const raw = segment.trim().split(';')[0]?.trim();
+    if (!raw) return { raw: '', q: 1 };
+    const qMatch = segment.match(/;\s*q=([0-9.]+)/);
+    const q = qMatch ? parseFloat(qMatch[1]) : 1;
+    return { raw, q: Number.isFinite(q) ? q : 1 };
+  });
+  segments.sort((a, b) => b.q - a.q);
+  for (const { raw } of segments) {
+    if (!raw) continue;
+    if (isSupportedLanguage(raw)) return raw;
+    const base = raw.split('-')[0];
+    if (base && isSupportedLanguage(base)) return base;
+  }
+  return null;
+}
+
+function resolveContactLocale(request: NextRequest, explicitBodyLanguage: string | null | undefined): SupportedLanguage {
+  if (explicitBodyLanguage && typeof explicitBodyLanguage === 'string' && isSupportedLanguage(explicitBodyLanguage)) {
+    return explicitBodyLanguage;
+  }
+  const cookieRaw = request.cookies.get(I18N_COOKIE_NAME)?.value;
+  if (cookieRaw && isSupportedLanguage(cookieRaw)) {
+    return cookieRaw;
+  }
+  const acceptHeader = request.headers.get('accept-language');
+  if (acceptHeader) {
+    const normalized = normalizeAcceptLanguage(acceptHeader);
+    if (normalized) return normalized;
+  }
+  return DEFAULT_LANGUAGE;
+}
+
 function normalizeEmailResult(result: {
   success?: boolean;
   status?: 'sent' | 'failed' | 'skipped';
@@ -53,7 +89,7 @@ function normalizeEmailResult(result: {
   };
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => ({}))) as ContactPayload;
     const name = sanitizeSingleLineText(body.name, CONTACT_MAX_LENGTHS.name);
@@ -66,6 +102,7 @@ export async function POST(request: Request) {
     const clientIp = getClientIp(request);
     const normalizedSourcePage = sourcePage.startsWith('/') ? sourcePage : '/contact';
     const isLikelySpam = hasTooManyLinks(subject) || hasTooManyLinks(message);
+    const customerLocale = resolveContactLocale(request, body.language);
 
     if (website) {
       return NextResponse.json({ success: true }, { status: 200 });
@@ -176,6 +213,7 @@ export async function POST(request: Request) {
         customer_acknowledgement_error: null,
         last_email_error: null,
         last_notified_at: null,
+        locale_code: customerLocale,
       })
       .select('id, reference_number')
       .maybeSingle();
@@ -243,6 +281,7 @@ export async function POST(request: Request) {
             subject,
             message,
             referenceNumber,
+            languageCode: customerLocale,
           }).catch((sendError) => {
             console.error('[contact] Failed to send acknowledgement email.', sendError);
             return {

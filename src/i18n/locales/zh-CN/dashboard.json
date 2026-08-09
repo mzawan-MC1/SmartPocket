@@ -1,0 +1,34 @@
+{
+    "title": "仪表盘",
+    "greeting": "{{time}}好，{{name}}",
+    "greetingMorning": "早",
+    "greetingAfternoon": "下午",
+    "greetingEvening": "晚上",
+    "metrics": {
+        "totalBalance": "总余额",
+        "monthlyIncome": "本月收入",
+        "monthlyExpenses": "本月支出",
+        "netCashFlow": "净现金流",
+        "remainingBudget": "剩余预算",
+        "savingsRate": "储蓄率"
+    },
+    "sections": {
+        "recentTransactions": "最近交易",
+        "accountBalances": "账户余额",
+        "upcomingRecurring": "即将到期的定期项",
+        "spendingByCategory": "分类支出",
+        "incomeVsExpenses": "收入与支出对比",
+        "quickAdd": "快速添加"
+    },
+    "quickAdd": {
+        "expense": "添加支出",
+        "income": "添加收入",
+        "transfer": "转账",
+        "account": "添加账户"
+    },
+    "noTransactions": "本月暂无交易",
+    "noAccounts": "尚未添加账户",
+    "noUpcoming": "暂无即将到期的付款",
+    "mixedCurrencies": "多种货币 — 总计未合并",
+    "viewAll": "查看全部"
+}

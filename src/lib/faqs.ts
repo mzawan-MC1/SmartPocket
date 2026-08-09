@@ -1,7 +1,8 @@
 import { sanitizeRichTextHtml, slugifyCmsPageSlug, stripHtmlToText } from '@/lib/cms-pages';
 import type { SupportedLanguage } from '@/i18n/resources';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 
-export const FAQ_LANGUAGES = ['en', 'ar', 'fr', 'ru'] as const;
+export const FAQ_LANGUAGES = SUPPORTED_LANGUAGE_CODES;
 export type FaqLanguageCode = (typeof FAQ_LANGUAGES)[number];
 
 export const FAQ_ICON_OPTIONS = [
@@ -133,7 +134,16 @@ const FAQ_UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isFaqLanguageCode(value: unknown): value is FaqLanguageCode {
-  return value === 'en' || value === 'ar' || value === 'fr' || value === 'ru';
+  return (
+    value === 'en'
+    || value === 'ar'
+    || value === 'fr'
+    || value === 'ru'
+    || value === 'tr'
+    || value === 'zh-CN'
+    || value === 'es'
+    || value === 'pt-BR'
+  );
 }
 
 export function isSupportedFaqIcon(value: unknown): value is FaqIconName {
@@ -206,6 +216,10 @@ export function createEmptyFaqCategoryTranslations(): Record<FaqLanguageCode, Fa
     ar: { name: '', description: '' },
     fr: { name: '', description: '' },
     ru: { name: '', description: '' },
+    tr: { name: '', description: '' },
+    'zh-CN': { name: '', description: '' },
+    es: { name: '', description: '' },
+    'pt-BR': { name: '', description: '' },
   };
 }
 
@@ -215,6 +229,10 @@ export function createEmptyFaqItemTranslations(): Record<FaqLanguageCode, FaqIte
     ar: { question: '', answer_html: '', keywords: [] },
     fr: { question: '', answer_html: '', keywords: [] },
     ru: { question: '', answer_html: '', keywords: [] },
+    tr: { question: '', answer_html: '', keywords: [] },
+    'zh-CN': { question: '', answer_html: '', keywords: [] },
+    es: { question: '', answer_html: '', keywords: [] },
+    'pt-BR': { question: '', answer_html: '', keywords: [] },
   };
 }
 

@@ -1,0 +1,76 @@
+{
+    "title": "Pessoas",
+    "subtitle": "Gerencie finanças para família, amigos e outras pessoas",
+    "addPerson": "Adicionar Pessoa",
+    "editProfile": "Editar Perfil",
+    "nopeople": "Sem pessoas ainda",
+    "nopeopleDesc": "Adicione familiares, amigos ou qualquer pessoa cujas finanças você gerencia",
+    "moneyHeld": "Dinheiro Retido",
+    "owedToMe": "Me Devem",
+    "iOwe": "Eu Devo",
+    "relationship": {
+        "spouse": "Cônjuge",
+        "child": "Filho(a)",
+        "parent": "Pai/Mãe",
+        "sibling": "Irmão(ã)",
+        "friend": "Amigo(a)",
+        "relative": "Parente",
+        "colleague": "Colega",
+        "client": "Cliente",
+        "other": "Outro"
+    },
+    "tabs": {
+        "overview": "Visão Geral",
+        "ledger": "Livro Razão",
+        "expenses": "Despesas",
+        "reimbursements": "Reembolsos",
+        "settlements": "Acordos",
+        "reports": "Relatórios",
+        "profile": "Perfil"
+    },
+    "ledger": {
+        "title": "Livro Razão",
+        "noEntries": "Sem lançamentos no livro razão ainda",
+        "entryTypes": {
+            "money_received": "Dinheiro Recebido",
+            "money_returned": "Dinheiro Devolvido",
+            "expense_from_held": "Despesa (Saldo Retido)",
+            "expense_paid_by_user": "Despesa (Paga por Mim)",
+            "expense_paid_by_person": "Despesa (Paga pela Pessoa)",
+            "reimbursement_due_to_user": "Reembolso Devido a Mim",
+            "reimbursement_due_to_person": "Reembolso Devido à Pessoa",
+            "reimbursement_received": "Reembolso Recebido",
+            "reimbursement_paid": "Reembolso Pago",
+            "settlement": "Acordo",
+            "adjustment": "Ajuste"
+        }
+    },
+    "reimbursements": {
+        "title": "Reembolsos",
+        "noReimbursements": "Sem reembolsos ainda",
+        "recordPayment": "Registrar Pagamento",
+        "outstanding": "Pendente",
+        "statuses": {
+            "pending": "Pendente",
+            "partially_paid": "Parcialmente Pago",
+            "settled": "Acertado",
+            "waived": "Dispensado",
+            "cancelled": "Cancelado"
+        }
+    },
+    "settlements": {
+        "title": "Acordos",
+        "noSettlements": "Sem acordos ainda",
+        "newSettlement": "Novo Acordo",
+        "totalSettled": "Total Acertado"
+    },
+    "spaces": {
+        "title": "Espaços",
+        "personal": "Pessoal",
+        "family": "Família",
+        "household": "Moradia",
+        "child": "Filho(a)",
+        "friend": "Amigo(a)",
+        "custom": "Personalizado"
+    }
+}

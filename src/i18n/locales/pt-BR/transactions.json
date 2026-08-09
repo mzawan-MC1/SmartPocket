@@ -1,0 +1,56 @@
+{
+    "title": "Transações",
+    "addTransaction": "Adicionar Transação",
+    "addExpense": "Adicionar Despesa",
+    "addIncome": "Adicionar Renda",
+    "transfer": "Transferência",
+    "fields": {
+        "amount": "Valor",
+        "type": "Tipo",
+        "account": "Conta",
+        "category": "Categoria",
+        "date": "Data",
+        "time": "Hora",
+        "merchant": "Estabelecimento / Fonte",
+        "notes": "Observações",
+        "tags": "Marcadores",
+        "receipt": "Recibo",
+        "recurring": "Recorrente"
+    },
+    "types": {
+        "income": "Renda",
+        "expense": "Despesa",
+        "transfer": "Transferência"
+    },
+    "filters": {
+        "all": "Todas",
+        "income": "Renda",
+        "expense": "Despesa",
+        "transfer": "Transferência",
+        "dateRange": "Período",
+        "account": "Conta",
+        "category": "Categoria",
+        "search": "Pesquisar transações..."
+    },
+    "sort": {
+        "dateDesc": "Mais Recentes",
+        "dateAsc": "Mais Antigas",
+        "amountDesc": "Maior Valor",
+        "amountAsc": "Menor Valor"
+    },
+    "table": {
+        "date": "Data",
+        "description": "Descrição",
+        "category": "Categoria",
+        "account": "Conta",
+        "amount": "Valor",
+        "actions": "Ações"
+    },
+    "empty": {
+        "title": "Sem transações ainda",
+        "description": "Adicione sua primeira transação para começar"
+    },
+    "deleteConfirm": "Tem certeza de que deseja excluir esta transação?",
+    "deleted": "Transação excluída",
+    "saved": "Transação salva"
+}

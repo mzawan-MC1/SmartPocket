@@ -1,3 +1,39 @@
+import {
+  LANGUAGE_CODES,
+  LANGUAGE_REGISTRY,
+  SUPPORTED_LANGUAGES,
+  SUPPORTED_LANGUAGE_CODES,
+  DEFAULT_LANGUAGE,
+  I18N_STORAGE_KEY,
+  I18N_COOKIE_NAME,
+  isSupportedLanguage,
+  isRTL,
+  getLanguageRegistryEntry,
+  getIntlLocale,
+  getOgLocale,
+  type SupportedLanguage,
+  type LanguageRegistryEntry,
+  type LanguageDirection,
+} from './registry';
+
+export {
+  LANGUAGE_CODES,
+  LANGUAGE_REGISTRY,
+  SUPPORTED_LANGUAGES,
+  SUPPORTED_LANGUAGE_CODES,
+  DEFAULT_LANGUAGE,
+  I18N_STORAGE_KEY,
+  I18N_COOKIE_NAME,
+  isSupportedLanguage,
+  isRTL,
+  getLanguageRegistryEntry,
+  getIntlLocale,
+  getOgLocale,
+  type SupportedLanguage,
+  type LanguageRegistryEntry,
+  type LanguageDirection,
+};
+
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
 import enDashboard from './locales/en/dashboard.json';
@@ -46,15 +82,55 @@ import ruValidation from './locales/ru/validation.json';
 import ruPeople from './locales/ru/people.json';
 import ruPublic from './locales/ru/public.json';
 import ruPortal from './locales/ru/portal.json';
+import trCommon from './locales/tr/common.json';
+import trAuth from './locales/tr/auth.json';
+import trDashboard from './locales/tr/dashboard.json';
+import trTransactions from './locales/tr/transactions.json';
+import trBudgets from './locales/tr/budgets.json';
+import trReports from './locales/tr/reports.json';
+import trSettings from './locales/tr/settings.json';
+import trAdmin from './locales/tr/admin.json';
+import trValidation from './locales/tr/validation.json';
+import trPeople from './locales/tr/people.json';
+import trPublic from './locales/tr/public.json';
+import trPortal from './locales/tr/portal.json';
+import zhCnCommon from './locales/zh-CN/common.json';
+import zhCnAuth from './locales/zh-CN/auth.json';
+import zhCnDashboard from './locales/zh-CN/dashboard.json';
+import zhCnTransactions from './locales/zh-CN/transactions.json';
+import zhCnBudgets from './locales/zh-CN/budgets.json';
+import zhCnReports from './locales/zh-CN/reports.json';
+import zhCnSettings from './locales/zh-CN/settings.json';
+import zhCnAdmin from './locales/zh-CN/admin.json';
+import zhCnValidation from './locales/zh-CN/validation.json';
+import zhCnPeople from './locales/zh-CN/people.json';
+import zhCnPublic from './locales/zh-CN/public.json';
+import zhCnPortal from './locales/zh-CN/portal.json';
+import esCommon from './locales/es/common.json';
+import esAuth from './locales/es/auth.json';
+import esDashboard from './locales/es/dashboard.json';
+import esTransactions from './locales/es/transactions.json';
+import esBudgets from './locales/es/budgets.json';
+import esReports from './locales/es/reports.json';
+import esSettings from './locales/es/settings.json';
+import esAdmin from './locales/es/admin.json';
+import esValidation from './locales/es/validation.json';
+import esPeople from './locales/es/people.json';
+import esPublic from './locales/es/public.json';
+import esPortal from './locales/es/portal.json';
+import ptBrCommon from './locales/pt-BR/common.json';
+import ptBrAuth from './locales/pt-BR/auth.json';
+import ptBrDashboard from './locales/pt-BR/dashboard.json';
+import ptBrTransactions from './locales/pt-BR/transactions.json';
+import ptBrBudgets from './locales/pt-BR/budgets.json';
+import ptBrReports from './locales/pt-BR/reports.json';
+import ptBrSettings from './locales/pt-BR/settings.json';
+import ptBrAdmin from './locales/pt-BR/admin.json';
+import ptBrValidation from './locales/pt-BR/validation.json';
+import ptBrPeople from './locales/pt-BR/people.json';
+import ptBrPublic from './locales/pt-BR/public.json';
+import ptBrPortal from './locales/pt-BR/portal.json';
 
-export const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English', nativeName: 'English', dir: 'ltr' as const },
-  { code: 'ar', name: 'Arabic', nativeName: 'العربية', dir: 'rtl' as const },
-  { code: 'fr', name: 'French', nativeName: 'Français', dir: 'ltr' as const },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский', dir: 'ltr' as const },
-];
-
-export type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
 export type TranslationNamespace =
   | 'common'
   | 'auth'
@@ -83,18 +159,6 @@ export const I18N_NAMESPACES: TranslationNamespace[] = [
   'public',
   'portal',
 ];
-
-export const DEFAULT_LANGUAGE: SupportedLanguage = 'en';
-export const I18N_STORAGE_KEY = 'sp_language';
-export const I18N_COOKIE_NAME = 'sp_language';
-
-export function isSupportedLanguage(value: string | null | undefined): value is SupportedLanguage {
-  return value === 'en' || value === 'ar' || value === 'fr' || value === 'ru';
-}
-
-export function isRTL(language: string) {
-  return language === 'ar';
-}
 
 export const BASE_I18N_RESOURCES: Record<SupportedLanguage, Record<TranslationNamespace, Record<string, unknown>>> = {
   en: {
@@ -152,5 +216,61 @@ export const BASE_I18N_RESOURCES: Record<SupportedLanguage, Record<TranslationNa
     people: ruPeople,
     public: ruPublic,
     portal: ruPortal,
+  },
+  tr: {
+    common: trCommon,
+    auth: trAuth,
+    dashboard: trDashboard,
+    transactions: trTransactions,
+    budgets: trBudgets,
+    reports: trReports,
+    settings: trSettings,
+    admin: trAdmin,
+    validation: trValidation,
+    people: trPeople,
+    public: trPublic,
+    portal: trPortal,
+  },
+  'zh-CN': {
+    common: zhCnCommon,
+    auth: zhCnAuth,
+    dashboard: zhCnDashboard,
+    transactions: zhCnTransactions,
+    budgets: zhCnBudgets,
+    reports: zhCnReports,
+    settings: zhCnSettings,
+    admin: zhCnAdmin,
+    validation: zhCnValidation,
+    people: zhCnPeople,
+    public: zhCnPublic,
+    portal: zhCnPortal,
+  },
+  es: {
+    common: esCommon,
+    auth: esAuth,
+    dashboard: esDashboard,
+    transactions: esTransactions,
+    budgets: esBudgets,
+    reports: esReports,
+    settings: esSettings,
+    admin: esAdmin,
+    validation: esValidation,
+    people: esPeople,
+    public: esPublic,
+    portal: esPortal,
+  },
+  'pt-BR': {
+    common: ptBrCommon,
+    auth: ptBrAuth,
+    dashboard: ptBrDashboard,
+    transactions: ptBrTransactions,
+    budgets: ptBrBudgets,
+    reports: ptBrReports,
+    settings: ptBrSettings,
+    admin: ptBrAdmin,
+    validation: ptBrValidation,
+    people: ptBrPeople,
+    public: ptBrPublic,
+    portal: ptBrPortal,
   },
 };

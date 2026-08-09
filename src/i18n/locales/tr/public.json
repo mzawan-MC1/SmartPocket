@@ -1,0 +1,1336 @@
+{
+  "header": {
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat",
+    "getStartedFree": "Ücretsiz Başla"
+  },
+  "footer": {
+    "social": {
+      "twitter": "Twitter",
+      "github": "GitHub",
+      "linkedin": "LinkedIn"
+    },
+    "rights": "Tüm hakları saklıdır.",
+    "poweredBy": "Güçlendiren:",
+    "copyright": "{{appName}}. Tüm hakları saklıdır.",
+    "contactAddress": "Al Majaz 2, Şarjah - BAE",
+    "pages": "Sayfalar",
+    "privacy": "Gizlilik",
+    "terms": "Şartlar",
+    "sectionCompany": "Şirket",
+    "sectionProduct": "Ürün",
+    "sectionSupport": "Destek",
+    "sectionLegal": "Yasal",
+    "sectionLearn": "Öğren",
+    "sectionLegalTrust": "Yasal & Güven",
+    "linkAbout": "Hakkında",
+    "linkBlog": "Bloglar",
+    "linkFeatures": "Özellikler",
+    "linkPricing": "Fiyatlandırma",
+    "linkContact": "İletişim",
+    "linkHelp": "Yardım Merkezi",
+    "linkDesktopApp": "Masaüstü Uygulaması",
+    "linkSecurity": "Güvenlik",
+    "backToTop": "Başa dön",
+    "linkFaqs": "SSS",
+    "linkAiReceiptScanner": "AI Fiş Tarayıcı",
+    "linkAiVoiceExpenseTracker": "AI Sesli Gider Takipçisi",
+    "linkTermsAndConditions": "Kullanım Şartları ve Koşulları"
+  },
+  "home": {
+    "hero": {
+      "title": "AI destekli günlük\npara arkadaşınız",
+      "subtitle": "Smart Pocket, harcamalarınızı takip etmenize, fişleri taramanıza, abonelikleri yönetmenize, bütçeler planlamanıza, paylaşılan parayı halletmenize ve para birimleri arasında net kalmanıza yardımcı olan AI destekli bir günlük para arkadaşıdır.",
+      "aiBadge": "AI destekli günlük para arkadaşı",
+      "primaryCta": "Ücretsiz Başla",
+      "secondaryCta": "Masaüstü Uygulaması"
+    },
+    "trust": {
+      "noCard": "Kredi kartı gerekmez",
+      "freePlan": "Ücretsiz plan mevcut",
+      "oauthEnabled": "Platformunuzda etkinleştirilen yöntemlerle güvenli giriş"
+    },
+    "sections": {
+      "aboutEyebrow": "Smart Pocket nedir?",
+      "aboutTitle": "Gerçek hayat için basit bir günlük para arkadaşı",
+      "aboutDescription": "Smart Pocket, sıradan insanların hesapları, harcamaları, bütçeleri, abonelikleri, paylaşılan parayı ve fişleri tek sakin bir yerde takip etmesine yardımcı olur.",
+      "featuresTitle": "Smart Pocket neleri kapsar",
+      "featuresDescription": "Temel araçlar basit kalır: bakiyelerinizi, paylaşılan paranızı, bütçelerinizi ve arkasındaki fişleri veya tekrarlayan ödemeleri takip edin.",
+      "stepsTitle": "Smart Pocket nasıl yardımcı olur",
+      "stepsDescription": "Günlük parayı en kolay hissettiren şekilde yakalayın, ardından bütçeleri, paylaşılan parayı ve takipleri karmaşa olmadan devam ettirin.",
+      "platformTitle": "Gerçek hayat için tasarlandı",
+      "platformDescription": "Aynı net iş akışı telefon, tablet ve masaüstünde kullanılır, arayüz dilleri daha fazla insanın kendini evinde hissetmesine yardımcı olur.",
+      "securityTitle": "Önce güvenlik ve gizlilik",
+      "securityDescription": "Hesabınız korunur, verileriniz gizli kalır ve AI önerileri incelemeye dayalı kalır.",
+      "pricingTitle": "Basit fiyatlandırma, net sonraki adım",
+      "pricingDescription": "Ücretsiz deneme sürümüyle başlayın, ardından tek bir kişi veya aileye uyan planı seçin.",
+      "languagesTitle": "Dört arayüz dilinde kullanılabilir",
+      "languagesDescription": "Uygulama kullanıcı arayüzü için İngilizce, Arapça, Fransızca veya Rusça seçin; Akıllı Giriş giriş dilini ayrı tutun.",
+      "ctaTitle": "Paranız üzerinde daha fazla kontrol sahibi olmaya hazır mısınız?",
+      "ctaDescription": "Ücretsiz denemenizi başlatın, temelleri tek bir yerde takip edin ve Smart Pocket'in gün boyu düzenli kalmanıza yardımcı olmasına izin verin."
+    },
+    "about": {
+      "audienceEyebrow": "İnsanlar için yapıldı, muhasebeciler için değil",
+      "audienceTitle": "Muhasebe stresi olmadan daha net para alışkanlıkları isteyen sıradan insanlar için",
+      "audienceDescription": "Smart Pocket, aileler, serbest meslek sahipleri, çiftler, ev arkadaşları ve günlük harcamaları, paylaşılan parayı, faturaları, abonelikleri ve fişleri finans jargonu öğrenmeden anlamak isteyen herkes içindir.",
+      "noteTitle": "Paranın üstünde kalmak için daha sıcak bir yol",
+      "noteDescription": "Smart Pocket, daha iyi para alışkanlıkları stres olmadan geliştirebilmeniz için basit, okunabilir ve yardımcı hissettirecek şekilde tasarlandı.",
+      "points": {
+        "1": "Hesapları, bakiyeleri ve günlük işlemleri bir arada tutun.",
+        "2": "Bütçeleri, abonelikleri ve tekrarlayan ödemeleri sapmadan önce takip edin.",
+        "3": "Paylaşılan harcamaları, geri ödemeleri ve mutabakatları daha az kafa karışıklığıyla halledin."
+      },
+      "coverageTitle": "Genellikle dağınık olan para parçalarını kapsar",
+      "coverageDescription": "Günlük harcamalardan paylaşılan geri ödemelere kadar, Smart Pocket önemli detayları bağlı ve incelemesi kolay tutar.",
+      "coverageTags": {
+        "accounts": "Hesaplar, işlemler ve bütçeler",
+        "shared": "Kişiler, alanlar, geri ödemeler ve mutabakatlar",
+        "capture": "Fişler, belgeler, metin ve ses yakalama",
+        "languages": "Mobil, tablet, masaüstü ve çok dilli destek"
+      },
+      "audiences": {
+        "ordinaryPeople": "Sıradan insanlar",
+        "families": "Aileler",
+        "freelancers": "Serbest meslek sahipleri",
+        "expats": "Yurtdışında yaşayanlar",
+        "sharedMoney": "Paylaşılan para"
+      }
+    },
+    "benefits": {
+      "balanceTitle": "Gerçek zamanlı bakiye takibi",
+      "balanceDescription": "Bir işlem kaydedildiği anda her hesap bakiyesi güncellemesini görün.",
+      "budgetAlertsTitle": "Aşımdan önce bütçe uyarıları",
+      "budgetAlertsDescription": "Kategori bütçe limitinize yaklaştığınızda bildirim alın.",
+      "reportsTitle": "İstendiğinde PDF ve CSV raporları",
+      "reportsDescription": "Herhangi bir tarih aralığı için anında profesyonel finansal ekstreler üretin.",
+      "recurringTitle": "Tekrarlayan işlem otomasyonu",
+      "recurringDescription": "Abonelikleri ve tekrarlayan faturaları bir kez ayarlayın ve Smart Pocket'in takip etmesine izin verin.",
+      "remindersTitle": "Yaklaşan ödeme hatırlatmaları",
+      "remindersDescription": "Bir faturayı kaçırmayın. Kontrol paneli önümüzdeki 7 gün içinde neyin ödeneceğini gösterir.",
+      "rlsTitle": "Özel hesap yalıtımı",
+      "rlsDescription": "Verileriniz hesabınıza özel kalır ve diğer her kullanıcıdan ayrı tutulur."
+    },
+    "features": {
+      "accountsTitle": "Hesaplar ve bakiyeler",
+      "accountsDescription": "Nakit, banka, kart ve çoklu para birimi bakiyelerini tek net görünümde takip edin.",
+      "dashboardTitle": "Paylaşılan para",
+      "dashboardDescription": "Kişileri, geri ödemeleri, mutabakatları ve paylaşılan alanları anlaşılması kolay tutun.",
+      "budgetsTitle": "Bütçeler",
+      "budgetsDescription": "Basit limitler belirleyin, baskıyı erken fark edin ve günlük harcamalarda temkinli kalın.",
+      "exportsTitle": "Fişler ve abonelikler",
+      "exportsDescription": "Fişleri, belgeleri, abonelikleri ve tekrarlayan ödemeleri kaydın yakınında tutun.",
+      "recurringTitle": "Aboneliklerin ve tekrarlayan ödemelerin önünde kalın",
+      "recurringDescription": "Sırada ne olduğunu, neyin yakında yenileneceğini ve ücret düşmeden önce neyin incelenmesi gerektiğini bilin.",
+      "securityTitle": "Çoklu para birimi hayatını daha az sürtünmeyle yönetin",
+      "securityDescription": "Günlük parayı para birimleri arasında takip ederken orijinal detayların okunabilir ve nihai kaydın net kalmasını sağlayın."
+    },
+    "steps": {
+      "createTitle": "Paranızı kendi şeklinizde yakalayın",
+      "createDescription": "Her şeyi yazmak yavaş geldiğinde kısa bir not yazın, doğal konuşun veya bir fişten başlayın.",
+      "accountsTitle": "Hesapları ve aktiviteyi bir arada tutun",
+      "accountsDescription": "Bakiyeleri, işlemleri ve arkasındaki hesapları ekranlar arasında gezinmeden takip edin.",
+      "transactionsTitle": "Paylaşılan paranın mutabakatını kolaylaştırın",
+      "transactionsDescription": "Kimlerin ödediğini, neyin geri ödenmesi gerektiğini ve kişiler ile alanlar arasında neyin hâlâ takip edilmesi gerektiğini takip edin.",
+      "budgetsTitle": "Bütçelerin ve tekrarlayan faturaların önünde kalın",
+      "budgetsDescription": "Yaklaşan ödemeleri, abonelikleri ve bütçe baskısını sürprizlere dönüşmeden önce fark edin.",
+      "reportsTitle": "Raporları inceleyin",
+      "reportsDescription": "Herhangi bir dönem için PDF veya CSV raporları üretin, ardından paylaşın veya arşivleyin."
+    },
+    "platform": {
+      "mobileTitle": "Hayat akarken önce telefon",
+      "mobileDescription": "Dışarıdayken harcamaları kaydedin, fişleri yükleyin ve neyin ödeneceğini kontrol edin.",
+      "desktopTitle": "Daha fazla alana ihtiyacınız olduğunda masaüstü",
+      "desktopDescription": "Fişleri, raporları, paylaşılan parayı ve hesap geçmişini daha geniş görünümle inceleyin.",
+      "tabletTitle": "Rahat inceleme için tablet",
+      "tabletDescription": "Ev planlaması, onaylar ve hızlı düzenlemeler için dengeli bir düzen kullanın.",
+      "pwaTitle": "Uygulama olarak kur",
+      "pwaDescription": "Smart Pocket'i ana ekranınıza ekleyin ve arka plan eşitleme ile çevrimdışı kullanılabilir tutun."
+    },
+    "security": {
+      "rlsTitle": "Varsayılan olarak özel",
+      "rlsDescription": "Hesabınız ve kayıtlarınız diğer kullanıcılardan ayrı kalır.",
+      "transitTitle": "Güvenli giriş",
+      "transitDescription": "Smart Pocket, erişim verilmeden önce korumalı giriş kontrolleri kullanır.",
+      "restTitle": "Korumalı depolama",
+      "restDescription": "Depolanan veriler dikkatle yönetilir ve sahne arkasında korunur.",
+      "privacyTitle": "Verileriniz sizindir",
+      "privacyDescription": "Smart Pocket finansal verilerinizi satmaz.",
+      "label": "Güvenlik ve Gizlilik",
+      "heading": "İnsanlar günlük paraları için neden Smart Pocket'e güvenir",
+      "body": "Gizlilik, kaydetmeden önce inceleme kontrolleri ve net hesap sahipliği, AI detayları hazırlarken bile sizin sorumlu kalmanıza yardımcı olur.",
+      "readPrivacy": "Gizlilik Politikamızı Okuyun",
+      "simplePrivacyTitle": "Varsayılan olarak özel",
+      "simplePrivacyDescription": "Para verileriniz kendi hesabınıza bağlı kalır ve paylaşılan iş akışları sahipliği hala net tutar.",
+      "simpleReviewTitle": "Bir şey kaydedilmeden önce incele",
+      "simpleReviewDescription": "AI metinden, sese veya fişlerden detayları hazırlar, ancak siz nihai kaydı onaylarsınız.",
+      "simpleControlTitle": "Hızlıca düzeltmek için yeterince net",
+      "simpleControlDescription": "Bir şey yanlış görünüyorsa, inceleyebilir, ayarlayabilir veya kaydetmemeyi seçebilirsiniz.",
+      "readSecurity": "Güvenlik ve Güveni Görüntüleyin"
+    },
+    "pricing": {
+      "freeName": "Ücretsiz",
+      "freePrice": "Ücretsiz",
+      "freePeriod": "sonsuza kadar",
+      "freeCta": "Ücretsiz Başla",
+      "proName": "Pro",
+      "proPrice": "$9.99",
+      "proPeriod": "/ay",
+      "proCta": "Pro Denemesini Başlat",
+      "familyName": "Aile",
+      "familyPrice": "$19.99",
+      "familyPeriod": "/ay",
+      "familyCta": "Aile Denemesini Başlat",
+      "subtitle": "Aktif abonelik kataloğundan canlı planları ve kotaları karşılaştırın.",
+      "trialBadge": "{{days}} günlük ücretsiz deneme mevcut",
+      "mostPopular": "En popüler",
+      "trialHint": "{{planName}} şu anda aktif plan yapılandırmasına göre {{days}} günlük deneme içerir.",
+      "viewDetails": "Planları karşılaştır",
+      "freeFeatures": {
+        "1": "3 hesap",
+        "2": "Ayda 100 işlem",
+        "3": "Temel raporlar",
+        "4": "2 para birimi"
+      },
+      "proFeatures": {
+        "1": "Sınırsız hesap",
+        "2": "Sınırsız işlem",
+        "3": "PDF ve CSV dışa aktarımları",
+        "4": "Tüm para birimleri",
+        "5": "Fiş depolama",
+        "6": "Öncelikli destek"
+      },
+      "familyFeatures": {
+        "1": "Pro'daki her şey",
+        "2": "En fazla 5 kullanıcı",
+        "3": "Paylaşılan bütçeler",
+        "4": "Aile raporları"
+      },
+      "managePlanCta": "Aboneliği yönet",
+      "guestPlanCta": "Ücretsiz Deneme Başlat",
+      "audience": {
+        "free": "Ücretsiz başlayın ve temelleri edinin",
+        "personal": "Tek kişi için en iyi",
+        "family": "Aileler ve paylaşılan para için en iyi"
+      },
+      "descriptions": {
+        "free": "Yükseltmeden önce Smart Pocket'i denemek ve AI para takibinin nasıl çalıştığını öğrenmek için en iyi.",
+        "personal": "Tam AI destekli kişisel finans takibi ile günlük harcamaları yöneten tek kişi için en iyi.",
+        "family": "Aileler, çiftler ve AI destekli ev finansı yönetimi ile paylaşılan para için en iyi."
+      },
+      "ctaSupport": {
+        "free": "Ücretli bir plan seçmeden önce temelleri deneyin.",
+        "personal": "Maaş, faturalar, fişler ve günlük harcamalar için iyi.",
+        "family": "Birden fazla kişinin para ile ilgilendiği zaman en iyi."
+      },
+      "sectionTitles": {
+        "aiIncluded": "AI dahil",
+        "moneyTools": "Para araçları",
+        "sharedTools": "Paylaşılan araçlar",
+        "reports": "Raporlar",
+        "trust": "Güven"
+      },
+      "planItems": {
+        "accountsTransactions": "Hesaplar ve işlemler tek yerde",
+        "budgetsCategories": "Bütçeler ve kategoriler",
+        "subscriptionsReminders": "Abonelikler ve tekrarlayan hatırlatmalar",
+        "basicReportsDashboard": "Temel kontrol paneli ve raporlar",
+        "reviewBeforeSave": "AI sonuçlarını kaydetmeden önce incele",
+        "secureAccountAccess": "Güvenli hesap erişimi",
+        "noCardRequired": "Kredi kartı gerekmez",
+        "personalSubscriptions": "Tekrarlayan ödemeler ve kişisel abonelikler",
+        "receiptReviewFlow": "Fiş depolama ve inceleme akışı",
+        "monthlyOverview": "Aylık harcama genel bakışı",
+        "categoryTrendInsights": "Kategori ve trend içgörüleri",
+        "multiCurrencyTracking": "Çoklu para birimi takibi",
+        "privateUserAccount": "Özel kullanıcı hesabı",
+        "sharedSpaces": "Paylaşılan harcamalar için alanlar",
+        "peopleReimbursements": "Kişiler, geri ödemeler ve mutabakatlar",
+        "familyBudgets": "Aile bütçeleri",
+        "householdSubscriptions": "Ev abonelikleri ve tekrarlayan ödemeler",
+        "sharedTracking": "Paylaşılan seyahat, etkinlik ve ev takibi",
+        "householdSpendingView": "Ev harcama görünümü",
+        "categoryInsights": "Kategori içgörüleri",
+        "clearWhoPaid": "Kimlerin ödediği ve kimin borçlu olduğu için net kayıtlar"
+      },
+      "providerUnavailable": "Çevrimiçi ödeme henüz yapılandırılmadı. Yükseltme istemek için {{email}} adresinden iletişime geçin.",
+      "providerUnavailableNoEmail": "Çevrimiçi ödeme henüz yapılandırılmadı. Yükseltme istemek için destek ile iletişime geçin.",
+      "intervals": {
+        "none": "Dahil",
+        "monthly": "Aylık",
+        "yearly": "Yıllık"
+      },
+      "features": {
+        "textAi": "Metin AI: {{credits}} kredi ve günde {{requests}} istek",
+        "voiceAi": "Ses AI: Döngü başına {{minutes}} dakika",
+        "receiptIntelligence": "Fiş Zekası: Döngü başına {{count}} belge",
+        "receiptIntelligenceDisabled": "Fiş Zekası dahil değil",
+        "aiHistoryEnabled": "AI Geçmişi: {{days}} gün saklama",
+        "aiHistoryDisabled": "AI Geçmişi dahil değil"
+      },
+      "billedMonthly": "Aylık faturalandırılır",
+      "billedYearly": "Yıllık faturalandırılır",
+      "perMonth": "/ ay",
+      "perYear": "/ yıl",
+      "equivalentPerMonth": "Ayda {{amount}} değerinde",
+      "yearlyDiscount": "Yıllık indirim",
+      "savePercent": "%{{percent}} tasarruf",
+      "saveAmountPerYear": "Yılda {{amount}} tasarruf",
+      "annualPrice": "Yıllık fiyat",
+      "monthlyPrice": "Aylık fiyat",
+      "calculatedYearlyPrice": "Hesaplanmış yıllık fiyat",
+      "billingInterval": "Faturalandırma aralığı",
+      "chooseMonthly": "Aylık seç",
+      "chooseYearly": "Yıllık seç",
+      "bestValue": "En iyi değer",
+      "contactSupportYearlyPlan": "Bu yıllık plan için destek ile iletişime geçin",
+      "invalidDiscount": "0% ile 100% arasında geçerli bir yıllık indirim girin.",
+      "wholeNumberPriceRequirement": "Fiyatlar tam USD tutarları olarak kaydedilmelidir."
+    },
+    "languages": {
+      "ltr": "Soldan sağa",
+      "rtl": "Sağdan sola",
+      "label": "Arayüz dilleri"
+    },
+    "cta": {
+      "primary": "Hesap Oluştur",
+      "secondary": "Bizimle İletişime Geçin"
+    },
+    "available": "Mevcut",
+    "learnMore": "Daha Fazla Öğren",
+    "lovedWorldwide": "Dünya genelindeki kullanıcılar tarafından seviliyor",
+    "summary": {
+      "title": "Genel Bakış",
+      "subtitle": "Hızlı anlık görüntü",
+      "items": {
+        "cashFlow": "Nakit akışı",
+        "budgets": "Bütçeler",
+        "reports": "Raporlar"
+      }
+    },
+    "preview": {
+      "totalBalance": "Toplam Bakiye",
+      "income": "Gelir",
+      "expenses": "Giderler",
+      "netFlow": "Net Akış",
+      "incomeVsExpenses": "Gelir vs Giderler - 6 ay",
+      "spendingByCategory": "Kategoriye Göre Harcama",
+      "food": "Yiyecek",
+      "transport": "Ulaşım",
+      "bills": "Faturalar",
+      "recentTransactions": "Son İşlemler",
+      "groceryStore": "Market",
+      "salaryDeposit": "Maaş Yatırma",
+      "subscriptions": "Abonelikler",
+      "balance": "Bakiye",
+      "inShort": "Giriş",
+      "outShort": "Çıkış",
+      "dashboardUrl": "1smartpocket.com/dashboard",
+      "streamingSubscription": "Akış Aboneliği",
+      "brandName": "Smart Pocket",
+      "range30Days": "30 gün",
+      "smartEntry": {
+        "title": "Akıllı Giriş",
+        "description": "Yarın kira öde ve gıda bütçeni kontrol altında tut.",
+        "draft": "Taslak",
+        "ai": "AI"
+      },
+      "aiInsight": {
+        "title": "AI içgörüsü",
+        "description": "Eğlence harcamaları bu hafta gelirden daha hızlı artıyor.",
+        "status": "Önerilen bütçe ayarlaması hazır"
+      },
+      "upcomingBill": {
+        "title": "Yaklaşan fatura",
+        "dueIn": "2g",
+        "item": "Faturalar"
+      }
+    },
+    "homeVisuals": {
+      "common": {
+        "live": "Canlı",
+        "preview": "Önizleme"
+      },
+      "multiAccount": {
+        "cash": "Nakit",
+        "bank": "Banka",
+        "wallet": "Cüzdan",
+        "primary": "Birincil",
+        "synced": "Eşitlendi",
+        "manual": "Manuel",
+        "totalBalance": "Toplam bakiye"
+      },
+      "dashboard": {
+        "cashflow": "Nakit akışı",
+        "trends": "Trendler"
+      },
+      "budget": {
+        "needs": "İhtiyaçlar",
+        "savings": "Tasarruflar"
+      },
+      "reports": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "recurring": {
+        "month": "Mayıs"
+      },
+      "security": {
+        "vault": "Kasa"
+      }
+    },
+    "auth": {
+      "apple": "Apple ile giriş yap",
+      "google": "Google ile giriş yap"
+    },
+    "currency": {
+      "title": "Çoklu para birimi desteği",
+      "usd": "ABD Doları",
+      "eur": "Euro",
+      "aed": "BAE Dirhemi",
+      "gbp": "İngiliz Sterlini",
+      "supported": "153 aktif para birimi destekleniyor"
+    },
+    "reports": {
+      "title": "Profesyonel raporlar, paylaşılmaya hazır",
+      "description": "Herhangi bir tarih aralığı için gelir ve gider özetleri, bütçe performans raporları ve harcama dökümleri üretin.",
+      "pdfTitle": "PDF Ekstreleri",
+      "pdfDescription": "Markanızla baskıya hazır finansal ekstreler. Muhasebecilerle paylaşın veya kayıtlar için arşivleyin.",
+      "csvTitle": "CSV Dışa Aktarımları",
+      "csvDescription": "Ham işlem verilerini elektronik tablo analizi veya muhasebe yazılımı içe aktarımı için CSV'ye aktarın.",
+      "chartsTitle": "Görsel Grafikler",
+      "chartsDescription": "Gelir vs gider trendleri, kategoriye göre harcama ve bütçe performansının hepsi etkileşimlidir."
+    },
+    "ai": {
+      "badge": "Kontrolünüzde kalan AI yardımı",
+      "title": "Yazın, söyleyin veya yükleyin. Smart Pocket inceleme için detayları hazırlar.",
+      "description": "Smart Pocket, günlük para girişlerini kaydetmeden önce inceleyebileceğiniz bir taslağa dönüştürmek için AI kullanır; böylece akış kontrol sizden alınmadan hızlı kalır.",
+      "panelTitle": "AI inceleme akışı",
+      "panelSubtitle": "Giriş, hazırla, incele, kaydet",
+      "reviewBadge": "Önce incele",
+      "cardLabel": "Kolay giriş",
+      "reviewNote": "Hazırlanan taslak düzenlenebilir kalır. Bir şey kaydedilmeden önce tutarları, hesapları, kategorileri, kişileri ve notları ayarlayabilirsiniz.",
+      "highlights": {
+        "type": "Kısa bir para notu yazın",
+        "voice": "Hareketteyken doğal konuşun",
+        "receipts": "Bir fiş veya belge yükleyin",
+        "review": "Kaydetmeden önce incele"
+      },
+      "features": {
+        "1": "Yazın",
+        "2": "Söyleyin",
+        "3": "Yükleyin",
+        "4": "İnceleyin"
+      },
+      "samples": {
+        "1": "Örnek: Nakit cüzdanımdan market için 180 AED ödendi.",
+        "2": "Örnek: Havaalanına taksi, 42 dirhem, seyahate ekle.",
+        "3": "Örnek: Toplamlar, vergi ve satıcı detayları içeren fiş, fatura veya belge.",
+        "4": "Örnek: Tutarı, para birimini, hesabı, kategoriyi, kişileri ve notları onaylayın."
+      },
+      "roadmap": {
+        "previewLabel": "AI taslağı",
+        "cashFlowSignal": "AI hazırlar. Siz kontrolü elinizde tutarsınız.",
+        "descriptions": {
+          "1": "Ne olduğunu düz dilde yazın ve Smart Pocket'in ana alanları hazırlamasına izin verin.",
+          "2": "Elleriniz meşgulken veya anlık kaybolacakken işlemi sesle kaydedin.",
+          "3": "Bir fiş, fatura veya belge yükleyin ve Smart Pocket'in önemli detayları inceleme için çıkarmasına izin verin.",
+          "4": "Hazırlanan taslağı kontrol edin, istediğiniz düzenlemeleri yapın ve ardından neyin kaydedileceğine karar verin."
+        }
+      }
+    },
+    "contact": {
+      "badge": "İletişime geçin",
+      "title": "Sorularınız mı var? Buradayız.",
+      "description": "Başlamak için yardıma ihtiyacınız olsun, planları anlamak isteyin veya Smart Pocket hakkında bir sorunuz olsun, bize ulaşın ve 24 saat içinde yanıt verelim."
+    }
+  },
+  "authScreen": {
+    "brandSubtitle": "Harcamaları, fişleri, abonelikleri, bütçeleri ve paylaşılan parayı tek temiz uygulamada takip edin.",
+    "featureAdd": "Yazarak, seslenerek veya fiş yükleyerek gider ekleyin",
+    "featureReview": "Bir şey kaydetmeden önce AI önerilerini inceleyin",
+    "featureBudgets": "Bütçeleri, abonelikleri ve tekrarlayan ödemeleri takip edin",
+    "featureShared": "Kişiler, geri ödemeler ve Alanlar ile paylaşılan harcamaları yönetin",
+    "featureSecurity": "Para verilerinizi özel ve kontrolünüz altında tutun",
+    "footerNote": "Özel, basit ve günlük para için yapıldı.",
+    "unavailableTitle": "Kimlik doğrulama kullanılamıyor",
+    "unavailableDescription": "Şu anda hiçbir giriş yöntemi etkinleştirilmedi. Lütfen destek ile iletişime geçin veya daha sonra tekrar deneyin.",
+    "brandHeadline": "AI destekli para takibi, basit hale getirildi",
+    "signupNote": "Ücretsiz deneme ile başlayın. Günlük para için yapıldı, muhasebe karmaşası için değil."
+  },
+  "contact": {
+    "metadataTitle": "Bize Ulaşın",
+    "metadataDescription": "Destek, gizlilik veya genel sorularınız için Smart Pocket ile iletişime geçin.",
+    "titleFallback": "Bize Ulaşın",
+    "introFallback": "Bir sorunuz mu var veya yardıma mı ihtiyacınız var? Aşağıdaki formu kullanın ve ekibimiz en kısa sürede size geri dönecektir.",
+    "detailsEmail": "E-posta",
+    "detailsPhone": "Telefon",
+    "detailsAddress": "Adres",
+    "missingEmail": "Platform Ayarları'na bir destek e-postası ekleyin",
+    "missingPhone": "Platform Ayarları'na bir iletişim telefonu ekleyin",
+    "missingAddress": "Platform Ayarları'na genel bir adres ekleyin",
+    "formTitle": "Bize mesaj gönderin",
+    "formDescription": "Soru sormak, yardım istemek veya geri bildirim paylaşmak için formu kullanın. 24 saat içinde yanıt vermeyi hedefliyoruz.",
+    "detailsPanelTitle": "İletişim Detayları",
+    "detailsPanelDescription": "Bu genel detaylar Platform Ayarları'ndan gelir ve CMS tanıtımı düzenlenirken bile görünür kalır.",
+    "notConfigured": "Yapılandırılmadı"
+  },
+  "contactForm": {
+    "sentTitle": "Mesaj gönderildi!",
+    "sentDescription": "24 saat içinde size geri döneceğiz.",
+    "name": "Ad",
+    "email": "E-posta",
+    "subject": "Konu",
+    "message": "Mesaj",
+    "namePlaceholder": "Adınız",
+    "emailPlaceholder": "sen@ornek.com",
+    "subjectPlaceholder": "Size nasıl yardımcı olabiliriz?",
+    "messagePlaceholder": "Bize daha fazlasını anlatın...",
+    "submit": "Mesaj Gönder",
+    "submitting": "Gönderiliyor...",
+    "successToast": "Mesaj gönderildi! 24 saat içinde size geri döneceğiz.",
+    "errors": {
+      "nameRequired": "Ad zorunludur",
+      "emailRequired": "E-posta zorunludur",
+      "emailInvalid": "Geçersiz e-posta",
+      "subjectRequired": "Konu zorunludur",
+      "messageRequired": "Mesaj zorunludur",
+      "messageMinLength": "Lütfen daha fazla detay verin (en az 20 karakter)"
+    }
+  },
+  "resetPassword": {
+    "title": "Yeni şifre belirleyin",
+    "subtitle": "Yeni şifrenizi aşağıya girin",
+    "successTitle": "Şifre güncellendi!",
+    "successDescription": "Girişe yönlendiriliyorsunuz...",
+    "password": "Yeni şifre",
+    "confirmPassword": "Yeni şifreyi onayla",
+    "submit": "Şifreyi Güncelle",
+    "submitting": "Güncelleniyor...",
+    "togglePassword": "Şifre görünürlüğünü değiştir",
+    "toastSuccess": "Şifre başarıyla güncellendi!",
+    "toastError": "Şifre güncellenemedi.",
+    "errors": {
+      "passwordRequired": "Şifre zorunludur",
+      "passwordMinLength": "En az 8 karakter gerekli",
+      "confirmRequired": "Lütfen şifrenizi onaylayın",
+      "confirmMismatch": "Şifreler eşleşmiyor"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "metadataTitle": "Gizlilik Politikası",
+      "metadataDescription": "Smart Pocket'in kişisel ve finansal bilgilerinizi nasıl ele aldığını okuyun.",
+      "title": "Gizlilik Politikası",
+      "lastUpdatedLabel": "Son güncelleme:",
+      "lastUpdatedDate": "21 Haziran 2026",
+      "sections": [
+        {
+          "title": "Topladığımız Bilgiler",
+          "content": "Smart Pocket, uygulamanın bütçeleme, raporlama ve işbirliği özelliklerini sağlayabilmesi için girdiğiniz hesap, işlem, bütçe ve profil bilgilerini depolar."
+        },
+        {
+          "title": "Bilgileri Nasıl Kullanıyoruz",
+          "content": "Verilerinizi ürünü işletmek, hesabınızı güvence altına almak, destek isteklerine yanıt vermek ve güvenilirliği artırmak için kullanırız. Finansal verilerinizi satmayız."
+        },
+        {
+          "title": "Veri Depolama ve Güvenlik",
+          "content": "Smart Pocket, her hesabın verisini yalıtılmış tutmak için tasarlanmış şifreli aktarım, korumalı altyapı ve sıkı hesap düzeyinde erişim kontrolleri kullanır."
+        },
+        {
+          "title": "Seçimleriniz",
+          "content": "Profil detaylarını istediğiniz zaman güncelleyebilir, dil tercihlerini değiştirebilir ve gizlilik soruları veya hesap-veri istekleri hakkında destek ile iletişime geçebilirsiniz."
+        }
+      ]
+    },
+    "terms": {
+      "metadataTitle": "Kullanım Şartları",
+      "metadataDescription": "Smart Pocket kullanımını yöneten şartları okuyun.",
+      "title": "Kullanım Şartları",
+      "lastUpdatedLabel": "Son güncelleme:",
+      "lastUpdatedDate": "21 Haziran 2026",
+      "sections": [
+        {
+          "title": "Smart Pocket Kullanımı",
+          "content": "Smart Pocket'i yalnızca geçerli yasalara ve bu şartlara uygun olarak kullanabilirsiniz. Hesap kimlik bilgilerinizin gizliliğini korumaktan siz sorumlusunuz."
+        },
+        {
+          "title": "İçeriğiniz",
+          "content": "Girdiğiniz finansal verilerin ve notların sahipliğini siz korursunuz. Kaydettiğiniz bilgilerin doğru ve depolanması yasal olan olduğundan emin olmaktan siz sorumlusunuz."
+        },
+        {
+          "title": "Hizmet Kullanılabilirliği",
+          "content": "Smart Pocket'i kullanılabilir ve güvenli tutmak için çalışırız, ancak bakım, yükseltmeler veya kontrolümüz dışındaki olaylar sırasında kullanılabilirlik değişebilir."
+        },
+        {
+          "title": "İletişim",
+          "content": "Bu şartlar hakkında sorularınız varsa, lütfen İletişim sayfasında veya Platform Ayarları'nda yayınlanan iletişim detaylarını kullanın."
+        }
+      ]
+    }
+  },
+  "getStarted": "Başla",
+  "notFound": {
+    "title": "Sayfa Bulunamadı",
+    "description": "Aradığınız sayfa mevcut değil. Sizi geri gönderelim.",
+    "goBack": "Geri Dön",
+    "backHome": "Ana Sayfaya Dön"
+  },
+  "offline": {
+    "title": "Çevrimdışısınız",
+    "description": "Smart Pocket finansal verilerinizi eşitlemek için internet bağlantısı gerektirir. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
+    "retry": "Tekrar Dene",
+    "helper": "Verileriniz güvende ve yeniden bağlandığınızda eşitlenecektir."
+  },
+  "faqs": {
+    "title": "Sıkça Sorulan Sorular",
+    "introduction": "Smart Pocket'te başlangıç, günlük iş akışları ve nereden yardım alınacağı hakkında hızlı cevaplar bulun.",
+    "searchPlaceholder": "Soruları, cevapları veya anahtar kelimeleri ara",
+    "categoriesLabel": "Kategoriye göre göz at",
+    "resultsLabel": "sonuç",
+    "allCategories": "Tüm kategoriler",
+    "questionSingular": "soru",
+    "questionPlural": "soru",
+    "emptyTitle": "Aramanızla eşleşen SSS yok.",
+    "emptyDescription": "Başka bir anahtar kelime deneyin veya farklı bir kategoriye geçin.",
+    "uncategorized": "Genel",
+    "featured": "Öne Çıkan",
+    "supportCtaTitle": "Hâlâ yardıma mı ihtiyacınız var?",
+    "supportCtaDescription": "Smart Pocket destek ekibiyle iletişime geçin veya bir destek talebi oluşturun.",
+    "createTicketAction": "Destek Talebi Oluştur",
+    "contactAction": "Smart Pocket ile İletişime Geç",
+    "seoTitle": "Sıkça Sorulan Sorular | Smart Pocket",
+    "seoDescription": "Kurulum, işlemler, bütçeler, abonelikler, destek ve daha fazlası hakkında Smart Pocket SSS'lerine göz atın.",
+    "ogTitle": "Smart Pocket SSS",
+    "ogDescription": "Smart Pocket özellikleri, destek ve günlük finansal iş akışları hakkında cevaplar bulun."
+  },
+  "blog": {
+    "common": {
+      "homeLabel": "Ana Sayfa",
+      "blogLabel": "Blog",
+      "readTime": "{{count}} dk okuma",
+      "readArticleLabel": "Makaleyi oku",
+      "fallbackTitle": "Smart Pocket makalesi",
+      "fallbackExcerpt": "Fişler, bütçeler, abonelikler ve günlük para alışkanlıkları hakkında pratik Smart Pocket rehberliği okuyun.",
+      "fallbackBadgeLabel": "Smart Pocket Blog"
+    },
+    "home": {
+      "eyebrow": "Blog",
+      "title": "Daha net günlük para alışkanlıkları için taze rehberler",
+      "description": "Fişler, bütçeler, paylaşılan para, abonelikler ve daha sakin günlük para rutinleri hakkında pratik Smart Pocket makalelerini keşfedin.",
+      "viewAll": "Tüm blog gönderilerini görüntüle"
+    },
+    "listing": {
+      "title": "Smart Pocket Blog",
+      "description": "Bütçeleme, fişler, abonelikler ve günlük para alışkanlıkları için basit, pratik rehberler.",
+      "seoTitle": "Smart Pocket Blog | Para Rehberleri, Fiş İpuçları ve Bütçeleme Tavsiyeleri",
+      "seoDescription": "Fişler, abonelikler, paylaşılan harcamalar, bütçeleme ve daha temiz para rutinleri hakkında Smart Pocket blog gönderilerini okuyun.",
+      "ogTitle": "Smart Pocket Blog",
+      "ogDescription": "Fişler, bütçeleme, abonelikler ve paylaşılan harcamalar hakkında pratik Smart Pocket rehberlerini okuyun.",
+      "twitterTitle": "Smart Pocket Blog",
+      "twitterDescription": "Smart Pocket'ten fişler, bütçeleme, abonelikler ve paylaşılan harcamalar hakkında para rehberleri.",
+      "searchLabel": "Ara",
+      "searchPlaceholder": "Makaleleri ara",
+      "categoryLabel": "Kategori",
+      "categoryAllLabel": "Tüm kategoriler",
+      "tagLabel": "Etiket",
+      "tagAllLabel": "Tüm etiketler",
+      "emptyTitle": "Gönderiler filtrelerinizle eşleşmiyor",
+      "emptyDescription": "Farklı bir anahtar kelime, kategori veya etiket deneyin.",
+      "emptyPublishedTitle": "Henüz blog gönderisi yayınlanmadı.",
+      "emptyPublishedDescription": "Yakında tekrar kontrol edin.",
+      "ctaEyebrow": "Smart Pocket ile başlayın",
+      "ctaTitle": "Para notlarını, fişleri ve paylaşılan harcamaları daha temiz bir rutin haline getirmeye hazır mısınız?",
+      "ctaDescription": "AI destekli önerileri incelemek, bütçelerin üstünde kalmak ve günlük para görevlerini basit tutmak için Smart Pocket kullanın.",
+      "ctaPrimaryLabel": "Ücretsiz Deneme Başlat",
+      "ctaSecondaryLabel": "Smart Pocket'i Görüntüle"
+    },
+    "detail": {
+      "breadcrumbLabel": "İçerik Haritası",
+      "shareTitle": "Bu makaleyi paylaş",
+      "ctaEyebrow": "Kaydetmeden önce incelemeye hazır mısınız?",
+      "ctaTitle": "Smart Pocket detayları hazırlasın, sonra kontrol sizde olsun.",
+      "ctaDescription": "Fiş yükleyin, abonelikleri takip edin ve AI destekli inceleme akışlarıyla paylaşılan harcamaları basit tutun.",
+      "ctaPrimaryLabel": "Ücretsiz Deneme Başlat",
+      "ctaSecondaryLabel": "Smart Pocket'i Görüntüle",
+      "relatedEyebrow": "Okumaya devam et",
+      "relatedTitle": "İlgili makaleler",
+      "relatedAction": "Tüm gönderilere göz at"
+    }
+  },
+  "securityPage": {
+    "eyebrow": "Güvenlik ve Güven",
+    "title": "Para verileriniz özel ve kontrolünüz altında kalır",
+    "description": "Smart Pocket, normal insanların parayı güvenle yönetmesine yardımcı olmak için tasarlandı. Hesap erişimini korur, kişisel verileri gizli tutar ve incelemeye dayalı AI akışları kullanır; böylece bir şey kaydedilmeden önce siz kontrol edersiniz.",
+    "breadcrumbLabel": "Güvenlik",
+    "primaryCta": "Ücretsiz Deneme Başlat",
+    "secondaryCta": "Destek ile İletişime Geç",
+    "seoTitle": "Smart Pocket Güvenlik ve Güven | Kişisel Finans Gizliliği ve Hesap Koruması",
+    "seoDescription": "Smart Pocket'in özel para verilerinizi nasıl korumaya, hesabınızı güvence altına almaya ve AI destekli işlemleri kaydetmeden önce incelemeye dayalı tutmaya yardımcı olduğunu öğrenin.",
+    "ogTitle": "Smart Pocket Güvenlik ve Güven",
+    "ogDescription": "Smart Pocket'in hesabınızı, özel verilerinizi, fişlerinizi ve incelemeye dayalı AI işlemlerini nasıl korumaya yardımcı olduğunu görün.",
+    "twitterTitle": "Smart Pocket Güvenlik ve Güven",
+    "twitterDescription": "Smart Pocket'in hesabınızı ve para verilerinizi nasıl korumaya yardımcı olduğu hakkında basit, net bilgi.",
+    "trustCards": [
+      {
+        "title": "Varsayılan olarak özel",
+        "description": "Hesaplarınız ve para kayıtlarınız ayrı tutulur, böylece diğer kullanıcılar bilgilerinizi rastgele göremez."
+      },
+      {
+        "title": "Güvenli giriş",
+        "description": "Smart Pocket, hesabınıza erişimi korumaya yardımcı olmak için güvenli giriş kontrolleri kullanır."
+      },
+      {
+        "title": "Kaydetmeden önce incele",
+        "description": "AI özellikleri inceleme için detayları hazırlar. Neyin kaydedileceğini siz onaylarsınız."
+      },
+      {
+        "title": "Dikkatli belge yönetimi",
+        "description": "Fişler ve belgeler, sizin incelemeniz için bilgileri hazırlamaya yardımcı olmak üzere dikkatle yönetilir."
+      }
+    ],
+    "protectionEyebrow": "Smart Pocket sizi nasıl korur",
+    "protectionTitle": "Hesabınızı, verilerinizi ve kararlarınızı korumak için yapıldı",
+    "protectionDescription": "Smart Pocket sahne arkasında güvenli hesap kontrolleri kullanır, her kullanıcı hesabını ayrı tutar ve AI önerilerini incelemeye dayalı yapar; böylece siz sorumlu kalırsınız.",
+    "protectionCards": [
+      {
+        "title": "Hesabınız korunur",
+        "description": "Giriş, erişim verilmeden önce güvenli kimlik doğrulama kontrollerinden geçer."
+      },
+      {
+        "title": "Verileriniz rastgele görünür değil",
+        "description": "Yönetici veya destek erişimi, yalnızca gerçek bir destek veya sistem görevi gerektirdiğinde gerçekleşmelidir."
+      },
+      {
+        "title": "AI yardım eder, siz karar verirsiniz",
+        "description": "AI destekli özellikler öneriler hazırlar, ancak siz kaydetmeden önce inceler ve onaylarsınız."
+      },
+      {
+        "title": "Fişler dikkatle yönetilir",
+        "description": "Yüklenen fişler ve belgeler, özel bilgilerinizi ortaya çıkarmak yerine inceleme için detayları hazırlamaya yardımcı olmak için kullanılır."
+      },
+      {
+        "title": "Siz kontrolü elinizde tutarsınız",
+        "description": "Kayıtları inceleyebilir, detayları düzeltebilir ve hesabınızda neyin kaydedileceğine karar verebilirsiniz."
+      },
+      {
+        "title": "Destek mevcuttur",
+        "description": "Bir şey yanlış görünüyorsa, ekibin soruşturmanıza yardımcı olması için Smart Pocket destek ile iletişime geçin."
+      }
+    ],
+    "checklistEyebrow": "Güvenlik kontrol listesi",
+    "checklistTitle": "Hızlı güven özeti",
+    "checklistDescription": "Smart Pocket'in sizi korumak için attığı pratik adımların basit bir genel bakışı.",
+    "checklistItems": [
+      "Hesabınız güvenli giriş kontrolleriyle korunur.",
+      "Verileriniz diğer kullanıcılardan ayrı tutulur.",
+      "AI önerileri bir şey kaydedilmeden önce incelemeye dayalıdır.",
+      "Fişler ve belgeler dikkatle yönetilir.",
+      "Kayıtlarınız ve değişiklikleriniz üzerinde siz kontrolünüz tutarsınız.",
+      "Bir şey yanlış görünüyorsa hızlıca destek ile iletişime geçebilirsiniz."
+    ],
+    "supportNote": "Bir şey yanlış görünüyorsa, ekibin konuyu sizinle birlikte incelemesine yardımcı olması için Smart Pocket destek ile mümkün olan en kısa sürede iletişime geçin.",
+    "faqEyebrow": "Yaygın sorular",
+    "faqTitle": "Güvenlik ve güven SSS",
+    "faqDescription": "Gizlilik, hesap koruması, AI incelemesi ve destek hakkında yaygın sorulara net cevaplar.",
+    "faqs": [
+      {
+        "question": "Diğer kullanıcılar para verilerimi görebilir mi?",
+        "answer": "Hayır. Smart Pocket, her kullanıcı hesabını ve kayıtlarını ayrı tutacak şekilde tasarlandı."
+      },
+      {
+        "question": "Smart Pocket personeli verilerimi rastgele görüntüleyebilir mi?",
+        "answer": "Hayır. Kişisel veriler rastgele görüntülenmemelidir. Herhangi bir destek veya yönetici erişimi, yalnızca gerçek bir destek veya sistem görevi gerektirdiğinde gerçekleşmelidir."
+      },
+      {
+        "question": "AI işlemleri otomatik olarak kaydeder mi?",
+        "answer": "Hayır. AI özellikleri inceleme için detayları hazırlar ve neyin kaydedileceğini siz onaylarsınız."
+      },
+      {
+        "question": "Fişler ve belgeler nasıl yönetilir?",
+        "answer": "Fişler ve belgeler, sizin incelemeniz için detayları hazırlamaya yardımcı olmak üzere dikkatle yönetilir."
+      },
+      {
+        "question": "Bir şey yanlış görünürse ne yapmalıyım?",
+        "answer": "Ekibin konuyu sizinle birlikte incelemesine yardımcı olması için Smart Pocket destek ile mümkün olan en kısa sürede iletişime geçin."
+      }
+    ],
+    "ctaEyebrow": "Güvenle başlayın",
+    "ctaTitle": "Parayı daha fazla güvenle yönetmeye hazır mısınız?",
+    "ctaDescription": "Bütçeleri, fişleri, abonelikleri ve günlük harcamaları incelemeye dayalı AI yardımı ve net hesap kontrolü ile takip etmek için Smart Pocket kullanın."
+  },
+  "desktopAppPage": {
+    "seoTitle": "Smart Pocket Masaüstü Uygulaması",
+    "seoDescription": "Smart Pocket'i Windows için indirin ve harcamaları, bütçeleri, abonelikleri, fişleri ve günlük finansı masaüstünüzden yönetin. macOS sürümü yakında geliyor.",
+    "ogTitle": "Smart Pocket Masaüstü Uygulaması",
+    "ogDescription": "Smart Pocket ile harcamaları, bütçeleri, abonelikleri, fişleri ve günlük finansı masaüstünüzden yönetin.",
+    "eyebrow": "Masaüstü Uygulaması",
+    "hero": {
+      "title": "Smart Pocket Masaüstü Uygulaması",
+      "description": "Odaklanmış bir Smart Pocket masaüstü deneyimi ile harcamaları, bütçeleri, abonelikleri, fişleri ve günlük finansı yönetin.",
+      "showcaseLabel": "{{appName}} Masaüstü Uygulaması",
+      "windowsCta": "Windows için İndir",
+      "macosCta": "macOS için İndir",
+      "trustBadges": [
+        "Tek tıkla indirme",
+        "Her zaman güncel",
+        "Güvenli ve güvenilir"
+      ]
+    },
+    "platformLabels": {
+      "windows": "Windows",
+      "macos": "macOS"
+    },
+    "availability": {
+      "available": "Şimdi mevcut",
+      "windowsEarlyAccess": "Windows Erken Erişim",
+      "comingSoon": "Yakında"
+    },
+    "warnings": {
+      "windowsSmartScreen": "Genel imzalama veya Microsoft Store dağıtımı tamamlanana kadar Windows bir SmartScreen uyarısı gösterebilir.",
+      "macosPreparing": "macOS üretim sürümü hala hazırlanıyor, bu nedenle imzalanmamış DMG herkese açık olarak sunulmaz.",
+      "officialInstallers": "Resmi yükleyici bağlantıları tek bir yayın kaynağından yönetilir, böylece indirmeler merkezi olarak güncellenebilir."
+    },
+    "benefits": {
+      "eyebrow": "Neden kullanmalısınız",
+      "title": "Güçlü özellikler. Daha iyi para yönetimi.",
+      "description": "Smart Pocket Masaüstü, deneyimi kompakt, okunabilir ve pratik tutarken finansınıza odaklanmak için daha fazla alan verir.",
+      "items": [
+        {
+          "title": "Hızlı masaüstü erişimi",
+          "description": "Hızlı başlatın ve pürüzsüz bir masaüstü deneyimiyle işleri halledin."
+        },
+        {
+          "title": "Akıllı AI yardımı",
+          "description": "AI'ye sorun, içgörüler alın ve Smart Pocket'in daha iyi kararlar vermenize yardımcı olmasına izin verin."
+        },
+        {
+          "title": "Fiş ve belge takibi",
+          "description": "Daha büyük bir çalışma alanından fişleri ve belgeleri tarayın, saklayın ve inceleyin."
+        },
+        {
+          "title": "Güvenli giriş",
+          "description": "Verilerinizi endüstri standardı şifreleme ve güvenli kimlik doğrulama ile koruyun."
+        },
+        {
+          "title": "Gerçek zamanlı güncellemeler",
+          "description": "En son özellikler ve iyileştirmelerle otomatik olarak güncel kalın."
+        },
+        {
+          "title": "Daha temiz odak",
+          "description": "Günlük para yönetimi için yapılmış daha sakin, ince ayarlanmış masaüstü deneyimi."
+        }
+      ]
+    },
+    "download": {
+      "eyebrow": "İndir",
+      "title": "Bilgisayarınız için masaüstü uygulamasını seçin",
+      "description": "Bilgisayarınıza uyan masaüstü uygulamasını seçin.",
+      "versionLabel": "Geçerli sürüm",
+      "releaseDateLabel": "Yayın tarihi",
+      "windowsDescription": "Daha hızlı, daha temiz bir masaüstü finans deneyimi için Smart Pocket'i Windows'a kurun.",
+      "macosDescription": "Günlük para yönetimi için odaklanmış bir masaüstü deneyimiyle Smart Pocket'i macOS'ta kullanın.",
+      "windowsCta": "Windows için İndir",
+      "macosCta": "macOS için İndir",
+      "earlyAccessLabel": "Erken Erişim",
+      "versionDateLabel": "Sürüm {{version}} • Güncelleme: {{date}}",
+      "windowsBenefits": [
+        "Tek tıkla yükleyici",
+        "Otomatik güncelleme desteği",
+        "Güvenli masaüstü deneyimi"
+      ],
+      "macosBenefits": [
+        "Basit DMG kurulumu",
+        "Masaüstü hesap senkronizasyonu",
+        "Güvenli Smart Pocket deneyimi"
+      ],
+      "windowsSmartScreenNote": "Genel imzalama tamamlanırken Windows bir SmartScreen bildirimi gösterebilir.",
+      "macosNotNotarizedNote": "Bu Apple Silicon erken erişim sürümü henüz Apple tarafından noter onaylı değil."
+    },
+    "updates": {
+      "eyebrow": "Yenilikler",
+      "title": "Yenilikler ve güncellemeler",
+      "description": "Geçerli masaüstü sürümü giriş, yükleyici teslimatı ve günlük kararlılığı iyileştirmeye devam ediyor.",
+      "cta": "Tüm güncellemeleri görüntüle",
+      "labels": {
+        "new": "Yeni",
+        "improved": "İyileştirildi",
+        "fix": "Düzeltme"
+      },
+      "items": {
+        "desktop_auth": {
+          "title": "Masaüstü oturum açma ve hesap erişimi iyileştirmeleri",
+          "description": "Daha pürüzsüz bir masaüstü giriş akışı, kontrol panelinize daha hızlı ulaşmanıza yardımcı olur."
+        },
+        "windows_installer": {
+          "title": "Windows yükleyici teslimat temeli",
+          "description": "Masaüstü indirme akışı artık tek bir merkezi Windows yükleyici yayın kaynağı etrafında yapılandırıldı."
+        },
+        "desktop_stability": {
+          "title": "Masaüstü kabuk kararlılık güncellemeleri",
+          "description": "Son düzeltmeler, yerel kabuk ve güncelleme akışını günlük kullanım sırasında daha güvenilir hale getirir."
+        }
+      }
+    },
+    "howToUse": {
+      "eyebrow": "Nasıl kullanılır",
+      "title": "Smart Pocket Masaüstü nasıl kullanılır",
+      "description": "Birkaç basit adımda başlayın ve finansınızı masaüstünde elinizin altında tutun.",
+      "steps": [
+        {
+          "title": "Uygulamayı cihazınız için indirin",
+          "description": "Resmi masaüstü yayın kaynağından Windows yükleyicisini seçin."
+        },
+        {
+          "title": "Smart Pocket'i kurun",
+          "description": "Yükleyiciyi açın ve hızlı kurulum adımlarını izleyin."
+        },
+        {
+          "title": "Hesabınıza giriş yapın",
+          "description": "Smart Pocket hesabınızı kullanarak kaldığınız yerden devam edin."
+        },
+        {
+          "title": "Takip edin ve yönetin",
+          "description": "İşlem ekleyin, bütçeleri takip edin, fişleri tarayın ve abonelikleri yönetin."
+        },
+        {
+          "title": "Yeni iyileştirmelerle güncel kalın",
+          "description": "Masaüstü sürümü olgunlaşmaya devam ettikçe en son düzeltmeleri ve iyileştirmeleri alın."
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "İndirmeye hazır mısınız?",
+      "title": "Finansınızın kontrolünü ele almaya hazır mısınız?",
+      "description": "Smart Pocket'i masaüstünde indirin ve finansınızı elinizin altında tutun."
+    }
+  },
+  "landingPages": {
+    "shared": {
+      "primaryCta": "Ücretsiz Deneme Başlat",
+      "secondaryCta": "Nasıl Çalıştığını Gör",
+      "benefitsTitle": "Neden yardımcı olur",
+      "benefitsIntro": "Günlük para görevlerini basit tutmak için tasarlandı",
+      "howItWorksTitle": "Nasıl çalışır",
+      "howItWorksIntro": "Yakalama ile inceleme arasından basit bir akış",
+      "useCasesTitle": "En iyi kullanım alanları",
+      "useCasesIntro": "Gerçek günlük durumlar için yapıldı",
+      "faqTitle": "SSS",
+      "faqIntro": "Başlamadan önce yaygın sorular",
+      "relatedTitle": "Daha fazlasını keşfet",
+      "relatedIntro": "Smart Pocket'in farklı para rutinlerini nasıl desteklediğini görün",
+      "homepageLinkLabel": "Ana Sayfa",
+      "faqLinkLabel": "SSS",
+      "contactLinkLabel": "İletişim",
+      "reviewNote": "AI detayları okur ve inceleme için hazırlar",
+      "allowanceNote": "Fiş Zekası ve AI kullanım limitleri plana göre uygulanabilir"
+    },
+    "aiReceiptScanner": {
+      "linkLabel": "AI Fiş Tarayıcı",
+      "seoTitle": "Günlük Giderler için AI Fiş Tarayıcı | Smart Pocket",
+      "seoDescription": "Fişleri, faturaları veya belgeleri yükleyin. Smart Pocket ana detayları okur, gideri inceleme için hazırlar ve daha hızlı kaydetmenize yardımcı olur.",
+      "ogTitle": "AI Fiş Tarayıcı | Smart Pocket",
+      "ogDescription": "Fişleri, faturaları ve belgeleri taramak için Smart Pocket kullanın, ardından kaydetmeden önce hazırlanan gideri inceleyin.",
+      "hero": {
+        "eyebrow": "AI Fiş Tarayıcı",
+        "title": "Fişleri incelemeye hazır giderlere dönüştürün",
+        "subtitle": "Bir fiş, fatura veya belge yükleyin. Smart Pocket ana detayları okur, işlemi hazırlar ve kaydetmeden önce her şeyi incelemenize izin verir."
+      },
+      "benefits": [
+        {
+          "title": "Daha az zaman harcayın yazmaya",
+          "description": "Satıcı, tarih, toplamlar ve kalemler sizin için hazırlanır, böylece manuel giriş çok daha az çaba gerektirir."
+        },
+        {
+          "title": "Bir şey kaydedilmeden önce incele",
+          "description": "Gider kayıtlarınıza ulaşmadan önce bir inceleme adımı ile kontrolü elinizde tutarsınız."
+        },
+        {
+          "title": "Kaynağı işlemle birlikte tutun",
+          "description": "Fişi gidere ekleyin, böylece daha sonra kontrol etmesi daha kolay olur."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Bir fiş veya fatura yükleyin",
+          "description": "Telefonunuzdan veya bilgisayarınızdan net bir görüntü veya PDF ekleyin."
+        },
+        {
+          "title": "Smart Pocket'in detayları hazırlamasına izin verin",
+          "description": "AI belgeyi okur ve ana gider bilgilerini sizin için doldurur."
+        },
+        {
+          "title": "İnceleyin ve kaydedin",
+          "description": "Hazırlanan detayları kontrol edin, istediğiniz her şeyi ayarlayın, ardından güvenle kaydedin."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Günlük harcamalar",
+          "description": "Market, yakıt, kahve ve diğer günlük alışverişleri fişleri biriktirmeden yakalayın."
+        },
+        {
+          "title": "Faturalar ve faturalar",
+          "description": "Fatura faturalarını, hizmet faturalarını ve diğer tek seferlik belgeleri tek bir yerde takip edin."
+        },
+        {
+          "title": "Seyahat giderleri",
+          "description": "Detaylar hala tazeyken otel, taksi, yemek ve havaalanı fişlerini kaydedin."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket fişi otomatik olarak kaydeder mi?",
+          "answer": "Hayır. Smart Pocket önce detayları inceleme için hazırlar ve onları kaydedip kaydetmeyeceğimize siz karar verirsiniz."
+        },
+        {
+          "question": "Görüntüler kadar PDF de yükleyebilir miyim?",
+          "answer": "Evet. Net görüntüler ve desteklenen PDF dosyalarının ikisi de fiş incelemesi için kullanılabilir."
+        },
+        {
+          "question": "Fiş okuma sınırsız mıdır?",
+          "answer": "Fiş Zekası kullanılabilirliği ve kullanım limitleri plan kotasına göre değişebilir."
+        }
+      ]
+    },
+    "aiVoiceExpenseTracker": {
+      "linkLabel": "AI Sesli Gider Takipçisi",
+      "seoTitle": "Hızlı Günlük Kayıt için AI Sesli Gider Takipçisi | Smart Pocket",
+      "seoDescription": "Harcamalarınızı doğal bir şekilde söyleyin. Smart Pocket işlemi inceleme için hazırlar, böylece giderleri daha az yazma ile daha hızlı kaydedebilirsiniz.",
+      "ogTitle": "AI Sesli Gider Takipçisi | Smart Pocket",
+      "ogDescription": "Smart Pocket'te giderleri hazırlamak için ses kullanın, ardından işlemi birkaç dokunuşla inceleyin ve kaydedin.",
+      "hero": {
+        "eyebrow": "AI Sesli Gider Takipçisi",
+        "title": "Gideri söyleyin ve sonucu inceleyin",
+        "subtitle": "Smart Pocket'e ne olduğunu düz dilde anlatın. İşlemi, hesabı ve kategori detaylarını hazırlar, böylece hızlıca inceleyip kaydedebilirsiniz."
+      },
+      "benefits": [
+        {
+          "title": "Hareketteyken harcamaları kaydedin",
+          "description": "Önce tam bir form açmadan alışveriş, ulaşım veya yemekten sonra giderleri yakalayın."
+        },
+        {
+          "title": "Doğal tutun",
+          "description": "Sıkı bir biçim ezberlemek yerine günlük kelimelerle ne olduğunu söyleyin."
+        },
+        {
+          "title": "Kontrolü elinizde tutun",
+          "description": "Hazırlanan işlemi kayıtlarınıza eklemeden önce inceleyin."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "İşleminizi söyleyin",
+          "description": "Neyi harcadığınızı veya aldığınızı anlatan kısa bir ses notu kaydedin."
+        },
+        {
+          "title": "Smart Pocket'in taslağı hazırlamasına izin verin",
+          "description": "Uygulama sözlerinizi ana detayları doldurulmuş bir işlem taslağına dönüştürür."
+        },
+        {
+          "title": "Onaylayın ve kaydedin",
+          "description": "Taslağı inceleyin, ihtiyacınız olan her şeyi düzeltin ve doğru göründüğünde kaydedin."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Yoğun iş günleri",
+          "description": "Toplantılar, okul servisleri ve işler arasında hızlıca harcamaları kaydedin."
+        },
+        {
+          "title": "Harekette takip",
+          "description": "Uzun notlar yazmadan yürürken, araba kullanırken veya seyahat ederken gider ekleyin."
+        },
+        {
+          "title": "Hızlı gelir notları",
+          "description": "Gelen transferleri, yan gelirleri ve diğer para olaylarını oldukları anda yakalayın."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "İşlemi hala inceliyor muyum?",
+          "answer": "Evet. Smart Pocket taslağı hazırlar ve siz kaydetmeden önce incelersiniz."
+        },
+        {
+          "question": "Ses yerine metin kullanabilir miyim?",
+          "answer": "Evet. Konuşmak uygun olmadığında Akıllı Giriş yazılı metni de destekler."
+        },
+        {
+          "question": "Ses giriş her planda dahil mi?",
+          "answer": "AI kullanım kotaları plana göre değişebilir, bu nedenle mevcut ses istekleri aboneliğinize bağlı olabilir."
+        }
+      ]
+    },
+    "familyBudgetApp": {
+      "linkLabel": "Aile Bütçe Uygulaması",
+      "seoTitle": "Ev Parası Netliği için Aile Bütçe Uygulaması | Smart Pocket",
+      "seoDescription": "Aile harcamalarını, faturaları, abonelikleri, bütçeleri ve paylaşılan sorumlulukları tek net görünümde bir araya getirin; günlük kararlar için.",
+      "ogTitle": "Aile Bütçe Uygulaması | Smart Pocket",
+      "ogDescription": "Ev parası, faturalar, abonelikler ve günlük aile harcamalarını tek net yerde takip edin.",
+      "hero": {
+        "eyebrow": "Aile Bütçe Uygulaması",
+        "title": "Her hafta aile parasını daha basit tutun",
+        "subtitle": "Smart Pocket, ev harcamalarını, bütçeleri, faturaları, abonelikleri ve paylaşılan sorumlulukları günlük kararlar için tek net görünümde bir araya getirir."
+      },
+      "benefits": [
+        {
+          "title": "Tam ev tablosunu görün",
+          "description": "Hesapları, harcamaları, tekrarlayan faturaları ve bütçe hedeflerini tek uygulamada bir araya getirin."
+        },
+        {
+          "title": "Para tahminlerini azaltın",
+          "description": "Sonraki fatura veya alışveriş gezisi gelmeden ayın nasıl ilerlediğini bilin."
+        },
+        {
+          "title": "Rutinleri yönetmesi daha kolay tutun",
+          "description": "Aile hayatını şekillendiren düzenli ödemeleri ve günlük maliyetleri takip edin."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ana hesaplarınızı ve kategorilerinizi ayarlayın",
+          "description": "Evinizin en çok kullandığı hesaplar ve harcama alanları ile başlayın."
+        },
+        {
+          "title": "Harcamaları, faturaları ve abonelikleri takip edin",
+          "description": "Günlük işlemleri ekleyin ve tekrarlayan maliyetleri tek bir yerde görünür tutun."
+        },
+        {
+          "title": "Bütçe ilerlemenizi inceleyin",
+          "description": "Paranızın nereye gittiğini anlamak için kontrol panelini ve raporları kullanın."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Aylık ev planlaması",
+          "description": "Kira, market, ulaşım, okul masrafları ve ev faturalarının üstünde daha az sürtünmeyle kalın."
+        },
+        {
+          "title": "Paylaşılan aile sorumlulukları",
+          "description": "Kimlerin ödediğini, neyin ödeneceğini ve düzenli maliyetlerin nasıl değiştiğini takip edin."
+        },
+        {
+          "title": "Abonelik kontrolü",
+          "description": "Akış, telefon, yazılım ve aile üyeliklerini dağınık değil görünür tutun."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket yalnızca sıkı bütçeler için mi?",
+          "answer": "Hayır. Hafif takip veya daha detaylı bir aile bütçeleme rutini için kullanabilirsiniz."
+        },
+        {
+          "question": "Tekrarlayan ev maliyetlerini takip edebilir miyim?",
+          "answer": "Evet. Smart Pocket aboneliklerin, faturaların ve tekrarlayan giderlerin üstünde kalmanıza yardımcı olur."
+        },
+        {
+          "question": "Aile harcamaları paylaşılıyorsa işe yarıyor mu?",
+          "answer": "Evet. Smart Pocket yaygın aile para durumları için paylaşılan harcama ve geri ödeme iş akışlarını içerir."
+        }
+      ]
+    },
+    "sharedExpenses": {
+      "linkLabel": "Paylaşılan Harcamalar",
+      "seoTitle": "Paylaşılan Gider Takipçisi ve Geri Ödeme Uygulaması | Smart Pocket",
+      "seoDescription": "Kimlerin ödediğini, kimin borçlu olduğunu, geri ödemeleri ve mutabakatları tek bir yerde takip edin; böylece paylaşılan para net ve düzenli kalır.",
+      "ogTitle": "Paylaşılan Harcamalar Uygulaması | Smart Pocket",
+      "ogDescription": "Dağınık notlar veya kafa karışıklığı olmadan paylaşılan harcamaları, geri ödemeleri ve mutabakatları takip edin.",
+      "hero": {
+        "eyebrow": "Paylaşılan Harcamalar",
+        "title": "Paylaşılan parayı kafa karışıklığı olmadan takip edin",
+        "subtitle": "Akşam yemekleri ve kiradan grup alışverişlerine ve geri ödemelere kadar, Smart Pocket kimlerin ödediğini, kimin borçlu olduğunu ve neyin hâlâ mutabık kalınması gerektiğini görmenize yardımcı olur."
+      },
+      "benefits": [
+        {
+          "title": "Her masrafı kimlerin kapattığını bilin",
+          "description": "Hafızaya veya sohbet mesajlarına güvenmek yerine paylaşılan alışverişlerin temiz kaydını tutun."
+        },
+        {
+          "title": "Geri ödemeleri net takip edin",
+          "description": "Ne kadarının geri ödendiğini, neyin hala beklemede olduğunu ve neyin hatırlatma gerektirdiğini takip edin."
+        },
+        {
+          "title": "Tuhaf para takiplerini azaltın",
+          "description": "Bakiyeler ve mutabakatlar etrafındaki belirsizliği ortadan kaldırmak için tek paylaşılan sistemi kullanın."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Paylaşılan bir gider ekleyin",
+          "description": "Tutarı, kimlerin ödediğini ve maliyeti kimin paylaşması gerektiğini kaydedin."
+        },
+        {
+          "title": "Paylaşımı inceleyin",
+          "description": "İşlemi kaydetmeden önce tutarın nasıl paylaşılması gerektiğini kontrol edin."
+        },
+        {
+          "title": "Geri ödeme ve mutabakatı takip edin",
+          "description": "Geri ödemeleri takip edin ve bakiyeler mutabık kaldığında döngüyü kapatın."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Çiftler ve evler",
+          "description": "Market, fatura faturaları, ulaşım ve ev alışverişlerini paylaşılan rutinler arasında yönetin."
+        },
+        {
+          "title": "Seyahatler ve hafta sonu kaçamakları",
+          "description": "Herkes hala birlikteyken paylaşılan otelleri, yemekleri, ulaşımı ve biletleri takip edin."
+        },
+        {
+          "title": "Arkadaşlar ve ev arkadaşları",
+          "description": "Kira, malzemeler ve günlük grup alışverişleri için paylaşılan harcamaları net tutun."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Hâlâ kimlerin borçlu olduğunu görebilir miyim?",
+          "answer": "Evet. Smart Pocket, bekleyen bakiyelerin anlaşılması daha kolay olması için paylaşılan harcamaları ve geri ödemeleri görünür tutar."
+        },
+        {
+          "question": "Her gideri eşit olarak bölmek zorunda mıyım?",
+          "answer": "Hayır. Paylaşılan harcama iş akışları incelenebilir, böylece nihai paylaşım gerçek duruma uyar."
+        },
+        {
+          "question": "Paylaşılan harcamalar kişisel harcamaların yanında kalabilir mi?",
+          "answer": "Evet. Smart Pocket genel para görünümünüzü tek bir yerde tutarken paylaşılan senaryoları da ele alır."
+        }
+      ]
+    },
+    "multiCurrencyExpenseTracker": {
+      "linkLabel": "Çoklu Para Birimi Gider Takipçisi",
+      "seoTitle": "Yurtdışında Yaşayanlar ve Seyahat Edenler için Çoklu Para Birimi Gider Takipçisi | Smart Pocket",
+      "seoDescription": "Yurtdışında yaşayanlar, seyahat edenler, serbest meslek sahipleri ve uluslararası aileler için yapılmış tek bir uygulama ile hesaplar ve para birimleri arasında harcamaları takip edin.",
+      "ogTitle": "Çoklu Para Birimi Gider Takipçisi | Smart Pocket",
+      "ogDescription": "Tek net kişisel finans uygulaması ile para birimleri ve hesaplar arasında harcamaları yönetin.",
+      "hero": {
+        "eyebrow": "Çoklu Para Birimi Gider Takipçisi",
+        "title": "Netliği kaybetmeden para birimleri arasında takip edin",
+        "subtitle": "Smart Pocket, günlük takibin yurtdışında yaşayanlar, seyahat edenler ve uluslararası evler için pratik kalması için hesaplar ve para birimleri arasında harcamaları takip etmenize yardımcı olur."
+      },
+      "benefits": [
+        {
+          "title": "Hesapları gerçek para birimlerinde tutun",
+          "description": "Her hesabı gerçekte kullandığı para biriminde takip edin, her şeyi tek bir manuel tabloda zorlamayın."
+        },
+        {
+          "title": "Ülkeler arasında hareket ederken düzenli kalın",
+          "description": "Paranız bankalar, kartlar ve nakit arasında bölünmüş olsa bile günlük harcamaları takip edin."
+        },
+        {
+          "title": "Daha büyük resmi görün",
+          "description": "Orijinal para birimi bağlamını kaybetmeden harcama modellerini ve bakiyeleri inceleyin."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Hesaplarınızı ve para birimlerinizi ekleyin",
+          "description": "Gerçekte kullandığınız kartları, cüzdanları ve banka hesaplarını ayarlayın."
+        },
+        {
+          "title": "İşlemleri orijinal para biriminde takip edin",
+          "description": "Giderleri ve gelirleri doğru hesaba ve para birimine bağlı tutun."
+        },
+        {
+          "title": "Kontrol panelinizi ve raporlarınızı inceleyin",
+          "description": "Orijinal para birimi bağlamını hala kullanılabilir tutarken toplamları ve harcama trendlerini anlayın."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Yurtdışında yaşayanlar",
+          "description": "Ülke hesapları, yerel kartlar ve seyahat harcamaları arasında yaşamı takip edin."
+        },
+        {
+          "title": "Uluslararası müşterileri olan serbest meslek sahipleri",
+          "description": "Gelen ödemeleri ve giden giderleri farklı para birimleri arasında düzenli tutun."
+        },
+        {
+          "title": "Sık seyahat edenler",
+          "description": "Harcamaları ödediğiniz para biriminde yakalayın, sonra kaybetmemek için takip edin."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Her işlemde orijinal para birimini tutabilir miyim?",
+          "answer": "Evet. Smart Pocket, kayıtlarınız için orijinal para birimi bağlamını görünür tutmak üzere tasarlandı."
+        },
+        {
+          "question": "Yalnızca iki para birimi kullanıyorsam işe yarıyor mu?",
+          "answer": "Evet. İki para birimi veya farklı hesaplarda çok daha fazlasını kullanmanız fark etmez, işe yarar."
+        },
+        {
+          "question": "Smart Pocket yalnızca yurtdışında yaşayanlar için mi?",
+          "answer": "Hayır. Seyahat edenler, serbest meslek sahipleri ve para birimleri arasında para transfer eden aileler için de uygundur."
+        }
+      ]
+    },
+    "expenseTrackerUae": {
+      "linkLabel": "BAE Gider Takipçisi",
+      "seoTitle": "AED ve Günlük Bütçeleme için BAE Gider Takipçisi | Smart Pocket",
+      "seoDescription": "AED ve diğer para birimlerinde harcamaları, bütçeleri, fişleri, abonelikleri ve paylaşılan parayı tek net kişisel finans uygulaması ile takip edin.",
+      "ogTitle": "BAE Gider Takipçisi | Smart Pocket",
+      "ogDescription": "Bütçeler, fişler, abonelikler ve paylaşılan harcamalar için AED dostu bir gider takipçisi olarak Smart Pocket kullanın.",
+      "hero": {
+        "eyebrow": "BAE Gider Takipçisi",
+        "title": "BAE'de yaşam için pratik bir gider takipçisi",
+        "subtitle": "Günlük harcamaları, bütçeleri, abonelikleri, fişleri ve paylaşılan parayı AED ve diğer para birimlerinde tek basit uygulama ile takip edin."
+      },
+      "benefits": [
+        {
+          "title": "Günlük AED takibi için yapıldı",
+          "description": "Her zamanki harcamalarınızı, faturalarınızı ve rutin para kararlarınızı tek kolay yerde tutun."
+        },
+        {
+          "title": "Karışık para birimi yaşamı için kullanışlı",
+          "description": "İş, seyahat veya aile ihtiyaçları sınırları aştığında AED'yi diğer para birimleriyle birlikte takip edin."
+        },
+        {
+          "title": "Günlük kullanım için yeterince basit",
+          "description": "Hız istediğinizde AI destekli fiş ve Akıllı Giriş araçlarını kullanın, incelemeyi siz yapın."
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "Ana hesaplarınızı ayarlayın",
+          "description": "En çok kullandığınız banka hesapları, kartlar, nakit ve cüzdanlar ile başlayın."
+        },
+        {
+          "title": "Harcamaları kendi yolunuzla takip edin",
+          "description": "O an için en hızlı olana göre manuel giriş, Akıllı Giriş veya fiş incelemesi kullanın."
+        },
+        {
+          "title": "Bütçeleri ve tekrarlayan maliyetleri izleyin",
+          "description": "Aboneliklerin, faturaların ve aylık harcama alışkanlıklarının üstünde kalın."
+        }
+      ],
+      "useCases": [
+        {
+          "title": "Günlük maliyetleri yöneten sakinler",
+          "description": "Market, ulaşım, kira, okul harcamaları ve ev faturalarını daha az sürtünmeyle takip edin."
+        },
+        {
+          "title": "Karışık para birimleri olan profesyoneller",
+          "description": "AED harcamalarını yönetirken diğer para birimleri üzerinde de görünürlük sağlayın."
+        },
+        {
+          "title": "Aileler ve paylaşılan evler",
+          "description": "Paylaşılan harcamaları, geri ödemeleri ve tekrarlayan taahhütleri tek uygulamada takip edin."
+        }
+      ],
+      "faqs": [
+        {
+          "question": "AED takibi için Smart Pocket kullanabilir miyim?",
+          "answer": "Evet. Smart Pocket, diğer desteklenen para birimlerinin yanı sıra AED'yi de destekler."
+        },
+        {
+          "question": "Fişlere ve aboneliklere de yardımcı oluyor mu?",
+          "answer": "Evet. Smart Pocket, plan özelliklerinize göre fiş incelemesi, tekrarlayan takip ve abonelik görünürlüğü içerir."
+        },
+        {
+          "question": "Yalnızca BAE kullanıcıları için mi?",
+          "answer": "Hayır. Herkes için kullanışlıdır, ancak bu sayfa BAE'deki yaygın kişisel finans ihtiyaçlarına odaklanır."
+        }
+      ]
+    }
+  }
+}

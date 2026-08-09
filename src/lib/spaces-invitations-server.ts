@@ -19,6 +19,7 @@ type ServiceProfile = {
   id: string;
   full_name: string | null;
   email: string | null;
+  preferred_language?: string | null;
 };
 
 type ServiceSpace = {
@@ -212,7 +213,7 @@ async function loadProfilesById(admin: SupabaseClient, userIds: string[]) {
 
   const { data, error } = await admin
     .from('user_profiles')
-    .select('id, full_name, email')
+    .select('id, full_name, email, preferred_language')
     .in('id', Array.from(new Set(userIds)));
 
   if (error) {
@@ -425,6 +426,7 @@ async function sendSpaceInvitationEmail(args: {
       name: recipientName,
     },
     userId: args.invitedUser?.id || null,
+    languageCode: args.inviter?.preferred_language || null,
     variables: {
       recipient_name: recipientName,
       recipient_email: args.invitation.email,

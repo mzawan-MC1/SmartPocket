@@ -1,0 +1,34 @@
+{
+  "title": "Bütçeler",
+  "addBudget": "Bütçe Ekle",
+  "editBudget": "Bütçeyi Düzenle",
+  "overview": "Bütçe Genel Bakışı",
+  "monthly": "Aylık Bütçe",
+  "fields": {
+    "name": "Bütçe Adı",
+    "amount": "Bütçe Tutarı",
+    "category": "Kategori",
+    "period": "Dönem",
+    "startDate": "Başlangıç Tarihi",
+    "endDate": "Bitiş Tarihi"
+  },
+  "stats": {
+    "spent": "Harcanan",
+    "remaining": "Kalan",
+    "usage": "Kullanım",
+    "total": "Toplam Bütçe"
+  },
+  "status": {
+    "onTrack": "Rotada",
+    "warning": "Limite Yakın",
+    "exceeded": "Aşıldı",
+    "unused": "Başlanmadı"
+  },
+  "empty": {
+    "title": "Bütçe ayarlanmadı",
+    "description": "Harcamanızı takip etmek için bir bütçe oluşturun"
+  },
+  "deleteConfirm": "Bu bütçeyi silmek istediğinizden emin misiniz?",
+  "deleted": "Bütçe silindi",
+  "saved": "Bütçe kaydedildi"
+}

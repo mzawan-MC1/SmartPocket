@@ -1,0 +1,56 @@
+{
+  "title": "İşlemler",
+  "addTransaction": "İşlem Ekle",
+  "addExpense": "Gider Ekle",
+  "addIncome": "Gelir Ekle",
+  "transfer": "Transfer",
+  "fields": {
+    "amount": "Tutar",
+    "type": "Tür",
+    "account": "Hesap",
+    "category": "Kategori",
+    "date": "Tarih",
+    "time": "Saat",
+    "merchant": "Satıcı / Kaynak",
+    "notes": "Notlar",
+    "tags": "Etiketler",
+    "receipt": "Fiş",
+    "recurring": "Tekrarlayan"
+  },
+  "types": {
+    "income": "Gelir",
+    "expense": "Gider",
+    "transfer": "Transfer"
+  },
+  "filters": {
+    "all": "Tümü",
+    "income": "Gelir",
+    "expense": "Gider",
+    "transfer": "Transfer",
+    "dateRange": "Tarih Aralığı",
+    "account": "Hesap",
+    "category": "Kategori",
+    "search": "İşlemlerde ara..."
+  },
+  "sort": {
+    "dateDesc": "En Yeni Önce",
+    "dateAsc": "En Eski Önce",
+    "amountDesc": "En Yüksek Tutar",
+    "amountAsc": "En Düşük Tutar"
+  },
+  "table": {
+    "date": "Tarih",
+    "description": "Açıklama",
+    "category": "Kategori",
+    "account": "Hesap",
+    "amount": "Tutar",
+    "actions": "İşlemler"
+  },
+  "empty": {
+    "title": "Henüz işlem yok",
+    "description": "Başlamak için ilk işleminizi ekleyin"
+  },
+  "deleteConfirm": "Bu işlemi silmek istediğinizden emin misiniz?",
+  "deleted": "İşlem silindi",
+  "saved": "İşlem kaydedildi"
+}

@@ -15,7 +15,8 @@
     "signOutSuccess": "Déconnexion réussie",
     "signOutError": "Échec de la déconnexion",
     "userFallback": "Utilisateur",
-    "faqs": "FAQ"
+    "faqs": "FAQ",
+    "smartEntryShort": "IA"
   },
   "notifications": {
     "button": "Notifications",
@@ -132,13 +133,20 @@
         "title": "Contrat d abonnement expire",
         "description": "Le contrat de {{subscriptionName}} a expire le {{contractEndDate}}."
       }
+    },
+    "time": {
+      "dateFormat": {
+        "month": "short",
+        "day": "numeric"
+      }
     }
   },
   "sidebar": {
     "sections": {
       "finance": "Finance",
       "manage": "Gestion",
-      "reports": "Rapports"
+      "reports": "Rapports",
+      "support": "Support"
     },
     "nav": {
       "transfers": "Transferts",
@@ -150,7 +158,8 @@
       "spaces": "Espaces",
       "aiHistory": "Historique IA",
       "personalSubscriptions": "Abonnements personnels",
-      "faqs": "FAQ"
+      "faqs": "FAQ",
+      "support": "Support"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Développer la barre latérale",
@@ -178,7 +187,13 @@
     "spaces": "Espaces",
     "aiHistory": "Historique IA",
     "personalSubscriptions": "Abonnements personnels",
-    "faqs": "FAQ"
+    "faqs": "FAQ",
+    "transfers": "Virements",
+    "recurring": "Récurrents",
+    "categories": "Catégories",
+    "reimbursements": "Remboursements",
+    "settlements": "Règlements",
+    "support": "Support"
   },
   "dashboardHeader": {
     "title": "Tableau de bord",
@@ -302,7 +317,49 @@
       "overBudget": "Budget depasse",
       "nearLimit": "Proche de la limite",
       "onTrack": "Dans les temps"
-    }
+    },
+    "groupedByCurrency": "Regroupés par devise",
+    "usedPercent": "{{percent}}% utilisés",
+    "mixedCurrencyHint": "Les budgets en devises mixtes sont affichés par devise pour éviter de combiner des totaux sans rapport.",
+    "totalBudget": "Budget total",
+    "spentSoFar": "Dépensé jusqu'à présent",
+    "remaining": "Restant",
+    "budget": "Budget",
+    "spent": "Dépensé",
+    "overBy": "Dépassé de",
+    "onTrack": "{{count}} sur la bonne voie",
+    "nearLimit": "{{count}} proche de la limite",
+    "exceeded": "{{count}} exceeded",
+    "conversionUnavailable": "{{count}} conversion indisponible",
+    "addCategoryBudget": "Ajouter un budget par catégorie",
+    "editBudget": "Modifier le budget {{name}}",
+    "addSuccess": "Budget créé",
+    "saved": "Budget enregistré",
+    "updated": "Budget mis à jour",
+    "archived": "Budget archivé",
+    "setCategoryBudget": "Définir le budget par catégorie",
+    "periodBudget": "Budget {{period}}",
+    "budgetAmount": "Montant du budget",
+    "conversionUnavailableTitle": "Conversion indisponible",
+    "warningHint": "Vérifier les paramètres ou l'historique des changes",
+    "transactionsInPeriod": "{{count}} transaction dans cette période",
+    "budgetFallback": "Budget",
+    "detailsTitle": "Détails du budget",
+    "loadingDetails": "Chargement des détails du budget...",
+    "previousPeriod": "Période de budget précédente",
+    "nextPeriod": "Période de budget suivante",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "currentPeriod": "Période actuelle",
+    "historicalRateUnavailable": "Taux de change historique indisponible",
+    "unavailable": "Indisponible",
+    "progress": "Progression",
+    "categoryTransactions": "Transactions de la catégorie",
+    "itemsCount": "{{count}} item",
+    "noSpendingInPeriod": "Aucune dépense sur cette période.",
+    "expenseFallback": "Dépense",
+    "editAction": "Modifier le budget",
+    "archiveAction": "Archiver le budget"
   },
   "dashboardMetrics": {
     "monthly": "Mensuel",
@@ -525,7 +582,23 @@
       "systemDefaultLabels": {
         "personalCash": "Cash par défaut",
         "personalBank": "Banque par défaut"
-      }
+      },
+      "exchangeRatesFailed": "Impossible de charger les taux de change.",
+      "noExchangeRateSnapshot": "Aucun instantané de taux de change valide n'est disponible.",
+      "previewFailed": "Impossible de calculer l'aperçu du taux de change.",
+      "selectBothAccounts": "Sélectionnez les deux comptes.",
+      "chooseDifferentAccounts": "Les comptes d'origine et de destination doivent être différents.",
+      "accountsNeedCurrencies": "Les deux comptes sélectionnés doivent avoir une devise.",
+      "crossCurrencyPreviewRequired": "Un aperçu de taux de change valide est requis pour les virements inter-devise.",
+      "completed": "Virement terminé avec succès",
+      "createFailed": "Impossible de finaliser le virement.",
+      "loading": "Chargement du formulaire de virement...",
+      "stalePreview": "Cet aperçu utilise un taux en cache périmé.",
+      "descriptionPlaceholder": "par ex. Virement d'épargne mensuel",
+      "notesPlaceholder": "Notes facultatives...",
+      "helper": "Ce virement met à jour les deux soldes de comptes et crée des enregistrements de transactions liés.",
+      "processing": "Traitement en cours...",
+      "completeAction": "Finaliser le virement"
     }
   },
   "recurring": {
@@ -575,7 +648,29 @@
     "form": {
       "spaceRecurringNotice": "Cet élément récurrent utilisera les membres, soldes et comptes d'espace éligibles de {{space}}.",
       "spaceMember": "Membre de l'espace",
-      "managedPerson": "Personne gérée"
+      "managedPerson": "Personne gérée",
+      "loadFailed": "Impossible de charger les données du formulaire récurrent.",
+      "accountRequired": "Sélectionnez un compte.",
+      "accountCurrencyMissing": "Le compte sélectionné n'a pas de devise.",
+      "created": "Transaction récurrente créée",
+      "createFailed": "Impossible de créer la transaction récurrente.",
+      "loading": "Chargement du formulaire récurrent...",
+      "descriptionPlaceholder": "par ex. Abonnement Netflix",
+      "frequency": "Fréquence",
+      "frequencies": {
+        "daily": "Quotidienne",
+        "weekly": "Hebdomadaire",
+        "biweekly": "Toutes les 2 semaines",
+        "monthly": "Mensuelle",
+        "quarterly": "Trimestrielle",
+        "yearly": "Annuelle"
+      },
+      "frequencyHelper": "Les programmations bi-mensuelles et personnalisées nécessitent des champs de récurrence dédiés et ne sont pas encore disponibles.",
+      "amountRequired": "Le montant est requis.",
+      "amountMin": "Doit être supérieur à 0.",
+      "merchantPlaceholder": "par ex. Netflix",
+      "nextDueDate": "Prochaine échéance",
+      "creating": "Création en cours..."
     }
   },
   "accounts": {
@@ -656,7 +751,19 @@
       "maskedAccountPlaceholder": "ex. •••• 1234",
       "bankAccountType": "Type de compte bancaire",
       "spaceAccountFor": "Compte d'espace pour {{space}}",
-      "spaceAccountHelper": "Ce compte appartient à l'espace sélectionné et est visible par ses membres."
+      "spaceAccountHelper": "Ce compte appartient à l'espace sélectionné et est visible par ses membres.",
+      "nameRequired": "Le nom du compte est requis.",
+      "currencyRequired": "La devise est requise.",
+      "updated": "Compte mis à jour",
+      "created": "Compte créé",
+      "saveFailed": "Impossible d'enregistrer le compte.",
+      "name": "Nom du compte",
+      "namePlaceholder": "par ex. Compte courant, Espèces",
+      "type": "Type de compte",
+      "openingBalanceHelper": "Solde actuel de ce compte. Utilisez un négatif pour une dette de carte de crédit.",
+      "notesPlaceholder": "Notes facultatives...",
+      "includeInTotal": "Inclure dans le calcul du solde total",
+      "updateAction": "Mettre à jour le compte"
     }
   },
   "categories": {
@@ -784,7 +891,88 @@
       "other": "Autre"
     },
     "detail": {
-      "dashboardTitle": "Personnes et espaces"
+      "dashboardTitle": "Personnes et espaces",
+      "heldForOthers": "Détenu pour autrui",
+      "peopleOweMe": "Les autres me doivent",
+      "iOweOthers": "Je dois aux autres",
+      "pendingReimbursementsShort": "Remb. en attente",
+      "tabs": {
+        "overview": "Vue d'ensemble",
+        "ledger": "Grand livre"
+      },
+      "entryTypes": {
+        "moneyReceived": "Argent reçu",
+        "moneyReturned": "Argent rendu",
+        "expenseFromHeld": "Dépense du solde détenu",
+        "expensePaidByUser": "Dépense payée par moi",
+        "expensePaidByPerson": "Dépense payée par la personne",
+        "reimbursementDueToUser": "Remboursement dû à moi",
+        "reimbursementDueToPerson": "Remboursement dû à la personne",
+        "reimbursementReceived": "Remboursement reçu",
+        "reimbursementPaid": "Remboursement payé",
+        "settlement": "Règlement",
+        "adjustment": "Ajustement"
+      },
+      "loadFailed": "Impossible de charger les détails de la personne.",
+      "notFound": "Personne introuvable.",
+      "backToPeople": "Retour aux personnes",
+      "pendingReimbursementsCount": "{{count}} pending remboursements",
+      "totalReceived": "Total reçu",
+      "totalExpenses": "Total des dépenses",
+      "profile": "Profil",
+      "recentActivity": "Activité récente",
+      "noLedgerEntries": "Aucune entrée de grand livre pour le moment.",
+      "recordFirstTransaction": "Enregistrer la première transaction",
+      "noReimbursementsYet": "Aucun remboursement pour le moment.",
+      "personOwesMe": "{{name}} me doit",
+      "iOwePerson": "Je dois à {{name}}",
+      "noSettlementsYet": "Aucun règlement pour le moment.",
+      "personReport": "Rapport personne",
+      "fullReports": "Voir les rapports complets"
+    },
+    "form": {
+      "fullNameRequired": "Le nom complet est requis.",
+      "preferredCurrencyRequired": "La devise préférée est requise.",
+      "addedSuccessfully": "{{name}} ajouté avec succès",
+      "addFailed": "Impossible d'ajouter la personne.",
+      "fullName": "Nom complet",
+      "fullNamePlaceholder": "par ex. Jane Doe",
+      "relationship": "Relation",
+      "email": "E-mail",
+      "optional": "Facultatif",
+      "phone": "Téléphone",
+      "phoneHelper": "Utilisé uniquement pour le contexte de contact. Les valeurs téléphoniques saisies par l'utilisateur restent inchangées.",
+      "existingPhoneHelper": "Les détails téléphoniques existants restent tels que saisis.",
+      "preferredCurrency": "Devise préférée",
+      "chooseCurrency": "Choisir la devise",
+      "notes": "Notes",
+      "notesPlaceholder": "Ajouter des notes facultatives...",
+      "createManagedProfile": "Créer un profil géré pour les soldes partagés et les remboursements.",
+      "profileUpdated": "Profil mis à jour",
+      "updateFailed": "Impossible de mettre à jour le profil.",
+      "saveChanges": "Enregistrer les modifications"
+    },
+    "quickTransaction": {
+      "title": "Enregistrer une transaction personne",
+      "transactionType": "Type de transaction",
+      "validAmountError": "Entrez un montant valide.",
+      "descriptionRequired": "La description est requise.",
+      "recorded": "Transaction enregistrée",
+      "recordFailed": "Impossible d'enregistrer la transaction.",
+      "descriptionPlaceholder": "Brève description",
+      "createReimbursement": "Créer un remboursement pour {{name}}",
+      "record": "Enregistrer",
+      "types": {
+        "moneyReceived": "Argent reçu",
+        "moneyReturned": "Argent rendu",
+        "expenseFromHeld": "Dépense du solde détenu",
+        "expensePaidByUser": "Dépense payée par moi",
+        "expensePaidByPerson": "Dépense payée par la personne",
+        "reimbursementReceived": "Remboursement reçu",
+        "reimbursementPaid": "Remboursement payé",
+        "settlement": "Règlement",
+        "adjustment": "Ajustement"
+      }
     }
   },
   "reimbursements": {
@@ -827,7 +1015,19 @@
       "digitalWallet": "Portefeuille numérique",
       "other": "Autre"
     },
-    "addReimbursement": "Ajouter un remboursement"
+    "addReimbursement": "Ajouter un remboursement",
+    "form": {
+      "loadFailed": "Impossible de charger le formulaire de remboursement.",
+      "owedBy": "Dû par",
+      "owedTo": "Dû à",
+      "person": "Personne",
+      "me": "Moi",
+      "descriptionPlaceholder": "À quoi correspond ce remboursement ?",
+      "dueDate": "Date d'échéance",
+      "loading": "Chargement du formulaire de remboursement...",
+      "created": "Remboursement créé",
+      "createFailed": "Impossible de créer le remboursement."
+    }
   },
   "settlements": {
     "title": "Règlements",
@@ -873,7 +1073,8 @@
       "card": "Carte",
       "digitalWallet": "Portefeuille numérique",
       "other": "Autre"
-    }
+    },
+    "account": "Compte"
   },
   "aiHistory": {
     "title": "Historique IA",
@@ -1109,7 +1310,6 @@
       "receiptFailedRows": "Le téléversement du reçu a échoué pour les lignes {{rows}}.",
       "subscriptionUnavailable": "Choisissez un abonnement personnel actif avant l'enregistrement.",
       "saveFailed": "Impossible d'enregistrer la transaction.",
-      "receiptSizeError": "Le fichier doit être au format JPG, JPEG, PNG ou PDF et ne pas dépasser 10 Mo.",
       "tax": "Taxe",
       "spaceTransactionsSingleOnly": "Les transactions d'espace sont disponibles en mode unique uniquement.",
       "spaceDetailsTitle": "Détails de l'espace pour {{space}}",
@@ -1228,8 +1428,8 @@
       "editReceiptDetails": "Modifier les détails du reçu",
       "invalidItemsSummary": "{{invalidCount}} articles sur {{totalCount}} nécessitent une vérification.",
       "showItemsNeedingAttention": "Afficher les articles à vérifier",
-      "showAllItems_one": "Afficher le seul article",
-      "showAllItems_other": "Afficher les {{count}} articles",
+      "showAllItems_one": "Afficher {{count}} article",
+      "showAllItems_other": "Afficher {{count}} articles",
       "nextIssue": "Problème suivant",
       "addItem": "Ajouter un article",
       "noLineItemsDetected": "Aucun article n'a été détecté. Ajoutez les articles manquants avant l'enregistrement.",
@@ -1376,7 +1576,45 @@
       "quantity": "Qt",
       "unitPrice": "Unite",
       "lineTotal": "Total"
-    }
+    },
+    "filters": {
+      "allTime": "Tout l'historique",
+      "showingAllHistory": "Affichage de tout l'historique des transactions",
+      "customRange": "Plage personnalisée",
+      "customDateRange": "Plage de dates personnalisée",
+      "planningPeriod": "période de planification",
+      "payPeriod": "période de paie",
+      "currentNamedPeriod": "{{period}} actuel",
+      "previousNamedPeriod": "{{period}} précédent",
+      "currentMonth": "Mois en cours",
+      "previousMonth": "Mois précédent",
+      "month": "Mois",
+      "period": "Période",
+      "previousPayPeriod": "Période de paie précédente",
+      "nextMonth": "Mois suivant",
+      "nextPayPeriod": "Prochaine période de paie",
+      "all": "Tous"
+    },
+    "deleteConfirm": "Supprimer cette transaction ?",
+    "deleted": "Transaction supprimée",
+    "deleteFailed": "Impossible de supprimer la transaction.",
+    "allAccounts": "Tous les comptes",
+    "allCategories": "Toutes les catégories",
+    "dateFrom": "Date de début",
+    "customRangeStart": "Date de début de plage personnalisée",
+    "dateTo": "Date de fin",
+    "customRangeEnd": "Date de fin de plage personnalisée",
+    "selectedCount": "{{count}} sélectionnés",
+    "loading": "Chargement des transactions...",
+    "selectTransaction": "Sélectionner la transaction",
+    "managedPersonTransaction": "Transaction personne gérée",
+    "selectAll": "Sélectionner toutes les transactions",
+    "type": "Type",
+    "actions": "Actions",
+    "selectRow": "Sélectionner la ligne",
+    "reportingPreviewTitle": "Devise de reporting {{currency}} ; fournisseur {{provider}} ; date de taux {{rateDate}}",
+    "showingCount": "Affichage de {{start}}-{{end}} sur {{total}}",
+    "tags": "Étiquettes"
   },
   "spaces": {
     "title": "Espaces",
@@ -1856,7 +2094,20 @@
         "permissionDenied": "Accès au microphone refusé. Veuillez l'autoriser puis réessayer.",
         "noMicrophone": "Aucun microphone trouvé. Branchez un microphone puis réessayez.",
         "notSupported": "L'enregistrement vocal n'est pas disponible dans ce navigateur ou cet environnement d'application. Veuillez utiliser la saisie texte.",
-        "startFailed": "Impossible de démarrer l'enregistrement. Veuillez réessayer."
+        "startFailed": "Impossible de démarrer l'enregistrement. Veuillez réessayer.",
+        "emptyAudio": "L'enregistrement était vide. Veuillez réessayer.",
+        "fileTooLarge": "Cet enregistrement est trop volumineux. Gardez-le sous {{maxSize}}."
+      },
+      "unavailable": {
+        "configurationTitle": "La saisie vocale est temporairement indisponible",
+        "configurationMessage": "Le service d'IA n'a pas été configuré par l'administrateur. Utilisez la saisie texte pour l'instant.",
+        "modelTitle": "Le modèle vocal est indisponible",
+        "modelMessage": "Le modèle d'IA sélectionné ne prend pas en charge la transcription vocale. Utilisez la saisie texte pour l'instant.",
+        "microphoneTitle": "L'accès au micro est bloqué",
+        "microphoneMessage": "Autorisez l'accès au micro dans les paramètres de votre navigateur, puis réessayez.",
+        "providerUnavailableTitle": "La transcription vocale est temporairement indisponible",
+        "providerUnavailableMessage": "Nous n'avons pas pu transcrire votre enregistrement pour le moment. Réessayez dans un instant ou utilisez la saisie texte.",
+        "limitTitle": "Limite vocale atteinte"
       }
     },
     "missingFields": {
@@ -2617,7 +2868,17 @@
       "savingsRate": "Taux d'epargne",
       "totalCredits": "Total des credits",
       "totalDebits": "Total des debits",
-      "net": "Net"
+      "net": "Net",
+      "totalIncome": "Revenu total",
+      "totalExpenses": "Dépenses totales",
+      "netSavings": "Épargne nette",
+      "transactions": "Transactions",
+      "includedRecords": "Enregistrements inclus",
+      "savingsRateValue": "Taux d'épargne : {{value}}%",
+      "savingsRateUnavailable": "Taux d'épargne indisponible",
+      "netChange": "Variation nette",
+      "applicableBudgets": "Budgets applicables",
+      "totalTransactions": "Total des transactions"
     },
     "budgetPerformanceCsv": {
       "periodLabel": "Libelle de periode",
@@ -2627,7 +2888,14 @@
       "progressPercent": "Progression %",
       "reportingAmount": "Montant budgetaire de reporting",
       "reportingSpent": "Depense de reporting",
-      "reportingRemaining": "Restant de reporting"
+      "reportingRemaining": "Restant de reporting",
+      "budget": "Budget",
+      "category": "Catégorie",
+      "period": "Période",
+      "spent": "Dépensé",
+      "remaining": "Restant",
+      "progress": "Progression",
+      "status": "Statut"
     },
     "amount": "Montant",
     "observations": "Observation",
@@ -2635,10 +2903,20 @@
     "personalScope": "Personnel",
     "spaceScope": "Espace",
     "types": {
-      "fullFinancial": "Rapport financier complet"
+      "fullFinancial": "Rapport financier complet",
+      "incomeExpense": "Revenus vs Dépenses",
+      "spendingCategory": "Dépenses par catégorie",
+      "trends": "Tendances",
+      "budgetPerformance": "Performance budgétaire",
+      "accountStatement": "Relevé de compte"
     },
     "descriptions": {
-      "fullFinancial": "Creez un rapport financier complet pour la periode, la portee et les filtres selectionnes en reutilisant les donnees de reporting existantes."
+      "fullFinancial": "Creez un rapport financier complet pour la periode, la portee et les filtres selectionnes en reutilisant les donnees de reporting existantes.",
+      "incomeExpense": "Comparer les revenus et dépenses pour la plage de rapport active.",
+      "spendingCategory": "Examiner les dépenses par catégorie pour la plage active.",
+      "trends": "Voir des compartiments de tendance quotidiens, hebdomadaires ou mensuels selon la plage sélectionnée.",
+      "budgetPerformance": "Suivre uniquement les budgets applicables à la plage de rapport active.",
+      "accountStatement": "Conserver les dates, devises et montants de transaction d'origine comme valeurs principales du relevé."
     },
     "controls": {
       "scopeLabel": "Portee",
@@ -2660,16 +2938,16 @@
       "includeItemInsights": "Inclure les analyses d articles",
       "includeUpcomingCommitments": "Inclure les engagements a venir",
       "includeArchivedAccounts": "Inclure les comptes archives ou versionnes lorsque c est pertinent",
-        "activeFilters": "{{count}} filtres actifs",
-        "moreFilters": "Plus de filtres",
-        "moreFiltersDescription": "Categorie, personne, type de transaction, mode de devise et options de detail du rapport.",
-        "showMoreFilters": "Afficher plus de filtres",
-        "hideMoreFilters": "Masquer les filtres",
+      "activeFilters": "{{count}} filtres actifs",
+      "moreFilters": "Plus de filtres",
+      "moreFiltersDescription": "Categorie, personne, type de transaction, mode de devise et options de detail du rapport.",
+      "showMoreFilters": "Afficher plus de filtres",
+      "hideMoreFilters": "Masquer les filtres",
       "preview": "Previsualiser le rapport",
-        "generatePdf": "Generer le PDF",
-        "generatePdfLoading": "Generation du PDF...",
-        "generatePdfComplete": "Telechargement termine",
-        "exportCsv": "Exporter le CSV",
+      "generatePdf": "Generer le PDF",
+      "generatePdfLoading": "Generation du PDF...",
+      "generatePdfComplete": "Telechargement termine",
+      "exportCsv": "Exporter le CSV",
       "exportCsvPackage": "Exporter le CSV complet du rapport",
       "reset": "Reinitialiser",
       "previewPrompt": "Choisissez vos filtres puis previsualisez le rapport pour construire le document financier complet.",
@@ -2923,31 +3201,121 @@
         "budgetAtRisk": "Budget le plus proche de sa limite : {{name}}.",
         "busiestDay": "Jour de depense le plus charge : {{date}}."
       }
-      },
-      "comparison": {
-        "noChange": "Aucun changement",
-        "unavailable": "Comparaison indisponible"
-      },
-      "dateBasis": {
-        "activityDuring": "Activite du {{start}} au {{end}}",
-        "balanceAsOf": "Solde au {{date}}",
-        "commitmentsAfter": "Engagements a venir apres le {{date}}",
-        "relationshipHistory": "Historique des relations"
-      },
-      "compact": {
-        "pageDescription": "Consultez soldes, activite, tendances et engagements dans un espace de rapports compact.",
-        "previewDescription": "Le portail affiche un apercu interactif compact. Utilisez Generer le PDF pour ouvrir la version imprimable.",
-        "emptyTitle": "Aucune activite significative n a ete trouvee dans le rapport.",
-        "emptyDescription": "Essayez une autre periode, portee ou un autre compte pour afficher un rapport avec activite.",
-        "currencyDescription": "Les totaux dans la devise de reporting sont prioritaires. Le detail des devises d origine reste disponible en second niveau.",
-        "groups": {
-          "overview": "Vue d ensemble",
-          "periodActivity": "Activite de la periode",
-          "financialPosition": "Situation financiere",
-          "people": "Personnes",
-          "commitments": "Engagements"
-        }
-    }
+    },
+    "comparison": {
+      "noChange": "Aucun changement",
+      "unavailable": "Comparaison indisponible"
+    },
+    "dateBasis": {
+      "activityDuring": "Activite du {{start}} au {{end}}",
+      "balanceAsOf": "Solde au {{date}}",
+      "commitmentsAfter": "Engagements a venir apres le {{date}}",
+      "relationshipHistory": "Historique des relations"
+    },
+    "compact": {
+      "pageDescription": "Consultez soldes, activite, tendances et engagements dans un espace de rapports compact.",
+      "previewDescription": "Le portail affiche un apercu interactif compact. Utilisez Generer le PDF pour ouvrir la version imprimable.",
+      "emptyTitle": "Aucune activite significative n a ete trouvee dans le rapport.",
+      "emptyDescription": "Essayez une autre periode, portee ou un autre compte pour afficher un rapport avec activite.",
+      "currencyDescription": "Les totaux dans la devise de reporting sont prioritaires. Le detail des devises d origine reste disponible en second niveau.",
+      "groups": {
+        "overview": "Vue d ensemble",
+        "periodActivity": "Activite de la periode",
+        "financialPosition": "Situation financiere",
+        "people": "Personnes",
+        "commitments": "Engagements"
+      }
+    },
+    "noData": "Aucune donnée",
+    "noTransactionsInPeriod": "Aucune transaction sur cette période",
+    "noExpensesInPeriod": "Aucune transaction de dépense sur cette période",
+    "viewOriginalCurrencies": "Voir les devises d'origine",
+    "reportingCurrency": "Devise de reporting : {{currency}}",
+    "historicalReportingTotal": "Total de reporting historique en {{currency}}.",
+    "previousSnapshotUsage": "{{count}} enregistrement(s) utilisent l'instantané précédent disponible le plus proche.",
+    "exactSnapshotUsage": "{{count}} enregistrement(s) utilisent un instantané exact à la date de transaction.",
+    "appliedRateDates": "Dates de taux appliquées : {{start}}{{end}}",
+    "provider": "Fournisseur : {{provider}}",
+    "latestSnapshotFetchedAt": "Dernier instantané récupéré le : {{value}}",
+    "stale": "Un ou plusieurs instantanés appliqués sont périmés.",
+    "presets": {
+      "currentPayPeriod": "Période de paie en cours",
+      "previousPayPeriod": "Période de paie précédente",
+      "currentPlanningPeriod": "Période de planification en cours",
+      "previousPlanningPeriod": "Période de planification précédente",
+      "currentMonth": "Mois en cours",
+      "previousMonth": "Mois précédent",
+      "currentQuarter": "Trimestre en cours",
+      "currentYear": "Année en cours",
+      "last30Days": "30 derniers jours",
+      "yearToDate": "Depuis le début de l'année",
+      "custom": "Plage personnalisée"
+    },
+    "titles": {
+      "report": "Rapport",
+      "dailyTrend": "Tendance quotidienne",
+      "weeklyTrend": "Tendance hebdomadaire",
+      "monthlyTrends": "Tendances mensuelles"
+    },
+    "pageTitle": "Rapports",
+    "pageDescription": "Analyser les schémas financiers sur des périodes de paie, mois, trimestres, années et plages personnalisées sans modifier les transactions ou budgets enregistrés.",
+    "pageBadge": "Analytique",
+    "print": "Imprimer / Enregistrer en PDF",
+    "csv": "CSV",
+    "range": "Plage",
+    "accountFilter": "Filtre de compte",
+    "reportingCurrencyLabel": "Devise de reporting",
+    "generated": "Généré",
+    "loading": "Chargement",
+    "reportType": "Type de rapport",
+    "from": "De",
+    "to": "À",
+    "reportStartDate": "Date de début du rapport",
+    "reportEndDate": "Date de fin du rapport",
+    "account": "Compte",
+    "filterByAccount": "Filtrer par compte",
+    "allAccounts": "Tous les comptes",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "current": "Actuel",
+    "period": "période",
+    "loadingPeriod": "Chargement de la période...",
+    "comparedWith": "Comparé à {{value}}",
+    "customRange": "Plage de rapport personnalisée",
+    "sharedBoundaries": "Limites de période financière partagées",
+    "periodSettingsError": "Impossible de charger les paramètres de période du rapport.",
+    "loadError": "Impossible de charger les données du rapport",
+    "downloadOptions": "Options de téléchargement",
+    "downloads": {
+      "csvExport": "Export CSV",
+      "applicableBudgetsInRange": "{{count}} applicables budgets dans range",
+      "transactionsInRange": "{{count}} transactions dans range",
+      "printPdf": "Générer le PDF",
+      "printPdfDescription": "Télécharger une version PDF générée de ce rapport."
+    },
+    "accountStatement": {
+      "emptyDescription": "Aucune transaction de relevé de compte ne correspond à la plage de rapport sélectionnée.",
+      "entryFallback": "Entrée de relevé",
+      "columns": {
+        "date": "Date",
+        "type": "Type",
+        "merchantSource": "Marchand / Source",
+        "description": "Description",
+        "category": "Catégorie",
+        "account": "Compte",
+        "originalAmount": "Montant d'origine",
+        "originalCurrency": "Devise d'origine",
+        "reportingEquivalent": "Équivalent de reporting",
+        "reportingCurrency": "Devise de reporting",
+        "tags": "Étiquettes",
+        "notes": "Notes"
+      }
+    },
+    "loadingRange": "Chargement de la plage...",
+    "loadingData": "Chargement des données du rapport...",
+    "noDataToExport": "Aucune donnée de rapport n'est prête à être exportée.",
+    "csvExportedTransactions": "Exported {{count}} transactions à CSV.",
+    "csvExportedBudgets": "Exported {{count}} budgets à CSV."
   },
   "subscriptionBilling": {
     "title": "Abonnement et facturation",

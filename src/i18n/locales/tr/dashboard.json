@@ -1,0 +1,34 @@
+{
+  "title": "Kontrol Paneli",
+  "greeting": "İyi {{time}}, {{name}}",
+  "greetingMorning": "sabahlar",
+  "greetingAfternoon": "öğleden sonralar",
+  "greetingEvening": "akşamlar",
+  "metrics": {
+    "totalBalance": "Toplam Bakiye",
+    "monthlyIncome": "Aylık Gelir",
+    "monthlyExpenses": "Aylık Giderler",
+    "netCashFlow": "Net Nakit Akışı",
+    "remainingBudget": "Kalan Bütçe",
+    "savingsRate": "Tasarruf Oranı"
+  },
+  "sections": {
+    "recentTransactions": "Son İşlemler",
+    "accountBalances": "Hesap Bakiyeleri",
+    "upcomingRecurring": "Yaklaşan Tekrarlayanlar",
+    "spendingByCategory": "Kategoriye Göre Harcama",
+    "incomeVsExpenses": "Gelir vs Gider",
+    "quickAdd": "Hızlı Ekle"
+  },
+  "quickAdd": {
+    "expense": "Gider Ekle",
+    "income": "Gelir Ekle",
+    "transfer": "Transfer",
+    "account": "Hesap Ekle"
+  },
+  "noTransactions": "Bu ay işlem yok",
+  "noAccounts": "Henüz hesap eklenmedi",
+  "noUpcoming": "Yaklaşan ödeme yok",
+  "mixedCurrencies": "Birden fazla para birimi — toplamlar birleştirilmedi",
+  "viewAll": "Tümünü görüntüle"
+}

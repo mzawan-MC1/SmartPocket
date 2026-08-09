@@ -3,17 +3,26 @@
  * All dates stored in ISO format in DB; formatted only for display.
  */
 
-export type AppLocale = 'en' | 'ar' | 'fr' | 'ru';
+import {
+  SUPPORTED_LANGUAGE_CODES,
+  LANGUAGE_REGISTRY,
+  getIntlLocale as getRegistryIntlLocale,
+  type SupportedLanguage,
+} from '@/i18n/registry';
 
-const LOCALE_MAP: Record<AppLocale, string> = {
-  en: 'en-GB',
-  ar: 'ar-AE',
-  fr: 'fr-FR',
-  ru: 'ru-RU',
-};
+export type AppLocale = SupportedLanguage;
+
+export { SUPPORTED_LANGUAGE_CODES as SUPPORTED_APP_LOCALES };
 
 export function getIntlLocale(lang: AppLocale | string): string {
-  return LOCALE_MAP[lang as AppLocale] || 'en-GB';
+  return getRegistryIntlLocale(lang);
+}
+
+export function getLocaleDirection(lang: string): 'ltr' | 'rtl' {
+  if (typeof lang !== 'string' || !(lang in LANGUAGE_REGISTRY)) {
+    return 'ltr';
+  }
+  return LANGUAGE_REGISTRY[lang as SupportedLanguage].dir;
 }
 
 /** Format a date as "15 June 2026" style */

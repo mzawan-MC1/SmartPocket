@@ -1084,6 +1084,16 @@ function getDisplayLanguageName(language: string) {
       return 'Russian';
     case 'ur':
       return 'Urdu';
+    case 'tr':
+      return 'Turkish';
+    case 'zh-cn':
+    case 'zh':
+      return 'Simplified Chinese';
+    case 'es':
+      return 'Spanish';
+    case 'pt-br':
+    case 'pt':
+      return 'Brazilian Portuguese';
     case 'en':
     default:
       return 'English';

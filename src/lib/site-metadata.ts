@@ -3,6 +3,7 @@ import 'server-only';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import type { SupportedLanguage } from '@/i18n/resources';
+import { getOgLocale } from '@/i18n/registry';
 import { resolveInitialI18nState } from '@/i18n/server';
 import {
   DEFAULT_PLATFORM_SETTINGS,
@@ -43,10 +44,14 @@ const PRIVATE_EXACT_PATHS = new Set([
 ]);
 
 const OG_LOCALE_BY_LANGUAGE: Record<SupportedLanguage, string> = {
-  en: 'en_US',
-  ar: 'ar_AR',
-  fr: 'fr_FR',
-  ru: 'ru_RU',
+  en: getOgLocale('en'),
+  ar: getOgLocale('ar'),
+  fr: getOgLocale('fr'),
+  ru: getOgLocale('ru'),
+  tr: getOgLocale('tr'),
+  'zh-CN': getOgLocale('zh-CN'),
+  es: getOgLocale('es'),
+  'pt-BR': getOgLocale('pt-BR'),
 };
 
 export type StructuredDataValue = Record<string, unknown>;

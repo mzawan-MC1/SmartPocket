@@ -1,7 +1,7 @@
 {
     "title": "Tableau de bord",
-    "greeting": "Bonjour {{name}}",
-    "greetingMorning": "matin",
+  "greeting": "Bon {{time}}, {{name}}",
+  "greetingMorning": "matin",
     "greetingAfternoon": "apr\u00e8s-midi",
     "greetingEvening": "soir",
     "metrics": {

@@ -187,6 +187,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ enqui
       email: enquiry.email,
       subject: enquiry.subject,
       referenceNumber: enquiry.reference_number,
+      languageCode: (enquiry as { locale_code?: string | null }).locale_code || null,
     }).catch((sendError) => {
       console.error('[support] Failed to send contact resolved email.', sendError);
     });

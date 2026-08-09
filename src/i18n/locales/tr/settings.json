@@ -1,0 +1,45 @@
+{
+  "title": "Ayarlar",
+  "sections": {
+    "profile": "Profil",
+    "preferences": "Tercihler",
+    "security": "Güvenlik",
+    "notifications": "Bildirimler",
+    "language": "Dil ve Bölge",
+    "currency": "Para Birimi",
+    "appearance": "Görünüm",
+    "data": "Veri ve Gizlilik"
+  },
+  "profile": {
+    "fullName": "Ad Soyad",
+    "email": "E-posta Adresi",
+    "phone": "Telefon Numarası",
+    "country": "Ülke",
+    "avatar": "Profil Fotoğrafı",
+    "changeAvatar": "Fotoğrafı Değiştir",
+    "removeAvatar": "Fotoğrafı Kaldır"
+  },
+  "preferences": {
+    "defaultCurrency": "Varsayılan Para Birimi",
+    "language": "Görüntüleme Dili",
+    "dateFormat": "Tarih Formatı",
+    "numberFormat": "Sayı Formatı",
+    "theme": "Tema",
+    "themeLight": "Açık",
+    "themeDark": "Koyu",
+    "themeSystem": "Sistem",
+    "monthStart": "Ay Başlangıç Günü",
+    "monthlyIncome": "Aylık Gelir"
+  },
+  "security": {
+    "changePassword": "Şifreyi Değiştir",
+    "currentPassword": "Mevcut Şifre",
+    "newPassword": "Yeni Şifre",
+    "confirmPassword": "Şifreyi Onayla",
+    "twoFactor": "İki Faktörlü Doğrulama",
+    "sessions": "Aktif Oturumlar",
+    "signOutAll": "Tüm Cihazlardan Çıkış Yap"
+  },
+  "saved": "Ayarlar kaydedildi",
+  "saveError": "Ayarlar kaydedilemedi"
+}

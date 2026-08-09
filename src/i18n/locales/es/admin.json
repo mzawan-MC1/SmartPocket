@@ -1,0 +1,378 @@
+{
+  "title": "Portal de Administración",
+  "nav": {
+    "dashboard": "Panel",
+    "branding": "Marca",
+    "header": "Encabezado",
+    "footer": "Pie de Página",
+    "pages": "Páginas",
+    "contact": "Configuración de Contacto",
+    "email": "Configuración de Correo",
+    "auth": "Configuración de Autenticación",
+    "payment": "Configuración de Pagos",
+    "reports": "Configuración de Informes",
+    "seo": "Configuración SEO",
+    "currency": "Configuración de Moneda",
+    "users": "Usuarios",
+    "activity": "Registro de Actividad",
+    "general": "Configuración General",
+    "support": "Soporte"
+  },
+  "branding": {
+    "pageTitle": "Marca y Apariencia",
+    "pageDescription": "Centraliza las superficies de marca de producción utilizadas en {{appName}} y gestiona la página pública de descarga de escritorio desde un solo lugar.",
+    "actions": {
+      "save": "Guardar Configuración",
+      "saved": "Guardado"
+    },
+    "toasts": {
+      "saved": "Configuración de marca guardada",
+      "saveFailed": "Error al guardar la configuración de marca.",
+      "loadFailed": "Error al cargar la configuración de marca.",
+      "desktopMigrationRequired": "La configuración de descarga de la aplicación de escritorio aún no se puede guardar. Ejecuta primero la migración de platform_settings de escritorio."
+    },
+    "sections": {
+      "identity": "Identidad de Marca",
+      "colors": "Colores de Marca",
+      "assets": "Recursos de Marca",
+      "desktop": "Descargas de la Aplicación de Escritorio",
+      "typography": "Tipografía"
+    },
+    "fields": {
+      "brandName": "Nombre de Marca",
+      "shortBrandName": "Nombre Corto de Marca",
+      "tagline": "Lema",
+      "primaryColor": "Color Primario",
+      "accentColor": "Color de Acento",
+      "fontFamily": "Familia de Fuentes"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans (Predeterminada)",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "Logo Principal",
+        "helper": "Usado en el encabezado público, pie de página, pantallas de autenticación y la interfaz de la aplicación."
+      },
+      "compactLogo": {
+        "label": "Logo Compacto / Marca",
+        "helper": "Usado para espacios más reducidos, como superficies de marca compactas y diseños de iconos primero."
+      },
+      "favicon": {
+        "label": "Favicon",
+        "helper": "Usado para pestañas del navegador e iconos de acceso directo."
+      },
+      "appleTouchIcon": {
+        "label": "Icono Touch de Apple",
+        "helper": "Usado cuando Smart Pocket se guarda en la pantalla de inicio de un iPhone o iPad."
+      },
+      "emailLogo": {
+        "label": "Logo de Correo",
+        "helper": "Usado en diseños de correo con marca y guías de plantillas de correo de Supabase."
+      },
+      "organizationLogo": {
+        "label": "Logo de Datos Estructurados",
+        "helper": "Usado en el esquema de Organización y otras superficies de marca legibles por máquinas."
+      }
+    },
+    "desktop": {
+      "description": "Gestiona la imagen principal de /desktop-app pública, la disponibilidad de plataformas, las URL de descarga directa, versiones, fechas de lanzamiento y las últimas notas de actualización.",
+      "heroImageLabel": "Imagen principal de escritorio",
+      "heroImageHelper": "Mostrada en el héroe de la página pública de descarga de escritorio. Carga, reemplaza o elimina la imagen actual del producto.",
+      "fields": {
+        "available": "Disponible"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "Esta tarjeta permanece visible públicamente. El botón solo se activa cuando la disponibilidad está habilitada y se guarda una URL HTTPS válida.",
+          "downloadUrl": "URL de descarga directa",
+          "version": "Versión",
+          "releaseDate": "Fecha de lanzamiento",
+          "statusLabel": "Etiqueta de estado corta"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "Esta tarjeta permanece visible públicamente. Mantenla deshabilitada hasta que un paquete macOS público seguro esté listo.",
+          "downloadUrl": "URL de descarga directa",
+          "version": "Versión",
+          "releaseDate": "Fecha de lanzamiento",
+          "statusLabel": "Etiqueta de estado corta"
+        }
+      },
+      "latestUpdate": {
+        "title": "Última actualización",
+        "description": "Destaca la versión de escritorio más reciente o una mejora con hasta tres notas cortas.",
+        "updateTitle": "Título de actualización",
+        "date": "Fecha de actualización",
+        "noteLabel": "Nota de actualización {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "Archivo no válido.",
+      "invalidDate": "{{field}} debe usar YYYY-MM-DD.",
+      "invalidHttpsUrl": "{{field}} debe ser una URL HTTPS válida.",
+      "invalidMediaUrl": "La URL de la imagen principal de escritorio debe ser una URL HTTPS válida o relativa al sitio."
+    }
+  },
+  "currency": {
+    "title": "Configuración de Moneda",
+    "defaultCurrency": "Moneda Predeterminada de la Plataforma",
+    "enabledCurrencies": "Monedas Habilitadas",
+    "symbolDisplay": "Modo de Visualización de Símbolo",
+    "symbolMode": "Usar Símbolo Oficial",
+    "codeMode": "Usar Código ISO",
+    "preview": "Vista Previa",
+    "decimalPlaces": "Decimales",
+    "symbolPosition": "Posición del Símbolo",
+    "before": "Antes del monto",
+    "after": "Después del monto",
+    "spacing": "Espacio entre símbolo y monto",
+    "uploadSymbol": "Cargar Recurso de Símbolo",
+    "testPDF": "Probar Renderizado PDF",
+    "saved": "Configuración de moneda guardada",
+    "warning": "Cambiar los códigos ISO después de que existan transacciones puede afectar los datos históricos."
+  },
+  "users": {
+    "title": "Usuarios",
+    "name": "Nombre",
+    "email": "Correo",
+    "role": "Rol",
+    "status": "Estado",
+    "joined": "Se unió",
+    "lastActive": "Última Actividad"
+  },
+  "support": {
+    "nav": {
+      "group": "Soporte",
+      "enquiries": "Consultas de Contacto",
+      "tickets": "Tickets de Soporte"
+    },
+    "values": {
+      "categories": {
+        "account": "Cuenta",
+        "transactions": "Transacciones",
+        "financial_accounts": "Cuentas Financieras",
+        "subscriptions": "Suscripciones",
+        "payments": "Pagos",
+        "reports": "Informes",
+        "smart_entry_ai": "Smart Entry AI",
+        "technical_error": "Error Técnico",
+        "feature_request": "Solicitud de Función",
+        "security": "Seguridad",
+        "other": "Otro"
+      },
+      "roles": {
+        "user": "Cliente",
+        "admin": "Soporte"
+      },
+      "eventTypes": {
+        "submitted": "Enviado",
+        "status_changed": "Estado Cambiado",
+        "priority_changed": "Prioridad Cambiada",
+        "assignment_changed": "Asignación Cambiada",
+        "internal_note": "Nota Interna",
+        "admin_reply": "Respuesta de Soporte",
+        "first_response_recorded": "Primera Respuesta Registrada"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Abierto",
+        "assigned": "Asignado",
+        "in_progress": "En Progreso",
+        "waiting_for_customer": "Esperando al Cliente",
+        "waiting_for_support": "Esperando a Soporte",
+        "resolved": "Resuelto",
+        "closed": "Cerrado",
+        "new": "Nuevo",
+        "spam": "Spam"
+      },
+      "priority": {
+        "low": "Baja",
+        "normal": "Normal",
+        "high": "Alta",
+        "urgent": "Urgente"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Adjuntos",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF hasta 10 MB cada uno",
+      "addFiles": "Agregar archivos",
+      "emptyTitle": "Aún no se han agregado adjuntos",
+      "emptyDescription": "Agrega capturas de pantalla o PDFs para ayudar a soporte a investigar más rápido.",
+      "uploading": "Cargando {{progress}}%",
+      "ready": "Listo",
+      "removeFile": "Quitar {{name}}"
+    },
+    "tickets": {
+      "title": "Tickets de Soporte",
+      "description": "Gestiona la carga de trabajo de soporte al cliente con visibilidad de SLA, indicadores de no leído, asignación y acciones masivas seguras.",
+      "loadError": "Error al cargar los tickets de soporte.",
+      "bulkError": "Error al aplicar la acción masiva.",
+      "bulkAssignmentUpdated": "Asignaciones actualizadas.",
+      "bulkStatusUpdated": "Estados actualizados.",
+      "bulkPartial": "{{successCount}} tickets actualizados, {{failureCount}} fallaron.",
+      "selectAtLeastOne": "Selecciona al menos un ticket.",
+      "metrics": {
+        "openTickets": "Tickets Abiertos",
+        "openTicketsSub": "Carga de trabajo de soporte activa",
+        "unassigned": "Sin Asignar",
+        "unassignedSub": "Necesita responsable",
+        "urgent": "Urgente",
+        "urgentSub": "Elementos de alta prioridad",
+        "waitingForSupport": "Esperando a Soporte",
+        "waitingForSupportSub": "El cliente está esperando",
+        "waitingForCustomer": "Esperando al Cliente",
+        "waitingForCustomerSub": "Necesita respuesta del cliente",
+        "resolvedToday": "Resueltos Hoy",
+        "resolvedTodaySub": "Completados hoy",
+        "avgFirstResponse": "Tiempo Promedio de Primera Respuesta",
+        "avgFirstResponseSub": "Tiempo medio hasta la primera respuesta",
+        "avgResolution": "Resolución Promedio",
+        "avgResolutionSub": "Tiempo medio para resolver",
+        "hours": "{{value}} h",
+        "empty": "-"
+      },
+      "filtersTitle": "Filtros",
+      "filtersDescription": "Busca por número de ticket, cliente, correo o asunto.",
+      "searchPlaceholder": "Buscar tickets...",
+      "allStatuses": "Todos los estados",
+      "allCategories": "Todas las categorías",
+      "allPriorities": "Todas las prioridades",
+      "allAssignments": "Todas las asignaciones",
+      "unassignedOption": "Sin asignar",
+      "bulkTitle": "Acciones Masivas",
+      "bulkDescription": "Asigna responsables o mueve tickets a estados de flujo de trabajo seguros.",
+      "assignSelectedTo": "Asignar selección a...",
+      "applyAssignment": "Aplicar Asignación",
+      "changeSelectedStatusTo": "Cambiar estado de la selección a...",
+      "applyStatus": "Aplicar Estado",
+      "sectionTitle": "Tickets",
+      "sectionDescription": "Los tickets más nuevos primero, con indicadores de respuesta no leída y SLA.",
+      "emptyTitle": "No se encontraron tickets de soporte",
+      "emptyDescription": "Ajusta los filtros o espera al primer ticket de cliente.",
+      "unreadReply": "Respuesta no leída",
+      "ageHours": "Antigüedad: {{hours}}h",
+      "updatedAt": "Actualizado {{value}}",
+      "open": "Abierto",
+      "pageOf": "Página {{page}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Siguiente"
+    },
+    "ticketDetail": {
+      "loadError": "Error al cargar el ticket de soporte.",
+      "saveError": "Error al guardar el resumen del ticket.",
+      "saveSuccess": "Ticket actualizado.",
+      "replyError": "Error al enviar la respuesta.",
+      "replySuccess": "Respuesta enviada al cliente.",
+      "noteError": "Error al agregar nota interna.",
+      "noteSuccess": "Nota interna agregada.",
+      "attachmentError": "Error al abrir el adjunto.",
+      "sendingReply": "Enviando...",
+      "sendReply": "Enviar respuesta",
+      "saving": "Guardando...",
+      "saveSummary": "Guardar resumen",
+      "addInternalNote": "Agregar nota interna",
+      "conversationTitle": "Conversación",
+      "conversationDescription": "Mensajes del cliente, respuestas de soporte, adjuntos y notas internas.",
+      "replyTitle": "Responder al Cliente",
+      "replyDescription": "Las respuestas se envían por correo al cliente y se agregan a la conversación visible.",
+      "replyPlaceholder": "Escribe una respuesta de soporte clara.",
+      "internalNotesTitle": "Notas Internas",
+      "internalNotesDescription": "Las notas internas solo son visibles para los administradores.",
+      "notePlaceholder": "Agrega notas de entrega, contexto de depuración o próximos pasos para el equipo de soporte.",
+      "summaryTitle": "Resumen del Ticket",
+      "summaryDescription": "Asignación, estado, categoría y seguimiento de respuestas.",
+      "customer": "Cliente",
+      "email": "Correo",
+      "created": "Creado",
+      "updated": "Actualizado",
+      "firstResponse": "Primera respuesta",
+      "resolved": "Resuelto",
+      "closed": "Cerrado",
+      "relatedPage": "Página relacionada",
+      "errorCode": "Código de error",
+      "timelineTitle": "Línea de Tiempo de Actividad",
+      "timelineDescription": "Cada acción significativa crea un evento para el historial de soporte.",
+      "securityTitle": "Seguridad",
+      "securityDescription": "Los adjuntos permanecen privados y solo se descargan a través de URL firmadas.",
+      "securityBody": "Los administradores pueden abrir todos los adjuntos del ticket, mientras que los clientes solo pueden acceder a los archivos vinculados a sus propios tickets.",
+      "refresh": "Actualizar línea de tiempo y adjuntos",
+      "internalNoteLabel": "Nota interna",
+      "deleteAttachment": "Eliminar adjunto",
+      "deleteAttachmentSuccess": "Adjunto eliminado.",
+      "deleteAttachmentError": "Error al eliminar el adjunto.",
+      "confirmResolveTitle": "¿Resolver Ticket?",
+      "confirmResolveDescription": "¿Marcar este ticket como resuelto ahora?",
+      "confirmCloseTitle": "¿Cerrar Ticket?",
+      "confirmCloseDescription": "¿Cerrar este ticket ahora? Esto lo mantiene en un estado terminal hasta que alguien lo reabra explícitamente.",
+      "confirmReopenTitle": "¿Reabrir Ticket?",
+      "confirmReopenDescription": "¿Mover este ticket de su estado terminal y devolverlo al flujo de soporte activo?",
+      "confirmDeleteAttachmentTitle": "¿Eliminar Adjunto?",
+      "confirmDeleteAttachmentDescription": "¿Eliminar {{name}} de este ticket ahora? Esto no se puede deshacer.",
+      "confirmAction": "Confirmar",
+      "cancelAction": "Cancelar",
+      "emptyValue": "-"
+    },
+    "enquiries": {
+      "title": "Consultas de Contacto",
+      "description": "Los envíos públicos de contacto se almacenan en Supabase y se gestionan aquí con asignación, respuestas, notas e historial de línea de tiempo.",
+      "refresh": "Actualizar",
+      "loadError": "Error al cargar las consultas.",
+      "detailLoadError": "Error al cargar la consulta.",
+      "updateError": "Error al actualizar la consulta.",
+      "updateSuccess": "Consulta actualizada.",
+      "replyError": "Error al enviar la respuesta.",
+      "replySuccess": "Respuesta enviada al cliente.",
+      "filtersTitle": "Filtros",
+      "filtersDescription": "Busca por referencia, remitente, asunto o mensaje.",
+      "searchPlaceholder": "Buscar consultas...",
+      "allStatuses": "Todos los estados",
+      "allPriorities": "Todas las prioridades",
+      "inboxTitle": "Bandeja de Entrada",
+      "inboxDescription": "Las consultas más nuevas aparecen primero.",
+      "emptyTitle": "No se encontraron consultas",
+      "emptyDescription": "Intenta ajustar los criterios de búsqueda o filtro.",
+      "unread": "No leído",
+      "pageOf": "Página {{page}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "detailsTitle": "Detalles de la Consulta",
+      "detailsDescription": "Abre una consulta para gestionar la asignación, notas y respuestas.",
+      "selectPrompt": "Selecciona una consulta de la bandeja de entrada para ver los detalles completos.",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "sourcePage": "Página de origen",
+      "submitted": "Enviado",
+      "updated": "Actualizado",
+      "firstResponse": "Primera respuesta",
+      "resolved": "Resuelto",
+      "message": "Mensaje",
+      "unassigned": "Sin asignar",
+      "internalNotePlaceholder": "Agrega una nota interna. Nunca se muestra al remitente.",
+      "saveChanges": "Guardar cambios",
+      "markResolved": "Marcar como resuelto",
+      "reopen": "Reabrir",
+      "close": "Cerrar consulta",
+      "replyTitle": "Responder por correo",
+      "replyPlaceholder": "Escribe una respuesta de soporte profesional al remitente.",
+      "sendReply": "Enviar respuesta",
+      "timelineTitle": "Línea de Tiempo",
+      "systemActor": "Sistema",
+      "emptyValue": "-",
+      "confirmResolveTitle": "¿Resolver Consulta?",
+      "confirmResolveDescription": "¿Marcar esta consulta de contacto como resuelta ahora?",
+      "confirmReopenTitle": "¿Reabrir Consulta?",
+      "confirmReopenDescription": "¿Mover esta consulta de vuelta al manejo activo?",
+      "confirmCloseTitle": "¿Cerrar Consulta?",
+      "confirmCloseDescription": "¿Cerrar esta consulta ahora?",
+      "confirmAction": "Confirmar",
+      "cancelAction": "Cancelar"
+    }
+  }
+}

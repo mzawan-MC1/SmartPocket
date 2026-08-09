@@ -4,6 +4,10 @@ import enPortal from '@/i18n/locales/en/portal.json';
 import arPortal from '@/i18n/locales/ar/portal.json';
 import frPortal from '@/i18n/locales/fr/portal.json';
 import ruPortal from '@/i18n/locales/ru/portal.json';
+import trPortal from '@/i18n/locales/tr/portal.json';
+import zhCnPortal from '@/i18n/locales/zh-CN/portal.json';
+import esPortal from '@/i18n/locales/es/portal.json';
+import ptBrPortal from '@/i18n/locales/pt-BR/portal.json';
 import {
   getAverageUnitPrice,
   getLastPaidPrice,
@@ -29,15 +33,23 @@ const receiptInsightPortals = {
   ar: arPortal,
   fr: frPortal,
   ru: ruPortal,
+  tr: trPortal,
+  'zh-CN': zhCnPortal,
+  es: esPortal,
+  'pt-BR': ptBrPortal,
 } as const;
 
 type ReceiptInsightLanguage = keyof typeof receiptInsightPortals;
 
 function normalizeLanguage(value: string | null | undefined): ReceiptInsightLanguage {
-  const base = value?.toLowerCase().split('-')[0];
-  if (base === 'ar' || base === 'fr' || base === 'ru') {
+  const raw = (value ?? '').toLowerCase().replace(/_/g, '-');
+  if (raw === 'zh-cn' || raw === 'zh' || raw.startsWith('zh')) return 'zh-CN';
+  if (raw === 'pt-br' || raw.startsWith('pt-br')) return 'pt-BR';
+  const base = raw.split('-')[0];
+  if (base === 'ar' || base === 'fr' || base === 'ru' || base === 'tr' || base === 'es') {
     return base;
   }
+  if (base === 'pt') return 'pt-BR';
   return 'en';
 }
 

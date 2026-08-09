@@ -15,7 +15,8 @@
     "signOutSuccess": "تم تسجيل الخروج بنجاح",
     "signOutError": "فشل تسجيل الخروج",
     "userFallback": "المستخدم",
-    "faqs": "الأسئلة الشائعة"
+    "faqs": "الأسئلة الشائعة",
+    "smartEntryShort": "ذكاء اصطناعي"
   },
   "notifications": {
     "button": "الإشعارات",
@@ -132,13 +133,20 @@
         "title": "انتهى عقد الاشتراك",
         "description": "انتهى عقد {{subscriptionName}} في {{contractEndDate}}."
       }
+    },
+    "time": {
+      "dateFormat": {
+        "month": "short",
+        "day": "numeric"
+      }
     }
   },
   "sidebar": {
     "sections": {
       "finance": "المالية",
       "manage": "الإدارة",
-      "reports": "التقارير"
+      "reports": "التقارير",
+      "support": "الدعم"
     },
     "nav": {
       "transfers": "التحويلات",
@@ -150,7 +158,8 @@
       "spaces": "المساحات",
       "aiHistory": "سجل الذكاء الاصطناعي",
       "personalSubscriptions": "الاشتراكات الشخصية",
-      "faqs": "الأسئلة الشائعة"
+      "faqs": "الأسئلة الشائعة",
+      "support": "الدعم"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "توسيع الشريط الجانبي",
@@ -183,7 +192,8 @@
     "settlements": "التسويات",
     "aiHistory": "سجل الذكاء الاصطناعي",
     "personalSubscriptions": "الاشتراكات الشخصية",
-    "faqs": "الأسئلة الشائعة"
+    "faqs": "الأسئلة الشائعة",
+    "support": "الدعم"
   },
   "dashboardHeader": {
     "title": "لوحة التحكم",
@@ -322,7 +332,34 @@
       "overBudget": "تجاوز الميزانية",
       "nearLimit": "قرب الحد",
       "onTrack": "ضمن المسار"
-    }
+    },
+    "addSuccess": "تم إنشاء الميزانية",
+    "saved": "تم حفظ الميزانية",
+    "updated": "تم تحديث الميزانية",
+    "archived": "تمت أرشفة الميزانية",
+    "setCategoryBudget": "تعيين ميزانية الفئة",
+    "periodBudget": "ميزانية {{period}}",
+    "budgetAmount": "مبلغ الميزانية",
+    "conversionUnavailableTitle": "التحويل غير متاح",
+    "warningHint": "تحقق من الإعدادات أو سجل أسعار الصرف",
+    "transactionsInPeriod": "{{count}} معاملة في هذه الفترة",
+    "budgetFallback": "الميزانية",
+    "detailsTitle": "تفاصيل الميزانية",
+    "loadingDetails": "جارٍ تحميل تفاصيل الميزانية...",
+    "previousPeriod": "فترة الميزانية السابقة",
+    "nextPeriod": "فترة الميزانية التالية",
+    "previous": "السابق",
+    "next": "التالي",
+    "currentPeriod": "الفترة الحالية",
+    "historicalRateUnavailable": "سعر الصرف التاريخي غير متاح",
+    "unavailable": "غير متاح",
+    "progress": "التقدم",
+    "categoryTransactions": "معاملات الفئة",
+    "itemsCount": "{{count}} عنصر",
+    "noSpendingInPeriod": "لا يوجد إنفاق في هذه الفترة.",
+    "expenseFallback": "مصروف",
+    "editAction": "تعديل الميزانية",
+    "archiveAction": "أرشفة الميزانية"
   },
   "dashboardMetrics": {
     "monthly": "شهري",
@@ -457,24 +494,24 @@
     "exhausted": "تم استخدام المتاح من استخدام الذكاء الاصطناعي حاليًا.",
     "remainingPercent": "لم يتبقَّ سوى {{percent}}% من استخدام الذكاء الاصطناعي.",
     "eightyUsed": "تم استخدام معظم استخدام الذكاء الاصطناعي لهذا الشهر.",
-    "trialDaysRemaining_one": "تبقّى يوم تجريبي واحد",
+    "trialDaysRemaining_one": "{{count}} يوم تجريبي متبقٍ",
     "trialDaysRemaining_other": "تبقّى {{count}} أيام تجريبية",
     "trialExpired": "انتهت التجربة",
     "textAi": "طلبات الذكاء الاصطناعي",
     "requestsUsedToday": "المستخدم اليوم",
-    "requestsCount_one": "طلب واحد متبقٍ",
+    "requestsCount_one": "{{count}} طلب متبقٍ",
     "requestsCount_other": "{{count}} طلبات متبقية",
     "requestsRemainingLabel_one": "طلب متبقٍ",
     "requestsRemainingLabel_other": "طلبات متبقية",
     "voiceAi": "الوقت الصوتي",
     "voiceUsedIncluded": "المستخدم هذا الشهر",
-    "secondsShort_one": "ثانية واحدة",
+    "secondsShort_one": "{{count}} ثانية",
     "secondsShort_other": "{{count}} ثانية",
-    "minutesShort_one": "دقيقة واحدة",
+    "minutesShort_one": "{{count}} دقيقة",
     "minutesShort_other": "{{count}} دقيقة",
-    "secondsRemaining_one": "ثانية واحدة متبقية",
+    "secondsRemaining_one": "{{count}} ثانية متبقية",
     "secondsRemaining_other": "{{count}} ثانية متبقية",
-    "minutesRemaining_one": "دقيقة واحدة متبقية",
+    "minutesRemaining_one": "{{count}} دقيقة متبقية",
     "minutesRemaining_other": "{{count}} دقيقة متبقية",
     "secondsRemainingLabel_one": "ثانية متبقية",
     "secondsRemainingLabel_other": "ثوانٍ متبقية",
@@ -482,7 +519,7 @@
     "minutesRemainingLabel_other": "دقائق متبقية",
     "receiptIntelligence": "فحص الإيصالات",
     "receiptUsedIncluded": "المستخدم هذا الشهر",
-    "receiptCount_one": "عملية فحص واحدة متبقية",
+    "receiptCount_one": "{{count}} عملية فحص متبقية",
     "receiptCount_other": "{{count}} عمليات فحص متبقية",
     "scansRemainingLabel_one": "عملية فحص متبقية",
     "scansRemainingLabel_other": "عمليات فحص متبقية",
@@ -545,7 +582,23 @@
       "systemDefaultLabels": {
         "personalCash": "النقد الافتراضي",
         "personalBank": "البنك الافتراضي"
-      }
+      },
+      "exchangeRatesFailed": "فشل تحميل أسعار الصرف.",
+      "noExchangeRateSnapshot": "لا توجد لقطة صالحة لسعر الصرف متاحة.",
+      "previewFailed": "فشل حساب معاينة سعر الصرف.",
+      "selectBothAccounts": "حدد الحسابين.",
+      "chooseDifferentAccounts": "يجب أن يكون حساب المصدر وحساب الوجهة مختلفين.",
+      "accountsNeedCurrencies": "يجب أن يكون للحسابين المحددين عملات.",
+      "crossCurrencyPreviewRequired": "مطلوب معاينة صالحة لسعر الصرف للتحويلات بين العملات المختلفة.",
+      "completed": "تم التحويل بنجاح",
+      "createFailed": "فشل إكمال التحويل.",
+      "loading": "جارٍ تحميل نموذج التحويل...",
+      "stalePreview": "تستخدم هذه المعاينة سعراً مؤرشفاً قدماً.",
+      "descriptionPlaceholder": "مثال: تحويل المدخرات الشهري",
+      "notesPlaceholder": "ملاحظات اختيارية...",
+      "helper": "يقوم هذا التحويل بتحديث أرصدة كلا الحسابين وإنشاء سجلات معاملات مرتبطة.",
+      "processing": "جارٍ المعالجة...",
+      "completeAction": "إكمال التحويل"
     }
   },
   "recurring": {
@@ -595,7 +648,29 @@
     "form": {
       "spaceRecurringNotice": "سيستخدم هذا العنصر المتكرر أعضاء {{space}} وأرصدته وحساباته المؤهلة.",
       "spaceMember": "عضو في المساحة",
-      "managedPerson": "شخص مُدار"
+      "managedPerson": "شخص مُدار",
+      "loadFailed": "فشل تحميل بيانات نموذج المعاملات المتكررة.",
+      "accountRequired": "حدد حساباً.",
+      "accountCurrencyMissing": "الحساب المحدد يفتقر إلى عملة.",
+      "created": "تم إنشاء المعاملة المتكررة",
+      "createFailed": "فشل إنشاء المعاملة المتكررة.",
+      "loading": "جارٍ تحميل نموذج المعاملات المتكررة...",
+      "descriptionPlaceholder": "مثال: اشتراك Netflix",
+      "frequency": "التواتر",
+      "frequencies": {
+        "daily": "يومي",
+        "weekly": "أسبوعي",
+        "biweekly": "كل أسبوعين",
+        "monthly": "شهري",
+        "quarterly": "ربع سنوي",
+        "yearly": "سنوي"
+      },
+      "frequencyHelper": "تتطلب الجداول مرتين في الشهر والمتكررة المخصصة حقول تكرار مخصصة وهي غير متاحة بعد.",
+      "amountRequired": "المبلغ مطلوب.",
+      "amountMin": "يجب أن يكون أكبر من 0.",
+      "merchantPlaceholder": "مثال: Netflix",
+      "nextDueDate": "تاريخ الاستحقاق القادم",
+      "creating": "جارٍ الإنشاء..."
     }
   },
   "accounts": {
@@ -676,7 +751,19 @@
       "maskedAccountPlaceholder": "مثل •••• 1234",
       "bankAccountType": "نوع الحساب البنكي",
       "spaceAccountFor": "حساب مساحة {{space}}",
-      "spaceAccountHelper": "ينتمي هذا الحساب إلى المساحة المحددة ويكون مرئيًا لأعضائها."
+      "spaceAccountHelper": "ينتمي هذا الحساب إلى المساحة المحددة ويكون مرئيًا لأعضائها.",
+      "nameRequired": "اسم الحساب مطلوب.",
+      "currencyRequired": "العملة مطلوبة.",
+      "updated": "تم تحديث الحساب",
+      "created": "تم إنشاء الحساب",
+      "saveFailed": "فشل حفظ الحساب.",
+      "name": "اسم الحساب",
+      "namePlaceholder": "مثال: تشيك تشيس، محفظة نقدية",
+      "type": "نوع الحساب",
+      "openingBalanceHelper": "الرصيد الحالي لهذا الحساب. استخدم القيمة السالبة لدين بطاقة الائتمان.",
+      "notesPlaceholder": "ملاحظات اختيارية...",
+      "includeInTotal": "ضمّن في حساب إجمالي الرصيد",
+      "updateAction": "تحديث الحساب"
     }
   },
   "categories": {
@@ -804,7 +891,88 @@
       "other": "أخرى"
     },
     "detail": {
-      "dashboardTitle": "الأشخاص والمساحات"
+      "dashboardTitle": "الأشخاص والمساحات",
+      "heldForOthers": "محتفظ به للآخرين",
+      "peopleOweMe": "أشخاص يدينون لي",
+      "iOweOthers": "أنا مدين للآخرين",
+      "pendingReimbursementsShort": "تعويضات معلقة",
+      "tabs": {
+        "overview": "نظرة عامة",
+        "ledger": "السجل"
+      },
+      "entryTypes": {
+        "moneyReceived": "مال مستلم",
+        "moneyReturned": "مال معاد",
+        "expenseFromHeld": "مصروف من الرصيد المحتفظ به",
+        "expensePaidByUser": "مصروف دفعته أنا",
+        "expensePaidByPerson": "مصروف دفعه الشخص",
+        "reimbursementDueToUser": "تعويض مستحق لي",
+        "reimbursementDueToPerson": "تعويض مستحق للشخص",
+        "reimbursementReceived": "تعويض مستلم",
+        "reimbursementPaid": "تعويض مدفوع",
+        "settlement": "تسوية",
+        "adjustment": "تعديل"
+      },
+      "loadFailed": "فشل تحميل تفاصيل الشخص.",
+      "notFound": "الشخص غير موجود.",
+      "backToPeople": "العودة إلى الأشخاص",
+      "pendingReimbursementsCount": "{{count}} تعويضات معلقة",
+      "totalReceived": "إجمالي المستلم",
+      "totalExpenses": "إجمالي المصروفات",
+      "profile": "الملف الشخصي",
+      "recentActivity": "النشاط الأخير",
+      "noLedgerEntries": "لا توجد مدخلات سجل بعد.",
+      "recordFirstTransaction": "سجّل أول معاملة",
+      "noReimbursementsYet": "لا توجد تعويضات بعد.",
+      "personOwesMe": "{{name}} owes me",
+      "iOwePerson": "أنا مدين لـ {{name}}",
+      "noSettlementsYet": "لا توجد تسويات بعد.",
+      "personReport": "تقرير الشخص",
+      "fullReports": "عرض التقارير الكاملة"
+    },
+    "form": {
+      "fullNameRequired": "الاسم الكامل مطلوب.",
+      "preferredCurrencyRequired": "العملة المفضلة مطلوبة.",
+      "addedSuccessfully": "{{name}} added successfully",
+      "addFailed": "Failed to add person.",
+      "fullName": "الاسم الكامل",
+      "fullNamePlaceholder": "مثال: أحمد علي",
+      "relationship": "العلاقة",
+      "email": "البريد الإلكتروني",
+      "optional": "Optional",
+      "phone": "رقم الهاتف",
+      "phoneHelper": "Used for contact context only. User-entered phone values stay unchanged.",
+      "existingPhoneHelper": "Existing phone details stay as entered.",
+      "preferredCurrency": "العملة المفضلة",
+      "chooseCurrency": "Choose currency",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "Add optional notes...",
+      "createManagedProfile": "Create a managed profile for shared balances and reimbursements.",
+      "profileUpdated": "Profile updated",
+      "updateFailed": "Failed to update profile.",
+      "saveChanges": "Save Changes"
+    },
+    "quickTransaction": {
+      "title": "تسجيل معاملة للشخص",
+      "transactionType": "نوع المعاملة",
+      "validAmountError": "Enter a valid amount.",
+      "descriptionRequired": "Description is required.",
+      "recorded": "Transaction recorded",
+      "recordFailed": "Failed to record transaction.",
+      "descriptionPlaceholder": "Brief description",
+      "createReimbursement": "Create reimbursement for {{name}}",
+      "record": "Record",
+      "types": {
+        "moneyReceived": "Money Received",
+        "moneyReturned": "Money Returned",
+        "expenseFromHeld": "Expense From Held Balance",
+        "expensePaidByUser": "Expense Paid By Me",
+        "expensePaidByPerson": "Expense Paid By Person",
+        "reimbursementReceived": "Reimbursement Received",
+        "reimbursementPaid": "Reimbursement Paid",
+        "settlement": "Settlement",
+        "adjustment": "Adjustment"
+      }
     }
   },
   "reimbursements": {
@@ -847,7 +1015,19 @@
       "digitalWallet": "محفظة رقمية",
       "other": "أخرى"
     },
-    "addReimbursement": "إضافة تعويض"
+    "addReimbursement": "إضافة تعويض",
+    "form": {
+      "loadFailed": "فشل تحميل نموذج التعويض.",
+      "owedBy": "مدين من قبل",
+      "owedTo": "مدين له",
+      "person": "Person",
+      "me": "Me",
+      "descriptionPlaceholder": "What is this reimbursement for?",
+      "dueDate": "تاريخ الاستحقاق",
+      "loading": "Loading reimbursement form...",
+      "created": "تم إنشاء التعويض",
+      "createFailed": "فشل إنشاء التعويض."
+    }
   },
   "settlements": {
     "title": "التسويات",
@@ -893,7 +1073,8 @@
       "card": "بطاقة",
       "digitalWallet": "محفظة رقمية",
       "other": "أخرى"
-    }
+    },
+    "account": "الحساب"
   },
   "aiHistory": {
     "title": "سجل الذكاء الاصطناعي",
@@ -1187,7 +1368,7 @@
       "currencyUnavailable": "العملة غير متاحة",
       "receiptNumberShort": "مرجع: {{value}}",
       "detectedTransaction": "مسودة المعاملة {{index}}",
-      "itemsNeedAttention_one": "عنصر واحد يحتاج إلى مراجعة",
+      "itemsNeedAttention_one": "{{count}} عنصر يحتاج إلى مراجعة",
       "itemsNeedAttention_other": "{{count}} عناصر تحتاج إلى مراجعة",
       "needsReview": "تحتاج إلى مراجعة",
       "readyLabel": "تبدو جيدة",
@@ -1237,18 +1418,18 @@
       "viewExistingTransaction": "عرض المعاملة الموجودة",
       "saveAnyway": "حفظ على أي حال",
       "duplicateConfirmedLabel": "تم تأكيد تحذير التكرار. ما زال الحفظ يتطلب تأكيد المراجعة النهائي.",
-      "duplicateConfirmedSummary_one": "يبقى تطابق محتمل واحد ظاهرًا في جلسة المراجعة هذه، لكنه لم يعد يمنع الحفظ.",
+      "duplicateConfirmedSummary_one": "يبقى {{count}} تطابق محتمل ظاهر في جلسة المراجعة هذه، لكنه لم يعد يمنع الحفظ.",
       "duplicateConfirmedSummary_other": "تبقى {{count}} تطابقات محتملة ظاهرة في جلسة المراجعة هذه، لكنها لم تعد تمنع الحفظ.",
       "saveErrorTitle": "فشل الحفظ",
       "invalidLineItems": "يجب أن يحتوي كل عنصر محفوظ على اسم وإجمالي صالح.",
       "confirmTotalsMismatch": "أكد وجود فرق حقيقي في الإجمالي قبل الحفظ.",
-      "itemCountLabel_one": "عنصر واحد",
+      "itemCountLabel_one": "{{count}} عنصر",
       "itemCountLabel_other": "{{count}} عناصر",
       "removeDraftTransaction": "إزالة مسودة المعاملة",
       "editReceiptDetails": "تعديل تفاصيل الإيصال",
       "invalidItemsSummary": "{{invalidCount}} من أصل {{totalCount}} عناصر تحتاج إلى مراجعة.",
       "showItemsNeedingAttention": "إظهار العناصر التي تحتاج إلى مراجعة",
-      "showAllItems_one": "إظهار العنصر الوحيد",
+      "showAllItems_one": "إظهار جميع العناصر ({{count}})",
       "showAllItems_other": "إظهار جميع العناصر ({{count}})",
       "nextIssue": "المشكلة التالية",
       "addItem": "إضافة عنصر",
@@ -1384,7 +1565,7 @@
       "fee": "الرسوم",
       "calculatedTotal": "الإجمالي المحسوب",
       "receiptTotal": "إجمالي الإيصال",
-      "itemCount_one": "عنصر واحد",
+      "itemCount_one": "{{count}} عنصر",
       "itemCount_other": "{{count}} عناصر",
       "noLineItems": "لم يتم حفظ أي عناصر لهذا المستند.",
       "itemKinds": {
@@ -1396,7 +1577,45 @@
       "quantity": "الكمية",
       "unitPrice": "الوحدة",
       "lineTotal": "الإجمالي"
-    }
+    },
+    "filters": {
+      "allTime": "كل الوقت",
+      "showingAllHistory": "عرض كامل سجل المعاملات",
+      "customRange": "Custom range",
+      "customDateRange": "Custom date range",
+      "planningPeriod": "planning period",
+      "payPeriod": "pay period",
+      "currentNamedPeriod": "Current {{period}}",
+      "previousNamedPeriod": "Previous {{period}}",
+      "currentMonth": "Current month",
+      "previousMonth": "Previous month",
+      "month": "Month",
+      "period": "Period",
+      "previousPayPeriod": "Previous pay period",
+      "nextMonth": "Next month",
+      "nextPayPeriod": "Next pay period",
+      "all": "All"
+    },
+    "deleteConfirm": "هل تريد حذف هذه المعاملة؟",
+    "deleted": "تم حذف المعاملة",
+    "deleteFailed": "فشل حذف المعاملة.",
+    "allAccounts": "كل الحسابات",
+    "allCategories": "كل الفئات",
+    "dateFrom": "التاريخ من",
+    "customRangeStart": "تاريخ بداية النطاق المخصص",
+    "dateTo": "التاريخ إلى",
+    "customRangeEnd": "تاريخ نهاية النطاق المخصص",
+    "selectedCount": "تم تحديد {{count}}",
+    "loading": "جارٍ تحميل المعاملات...",
+    "selectTransaction": "حدد المعاملة",
+    "managedPersonTransaction": "معاملة شخص مُدار",
+    "selectAll": "حدد كل المعاملات",
+    "type": "النوع",
+    "actions": "الإجراءات",
+    "selectRow": "حدد الصف",
+    "reportingPreviewTitle": "عملة التقارير {{currency}}؛ المزود {{provider}}؛ تاريخ السعر {{rateDate}}",
+    "showingCount": "عرض {{start}}-{{end}} من {{total}}",
+    "tags": "الوسوم"
   },
   "spaces": {
     "title": "المساحات",
@@ -1432,12 +1651,12 @@
     "yourSpaces": "مساحاتك",
     "archiveAction": "أرشفة",
     "inviteAction": "دعوة",
-    "membersTitle_one": "عضو واحد",
+    "membersTitle_one": "{{count}} عضو",
     "membersTitle_other": "{{count}} أعضاء",
     "membersEmpty": "لا يوجد أعضاء بعد.",
     "unknownUser": "مستخدم غير معروف",
     "removeMemberAction": "إزالة العضو",
-    "invitationsTitle_one": "دعوة واحدة",
+    "invitationsTitle_one": "{{count}} دعوة",
     "invitationsTitle_other": "{{count}} دعوات",
     "invitationsEmpty": "لا توجد دعوات بعد.",
     "expired": "منتهية",
@@ -1506,7 +1725,7 @@
       },
       "currentSpace": {
         "title": "المساحة الحالية",
-        "memberCount_one": "عضو واحد",
+        "memberCount_one": "{{count}} عضو",
         "memberCount_other": "{{count}} أعضاء",
         "roleBadge": "{{role}}",
         "balanceLabel": "الرصيد",
@@ -1606,9 +1825,9 @@
         },
         "budgets": {
           "title": "الميزانيات",
-          "active_one": "ميزانية واحدة نشطة",
+          "active_one": "{{count}} ميزانية نشطة",
           "active_other": "{{count}} ميزانيات نشطة",
-          "warning_one": "ميزانية واحدة تحتاج إلى انتباه",
+          "warning_one": "{{count}} ميزانية تحتاج إلى انتباه",
           "warning_other": "{{count}} ميزانيات تحتاج إلى انتباه",
           "ok": "الميزانيات تسير بشكل جيد",
           "empty": "لا توجد ميزانيات بعد"
@@ -1618,7 +1837,7 @@
         "title": "الحسابات المشتركة",
         "add": "إضافة حساب",
         "emptyDescription": "أنشئ حسابا لبدء تتبع الأموال المشتركة.",
-        "count_one": "حساب واحد",
+        "count_one": "{{count}} حساب",
         "count_other": "{{count}} حسابات"
       },
       "modal": {
@@ -1729,7 +1948,7 @@
     "completeRequiredDetails": "يرجى إكمال التفاصيل المطلوبة أعلاه.",
     "savingRecords": "جار حفظ سجلاتك...",
     "successTitle": "تم الحفظ بنجاح",
-    "recordsCreated_one": "تم إنشاء سجل واحد",
+    "recordsCreated_one": "تم إنشاء {{count}} سجل",
     "recordsCreated_other": "تم إنشاء {{count}} سجلات",
     "addAnother": "إضافة أخرى",
     "notConfigured": {
@@ -1760,7 +1979,7 @@
       "requiredCredits": "الرصيد المطلوب",
       "renewal": "التجديد",
       "nextRenewal": "التجديد القادم {{date}}",
-      "availableAgainIn_one": "سيصبح متاحا مجددا خلال ساعة واحدة",
+      "availableAgainIn_one": "سيصبح متاحا مجددا خلال {{count}} ساعة",
       "availableAgainIn_other": "سيصبح متاحا مجددا خلال {{count}} ساعات"
     },
     "success": {
@@ -1876,7 +2095,20 @@
         "permissionDenied": "تم رفض الوصول إلى الميكروفون. يرجى السماح به ثم المحاولة مرة أخرى.",
         "noMicrophone": "لم يتم العثور على ميكروفون. يرجى توصيل ميكروفون ثم المحاولة مرة أخرى.",
         "notSupported": "تسجيل الصوت غير متاح في هذا المتصفح أو بيئة التطبيق. يرجى استخدام الإدخال النصي بدلا من ذلك.",
-        "startFailed": "تعذر بدء التسجيل. يرجى المحاولة مرة أخرى."
+        "startFailed": "تعذر بدء التسجيل. يرجى المحاولة مرة أخرى.",
+        "emptyAudio": "كان التسجيل فارغاً. يرجى المحاولة مرة أخرى.",
+        "fileTooLarge": "هذا التسجيل كبير جداً. احتفظ بأقل من {{maxSize}}."
+      },
+      "unavailable": {
+        "configurationTitle": "الإدخال الصوتي غير متاح مؤقتاً",
+        "configurationMessage": "لا يزال إعداد الإدخال الصوتي قيد التكوين. جرّب الإدخال النصي أو تحميل ملف في الوقت الحالي.",
+        "modelTitle": "Voice model is unavailable",
+        "modelMessage": "The selected AI model does not support voice transcription. Use text entry for now.",
+        "microphoneTitle": "Microphone access is blocked",
+        "microphoneMessage": "Allow microphone access in your browser settings, then try again.",
+        "providerUnavailableTitle": "Voice transcription is temporarily unavailable",
+        "providerUnavailableMessage": "We could not transcribe your recording right now. Try again in a moment or use text entry.",
+        "limitTitle": "Voice limit reached"
       }
     },
     "missingFields": {
@@ -2637,7 +2869,17 @@
       "savingsRate": "معدل الادخار",
       "totalCredits": "إجمالي المبالغ الواردة",
       "totalDebits": "إجمالي المبالغ الخارجة",
-      "net": "الصافي"
+      "net": "الصافي",
+      "totalIncome": "إجمالي الدخل",
+      "totalExpenses": "إجمالي المصروفات",
+      "netSavings": "صافي المدخرات",
+      "transactions": "المعاملات",
+      "includedRecords": "السجلات المشمولة",
+      "savingsRateValue": "معدل الادخار: {{value}}%",
+      "savingsRateUnavailable": "معدل الادخار غير متاح",
+      "netChange": "صافي التغيير",
+      "applicableBudgets": "الميزانيات المنطبقة",
+      "totalTransactions": "إجمالي المعاملات"
     },
     "budgetPerformanceCsv": {
       "periodLabel": "تسمية الفترة",
@@ -2647,7 +2889,14 @@
       "progressPercent": "نسبة التقدم",
       "reportingAmount": "مبلغ الميزانية بعملة التقارير",
       "reportingSpent": "المنفق بعملة التقارير",
-      "reportingRemaining": "المتبقي بعملة التقارير"
+      "reportingRemaining": "المتبقي بعملة التقارير",
+      "budget": "الميزانية",
+      "category": "الفئة",
+      "period": "الفترة",
+      "spent": "المنفق",
+      "remaining": "المتبقي",
+      "progress": "التقدم",
+      "status": "الحالة"
     },
     "amount": "المبلغ",
     "observations": "ملاحظة",
@@ -2655,10 +2904,20 @@
     "personalScope": "شخصي",
     "spaceScope": "مساحة",
     "types": {
-      "fullFinancial": "التقرير المالي الكامل"
+      "fullFinancial": "التقرير المالي الكامل",
+      "incomeExpense": "Income vs Expenses",
+      "spendingCategory": "Spending by Category",
+      "trends": "Trends",
+      "budgetPerformance": "Budget Performance",
+      "accountStatement": "Account Statement"
     },
     "descriptions": {
-      "fullFinancial": "أنشئ تقريرًا ماليًا كاملًا ومنظمًا للفترة والنطاق وعوامل التصفية المحددة باستخدام بيانات التقارير الحالية."
+      "fullFinancial": "أنشئ تقريرًا ماليًا كاملًا ومنظمًا للفترة والنطاق وعوامل التصفية المحددة باستخدام بيانات التقارير الحالية.",
+      "incomeExpense": "قارن بين الدخل والمصروفات لنطاق التقرير النشط.",
+      "spendingCategory": "راجع إنفاق الفئات للنطاق النشط.",
+      "trends": "اعرف الفئات الزمنية اليومية أو الأسبوعية أو الشهرية بناءً على النطاق المحدد.",
+      "budgetPerformance": "تتبع الميزانيات التي تنطبق فقط على نطاق التقرير النشط.",
+      "accountStatement": "احتفظ بتواريخ المعاملات الأصلية والعملات والمبالغ كقيم البيان الأساسية."
     },
     "controls": {
       "scopeLabel": "النطاق",
@@ -2680,16 +2939,16 @@
       "includeItemInsights": "تضمين تحليلات العناصر",
       "includeUpcomingCommitments": "تضمين الالتزامات القادمة",
       "includeArchivedAccounts": "تضمين الحسابات المؤرشفة أو المرقمة إصداريًا عند الحاجة",
-        "activeFilters": "{{count}} عوامل تصفية نشطة",
-        "moreFilters": "مزيد من عوامل التصفية",
-        "moreFiltersDescription": "الفئة والشخص ونوع المعاملة ووضع العملة وخيارات تفاصيل التقرير.",
-        "showMoreFilters": "إظهار المزيد من عوامل التصفية",
-        "hideMoreFilters": "إخفاء عوامل التصفية",
+      "activeFilters": "{{count}} عوامل تصفية نشطة",
+      "moreFilters": "مزيد من عوامل التصفية",
+      "moreFiltersDescription": "الفئة والشخص ونوع المعاملة ووضع العملة وخيارات تفاصيل التقرير.",
+      "showMoreFilters": "إظهار المزيد من عوامل التصفية",
+      "hideMoreFilters": "إخفاء عوامل التصفية",
       "preview": "معاينة التقرير",
-        "generatePdf": "إنشاء PDF",
-        "generatePdfLoading": "جارٍ إنشاء PDF...",
-        "generatePdfComplete": "اكتمل التنزيل",
-        "exportCsv": "تصدير CSV",
+      "generatePdf": "إنشاء PDF",
+      "generatePdfLoading": "جارٍ إنشاء PDF...",
+      "generatePdfComplete": "اكتمل التنزيل",
+      "exportCsv": "تصدير CSV",
       "exportCsvPackage": "تصدير ملف CSV الكامل للتقرير",
       "reset": "إعادة تعيين",
       "previewPrompt": "اختر عوامل التصفية ثم عاين التقرير لبناء المستند المالي الكامل.",
@@ -2943,31 +3202,121 @@
         "budgetAtRisk": "الميزانية الأقرب إلى حدها: {{name}}.",
         "busiestDay": "أكثر أيام الإنفاق ازدحامًا: {{date}}."
       }
-      },
-      "comparison": {
-        "noChange": "لا تغيير",
-        "unavailable": "المقارنة غير متاحة"
-      },
-      "dateBasis": {
-        "activityDuring": "النشاط خلال {{start}} - {{end}}",
-        "balanceAsOf": "الرصيد حتى {{date}}",
-        "commitmentsAfter": "الالتزامات القادمة بعد {{date}}",
-        "relationshipHistory": "سجل العلاقات"
-      },
-      "compact": {
-        "pageDescription": "راجع الأرصدة والنشاط والاتجاهات والالتزامات في مساحة تقارير مدمجة واحدة.",
-        "previewDescription": "تعرض البوابة معاينة تفاعلية مدمجة. استخدم إنشاء PDF لفتح النسخة القابلة للطباعة.",
-        "emptyTitle": "لم يتم العثور على نشاط تقرير ذي معنى.",
-        "emptyDescription": "جرّب فترة أو نطاقًا أو حسابًا مختلفًا لمعاينة تقرير يحتوي على نشاط.",
-        "currencyDescription": "تظهر إجماليات عملة التقارير أولًا، بينما تبقى تفاصيل العملات الأصلية متاحة كتفاصيل ثانوية.",
-        "groups": {
-          "overview": "نظرة عامة",
-          "periodActivity": "نشاط الفترة",
-          "financialPosition": "الوضع المالي",
-          "people": "الأشخاص",
-          "commitments": "الالتزامات"
-        }
-    }
+    },
+    "comparison": {
+      "noChange": "لا تغيير",
+      "unavailable": "المقارنة غير متاحة"
+    },
+    "dateBasis": {
+      "activityDuring": "النشاط خلال {{start}} - {{end}}",
+      "balanceAsOf": "الرصيد حتى {{date}}",
+      "commitmentsAfter": "الالتزامات القادمة بعد {{date}}",
+      "relationshipHistory": "سجل العلاقات"
+    },
+    "compact": {
+      "pageDescription": "راجع الأرصدة والنشاط والاتجاهات والالتزامات في مساحة تقارير مدمجة واحدة.",
+      "previewDescription": "تعرض البوابة معاينة تفاعلية مدمجة. استخدم إنشاء PDF لفتح النسخة القابلة للطباعة.",
+      "emptyTitle": "لم يتم العثور على نشاط تقرير ذي معنى.",
+      "emptyDescription": "جرّب فترة أو نطاقًا أو حسابًا مختلفًا لمعاينة تقرير يحتوي على نشاط.",
+      "currencyDescription": "تظهر إجماليات عملة التقارير أولًا، بينما تبقى تفاصيل العملات الأصلية متاحة كتفاصيل ثانوية.",
+      "groups": {
+        "overview": "نظرة عامة",
+        "periodActivity": "نشاط الفترة",
+        "financialPosition": "الوضع المالي",
+        "people": "الأشخاص",
+        "commitments": "الالتزامات"
+      }
+    },
+    "noData": "لا توجد بيانات",
+    "noTransactionsInPeriod": "لا توجد معاملات في هذه الفترة",
+    "noExpensesInPeriod": "لا توجد معاملات مصروفات في هذه الفترة",
+    "viewOriginalCurrencies": "عرض العملات الأصلية",
+    "reportingCurrency": "عملة التقارير: {{currency}}",
+    "historicalReportingTotal": "الإجمالي التاريخي لعملة التقارير بالعملة {{currency}}.",
+    "previousSnapshotUsage": "{{count}} سجل(لات) يستخدم أقرب لقطة متاحة سابقة.",
+    "exactSnapshotUsage": "{{count}} سجل(لات) يستخدم لقطة تاريخ معاملة دقيقة.",
+    "appliedRateDates": "تواريخ السعر المطبقة: {{start}}{{end}}",
+    "provider": "المزود: {{provider}}",
+    "latestSnapshotFetchedAt": "آخر لقطة تم جلبها في: {{value}}",
+    "stale": "واحدة أو أكثر من اللقطات المطبقة قديمة.",
+    "presets": {
+      "currentPayPeriod": "فترة الدفع الحالية",
+      "previousPayPeriod": "فترة الدفع السابقة",
+      "currentPlanningPeriod": "فترة التخطيط الحالية",
+      "previousPlanningPeriod": "فترة التخطيط السابقة",
+      "currentMonth": "الشهر الحالي",
+      "previousMonth": "الشهر السابق",
+      "currentQuarter": "الربع الحالي",
+      "currentYear": "العام الحالي",
+      "last30Days": "آخر 30 يوماً",
+      "yearToDate": "من بداية العام حتى الآن",
+      "custom": "نطاق مخصص"
+    },
+    "titles": {
+      "report": "تقرير",
+      "dailyTrend": "الاتجاه اليومي",
+      "weeklyTrend": "الاتجاه الأسبوعي",
+      "monthlyTrends": "الاتجاهات الشهرية"
+    },
+    "pageTitle": "التقارير",
+    "pageDescription": "حلل الأنماط المالية عبر فترات الدفع والأشهر والأرباع والسنوات والنطاقات المخصصة دون تغيير المعاملات أو الميزانيات المخزنة.",
+    "pageBadge": "التحليلات",
+    "print": "طباعة / حفظ بصيغة PDF",
+    "csv": "CSV",
+    "range": "النطاق",
+    "accountFilter": "مرشح الحساب",
+    "reportingCurrencyLabel": "عملة التقارير",
+    "generated": "تم الإنشاء",
+    "loading": "جارٍ التحميل",
+    "reportType": "نوع التقرير",
+    "from": "من",
+    "to": "إلى",
+    "reportStartDate": "تاريخ بدء التقرير",
+    "reportEndDate": "تاريخ نهاية التقرير",
+    "account": "الحساب",
+    "filterByAccount": "تصفية حسب الحساب",
+    "allAccounts": "كل الحسابات",
+    "previous": "السابق",
+    "next": "التالي",
+    "current": "الحالي",
+    "period": "فترة",
+    "loadingPeriod": "جارٍ تحميل الفترة...",
+    "comparedWith": "مقارنة بـ {{value}}",
+    "customRange": "نطاق تقرير مخصص",
+    "sharedBoundaries": "حدود الفترات المالية المشتركة",
+    "periodSettingsError": "فشل تحميل إعدادات فترة التقرير.",
+    "loadError": "فشل تحميل بيانات التقرير",
+    "downloadOptions": "خيارات التنزيل",
+    "downloads": {
+      "csvExport": "تصدير CSV",
+      "applicableBudgetsInRange": "{{count}} ميزانيات منطبقة في النطاق",
+      "transactionsInRange": "{{count}} معاملة في النطاق",
+      "printPdf": "إنشاء PDF",
+      "printPdfDescription": "تنزيل نسخة PDF مولدة من هذا التقرير."
+    },
+    "accountStatement": {
+      "emptyDescription": "لا توجد معاملات كشف حساب تطابق نطاق التقرير المحدد.",
+      "entryFallback": "مدخل كشف الحساب",
+      "columns": {
+        "date": "التاريخ",
+        "type": "النوع",
+        "merchantSource": "التاجر / المصدر",
+        "description": "الوصف",
+        "category": "الفئة",
+        "account": "الحساب",
+        "originalAmount": "المبلغ الأصلي",
+        "originalCurrency": "العملة الأصلية",
+        "reportingEquivalent": "المكافئ بعملة التقارير",
+        "reportingCurrency": "عملة التقارير",
+        "tags": "الوسوم",
+        "notes": "الملاحظات"
+      }
+    },
+    "loadingRange": "جارٍ تحميل النطاق...",
+    "loadingData": "جارٍ تحميل بيانات التقرير...",
+    "noDataToExport": "لا توجد بيانات تقرير جاهزة للتصدير.",
+    "csvExportedTransactions": "تم تصدير {{count}} معاملة إلى CSV.",
+    "csvExportedBudgets": "تم تصدير {{count}} ميزانية إلى CSV."
   },
   "subscriptionBilling": {
     "title": "الاشتراك والفوترة",
@@ -3478,9 +3827,9 @@
       "emptyDescription": "ستظهر تجديدات الاشتراكات القادمة هنا عند جدولة تاريخ الفوترة التالي.",
       "dashboardSuggestionTitle": "اقتراح ذكي",
       "dashboardSuggestionBadge": "جديد",
-      "dashboardSuggestionPrimary_one": "سيتم تجديد {{name}} خلال يوم واحد",
+      "dashboardSuggestionPrimary_one": "سيتم تجديد {{name}} خلال {{count}} يوم",
       "dashboardSuggestionPrimary_other": "سيتم تجديد {{name}} خلال {{count}} أيام",
-      "dashboardSuggestionSecondary_one": "لديك تجديد واحد هذا الأسبوع.",
+      "dashboardSuggestionSecondary_one": "لديك {{count}} تجديد هذا الأسبوع.",
       "dashboardSuggestionSecondary_other": "لديك {{count}} تجديدات هذا الأسبوع.",
       "dashboardSuggestionSingle": "راجع التجديد القادم قبل موعد الخصم.",
       "dashboardSuggestionEmpty": "لا توجد تجديدات مجدولة لهذا الأسبوع.",
@@ -3728,7 +4077,7 @@
       "baseCurrency": "العملة الأساسية: {{currency}}",
       "unavailableShort": "غير متاح",
       "utcLabel": "UTC {{value}}",
-      "rateCount_one": "تم تخزين سعر واحد",
+      "rateCount_one": "تم تخزين {{count}} سعر",
       "rateCount_two": "تم تخزين سعرين",
       "rateCount_few": "تم تخزين {{count}} أسعار",
       "rateCount_many": "تم تخزين {{count}} سعراً",
@@ -3738,12 +4087,12 @@
       "lastStarted": "بدأ في: {{value}}",
       "lastFailureTitle": "آخر فشل",
       "noFailures": "لم يتم تسجيل أي فشل حديث في تحديث أسعار الصرف.",
-      "rowCount_one": "عملية واحدة",
+      "rowCount_one": "{{count}} عملية",
       "rowCount_two": "عمليتان",
       "rowCount_few": "{{count}} عمليات",
       "rowCount_many": "{{count}} عملية",
       "rowCount_other": "{{count}} عملية",
-      "historyRateCount_one": "سعر واحد",
+      "historyRateCount_one": "{{count}} سعر",
       "historyRateCount_two": "سعران",
       "historyRateCount_few": "{{count}} أسعار",
       "historyRateCount_many": "{{count}} سعراً",

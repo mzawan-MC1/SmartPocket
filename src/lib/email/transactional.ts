@@ -5,6 +5,7 @@ import { normalizePlatformSettings, type PlatformSettingsSnapshot } from '@/lib/
 import { sendSmtpEmailWithResult, type SmtpSendResult } from '@/lib/email/smtp';
 import { buildTransactionalAppUrl, resolveTransactionalBaseUrl } from '@/lib/email/transactional-config';
 import { renderTransactionalEmail } from './transactional-layout';
+import { DEFAULT_LANGUAGE, isSupportedLanguage, type SupportedLanguage } from '@/i18n/registry';
 
 export type EmailRecipient = {
   email: string;
@@ -139,16 +140,61 @@ async function loadNotificationSettings(admin: NonNullable<ReturnType<typeof cre
   return (data as EmailNotificationSettingsRow | null) ?? null;
 }
 
-async function loadTemplate(admin: NonNullable<ReturnType<typeof createAdminClient>>, templateKey: string) {
-  const { data, error } = await admin
-    .from('email_templates')
-    .select('*')
-    .eq('template_key', templateKey)
-    .eq('language_code', 'en')
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as EmailTemplateRow | null) ?? null;
+function normalizeEmailLanguage(value: unknown): SupportedLanguage {
+  if (typeof value !== 'string') return DEFAULT_LANGUAGE;
+  return isSupportedLanguage(value) ? (value as SupportedLanguage) : DEFAULT_LANGUAGE;
+}
+
+async function resolveUserPreferredLanguage(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  userId: string | null | undefined
+): Promise<SupportedLanguage | null> {
+  if (!userId) return null;
+  try {
+    const { data, error } = await admin
+      .from('user_profiles')
+      .select('preferred_language')
+      .eq('id', userId)
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    const lang = (data as any)?.preferred_language;
+    return isSupportedLanguage(lang) ? (lang as SupportedLanguage) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function loadTemplate(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  templateKey: string,
+  languageCode: SupportedLanguage = DEFAULT_LANGUAGE,
+  options: { fallbackToEnglish?: boolean } = { fallbackToEnglish: true }
+) {
+  const targetLang = isSupportedLanguage(languageCode) ? languageCode : DEFAULT_LANGUAGE;
+  const languagesToTry: SupportedLanguage[] =
+    targetLang === DEFAULT_LANGUAGE || !options.fallbackToEnglish
+      ? [targetLang]
+      : [targetLang, DEFAULT_LANGUAGE];
+
+  for (const lang of languagesToTry) {
+    const { data, error } = await admin
+      .from('email_templates')
+      .select('*')
+      .eq('template_key', templateKey)
+      .eq('language_code', lang)
+      .limit(1)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      const row = data as EmailTemplateRow;
+      return { ...row, language_code: lang, resolved_from_language: lang } as EmailTemplateRow & {
+        resolved_from_language: SupportedLanguage;
+      };
+    }
+  }
+
+  return null;
 }
 
 async function insertDeliveryLog(args: {
@@ -297,6 +343,7 @@ export async function sendTransactionalEmail(input: {
   attachments?: TransactionalEmailAttachment[];
   isTest?: boolean;
   overrideTo?: EmailRecipient;
+  languageCode?: SupportedLanguage | string | null;
 }) : Promise<TransactionalEmailSendResult> {
   const admin = createAdminClient();
   if (!admin) {
@@ -338,11 +385,20 @@ export async function sendTransactionalEmail(input: {
     };
   }
 
+  const explicitLang =
+    input.languageCode !== undefined && input.languageCode !== null
+      ? normalizeEmailLanguage(input.languageCode)
+      : null;
+  const resolvedLanguage: SupportedLanguage =
+    explicitLang ??
+    (await resolveUserPreferredLanguage(admin, input.userId)) ??
+    DEFAULT_LANGUAGE;
+
   const [settings, secrets, notificationSettings, template] = await Promise.all([
     loadPlatformSettings(admin),
     loadEmailSecrets(admin),
     loadNotificationSettings(admin),
-    loadTemplate(admin, input.templateKey),
+    loadTemplate(admin, input.templateKey, resolvedLanguage, { fallbackToEnglish: true }),
   ]);
 
   const templateEnabled = Boolean(template?.enabled);

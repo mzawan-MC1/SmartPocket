@@ -1,0 +1,378 @@
+{
+  "title": "Yönetici Portalı",
+  "nav": {
+    "dashboard": "Kontrol Paneli",
+    "branding": "Marka",
+    "header": "Üstbilgi",
+    "footer": "Altbilgi",
+    "pages": "Sayfalar",
+    "contact": "İletişim Ayarları",
+    "email": "E-posta Ayarları",
+    "auth": "Kimlik Doğrulama Ayarları",
+    "payment": "Ödeme Ayarları",
+    "reports": "Rapor Ayarları",
+    "seo": "SEO Ayarları",
+    "currency": "Para Birimi Ayarları",
+    "users": "Kullanıcılar",
+    "activity": "Etkinlik Kaydı",
+    "general": "Genel Ayarlar",
+    "support": "Destek"
+  },
+  "branding": {
+    "pageTitle": "Marka ve Görünüm",
+    "pageDescription": "{{appName}} genelinde kullanılan üretim marka yüzeylerini tek bir yerden merkezileştirin ve genel masaüstü indirme sayfasını yönetin.",
+    "actions": {
+      "save": "Ayarları Kaydet",
+      "saved": "Kaydedildi"
+    },
+    "toasts": {
+      "saved": "Marka ayarları kaydedildi",
+      "saveFailed": "Marka ayarları kaydedilemedi.",
+      "loadFailed": "Marka ayarları yüklenemedi.",
+      "desktopMigrationRequired": "Masaüstü Uygulaması indirme ayarları henüz kaydedilemiyor. Önce masaüstü platform_settings geçişini çalıştırın."
+    },
+    "sections": {
+      "identity": "Marka Kimliği",
+      "colors": "Marka Renkleri",
+      "assets": "Marka Varlıkları",
+      "desktop": "Masaüstü Uygulaması İndirmeleri",
+      "typography": "Tipografi"
+    },
+    "fields": {
+      "brandName": "Marka Adı",
+      "shortBrandName": "Kısa Marka Adı",
+      "tagline": "Slogan",
+      "primaryColor": "Ana Renk",
+      "accentColor": "Vurgu Rengi",
+      "fontFamily": "Yazı Tipi Ailesi"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans (Varsayılan)",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "Ana Logo",
+        "helper": "Genel üstbilgide, altbilgide, kimlik doğrulama ekranlarında ve uygulama kaplamasında kullanılır."
+      },
+      "compactLogo": {
+        "label": "Kompakt Logo / İşaret",
+        "helper": "Kompakt marka yüzeyleri ve simge öncelikli düzenler gibi daha dar alanlar için kullanılır."
+      },
+      "favicon": {
+        "label": "Favicon",
+        "helper": "Tarayıcı sekmelerinde ve kısayol simgelerinde kullanılır."
+      },
+      "appleTouchIcon": {
+        "label": "Apple Dokunmatik Simge",
+        "helper": "Smart Pocket bir iPhone veya iPad ana ekranına kaydedildiğinde kullanılır."
+      },
+      "emailLogo": {
+        "label": "E-posta Logosu",
+        "helper": "Markalı e-posta düzenlerinde ve Supabase e-posta şablonu kılavuzunda kullanılır."
+      },
+      "organizationLogo": {
+        "label": "Yapılandırılmış Veri Logosu",
+        "helper": "Kuruluş şemasında ve diğer makine tarafından okunabilir marka yüzeylerinde kullanılır."
+      }
+    },
+    "desktop": {
+      "description": "Genel /desktop-app kahraman görselini, platform kullanılabilirliğini, doğrudan indirme URL'lerini, sürümleri, yayın tarihlerini ve en son güncelleme notlarını yönetin.",
+      "heroImageLabel": "Masaüstü kahraman görseli",
+      "heroImageHelper": "Genel masaüstü indirme sayfası kahraman bölümünde gösterilir. Mevcut ürün görselini yükleyin, değiştirin veya kaldırın.",
+      "fields": {
+        "available": "Kullanılabilir"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "Bu kart herkese açık görünür kalır. Düğme yalnızca kullanılabilirlik etkinleştirildiğinde ve geçerli bir HTTPS URL kaydedildiğinde aktif hale gelir.",
+          "downloadUrl": "Doğrudan indirme URL'si",
+          "version": "Sürüm",
+          "releaseDate": "Yayın tarihi",
+          "statusLabel": "Kısa durum etiketi"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "Bu kart herkese açık görünür kalır. Güvenli bir genel macOS paketi hazır olana kadar devre dışı bırakın.",
+          "downloadUrl": "Doğrudan indirme URL'si",
+          "version": "Sürüm",
+          "releaseDate": "Yayın tarihi",
+          "statusLabel": "Kısa durum etiketi"
+        }
+      },
+      "latestUpdate": {
+        "title": "En son güncelleme",
+        "description": "En yeni masaüstü sürümünü veya geliştirmeyi en fazla üç kısa notla vurgulayın.",
+        "updateTitle": "Güncelleme başlığı",
+        "date": "Güncelleme tarihi",
+        "noteLabel": "Güncelleme notu {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "Geçersiz dosya.",
+      "invalidDate": "{{field}} YYYY-AA-GG formatını kullanmalıdır.",
+      "invalidHttpsUrl": "{{field}} geçerli bir HTTPS URL olmalıdır.",
+      "invalidMediaUrl": "Masaüstü kahraman görsel URL'si geçerli bir HTTPS veya siteye göreli URL olmalıdır."
+    }
+  },
+  "currency": {
+    "title": "Para Birimi Ayarları",
+    "defaultCurrency": "Varsayılan Platform Para Birimi",
+    "enabledCurrencies": "Etkin Para Birimleri",
+    "symbolDisplay": "Sembol Görüntüleme Modu",
+    "symbolMode": "Resmi Sembol Kullan",
+    "codeMode": "ISO Kodu Kullan",
+    "preview": "Önizleme",
+    "decimalPlaces": "Ondalık Basamak",
+    "symbolPosition": "Sembol Konumu",
+    "before": "Tutardan önce",
+    "after": "Tutardan sonra",
+    "spacing": "Sembol ile tutar arasında boşluk",
+    "uploadSymbol": "Sembol Varlığı Yükle",
+    "testPDF": "PDF İşlemeyi Test Et",
+    "saved": "Para birimi ayarları kaydedildi",
+    "warning": "İşlemler olduktan sonra ISO kodlarını değiştirmek geçmiş verileri etkileyebilir."
+  },
+  "users": {
+    "title": "Kullanıcılar",
+    "name": "Ad",
+    "email": "E-posta",
+    "role": "Rol",
+    "status": "Durum",
+    "joined": "Katılma",
+    "lastActive": "Son Aktif"
+  },
+  "support": {
+    "nav": {
+      "group": "Destek",
+      "enquiries": "İletişim Talepleri",
+      "tickets": "Destek Talepleri"
+    },
+    "values": {
+      "categories": {
+        "account": "Hesap",
+        "transactions": "İşlemler",
+        "financial_accounts": "Finansal Hesaplar",
+        "subscriptions": "Abonelikler",
+        "payments": "Ödemeler",
+        "reports": "Raporlar",
+        "smart_entry_ai": "Akıllı Giriş AI",
+        "technical_error": "Teknik Hata",
+        "feature_request": "Özellik İsteği",
+        "security": "Güvenlik",
+        "other": "Diğer"
+      },
+      "roles": {
+        "user": "Müşteri",
+        "admin": "Destek"
+      },
+      "eventTypes": {
+        "submitted": "Gönderildi",
+        "status_changed": "Durum Değiştirildi",
+        "priority_changed": "Öncelik Değiştirildi",
+        "assignment_changed": "Atama Değiştirildi",
+        "internal_note": "Dahili Not",
+        "admin_reply": "Yönetici Yanıtı",
+        "first_response_recorded": "İlk Yanıt Kaydedildi"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Açık",
+        "assigned": "Atandı",
+        "in_progress": "İşlemde",
+        "waiting_for_customer": "Müşteri Bekleniyor",
+        "waiting_for_support": "Destek Bekleniyor",
+        "resolved": "Çözüldü",
+        "closed": "Kapandı",
+        "new": "Yeni",
+        "spam": "Spam"
+      },
+      "priority": {
+        "low": "Düşük",
+        "normal": "Normal",
+        "high": "Yüksek",
+        "urgent": "Acil"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Ekler",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF her biri en fazla 10 MB",
+      "addFiles": "Dosya ekle",
+      "emptyTitle": "Henüz ek eklenmedi",
+      "emptyDescription": "Desteğin daha hızlı araştırmasına yardımcı olmak için ekran görüntüleri veya PDF'ler ekleyin.",
+      "uploading": "Yükleniyor {{progress}}%",
+      "ready": "Hazır",
+      "removeFile": "{{name}} dosyasını kaldır"
+    },
+    "tickets": {
+      "title": "Destek Talepleri",
+      "description": "SLA görünürlüğü, okunmamış göstergeleri, atama ve güvenli toplu işlemlerle müşteri destek iş yükünü yönetin.",
+      "loadError": "Destek talepleri yüklenemedi.",
+      "bulkError": "Toplu işlem uygulanamadı.",
+      "bulkAssignmentUpdated": "Atamalar güncellendi.",
+      "bulkStatusUpdated": "Durumlar güncellendi.",
+      "bulkPartial": "{{successCount}} talep güncellendi, {{failureCount}} başarısız oldu.",
+      "selectAtLeastOne": "En az bir talep seçin.",
+      "metrics": {
+        "openTickets": "Açık Talepler",
+        "openTicketsSub": "Aktif destek iş yükü",
+        "unassigned": "Atanmamış",
+        "unassignedSub": "Sahip gerekiyor",
+        "urgent": "Acil",
+        "urgentSub": "Yüksek öncelikli öğeler",
+        "waitingForSupport": "Destek Bekleniyor",
+        "waitingForSupportSub": "Müşteri bekliyor",
+        "waitingForCustomer": "Müşteri Bekleniyor",
+        "waitingForCustomerSub": "Müşteri yanıtı gerekiyor",
+        "resolvedToday": "Bugün Çözülen",
+        "resolvedTodaySub": "Bugün tamamlanan",
+        "avgFirstResponse": "Ort. İlk Yanıt",
+        "avgFirstResponseSub": "Ortalama ilk yanıt süresi",
+        "avgResolution": "Ort. Çözüm",
+        "avgResolutionSub": "Ortalama çözüm süresi",
+        "hours": "{{value}} s",
+        "empty": "-"
+      },
+      "filtersTitle": "Filtreler",
+      "filtersDescription": "Talep numarası, müşteri, e-posta veya konuya göre arayın.",
+      "searchPlaceholder": "Taleplerde ara...",
+      "allStatuses": "Tüm durumlar",
+      "allCategories": "Tüm kategoriler",
+      "allPriorities": "Tüm öncelikler",
+      "allAssignments": "Tüm atamalar",
+      "unassignedOption": "Atanmamış",
+      "bulkTitle": "Toplu İşlemler",
+      "bulkDescription": "Sahipleri atayın veya talepleri güvenli iş akışı durumlarına taşıyın.",
+      "assignSelectedTo": "Seçilenleri şu kişiye ata...",
+      "applyAssignment": "Atamayı Uygula",
+      "changeSelectedStatusTo": "Seçilenlerin durumunu şu şekilde değiştir...",
+      "applyStatus": "Durumu Uygula",
+      "sectionTitle": "Talepler",
+      "sectionDescription": "En yeni talepler önce, okunmamış yanıt ve SLA ipuçlarıyla.",
+      "emptyTitle": "Destek talebi bulunamadı",
+      "emptyDescription": "Filtreleri ayarlayın veya ilk müşteri talebini bekleyin.",
+      "unreadReply": "Okunmamış yanıt",
+      "ageHours": "Yaş: {{hours}}s",
+      "updatedAt": "Güncelleme: {{value}}",
+      "open": "Açık",
+      "pageOf": "Sayfa {{page}} / {{total}}",
+      "previous": "Önceki",
+      "next": "Sonraki"
+    },
+    "ticketDetail": {
+      "loadError": "Destek talebi yüklenemedi.",
+      "saveError": "Talep özeti kaydedilemedi.",
+      "saveSuccess": "Talep güncellendi.",
+      "replyError": "Yanıt gönderilemedi.",
+      "replySuccess": "Yanıt müşteriye gönderildi.",
+      "noteError": "Dahili not eklenemedi.",
+      "noteSuccess": "Dahili not eklendi.",
+      "attachmentError": "Ek açılamadı.",
+      "sendingReply": "Gönderiliyor...",
+      "sendReply": "Yanıt gönder",
+      "saving": "Kaydediliyor...",
+      "saveSummary": "Özeti kaydet",
+      "addInternalNote": "Dahili not ekle",
+      "conversationTitle": "Konuşma",
+      "conversationDescription": "Müşteri mesajları, destek yanıtları, ekler ve dahili notlar.",
+      "replyTitle": "Müşteriye Yanıt",
+      "replyDescription": "Yanıtlar müşteriye e-postayla gönderilir ve görünür konuşmaya eklenir.",
+      "replyPlaceholder": "Açık bir destek yanıtı yazın.",
+      "internalNotesTitle": "Dahili Notlar",
+      "internalNotesDescription": "Dahili notlar yalnızca yöneticilere görünür.",
+      "notePlaceholder": "Devir notları, hata ayıklama bağlamı veya destek ekibi için sonraki adımlar ekleyin.",
+      "summaryTitle": "Talep Özeti",
+      "summaryDescription": "Atama, durum, kategori ve yanıt takibi.",
+      "customer": "Müşteri",
+      "email": "E-posta",
+      "created": "Oluşturuldu",
+      "updated": "Güncellendi",
+      "firstResponse": "İlk yanıt",
+      "resolved": "Çözüldü",
+      "closed": "Kapandı",
+      "relatedPage": "İlgili sayfa",
+      "errorCode": "Hata kodu",
+      "timelineTitle": "Etkinlik Zaman Çizelgesi",
+      "timelineDescription": "Her anlamlı işlem destek geçmişi için bir olay oluşturur.",
+      "securityTitle": "Güvenlik",
+      "securityDescription": "Ekler gizli kalır ve yalnızca imzalı URL'ler üzerinden indirilir.",
+      "securityBody": "Yöneticiler tüm talep eklerini açabilirken, müşteriler yalnızca kendi taleplerine bağlı dosyalara erişebilir.",
+      "refresh": "Zaman çizelgesini ve ekleri yenile",
+      "internalNoteLabel": "Dahili not",
+      "deleteAttachment": "Eki sil",
+      "deleteAttachmentSuccess": "Ek silindi.",
+      "deleteAttachmentError": "Ek silinemedi.",
+      "confirmResolveTitle": "Talep Çözülsün mü?",
+      "confirmResolveDescription": "Bu talep şimdi çözüldü olarak işaretlensin mi?",
+      "confirmCloseTitle": "Talep Kapatılsın mı?",
+      "confirmCloseDescription": "Bu talep şimdi kapatılsın mı? Bu, biri açıkça yeniden açana kadar terminal durumunda kalır.",
+      "confirmReopenTitle": "Talep Yeniden Açılsın mı?",
+      "confirmReopenDescription": "Bu talep terminal durumundan çıkarılıp aktif destek iş akışına geri döndürülsün mü?",
+      "confirmDeleteAttachmentTitle": "Ek Silinsin mi?",
+      "confirmDeleteAttachmentDescription": "{{name}} dosyası bu talepten şimdi silinsin mi? Bu işlem geri alınamaz.",
+      "confirmAction": "Onayla",
+      "cancelAction": "İptal",
+      "emptyValue": "-"
+    },
+    "enquiries": {
+      "title": "İletişim Talepleri",
+      "description": "Genel iletişim gönderimleri Supabase'te saklanır ve atama, yanıtlar, notlar ve zaman çizelgesi geçmişi ile burada yönetilir.",
+      "refresh": "Yenile",
+      "loadError": "Talepler yüklenemedi.",
+      "detailLoadError": "Talep yüklenemedi.",
+      "updateError": "Talep güncellenemedi.",
+      "updateSuccess": "Talep güncellendi.",
+      "replyError": "Yanıt gönderilemedi.",
+      "replySuccess": "Yanıt müşteriye gönderildi.",
+      "filtersTitle": "Filtreler",
+      "filtersDescription": "Referans, gönderen, konu veya mesaja göre arayın.",
+      "searchPlaceholder": "Taleplerde ara...",
+      "allStatuses": "Tüm durumlar",
+      "allPriorities": "Tüm öncelikler",
+      "inboxTitle": "Gelen Kutusu",
+      "inboxDescription": "En yeni talepler önce görünür.",
+      "emptyTitle": "Talep bulunamadı",
+      "emptyDescription": "Arama veya filtre kriterlerini ayarlamayı deneyin.",
+      "unread": "Okunmamış",
+      "pageOf": "Sayfa {{page}} / {{total}}",
+      "previous": "Önceki",
+      "next": "Sonraki",
+      "detailsTitle": "Talep Detayları",
+      "detailsDescription": "Atamayı, notları ve yanıtları yönetmek için bir talep açın.",
+      "selectPrompt": "Tam detayları görüntülemek için gelen kutusundan bir talep seçin.",
+      "name": "Ad",
+      "email": "E-posta",
+      "phone": "Telefon",
+      "sourcePage": "Kaynak sayfa",
+      "submitted": "Gönderildi",
+      "updated": "Güncellendi",
+      "firstResponse": "İlk yanıt",
+      "resolved": "Çözüldü",
+      "message": "Mesaj",
+      "unassigned": "Atanmamış",
+      "internalNotePlaceholder": "Dahili bir not ekleyin. Gönderene asla gösterilmez.",
+      "saveChanges": "Değişiklikleri kaydet",
+      "markResolved": "Çözüldü olarak işaretle",
+      "reopen": "Yeniden aç",
+      "close": "Talep kapat",
+      "replyTitle": "E-posta ile yanıtla",
+      "replyPlaceholder": "Gönderene profesyonel bir destek yanıtı yazın.",
+      "sendReply": "Yanıt gönder",
+      "timelineTitle": "Zaman Çizelgesi",
+      "systemActor": "Sistem",
+      "emptyValue": "-",
+      "confirmResolveTitle": "Talep Çözülsün mü?",
+      "confirmResolveDescription": "Bu iletişim talebi şimdi çözüldü olarak işaretlensin mi?",
+      "confirmReopenTitle": "Talep Yeniden Açılsın mı?",
+      "confirmReopenDescription": "Bu talep aktif işlemeye geri döndürülsün mü?",
+      "confirmCloseTitle": "Talep Kapatılsın mı?",
+      "confirmCloseDescription": "Bu talep şimdi kapatılsın mı?",
+      "confirmAction": "Onayla",
+      "cancelAction": "İptal"
+    }
+  }
+}

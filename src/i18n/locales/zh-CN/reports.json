@@ -1,0 +1,45 @@
+{
+    "title": "报告",
+    "generate": "生成报告",
+    "download": "下载",
+    "downloadPDF": "下载 PDF",
+    "downloadCSV": "下载 CSV",
+    "print": "打印",
+    "types": {
+        "incomeExpense": "收入与支出对比",
+        "spendingCategory": "分类支出",
+        "spendingAccount": "按账户支出",
+        "monthlyTrends": "月度趋势",
+        "budgetPerformance": "预算执行情况",
+        "accountStatement": "账户对账单",
+        "transactionReport": "交易报告"
+    },
+    "filters": {
+        "dateRange": "日期范围",
+        "account": "账户",
+        "category": "分类",
+        "type": "交易类型",
+        "currency": "货币"
+    },
+    "summary": {
+        "totalIncome": "总收入",
+        "totalExpenses": "总支出",
+        "netFlow": "净现金流",
+        "savingsRate": "储蓄率",
+        "topCategory": "最高支出分类",
+        "transactionCount": "交易总数"
+    },
+    "pdf": {
+        "generatedOn": "生成于",
+        "reportPeriod": "报告期间",
+        "preparedFor": "为以下用户准备",
+        "page": "第",
+        "of": "页，共",
+        "footer": "Smart Pocket — 个人财务报告",
+        "disclaimer": "本报告仅用于个人财务追踪目的。"
+    },
+    "empty": {
+        "title": "此期间暂无数据",
+        "description": "请尝试调整日期范围或筛选条件"
+    }
+}

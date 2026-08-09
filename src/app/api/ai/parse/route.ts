@@ -52,7 +52,7 @@ const ALLOWED_REQUEST_TYPES = new Set(['voice', 'text']);
 
 // Allowlisted language codes — prevent prompt injection via language field
 const ALLOWED_LANGUAGES = new Set([
-  'en', 'ar', 'fr', 'ru', 'ur', 'auto',
+  'en', 'ar', 'fr', 'ru', 'ur', 'auto', 'tr', 'zh-CN', 'es', 'pt-BR',
 ]);
 const ALLOWED_RELATIONSHIPS = new Set([
   'spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other',

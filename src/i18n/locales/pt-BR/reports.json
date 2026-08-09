@@ -1,0 +1,45 @@
+{
+    "title": "Relatórios",
+    "generate": "Gerar Relatório",
+    "download": "Baixar",
+    "downloadPDF": "Baixar PDF",
+    "downloadCSV": "Baixar CSV",
+    "print": "Imprimir",
+    "types": {
+        "incomeExpense": "Renda vs Despesas",
+        "spendingCategory": "Gastos por Categoria",
+        "spendingAccount": "Gastos por Conta",
+        "monthlyTrends": "Tendências Mensais",
+        "budgetPerformance": "Desempenho do Orçamento",
+        "accountStatement": "Extrato da Conta",
+        "transactionReport": "Relatório de Transações"
+    },
+    "filters": {
+        "dateRange": "Período",
+        "account": "Conta",
+        "category": "Categoria",
+        "type": "Tipo de Transação",
+        "currency": "Moeda"
+    },
+    "summary": {
+        "totalIncome": "Renda Total",
+        "totalExpenses": "Despesas Totais",
+        "netFlow": "Fluxo de Caixa Líquido",
+        "savingsRate": "Taxa de Economia",
+        "topCategory": "Principal Categoria de Gasto",
+        "transactionCount": "Total de Transações"
+    },
+    "pdf": {
+        "generatedOn": "Gerado em",
+        "reportPeriod": "Período do Relatório",
+        "preparedFor": "Preparado para",
+        "page": "Página",
+        "of": "de",
+        "footer": "Smart Pocket — Relatório de Finanças Pessoais",
+        "disclaimer": "Este relatório destina-se apenas ao acompanhamento financeiro pessoal."
+    },
+    "empty": {
+        "title": "Sem dados para este período",
+        "description": "Tente ajustar o período ou os filtros"
+    }
+}

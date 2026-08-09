@@ -87,7 +87,11 @@
     "ur": "الأردية",
     "ar": "العربية",
     "fr": "Français",
-    "ru": "Русский"
+    "ru": "Русский",
+    "tr": "Türkçe",
+    "zh-CN": "简体中文",
+    "es": "Español",
+    "pt-BR": "Português (Brasil)"
   },
   "currency": {
     "label": "العملة",

@@ -1,0 +1,76 @@
+{
+    "title": "Personas",
+    "subtitle": "Gestiona las finanzas de familiares, amigos y otros",
+    "addPerson": "Agregar Persona",
+    "editProfile": "Editar Perfil",
+    "nopeople": "Aún no hay personas",
+    "nopeopleDesc": "Agrega familiares, amigos o cualquier persona cuyas finanzas gestiones",
+    "moneyHeld": "Dinero en Custodia",
+    "owedToMe": "Me Deben",
+    "iOwe": "Le Debo",
+    "relationship": {
+        "spouse": "Cónyuge",
+        "child": "Hijo/a",
+        "parent": "Padre/Madre",
+        "sibling": "Hermano/a",
+        "friend": "Amigo/a",
+        "relative": "Familiar",
+        "colleague": "Colega",
+        "client": "Cliente",
+        "other": "Otro"
+    },
+    "tabs": {
+        "overview": "Resumen",
+        "ledger": "Libro Mayor",
+        "expenses": "Gastos",
+        "reimbursements": "Reembolsos",
+        "settlements": "Liquidaciones",
+        "reports": "Informes",
+        "profile": "Perfil"
+    },
+    "ledger": {
+        "title": "Libro Mayor",
+        "noEntries": "Aún no hay entradas en el libro mayor",
+        "entryTypes": {
+            "money_received": "Dinero Recibido",
+            "money_returned": "Dinero Devuelto",
+            "expense_from_held": "Gasto (Saldo en Custodia)",
+            "expense_paid_by_user": "Gasto (Pagado por Mí)",
+            "expense_paid_by_person": "Gasto (Pagado por la Persona)",
+            "reimbursement_due_to_user": "Reembolso Pendiente a Mí",
+            "reimbursement_due_to_person": "Reembolso Pendiente a la Persona",
+            "reimbursement_received": "Reembolso Recibido",
+            "reimbursement_paid": "Reembolso Pagado",
+            "settlement": "Liquidación",
+            "adjustment": "Ajuste"
+        }
+    },
+    "reimbursements": {
+        "title": "Reembolsos",
+        "noReimbursements": "Aún no hay reembolsos",
+        "recordPayment": "Registrar Pago",
+        "outstanding": "Pendiente",
+        "statuses": {
+            "pending": "Pendiente",
+            "partially_paid": "Parcialmente Pagado",
+            "settled": "Liquidado",
+            "waived": "Eximido",
+            "cancelled": "Cancelado"
+        }
+    },
+    "settlements": {
+        "title": "Liquidaciones",
+        "noSettlements": "Aún no hay liquidaciones",
+        "newSettlement": "Nueva Liquidación",
+        "totalSettled": "Total Liquidado"
+    },
+    "spaces": {
+        "title": "Espacios",
+        "personal": "Personal",
+        "family": "Familiar",
+        "household": "Hogar",
+        "child": "Hijo/a",
+        "friend": "Amigo/a",
+        "custom": "Personalizado"
+    }
+}

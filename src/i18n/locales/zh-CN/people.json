@@ -1,0 +1,76 @@
+{
+    "title": "人员",
+    "subtitle": "为家人、朋友和其他人管理财务",
+    "addPerson": "添加人员",
+    "editProfile": "编辑资料",
+    "nopeople": "暂无人员",
+    "nopeopleDesc": "添加家庭成员、朋友或您代其管理财务的任何人",
+    "moneyHeld": "代管资金",
+    "owedToMe": "他人欠我",
+    "iOwe": "我欠他人",
+    "relationship": {
+        "spouse": "配偶",
+        "child": "子女",
+        "parent": "父母",
+        "sibling": "兄弟姐妹",
+        "friend": "朋友",
+        "relative": "亲戚",
+        "colleague": "同事",
+        "client": "客户",
+        "other": "其他"
+    },
+    "tabs": {
+        "overview": "概览",
+        "ledger": "台账",
+        "expenses": "支出",
+        "reimbursements": "报销",
+        "settlements": "结算",
+        "reports": "报告",
+        "profile": "资料"
+    },
+    "ledger": {
+        "title": "台账",
+        "noEntries": "暂无台账记录",
+        "entryTypes": {
+            "money_received": "已收款项",
+            "money_returned": "已退还款项",
+            "expense_from_held": "支出（来自代管余额）",
+            "expense_paid_by_user": "支出（由我支付）",
+            "expense_paid_by_person": "支出（由对方支付）",
+            "reimbursement_due_to_user": "应付给我的报销",
+            "reimbursement_due_to_person": "应付给对方的报销",
+            "reimbursement_received": "已收报销",
+            "reimbursement_paid": "已付报销",
+            "settlement": "结算",
+            "adjustment": "调整"
+        }
+    },
+    "reimbursements": {
+        "title": "报销",
+        "noReimbursements": "暂无报销",
+        "recordPayment": "记录付款",
+        "outstanding": "未结清",
+        "statuses": {
+            "pending": "待处理",
+            "partially_paid": "部分支付",
+            "settled": "已结清",
+            "waived": "已豁免",
+            "cancelled": "已取消"
+        }
+    },
+    "settlements": {
+        "title": "结算",
+        "noSettlements": "暂无结算",
+        "newSettlement": "新建结算",
+        "totalSettled": "已结算总额"
+    },
+    "spaces": {
+        "title": "空间",
+        "personal": "个人",
+        "family": "家庭",
+        "household": "住户",
+        "child": "子女",
+        "friend": "朋友",
+        "custom": "自定义"
+    }
+}

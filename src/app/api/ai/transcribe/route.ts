@@ -27,6 +27,7 @@ import {
   loadRuntimeVoiceTranscriptionConfig,
 } from '@/lib/voice-ai-server';
 import { createClientId } from '@/lib/uuid';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 
 function createServerClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -53,8 +54,8 @@ function toSpeechDurationMs(durationSeconds: number) {
   return Math.max(1, Math.ceil(durationSeconds * 1000));
 }
 
-const SUPPORTED_SPOKEN_LANGUAGES = new Set(['auto', 'en', 'ur', 'ar', 'fr', 'ru']);
-const SUPPORTED_DISPLAY_LANGUAGES = new Set(['en', 'ar', 'fr', 'ru']);
+const SUPPORTED_SPOKEN_LANGUAGES = new Set<string>(['auto', 'ur', ...SUPPORTED_LANGUAGE_CODES]);
+const SUPPORTED_DISPLAY_LANGUAGES = new Set<string>([...SUPPORTED_LANGUAGE_CODES]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ALLOWED_RELATIONSHIPS = new Set([
   'spouse',
@@ -111,23 +112,40 @@ const VALID_ERROR_CATEGORIES = new Set([
   'transcription_failed',
 ]);
 
-type SpokenLanguageCode = 'auto' | 'en' | 'ur' | 'ar' | 'fr' | 'ru';
-type DisplayLanguageCode = 'en' | 'ar' | 'fr' | 'ru';
+type SpokenLanguageCode = 'auto' | 'en' | 'ur' | 'ar' | 'fr' | 'ru' | 'tr' | 'zh-CN' | 'es' | 'pt-BR';
+type DisplayLanguageCode = 'en' | 'ar' | 'fr' | 'ru' | 'tr' | 'zh-CN' | 'es' | 'pt-BR';
+
+const SPOKEN_LOOKUP: Record<string, SpokenLanguageCode> = {
+  auto: 'auto', en: 'en', ur: 'ur', ar: 'ar', fr: 'fr', ru: 'ru',
+  tr: 'tr', 'zh-cn': 'zh-CN', es: 'es', 'pt-br': 'pt-BR',
+  'zh_cn': 'zh-CN', 'pt_br': 'pt-BR', zhc: 'zh-CN', ptb: 'pt-BR',
+  zh: 'zh-CN', pt: 'pt-BR', 'zh-hans': 'zh-CN',
+};
+const DISPLAY_LOOKUP: Record<string, DisplayLanguageCode> = {
+  en: 'en', ar: 'ar', fr: 'fr', ru: 'ru', tr: 'tr',
+  'zh-cn': 'zh-CN', es: 'es', 'pt-br': 'pt-BR',
+  'zh_cn': 'zh-CN', 'pt_br': 'pt-BR',
+  zh: 'zh-CN', pt: 'pt-BR',
+};
 
 function normalizeSpokenLanguage(value: FormDataEntryValue | null): SpokenLanguageCode {
   if (typeof value !== 'string') {
     return 'auto';
   }
-  const normalized = value.trim().toLowerCase();
-  return SUPPORTED_SPOKEN_LANGUAGES.has(normalized) ? normalized as SpokenLanguageCode : 'auto';
+  const normalized = value.trim().toLowerCase().replace(/_/g, '-');
+  return SPOKEN_LOOKUP[normalized]
+    ?? SPOKEN_LOOKUP[normalized.split('-')[0]]
+    ?? 'auto';
 }
 
 function normalizeDisplayLanguage(value: FormDataEntryValue | null): DisplayLanguageCode {
   if (typeof value !== 'string') {
     return 'en';
   }
-  const normalized = value.trim().toLowerCase();
-  return SUPPORTED_DISPLAY_LANGUAGES.has(normalized) ? normalized as DisplayLanguageCode : 'en';
+  const normalized = value.trim().toLowerCase().replace(/_/g, '-');
+  return DISPLAY_LOOKUP[normalized]
+    ?? DISPLAY_LOOKUP[normalized.split('-')[0]]
+    ?? 'en';
 }
 
 function buildError(

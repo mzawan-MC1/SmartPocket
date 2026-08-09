@@ -2,23 +2,31 @@
 import React, { useState } from 'react';
 import { Globe, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { SUPPORTED_LANGUAGES, SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 
-const LANGUAGES = [
-  { code: 'en', name: 'English', flag: '🇬🇧', rtl: false },
-  { code: 'ar', name: 'العربية', flag: '🇦🇪', rtl: true },
-  { code: 'fr', name: 'Français', flag: '🇫🇷', rtl: false },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺', rtl: false },
-];
+const LANGUAGES = SUPPORTED_LANGUAGES.map((entry) => ({
+  code: entry.code,
+  name: entry.nativeName,
+  flag: entry.flag,
+  rtl: entry.rtl,
+}));
 
 export default function AdminLanguagePage() {
   const [saved, setSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [defaultLang, setDefaultLang] = useState('en');
-  const [enabledLangs, setEnabledLangs] = useState(['en', 'ar', 'fr', 'ru']);
+  const [enabledLangs, setEnabledLangs] = useState<typeof SUPPORTED_LANGUAGE_CODES>([...SUPPORTED_LANGUAGE_CODES]);
 
   const toggleLang = (code: string) => {
     if (code === defaultLang) return;
-    setEnabledLangs((prev) => prev.includes(code) ? prev.filter((l) => l !== code) : [...prev, code]);
+    const safeCode = SUPPORTED_LANGUAGE_CODES.find((c) => c === code);
+    if (!safeCode) return;
+    setEnabledLangs((prev) => {
+      if (prev.includes(safeCode)) {
+        return prev.filter((l): l is (typeof prev)[number] => l !== safeCode);
+      }
+      return [...prev, safeCode];
+    });
   };
 
   const handleSave = async () => {

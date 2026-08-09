@@ -27,6 +27,7 @@ import FeaturedBlogSection from '@/components/public/blog/FeaturedBlogSection';
 import type { BlogCardData } from '@/components/public/blog/BlogCard';
 import PricingPlansSection from '@/components/public/PricingPlansSection';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SUPPORTED_LANGUAGES } from '@/i18n/registry';
 
 const HOW_IT_WORKS = [
   { id: 'create', step: '01' },
@@ -35,12 +36,10 @@ const HOW_IT_WORKS = [
   { id: 'budgets', step: '04' },
 ] as const;
 
-const LANGUAGES = [
-  { code: 'EN', nameKey: 'common:language.en', dirKey: 'home.languages.ltr' },
-  { code: 'AR', nameKey: 'common:language.ar', dirKey: 'home.languages.rtl' },
-  { code: 'FR', nameKey: 'common:language.fr', dirKey: 'home.languages.ltr' },
-  { code: 'RU', nameKey: 'common:language.ru', dirKey: 'home.languages.ltr' },
-] as const;
+const LANGUAGES = SUPPORTED_LANGUAGES.map((entry) => ({
+  code: entry.code.toUpperCase(),
+  nameKey: `common:language.${entry.code}` as const,
+}));
 
 const HOME_DEVICES = [
   {

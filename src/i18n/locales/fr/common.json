@@ -87,7 +87,11 @@
     "ur": "Ourdou",
     "ar": "العربية",
     "fr": "Français",
-    "ru": "Русский"
+    "ru": "Русский",
+    "tr": "Turc",
+    "zh-CN": "Chinois simplifié",
+    "es": "Espagnol",
+    "pt-BR": "Portugais (Brésil)"
   },
   "currency": {
     "label": "Devise",

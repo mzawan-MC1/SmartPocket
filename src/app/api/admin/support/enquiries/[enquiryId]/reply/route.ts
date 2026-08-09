@@ -107,6 +107,7 @@ export async function POST(request: Request, context: { params: Promise<{ enquir
     subject: enquiry.subject,
     referenceNumber: enquiry.reference_number,
     replyMessage: replyBody,
+    languageCode: (enquiry as { locale_code?: string | null }).locale_code || null,
   }).catch((sendError) => {
     console.error('[support] Failed to send contact reply email.', sendError);
   });

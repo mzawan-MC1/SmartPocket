@@ -206,6 +206,10 @@ export default function FaqAdminClient({
       ar: tp('adminFaqs.languages.ar', 'Arabic'),
       fr: tp('adminFaqs.languages.fr', 'French'),
       ru: tp('adminFaqs.languages.ru', 'Russian'),
+      tr: tp('adminFaqs.languages.tr', 'Turkish'),
+      'zh-CN': tp('adminFaqs.languages.zh-CN', 'Simplified Chinese'),
+      es: tp('adminFaqs.languages.es', 'Spanish'),
+      'pt-BR': tp('adminFaqs.languages.pt-BR', 'Brazilian Portuguese'),
     }) satisfies Record<FaqLanguageCode, string>,
     [tp]
   );

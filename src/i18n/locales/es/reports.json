@@ -1,0 +1,45 @@
+{
+    "title": "Informes",
+    "generate": "Generar Informe",
+    "download": "Descargar",
+    "downloadPDF": "Descargar PDF",
+    "downloadCSV": "Descargar CSV",
+    "print": "Imprimir",
+    "types": {
+        "incomeExpense": "Ingresos vs Gastos",
+        "spendingCategory": "Gasto por Categoría",
+        "spendingAccount": "Gasto por Cuenta",
+        "monthlyTrends": "Tendencias Mensuales",
+        "budgetPerformance": "Desempeño de Presupuestos",
+        "accountStatement": "Estado de Cuenta",
+        "transactionReport": "Informe de Transacciones"
+    },
+    "filters": {
+        "dateRange": "Rango de Fechas",
+        "account": "Cuenta",
+        "category": "Categoría",
+        "type": "Tipo de Transacción",
+        "currency": "Moneda"
+    },
+    "summary": {
+        "totalIncome": "Ingresos Totales",
+        "totalExpenses": "Gastos Totales",
+        "netFlow": "Flujo de Caja Neto",
+        "savingsRate": "Tasa de Ahorro",
+        "topCategory": "Categoría con Mayor Gasto",
+        "transactionCount": "Total de Transacciones"
+    },
+    "pdf": {
+        "generatedOn": "Generado el",
+        "reportPeriod": "Periodo del Informe",
+        "preparedFor": "Preparado para",
+        "page": "Página",
+        "of": "de",
+        "footer": "Smart Pocket — Informe de Finanzas Personales",
+        "disclaimer": "Este informe es únicamente para fines de seguimiento financiero personal."
+    },
+    "empty": {
+        "title": "Sin datos para este periodo",
+        "description": "Intenta ajustar tu rango de fechas o filtros"
+    }
+}

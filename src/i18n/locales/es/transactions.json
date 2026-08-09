@@ -1,0 +1,56 @@
+{
+    "title": "Transacciones",
+    "addTransaction": "Agregar Transacción",
+    "addExpense": "Agregar Gasto",
+    "addIncome": "Agregar Ingreso",
+    "transfer": "Transferencia",
+    "fields": {
+        "amount": "Monto",
+        "type": "Tipo",
+        "account": "Cuenta",
+        "category": "Categoría",
+        "date": "Fecha",
+        "time": "Hora",
+        "merchant": "Comerciante / Origen",
+        "notes": "Notas",
+        "tags": "Etiquetas",
+        "receipt": "Recibo",
+        "recurring": "Recurrente"
+    },
+    "types": {
+        "income": "Ingreso",
+        "expense": "Gasto",
+        "transfer": "Transferencia"
+    },
+    "filters": {
+        "all": "Todos",
+        "income": "Ingresos",
+        "expense": "Gastos",
+        "transfer": "Transferencias",
+        "dateRange": "Rango de Fechas",
+        "account": "Cuenta",
+        "category": "Categoría",
+        "search": "Buscar transacciones..."
+    },
+    "sort": {
+        "dateDesc": "Más Recientes Primero",
+        "dateAsc": "Más Antiguos Primero",
+        "amountDesc": "Monto Más Alto",
+        "amountAsc": "Monto Más Bajo"
+    },
+    "table": {
+        "date": "Fecha",
+        "description": "Descripción",
+        "category": "Categoría",
+        "account": "Cuenta",
+        "amount": "Monto",
+        "actions": "Acciones"
+    },
+    "empty": {
+        "title": "Aún no hay transacciones",
+        "description": "Agrega tu primera transacción para comenzar"
+    },
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar esta transacción?",
+    "deleted": "Transacción eliminada",
+    "saved": "Transacción guardada"
+}

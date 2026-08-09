@@ -6,6 +6,7 @@ import { renderTransactionalEmail } from '@/lib/email/transactional-layout';
 import { buildCommonVariables, sendTransactionalEmail } from '@/lib/email/transactional';
 import { buildTransactionalAppUrl } from '@/lib/email/transactional-config';
 import { PLATFORM_BILLING_CURRENCY_CODE } from '@/lib/subscription/billing-currency';
+import { SUPPORTED_LANGUAGE_CODES, DEFAULT_LANGUAGE, isSupportedLanguage, type SupportedLanguage } from '@/i18n/registry';
 import crypto from 'node:crypto';
 
 export const runtime = 'nodejs';
@@ -26,7 +27,7 @@ type TemplateUpdatePayload = {
 };
 
 type TemplateActionPayload =
-  | { action: 'send_test'; recipient: string }
+  | { action: 'send_test'; recipient: string; locale?: string | null }
   | { action: 'reset_default' };
 
 type DefaultTemplateShape = {
@@ -735,22 +736,49 @@ export async function GET(
   const { templateKey } = await params;
   const url = new URL(request.url);
   const mode = url.searchParams.get('mode');
+  const rawLanguage = url.searchParams.get('language');
 
-  const { data, error } = await admin
-    .from('email_templates')
-    .select('*')
-    .eq('template_key', templateKey)
-    .eq('language_code', 'en')
-    .maybeSingle();
+  const requestedLanguage: SupportedLanguage | null = rawLanguage
+    ? (isSupportedLanguage(rawLanguage) ? rawLanguage : null)
+    : null;
 
-  if (error) {
+  if (rawLanguage && !requestedLanguage) {
     return applySupabaseCookies(
-      NextResponse.json({ error: 'Failed to load template.' }, { status: 500 }),
+      NextResponse.json(
+        { error: `Invalid language parameter. Expected one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}.` },
+        { status: 400 }
+      ),
       cookieMutations
     );
   }
 
-  if (mode === 'preview' && data) {
+  const targetLanguage = requestedLanguage ?? DEFAULT_LANGUAGE;
+
+  const [{ data: nativeRow }, { data: enFallbackRow }] = await Promise.all([
+    targetLanguage === DEFAULT_LANGUAGE
+      ? Promise.resolve({ data: null, error: null })
+      : admin
+          .from('email_templates')
+          .select('*')
+          .eq('template_key', templateKey)
+          .eq('language_code', targetLanguage)
+          .limit(1)
+          .maybeSingle(),
+    admin
+      .from('email_templates')
+      .select('*')
+      .eq('template_key', templateKey)
+      .eq('language_code', DEFAULT_LANGUAGE)
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const actualRow = nativeRow || enFallbackRow;
+  const resolvedLanguage = (nativeRow ? targetLanguage : (enFallbackRow ? DEFAULT_LANGUAGE : targetLanguage)) as SupportedLanguage;
+  const isFallback = Boolean(!nativeRow && enFallbackRow);
+  const translationExists = Boolean(nativeRow);
+
+  if (mode === 'preview' && actualRow) {
     const [{ data: settingsRow }, { data: notifRow }] = await Promise.all([
       admin.from('platform_settings').select('*').maybeSingle(),
       admin.from('email_notification_settings').select('*').eq('singleton_lock', true).maybeSingle(),
@@ -759,13 +787,13 @@ export async function GET(
     const settings = normalizePlatformSettings(settingsRow || {});
     const vars = buildSampleVars(templateKey, settings);
 
-    const subject = renderTokens(((data as any).subject as string) || templateKey, vars);
-    const preheader = renderTokens(((data as any).preheader as string) || '', vars);
-    const heading = renderTokens(((data as any).heading as string) || '', vars) || ((data as any).name as string) || templateKey;
-    const innerHtml = sanitizeTemplateHtml(renderTokensEscaped(((data as any).html_body as string) || '', vars));
-    const innerText = renderTokens(((data as any).text_body as string) || '', vars);
-    const ctaLabel = (data as any).button_text ? renderTokens((data as any).button_text as string, vars) : null;
-    const ctaUrl = (data as any).button_url_template ? renderTokens((data as any).button_url_template as string, vars) : null;
+    const subject = renderTokens(((actualRow as any).subject as string) || templateKey, vars);
+    const preheader = renderTokens(((actualRow as any).preheader as string) || '', vars);
+    const heading = renderTokens(((actualRow as any).heading as string) || '', vars) || ((actualRow as any).name as string) || templateKey;
+    const innerHtml = sanitizeTemplateHtml(renderTokensEscaped(((actualRow as any).html_body as string) || '', vars));
+    const innerText = renderTokens(((actualRow as any).text_body as string) || '', vars);
+    const ctaLabel = (actualRow as any).button_text ? renderTokens((actualRow as any).button_text as string, vars) : null;
+    const ctaUrl = (actualRow as any).button_url_template ? renderTokens((actualRow as any).button_url_template as string, vars) : null;
 
     const html = renderTransactionalEmail({
       settings,
@@ -792,6 +820,9 @@ export async function GET(
             html,
             text: innerText,
             variables: vars,
+            requested_language: targetLanguage,
+            resolved_language: resolvedLanguage,
+            is_fallback: isFallback,
           },
         },
         { status: 200 }
@@ -801,7 +832,17 @@ export async function GET(
   }
 
   return applySupabaseCookies(
-    NextResponse.json({ template: data || null }, { status: 200 }),
+    NextResponse.json(
+      {
+        template: actualRow || null,
+        requested_language: targetLanguage,
+        resolved_language: actualRow ? resolvedLanguage : null,
+        translation_exists: translationExists,
+        is_fallback: isFallback,
+        registered_languages: SUPPORTED_LANGUAGE_CODES,
+      },
+      { status: 200 }
+    ),
     cookieMutations
   );
 }
@@ -815,7 +856,25 @@ export async function PUT(
 
   const { admin, cookieMutations } = auth;
   const { templateKey } = await params;
-  const body = (await request.json().catch(() => ({}))) as TemplateUpdatePayload;
+  const body = (await request.json().catch(() => ({}))) as TemplateUpdatePayload & { language_code?: unknown };
+
+  const rawLanguage = body.language_code;
+  const targetLanguage: SupportedLanguage | null =
+    typeof rawLanguage === 'string' && isSupportedLanguage(rawLanguage)
+      ? rawLanguage
+      : typeof rawLanguage === 'undefined'
+        ? DEFAULT_LANGUAGE
+        : null;
+
+  if (targetLanguage === null) {
+    return applySupabaseCookies(
+      NextResponse.json(
+        { error: `Invalid language_code. Expected one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}.` },
+        { status: 400 }
+      ),
+      cookieMutations
+    );
+  }
 
   const updates: Record<string, unknown> = {};
   const copyString = (key: keyof TemplateUpdatePayload, column: string) => {
@@ -825,30 +884,98 @@ export async function PUT(
     }
   };
 
-  copyString('name', 'name');
-  copyString('category', 'category');
-  copyString('recipient_type', 'recipient_type');
-  copyString('subject', 'subject');
-  copyString('preheader', 'preheader');
-  copyString('heading', 'heading');
-  copyString('html_body', 'html_body');
-  copyString('text_body', 'text_body');
-  copyString('button_text', 'button_text');
-  copyString('button_url_template', 'button_url_template');
+  const isEnglishRow = targetLanguage === DEFAULT_LANGUAGE;
 
-  if (typeof body.enabled === 'boolean') {
-    updates.enabled = body.enabled;
+  if (isEnglishRow) {
+    copyString('name', 'name');
+    copyString('category', 'category');
+    copyString('recipient_type', 'recipient_type');
+    copyString('subject', 'subject');
+    copyString('preheader', 'preheader');
+    copyString('heading', 'heading');
+    copyString('html_body', 'html_body');
+    copyString('text_body', 'text_body');
+    copyString('button_text', 'button_text');
+    copyString('button_url_template', 'button_url_template');
+
+    if (typeof body.enabled === 'boolean') {
+      updates.enabled = body.enabled;
+    }
+
+    if (body.supported_variables !== undefined) {
+      updates.supported_variables = body.supported_variables;
+    }
+  } else {
+    let sharedIdentitySource: { name?: string; category?: string; recipient_type?: string; supported_variables?: unknown } | null = null;
+    const { data: existingTargetRow, error: existingTargetError } = await admin
+      .from('email_templates')
+      .select('name,category,recipient_type,supported_variables')
+      .eq('template_key', templateKey)
+      .eq('language_code', targetLanguage)
+      .limit(1)
+      .maybeSingle();
+    if (existingTargetError) {
+      return applySupabaseCookies(
+        NextResponse.json({ error: 'Failed to load target template context.' }, { status: 500 }),
+        cookieMutations
+      );
+    }
+    if (!existingTargetRow) {
+      const { data: englishRow, error: englishRowError } = await admin
+        .from('email_templates')
+        .select('name,category,recipient_type,supported_variables')
+        .eq('template_key', templateKey)
+        .eq('language_code', DEFAULT_LANGUAGE)
+        .limit(1)
+        .maybeSingle();
+      if (englishRowError) {
+        return applySupabaseCookies(
+          NextResponse.json({ error: 'Failed to load English template context.' }, { status: 500 }),
+          cookieMutations
+        );
+      }
+      sharedIdentitySource = englishRow ?? null;
+    }
+
+    if (sharedIdentitySource) {
+      if (sharedIdentitySource.name && !updates.name) updates.name = sharedIdentitySource.name;
+      if (sharedIdentitySource.category && !updates.category) updates.category = sharedIdentitySource.category;
+      if (sharedIdentitySource.recipient_type && !updates.recipient_type) updates.recipient_type = sharedIdentitySource.recipient_type;
+      if (sharedIdentitySource.supported_variables !== undefined && updates.supported_variables === undefined) {
+        updates.supported_variables = sharedIdentitySource.supported_variables;
+      }
+    }
+
+    copyString('subject', 'subject');
+    copyString('preheader', 'preheader');
+    copyString('heading', 'heading');
+    copyString('html_body', 'html_body');
+    copyString('text_body', 'text_body');
+    copyString('button_text', 'button_text');
+    copyString('button_url_template', 'button_url_template');
+
+    if (typeof body.enabled === 'boolean') {
+      updates.enabled = body.enabled;
+    }
   }
 
-  if (body.supported_variables !== undefined) {
-    updates.supported_variables = body.supported_variables;
+  if (Object.keys(updates).length === 0) {
+    return applySupabaseCookies(
+      NextResponse.json({ success: true, note: 'No translatable fields provided.' }, { status: 200 }),
+      cookieMutations
+    );
   }
+
+  updates.template_key = templateKey;
+  updates.language_code = targetLanguage;
 
   const { error } = await admin
     .from('email_templates')
-    .update(updates)
-    .eq('template_key', templateKey)
-    .eq('language_code', 'en');
+    .upsert(updates as any, {
+      onConflict: 'template_key,language_code',
+      ignoreDuplicates: false,
+      defaultToNull: false,
+    });
 
   if (error) {
     return applySupabaseCookies(
@@ -858,7 +985,7 @@ export async function PUT(
   }
 
   return applySupabaseCookies(
-    NextResponse.json({ success: true }, { status: 200 }),
+    NextResponse.json({ success: true, saved_language: targetLanguage }, { status: 200 }),
     cookieMutations
   );
 }
@@ -883,6 +1010,24 @@ export async function POST(
       );
     }
 
+    const rawLocale = (body as any)?.locale;
+    const sendLocale: SupportedLanguage | null =
+      typeof rawLocale === 'string' && isSupportedLanguage(rawLocale)
+        ? rawLocale
+        : typeof rawLocale === 'undefined'
+          ? DEFAULT_LANGUAGE
+          : null;
+
+    if (sendLocale === null) {
+      return applySupabaseCookies(
+        NextResponse.json(
+          { error: `Invalid locale. Expected one of: ${SUPPORTED_LANGUAGE_CODES.join(', ')}.` },
+          { status: 400 }
+        ),
+        cookieMutations
+      );
+    }
+
     const { data: settingsRow } = await admin.from('platform_settings').select('*').maybeSingle();
     const settings = normalizePlatformSettings(settingsRow || {});
     const vars = buildSampleVars(templateKey, settings);
@@ -893,10 +1038,11 @@ export async function POST(
       isTest: true,
       overrideTo: { email: recipient, name: 'Test recipient' },
       variables: vars,
+      languageCode: sendLocale,
     });
 
     return applySupabaseCookies(
-      NextResponse.json({ success: true, result }, { status: 200 }),
+      NextResponse.json({ success: true, result, sent_language: sendLocale }, { status: 200 }),
       cookieMutations
     );
   }
@@ -912,22 +1058,29 @@ export async function POST(
 
     const { error } = await admin
       .from('email_templates')
-      .update({
-        name: defaults.name,
-        category: defaults.category,
-        recipient_type: defaults.recipient_type,
-        subject: defaults.subject,
-        preheader: defaults.preheader,
-        heading: defaults.heading,
-        html_body: defaults.html_body,
-        text_body: defaults.text_body,
-        button_text: defaults.button_text,
-        button_url_template: defaults.button_url_template,
-        enabled: defaults.enabled,
-        supported_variables: defaults.supported_variables,
-      })
-      .eq('template_key', templateKey)
-      .eq('language_code', 'en');
+      .upsert(
+        {
+          template_key: templateKey,
+          language_code: DEFAULT_LANGUAGE,
+          name: defaults.name,
+          category: defaults.category,
+          recipient_type: defaults.recipient_type,
+          subject: defaults.subject,
+          preheader: defaults.preheader,
+          heading: defaults.heading,
+          html_body: defaults.html_body,
+          text_body: defaults.text_body,
+          button_text: defaults.button_text,
+          button_url_template: defaults.button_url_template,
+          enabled: defaults.enabled,
+          supported_variables: defaults.supported_variables,
+        } as any,
+        {
+          onConflict: 'template_key,language_code',
+          ignoreDuplicates: false,
+          defaultToNull: false,
+        }
+      );
 
     if (error) {
       return applySupabaseCookies(
@@ -937,7 +1090,7 @@ export async function POST(
     }
 
     return applySupabaseCookies(
-      NextResponse.json({ success: true }, { status: 200 }),
+      NextResponse.json({ success: true, reset_language: DEFAULT_LANGUAGE }, { status: 200 }),
       cookieMutations
     );
   }

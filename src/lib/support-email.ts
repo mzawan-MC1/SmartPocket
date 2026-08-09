@@ -35,6 +35,7 @@ export async function sendContactAcknowledgementEmail(args: {
   subject: string;
   message: string;
   referenceNumber: string;
+  languageCode?: string | null;
 }) {
   return sendTransactionalEmail({
     eventKey: `customer_contact_enquiry_acknowledged:${args.submissionId}`,
@@ -46,6 +47,7 @@ export async function sendContactAcknowledgementEmail(args: {
       contact_message: args.message,
       reference_number: args.referenceNumber,
     },
+    languageCode: args.languageCode ?? null,
   });
 }
 
@@ -56,6 +58,7 @@ export async function sendContactReplyEmail(args: {
   subject: string;
   referenceNumber: string;
   replyMessage: string;
+  languageCode?: string | null;
 }) {
   return sendTransactionalEmail({
     eventKey: `customer_contact_enquiry_reply:${args.submissionId}:${Date.now()}`,
@@ -67,6 +70,7 @@ export async function sendContactReplyEmail(args: {
       reference_number: args.referenceNumber,
       reply_message: args.replyMessage,
     },
+    languageCode: args.languageCode ?? null,
   });
 }
 
@@ -76,6 +80,7 @@ export async function sendContactResolvedEmail(args: {
   email: string;
   subject: string;
   referenceNumber: string;
+  languageCode?: string | null;
 }) {
   return sendTransactionalEmail({
     eventKey: `customer_contact_enquiry_resolved:${args.submissionId}:${Date.now()}`,
@@ -86,6 +91,7 @@ export async function sendContactResolvedEmail(args: {
       contact_subject: args.subject,
       reference_number: args.referenceNumber,
     },
+    languageCode: args.languageCode ?? null,
   });
 }
 

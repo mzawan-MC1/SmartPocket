@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
 import PublicFaqPageClient from '@/components/faqs/PublicFaqPageClient';
 import { BASE_I18N_RESOURCES, type SupportedLanguage } from '@/i18n/resources';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 import { getPublicFaqPageData } from '@/lib/faqs-server';
 import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
@@ -14,7 +15,7 @@ import {
   type StructuredDataValue,
 } from '@/lib/site-metadata';
 
-const PUBLIC_LANGUAGES: SupportedLanguage[] = ['en', 'ar', 'fr', 'ru'];
+const PUBLIC_LANGUAGES: readonly SupportedLanguage[] = SUPPORTED_LANGUAGE_CODES;
 type FaqPageLanguageData = Awaited<ReturnType<typeof getPublicFaqPageData>>;
 
 export async function generateMetadata(): Promise<Metadata> {

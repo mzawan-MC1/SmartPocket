@@ -1,0 +1,45 @@
+{
+  "title": "Raporlar",
+  "generate": "Rapor Üret",
+  "download": "İndir",
+  "downloadPDF": "PDF İndir",
+  "downloadCSV": "CSV İndir",
+  "print": "Yazdır",
+  "types": {
+    "incomeExpense": "Gelir vs Gider",
+    "spendingCategory": "Kategoriye Göre Harcama",
+    "spendingAccount": "Hesaba Göre Harcama",
+    "monthlyTrends": "Aylık Trendler",
+    "budgetPerformance": "Bütçe Performansı",
+    "accountStatement": "Hesap Ekstresi",
+    "transactionReport": "İşlem Raporu"
+  },
+  "filters": {
+    "dateRange": "Tarih Aralığı",
+    "account": "Hesap",
+    "category": "Kategori",
+    "type": "İşlem Türü",
+    "currency": "Para Birimi"
+  },
+  "summary": {
+    "totalIncome": "Toplam Gelir",
+    "totalExpenses": "Toplam Gider",
+    "netFlow": "Net Nakit Akışı",
+    "savingsRate": "Tasarruf Oranı",
+    "topCategory": "En Yüksek Harcama Kategorisi",
+    "transactionCount": "Toplam İşlem"
+  },
+  "pdf": {
+    "generatedOn": "Üretim tarihi",
+    "reportPeriod": "Rapor Dönemi",
+    "preparedFor": "Hazırlayan",
+    "page": "Sayfa",
+    "of": "/",
+    "footer": "Smart Pocket — Kişisel Finans Raporu",
+    "disclaimer": "Bu rapor yalnızca kişisel finans takibi amaçlıdır."
+  },
+  "empty": {
+    "title": "Bu dönem için veri yok",
+    "description": "Tarih aralığınızı veya filtrelerinizi ayarlamayı deneyin"
+  }
+}

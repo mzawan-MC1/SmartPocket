@@ -1,0 +1,45 @@
+{
+    "title": "Configurações",
+    "sections": {
+        "profile": "Perfil",
+        "preferences": "Preferências",
+        "security": "Segurança",
+        "notifications": "Notificações",
+        "language": "Idioma e Região",
+        "currency": "Moeda",
+        "appearance": "Aparência",
+        "data": "Dados e Privacidade"
+    },
+    "profile": {
+        "fullName": "Nome Completo",
+        "email": "Endereço de E-mail",
+        "phone": "Número de Telefone",
+        "country": "País",
+        "avatar": "Foto do Perfil",
+        "changeAvatar": "Alterar Foto",
+        "removeAvatar": "Remover Foto"
+    },
+    "preferences": {
+        "defaultCurrency": "Moeda Padrão",
+        "language": "Idioma da Interface",
+        "dateFormat": "Formato de Data",
+        "numberFormat": "Formato Numérico",
+        "theme": "Tema",
+        "themeLight": "Claro",
+        "themeDark": "Escuro",
+        "themeSystem": "Sistema",
+        "monthStart": "Dia de Início do Mês",
+        "monthlyIncome": "Renda Mensal"
+    },
+    "security": {
+        "changePassword": "Alterar Senha",
+        "currentPassword": "Senha Atual",
+        "newPassword": "Nova Senha",
+        "confirmPassword": "Confirmar Senha",
+        "twoFactor": "Autenticação de Dois Fatores",
+        "sessions": "Sessões Ativas",
+        "signOutAll": "Sair de Todos os Dispositivos"
+    },
+    "saved": "Configurações salvas",
+    "saveError": "Falha ao salvar as configurações"
+}

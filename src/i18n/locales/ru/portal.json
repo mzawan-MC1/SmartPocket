@@ -15,7 +15,8 @@
     "signOutSuccess": "Выход выполнен успешно",
     "signOutError": "Не удалось выйти",
     "userFallback": "Пользователь",
-    "faqs": "FAQ"
+    "faqs": "FAQ",
+    "smartEntryShort": "AI"
   },
   "notifications": {
     "button": "Уведомления",
@@ -132,13 +133,20 @@
         "title": "Срок действия подписки истек",
         "description": "Срок действия контракта {{subscriptionName}} истек {{contractEndDate}}."
       }
+    },
+    "time": {
+      "dateFormat": {
+        "month": "short",
+        "day": "numeric"
+      }
     }
   },
   "sidebar": {
     "sections": {
       "finance": "Финансы",
       "manage": "Управление",
-      "reports": "Отчеты"
+      "reports": "Отчеты",
+      "support": "Поддержка"
     },
     "nav": {
       "transfers": "Переводы",
@@ -150,7 +158,8 @@
       "spaces": "Пространства",
       "aiHistory": "История AI",
       "personalSubscriptions": "Личные подписки",
-      "faqs": "FAQ"
+      "faqs": "FAQ",
+      "support": "Поддержка"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Развернуть боковую панель",
@@ -178,7 +187,13 @@
     "spaces": "Пространства",
     "aiHistory": "История AI",
     "personalSubscriptions": "Личные подписки",
-    "faqs": "FAQ"
+    "faqs": "FAQ",
+    "transfers": "Переводы",
+    "recurring": "Регулярные",
+    "categories": "Категории",
+    "reimbursements": "Возмещения",
+    "settlements": "Расчеты",
+    "support": "Поддержка"
   },
   "dashboardHeader": {
     "title": "Панель управления",
@@ -302,7 +317,49 @@
       "overBudget": "Превышен бюджет",
       "nearLimit": "Близко к лимиту",
       "onTrack": "По плану"
-    }
+    },
+    "groupedByCurrency": "Сгруппировано по валюте",
+    "usedPercent": "Использовано {{percent}}%",
+    "mixedCurrencyHint": "Бюджеты в смешанных валютах показаны по каждой валюте отдельно, чтобы не складывать несвязанные итоги.",
+    "totalBudget": "Общий бюджет",
+    "spentSoFar": "Потрачено на данный момент",
+    "remaining": "Осталось",
+    "budget": "Бюджет",
+    "spent": "Потрачено",
+    "overBy": "Превышение на",
+    "onTrack": "{{count}} по плану",
+    "nearLimit": "{{count}} близко к лимиту",
+    "exceeded": "{{count}} превышено",
+    "conversionUnavailable": "{{count}} конвертаций недоступно",
+    "addCategoryBudget": "Добавить бюджет по категории",
+    "editBudget": "Редактировать бюджет {{name}}",
+    "addSuccess": "Бюджет создан",
+    "saved": "Бюджет сохранен",
+    "updated": "Бюджет обновлен",
+    "archived": "Бюджет архивирован",
+    "setCategoryBudget": "Установить бюджет по категории",
+    "periodBudget": "Бюджет на {{period}}",
+    "budgetAmount": "Сумма бюджета",
+    "conversionUnavailableTitle": "Конвертация недоступна",
+    "warningHint": "Проверьте настройки или историю курсов",
+    "transactionsInPeriod": "{{count}} операция за этот период",
+    "budgetFallback": "Бюджет",
+    "detailsTitle": "Детали бюджета",
+    "loadingDetails": "Загрузка деталей бюджета...",
+    "previousPeriod": "Предыдущий бюджетный период",
+    "nextPeriod": "Следующий бюджетный период",
+    "previous": "Предыдущий",
+    "next": "Следующий",
+    "currentPeriod": "Текущий период",
+    "historicalRateUnavailable": "Исторический курс обмена недоступен",
+    "unavailable": "Недоступно",
+    "progress": "Прогресс",
+    "categoryTransactions": "Операции по категории",
+    "itemsCount": "{{count}} позиция",
+    "noSpendingInPeriod": "За этот период нет расходов.",
+    "expenseFallback": "Расход",
+    "editAction": "Редактировать бюджет",
+    "archiveAction": "Архивировать бюджет"
   },
   "dashboardMetrics": {
     "monthly": "Месячный",
@@ -525,7 +582,23 @@
       "systemDefaultLabels": {
         "personalCash": "Счет наличных по умолчанию",
         "personalBank": "Банковский счет по умолчанию"
-      }
+      },
+      "exchangeRatesFailed": "Не удалось загрузить курсы обмена.",
+      "noExchangeRateSnapshot": "Нет доступного действительного снимка курса обмена.",
+      "previewFailed": "Не удалось рассчитать предпросмотр курса обмена.",
+      "selectBothAccounts": "Выберите оба счета.",
+      "chooseDifferentAccounts": "Счета «откуда» и «куда» должны быть разными.",
+      "accountsNeedCurrencies": "Оба выбранных счета должны иметь валюту.",
+      "crossCurrencyPreviewRequired": "Требуется действительный предпросмотр курса обмена для переводов между валютами.",
+      "completed": "Перевод успешно выполнен",
+      "createFailed": "Не удалось выполнить перевод.",
+      "loading": "Загрузка формы перевода...",
+      "stalePreview": "Этот предпросмотр использует устаревший кэшированный курс.",
+      "descriptionPlaceholder": "например, Ежемесячный перевод на сбережения",
+      "notesPlaceholder": "Необязательные заметки...",
+      "helper": "Этот перевод обновляет балансы обоих счетов и создает связанные записи операций.",
+      "processing": "Выполнение...",
+      "completeAction": "Выполнить перевод"
     }
   },
   "recurring": {
@@ -575,7 +648,29 @@
     "form": {
       "spaceRecurringNotice": "Этот повторяющийся элемент будет использовать участников, балансы и доступные счета пространства {{space}}.",
       "spaceMember": "Участник пространства",
-      "managedPerson": "Подопечный"
+      "managedPerson": "Подопечный",
+      "loadFailed": "Не удалось загрузить данные формы регулярной операции.",
+      "accountRequired": "Выберите счет.",
+      "accountCurrencyMissing": "У выбранного счета не указана валюта.",
+      "created": "Регулярная операция создана",
+      "createFailed": "Не удалось создать регулярную операцию.",
+      "loading": "Загрузка формы регулярной операции...",
+      "descriptionPlaceholder": "например, Подписка Netflix",
+      "frequency": "Частота",
+      "frequencies": {
+        "daily": "Ежедневно",
+        "weekly": "Еженедельно",
+        "biweekly": "Каждые 2 недели",
+        "monthly": "Ежемесячно",
+        "quarterly": "Ежеквартально",
+        "yearly": "Ежегодно"
+      },
+      "frequencyHelper": "Графики дважды в месяц и пользовательские регулярные расписания требуют отдельных полей повторения и пока недоступны.",
+      "amountRequired": "Сумма обязательна.",
+      "amountMin": "Должно быть больше 0.",
+      "merchantPlaceholder": "например, Netflix",
+      "nextDueDate": "Следующая дата платежа",
+      "creating": "Создание..."
     }
   },
   "accounts": {
@@ -656,7 +751,19 @@
       "maskedAccountPlaceholder": "например •••• 1234",
       "bankAccountType": "Тип банковского счета",
       "spaceAccountFor": "Счет пространства {{space}}",
-      "spaceAccountHelper": "Этот счет принадлежит выбранному пространству и виден его участникам."
+      "spaceAccountHelper": "Этот счет принадлежит выбранному пространству и виден его участникам.",
+      "nameRequired": "Название счета обязательно.",
+      "currencyRequired": "Валюта обязательна.",
+      "updated": "Account updated",
+      "created": "Account created",
+      "saveFailed": "Failed to save account.",
+      "name": "Account Name",
+      "namePlaceholder": "e.g. Chase Checking, Cash Wallet",
+      "type": "Account Type",
+      "openingBalanceHelper": "Current balance of this account. Use negative for credit card debt.",
+      "notesPlaceholder": "Optional notes...",
+      "includeInTotal": "Include in total balance calculation",
+      "updateAction": "Update Account"
     }
   },
   "categories": {
@@ -784,7 +891,88 @@
       "other": "Другое"
     },
     "detail": {
-      "dashboardTitle": "Люди и пространства"
+      "dashboardTitle": "Люди и пространства",
+      "heldForOthers": "Held for others",
+      "peopleOweMe": "People owe me",
+      "iOweOthers": "I owe others",
+      "pendingReimbursementsShort": "Pending Reimb.",
+      "tabs": {
+        "overview": "Overview",
+        "ledger": "Ledger"
+      },
+      "entryTypes": {
+        "moneyReceived": "Money Received",
+        "moneyReturned": "Money Returned",
+        "expenseFromHeld": "Expense From Held Balance",
+        "expensePaidByUser": "Expense Paid By Me",
+        "expensePaidByPerson": "Expense Paid By Person",
+        "reimbursementDueToUser": "Reimbursement Due To Me",
+        "reimbursementDueToPerson": "Reimbursement Due To Person",
+        "reimbursementReceived": "Reimbursement Received",
+        "reimbursementPaid": "Reimbursement Paid",
+        "settlement": "Settlement",
+        "adjustment": "Adjustment"
+      },
+      "loadFailed": "Failed to load person details.",
+      "notFound": "Person not found.",
+      "backToPeople": "Back to People",
+      "pendingReimbursementsCount": "{{count}} pending reimbursements",
+      "totalReceived": "Total Received",
+      "totalExpenses": "Total Expenses",
+      "profile": "Profile",
+      "recentActivity": "Recent Activity",
+      "noLedgerEntries": "No ledger entries yet.",
+      "recordFirstTransaction": "Record first transaction",
+      "noReimbursementsYet": "No reimbursements yet.",
+      "personOwesMe": "{{name}} owes me",
+      "iOwePerson": "I owe {{name}}",
+      "noSettlementsYet": "No settlements yet.",
+      "personReport": "Person Report",
+      "fullReports": "View Full Reports"
+    },
+    "form": {
+      "fullNameRequired": "Full name is required.",
+      "preferredCurrencyRequired": "Preferred currency is required.",
+      "addedSuccessfully": "{{name}} added successfully",
+      "addFailed": "Failed to add person.",
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "e.g. Jane Doe",
+      "relationship": "Relationship",
+      "email": "Email",
+      "optional": "Optional",
+      "phone": "Phone",
+      "phoneHelper": "Used for contact context only. User-entered phone values stay unchanged.",
+      "existingPhoneHelper": "Existing phone details stay as entered.",
+      "preferredCurrency": "Preferred Currency",
+      "chooseCurrency": "Choose currency",
+      "notes": "Notes",
+      "notesPlaceholder": "Add optional notes...",
+      "createManagedProfile": "Create a managed profile for shared balances and reimbursements.",
+      "profileUpdated": "Profile updated",
+      "updateFailed": "Failed to update profile.",
+      "saveChanges": "Save Changes"
+    },
+    "quickTransaction": {
+      "title": "Record Person Transaction",
+      "transactionType": "Transaction Type",
+      "validAmountError": "Enter a valid amount.",
+      "descriptionRequired": "Description is required.",
+      "recorded": "Transaction recorded",
+      "recordFailed": "Failed to record transaction.",
+      "descriptionPlaceholder": "Brief description",
+      "createReimbursement": "Create reimbursement for {{name}}",
+      "record": "Record",
+      "types": {
+        "moneyReceived": "Money Received",
+        "moneyReturned": "Money Returned",
+        "expenseFromHeld": "Expense From Held Balance",
+        "expensePaidByUser": "Expense Paid By Me",
+        "expensePaidByPerson": "Expense Paid By Person",
+        "reimbursementReceived": "Reimbursement Received",
+        "reimbursementPaid": "Reimbursement Paid",
+        "settlement": "Settlement",
+        "adjustment": "Adjustment"
+      }
     }
   },
   "reimbursements": {
@@ -827,7 +1015,19 @@
       "digitalWallet": "Цифровой кошелек",
       "other": "Другое"
     },
-    "addReimbursement": "Добавить возмещение"
+    "addReimbursement": "Добавить возмещение",
+    "form": {
+      "loadFailed": "Failed to load reimbursement form.",
+      "owedBy": "Owed By",
+      "owedTo": "Owed To",
+      "person": "Person",
+      "me": "Me",
+      "descriptionPlaceholder": "What is this reimbursement for?",
+      "dueDate": "Due Date",
+      "loading": "Loading reimbursement form...",
+      "created": "Reimbursement created",
+      "createFailed": "Failed to create reimbursement."
+    }
   },
   "settlements": {
     "title": "Расчеты",
@@ -873,7 +1073,8 @@
       "card": "Карта",
       "digitalWallet": "Цифровой кошелек",
       "other": "Другое"
-    }
+    },
+    "account": "Account"
   },
   "aiHistory": {
     "title": "История AI",
@@ -1384,7 +1585,45 @@
       "quantity": "Кол-во",
       "unitPrice": "Цена",
       "lineTotal": "Итого"
-    }
+    },
+    "filters": {
+      "allTime": "All time",
+      "showingAllHistory": "Showing all transaction history",
+      "customRange": "Custom range",
+      "customDateRange": "Custom date range",
+      "planningPeriod": "planning period",
+      "payPeriod": "pay period",
+      "currentNamedPeriod": "Current {{period}}",
+      "previousNamedPeriod": "Previous {{period}}",
+      "currentMonth": "Current month",
+      "previousMonth": "Previous month",
+      "month": "Month",
+      "period": "Period",
+      "previousPayPeriod": "Previous pay period",
+      "nextMonth": "Next month",
+      "nextPayPeriod": "Next pay period",
+      "all": "All"
+    },
+    "deleteConfirm": "Delete this transaction?",
+    "deleted": "Transaction deleted",
+    "deleteFailed": "Failed to delete transaction.",
+    "allAccounts": "All Accounts",
+    "allCategories": "All Categories",
+    "dateFrom": "Date From",
+    "customRangeStart": "Custom range start date",
+    "dateTo": "Date To",
+    "customRangeEnd": "Custom range end date",
+    "selectedCount": "{{count}} selected",
+    "loading": "Loading transactions...",
+    "selectTransaction": "Select transaction",
+    "managedPersonTransaction": "Managed person transaction",
+    "selectAll": "Select all transactions",
+    "type": "Type",
+    "actions": "Actions",
+    "selectRow": "Select row",
+    "reportingPreviewTitle": "Reporting currency {{currency}}; provider {{provider}}; rate date {{rateDate}}",
+    "showingCount": "Showing {{start}}-{{end}} of {{total}}",
+    "tags": "Tags"
   },
   "spaces": {
     "title": "Пространства",
@@ -1864,7 +2103,20 @@
         "permissionDenied": "Доступ к микрофону запрещен. Разрешите доступ и попробуйте снова.",
         "noMicrophone": "Микрофон не найден. Подключите микрофон и попробуйте снова.",
         "notSupported": "Запись голоса недоступна в этом браузере или среде приложения. Используйте текстовый ввод.",
-        "startFailed": "Не удалось начать запись. Попробуйте еще раз."
+        "startFailed": "Не удалось начать запись. Попробуйте еще раз.",
+        "emptyAudio": "The recording was empty. Please try again.",
+        "fileTooLarge": "This recording is too large. Keep it under {{maxSize}}."
+      },
+      "unavailable": {
+        "configurationTitle": "Voice entry is temporarily unavailable",
+        "configurationMessage": "The AI service has not been configured by the administrator. Use text entry for now.",
+        "modelTitle": "Voice model is unavailable",
+        "modelMessage": "The selected AI model does not support voice transcription. Use text entry for now.",
+        "microphoneTitle": "Microphone access is blocked",
+        "microphoneMessage": "Allow microphone access in your browser settings, then try again.",
+        "providerUnavailableTitle": "Voice transcription is temporarily unavailable",
+        "providerUnavailableMessage": "We could not transcribe your recording right now. Try again in a moment or use text entry.",
+        "limitTitle": "Voice limit reached"
       }
     },
     "missingFields": {
@@ -2625,7 +2877,17 @@
       "savingsRate": "Норма сбережений",
       "totalCredits": "Всего поступлений",
       "totalDebits": "Всего списаний",
-      "net": "Итог"
+      "net": "Итог",
+      "totalIncome": "Общий доход",
+      "totalExpenses": "Общие расходы",
+      "netSavings": "Чистые сбережения",
+      "transactions": "Операции",
+      "includedRecords": "Включено записей",
+      "savingsRateValue": "Норма сбережений: {{value}}%",
+      "savingsRateUnavailable": "Норма сбережений недоступна",
+      "netChange": "Чистое изменение",
+      "applicableBudgets": "Применимые бюджеты",
+      "totalTransactions": "Всего операций"
     },
     "budgetPerformanceCsv": {
       "periodLabel": "Метка периода",
@@ -2635,7 +2897,14 @@
       "progressPercent": "Прогресс %",
       "reportingAmount": "Сумма бюджета в валюте отчетности",
       "reportingSpent": "Потрачено в валюте отчетности",
-      "reportingRemaining": "Остаток в валюте отчетности"
+      "reportingRemaining": "Остаток в валюте отчетности",
+      "budget": "Бюджет",
+      "category": "Категория",
+      "period": "Период",
+      "spent": "Потрачено",
+      "remaining": "Осталось",
+      "progress": "Прогресс",
+      "status": "Статус"
     },
     "amount": "Сумма",
     "observations": "Наблюдение",
@@ -2643,10 +2912,20 @@
     "personalScope": "Личное",
     "spaceScope": "Пространство",
     "types": {
-      "fullFinancial": "Полный финансовый отчет"
+      "fullFinancial": "Полный финансовый отчет",
+      "incomeExpense": "Доходы и расходы",
+      "spendingCategory": "Расходы по категориям",
+      "trends": "Тренды",
+      "budgetPerformance": "Выполнение бюджета",
+      "accountStatement": "Выписка по счету"
     },
     "descriptions": {
-      "fullFinancial": "Соберите один полный финансовый отчет за выбранный период, охват и фильтры, используя существующие данные отчетности."
+      "fullFinancial": "Соберите один полный финансовый отчет за выбранный период, охват и фильтры, используя существующие данные отчетности.",
+      "incomeExpense": "Сравните доходы и расходы за активный диапазон отчета.",
+      "spendingCategory": "Просмотрите расходы по категориям за активный диапазон.",
+      "trends": "Просмотрите дневные, недельные или месячные корзины трендов в зависимости от выбранного диапазона.",
+      "budgetPerformance": "Отслеживайте только бюджеты, относящиеся к активному диапазону отчета.",
+      "accountStatement": "Сохраняйте исходные даты, валюты и суммы транзакций как основные значения выписки."
     },
     "controls": {
       "scopeLabel": "Охват",
@@ -2668,16 +2947,16 @@
       "includeItemInsights": "Включить аналитику товаров",
       "includeUpcomingCommitments": "Включить ближайшие обязательства",
       "includeArchivedAccounts": "Включать архивные или версионные счета, если это уместно",
-        "activeFilters": "{{count}} активных фильтров",
-        "moreFilters": "Больше фильтров",
-        "moreFiltersDescription": "Категория, человек, тип транзакции, режим валют и параметры детализации отчета.",
-        "showMoreFilters": "Показать больше фильтров",
-        "hideMoreFilters": "Скрыть фильтры",
+      "activeFilters": "{{count}} активных фильтров",
+      "moreFilters": "Больше фильтров",
+      "moreFiltersDescription": "Категория, человек, тип транзакции, режим валют и параметры детализации отчета.",
+      "showMoreFilters": "Показать больше фильтров",
+      "hideMoreFilters": "Скрыть фильтры",
       "preview": "Предпросмотр отчета",
-        "generatePdf": "Сформировать PDF",
-        "generatePdfLoading": "Формирование PDF...",
-        "generatePdfComplete": "Загрузка завершена",
-        "exportCsv": "Экспорт CSV",
+      "generatePdf": "Сформировать PDF",
+      "generatePdfLoading": "Формирование PDF...",
+      "generatePdfComplete": "Загрузка завершена",
+      "exportCsv": "Экспорт CSV",
       "exportCsvPackage": "Экспортировать полный отчет в CSV",
       "reset": "Сбросить",
       "previewPrompt": "Выберите фильтры и создайте предпросмотр, чтобы собрать полный финансовый документ.",
@@ -2931,31 +3210,121 @@
         "budgetAtRisk": "Бюджет ближе всего к лимиту: {{name}}.",
         "busiestDay": "Самый загруженный день расходов: {{date}}."
       }
-      },
-      "comparison": {
-        "noChange": "Без изменений",
-        "unavailable": "Сравнение недоступно"
-      },
-      "dateBasis": {
-        "activityDuring": "Активность за период {{start}} - {{end}}",
-        "balanceAsOf": "Баланс на {{date}}",
-        "commitmentsAfter": "Предстоящие обязательства после {{date}}",
-        "relationshipHistory": "История отношений"
-      },
-      "compact": {
-        "pageDescription": "Просматривайте балансы, активность, тренды и обязательства в одном компактном рабочем пространстве отчетов.",
-        "previewDescription": "В портале показывается компактный интерактивный предпросмотр. Используйте Сформировать PDF, чтобы открыть печатную версию.",
-        "emptyTitle": "В отчете не найдено значимой активности.",
-        "emptyDescription": "Попробуйте другой период, охват или счет, чтобы открыть отчет с активностью.",
-        "currencyDescription": "Сначала показываются итоги в валюте отчетности, а разбивка по исходным валютам остается доступной как вторичная деталь.",
-        "groups": {
-          "overview": "Обзор",
-          "periodActivity": "Активность периода",
-          "financialPosition": "Финансовое положение",
-          "people": "Люди",
-          "commitments": "Обязательства"
-        }
-    }
+    },
+    "comparison": {
+      "noChange": "Без изменений",
+      "unavailable": "Сравнение недоступно"
+    },
+    "dateBasis": {
+      "activityDuring": "Активность за период {{start}} - {{end}}",
+      "balanceAsOf": "Баланс на {{date}}",
+      "commitmentsAfter": "Предстоящие обязательства после {{date}}",
+      "relationshipHistory": "История отношений"
+    },
+    "compact": {
+      "pageDescription": "Просматривайте балансы, активность, тренды и обязательства в одном компактном рабочем пространстве отчетов.",
+      "previewDescription": "В портале показывается компактный интерактивный предпросмотр. Используйте Сформировать PDF, чтобы открыть печатную версию.",
+      "emptyTitle": "В отчете не найдено значимой активности.",
+      "emptyDescription": "Попробуйте другой период, охват или счет, чтобы открыть отчет с активностью.",
+      "currencyDescription": "Сначала показываются итоги в валюте отчетности, а разбивка по исходным валютам остается доступной как вторичная деталь.",
+      "groups": {
+        "overview": "Обзор",
+        "periodActivity": "Активность периода",
+        "financialPosition": "Финансовое положение",
+        "people": "Люди",
+        "commitments": "Обязательства"
+      }
+    },
+    "noData": "Нет данных",
+    "noTransactionsInPeriod": "Нет операций за этот период",
+    "noExpensesInPeriod": "Нет расходных операций за этот период",
+    "viewOriginalCurrencies": "Показать исходные валюты",
+    "reportingCurrency": "Валюта отчета: {{currency}}",
+    "historicalReportingTotal": "Исторический итог в валюте отчета в {{currency}}.",
+    "previousSnapshotUsage": "{{count}} записей используют ближайшее предыдущее доступное значение.",
+    "exactSnapshotUsage": "{{count}} записей используют точный снимок на дату операции.",
+    "appliedRateDates": "Примененные даты курсов: {{start}}{{end}}",
+    "provider": "Поставщик: {{provider}}",
+    "latestSnapshotFetchedAt": "Последний снимок получен: {{value}}",
+    "stale": "Один или несколько примененных снимков устарели.",
+    "presets": {
+      "currentPayPeriod": "Текущий период выплат",
+      "previousPayPeriod": "Предыдущий период выплат",
+      "currentPlanningPeriod": "Текущий период планирования",
+      "previousPlanningPeriod": "Предыдущий период планирования",
+      "currentMonth": "Текущий месяц",
+      "previousMonth": "Предыдущий месяц",
+      "currentQuarter": "Текущий квартал",
+      "currentYear": "Текущий год",
+      "last30Days": "Последние 30 дней",
+      "yearToDate": "С начала года",
+      "custom": "Произвольный диапазон"
+    },
+    "titles": {
+      "report": "Отчет",
+      "dailyTrend": "Дневной тренд",
+      "weeklyTrend": "Недельный тренд",
+      "monthlyTrends": "Месячные тренды"
+    },
+    "pageTitle": "Отчеты",
+    "pageDescription": "Анализируйте финансовые паттерны по периодам выплат, месяцам, кварталам, годам и произвольным диапазонам без изменения сохраненных операций или бюджетов.",
+    "pageBadge": "Аналитика",
+    "print": "Печать / сохранить как PDF",
+    "csv": "CSV",
+    "range": "Диапазон",
+    "accountFilter": "Фильтр по счету",
+    "reportingCurrencyLabel": "Валюта отчета",
+    "generated": "Создано",
+    "loading": "Загрузка",
+    "reportType": "Тип отчета",
+    "from": "С",
+    "to": "По",
+    "reportStartDate": "Начальная дата отчета",
+    "reportEndDate": "Конечная дата отчета",
+    "account": "Счет",
+    "filterByAccount": "Фильтровать по счету",
+    "allAccounts": "Все счета",
+    "previous": "Предыдущий",
+    "next": "Следующий",
+    "current": "Текущий",
+    "period": "период",
+    "loadingPeriod": "Загрузка периода...",
+    "comparedWith": "По сравнению с {{value}}",
+    "customRange": "Произвольный диапазон отчета",
+    "sharedBoundaries": "Общие границы финансового периода",
+    "periodSettingsError": "Не удалось загрузить настройки периода отчета.",
+    "loadError": "Не удалось загрузить данные отчета",
+    "downloadOptions": "Параметры скачивания",
+    "downloads": {
+      "csvExport": "Экспорт CSV",
+      "applicableBudgetsInRange": "{{count}} применимых бюджетов в диапазоне",
+      "transactionsInRange": "{{count}} операций в диапазоне",
+      "printPdf": "Сгенерировать PDF",
+      "printPdfDescription": "Скачать сгенерированную PDF-версию этого отчета."
+    },
+    "accountStatement": {
+      "emptyDescription": "Нет операций выписки, соответствующих выбранному диапазону отчета.",
+      "entryFallback": "Запись выписки",
+      "columns": {
+        "date": "Дата",
+        "type": "Тип",
+        "merchantSource": "Продавец / источник",
+        "description": "Описание",
+        "category": "Категория",
+        "account": "Счет",
+        "originalAmount": "Исходная сумма",
+        "originalCurrency": "Исходная валюта",
+        "reportingEquivalent": "Эквивалент в валюте отчета",
+        "reportingCurrency": "Валюта отчета",
+        "tags": "Теги",
+        "notes": "Заметки"
+      }
+    },
+    "loadingRange": "Загрузка диапазона...",
+    "loadingData": "Загрузка данных отчета...",
+    "noDataToExport": "Нет данных отчета, готовых к экспорту.",
+    "csvExportedTransactions": "Экспортировано {{count}} операций в CSV.",
+    "csvExportedBudgets": "Экспортировано {{count}} бюджетов в CSV."
   },
   "subscriptionBilling": {
     "title": "Подписка и биллинг",

@@ -1,0 +1,1336 @@
+{
+  "header": {
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
+    "getStartedFree": "免费开始使用"
+  },
+  "footer": {
+    "social": {
+      "twitter": "Twitter",
+      "github": "GitHub",
+      "linkedin": "LinkedIn"
+    },
+    "rights": "版权所有。",
+    "poweredBy": "技术支持：",
+    "copyright": "{{appName}}。版权所有。",
+    "contactAddress": "阿尔马贾兹2区，沙迦 — 阿联酋",
+    "pages": "页面",
+    "privacy": "隐私",
+    "terms": "条款",
+    "sectionCompany": "公司",
+    "sectionProduct": "产品",
+    "sectionSupport": "支持",
+    "sectionLegal": "法律",
+    "sectionLearn": "学习",
+    "sectionLegalTrust": "法律与信任",
+    "linkAbout": "关于我们",
+    "linkBlog": "博客",
+    "linkFeatures": "功能",
+    "linkPricing": "价格",
+    "linkContact": "联系我们",
+    "linkHelp": "帮助中心",
+    "linkDesktopApp": "桌面应用",
+    "linkSecurity": "安全性",
+    "backToTop": "返回顶部",
+    "linkFaqs": "常见问题",
+    "linkAiReceiptScanner": "AI 收据扫描器",
+    "linkAiVoiceExpenseTracker": "AI 语音支出追踪器",
+    "linkTermsAndConditions": "条款与条件"
+  },
+  "home": {
+    "hero": {
+      "title": "您的 AI 驱动\n日常理财助手",
+      "subtitle": "Smart Pocket 是一款 AI 驱动的日常理财助手，帮助您追踪支出、扫描收据、管理订阅、规划预算、处理共享资金，并在多货币间保持清晰。",
+      "aiBadge": "AI 驱动的日常理财助手",
+      "primaryCta": "免费开始使用",
+      "secondaryCta": "桌面应用"
+    },
+    "trust": {
+      "noCard": "无需信用卡",
+      "freePlan": "提供免费方案",
+      "oauthEnabled": "使用平台上启用的安全登录方式"
+    },
+    "sections": {
+      "aboutEyebrow": "什么是 Smart Pocket？",
+      "aboutTitle": "一款简单的日常理财助手，服务真实生活",
+      "aboutDescription": "Smart Pocket 帮助普通人在一个平静的地方管理账户、支出、预算、订阅、共享资金和收据。",
+      "featuresTitle": "Smart Pocket 涵盖的内容",
+      "featuresDescription": "核心工具保持简洁：跟踪您的余额、共享资金、预算以及背后的收据或定期付款。",
+      "stepsTitle": "Smart Pocket 如何提供帮助",
+      "stepsDescription": "以最简单的方式记录日常资金，然后让预算、共享资金和跟进事项有序推进，毫无杂乱。",
+      "platformTitle": "为真实生活打造",
+      "platformDescription": "在手机、平板和桌面上使用相同的清晰工作流程，界面语言帮助更多人感到自在。",
+      "securityTitle": "安全与隐私至上",
+      "securityDescription": "您的账户始终受保护，数据保持私密，AI 建议始终基于审核。",
+      "pricingTitle": "简单的价格，清晰的下一步",
+      "pricingDescription": "从免费试用开始，然后选择适合个人或家庭的方案。",
+      "languagesTitle": "提供四种界面语言",
+      "languagesDescription": "选择英语、阿拉伯语、法语或俄语作为应用界面，同时保持智能录入输入语言独立。",
+      "ctaTitle": "准备好更掌控您的资金了吗？",
+      "ctaDescription": "开始您的免费试用，在一个地方追踪基本信息，让 Smart Pocket 帮助您日复一日保持井然有序。"
+    },
+    "about": {
+      "audienceEyebrow": "为大众打造，而非为会计师",
+      "audienceTitle": "适合希望拥有更清晰理财习惯而不受会计压力困扰的普通人",
+      "audienceDescription": "Smart Pocket 适合家庭、自由职业者、情侣、合租者，以及任何希望了解日常支出、共享资金、账单、订阅和收据而无需学习金融术语的人。",
+      "noteTitle": "一种更温暖的理财方式",
+      "noteDescription": "Smart Pocket 的设计理念是简单、易读、有帮助，让您可以毫无压力地建立更好的理财习惯。",
+      "points": {
+        "1": "将账户、余额和日常交易集中在一起。",
+        "2": "在预算、订阅和定期付款偏离前跟进它们。",
+        "3": "更清晰地处理共享支出、报销和结算。"
+      },
+      "coverageTitle": "覆盖通常分散各处的资金环节",
+      "coverageDescription": "从日常支出到共享报销，Smart Pocket 让重要细节保持关联，易于审核。",
+      "coverageTags": {
+        "accounts": "账户、交易和预算",
+        "shared": "人员、空间、报销和结算",
+        "capture": "收据、文档、文本和语音录入",
+        "languages": "移动端、平板、桌面和多语言支持"
+      },
+      "audiences": {
+        "ordinaryPeople": "普通用户",
+        "families": "家庭",
+        "freelancers": "自由职业者",
+        "expats": "外籍人士",
+        "sharedMoney": "共享资金"
+      }
+    },
+    "benefits": {
+      "balanceTitle": "实时余额追踪",
+      "balanceDescription": "交易记录后，立即看到每个账户的余额更新。",
+      "budgetAlertsTitle": "超支前的预算提醒",
+      "budgetAlertsDescription": "当您接近分类预算上限时收到通知。",
+      "reportsTitle": "按需 PDF 和 CSV 报告",
+      "reportsDescription": "即时生成任何日期范围的专业财务报表。",
+      "recurringTitle": "定期交易自动化",
+      "recurringDescription": "一次性设置订阅和定期账单，让 Smart Pocket 为您追踪。",
+      "remindersTitle": "即将到期的付款提醒",
+      "remindersDescription": "永不错过账单。仪表盘显示未来 7 天内的到期项目。",
+      "rlsTitle": "私密账户隔离",
+      "rlsDescription": "您的数据对您的账户保持私密，与其他用户完全隔离。"
+    },
+    "features": {
+      "accountsTitle": "账户与余额",
+      "accountsDescription": "在一个清晰的视图中跟踪现金、银行、卡片和多货币余额。",
+      "dashboardTitle": "共享资金",
+      "dashboardDescription": "让人员、报销、结算和共享空间易于理解。",
+      "budgetsTitle": "预算",
+      "budgetsDescription": "设置简单上限，及早发现压力，在日常支出中保持务实。",
+      "exportsTitle": "收据与订阅",
+      "exportsDescription": "将收据、文档、订阅和定期付款与记录紧密关联。",
+      "recurringTitle": "提前掌握订阅和定期付款",
+      "recurringDescription": "知道接下来会发生什么、什么即将续订，以及在扣款前需要审核什么。",
+      "securityTitle": "更顺畅地处理多货币生活",
+      "securityDescription": "跨货币追踪日常资金，同时保持原始细节可读，最终记录清晰。"
+    },
+    "steps": {
+      "createTitle": "按您的方式记录资金",
+      "createDescription": "当逐条输入感觉缓慢时，输入快速备注、自然说话或从收据开始。",
+      "accountsTitle": "将账户和活动集中在一起",
+      "accountsDescription": "无需在不同屏幕间切换即可跟踪余额、交易及其背后的账户。",
+      "transactionsTitle": "让共享资金更易结算",
+      "transactionsDescription": "跨人员和空间追踪谁付款了、什么需要报销，以及什么仍需跟进。",
+      "budgetsTitle": "提前掌握预算和定期账单",
+      "budgetsDescription": "在它们变成意外之前，发现即将到期的付款、订阅和预算压力。",
+      "reportsTitle": "查看报告",
+      "reportsDescription": "为任何期间生成 PDF 或 CSV 报告，然后分享或存档。"
+    },
+    "platform": {
+      "mobileTitle": "移动优先，适应生活节奏",
+      "mobileDescription": "外出时记录支出、上传收据并检查到期项目。",
+      "desktopTitle": "桌面端提供更大空间",
+      "desktopDescription": "以更宽的视角查看收据、报告、共享资金和账户历史。",
+      "tabletTitle": "平板舒适查看",
+      "tabletDescription": "使用平衡布局进行家庭规划、审批和快速编辑。",
+      "pwaTitle": "安装为应用",
+      "pwaDescription": "将 Smart Pocket 添加到主屏幕，离线可用并支持后台同步。"
+    },
+    "security": {
+      "rlsTitle": "默认私密",
+      "rlsDescription": "您的账户和记录与其他用户保持隔离。",
+      "transitTitle": "安全登录",
+      "transitDescription": "Smart Pocket 在授予访问权限前使用受保护的登录检查。",
+      "restTitle": "受保护的存储",
+      "restDescription": "存储的数据被谨慎处理，并在后台保持受保护状态。",
+      "privacyTitle": "您的数据始终归您所有",
+      "privacyDescription": "Smart Pocket 不会出售您的金融数据。",
+      "label": "安全与隐私",
+      "heading": "为什么人们信任 Smart Pocket 处理日常资金",
+      "body": "隐私、保存前审核控制和清晰的账户所有权帮助您始终掌控，即使 AI 在准备细节时也是如此。",
+      "readPrivacy": "阅读我们的隐私政策",
+      "simplePrivacyTitle": "默认私密",
+      "simplePrivacyDescription": "您的资金数据始终绑定到您自己的账户，共享工作流程仍保持所有权清晰。",
+      "simpleReviewTitle": "任何内容保存前先审核",
+      "simpleReviewDescription": "AI 从文本、语音或收据准备细节，但最终记录由您确认。",
+      "simpleControlTitle": "足够清晰，可快速纠正",
+      "simpleControlDescription": "如果某些内容看起来不对，您可以审核、调整或选择不保存。",
+      "readSecurity": "查看安全与信任"
+    },
+    "pricing": {
+      "freeName": "免费版",
+      "freePrice": "免费",
+      "freePeriod": "永久",
+      "freeCta": "免费开始",
+      "proName": "专业版",
+      "proPrice": "$9.99",
+      "proPeriod": "/月",
+      "proCta": "开始专业版试用",
+      "familyName": "家庭版",
+      "familyPrice": "$19.99",
+      "familyPeriod": "/月",
+      "familyCta": "开始家庭版试用",
+      "subtitle": "比较当前订阅目录中的实时方案和配额。",
+      "trialBadge": "可享 {{days}} 天免费试用",
+      "mostPopular": "最受欢迎",
+      "trialHint": "{{planName}} 目前根据活跃方案配置包含 {{days}} 天试用。",
+      "viewDetails": "比较方案",
+      "freeFeatures": {
+        "1": "3 个账户",
+        "2": "每月 100 笔交易",
+        "3": "基础报告",
+        "4": "2 种货币"
+      },
+      "proFeatures": {
+        "1": "无限账户",
+        "2": "无限交易",
+        "3": "PDF 和 CSV 导出",
+        "4": "所有货币",
+        "5": "收据存储",
+        "6": "优先支持"
+      },
+      "familyFeatures": {
+        "1": "专业版全部功能",
+        "2": "最多 5 位用户",
+        "3": "共享预算",
+        "4": "家庭报告"
+      },
+      "managePlanCta": "管理订阅",
+      "guestPlanCta": "开始免费试用",
+      "audience": {
+        "free": "免费开始，获得基础功能",
+        "personal": "最适合个人使用",
+        "family": "最适合家庭和共享资金"
+      },
+      "descriptions": {
+        "free": "最适合在升级前试用 Smart Pocket，了解 AI 资金追踪的工作方式。",
+        "personal": "最适合个人通过完整 AI 驱动的个人财务追踪管理日常支出。",
+        "family": "最适合家庭、情侣和共享资金，提供 AI 辅助的家庭财务管理。"
+      },
+      "ctaSupport": {
+        "free": "在选择付费方案前先试用基础功能。",
+        "personal": "适用于工资、账单、收据和日常支出。",
+        "family": "当多人参与资金管理时的最佳选择。"
+      },
+      "sectionTitles": {
+        "aiIncluded": "包含 AI 功能",
+        "moneyTools": "理财工具",
+        "sharedTools": "共享工具",
+        "reports": "报告",
+        "trust": "信任保障"
+      },
+      "planItems": {
+        "accountsTransactions": "账户与交易集中管理",
+        "budgetsCategories": "预算与分类",
+        "subscriptionsReminders": "订阅与定期提醒",
+        "basicReportsDashboard": "基础仪表盘与报告",
+        "reviewBeforeSave": "保存 AI 结果前先审核",
+        "secureAccountAccess": "安全账户访问",
+        "noCardRequired": "无需信用卡",
+        "personalSubscriptions": "定期付款与个人订阅",
+        "receiptReviewFlow": "收据存储与审核流程",
+        "monthlyOverview": "月度支出概览",
+        "categoryTrendInsights": "分类与趋势洞察",
+        "multiCurrencyTracking": "多货币追踪",
+        "privateUserAccount": "私人用户账户",
+        "sharedSpaces": "共享支出空间",
+        "peopleReimbursements": "人员、报销和结算",
+        "familyBudgets": "家庭预算",
+        "householdSubscriptions": "家庭订阅与定期付款",
+        "sharedTracking": "共享旅行、活动和家庭追踪",
+        "householdSpendingView": "家庭支出视图",
+        "categoryInsights": "分类洞察",
+        "clearWhoPaid": "谁付款、谁欠款的清晰记录"
+      },
+      "providerUnavailable": "在线结账尚未配置。请联系 {{email}} 申请升级。",
+      "providerUnavailableNoEmail": "在线结账尚未配置。请联系支持申请升级。",
+      "intervals": {
+        "none": "已包含",
+        "monthly": "按月",
+        "yearly": "按年"
+      },
+      "features": {
+        "textAi": "文本 AI：每天 {{credits}} 点数和 {{requests}} 次请求",
+        "voiceAi": "语音 AI：每周期 {{minutes}} 分钟",
+        "receiptIntelligence": "收据智能识别：每周期 {{count}} 份文档",
+        "receiptIntelligenceDisabled": "不包含收据智能识别",
+        "aiHistoryEnabled": "AI 历史记录：{{days}} 天保留期",
+        "aiHistoryDisabled": "不包含 AI 历史记录"
+      },
+      "billedMonthly": "按月计费",
+      "billedYearly": "按年计费",
+      "perMonth": "/月",
+      "perYear": "/年",
+      "equivalentPerMonth": "相当于每月 {{amount}}",
+      "yearlyDiscount": "年度折扣",
+      "savePercent": "节省 {{percent}}%",
+      "saveAmountPerYear": "每年节省 {{amount}}",
+      "annualPrice": "年度价格",
+      "monthlyPrice": "月度价格",
+      "calculatedYearlyPrice": "计算的年度价格",
+      "billingInterval": "计费周期",
+      "chooseMonthly": "选择按月",
+      "chooseYearly": "选择按年",
+      "bestValue": "最超值",
+      "contactSupportYearlyPlan": "联系支持获取此年度方案",
+      "invalidDiscount": "请输入 0% 到 100% 之间的有效年度折扣。",
+      "wholeNumberPriceRequirement": "价格必须保存为整美元金额。"
+    },
+    "languages": {
+      "ltr": "从左到右",
+      "rtl": "从右到左",
+      "label": "界面语言"
+    },
+    "cta": {
+      "primary": "创建账户",
+      "secondary": "联系我们"
+    },
+    "available": "可用",
+    "learnMore": "了解更多",
+    "lovedWorldwide": "深受全球用户喜爱",
+    "summary": {
+      "title": "概览",
+      "subtitle": "快速快照",
+      "items": {
+        "cashFlow": "现金流",
+        "budgets": "预算",
+        "reports": "报告"
+      }
+    },
+    "preview": {
+      "totalBalance": "总余额",
+      "income": "收入",
+      "expenses": "支出",
+      "netFlow": "净流量",
+      "incomeVsExpenses": "收入与支出对比 — 6 个月",
+      "spendingByCategory": "分类支出",
+      "food": "餐饮",
+      "transport": "交通",
+      "bills": "账单",
+      "recentTransactions": "最近交易",
+      "groceryStore": "杂货店",
+      "salaryDeposit": "工资入账",
+      "subscriptions": "订阅",
+      "balance": "余额",
+      "inShort": "进",
+      "outShort": "出",
+      "dashboardUrl": "1smartpocket.com/dashboard",
+      "streamingSubscription": "流媒体订阅",
+      "brandName": "Smart Pocket",
+      "range30Days": "30 天",
+      "smartEntry": {
+        "title": "智能录入",
+        "description": "明天支付房租，保持您的食品预算受控。",
+        "draft": "草稿",
+        "ai": "AI"
+      },
+      "aiInsight": {
+        "title": "AI 洞察",
+        "description": "本周娱乐支出的增长速度快于收入。",
+        "status": "建议的预算调整已准备好"
+      },
+      "upcomingBill": {
+        "title": "即将到期的账单",
+        "dueIn": "2天",
+        "item": "水电费"
+      }
+    },
+    "homeVisuals": {
+      "common": {
+        "live": "实时",
+        "preview": "预览"
+      },
+      "multiAccount": {
+        "cash": "现金",
+        "bank": "银行",
+        "wallet": "钱包",
+        "primary": "主要",
+        "synced": "已同步",
+        "manual": "手动",
+        "totalBalance": "总余额"
+      },
+      "dashboard": {
+        "cashflow": "现金流",
+        "trends": "趋势"
+      },
+      "budget": {
+        "needs": "必需",
+        "savings": "储蓄"
+      },
+      "reports": {
+        "pdf": "PDF",
+        "csv": "CSV"
+      },
+      "recurring": {
+        "month": "5月"
+      },
+      "security": {
+        "vault": "保险库"
+      }
+    },
+    "auth": {
+      "apple": "使用 Apple 登录",
+      "google": "使用 Google 登录"
+    },
+    "currency": {
+      "title": "多货币支持",
+      "usd": "美元",
+      "eur": "欧元",
+      "aed": "阿联酋迪拉姆",
+      "gbp": "英镑",
+      "supported": "支持 153 种活跃货币"
+    },
+    "reports": {
+      "title": "专业报告，随时分享",
+      "description": "为任何日期范围生成收支汇总、预算执行报告和支出明细。",
+      "pdfTitle": "PDF 对账单",
+      "pdfDescription": "可打印的财务报表，带有您的品牌。与会计师分享或存档记录。",
+      "csvTitle": "CSV 导出",
+      "csvDescription": "将原始交易数据导出为 CSV，用于电子表格分析或会计软件导入。",
+      "chartsTitle": "可视化图表",
+      "chartsDescription": "收入与支出趋势、分类支出和预算执行情况均为交互式。"
+    },
+    "ai": {
+      "badge": "始终在您掌控下的 AI 帮助",
+      "title": "输入、说话或上传。Smart Pocket 为您准备细节供审核。",
+      "description": "Smart Pocket 使用 AI 将日常资金输入转换为您可在保存前审核的草稿，因此流程既快速又不会夺走控制权。",
+      "panelTitle": "AI 审核流程",
+      "panelSubtitle": "输入、准备、审核、保存",
+      "reviewBadge": "先审核",
+      "cardLabel": "简便输入",
+      "reviewNote": "准备好的草稿保持可编辑。在任何内容保存前，您可以调整金额、账户、分类、人员和备注。",
+      "highlights": {
+        "type": "输入简短的资金备注",
+        "voice": "在外时自然说话",
+        "receipts": "上传收据或文档",
+        "review": "保存前审核"
+      },
+      "features": {
+        "1": "输入",
+        "2": "说话",
+        "3": "上传",
+        "4": "审核"
+      },
+      "samples": {
+        "1": "示例：从我的现金钱包支付了 180 AED 用于食品杂货。",
+        "2": "示例：去机场的出租车，42 迪拉姆，添加到旅行分类。",
+        "3": "示例：包含总计、税费和商家详情的收据、发票或账单。",
+        "4": "示例：确认金额、货币、账户、分类、人员和备注。"
+      },
+      "roadmap": {
+        "previewLabel": "AI 草稿",
+        "cashFlowSignal": "AI 准备。您始终掌控。",
+        "descriptions": {
+          "1": "用通俗语言写下发生的事情，让 Smart Pocket 准备关键字段。",
+          "2": "当您双手忙碌或即将错过记录时机时，通过语音记录交易。",
+          "3": "上传收据、发票或账单，让 Smart Pocket 提取重要细节供审核。",
+          "4": "检查准备好的草稿，进行任何您想要的编辑，然后决定应该保存什么。"
+        }
+      }
+    },
+    "contact": {
+      "badge": "联系我们",
+      "title": "有疑问？我们在这里。",
+      "description": "无论您需要入门帮助、想了解方案，还是对 Smart Pocket 有疑问，都可以联系我们，我们将在 24 小时内回复。"
+    }
+  },
+  "authScreen": {
+    "brandSubtitle": "在一个简洁的应用中追踪支出、收据、订阅、预算和共享资金。",
+    "featureAdd": "通过输入、说话或上传收据添加支出",
+    "featureReview": "保存任何内容前先审核 AI 建议",
+    "featureBudgets": "追踪预算、订阅和定期付款",
+    "featureShared": "与人员、报销和空间一起管理共享支出",
+    "featureSecurity": "让您的资金数据保持私密并受您控制",
+    "footerNote": "私密、简单，专为日常理财打造。",
+    "unavailableTitle": "认证不可用",
+    "unavailableDescription": "当前未启用任何登录方式。请联系支持或稍后重试。",
+    "brandHeadline": "AI 驱动的资金追踪，化繁为简",
+    "signupNote": "从免费试用开始。为日常资金打造，而非复杂的会计。"
+  },
+  "contact": {
+    "metadataTitle": "联系我们",
+    "metadataDescription": "联系 Smart Pocket 获取支持、隐私问题或一般咨询。",
+    "titleFallback": "联系我们",
+    "introFallback": "有疑问或需要帮助？使用下方表单，我们的团队将尽快回复您。",
+    "detailsEmail": "邮箱",
+    "detailsPhone": "电话",
+    "detailsAddress": "地址",
+    "missingEmail": "在平台设置中添加支持邮箱",
+    "missingPhone": "在平台设置中添加联系电话",
+    "missingAddress": "在平台设置中添加公开地址",
+    "formTitle": "给我们发送消息",
+    "formDescription": "使用表单提问、请求帮助或分享反馈。我们目标在 24 小时内回复。",
+    "detailsPanelTitle": "联系方式",
+    "detailsPanelDescription": "这些公开信息来自平台设置，即使在编辑 CMS 介绍时也保持可见。",
+    "notConfigured": "未配置"
+  },
+  "contactForm": {
+    "sentTitle": "消息已发送！",
+    "sentDescription": "我们将在 24 小时内回复您。",
+    "name": "姓名",
+    "email": "邮箱",
+    "subject": "主题",
+    "message": "消息",
+    "namePlaceholder": "您的姓名",
+    "emailPlaceholder": "you@example.com",
+    "subjectPlaceholder": "我们能为您做什么？",
+    "messagePlaceholder": "告诉我们更多...",
+    "submit": "发送消息",
+    "submitting": "发送中...",
+    "successToast": "消息已发送！我们将在 24 小时内回复您。",
+    "errors": {
+      "nameRequired": "姓名字段为必填项",
+      "emailRequired": "邮箱字段为必填项",
+      "emailInvalid": "无效的邮箱地址",
+      "subjectRequired": "主题字段为必填项",
+      "messageRequired": "消息字段为必填项",
+      "messageMinLength": "请提供更详细的内容（至少 20 个字符）"
+    }
+  },
+  "resetPassword": {
+    "title": "设置新密码",
+    "subtitle": "请在下方输入您的新密码",
+    "successTitle": "密码已更新！",
+    "successDescription": "正在重定向到登录页...",
+    "password": "新密码",
+    "confirmPassword": "确认新密码",
+    "submit": "更新密码",
+    "submitting": "更新中...",
+    "togglePassword": "切换密码可见性",
+    "toastSuccess": "密码更新成功！",
+    "toastError": "更新密码失败。",
+    "errors": {
+      "passwordRequired": "密码为必填项",
+      "passwordMinLength": "至少需要 8 个字符",
+      "confirmRequired": "请确认您的密码",
+      "confirmMismatch": "两次输入的密码不匹配"
+    }
+  },
+  "legal": {
+    "privacy": {
+      "metadataTitle": "隐私政策",
+      "metadataDescription": "了解 Smart Pocket 如何处理您的个人和金融信息。",
+      "title": "隐私政策",
+      "lastUpdatedLabel": "最后更新：",
+      "lastUpdatedDate": "2026 年 6 月 21 日",
+      "sections": [
+        {
+          "title": "我们收集的信息",
+          "content": "Smart Pocket 存储您输入的账户、交易、预算和个人资料信息，以便应用程序提供预算、报告和协作功能。"
+        },
+        {
+          "title": "我们如何使用信息",
+          "content": "我们使用您的数据来运营产品、保护您的账户、响应支持请求以及提高可靠性。我们不会出售您的金融数据。"
+        },
+        {
+          "title": "数据存储与安全",
+          "content": "Smart Pocket 使用加密传输、受保护的基础设施和严格的账户级访问控制，旨在保持每个账户数据的隔离。"
+        },
+        {
+          "title": "您的选择",
+          "content": "您可以随时更新个人资料详情、更改语言偏好，以及就隐私问题或账户数据请求联系支持团队。"
+        }
+      ]
+    },
+    "terms": {
+      "metadataTitle": "服务条款",
+      "metadataDescription": "阅读管辖 Smart Pocket 使用的条款。",
+      "title": "服务条款",
+      "lastUpdatedLabel": "最后更新：",
+      "lastUpdatedDate": "2026 年 6 月 21 日",
+      "sections": [
+        {
+          "title": "使用 Smart Pocket",
+          "content": "您只能在遵守适用法律和这些条款的前提下使用 Smart Pocket。您有责任维护账户凭据的保密性。"
+        },
+        {
+          "title": "您的内容",
+          "content": "您保留输入的金融数据和备注的所有权。您有责任确保记录的信息准确且可合法存储。"
+        },
+        {
+          "title": "服务可用性",
+          "content": "我们努力保持 Smart Pocket 的可用性和安全性，但在维护、升级或我们控制范围外的事件期间，可用性可能会有所不同。"
+        },
+        {
+          "title": "联系我们",
+          "content": "如果您对这些条款有疑问，请使用联系页面或平台设置中公布的联系方式。"
+        }
+      ]
+    }
+  },
+  "getStarted": "开始使用",
+  "notFound": {
+    "title": "页面未找到",
+    "description": "您要查找的页面不存在。让我们带您回去。",
+    "goBack": "返回",
+    "backHome": "返回首页"
+  },
+  "offline": {
+    "title": "您已离线",
+    "description": "Smart Pocket 需要互联网连接来同步您的金融数据。请检查您的连接并重试。",
+    "retry": "重试",
+    "helper": "您的数据是安全的，将在您重新连接时同步。"
+  },
+  "faqs": {
+    "title": "常见问题",
+    "introduction": "查找关于 Smart Pocket 入门、日常工作流程和获取帮助位置的快速解答。",
+    "searchPlaceholder": "搜索问题、答案或关键字",
+    "categoriesLabel": "按分类浏览",
+    "resultsLabel": "个结果",
+    "allCategories": "全部分类",
+    "questionSingular": "个问题",
+    "questionPlural": "个问题",
+    "emptyTitle": "没有匹配您搜索的常见问题。",
+    "emptyDescription": "请尝试其他关键字或切换到其他分类。",
+    "uncategorized": "常规",
+    "featured": "精选",
+    "supportCtaTitle": "仍需要帮助？",
+    "supportCtaDescription": "联系 Smart Pocket 支持团队或创建支持工单。",
+    "createTicketAction": "创建支持工单",
+    "contactAction": "联系 Smart Pocket",
+    "seoTitle": "常见问题 | Smart Pocket",
+    "seoDescription": "浏览 Smart Pocket 关于设置、交易、预算、订阅、支持等方面的常见问题。",
+    "ogTitle": "Smart Pocket 常见问题",
+    "ogDescription": "查找关于 Smart Pocket 功能、支持和日常财务工作流程的答案。"
+  },
+  "blog": {
+    "common": {
+      "homeLabel": "首页",
+      "blogLabel": "博客",
+      "readTime": "{{count}} 分钟阅读",
+      "readArticleLabel": "阅读文章",
+      "fallbackTitle": "Smart Pocket 文章",
+      "fallbackExcerpt": "阅读关于收据、预算、订阅和日常理财习惯的实用 Smart Pocket 指南。",
+      "fallbackBadgeLabel": "Smart Pocket 博客"
+    },
+    "home": {
+      "eyebrow": "博客",
+      "title": "更清晰日常理财习惯的全新指南",
+      "description": "探索关于收据、预算、共享资金、订阅和更平静日常理财惯例的实用 Smart Pocket 文章。",
+      "viewAll": "查看全部博客文章"
+    },
+    "listing": {
+      "title": "Smart Pocket 博客",
+      "description": "关于预算、收据、订阅和日常理财习惯的简单实用指南。",
+      "seoTitle": "Smart Pocket 博客 | 理财指南、收据技巧和预算建议",
+      "seoDescription": "阅读 Smart Pocket 关于收据、订阅、共享支出、预算和更简洁理财惯例的博客文章。",
+      "ogTitle": "Smart Pocket 博客",
+      "ogDescription": "阅读关于收据、预算、订阅和共享支出的实用 Smart Pocket 指南。",
+      "twitterTitle": "Smart Pocket 博客",
+      "twitterDescription": "来自 Smart Pocket 的关于收据、预算、订阅和共享支出的理财指南。",
+      "searchLabel": "搜索",
+      "searchPlaceholder": "搜索文章",
+      "categoryLabel": "分类",
+      "categoryAllLabel": "全部分类",
+      "tagLabel": "标签",
+      "tagAllLabel": "全部标签",
+      "emptyTitle": "没有匹配您筛选条件的文章",
+      "emptyDescription": "请尝试其他关键字、分类或标签。",
+      "emptyPublishedTitle": "尚未发布博客文章。",
+      "emptyPublishedDescription": "请稍后再来查看。",
+      "ctaEyebrow": "从 Smart Pocket 开始",
+      "ctaTitle": "准备好将资金备注、收据和共享支出转化为更简洁的惯例了吗？",
+      "ctaDescription": "使用 Smart Pocket 审核 AI 辅助建议，掌控预算，让日常理财任务保持简单。",
+      "ctaPrimaryLabel": "开始免费试用",
+      "ctaSecondaryLabel": "了解 Smart Pocket"
+    },
+    "detail": {
+      "breadcrumbLabel": "面包屑导航",
+      "shareTitle": "分享这篇文章",
+      "ctaEyebrow": "准备好在保存前先审核了吗？",
+      "ctaTitle": "让 Smart Pocket 准备细节，然后保持掌控。",
+      "ctaDescription": "上传收据、追踪订阅，通过 AI 辅助审核流程简化共享支出。",
+      "ctaPrimaryLabel": "开始免费试用",
+      "ctaSecondaryLabel": "了解 Smart Pocket",
+      "relatedEyebrow": "继续阅读",
+      "relatedTitle": "相关文章",
+      "relatedAction": "浏览全部文章"
+    }
+  },
+  "securityPage": {
+    "eyebrow": "安全与信任",
+    "title": "您的资金数据保持私密并受您控制",
+    "description": "Smart Pocket 旨在帮助普通人自信地管理资金。我们保护账户访问，保持个人数据私密，并使用基于审核的 AI 流程，让您在任何内容保存前始终掌控。",
+    "breadcrumbLabel": "安全",
+    "primaryCta": "开始免费试用",
+    "secondaryCta": "联系支持",
+    "seoTitle": "Smart Pocket 安全与信任 | 个人财务隐私与账户保护",
+    "seoDescription": "了解 Smart Pocket 如何帮助保护您的私密资金数据、保护您的账户，并在任何内容保存前保持 AI 辅助操作基于审核。",
+    "ogTitle": "Smart Pocket 安全与信任",
+    "ogDescription": "了解 Smart Pocket 如何帮助保护您的账户、私人数据、收据和基于审核的 AI 操作。",
+    "twitterTitle": "Smart Pocket 安全与信任",
+    "twitterDescription": "关于 Smart Pocket 如何帮助保护您的账户和资金数据的简单清晰信息。",
+    "trustCards": [
+      {
+        "title": "默认私密",
+        "description": "您的账户和资金记录保持隔离，因此其他用户无法随意查看您的信息。"
+      },
+      {
+        "title": "安全登录",
+        "description": "Smart Pocket 使用安全登录检查来帮助保护您的账户访问。"
+      },
+      {
+        "title": "保存前审核",
+        "description": "AI 功能准备细节供审核。由您确认应该保存什么。"
+      },
+      {
+        "title": "谨慎的文档处理",
+        "description": "收据和文档被谨慎处理，以帮助准备信息供您审核。"
+      }
+    ],
+    "protectionEyebrow": "Smart Pocket 如何保护您",
+    "protectionTitle": "旨在保护您的账户、数据和决策",
+    "protectionDescription": "Smart Pocket 在后台使用安全账户控制，保持每个用户账户隔离，并使 AI 建议基于审核，因此您始终掌控。",
+    "protectionCards": [
+      {
+        "title": "您的账户始终受保护",
+        "description": "登录在授予访问权限前通过安全认证检查。"
+      },
+      {
+        "title": "您的数据不会随意可见",
+        "description": "管理员或支持访问仅应在真正的支持或系统任务需要时发生。"
+      },
+      {
+        "title": "AI 辅助，您做决定",
+        "description": "AI 辅助功能准备建议，但您在保存前审核并确认。"
+      },
+      {
+        "title": "收据被谨慎处理",
+        "description": "上传的收据和文档用于帮助准备细节供审核，而非暴露您的私人信息。"
+      },
+      {
+        "title": "您始终掌控",
+        "description": "您可以审核记录、纠正细节并决定您账户中应保存什么。"
+      },
+      {
+        "title": "支持随时可用",
+        "description": "如果某些内容看起来不对，请联系 Smart Pocket 支持，团队可以帮助调查。"
+      }
+    ],
+    "checklistEyebrow": "安全清单",
+    "checklistTitle": "快速信任摘要",
+    "checklistDescription": "Smart Pocket 为帮助保护您而采取的实际步骤的简单概述。",
+    "checklistItems": [
+      "您的账户通过安全登录检查受保护。",
+      "您的数据与其他用户保持隔离。",
+      "AI 建议在任何内容保存前基于审核。",
+      "收据和文档被谨慎处理。",
+      "您始终掌控您的记录和更改。",
+      "如果某些内容看起来不对，您可以快速联系支持。"
+    ],
+    "supportNote": "如果某些内容看起来不对，请尽快联系 Smart Pocket 支持，团队可以帮助调查。",
+    "faqEyebrow": "常见问题",
+    "faqTitle": "安全与信任常见问题",
+    "faqDescription": "关于隐私、账户保护、AI 审核和支持的清晰解答。",
+    "faqs": [
+      {
+        "question": "其他用户可以看到我的资金数据吗？",
+        "answer": "不能。Smart Pocket 旨在保持每个用户账户及其记录相互隔离。"
+      },
+      {
+        "question": "Smart Pocket 员工可以随意查看我的数据吗？",
+        "answer": "不能。个人数据不应被随意查看。任何支持或管理员访问仅应在真正的支持或系统任务需要时发生。"
+      },
+      {
+        "question": "AI 会自动保存交易吗？",
+        "answer": "不会。AI 功能准备细节供审核，由您确认应该保存什么。"
+      },
+      {
+        "question": "收据和文档如何处理？",
+        "answer": "收据和文档被谨慎处理，以帮助准备细节供您审核。"
+      },
+      {
+        "question": "如果某些内容看起来不对，我该怎么办？",
+        "answer": "请尽快联系 Smart Pocket 支持，团队可以与您一起审查问题。"
+      }
+    ],
+    "ctaEyebrow": "自信地开始",
+    "ctaTitle": "准备好更自信地管理资金了吗？",
+    "ctaDescription": "使用 Smart Pocket 通过基于审核的 AI 辅助和清晰的账户控制来追踪预算、收据、订阅和日常支出。"
+  },
+  "desktopAppPage": {
+    "seoTitle": "Smart Pocket 桌面应用",
+    "seoDescription": "下载适用于 Windows 的 Smart Pocket，从您的桌面管理支出、预算、订阅、收据和日常财务。macOS 版本即将推出。",
+    "ogTitle": "Smart Pocket 桌面应用",
+    "ogDescription": "使用 Smart Pocket 从您的桌面管理支出、预算、订阅、收据和日常财务。",
+    "eyebrow": "桌面应用",
+    "hero": {
+      "title": "Smart Pocket 桌面应用",
+      "description": "通过专注的 Smart Pocket 桌面体验管理支出、预算、订阅、收据和日常财务。",
+      "showcaseLabel": "{{appName}} 桌面应用",
+      "windowsCta": "下载 Windows 版",
+      "macosCta": "下载 macOS 版",
+      "trustBadges": [
+        "一键下载",
+        "始终保持最新",
+        "安全可靠"
+      ]
+    },
+    "platformLabels": {
+      "windows": "Windows",
+      "macos": "macOS"
+    },
+    "availability": {
+      "available": "立即可用",
+      "windowsEarlyAccess": "Windows 抢先体验",
+      "comingSoon": "即将推出"
+    },
+    "warnings": {
+      "windowsSmartScreen": "在公共签名或 Microsoft Store 分发完成前，Windows 可能会显示 SmartScreen 警告。",
+      "macosPreparing": "macOS 正式版仍在准备中，因此未签名的 DMG 暂不公开。",
+      "officialInstallers": "官方安装程序链接由一个发布源管理，因此可以集中更新下载。"
+    },
+    "benefits": {
+      "eyebrow": "为什么使用它",
+      "title": "强大功能。更出色的财务管理。",
+      "description": "Smart Pocket 桌面版保持体验紧凑、可读且实用，同时为您提供更多空间来专注于您的财务。",
+      "items": [
+        {
+          "title": "快速桌面访问",
+          "description": "快速启动并通过流畅的桌面体验完成任务。"
+        },
+        {
+          "title": "智能 AI 辅助",
+          "description": "向 AI 提问、获取洞察，让 Smart Pocket 帮助您做出更好的决策。"
+        },
+        {
+          "title": "收据和文档追踪",
+          "description": "在一个更大的工作空间中扫描、存储和审核收据与文档。"
+        },
+        {
+          "title": "安全登录",
+          "description": "使用行业标准加密和安全认证保护您的数据。"
+        },
+        {
+          "title": "实时更新",
+          "description": "自动保持最新功能和改进。"
+        },
+        {
+          "title": "更专注的体验",
+          "description": "为日常理财管理打造的更平静、精细调整的桌面体验。"
+        }
+      ]
+    },
+    "download": {
+      "eyebrow": "下载",
+      "title": "为您的电脑选择桌面应用",
+      "description": "选择适合您电脑的桌面应用。",
+      "versionLabel": "当前版本",
+      "releaseDateLabel": "发布日期",
+      "windowsDescription": "在 Windows 上安装 Smart Pocket，获得更快、更简洁的桌面财务体验。",
+      "macosDescription": "在 macOS 上使用 Smart Pocket，获得专注的日常财务管理桌面体验。",
+      "windowsCta": "下载 Windows 版",
+      "macosCta": "下载 macOS 版",
+      "earlyAccessLabel": "抢先体验",
+      "versionDateLabel": "版本 {{version}} • 更新于 {{date}}",
+      "windowsBenefits": [
+        "一键安装程序",
+        "自动更新支持",
+        "安全桌面体验"
+      ],
+      "macosBenefits": [
+        "简单的 DMG 安装",
+        "桌面账户同步",
+        "安全的 Smart Pocket 体验"
+      ],
+      "windowsSmartScreenNote": "在公共签名完成期间，Windows 可能会显示 SmartScreen 通知。",
+      "macosNotNotarizedNote": "此 Apple Silicon 抢先体验版本尚未经过 Apple 公证。"
+    },
+    "updates": {
+      "eyebrow": "新增功能",
+      "title": "新增功能与更新",
+      "description": "当前桌面版本持续改进登录、安装程序交付和日常稳定性。",
+      "cta": "查看全部更新",
+      "labels": {
+        "new": "新增",
+        "improved": "改进",
+        "fix": "修复"
+      },
+      "items": {
+        "desktop_auth": {
+          "title": "桌面登录和账户访问改进",
+          "description": "更流畅的桌面登录流程帮助您更快地进入仪表盘。"
+        },
+        "windows_installer": {
+          "title": "Windows 安装程序交付基础",
+          "description": "桌面下载流程现在围绕一个中央 Windows 安装程序发布源构建。"
+        },
+        "desktop_stability": {
+          "title": "桌面外壳稳定性更新",
+          "description": "最近的修复使本机外壳和更新流程在日常使用中更可靠。"
+        }
+      }
+    },
+    "howToUse": {
+      "eyebrow": "如何使用",
+      "title": "如何使用 Smart Pocket 桌面版",
+      "description": "通过几个简单步骤开始，让您的财务在桌面上触手可及。",
+      "steps": [
+        {
+          "title": "为您的设备下载应用",
+          "description": "从官方桌面发布源选择 Windows 安装程序。"
+        },
+        {
+          "title": "安装 Smart Pocket",
+          "description": "打开安装程序并按照快速设置步骤操作。"
+        },
+        {
+          "title": "登录您的账户",
+          "description": "使用您的 Smart Pocket 账户继续之前的进度。"
+        },
+        {
+          "title": "追踪和管理",
+          "description": "添加交易、跟进预算、扫描收据和管理订阅。"
+        },
+        {
+          "title": "保持更新新改进",
+          "description": "随着桌面版本持续成熟，获取最新修复和改进。"
+        }
+      ]
+    },
+    "finalCta": {
+      "eyebrow": "准备好下载了吗？",
+      "title": "准备好掌控您的财务了吗？",
+      "description": "在桌面下载 Smart Pocket，让您的财务触手可及。"
+    }
+  },
+  "landingPages": {
+    "shared": {
+      "primaryCta": "开始免费试用",
+      "secondaryCta": "了解工作原理",
+      "benefitsTitle": "为什么它有帮助",
+      "benefitsIntro": "旨在让日常理财任务保持简单",
+      "howItWorksTitle": "工作原理",
+      "howItWorksIntro": "从录入到审核的简单流程",
+      "useCasesTitle": "最适合",
+      "useCasesIntro": "为真实日常场景打造",
+      "faqTitle": "常见问题",
+      "faqIntro": "开始前的常见问题",
+      "relatedTitle": "探索更多",
+      "relatedIntro": "了解 Smart Pocket 如何支持不同的理财惯例",
+      "homepageLinkLabel": "首页",
+      "faqLinkLabel": "常见问题",
+      "contactLinkLabel": "联系我们",
+      "reviewNote": "AI 读取并准备细节供审核",
+      "allowanceNote": "收据智能识别和 AI 使用限制可能因方案而异"
+    },
+    "aiReceiptScanner": {
+      "linkLabel": "AI 收据扫描器",
+      "seoTitle": "日常支出 AI 收据扫描器 | Smart Pocket",
+      "seoDescription": "上传收据、发票或账单。Smart Pocket 读取关键细节，准备支出供审核，帮助您更快保存。",
+      "ogTitle": "AI 收据扫描器 | Smart Pocket",
+      "ogDescription": "使用 Smart Pocket 扫描收据、发票和账单，然后在保存前审核准备好的支出。",
+      "hero": {
+        "eyebrow": "AI 收据扫描器",
+        "title": "将收据转化为待审核的支出",
+        "subtitle": "上传收据、发票或账单。Smart Pocket 读取关键细节，准备交易，让您在保存前审核所有内容。"
+      },
+      "benefits": [
+        {
+          "title": "减少输入时间",
+          "description": "商家、日期、总计和明细项目已为您准备好，因此手动输入的工作量大大减少。"
+        },
+        {
+          "title": "任何内容保存前先审核",
+          "description": "通过在支出到达您的记录前进行审核步骤，您始终掌控。"
+        },
+        {
+          "title": "将源文件与交易关联",
+          "description": "将收据附加到支出，便于以后核对。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "上传收据或账单",
+          "description": "从您的手机或电脑添加清晰的图片或 PDF。"
+        },
+        {
+          "title": "让 Smart Pocket 准备细节",
+          "description": "AI 读取文档并为您填写主要支出信息。"
+        },
+        {
+          "title": "审核并保存",
+          "description": "检查准备好的细节，进行任何您想要的调整，然后自信地保存。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "日常支出",
+          "description": "无需积压收据即可记录食品杂货、加油、咖啡和其他日常购买。"
+        },
+        {
+          "title": "账单和发票",
+          "description": "在一个地方追踪水电费账单、服务发票和其他一次性文档。"
+        },
+        {
+          "title": "差旅支出",
+          "description": "在细节仍清晰时保存酒店、出租车、餐饮和机场收据。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket 会自动保存收据吗？",
+          "answer": "不会。Smart Pocket 首先准备细节供审核，由您选择是否保存。"
+        },
+        {
+          "question": "我可以上传 PDF 以及图片吗？",
+          "answer": "可以。清晰的图片和支持的 PDF 文件都可用于收据审核。"
+        },
+        {
+          "question": "收据读取是无限的吗？",
+          "answer": "收据智能识别的可用性和使用限制可能因方案配额而异。"
+        }
+      ]
+    },
+    "aiVoiceExpenseTracker": {
+      "linkLabel": "AI 语音支出追踪器",
+      "seoTitle": "用于快速日常记录的 AI 语音支出追踪器 | Smart Pocket",
+      "seoDescription": "自然说出您的支出。Smart Pocket 准备交易供审核，让您更快保存支出，减少输入。",
+      "ogTitle": "AI 语音支出追踪器 | Smart Pocket",
+      "ogDescription": "使用语音在 Smart Pocket 中准备支出，然后轻点几下审核并保存交易。",
+      "hero": {
+        "eyebrow": "AI 语音支出追踪器",
+        "title": "说出支出并审核结果",
+        "subtitle": "用通俗语言告诉 Smart Pocket 发生了什么。它会准备交易、账户和分类细节，让您可以快速审核并保存。"
+      },
+      "benefits": [
+        {
+          "title": "在移动时记录支出",
+          "description": "无需先打开完整表单即可记录购物、通勤或用餐后的支出。"
+        },
+        {
+          "title": "保持自然",
+          "description": "用日常词语描述发生的事情，而非记忆严格格式。"
+        },
+        {
+          "title": "始终掌控",
+          "description": "在准备好的交易添加到您的记录前先审核。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "说出您的交易",
+          "description": "录制关于您支出或收入的简短语音备注。"
+        },
+        {
+          "title": "让 Smart Pocket 准备草稿",
+          "description": "应用将您的话语转换为填好主要细节的交易草稿。"
+        },
+        {
+          "title": "确认并保存",
+          "description": "审核草稿，纠正任何需要的内容，在看起来正确时保存。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "忙碌工作日",
+          "description": "在会议、接送孩子和跑腿之间快速记录支出。"
+        },
+        {
+          "title": "外出追踪",
+          "description": "在步行、驾驶或旅行时添加支出，无需输入冗长备注。"
+        },
+        {
+          "title": "快速收入备注",
+          "description": "在转入资金、副业收入和其他资金事件发生时立即捕获。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "我还需要审核交易吗？",
+          "answer": "需要。Smart Pocket 准备草稿，您在保存前先审核。"
+        },
+        {
+          "question": "我可以用文本代替语音吗？",
+          "answer": "可以。当说话不方便时，智能录入也支持键入文本。"
+        },
+        {
+          "question": "每个方案都包含语音录入吗？",
+          "answer": "AI 使用配额可能因方案而异，因此可用的语音请求取决于您的订阅。"
+        }
+      ]
+    },
+    "familyBudgetApp": {
+      "linkLabel": "家庭预算应用",
+      "seoTitle": "用于家庭资金清晰化的家庭预算应用 | Smart Pocket",
+      "seoDescription": "在一个为日常家庭打造的简单应用中管理家庭支出、账单、订阅、预算和共享资金。",
+      "ogTitle": "家庭预算应用 | Smart Pocket",
+      "ogDescription": "在一个清晰的地方追踪家庭资金、账单、订阅和日常家庭支出。",
+      "hero": {
+        "eyebrow": "家庭预算应用",
+        "title": "每周让家庭资金更简单",
+        "subtitle": "Smart Pocket 将家庭支出、预算、账单、订阅和共享责任整合到一个清晰的视图中，用于日常决策。"
+      },
+      "benefits": [
+        {
+          "title": "查看完整的家庭状况",
+          "description": "将账户、支出、定期账单和预算目标整合到一个应用中。"
+        },
+        {
+          "title": "减少资金猜测",
+          "description": "在下一张账单或购物行程到来之前，了解本月的状况。"
+        },
+        {
+          "title": "让惯例更易于管理",
+          "description": "追踪塑造家庭生活的定期付款和日常成本。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "设置您的主要账户和分类",
+          "description": "从您的家庭最常使用的账户和支出领域开始。"
+        },
+        {
+          "title": "追踪支出、账单和订阅",
+          "description": "添加日常交易，让定期成本在一个地方可见。"
+        },
+        {
+          "title": "审核您的预算进度",
+          "description": "使用仪表盘和报告了解您的资金去向。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "月度家庭规划",
+          "description": "掌控房租、食品杂货、交通、教育费用和家庭账单。"
+        },
+        {
+          "title": "共享家庭责任",
+          "description": "追踪谁付款了、什么到期了以及定期成本如何变化。"
+        },
+        {
+          "title": "订阅管控",
+          "description": "让流媒体、电话、软件和家庭会员资格可见而非散乱。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "Smart Pocket 仅用于严格预算吗？",
+          "answer": "不是。您可以将其用于轻量追踪或更详细的家庭预算惯例。"
+        },
+        {
+          "question": "我可以追踪定期家庭成本吗？",
+          "answer": "可以。Smart Pocket 帮助您掌控订阅、账单和定期支出。"
+        },
+        {
+          "question": "家庭支出共享时它有效吗？",
+          "answer": "可以。Smart Pocket 包含用于常见家庭资金场景的共享支出和报销工作流程。"
+        }
+      ]
+    },
+    "sharedExpenses": {
+      "linkLabel": "共享支出",
+      "seoTitle": "共享支出追踪器和报销应用 | Smart Pocket",
+      "seoDescription": "在一个地方追踪谁付款了、谁欠款、报销和结算，让共享资金保持清晰有序。",
+      "ogTitle": "共享支出应用 | Smart Pocket",
+      "ogDescription": "无需杂乱的笔记或困惑即可追踪共享支出、报销和结算。",
+      "hero": {
+        "eyebrow": "共享支出",
+        "title": "无困惑地追踪共享资金",
+        "subtitle": "从聚餐和房租到团体购买和报销，Smart Pocket 帮助您看清谁付款了、谁欠款，以及什么仍需要结算。"
+      },
+      "benefits": [
+        {
+          "title": "知道谁承担了每笔费用",
+          "description": "保存共享购买的清晰记录，而非依赖记忆或聊天消息。"
+        },
+        {
+          "title": "清晰跟进报销",
+          "description": "追踪什么已还款、什么仍待处理，以及什么需要提醒。"
+        },
+        {
+          "title": "减少尴尬的资金跟进",
+          "description": "使用一个共享系统消除围绕余额和结算的不确定性。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "添加共享支出",
+          "description": "记录金额、谁付款了以及谁应该分担费用。"
+        },
+        {
+          "title": "审核分摊方式",
+          "description": "在保存交易前检查金额应如何共享。"
+        },
+        {
+          "title": "追踪还款和结算",
+          "description": "跟进报销，在余额结算时闭环。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "情侣和家庭",
+          "description": "跨共享惯例管理食品杂货、水电费、交通和家居购买。"
+        },
+        {
+          "title": "旅行和周末出行",
+          "description": "在大家仍在一起时追踪共享酒店、餐饮、交通和门票。"
+        },
+        {
+          "title": "朋友和合租者",
+          "description": "为房租、物资和日常团体购买保持共享支出清晰。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "我可以看到谁仍欠钱吗？",
+          "answer": "可以。Smart Pocket 保持共享支出和报销可见，因此待处理余额更易理解。"
+        },
+        {
+          "question": "我必须平均分摊每笔支出吗？",
+          "answer": "不必。可以审核共享支出工作流程，使最终分摊符合实际情况。"
+        },
+        {
+          "question": "共享支出可以与个人支出共存吗？",
+          "answer": "可以。Smart Pocket 将您的整体资金视图保持在一个地方，同时仍能处理共享场景。"
+        }
+      ]
+    },
+    "multiCurrencyExpenseTracker": {
+      "linkLabel": "多货币支出追踪器",
+      "seoTitle": "为外籍人士和旅行者打造的多货币支出追踪器 | Smart Pocket",
+      "seoDescription": "使用一个为外籍人士、旅行者、自由职业者和国际家庭打造的应用，跨账户和货币追踪支出。",
+      "ogTitle": "多货币支出追踪器 | Smart Pocket",
+      "ogDescription": "使用一个清晰的个人财务应用跨货币和账户管理支出。",
+      "hero": {
+        "eyebrow": "多货币支出追踪器",
+        "title": "跨货币追踪资金而不失清晰度",
+        "subtitle": "Smart Pocket 帮助您跨账户和货币追踪支出，因此日常追踪对外籍人士、旅行者和国际家庭始终实用。"
+      },
+      "benefits": [
+        {
+          "title": "保持账户的真实货币",
+          "description": "按账户实际使用的货币追踪每个账户，而非强迫所有内容进入一个手动表格。"
+        },
+        {
+          "title": "在国家间移动时保持有序",
+          "description": "即使您的资金分散在银行、卡片和现金中，也能追踪日常支出。"
+        },
+        {
+          "title": "看到更大的图景",
+          "description": "审核支出模式和余额，同时仍保留原始货币上下文。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "添加您的账户和货币",
+          "description": "设置您实际使用的卡片、钱包和银行账户。"
+        },
+        {
+          "title": "以原始货币追踪交易",
+          "description": "将支出和收入关联到正确的账户和货币。"
+        },
+        {
+          "title": "审核您的仪表盘和报告",
+          "description": "了解总计和支出趋势，同时仍保持原始货币上下文可用。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "外籍人士",
+          "description": "跨母国账户、本地卡片和旅行支出追踪生活。"
+        },
+        {
+          "title": "拥有国际客户的自由职业者",
+          "description": "让付款收入和支出跨不同货币保持有序。"
+        },
+        {
+          "title": "频繁旅行者",
+          "description": "以您支付的货币捕获支出，以后不会忘记。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "我可以在每笔交易上保留原始货币吗？",
+          "answer": "可以。Smart Pocket 旨在为您的记录保持原始货币上下文可见。"
+        },
+        {
+          "question": "如果我只使用两种货币，它有用吗？",
+          "answer": "有用。无论您使用两种货币还是跨不同账户使用更多货币，它都有效。"
+        },
+        {
+          "question": "Smart Pocket 仅对外籍人士有用吗？",
+          "answer": "不是。它也适合旅行者、自由职业者和跨货币转移资金的家庭。"
+        }
+      ]
+    },
+    "expenseTrackerUae": {
+      "linkLabel": "阿联酋支出追踪器",
+      "seoTitle": "用于 AED 和日常预算的阿联酋支出追踪器 | Smart Pocket",
+      "seoDescription": "使用一个清晰的个人财务应用，以 AED 和其他货币追踪支出、预算、收据、订阅和共享资金。",
+      "ogTitle": "阿联酋支出追踪器 | Smart Pocket",
+      "ogDescription": "将 Smart Pocket 用作支持 AED 的支出追踪器，用于预算、收据、订阅和共享支出。",
+      "hero": {
+        "eyebrow": "阿联酋支出追踪器",
+        "title": "一款实用的阿联酋生活支出追踪器",
+        "subtitle": "使用一个简单的应用，以 AED 和其他货币追踪日常支出、预算、订阅、收据和共享资金。"
+      },
+      "benefits": [
+        {
+          "title": "专为日常 AED 追踪打造",
+          "description": "将您通常的支出、账单和常规资金决策集中在一个方便的地方。"
+        },
+        {
+          "title": "对多货币生活有用",
+          "description": "当工作、旅行或家庭需求跨越国界时， alongside 其他货币追踪 AED。"
+        },
+        {
+          "title": "足够简单，适合日常使用",
+          "description": "在需要速度时使用 AI 辅助收据和智能录入工具，同时保持审核权在您手中。"
+        }
+      ],
+      "howItWorks": [
+        {
+          "title": "设置您的主要账户",
+          "description": "从您最常使用的银行账户、卡片、现金和钱包开始。"
+        },
+        {
+          "title": "按您的方式追踪支出",
+          "description": "根据当时最快的方式使用手动录入、智能录入或收据审核。"
+        },
+        {
+          "title": "监控预算和定期成本",
+          "description": "掌控订阅、账单和月度支出习惯。"
+        }
+      ],
+      "useCases": [
+        {
+          "title": "管理日常成本的居民",
+          "description": "更顺畅地跟进食品杂货、交通、房租、教育和家庭账单。"
+        },
+        {
+          "title": "拥有多货币的专业人士",
+          "description": "处理 AED 支出的同时保持对其他货币的可见性。"
+        },
+        {
+          "title": "家庭和共享住户",
+          "description": "在一个应用中追踪共享支出、报销和定期承诺。"
+        }
+      ],
+      "faqs": [
+        {
+          "question": "我可以将 Smart Pocket 用于 AED 追踪吗？",
+          "answer": "可以。Smart Pocket 支持 AED 以及其他支持的货币。"
+        },
+        {
+          "question": "它对收据和订阅也有帮助吗？",
+          "answer": "是的。根据您的方案功能，Smart Pocket 包含收据审核、定期追踪和订阅可见性。"
+        },
+        {
+          "question": "它仅适用于阿联酋用户吗？",
+          "answer": "不是。它对任何人都有用，但此页面专注于阿联酋常见的个人财务需求。"
+        }
+      ]
+    }
+  }
+}

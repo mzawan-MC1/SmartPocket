@@ -1,0 +1,378 @@
+{
+  "title": "Portal do Administrador",
+  "nav": {
+    "dashboard": "Painel",
+    "branding": "Identidade Visual",
+    "header": "Cabeçalho",
+    "footer": "Rodapé",
+    "pages": "Páginas",
+    "contact": "Configurações de Contato",
+    "email": "Configurações de E-mail",
+    "auth": "Configurações de Autenticação",
+    "payment": "Configurações de Pagamento",
+    "reports": "Configurações de Relatórios",
+    "seo": "Configurações de SEO",
+    "currency": "Configurações de Moeda",
+    "users": "Usuários",
+    "activity": "Registro de Atividades",
+    "general": "Configurações Gerais",
+    "support": "Suporte"
+  },
+  "branding": {
+    "pageTitle": "Identidade Visual e Aparência",
+    "pageDescription": "Centralize as superfícies de marca usadas em toda a {{appName}} e gerencie a página pública de download do desktop em um só lugar.",
+    "actions": {
+      "save": "Salvar Configurações",
+      "saved": "Salvo"
+    },
+    "toasts": {
+      "saved": "Configurações de identidade visual salvas",
+      "saveFailed": "Falha ao salvar as configurações de identidade visual.",
+      "loadFailed": "Falha ao carregar as configurações de identidade visual.",
+      "desktopMigrationRequired": "As configurações de download do Aplicativo Desktop ainda não podem ser salvas. Execute a migração de platform_settings do desktop primeiro."
+    },
+    "sections": {
+      "identity": "Identidade da Marca",
+      "colors": "Cores da Marca",
+      "assets": "Recursos da Marca",
+      "desktop": "Downloads do Aplicativo Desktop",
+      "typography": "Tipografia"
+    },
+    "fields": {
+      "brandName": "Nome da Marca",
+      "shortBrandName": "Nome Curto da Marca",
+      "tagline": "Slogan",
+      "primaryColor": "Cor Primária",
+      "accentColor": "Cor de Destaque",
+      "fontFamily": "Família da Fonte"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans (Padrão)",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "Logotipo Principal",
+        "helper": "Usado no cabeçalho público, rodapé, telas de autenticação e na interface do aplicativo."
+      },
+      "compactLogo": {
+        "label": "Logotipo Compacto / Marca",
+        "helper": "Usado para espaços compactos, como superfícies de marca compactas e layouts com ícones em destaque."
+      },
+      "favicon": {
+        "label": "Favicon",
+        "helper": "Usado para abas do navegador e ícones de atalho."
+      },
+      "appleTouchIcon": {
+        "label": "Ícone de Toque Apple",
+        "helper": "Usado quando o Smart Pocket é salvo na tela inicial de um iPhone ou iPad."
+      },
+      "emailLogo": {
+        "label": "Logotipo de E-mail",
+        "helper": "Usado em layouts de e-mail com marca e orientações de modelos de e-mail do Supabase."
+      },
+      "organizationLogo": {
+        "label": "Logotipo de Dados Estruturados",
+        "helper": "Usado no esquema de Organização e outras superfícies de marca legíveis por máquina."
+      }
+    },
+    "desktop": {
+      "description": "Gerencie a imagem principal do /desktop-app público, disponibilidade de plataformas, URLs de download direto, versões, datas de lançamento e as últimas notas de atualização.",
+      "heroImageLabel": "Imagem principal do desktop",
+      "heroImageHelper": "Exibida no destaque da página pública de download do desktop. Carregue, substitua ou remova a imagem atual do produto.",
+      "fields": {
+        "available": "Disponível"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "Este card permanece visível publicamente. O botão só fica ativo quando a disponibilidade está habilitada e uma URL HTTPS válida é salva.",
+          "downloadUrl": "URL de download direto",
+          "version": "Versão",
+          "releaseDate": "Data de lançamento",
+          "statusLabel": "Rótulo de status curto"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "Este card permanece visível publicamente. Mantenha-o desativado até que um pacote macOS público seguro esteja pronto.",
+          "downloadUrl": "URL de download direto",
+          "version": "Versão",
+          "releaseDate": "Data de lançamento",
+          "statusLabel": "Rótulo de status curto"
+        }
+      },
+      "latestUpdate": {
+        "title": "Última atualização",
+        "description": "Destaque o lançamento mais recente do desktop ou melhoria com até três notas curtas.",
+        "updateTitle": "Título da atualização",
+        "date": "Data da atualização",
+        "noteLabel": "Nota de atualização {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "Arquivo inválido.",
+      "invalidDate": "{{field}} deve usar AAAA-MM-DD.",
+      "invalidHttpsUrl": "{{field}} deve ser uma URL HTTPS válida.",
+      "invalidMediaUrl": "A URL da imagem principal do desktop deve ser uma URL HTTPS válida ou relativa ao site."
+    }
+  },
+  "currency": {
+    "title": "Configurações de Moeda",
+    "defaultCurrency": "Moeda Padrão da Plataforma",
+    "enabledCurrencies": "Moedas Habilitadas",
+    "symbolDisplay": "Modo de Exibição do Símbolo",
+    "symbolMode": "Usar Símbolo Oficial",
+    "codeMode": "Usar Código ISO",
+    "preview": "Pré-visualização",
+    "decimalPlaces": "Casas Decimais",
+    "symbolPosition": "Posição do Símbolo",
+    "before": "Antes do valor",
+    "after": "Depois do valor",
+    "spacing": "Espaço entre símbolo e valor",
+    "uploadSymbol": "Carregar Recurso de Símbolo",
+    "testPDF": "Testar Renderização em PDF",
+    "saved": "Configurações de moeda salvas",
+    "warning": "Alterar códigos ISO após a existência de transações pode afetar dados históricos."
+  },
+  "users": {
+    "title": "Usuários",
+    "name": "Nome",
+    "email": "E-mail",
+    "role": "Função",
+    "status": "Status",
+    "joined": "Data de Cadastro",
+    "lastActive": "Última Atividade"
+  },
+  "support": {
+    "nav": {
+      "group": "Suporte",
+      "enquiries": "Consultas de Contato",
+      "tickets": "Chamados de Suporte"
+    },
+    "values": {
+      "categories": {
+        "account": "Conta",
+        "transactions": "Transações",
+        "financial_accounts": "Contas Financeiras",
+        "subscriptions": "Assinaturas",
+        "payments": "Pagamentos",
+        "reports": "Relatórios",
+        "smart_entry_ai": "Smart Entry AI",
+        "technical_error": "Erro Técnico",
+        "feature_request": "Solicitação de Recurso",
+        "security": "Segurança",
+        "other": "Outro"
+      },
+      "roles": {
+        "user": "Cliente",
+        "admin": "Suporte"
+      },
+      "eventTypes": {
+        "submitted": "Enviado",
+        "status_changed": "Status Alterado",
+        "priority_changed": "Prioridade Alterada",
+        "assignment_changed": "Atribuição Alterada",
+        "internal_note": "Nota Interna",
+        "admin_reply": "Resposta do Admin",
+        "first_response_recorded": "Primeira Resposta Registrada"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "Aberto",
+        "assigned": "Atribuído",
+        "in_progress": "Em Andamento",
+        "waiting_for_customer": "Aguardando Cliente",
+        "waiting_for_support": "Aguardando Suporte",
+        "resolved": "Resolvido",
+        "closed": "Fechado",
+        "new": "Novo",
+        "spam": "Spam"
+      },
+      "priority": {
+        "low": "Baixa",
+        "normal": "Normal",
+        "high": "Alta",
+        "urgent": "Urgente"
+      }
+    },
+    "attachmentUploader": {
+      "label": "Anexos",
+      "helper": "PNG, JPG, JPEG, WEBP, PDF até 10 MB cada",
+      "addFiles": "Adicionar arquivos",
+      "emptyTitle": "Nenhum anexo adicionado ainda",
+      "emptyDescription": "Adicione capturas de tela ou PDFs para ajudar o suporte a investigar mais rápido.",
+      "uploading": "Carregando {{progress}}%",
+      "ready": "Pronto",
+      "removeFile": "Remover {{name}}"
+    },
+    "tickets": {
+      "title": "Chamados de Suporte",
+      "description": "Gerencie a carga de trabalho de suporte ao cliente com visibilidade de SLA, indicadores de não lidos, atribuição e ações em lote seguras.",
+      "loadError": "Falha ao carregar os chamados de suporte.",
+      "bulkError": "Falha ao aplicar ação em lote.",
+      "bulkAssignmentUpdated": "Atribuições atualizadas.",
+      "bulkStatusUpdated": "Status atualizados.",
+      "bulkPartial": "{{successCount}} chamados atualizados, {{failureCount}} falharam.",
+      "selectAtLeastOne": "Selecione pelo menos um chamado.",
+      "metrics": {
+        "openTickets": "Chamados Abertos",
+        "openTicketsSub": "Carga de trabalho de suporte ativa",
+        "unassigned": "Não Atribuídos",
+        "unassignedSub": "Precisam de responsável",
+        "urgent": "Urgentes",
+        "urgentSub": "Itens de alta prioridade",
+        "waitingForSupport": "Aguardando Suporte",
+        "waitingForSupportSub": "Cliente está esperando",
+        "waitingForCustomer": "Aguardando Cliente",
+        "waitingForCustomerSub": "Precisa de resposta do cliente",
+        "resolvedToday": "Resolvidos Hoje",
+        "resolvedTodaySub": "Concluídos hoje",
+        "avgFirstResponse": "Tempo Médio de Primeira Resposta",
+        "avgFirstResponseSub": "Tempo médio até a primeira resposta",
+        "avgResolution": "Tempo Médio de Resolução",
+        "avgResolutionSub": "Tempo médio para resolver",
+        "hours": "{{value}} h",
+        "empty": "-"
+      },
+      "filtersTitle": "Filtros",
+      "filtersDescription": "Pesquise por número do chamado, cliente, e-mail ou assunto.",
+      "searchPlaceholder": "Pesquisar chamados...",
+      "allStatuses": "Todos os status",
+      "allCategories": "Todas as categorias",
+      "allPriorities": "Todas as prioridades",
+      "allAssignments": "Todas as atribuições",
+      "unassignedOption": "Não atribuído",
+      "bulkTitle": "Ações em Lote",
+      "bulkDescription": "Atribua responsáveis ou mova chamados para estados de fluxo de trabalho seguros.",
+      "assignSelectedTo": "Atribuir selecionados a...",
+      "applyAssignment": "Aplicar Atribuição",
+      "changeSelectedStatusTo": "Alterar status selecionados para...",
+      "applyStatus": "Aplicar Status",
+      "sectionTitle": "Chamados",
+      "sectionDescription": "Chamados mais recentes primeiro com resposta não lida e indicadores de SLA.",
+      "emptyTitle": "Nenhum chamado de suporte encontrado",
+      "emptyDescription": "Ajuste os filtros ou aguarde o primeiro chamado do cliente.",
+      "unreadReply": "Resposta não lida",
+      "ageHours": "Idade: {{hours}}h",
+      "updatedAt": "Atualizado {{value}}",
+      "open": "Aberto",
+      "pageOf": "Página {{page}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Próxima"
+    },
+    "ticketDetail": {
+      "loadError": "Falha ao carregar o chamado de suporte.",
+      "saveError": "Falha ao salvar o resumo do chamado.",
+      "saveSuccess": "Chamado atualizado.",
+      "replyError": "Falha ao enviar a resposta.",
+      "replySuccess": "Resposta enviada ao cliente.",
+      "noteError": "Falha ao adicionar nota interna.",
+      "noteSuccess": "Nota interna adicionada.",
+      "attachmentError": "Falha ao abrir o anexo.",
+      "sendingReply": "Enviando...",
+      "sendReply": "Enviar resposta",
+      "saving": "Salvando...",
+      "saveSummary": "Salvar resumo",
+      "addInternalNote": "Adicionar nota interna",
+      "conversationTitle": "Conversa",
+      "conversationDescription": "Mensagens do cliente, respostas do suporte, anexos e notas internas.",
+      "replyTitle": "Responder ao Cliente",
+      "replyDescription": "As respostas são enviadas por e-mail ao cliente e adicionadas à conversa visível.",
+      "replyPlaceholder": "Escreva uma resposta clara de suporte.",
+      "internalNotesTitle": "Notas Internas",
+      "internalNotesDescription": "Notas internas são visíveis apenas para administradores.",
+      "notePlaceholder": "Adicione notas de transição, contexto de depuração ou próximos passos para a equipe de suporte.",
+      "summaryTitle": "Resumo do Chamado",
+      "summaryDescription": "Atribuição, status, categoria e acompanhamento de respostas.",
+      "customer": "Cliente",
+      "email": "E-mail",
+      "created": "Criado",
+      "updated": "Atualizado",
+      "firstResponse": "Primeira resposta",
+      "resolved": "Resolvido",
+      "closed": "Fechado",
+      "relatedPage": "Página relacionada",
+      "errorCode": "Código de erro",
+      "timelineTitle": "Linha do Tempo da Atividade",
+      "timelineDescription": "Toda ação significativa cria um evento para o histórico de suporte.",
+      "securityTitle": "Segurança",
+      "securityDescription": "Anexos permanecem privados e são baixados apenas por meio de URLs assinadas.",
+      "securityBody": "Administradores podem abrir todos os anexos do chamado, enquanto os clientes só acessam arquivos vinculados aos seus próprios chamados.",
+      "refresh": "Atualizar linha do tempo e anexos",
+      "internalNoteLabel": "Nota interna",
+      "deleteAttachment": "Excluir anexo",
+      "deleteAttachmentSuccess": "Anexo excluído.",
+      "deleteAttachmentError": "Falha ao excluir o anexo.",
+      "confirmResolveTitle": "Resolver Chamado?",
+      "confirmResolveDescription": "Marcar este chamado como resolvido agora?",
+      "confirmCloseTitle": "Fechar Chamado?",
+      "confirmCloseDescription": "Fechar este chamado agora? Isso o mantém em um estado terminal até que alguém o reabra explicitamente.",
+      "confirmReopenTitle": "Reabrir Chamado?",
+      "confirmReopenDescription": "Mover este chamado de seu estado terminal de volta ao fluxo de suporte ativo?",
+      "confirmDeleteAttachmentTitle": "Excluir Anexo?",
+      "confirmDeleteAttachmentDescription": "Excluir {{name}} deste chamado agora? Isso não pode ser desfeito.",
+      "confirmAction": "Confirmar",
+      "cancelAction": "Cancelar",
+      "emptyValue": "-"
+    },
+    "enquiries": {
+      "title": "Consultas de Contato",
+      "description": "Envios públicos de contato são armazenados no Supabase e gerenciados aqui com atribuição, respostas, notas e histórico de linha do tempo.",
+      "refresh": "Atualizar",
+      "loadError": "Falha ao carregar as consultas.",
+      "detailLoadError": "Falha ao carregar a consulta.",
+      "updateError": "Falha ao atualizar a consulta.",
+      "updateSuccess": "Consulta atualizada.",
+      "replyError": "Falha ao enviar a resposta.",
+      "replySuccess": "Resposta enviada ao cliente.",
+      "filtersTitle": "Filtros",
+      "filtersDescription": "Pesquise por referência, remetente, assunto ou mensagem.",
+      "searchPlaceholder": "Pesquisar consultas...",
+      "allStatuses": "Todos os status",
+      "allPriorities": "Todas as prioridades",
+      "inboxTitle": "Caixa de Entrada",
+      "inboxDescription": "As consultas mais recentes aparecem primeiro.",
+      "emptyTitle": "Nenhuma consulta encontrada",
+      "emptyDescription": "Tente ajustar os critérios de pesquisa ou filtro.",
+      "unread": "Não lida",
+      "pageOf": "Página {{page}} de {{total}}",
+      "previous": "Anterior",
+      "next": "Próxima",
+      "detailsTitle": "Detalhes da Consulta",
+      "detailsDescription": "Abra uma consulta para gerenciar atribuição, notas e respostas.",
+      "selectPrompt": "Selecione uma consulta da caixa de entrada para ver os detalhes completos.",
+      "name": "Nome",
+      "email": "E-mail",
+      "phone": "Telefone",
+      "sourcePage": "Página de origem",
+      "submitted": "Enviado",
+      "updated": "Atualizado",
+      "firstResponse": "Primeira resposta",
+      "resolved": "Resolvido",
+      "message": "Mensagem",
+      "unassigned": "Não atribuído",
+      "internalNotePlaceholder": "Adicione uma nota interna. Ela nunca é exibida ao remetente.",
+      "saveChanges": "Salvar alterações",
+      "markResolved": "Marcar como resolvido",
+      "reopen": "Reabrir",
+      "close": "Fechar consulta",
+      "replyTitle": "Responder por e-mail",
+      "replyPlaceholder": "Escreva uma resposta profissional de suporte para o remetente.",
+      "sendReply": "Enviar resposta",
+      "timelineTitle": "Linha do Tempo",
+      "systemActor": "Sistema",
+      "emptyValue": "-",
+      "confirmResolveTitle": "Resolver Consulta?",
+      "confirmResolveDescription": "Marcar esta consulta de contato como resolvida agora?",
+      "confirmReopenTitle": "Reabrir Consulta?",
+      "confirmReopenDescription": "Mover esta consulta de volta para o tratamento ativo?",
+      "confirmCloseTitle": "Fechar Consulta?",
+      "confirmCloseDescription": "Fechar esta consulta agora?",
+      "confirmAction": "Confirmar",
+      "cancelAction": "Cancelar"
+    }
+  }
+}

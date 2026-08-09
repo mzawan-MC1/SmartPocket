@@ -28,6 +28,7 @@ import {
   validateFinancialPeriodForm,
   withFrequencyDefaults,
 } from '@/lib/financial-periods/profile';
+import { SUPPORTED_LANGUAGES } from '@/i18n/registry';
 
 interface OnboardingData {
   fullName: string;
@@ -223,12 +224,11 @@ export default function OnboardingPage() {
   const recommendedCurrency = snapshot ? getDefaultCurrencyForCountry(snapshot, selectedCountry) : null;
   const selectedCurrencyRecord = getCurrencyByCode(snapshot?.currencies ?? [], selectedCurrency);
   const requiresAnchorDate = incomeFrequency === 'weekly' || incomeFrequency === 'biweekly' || incomeFrequency === 'custom';
-  const languages = [
-    { code: 'en', name: t('language.en', { ns: 'common' }), flag: '🇬🇧' },
-    { code: 'ar', name: t('language.ar', { ns: 'common' }), flag: '🇦🇪' },
-    { code: 'fr', name: t('language.fr', { ns: 'common' }), flag: '🇫🇷' },
-    { code: 'ru', name: t('language.ru', { ns: 'common' }), flag: '🇷🇺' },
-  ];
+  const languages = SUPPORTED_LANGUAGES.map((entry) => ({
+    code: entry.code,
+    name: t(`language.${entry.code}`, { ns: 'common' }),
+    flag: entry.flag,
+  }));
   const steps = [
     { id: 1, title: t('onboarding.steps.welcome', { ns: 'portal' }), icon: User },
     { id: 2, title: t('onboarding.steps.languageRegion', { ns: 'portal' }), icon: Globe },

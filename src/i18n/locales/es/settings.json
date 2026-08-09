@@ -1,0 +1,45 @@
+{
+    "title": "Configuración",
+    "sections": {
+        "profile": "Perfil",
+        "preferences": "Preferencias",
+        "security": "Seguridad",
+        "notifications": "Notificaciones",
+        "language": "Idioma y Región",
+        "currency": "Moneda",
+        "appearance": "Apariencia",
+        "data": "Datos y Privacidad"
+    },
+    "profile": {
+        "fullName": "Nombre Completo",
+        "email": "Correo Electrónico",
+        "phone": "Número de Teléfono",
+        "country": "País",
+        "avatar": "Foto de Perfil",
+        "changeAvatar": "Cambiar Foto",
+        "removeAvatar": "Quitar Foto"
+    },
+    "preferences": {
+        "defaultCurrency": "Moneda Predeterminada",
+        "language": "Idioma de Visualización",
+        "dateFormat": "Formato de Fecha",
+        "numberFormat": "Formato de Número",
+        "theme": "Tema",
+        "themeLight": "Claro",
+        "themeDark": "Oscuro",
+        "themeSystem": "Sistema",
+        "monthStart": "Día de Inicio de Mes",
+        "monthlyIncome": "Ingreso Mensual"
+    },
+    "security": {
+        "changePassword": "Cambiar Contraseña",
+        "currentPassword": "Contraseña Actual",
+        "newPassword": "Nueva Contraseña",
+        "confirmPassword": "Confirmar Contraseña",
+        "twoFactor": "Autenticación de Dos Factores",
+        "sessions": "Sesiones Activas",
+        "signOutAll": "Cerrar Sesión en Todos los Dispositivos"
+    },
+    "saved": "Configuración guardada",
+    "saveError": "Error al guardar la configuración"
+}

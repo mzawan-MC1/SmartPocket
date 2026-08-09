@@ -1,0 +1,45 @@
+{
+    "title": "设置",
+    "sections": {
+        "profile": "个人资料",
+        "preferences": "偏好设置",
+        "security": "安全",
+        "notifications": "通知",
+        "language": "语言与地区",
+        "currency": "货币",
+        "appearance": "外观",
+        "data": "数据与隐私"
+    },
+    "profile": {
+        "fullName": "姓名",
+        "email": "电子邮箱",
+        "phone": "电话号码",
+        "country": "国家/地区",
+        "avatar": "个人头像",
+        "changeAvatar": "更换头像",
+        "removeAvatar": "移除头像"
+    },
+    "preferences": {
+        "defaultCurrency": "默认货币",
+        "language": "显示语言",
+        "dateFormat": "日期格式",
+        "numberFormat": "数字格式",
+        "theme": "主题",
+        "themeLight": "浅色",
+        "themeDark": "深色",
+        "themeSystem": "跟随系统",
+        "monthStart": "月度起始日",
+        "monthlyIncome": "月收入"
+    },
+    "security": {
+        "changePassword": "修改密码",
+        "currentPassword": "当前密码",
+        "newPassword": "新密码",
+        "confirmPassword": "确认密码",
+        "twoFactor": "双重认证",
+        "sessions": "活跃会话",
+        "signOutAll": "退出所有设备"
+    },
+    "saved": "设置已保存",
+    "saveError": "保存设置失败"
+}

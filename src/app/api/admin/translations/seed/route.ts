@@ -8,7 +8,7 @@ import {
 import { createAdminClient } from '@/lib/supabase/admin';
 import { I18N_NAMESPACES, type TranslationNamespace } from '@/i18n/resources';
 
-type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
+type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru' | 'tr' | 'zh-CN' | 'es' | 'pt-BR';
 type SeedRow = {
   content_type: string;
   content_key: string;

@@ -1,0 +1,15 @@
+{
+    "required": "{{field}} es obligatorio",
+    "minLength": "{{field}} debe tener al menos {{min}} caracteres",
+    "maxLength": "{{field}} no debe exceder {{max}} caracteres",
+    "email": "Por favor, ingresa un correo electrónico válido",
+    "passwordMatch": "Las contraseñas no coinciden",
+    "passwordStrength": "La contraseña debe tener al menos 8 caracteres con un número y un carácter especial",
+    "positiveNumber": "Por favor, ingresa un número positivo",
+    "invalidAmount": "Por favor, ingresa un monto válido",
+    "futureDate": "La fecha no puede estar en el futuro",
+    "required_field": "Este campo es obligatorio",
+    "invalidCurrency": "Por favor, selecciona una moneda válida",
+    "fileTooLarge": "El tamaño del archivo no debe exceder {{size}}MB",
+    "invalidFileType": "Tipo de archivo no compatible. Permitidos: {{types}}"
+}

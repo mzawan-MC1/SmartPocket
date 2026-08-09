@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
+import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
-export type PlatformLanguage = 'en' | 'ar' | 'fr' | 'ru';
+export type PlatformLanguage = SupportedLanguage;
 export type PlatformFontFamily = 'Plus Jakarta Sans' | 'Inter' | 'Poppins' | 'Roboto';
 
 export interface PlatformNavLink {
@@ -357,7 +358,7 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
   },
   localization: {
     defaultLanguage: 'en',
-    enabledLanguages: ['en', 'ar', 'fr', 'ru'],
+    enabledLanguages: [...SUPPORTED_LANGUAGE_CODES],
   },
   updatedAt: undefined,
   raw: {},
@@ -443,7 +444,36 @@ function sanitizeBoolean(value: unknown, fallback: boolean) {
 }
 
 function sanitizeSupportedLanguage(value: unknown): PlatformLocalizationSettings['defaultLanguage'] {
-  return value === 'ar' || value === 'fr' || value === 'ru' ? value : 'en';
+  switch (value) {
+    case 'ar':
+    case 'fr':
+    case 'ru':
+    case 'tr':
+    case 'zh-CN':
+    case 'es':
+    case 'pt-BR':
+      return value;
+    case 'en':
+    default:
+      return 'en';
+  }
+}
+
+function isPlatformLanguage(value: unknown): value is PlatformLanguage {
+  return (
+    value === 'en'
+    || value === 'ar'
+    || value === 'fr'
+    || value === 'ru'
+    || value === 'tr'
+    || value === 'zh-CN'
+    || value === 'es'
+    || value === 'pt-BR'
+  );
+}
+
+function sanitizeEnabledLanguageEntry(value: unknown): PlatformLanguage | null {
+  return isPlatformLanguage(value) ? value : null;
 }
 
 function sanitizeTwitterCard(value: unknown): PlatformSeoSettings['twitterCard'] {
@@ -454,9 +484,14 @@ function normalizeEnabledLanguages(value: unknown) {
   const fallback = DEFAULT_PLATFORM_SETTINGS.localization.enabledLanguages;
   if (!Array.isArray(value)) return fallback;
 
-  const normalized = value
-    .map((entry) => sanitizeSupportedLanguage(entry))
-    .filter((entry, index, all) => all.indexOf(entry) === index);
+  const normalized: PlatformLanguage[] = [];
+  const seen = new Set<PlatformLanguage>();
+  for (const entry of value) {
+    const platformLang = sanitizeEnabledLanguageEntry(entry);
+    if (!platformLang || seen.has(platformLang)) continue;
+    seen.add(platformLang);
+    normalized.push(platformLang);
+  }
 
   return normalized.length > 0 ? normalized : fallback;
 }

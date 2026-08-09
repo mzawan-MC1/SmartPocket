@@ -1,0 +1,15 @@
+{
+  "required": "{{field}} zorunludur",
+  "minLength": "{{field}} en az {{min}} karakter olmalıdır",
+  "maxLength": "{{field}} {{max}} karakteri geçmemelidir",
+  "email": "Lütfen geçerli bir e-posta adresi girin",
+  "passwordMatch": "Şifreler eşleşmiyor",
+  "passwordStrength": "Şifre en az 8 karakter olmalı ve sayı ile özel karakter içermelidir",
+  "positiveNumber": "Lütfen pozitif bir sayı girin",
+  "invalidAmount": "Lütfen geçerli bir tutar girin",
+  "futureDate": "Tarih gelecekte olamaz",
+  "required_field": "Bu alan zorunludur",
+  "invalidCurrency": "Lütfen geçerli bir para birimi seçin",
+  "fileTooLarge": "Dosya boyutu {{size}}MB'ı geçmemelidir",
+  "invalidFileType": "Dosya türü desteklenmiyor. İzin verilenler: {{types}}"
+}

@@ -1,0 +1,76 @@
+{
+  "title": "Kişiler",
+  "subtitle": "Aile, arkadaşlar ve başkaları için finansları yönetin",
+  "addPerson": "Kişi Ekle",
+  "editProfile": "Profili Düzenle",
+  "nopeople": "Henüz kişi yok",
+  "nopeopleDesc": "Aile üyeleri, arkadaşlar veya finanslarını yönettiğiniz diğer kişileri ekleyin",
+  "moneyHeld": "Tutulan Para",
+  "owedToMe": "Bana Ödenmesi Gereken",
+  "iOwe": "Borçlu Olduğum",
+  "relationship": {
+    "spouse": "Eş",
+    "child": "Çocuk",
+    "parent": "Ebeveyn",
+    "sibling": "Kardeş",
+    "friend": "Arkadaş",
+    "relative": "Akraba",
+    "colleague": "Meslektaş",
+    "client": "Müşteri",
+    "other": "Diğer"
+  },
+  "tabs": {
+    "overview": "Genel Bakış",
+    "ledger": "Yevmiye",
+    "expenses": "Giderler",
+    "reimbursements": "Geri Ödemeler",
+    "settlements": "Mutabakatlar",
+    "reports": "Raporlar",
+    "profile": "Profil"
+  },
+  "ledger": {
+    "title": "Yevmiye",
+    "noEntries": "Henüz yevmiye kaydı yok",
+    "entryTypes": {
+      "money_received": "Alınan Para",
+      "money_returned": "İade Edilen Para",
+      "expense_from_held": "Gider (Tutulan Bakiyeden)",
+      "expense_paid_by_user": "Gider (Benim Tarafımdan Ödenen)",
+      "expense_paid_by_person": "Gider (Kişi Tarafından Ödenen)",
+      "reimbursement_due_to_user": "Bana Ödenmesi Gereken Geri Ödeme",
+      "reimbursement_due_to_person": "Kişiye Ödenmesi Gereken Geri Ödeme",
+      "reimbursement_received": "Alınan Geri Ödeme",
+      "reimbursement_paid": "Ödenen Geri Ödeme",
+      "settlement": "Mutabakat",
+      "adjustment": "Düzenleme"
+    }
+  },
+  "reimbursements": {
+    "title": "Geri Ödemeler",
+    "noReimbursements": "Henüz geri ödeme yok",
+    "recordPayment": "Ödeme Kaydet",
+    "outstanding": "Bekleyen",
+    "statuses": {
+      "pending": "Beklemede",
+      "partially_paid": "Kısmen Ödendi",
+      "settled": "Mutabakat Sağlandı",
+      "waived": "Vazgeçildi",
+      "cancelled": "İptal Edildi"
+    }
+  },
+  "settlements": {
+    "title": "Mutabakatlar",
+    "noSettlements": "Henüz mutabakat yok",
+    "newSettlement": "Yeni Mutabakat",
+    "totalSettled": "Toplam Mutabık Kalınan"
+  },
+  "spaces": {
+    "title": "Alanlar",
+    "personal": "Kişisel",
+    "family": "Aile",
+    "household": "Ev",
+    "child": "Çocuk",
+    "friend": "Arkadaş",
+    "custom": "Özel"
+  }
+}

@@ -4,8 +4,12 @@ import { Languages, Loader2, Save, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import SearchField from '@/components/ui/SearchField';
-
-type SupportedLanguage = 'en' | 'ar' | 'fr' | 'ru';
+import {
+  LANGUAGE_REGISTRY,
+  LANGUAGE_CODES,
+  SUPPORTED_LANGUAGES,
+  type SupportedLanguage,
+} from '@/i18n/registry';
 
 interface Translation {
   id: string;
@@ -20,20 +24,16 @@ interface Translation {
 interface TranslationRow {
   content_type: string;
   content_key: string;
-  en: string;
-  ar: string;
-  fr: string;
-  ru: string;
   ids: Partial<Record<SupportedLanguage, string>>;
   approved: Partial<Record<SupportedLanguage, boolean>>;
+  values: Record<SupportedLanguage, string>;
 }
 
-const LANGUAGES: { code: SupportedLanguage; label: string; dir: 'ltr' | 'rtl' }[] = [
-  { code: 'en', label: 'English', dir: 'ltr' },
-  { code: 'ar', label: 'العربية', dir: 'rtl' },
-  { code: 'fr', label: 'Français', dir: 'ltr' },
-  { code: 'ru', label: 'Русский', dir: 'ltr' },
-];
+const LANGUAGES = SUPPORTED_LANGUAGES.map((entry) => ({
+  code: entry.code,
+  label: entry.nativeName,
+  dir: entry.dir,
+}));
 
 export default function AdminTranslationsPage() {
   const [translations, setTranslations] = useState<Translation[]>([]);
@@ -48,22 +48,23 @@ export default function AdminTranslationsPage() {
 
   const buildRows = useCallback((data: Translation[]) => {
     const map = new Map<string, TranslationRow>();
+    const emptyValues = () => LANGUAGE_CODES.reduce((accum, code) => {
+      accum[code] = '';
+      return accum;
+    }, {} as Record<SupportedLanguage, string>);
     for (const t of data) {
       const key = `${t.content_type}::${t.content_key}`;
       if (!map.has(key)) {
         map.set(key, {
           content_type: t.content_type,
           content_key: t.content_key,
-          en: '',
-          ar: '',
-          fr: '',
-          ru: '',
+          values: emptyValues(),
           ids: {},
           approved: {},
         });
       }
       const row = map.get(key)!;
-      row[t.language] = t.value;
+      row.values[t.language] = t.value;
       row.ids[t.language] = t.id;
       row.approved[t.language] = t.is_approved;
     }
@@ -121,7 +122,7 @@ export default function AdminTranslationsPage() {
     setRows((prev) =>
       prev.map((r) => {
         if (`${r.content_type}::${r.content_key}` === rowKey) {
-          return { ...r, [lang]: value };
+          return { ...r, values: { ...r.values, [lang]: value } };
         }
         return r;
       })
@@ -150,7 +151,7 @@ export default function AdminTranslationsPage() {
           content_type: contentType,
           content_key: contentKey,
           language: lang,
-          value: row[lang],
+          value: row.values[lang],
           is_approved: row.approved[lang] ?? false,
           is_published: true,
         });
@@ -201,10 +202,11 @@ export default function AdminTranslationsPage() {
 
   const filteredRows = rows.filter((r) => {
     const matchesType = filterType === 'all' || r.content_type === filterType;
+    const haystack = Object.values(r.values).join(' ').toLowerCase();
     const matchesSearch =
       !search ||
       r.content_key.toLowerCase().includes(search.toLowerCase()) ||
-      r.en.toLowerCase().includes(search.toLowerCase()) ||
+      haystack.includes(search.toLowerCase()) ||
       r.content_type.toLowerCase().includes(search.toLowerCase());
     return matchesType && matchesSearch;
   });
@@ -219,7 +221,7 @@ export default function AdminTranslationsPage() {
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-700 text-foreground">CMS Translations</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Manage content in English, Arabic, French, and Russian</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Manage content across {LANGUAGES.length} registered locales</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={fetchTranslations} className="btn-secondary text-sm" title="Refresh">
@@ -332,7 +334,7 @@ export default function AdminTranslationsPage() {
                   {/* English reference (always visible) */}
                   {activeLanguage !== 'en' && (
                     <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-                      <span className="font-600 text-foreground">EN: </span>{row.en || <em>empty</em>}
+                      <span className="font-600 text-foreground">EN: </span>{row.values.en || <em>empty</em>}
                     </div>
                   )}
 
@@ -346,7 +348,7 @@ export default function AdminTranslationsPage() {
                       dir={activeLang.dir}
                       className="input-base resize-none text-sm w-full"
                       placeholder={`Enter ${activeLang.label} translation...`}
-                      value={row[activeLanguage]}
+                      value={row.values[activeLanguage]}
                       onChange={(e) => handleValueChange(rowKey, activeLanguage, e.target.value)}
                     />
                   </div>

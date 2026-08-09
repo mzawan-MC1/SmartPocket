@@ -42,6 +42,7 @@ import { fetchSubscriptionSummary } from '@/lib/subscription/client';
 import type { SubscriptionSummary } from '@/lib/subscription/types';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { removeCurrentUserAvatar, uploadCurrentUserAvatar } from '@/lib/profile-avatar';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 
 const CountrySelector = dynamic(() => import('@/components/country/CountrySelector'), {
   ssr: false,
@@ -213,12 +214,10 @@ export default function SettingsPage() {
   const getCurrencyDisplayName = useCallback((currencyCode: string) => {
     return getCurrencyByCode(snapshot?.currencies ?? [], currencyCode)?.name || currencyCode;
   }, [snapshot?.currencies]);
-  const LANGUAGES = [
-    { code: 'en', name: t('language.en', { ns: 'common' }) },
-    { code: 'ar', name: t('language.ar', { ns: 'common' }) },
-    { code: 'fr', name: t('language.fr', { ns: 'common' }) },
-    { code: 'ru', name: t('language.ru', { ns: 'common' }) },
-  ];
+  const LANGUAGES = SUPPORTED_LANGUAGE_CODES.map((code) => ({
+    code,
+    name: t(`language.${code}`, { ns: 'common' }),
+  }));
   const financialPeriodValues: FinancialPeriodFormValues = {
     income_frequency: incomeFrequency,
     pay_cycle_anchor_date: watch('pay_cycle_anchor_date'),

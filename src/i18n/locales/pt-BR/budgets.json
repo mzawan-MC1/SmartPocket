@@ -1,0 +1,34 @@
+{
+    "title": "Orçamentos",
+    "addBudget": "Adicionar Orçamento",
+    "editBudget": "Editar Orçamento",
+    "overview": "Visão Geral dos Orçamentos",
+    "monthly": "Orçamento Mensal",
+    "fields": {
+        "name": "Nome do Orçamento",
+        "amount": "Valor do Orçamento",
+        "category": "Categoria",
+        "period": "Período",
+        "startDate": "Data Inicial",
+        "endDate": "Data Final"
+    },
+    "stats": {
+        "spent": "Gasto",
+        "remaining": "Restante",
+        "usage": "Uso",
+        "total": "Orçamento Total"
+    },
+    "status": {
+        "onTrack": "Dentro do Orçamento",
+        "warning": "Próximo do Limite",
+        "exceeded": "Excedido",
+        "unused": "Não Iniciado"
+    },
+    "empty": {
+        "title": "Sem orçamentos definidos",
+        "description": "Crie um orçamento para acompanhar seus gastos"
+    },
+    "deleteConfirm": "Tem certeza de que deseja excluir este orçamento?",
+    "deleted": "Orçamento excluído",
+    "saved": "Orçamento salvo"
+}

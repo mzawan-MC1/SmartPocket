@@ -1,0 +1,378 @@
+{
+  "title": "管理后台",
+  "nav": {
+    "dashboard": "仪表盘",
+    "branding": "品牌设置",
+    "header": "页头",
+    "footer": "页脚",
+    "pages": "页面",
+    "contact": "联系设置",
+    "email": "邮件设置",
+    "auth": "认证设置",
+    "payment": "支付设置",
+    "reports": "报告设置",
+    "seo": "SEO 设置",
+    "currency": "货币设置",
+    "users": "用户",
+    "activity": "活动日志",
+    "general": "常规设置",
+    "support": "支持"
+  },
+  "branding": {
+    "pageTitle": "品牌与外观",
+    "pageDescription": "集中管理 {{appName}} 各端使用的品牌展示，并在同一位置管理公开的桌面端下载页面。",
+    "actions": {
+      "save": "保存设置",
+      "saved": "已保存"
+    },
+    "toasts": {
+      "saved": "品牌设置已保存",
+      "saveFailed": "保存品牌设置失败。",
+      "loadFailed": "加载品牌设置失败。",
+      "desktopMigrationRequired": "桌面端下载设置暂无法保存。请先运行桌面端 platform_settings 数据迁移。"
+    },
+    "sections": {
+      "identity": "品牌标识",
+      "colors": "品牌配色",
+      "assets": "品牌素材",
+      "desktop": "桌面端应用下载",
+      "typography": "字体排版"
+    },
+    "fields": {
+      "brandName": "品牌名称",
+      "shortBrandName": "品牌简称",
+      "tagline": "品牌标语",
+      "primaryColor": "主色调",
+      "accentColor": "强调色",
+      "fontFamily": "字体族"
+    },
+    "fonts": {
+      "plusJakartaSans": "Plus Jakarta Sans（默认）",
+      "inter": "Inter",
+      "poppins": "Poppins",
+      "roboto": "Roboto"
+    },
+    "uploads": {
+      "logo": {
+        "label": "主 Logo",
+        "helper": "用于公开页头、页脚、认证界面和应用外壳。"
+      },
+      "compactLogo": {
+        "label": "紧凑型 Logo / 标识",
+        "helper": "用于紧凑空间，如精简品牌展示区域和图标优先布局。"
+      },
+      "favicon": {
+        "label": "网站图标",
+        "helper": "用于浏览器标签页和快捷方式图标。"
+      },
+      "appleTouchIcon": {
+        "label": "Apple 触摸图标",
+        "helper": "用于 Smart Pocket 保存到 iPhone 或 iPad 主屏幕时显示。"
+      },
+      "emailLogo": {
+        "label": "邮件 Logo",
+        "helper": "用于品牌邮件布局和 Supabase 邮件模板指引。"
+      },
+      "organizationLogo": {
+        "label": "结构化数据 Logo",
+        "helper": "用于 Organization 架构数据和其他机器可读的品牌展示区域。"
+      }
+    },
+    "desktop": {
+      "description": "管理公开 /desktop-app 页面的主图、平台可用性、直接下载链接、版本号、发布日期以及最新更新说明。",
+      "heroImageLabel": "桌面端主图",
+      "heroImageHelper": "显示在公开桌面端下载页面的首屏区域。可上传、更换或移除当前产品图片。",
+      "fields": {
+        "available": "可用"
+      },
+      "platforms": {
+        "windows": {
+          "title": "Windows",
+          "description": "此卡片将公开显示。仅当启用可用状态并保存有效的 HTTPS 链接后，按钮才会变为可用。",
+          "downloadUrl": "直接下载链接",
+          "version": "版本",
+          "releaseDate": "发布日期",
+          "statusLabel": "简短状态标签"
+        },
+        "macos": {
+          "title": "macOS",
+          "description": "此卡片将公开显示。在安全可用的公开 macOS 安装包准备就绪前，请保持禁用状态。",
+          "downloadUrl": "直接下载链接",
+          "version": "版本",
+          "releaseDate": "发布日期",
+          "statusLabel": "简短状态标签"
+        }
+      },
+      "latestUpdate": {
+        "title": "最新更新",
+        "description": "用最多三条简短说明高亮最新的桌面端发布或功能改进。",
+        "updateTitle": "更新标题",
+        "date": "更新日期",
+        "noteLabel": "更新说明 {{index}}"
+      }
+    },
+    "validation": {
+      "invalidFile": "无效文件。",
+      "invalidDate": "{{field}} 必须使用 YYYY-MM-DD 格式。",
+      "invalidHttpsUrl": "{{field}} 必须是有效的 HTTPS 链接。",
+      "invalidMediaUrl": "桌面端主图链接必须是有效的 HTTPS 链接或站点相对路径。"
+    }
+  },
+  "currency": {
+    "title": "货币设置",
+    "defaultCurrency": "平台默认货币",
+    "enabledCurrencies": "已启用货币",
+    "symbolDisplay": "符号显示模式",
+    "symbolMode": "使用官方符号",
+    "codeMode": "使用 ISO 代码",
+    "preview": "预览",
+    "decimalPlaces": "小数位数",
+    "symbolPosition": "符号位置",
+    "before": "金额之前",
+    "after": "金额之后",
+    "spacing": "符号与金额之间的空格",
+    "uploadSymbol": "上传符号素材",
+    "testPDF": "测试 PDF 渲染",
+    "saved": "货币设置已保存",
+    "warning": "在存在交易记录后更改 ISO 代码可能会影响历史数据。"
+  },
+  "users": {
+    "title": "用户",
+    "name": "姓名",
+    "email": "邮箱",
+    "role": "角色",
+    "status": "状态",
+    "joined": "加入时间",
+    "lastActive": "最近活跃"
+  },
+  "support": {
+    "nav": {
+      "group": "支持",
+      "enquiries": "联系咨询",
+      "tickets": "支持工单"
+    },
+    "values": {
+      "categories": {
+        "account": "账户",
+        "transactions": "交易",
+        "financial_accounts": "金融账户",
+        "subscriptions": "订阅",
+        "payments": "支付",
+        "reports": "报告",
+        "smart_entry_ai": "智能录入 AI",
+        "technical_error": "技术错误",
+        "feature_request": "功能建议",
+        "security": "安全",
+        "other": "其他"
+      },
+      "roles": {
+        "user": "客户",
+        "admin": "支持"
+      },
+      "eventTypes": {
+        "submitted": "已提交",
+        "status_changed": "状态已更改",
+        "priority_changed": "优先级已更改",
+        "assignment_changed": "分配已更改",
+        "internal_note": "内部备注",
+        "admin_reply": "管理员回复",
+        "first_response_recorded": "首次响应已记录"
+      }
+    },
+    "badges": {
+      "status": {
+        "open": "待处理",
+        "assigned": "已分配",
+        "in_progress": "处理中",
+        "waiting_for_customer": "等待客户回复",
+        "waiting_for_support": "等待支持处理",
+        "resolved": "已解决",
+        "closed": "已关闭",
+        "new": "新工单",
+        "spam": "垃圾邮件"
+      },
+      "priority": {
+        "low": "低",
+        "normal": "普通",
+        "high": "高",
+        "urgent": "紧急"
+      }
+    },
+    "attachmentUploader": {
+      "label": "附件",
+      "helper": "PNG、JPG、JPEG、WEBP、PDF，单个文件最大 10 MB",
+      "addFiles": "添加文件",
+      "emptyTitle": "尚未添加附件",
+      "emptyDescription": "添加截图或 PDF 以帮助支持团队更快地调查问题。",
+      "uploading": "上传中 {{progress}}%",
+      "ready": "就绪",
+      "removeFile": "移除 {{name}}"
+    },
+    "tickets": {
+      "title": "支持工单",
+      "description": "通过 SLA 可见性、未读指示器、分配功能和安全批量操作来管理客户支持工作负载。",
+      "loadError": "加载支持工单失败。",
+      "bulkError": "应用批量操作失败。",
+      "bulkAssignmentUpdated": "分配已更新。",
+      "bulkStatusUpdated": "状态已更新。",
+      "bulkPartial": "{{successCount}} 个工单已更新，{{failureCount}} 个失败。",
+      "selectAtLeastOne": "请至少选择一个工单。",
+      "metrics": {
+        "openTickets": "待处理工单",
+        "openTicketsSub": "活跃支持工作负载",
+        "unassigned": "未分配",
+        "unassignedSub": "需要负责人",
+        "urgent": "紧急",
+        "urgentSub": "高优先级项目",
+        "waitingForSupport": "等待支持处理",
+        "waitingForSupportSub": "客户正在等待",
+        "waitingForCustomer": "等待客户回复",
+        "waitingForCustomerSub": "需要客户响应",
+        "resolvedToday": "今日已解决",
+        "resolvedTodaySub": "今日完成",
+        "avgFirstResponse": "平均首次响应",
+        "avgFirstResponseSub": "首次回复平均用时",
+        "avgResolution": "平均解决时间",
+        "avgResolutionSub": "解决问题平均用时",
+        "hours": "{{value}} 小时",
+        "empty": "-"
+      },
+      "filtersTitle": "筛选器",
+      "filtersDescription": "按工单号、客户、邮箱或主题搜索。",
+      "searchPlaceholder": "搜索工单...",
+      "allStatuses": "全部状态",
+      "allCategories": "全部分类",
+      "allPriorities": "全部优先级",
+      "allAssignments": "全部分配",
+      "unassignedOption": "未分配",
+      "bulkTitle": "批量操作",
+      "bulkDescription": "分配负责人或将工单移动到安全的工作流状态。",
+      "assignSelectedTo": "将选中项分配给...",
+      "applyAssignment": "应用分配",
+      "changeSelectedStatusTo": "将选中状态更改为...",
+      "applyStatus": "应用状态",
+      "sectionTitle": "工单列表",
+      "sectionDescription": "最新工单优先，带未读回复和 SLA 提示。",
+      "emptyTitle": "未找到支持工单",
+      "emptyDescription": "请调整筛选条件或等待第一个客户工单。",
+      "unreadReply": "未读回复",
+      "ageHours": "时长：{{hours}} 小时",
+      "updatedAt": "更新于 {{value}}",
+      "open": "待处理",
+      "pageOf": "第 {{page}} 页，共 {{total}} 页",
+      "previous": "上一页",
+      "next": "下一页"
+    },
+    "ticketDetail": {
+      "loadError": "加载支持工单失败。",
+      "saveError": "保存工单摘要失败。",
+      "saveSuccess": "工单已更新。",
+      "replyError": "发送回复失败。",
+      "replySuccess": "回复已发送给客户。",
+      "noteError": "添加内部备注失败。",
+      "noteSuccess": "内部备注已添加。",
+      "attachmentError": "打开附件失败。",
+      "sendingReply": "发送中...",
+      "sendReply": "发送回复",
+      "saving": "保存中...",
+      "saveSummary": "保存摘要",
+      "addInternalNote": "添加内部备注",
+      "conversationTitle": "对话",
+      "conversationDescription": "客户消息、支持回复、附件和内部备注。",
+      "replyTitle": "回复客户",
+      "replyDescription": "回复将通过邮件发送给客户，并添加到可见对话中。",
+      "replyPlaceholder": "撰写清晰的支持回复。",
+      "internalNotesTitle": "内部备注",
+      "internalNotesDescription": "内部备注仅管理员可见。",
+      "notePlaceholder": "添加交接备注、调试上下文或支持团队的下一步操作。",
+      "summaryTitle": "工单摘要",
+      "summaryDescription": "分配、状态、分类和响应追踪。",
+      "customer": "客户",
+      "email": "邮箱",
+      "created": "创建时间",
+      "updated": "更新时间",
+      "firstResponse": "首次响应",
+      "resolved": "已解决",
+      "closed": "已关闭",
+      "relatedPage": "相关页面",
+      "errorCode": "错误代码",
+      "timelineTitle": "活动时间线",
+      "timelineDescription": "每一项有意义的操作都会创建一个支持历史事件。",
+      "securityTitle": "安全",
+      "securityDescription": "附件保持私密状态，仅通过签名 URL 下载。",
+      "securityBody": "管理员可以打开所有工单附件，而客户只能访问与其自身工单相关的文件。",
+      "refresh": "刷新时间线和附件",
+      "internalNoteLabel": "内部备注",
+      "deleteAttachment": "删除附件",
+      "deleteAttachmentSuccess": "附件已删除。",
+      "deleteAttachmentError": "删除附件失败。",
+      "confirmResolveTitle": "解决工单？",
+      "confirmResolveDescription": "是否立即将此工单标记为已解决？",
+      "confirmCloseTitle": "关闭工单？",
+      "confirmCloseDescription": "是否立即关闭此工单？它将保持终止状态，除非有人明确重新打开。",
+      "confirmReopenTitle": "重新打开工单？",
+      "confirmReopenDescription": "是否将此工单从终止状态移回活跃的支持工作流？",
+      "confirmDeleteAttachmentTitle": "删除附件？",
+      "confirmDeleteAttachmentDescription": "是否立即从此工单中删除 {{name}}？此操作无法撤销。",
+      "confirmAction": "确认",
+      "cancelAction": "取消",
+      "emptyValue": "-"
+    },
+    "enquiries": {
+      "title": "联系咨询",
+      "description": "公开联系表单提交的内容存储在 Supabase 中，可在此处通过分配、回复、备注和时间线历史进行管理。",
+      "refresh": "刷新",
+      "loadError": "加载咨询失败。",
+      "detailLoadError": "加载咨询详情失败。",
+      "updateError": "更新咨询失败。",
+      "updateSuccess": "咨询已更新。",
+      "replyError": "发送回复失败。",
+      "replySuccess": "回复已发送给客户。",
+      "filtersTitle": "筛选器",
+      "filtersDescription": "按参考编号、发送人、主题或消息搜索。",
+      "searchPlaceholder": "搜索咨询...",
+      "allStatuses": "全部状态",
+      "allPriorities": "全部优先级",
+      "inboxTitle": "收件箱",
+      "inboxDescription": "最新咨询优先显示。",
+      "emptyTitle": "未找到咨询",
+      "emptyDescription": "请尝试调整搜索或筛选条件。",
+      "unread": "未读",
+      "pageOf": "第 {{page}} 页，共 {{total}} 页",
+      "previous": "上一页",
+      "next": "下一页",
+      "detailsTitle": "咨询详情",
+      "detailsDescription": "打开咨询以管理分配、备注和回复。",
+      "selectPrompt": "从收件箱中选择一条咨询查看完整详情。",
+      "name": "姓名",
+      "email": "邮箱",
+      "phone": "电话",
+      "sourcePage": "来源页面",
+      "submitted": "提交时间",
+      "updated": "更新时间",
+      "firstResponse": "首次响应",
+      "resolved": "已解决",
+      "message": "消息",
+      "unassigned": "未分配",
+      "internalNotePlaceholder": "添加内部备注。永远不会向发送人显示。",
+      "saveChanges": "保存更改",
+      "markResolved": "标记为已解决",
+      "reopen": "重新打开",
+      "close": "关闭咨询",
+      "replyTitle": "通过邮件回复",
+      "replyPlaceholder": "为发送人撰写专业的支持回复。",
+      "sendReply": "发送回复",
+      "timelineTitle": "时间线",
+      "systemActor": "系统",
+      "emptyValue": "-",
+      "confirmResolveTitle": "解决咨询？",
+      "confirmResolveDescription": "是否立即将此联系咨询标记为已解决？",
+      "confirmReopenTitle": "重新打开咨询？",
+      "confirmReopenDescription": "是否将此咨询移回活跃处理中？",
+      "confirmCloseTitle": "关闭咨询？",
+      "confirmCloseDescription": "是否立即关闭此咨询？",
+      "confirmAction": "确认",
+      "cancelAction": "取消"
+    }
+  }
+}

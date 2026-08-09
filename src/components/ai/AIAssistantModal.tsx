@@ -113,7 +113,7 @@ type VoiceStatusResponse = {
   usage?: AIUsageSummary;
 };
 
-type SmartEntryDisplayLanguage = 'en' | 'ar' | 'fr' | 'ru';
+type SmartEntryDisplayLanguage = 'en' | 'ar' | 'fr' | 'ru' | 'tr' | 'zh-CN' | 'es' | 'pt-BR';
 type SmartEntrySpokenLanguage = 'auto' | SmartEntryDisplayLanguage | 'ur';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

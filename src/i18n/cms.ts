@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   DEFAULT_LANGUAGE,
   I18N_NAMESPACES,
+  SUPPORTED_LANGUAGE_CODES,
   type SupportedLanguage,
   type TranslationNamespace,
 } from '@/i18n/resources';
@@ -104,6 +105,10 @@ function buildEmptyResourceMap(): CachedLanguageResources {
     ar: {},
     fr: {},
     ru: {},
+    tr: {},
+    'zh-CN': {},
+    es: {},
+    'pt-BR': {},
   };
 }
 
@@ -250,7 +255,8 @@ export function clearCmsResourceCache(language?: SupportedLanguage) {
 
   memoryCache.clear();
   if (typeof window !== 'undefined') {
-    (['en', 'ar', 'fr', 'ru'] as SupportedLanguage[]).forEach((code) => {
+    const codes: SupportedLanguage[] = [...SUPPORTED_LANGUAGE_CODES];
+    codes.forEach((code) => {
       window.localStorage.removeItem(getStorageKey(code));
     });
   }

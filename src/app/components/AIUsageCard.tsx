@@ -9,6 +9,7 @@ import { useQuickActions } from '@/components/quick-actions/QuickActionsContext'
 import Modal from '@/components/ui/Modal';
 import { createClient } from '@/lib/supabase/client';
 import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
+import { getIntlLocale } from '@/lib/locale';
 import type { SubscriptionSummary as SharedSubscriptionSummary } from '@/lib/subscription/types';
 
 interface SubscriptionSummary {
@@ -546,7 +547,7 @@ export default function AIUsageCard({
   const secondarySurfaceClassName = 'rounded-[18px] border border-slate-200/70 bg-slate-50 px-3 py-1';
   const textHistoryCount = historyItems.filter((item) => item.request_type === 'text').length;
   const voiceHistoryCount = historyItems.filter((item) => item.request_type === 'voice').length;
-  const historyLocale = language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US';
+  const historyLocale = getIntlLocale(language);
   const orbAriaLabel = `${t('actions.view', { ns: 'common', defaultValue: 'View' })} ${t('aiUsage.title', { defaultValue: 'AI Usage' })}`;
   const summaryRows: Array<{
     id: UsageMetric['id'];
