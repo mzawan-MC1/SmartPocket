@@ -140,6 +140,7 @@ export async function POST(request: Request) {
           rawMsg.includes('unsupported_gateway_response_shape') ? 'unsupported_gateway_response_shape' :
           rawMsg.includes('required_translation_fields_empty') ? 'required_translation_fields_empty' :
           rawMsg.includes('disabled_or_empty_input') ? 'disabled_or_empty_input' :
+          rawMsg.includes('provider_timeout') ? 'provider_timeout' :
           rawMsg.includes('abort_or_timeout') ? 'abort_or_timeout' :
           rawMsg.includes('database_upsert_failed') ? 'database_upsert_failed' :
           null;

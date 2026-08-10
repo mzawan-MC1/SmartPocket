@@ -10,6 +10,8 @@ import {
 import { safeParseJSON } from './ai-types';
 import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
+export const TRANSLATION_PROVIDER_TIMEOUT_MS = 50_000;
+
 export type TranslationAttemptStage =
   | 'start'
   | 'provider_request_failed'
@@ -20,6 +22,7 @@ export type TranslationAttemptStage =
   | 'required_translation_fields_empty'
   | 'disabled_or_empty_input'
   | 'abort_or_timeout'
+  | 'provider_timeout'
   | 'database_upsert_failed'
   | 'success';
 
@@ -209,7 +212,11 @@ English source fields:
 ${JSON.stringify(fields, null, 2)}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let providerTimeoutTriggered = false;
+  const timer = setTimeout(() => {
+    providerTimeoutTriggered = true;
+    controller.abort();
+  }, timeoutMs);
   let providerStatus: number | null = null;
   let responseShape: string = 'null';
   let candidateTextExists = false;
@@ -401,6 +408,12 @@ ${JSON.stringify(fields, null, 2)}`;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err || 'Unknown');
     if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timeout')) {
+      const resolvedStage: Exclude<TranslationAttemptStage, 'start' | 'success'> = providerTimeoutTriggered
+        ? 'provider_timeout'
+        : 'abort_or_timeout';
+      const safeMsg = providerTimeoutTriggered
+        ? `Provider call exceeded the ${timeoutMs} ms timeout configured for translation.`
+        : 'Aborted or timed out.';
       writeAttemptLog({
         attemptId: attempt.attemptId,
         contentType: attempt.contentType,
@@ -408,15 +421,15 @@ ${JSON.stringify(fields, null, 2)}`;
         targetLanguage,
         model,
         providerStatus,
-        stage: 'abort_or_timeout',
+        stage: resolvedStage,
         responseShape,
         candidateTextExists,
         candidateTextLength,
-        errorCategory: 'abort_or_timeout',
-        errorMessageSafe: 'Aborted or timed out.',
+        errorCategory: resolvedStage,
+        errorMessageSafe: safeMsg,
         elapsedMs: Date.now() - attempt.startTs,
       });
-      return { fieldsOut: null, failure: { stage: 'abort_or_timeout', safeMessage: 'Aborted or timed out.' } };
+      return { fieldsOut: null, failure: { stage: resolvedStage, safeMessage: safeMsg } };
     }
     throw err;
   } finally {
@@ -488,7 +501,7 @@ export async function translateBlogFields(
     { attemptId, contentType: 'blog_fields', contentId: options?.contentId, startTs, model },
     targetLanguage,
     textFields,
-    30000
+    TRANSLATION_PROVIDER_TIMEOUT_MS
   );
   if (translated.failure || !translated.fieldsOut) {
     return { translatedFields: null, attemptId, failure: translated.failure };
@@ -546,7 +559,7 @@ export async function translateFaqCategoryFields(
     { attemptId, contentType: 'faq_category_fields', contentId: options?.contentId, startTs, model },
     targetLanguage,
     { name: english.name, description: english.description },
-    20000
+    TRANSLATION_PROVIDER_TIMEOUT_MS
   );
   if (translated.failure || !translated.fieldsOut) {
     return { translatedFields: null, attemptId, failure: translated.failure };
@@ -592,7 +605,7 @@ export async function translateFaqItemFields(
       answer_html: english.answer_html,
       keywords_csv: (english.keywords || []).join(', '),
     },
-    25000
+    TRANSLATION_PROVIDER_TIMEOUT_MS
   );
   if (translated.failure || !translated.fieldsOut) {
     return { translatedFields: null, attemptId, failure: translated.failure };
