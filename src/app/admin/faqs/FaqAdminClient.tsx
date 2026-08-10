@@ -49,6 +49,24 @@ type CategoryModalState = {
   activeLanguage: FaqLanguageCode;
 };
 
+type FaqWorkItem = {
+  type: 'blog' | 'faq_category' | 'faq_item';
+  id: string;
+  language: string;
+  parentEnSourceHash?: string;
+};
+
+const VALID_TRANSLATION_TARGET_LANGS = new Set<string>(CONTENT_TRANSLATION_ENABLED_LANGS);
+
+function isValidTranslationTargetWorkItem(item: unknown): item is FaqWorkItem {
+  if (!item || typeof item !== 'object') return false;
+  const obj = item as Record<string, unknown>;
+  if (obj.type !== 'faq_category' && obj.type !== 'faq_item' && obj.type !== 'blog') return false;
+  if (typeof obj.id !== 'string' || !obj.id.trim()) return false;
+  if (typeof obj.language !== 'string' || !obj.language.trim()) return false;
+  return VALID_TRANSLATION_TARGET_LANGS.has(obj.language);
+}
+
 type ItemModalState = {
   open: boolean;
   mode: 'create' | 'edit' | 'duplicate';
@@ -468,13 +486,17 @@ export default function FaqAdminClient({
     setStopFaqProcessing(false);
     stopFaqProcessingRef.current = false;
     setIsFaqProcessingLoopRunning(true);
-    setFaqProcessingProgress({ completed: 0, total: initialQueue.length });
-    let currentQueue = [...initialQueue];
+    let currentQueue = initialQueue.filter(isValidTranslationTargetWorkItem);
+    setFaqProcessingProgress({ completed: 0, total: currentQueue.length });
     let completedCount = 0;
     let consecutiveFailures = 0;
 
     while (!stopFaqProcessingRef.current && currentQueue.length > 0) {
       const item = currentQueue[0] as any;
+      if (!isValidTranslationTargetWorkItem(item)) {
+        currentQueue.shift();
+        continue;
+      }
 
       if (item.type === 'faq_category') {
         setCategoryTranslationStatuses((prev) =>
@@ -947,11 +969,12 @@ export default function FaqAdminClient({
   };
 
   async function runFaqBackfillStageB(scope: 'all' | 'blog' | 'faq', pendingWork: any[]): Promise<void> {
-    let localPending = [...pendingWork];
+    let localPending = pendingWork.filter(isValidTranslationTargetWorkItem);
     let consecutiveFailures = 0;
 
     while (!faqStopBackfillRef.current && localPending.length > 0) {
       const item = localPending.shift()!;
+      if (!isValidTranslationTargetWorkItem(item)) continue;
 
       setFaqBackfillDialog((prev) => ({
         ...prev,
@@ -1069,8 +1092,9 @@ export default function FaqAdminClient({
         nextCursor = json?.nextCursor || {};
         const totalRemaining = json?.totalRemainingEstimate || 0;
         const failures = json?.failures || [];
-        const scheduledWorkItems = json?.scheduledWorkItems || [];
-        const failedWorkFromStage = [...scheduledWorkItems];
+        const scheduledWorkItems: any[] = json?.scheduledWorkItems || [];
+        const validScheduled = scheduledWorkItems.filter(isValidTranslationTargetWorkItem);
+        const failedWorkFromStage = [...validScheduled];
 
         setFaqBackfillDialog((prev) => ({
           ...prev,
@@ -1151,9 +1175,24 @@ export default function FaqAdminClient({
 
   async function retryFaqBackfillFailures() {
     const scope = faqBackfillDialog.scope;
-    const snapshot = [...faqBackfillDialog.failedWorkSet];
+    const rawSnapshot = [...faqBackfillDialog.failedWorkSet];
+    const snapshot = rawSnapshot.filter(isValidTranslationTargetWorkItem);
+    const skippedInvalidCount = rawSnapshot.length - snapshot.length;
 
-    if (snapshot.length === 0) return;
+    if (snapshot.length === 0) {
+      if (skippedInvalidCount > 0) {
+        setFaqBackfillDialog((prev) => ({
+          ...prev,
+          failedWorkSet: [],
+          failedTranslations: 0,
+          stopBackfill: false,
+          isStopped: false,
+          pendingTranslations: 0,
+          pendingWork: [],
+        }));
+      }
+      return;
+    }
 
     setFaqBackfillDialog((prev) => ({
       ...prev,
@@ -2332,8 +2371,8 @@ export default function FaqAdminClient({
       >
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="min-h-[2.5rem] break-words whitespace-normal text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {tp('adminFaqs.backfill.scannedLabel', 'Scanned content')}
               </p>
               <p className="mt-2 text-2xl font-800 text-info">
@@ -2343,24 +2382,24 @@ export default function FaqAdminClient({
                 </span>
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="min-h-[2.5rem] break-words whitespace-normal text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {tp('adminFaqs.backfill.completedLabel', 'Completed translations')}
               </p>
               <p className="mt-2 text-2xl font-800 text-positive">
                 {faqBackfillDialog.completedTranslations}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="min-h-[2.5rem] break-words whitespace-normal text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {tp('adminFaqs.backfill.pendingLabel', 'Pending translations')}
               </p>
               <p className="mt-2 text-2xl font-800 text-warning">
                 {faqBackfillDialog.pendingTranslations}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-muted/20 p-4">
-              <p className="text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
+            <div className="min-w-0 rounded-2xl border border-border bg-muted/20 p-4">
+              <p className="min-h-[2.5rem] break-words whitespace-normal text-xs font-700 uppercase tracking-[0.14em] text-muted-foreground">
                 {tp('adminFaqs.backfill.failedLabel', 'Failed translations')}
               </p>
               <p className="mt-2 text-2xl font-800 text-danger">

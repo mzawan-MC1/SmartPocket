@@ -14,6 +14,7 @@ import {
   loadFaqItemInputOrNull,
 } from '@/lib/faqs-admin-server';
 import type { CmsPageRecord } from '@/lib/cms-pages';
+import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
 
 export const maxDuration = 60;
 
@@ -235,9 +236,11 @@ export async function POST(request: Request) {
         .from('cms_page_translations')
         .select('page_id, language_code, cms_pages!inner(en_source_version_hash)')
         .in('page_id', blogPageIds)
-        .in('translation_status', WORK_STATUSES);
+        .in('translation_status', WORK_STATUSES)
+        .in('language_code', CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]);
       if (!blogTransErr && blogTranslations) {
         for (const row of blogTranslations as any[]) {
+          if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]).includes(String(row.language_code || ''))) continue;
           scheduledWorkItems.push({
             type: 'blog',
             id: row.page_id,
@@ -253,9 +256,11 @@ export async function POST(request: Request) {
         .from('faq_category_translations')
         .select('category_id, language_code, faq_categories!inner(en_source_version_hash)')
         .in('category_id', faqCategoryIds)
-        .in('translation_status', WORK_STATUSES);
+        .in('translation_status', WORK_STATUSES)
+        .in('language_code', CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]);
       if (!catTransErr && catTranslations) {
         for (const row of catTranslations as any[]) {
+          if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]).includes(String(row.language_code || ''))) continue;
           scheduledWorkItems.push({
             type: 'faq_category',
             id: row.category_id,
@@ -271,9 +276,11 @@ export async function POST(request: Request) {
         .from('faq_item_translations')
         .select('item_id, language_code, faq_items!inner(en_source_version_hash)')
         .in('item_id', faqItemIds)
-        .in('translation_status', WORK_STATUSES);
+        .in('translation_status', WORK_STATUSES)
+        .in('language_code', CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]);
       if (!itemTransErr && itemTranslations) {
         for (const row of itemTranslations as any[]) {
+          if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]).includes(String(row.language_code || ''))) continue;
           scheduledWorkItems.push({
             type: 'faq_item',
             id: row.item_id,
