@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
 import { createClient } from '@/lib/supabase/client';
@@ -115,6 +115,7 @@ export function LanguageProvider({
   children: React.ReactNode;
   initialLanguage?: SupportedLanguage;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const { user, loading: authLoading } = useAuth();
   const { localization } = usePlatformSettings();
@@ -216,6 +217,12 @@ export function LanguageProvider({
       lastBrowserPersistedRef.current = lang;
     }
 
+    if (typeof pathname === 'string' && (pathname === '/blog' || pathname.startsWith('/blog/'))) {
+      try {
+        router.refresh();
+      } catch {}
+    }
+
     if (user?.id) {
       const persistKey = `${user.id}:${lang}`;
       if (profilePersistInFlightRef.current === persistKey) {
@@ -239,7 +246,7 @@ export function LanguageProvider({
           }
         });
     }
-  }, [isAdminRoute, user?.id]);
+  }, [isAdminRoute, pathname, router, user?.id]);
 
   const dir: LanguageContextValue['dir'] = isRTL(effectiveLanguage) ? 'rtl' : 'ltr';
   const value = useMemo(() => ({

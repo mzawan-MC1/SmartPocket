@@ -10,6 +10,7 @@ import { listPublicBlogPosts, resolveLocalizedBlogList, type PublicCmsPage } fro
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { buildBreadcrumbStructuredData, buildPageMetadata, resolveMetadataLanguage } from '@/lib/site-metadata';
 import StructuredDataScripts from '@/components/seo/StructuredDataScripts';
+import { isRTL } from '@/i18n/resources';
 
 type BlogArchivePageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -122,7 +123,7 @@ export default async function BlogArchivePage({ searchParams }: BlogArchivePageP
   const tag = Array.isArray(params.tag) ? params.tag[0] : params.tag || '';
 
   return (
-    <div className="min-h-screen bg-[#050a13] text-white">
+    <div dir={isRTL(language) ? 'rtl' : 'ltr'} className="min-h-screen bg-[#050a13] text-white">
       <StructuredDataScripts entries={structuredData} />
       <BlogArchiveClient
         posts={mappedPosts}

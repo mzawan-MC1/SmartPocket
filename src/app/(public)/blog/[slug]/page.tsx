@@ -18,6 +18,7 @@ import {
   buildAbsoluteSiteUrl,
   resolveMetadataLanguage,
 } from '@/lib/site-metadata';
+import { isRTL } from '@/i18n/resources';
 
 function getBlogText(publicText: Record<string, any>) {
   return publicText.blog || {};
@@ -130,18 +131,18 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#050a13] text-white">
+    <div dir={isRTL(language) ? 'rtl' : 'ltr'} className={`min-h-screen bg-[#050a13] text-white ${language === 'ar' ? 'text-right' : 'text-left'}`}>
       <StructuredDataScripts entries={structuredData} />
       <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         <nav aria-label={detail.breadcrumbLabel || 'Breadcrumbs'} className="mb-8 flex flex-wrap items-center gap-2 text-sm text-slate-400">
           <Link href="/" className="transition-colors hover:text-cyan-100">
             {common.homeLabel || 'Home'}
           </Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={14} className={language === 'ar' ? 'rotate-180' : ''} />
           <Link href="/blog" className="transition-colors hover:text-cyan-100">
             {common.blogLabel || 'Blog'}
           </Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={14} className={language === 'ar' ? 'rotate-180' : ''} />
           <span className="text-slate-200">{post.title}</span>
         </nav>
 
@@ -153,9 +154,9 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                 {dateLabel ? <span>{dateLabel}</span> : null}
                 <span>{readingTimeLabel}</span>
               </div>
-              <h1 className="text-4xl font-800 tracking-tight text-white sm:text-5xl">{post.title}</h1>
+              <h1 className={`text-4xl font-800 tracking-tight text-white sm:text-5xl ${language === 'ar' ? 'text-right' : 'text-left'}`}>{post.title}</h1>
               {post.excerpt_resolved ? (
-                <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">{post.excerpt_resolved}</p>
+                <p className={`mt-5 max-w-3xl text-lg leading-8 text-slate-300 ${language === 'ar' ? 'text-right' : 'text-left'}`}>{post.excerpt_resolved}</p>
               ) : null}
 
               <div className="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-400">
@@ -176,7 +177,11 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
             <div className="mt-10 max-w-4xl">
               <CmsHtml
                 html={post.content_html_sanitized}
-                className="prose prose-invert prose-lg max-w-none leading-8 prose-headings:font-800 prose-a:text-cyan-200 prose-blockquote:border-l-cyan-300/50 prose-blockquote:text-slate-200 prose-strong:text-white prose-li:my-1"
+                className={
+                  language === 'ar'
+                    ? 'prose prose-invert prose-lg max-w-none leading-8 prose-headings:font-800 prose-a:text-cyan-200 prose-blockquote:border-r-4 prose-blockquote:border-r-cyan-300/50 prose-blockquote:border-l-0 prose-blockquote:text-right prose-blockquote:text-slate-200 prose-strong:text-white prose-li:my-1 prose-p:text-right prose-headings:text-right prose-li:text-right'
+                    : 'prose prose-invert prose-lg max-w-none leading-8 prose-headings:font-800 prose-a:text-cyan-200 prose-blockquote:border-l-cyan-300/50 prose-blockquote:text-slate-200 prose-strong:text-white prose-li:my-1'
+                }
               />
             </div>
 
@@ -196,7 +201,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
           </article>
 
           <aside className="space-y-6">
-            <div className="rounded-[28px] border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
+            <div className={`rounded-[28px] border border-white/10 bg-white/5 p-5 backdrop-blur-sm ${language === 'ar' ? 'text-right' : 'text-left'}`}>
               <h2 className="text-lg font-700 text-white">{detail.shareTitle || 'Share this article'}</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm font-700">
                 <Link
@@ -230,7 +235,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,25,44,0.92),rgba(6,14,25,0.98))] p-6">
+            <div className={`rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,25,44,0.92),rgba(6,14,25,0.98))] p-6 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
               <p className="text-xs font-700 uppercase tracking-[0.22em] text-cyan-200/80">{detail.ctaEyebrow || 'Ready to review before you save?'}</p>
               <h2 className="mt-3 text-2xl font-800 text-white">
                 {detail.ctaTitle || 'Let Smart Pocket prepare the details, then stay in control.'}
@@ -238,7 +243,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
               <p className="mt-3 text-sm leading-7 text-slate-300">
                 {detail.ctaDescription || 'Upload receipts, track subscriptions, and keep shared expenses simple with AI-assisted review flows.'}
               </p>
-              <div className="mt-5 flex flex-col gap-3">
+              <div className={`mt-5 flex flex-col gap-3 ${language === 'ar' ? 'items-end' : 'items-start'}`}>
                 <TrackedAnalyticsLink
                   href="/sign-up-login"
                   eventName="sp_signup_click"
@@ -246,7 +251,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                   className="inline-flex h-11 items-center justify-center rounded-full bg-cyan-300 px-5 text-sm font-700 text-slate-950 transition-transform hover:-translate-y-0.5"
                 >
                   {detail.ctaPrimaryLabel || 'Start Free Trial'}
-                  <ArrowRight size={16} className="ms-2" />
+                  <ArrowRight size={16} className={`ms-2 ${language === 'ar' ? 'rotate-180' : ''}`} />
                 </TrackedAnalyticsLink>
                 <Link
                   href="/"
@@ -262,7 +267,7 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
         {relatedPosts.length > 0 ? (
           <section className="mt-16">
             <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
+              <div className={language === 'ar' ? 'text-right' : 'text-left'}>
                 <p className="text-xs font-700 uppercase tracking-[0.22em] text-cyan-200/80">{detail.relatedEyebrow || 'Keep reading'}</p>
                 <h2 className="mt-2 text-2xl font-800 text-white">{detail.relatedTitle || 'Related articles'}</h2>
               </div>

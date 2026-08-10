@@ -101,30 +101,30 @@ export default function BlogArchiveClient({
     readTimeTemplate.replace('{{count}}', String(minutes)) || `${minutes} min read`;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+    <div className={`mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>
       <div className="max-w-3xl">
         <p className="text-xs font-700 uppercase tracking-[0.3em] text-cyan-300">{eyebrow}</p>
-        <h1 className="mt-4 text-4xl font-800 tracking-tight text-white sm:text-5xl">{title}</h1>
-        <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">{description}</p>
+        <h1 className={`mt-4 text-4xl font-800 tracking-tight text-white sm:text-5xl ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{title}</h1>
+        <p className={`mt-4 text-base leading-7 text-slate-300 sm:text-lg ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{description}</p>
       </div>
 
       <div className="mt-8 rounded-[28px] border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,0.75fr)_minmax(0,0.75fr)]">
-          <div>
-            <label className="mb-2 block text-sm font-600 text-slate-200">{searchLabel}</label>
+          <div className={locale === 'ar' ? 'text-right' : 'text-left'}>
+            <label className={`mb-2 block text-sm font-600 text-slate-200 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{searchLabel}</label>
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={searchPlaceholder}
-              className="h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/60"
+              className={`h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-cyan-300/60 ${locale === 'ar' ? 'text-right' : 'text-left'}`}
             />
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-600 text-slate-200">{categoryLabel}</label>
+          <div className={locale === 'ar' ? 'text-right' : 'text-left'}>
+            <label className={`mb-2 block text-sm font-600 text-slate-200 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{categoryLabel}</label>
             <select
               value={category}
               onChange={(event) => setCategory(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
+              className={`h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors focus:border-cyan-300/60 ${locale === 'ar' ? 'text-right' : 'text-left'}`}
             >
               <option value="">{categoryAllLabel}</option>
               {categories.map((entry) => (
@@ -134,12 +134,12 @@ export default function BlogArchiveClient({
               ))}
             </select>
           </div>
-          <div>
-            <label className="mb-2 block text-sm font-600 text-slate-200">{tagLabel}</label>
+          <div className={locale === 'ar' ? 'text-right' : 'text-left'}>
+            <label className={`mb-2 block text-sm font-600 text-slate-200 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{tagLabel}</label>
             <select
               value={tag}
               onChange={(event) => setTag(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors focus:border-cyan-300/60"
+              className={`h-12 w-full rounded-2xl border border-white/10 bg-[#09101d] px-4 text-sm text-white outline-none transition-colors focus:border-cyan-300/60 ${locale === 'ar' ? 'text-right' : 'text-left'}`}
             >
               <option value="">{tagAllLabel}</option>
               {tags.map((entry) => (

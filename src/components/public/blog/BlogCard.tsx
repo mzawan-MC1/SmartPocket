@@ -67,7 +67,7 @@ export default function BlogCard({
     : [];
 
   return (
-    <article className="group flex h-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0f1726]/80 shadow-[0_24px_80px_rgba(7,12,24,0.18)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1">
+    <article className={`group flex h-full flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0f1726]/80 shadow-[0_24px_80px_rgba(7,12,24,0.18)] backdrop-blur-sm transition-transform duration-200 hover:-translate-y-1 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>
       {post.coverImageUrl ? (
         <Link href={linkHref} className="block">
           <img
@@ -93,12 +93,12 @@ export default function BlogCard({
         </div>
 
         <div className="space-y-3">
-          <h3 className="text-xl font-700 leading-tight text-white">
+          <h3 className={`text-xl font-700 leading-tight text-white ${locale === 'ar' ? 'text-right' : 'text-left'}`}>
             <Link href={linkHref} className="transition-colors hover:text-cyan-200">
               {safeTitle}
             </Link>
           </h3>
-          <p className="line-clamp-3 text-sm leading-6 text-slate-300">{safeExcerpt}</p>
+          <p className={`line-clamp-3 text-sm leading-6 text-slate-300 ${locale === 'ar' ? 'text-right' : 'text-left'}`}>{safeExcerpt}</p>
         </div>
 
         <div className="mt-auto space-y-3">
