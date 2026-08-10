@@ -23,6 +23,7 @@ import {
   translateFaqItemFields,
   type TranslationPerLang,
   type TranslationStatus,
+  writeAttemptLog,
 } from '@/lib/content-translate-server';
 import type { SupportedLanguage } from '@/i18n/registry';
 
@@ -445,25 +446,53 @@ export async function autoTranslateFaqCategory(
   };
 }
 
+export type ProcessOneFaqCategoryResult = TranslationPerLang<{ name: string; description: string }> & {
+  attemptId: string;
+  errorStage: string | null;
+};
+
 export async function processOneFaqCategoryTranslation(
   admin: AdminClient,
   categoryId: string,
   language: SupportedLanguage,
   input: FaqCategoryInput
-): Promise<TranslationPerLang<{ name: string; description: string }>> {
+): Promise<ProcessOneFaqCategoryResult> {
   const en = input.translations.en;
   const sourceHash = buildFaqCategoryEnglishSourceHash({
     enName: en.name,
     enDescription: en.description,
   });
-  let aiResult: Awaited<ReturnType<typeof translateFaqCategoryFields>> | null = null;
+  const aiTranslateResult = await translateFaqCategoryFields(
+    language,
+    { name: en.name, description: en.description },
+    { contentId: categoryId }
+  );
+  const attemptId = aiTranslateResult.attemptId;
+  let aiResult = aiTranslateResult.translatedFields;
+  let errorStage: string | null = aiTranslateResult.failure?.stage ?? null;
   let errorMsg: string | null = null;
-  try {
-    aiResult = await translateFaqCategoryFields(language, { name: en.name, description: en.description });
-    if (!aiResult) throw new Error('Empty AI translation result.');
-  } catch (err) {
-    errorMsg =
-      err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  if (aiTranslateResult.failure) {
+    errorMsg = `[${attemptId}] ${aiTranslateResult.failure.stage}: ${aiTranslateResult.failure.safeMessage}`;
+  } else {
+    try {
+      if (!aiResult) {
+        errorStage = 'required_translation_fields_empty';
+        throw new Error(`[${attemptId}] required_translation_fields_empty: Empty AI translation result.`);
+      }
+    } catch (err) {
+      errorMsg =
+        err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+      if (errorStage === null) {
+        const msg = errorMsg;
+        if (msg.includes('provider_request_failed')) errorStage = 'provider_request_failed';
+        else if (msg.includes('provider_returned_no_text')) errorStage = 'provider_returned_no_text';
+        else if (msg.includes('invalid_json')) errorStage = 'invalid_json';
+        else if (msg.includes('schema_validation_failed')) errorStage = 'schema_validation_failed';
+        else if (msg.includes('unsupported_gateway_response_shape')) errorStage = 'unsupported_gateway_response_shape';
+        else errorStage = 'required_translation_fields_empty';
+      }
+    }
   }
 
   const priorRow = (
@@ -483,8 +512,8 @@ export async function processOneFaqCategoryTranslation(
     const enNameNonEmpty = en.name.trim() !== '';
     const translatedNameEmpty = sanitized.name.trim() === '';
     if (enNameNonEmpty && translatedNameEmpty) {
-      const schemaErrorMsg = 'Schema/empty-error: translated category name is empty while English source has content.';
-      errorMsg = schemaErrorMsg;
+      errorStage = 'schema_validation_failed';
+      errorMsg = `[${attemptId}] schema_validation_failed: Schema/empty-error: translated category name is empty while English source has content.`;
     } else {
       const { error } = await admin.from('faq_category_translations').upsert(
         [
@@ -501,14 +530,33 @@ export async function processOneFaqCategoryTranslation(
         { onConflict: 'category_id,language_code' }
       );
       if (error) {
+        const dbErrMsg = error instanceof Error ? error.message : 'Failed to persist translation row.';
+        errorStage = 'database_upsert_failed';
+        errorMsg = `[${attemptId}] database_upsert_failed: ${dbErrMsg}`;
+        writeAttemptLog({
+          attemptId,
+          contentType: 'faq_category_fields',
+          contentId: categoryId,
+          targetLanguage: language,
+          model,
+          providerStatus: null,
+          stage: 'database_upsert_failed',
+          responseShape: 'null',
+          candidateTextExists: false,
+          candidateTextLength: 0,
+          errorCategory: 'database_upsert_failed',
+          errorMessageSafe: dbErrMsg.slice(0, 300),
+          elapsedMs: 0,
+        });
         return {
           language,
           status: 'failed',
-          errorMessage:
-            error instanceof Error ? error.message : 'Failed to persist translation row.',
+          errorMessage: errorMsg.slice(0, 500),
+          attemptId,
+          errorStage,
         };
       }
-      return { language, status: 'current', result: sanitized };
+      return { language, status: 'current', result: sanitized, attemptId, errorStage: null };
     }
   }
 
@@ -525,6 +573,7 @@ export async function processOneFaqCategoryTranslation(
         source_version_hash: '',
         translation_status: 'failed' as TranslationStatus,
       };
+  const finalErrorMessage = String(errorMsg || `[${attemptId}] required_translation_fields_empty: Translation failed.`).slice(0, 500);
   const { error: persistErr } = await admin
     .from('faq_category_translations')
     .upsert(
@@ -533,18 +582,44 @@ export async function processOneFaqCategoryTranslation(
           category_id: categoryId,
           language_code: language,
           ...preserve,
-          last_error_message: String(errorMsg || 'Translation failed.').slice(0, 500),
+          last_error_message: finalErrorMessage,
         },
       ],
       { onConflict: 'category_id,language_code' }
     );
   if (persistErr) {
-    errorMsg = `${errorMsg ?? ''} | persist: ${String(persistErr.message || persistErr)}`.slice(0, 500);
+    const persistMsg = `persist: ${String(persistErr.message || persistErr)}`;
+    const combinedMsg = finalErrorMessage + ' | ' + persistMsg;
+    writeAttemptLog({
+      attemptId,
+      contentType: 'faq_category_fields',
+      contentId: categoryId,
+      targetLanguage: language,
+      model,
+      providerStatus: null,
+      stage: 'database_upsert_failed',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'database_upsert_failed',
+      errorMessageSafe: persistMsg.slice(0, 300),
+      elapsedMs: 0,
+    });
+    errorStage = 'database_upsert_failed';
+    return {
+      language,
+      status: (priorHasContent ? 'outdated' : 'failed') as TranslationStatus,
+      errorMessage: combinedMsg.slice(0, 500),
+      attemptId,
+      errorStage,
+    };
   }
   return {
     language,
     status: (priorHasContent ? 'outdated' : 'failed') as TranslationStatus,
-    errorMessage: errorMsg || 'Translation failed.',
+    errorMessage: finalErrorMessage,
+    attemptId,
+    errorStage,
   };
 }
 
@@ -598,30 +673,58 @@ export async function autoTranslateFaqItem(
   };
 }
 
+export type ProcessOneFaqItemResult = TranslationPerLang<{ question: string; answer_html: string; keywords: string[] }> & {
+  attemptId: string;
+  errorStage: string | null;
+};
+
 export async function processOneFaqItemTranslation(
   admin: AdminClient,
   itemId: string,
   language: SupportedLanguage,
   input: FaqItemInput
-): Promise<TranslationPerLang<{ question: string; answer_html: string; keywords: string[] }>> {
+): Promise<ProcessOneFaqItemResult> {
   const en = input.translations.en;
   const sourceHash = buildFaqItemEnglishSourceHash({
     enQuestion: en.question,
     enAnswerHtml: en.answer_html,
     enKeywords: en.keywords,
   });
-  let aiResult: Awaited<ReturnType<typeof translateFaqItemFields>> | null = null;
-  let errorMsg: string | null = null;
-  try {
-    aiResult = await translateFaqItemFields(language, {
+  const aiTranslateResult = await translateFaqItemFields(
+    language,
+    {
       question: en.question,
       answer_html: en.answer_html,
       keywords: en.keywords,
-    });
-    if (!aiResult) throw new Error('Empty AI translation result.');
-  } catch (err) {
-    errorMsg =
-      err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+    },
+    { contentId: itemId }
+  );
+  const attemptId = aiTranslateResult.attemptId;
+  let aiResult = aiTranslateResult.translatedFields;
+  let errorStage: string | null = aiTranslateResult.failure?.stage ?? null;
+  let errorMsg: string | null = null;
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  if (aiTranslateResult.failure) {
+    errorMsg = `[${attemptId}] ${aiTranslateResult.failure.stage}: ${aiTranslateResult.failure.safeMessage}`;
+  } else {
+    try {
+      if (!aiResult) {
+        errorStage = 'required_translation_fields_empty';
+        throw new Error(`[${attemptId}] required_translation_fields_empty: Empty AI translation result.`);
+      }
+    } catch (err) {
+      errorMsg =
+        err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+      if (errorStage === null) {
+        const msg = errorMsg;
+        if (msg.includes('provider_request_failed')) errorStage = 'provider_request_failed';
+        else if (msg.includes('provider_returned_no_text')) errorStage = 'provider_returned_no_text';
+        else if (msg.includes('invalid_json')) errorStage = 'invalid_json';
+        else if (msg.includes('schema_validation_failed')) errorStage = 'schema_validation_failed';
+        else if (msg.includes('unsupported_gateway_response_shape')) errorStage = 'unsupported_gateway_response_shape';
+        else errorStage = 'required_translation_fields_empty';
+      }
+    }
   }
 
   const priorRow = (
@@ -642,8 +745,8 @@ export async function processOneFaqItemTranslation(
     const translatedQuestionEmpty = sanitized.question.trim() === '';
     const translatedAnswerEmpty = sanitized.answer_html.trim() === '';
     if (enQuestionNonEmpty && (translatedQuestionEmpty || translatedAnswerEmpty)) {
-      const schemaErrorMsg = 'Schema/empty-error: translated question or answer_html is empty while English source has content.';
-      errorMsg = schemaErrorMsg;
+      errorStage = 'schema_validation_failed';
+      errorMsg = `[${attemptId}] schema_validation_failed: Schema/empty-error: translated question or answer_html is empty while English source has content.`;
     } else {
       const { error } = await admin.from('faq_item_translations').upsert(
         [
@@ -661,14 +764,33 @@ export async function processOneFaqItemTranslation(
         { onConflict: 'item_id,language_code' }
       );
       if (error) {
+        const dbErrMsg = error instanceof Error ? error.message : 'Failed to persist translation row.';
+        errorStage = 'database_upsert_failed';
+        errorMsg = `[${attemptId}] database_upsert_failed: ${dbErrMsg}`;
+        writeAttemptLog({
+          attemptId,
+          contentType: 'faq_item_fields',
+          contentId: itemId,
+          targetLanguage: language,
+          model,
+          providerStatus: null,
+          stage: 'database_upsert_failed',
+          responseShape: 'null',
+          candidateTextExists: false,
+          candidateTextLength: 0,
+          errorCategory: 'database_upsert_failed',
+          errorMessageSafe: dbErrMsg.slice(0, 300),
+          elapsedMs: 0,
+        });
         return {
           language,
           status: 'failed',
-          errorMessage:
-            error instanceof Error ? error.message : 'Failed to persist translation row.',
+          errorMessage: errorMsg.slice(0, 500),
+          attemptId,
+          errorStage,
         };
       }
-      return { language, status: 'current', result: sanitized };
+      return { language, status: 'current', result: sanitized, attemptId, errorStage: null };
     }
   }
 
@@ -687,6 +809,7 @@ export async function processOneFaqItemTranslation(
         source_version_hash: '',
         translation_status: 'failed' as TranslationStatus,
       };
+  const finalErrorMessage = String(errorMsg || `[${attemptId}] required_translation_fields_empty: Translation failed.`).slice(0, 500);
   const { error: persistErr } = await admin
     .from('faq_item_translations')
     .upsert(
@@ -695,18 +818,44 @@ export async function processOneFaqItemTranslation(
           item_id: itemId,
           language_code: language,
           ...preserve,
-          last_error_message: String(errorMsg || 'Translation failed.').slice(0, 500),
+          last_error_message: finalErrorMessage,
         },
       ],
       { onConflict: 'item_id,language_code' }
     );
   if (persistErr) {
-    errorMsg = `${errorMsg ?? ''} | persist: ${String(persistErr.message || persistErr)}`.slice(0, 500);
+    const persistMsg = `persist: ${String(persistErr.message || persistErr)}`;
+    const combinedMsg = finalErrorMessage + ' | ' + persistMsg;
+    writeAttemptLog({
+      attemptId,
+      contentType: 'faq_item_fields',
+      contentId: itemId,
+      targetLanguage: language,
+      model,
+      providerStatus: null,
+      stage: 'database_upsert_failed',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'database_upsert_failed',
+      errorMessageSafe: persistMsg.slice(0, 300),
+      elapsedMs: 0,
+    });
+    errorStage = 'database_upsert_failed';
+    return {
+      language,
+      status: (priorHasContent ? 'outdated' : 'failed') as TranslationStatus,
+      errorMessage: combinedMsg.slice(0, 500),
+      attemptId,
+      errorStage,
+    };
   }
   return {
     language,
     status: (priorHasContent ? 'outdated' : 'failed') as TranslationStatus,
-    errorMessage: errorMsg || 'Translation failed.',
+    errorMessage: finalErrorMessage,
+    attemptId,
+    errorStage,
   };
 }
 

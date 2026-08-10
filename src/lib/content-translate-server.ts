@@ -10,6 +10,64 @@ import {
 import { safeParseJSON } from './ai-types';
 import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
+export type TranslationAttemptStage =
+  | 'start'
+  | 'provider_request_failed'
+  | 'provider_returned_no_text'
+  | 'unsupported_gateway_response_shape'
+  | 'invalid_json'
+  | 'schema_validation_failed'
+  | 'required_translation_fields_empty'
+  | 'disabled_or_empty_input'
+  | 'abort_or_timeout'
+  | 'database_upsert_failed'
+  | 'success';
+
+export type TranslationAttemptLog = {
+  attemptId: string;
+  contentType: 'blog_fields' | 'faq_category_fields' | 'faq_item_fields';
+  contentId?: string;
+  targetLanguage: string;
+  model: string;
+  providerStatus: number | null;
+  stage: TranslationAttemptStage;
+  responseShape: string;
+  candidateTextExists: boolean;
+  candidateTextLength: number;
+  errorCategory: string | null;
+  errorMessageSafe: string | null;
+  elapsedMs: number;
+};
+
+export type TranslationFailure = {
+  stage: Exclude<TranslationAttemptStage, 'start' | 'success'>;
+  safeMessage: string;
+};
+
+function newAttemptId(): string {
+  const h = '0123456789abcdef';
+  let s = '';
+  for (let i = 0; i < 12; i++) s += h[Math.floor(Math.random() * 16)];
+  return 'txl_' + s;
+}
+
+export function writeAttemptLog(entry: TranslationAttemptLog): void {
+  const line = JSON.stringify(entry);
+  if (entry.stage === 'success' || entry.stage === 'start') {
+    console.log(line);
+  } else {
+    console.error(line);
+  }
+}
+
+function classifyResponseShape(content: unknown): string {
+  if (content == null) return 'null';
+  if (typeof content === 'string') return 'string';
+  if (Array.isArray(content)) return 'block_array';
+  if (typeof content === 'object') return 'json_object';
+  return 'unsupported';
+}
+
 export const CONTENT_TRANSLATION_ENABLED_LANGS = SUPPORTED_LANGUAGE_CODES.filter((l) => l !== 'en');
 
 export type TranslationStatus = 'current' | 'outdated' | 'failed' | 'pending' | 'missing';
@@ -96,15 +154,50 @@ export function buildFaqItemEnglishSourceHash(item: {
 }
 
 async function callOpenRouterTranslation(
+  attempt: { attemptId: string; contentType: TranslationAttemptLog['contentType']; contentId?: string; startTs: number; model: string },
   targetLanguage: SupportedLanguage,
   fields: Record<string, string>,
   timeoutMs: number
-): Promise<Record<string, string> | null> {
-  if (Object.keys(fields).length === 0) return null;
+): Promise<{ fieldsOut: Record<string, string> | null; failure: TranslationFailure | null }> {
+  const model = attempt.model;
+  if (Object.keys(fields).length === 0) {
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus: null,
+      stage: 'disabled_or_empty_input',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'disabled_or_empty_input',
+      errorMessageSafe: 'No translatable fields provided.',
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'disabled_or_empty_input', safeMessage: 'No translatable fields provided.' } };
+  }
   const config = loadAIConfig();
-  if (!config.aiEnabled) return null;
+  if (!config.aiEnabled) {
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus: null,
+      stage: 'disabled_or_empty_input',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'disabled_or_empty_input',
+      errorMessageSafe: 'AI translation is disabled in platform settings.',
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'disabled_or_empty_input', safeMessage: 'AI translation is disabled in platform settings.' } };
+  }
 
-  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
   const userPrompt = `Translate the following English fields into ${targetLanguage}.
 
 Target language BCP-47: ${targetLanguage}.
@@ -117,6 +210,10 @@ ${JSON.stringify(fields, null, 2)}`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let providerStatus: number | null = null;
+  let responseShape: string = 'null';
+  let candidateTextExists = false;
+  let candidateTextLength = 0;
   try {
     const response = await fetch(`${getOpenRouterBaseUrl()}/chat/completions`, {
       method: 'POST',
@@ -133,15 +230,31 @@ ${JSON.stringify(fields, null, 2)}`;
       }),
       signal: controller.signal,
     });
+    providerStatus = response.status;
     if (!response.ok) {
       const errText = await response.text().catch(() => '');
-      const msg = `Provider HTTP ${response.status}: ${errText.slice(0, 200)}`;
-      console.error('[translate:%s:%s] %s', targetLanguage, 'http_error', msg);
-      throw new Error(msg);
+      const safeMsg = `Provider HTTP ${response.status}: ${errText.slice(0, 200)}`;
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'provider_request_failed',
+        responseShape: 'null',
+        candidateTextExists: false,
+        candidateTextLength: 0,
+        errorCategory: 'provider_request_failed',
+        errorMessageSafe: safeMsg,
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      throw new Error(`[${attempt.attemptId}] provider_request_failed: ${safeMsg}`);
     }
     const raw = await response.json() as OpenRouterTextRewriteResponse['rawOutput'];
     const choices = (raw as any)?.choices as Array<{ message?: { content?: unknown } }> | undefined;
     const content = choices?.[0]?.message?.content;
+    responseShape = classifyResponseShape(content);
 
     let contentText: string;
     if (typeof content === 'string') {
@@ -161,16 +274,47 @@ ${JSON.stringify(fields, null, 2)}`;
       .replace(/\s*```$/, '')
       .trim();
 
+    candidateTextExists = !!contentText;
+    candidateTextLength = contentText.length;
+
     if (!contentText) {
-      console.error('[translate:%s:%s] %s', targetLanguage, 'empty_text', 'Provider returned no text content.');
-      throw new Error('EMPTY: Provider returned no text content.');
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'provider_returned_no_text',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'provider_returned_no_text',
+        errorMessageSafe: 'Provider returned no text content.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      throw new Error(`[${attempt.attemptId}] provider_returned_no_text: Provider returned no text content.`);
     }
 
     const parsed = safeParseJSON(contentText) as Record<string, unknown> | null;
     if (!parsed || typeof parsed !== 'object') {
       const snippet = String(contentText).slice(0, 240);
-      console.error('[translate:%s:%s] %s', targetLanguage, 'invalid_json', 'Could not parse structured response.');
-      throw new Error(`INVALID_JSON: Could not parse structured response. First 240 chars: ${snippet}`);
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'invalid_json',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'invalid_json',
+        errorMessageSafe: 'Could not parse structured response.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      throw new Error(`[${attempt.attemptId}] invalid_json: Could not parse structured response. First 240 chars: ${snippet}`);
     }
 
     const requiredCoreFields = ['title', 'content_html'];
@@ -187,8 +331,22 @@ ${JSON.stringify(fields, null, 2)}`;
     }
     if (missing.length > 0) {
       const firstKeys = JSON.stringify(Object.keys(parsed)).slice(0, 120);
-      console.error('[translate:%s:%s] Missing keys=%s', targetLanguage, 'schema_mismatch', missing.join(','));
-      throw new Error(`SCHEMA: Missing or wrong-typed translated fields. Missing keys=${missing.join(',')}; first_keys=${firstKeys}`);
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'schema_validation_failed',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'schema_validation_failed',
+        errorMessageSafe: `Missing or wrong-typed translated fields. Missing keys=${missing.join(',')}`,
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      throw new Error(`[${attempt.attemptId}] schema_validation_failed: Missing or wrong-typed translated fields. Missing keys=${missing.join(',')}; first_keys=${firstKeys}`);
     }
 
     const result: Record<string, string> = {};
@@ -206,18 +364,73 @@ ${JSON.stringify(fields, null, 2)}`;
       }
     }
     if (!anyNonEmptyRequired) {
-      return null;
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'required_translation_fields_empty',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'required_translation_fields_empty',
+        errorMessageSafe: 'All required translation fields came back empty.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'required_translation_fields_empty', safeMessage: 'All required translation fields came back empty.' } };
     }
 
-    return result;
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus,
+      stage: 'success',
+      responseShape,
+      candidateTextExists,
+      candidateTextLength,
+      errorCategory: null,
+      errorMessageSafe: null,
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: result, failure: null };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err || 'Unknown');
-    if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timeout')) return null;
+    if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timeout')) {
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'abort_or_timeout',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'abort_or_timeout',
+        errorMessageSafe: 'Aborted or timed out.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'abort_or_timeout', safeMessage: 'Aborted or timed out.' } };
+    }
     throw err;
   } finally {
     clearTimeout(timer);
   }
 }
+
+export type BlogFieldsTranslated = { title: string; excerpt: string; content_html: string; category: string; tags: string[]; cover_image_alt: string; seo_title: string; seo_description: string; seo_keywords: string[]; og_title: string; og_description: string; twitter_title: string; twitter_description: string };
+
+export type TranslateFieldsResult<T> = {
+  translatedFields: T | null;
+  attemptId: string;
+  failure: TranslationFailure | null;
+};
 
 export async function translateBlogFields(
   targetLanguage: SupportedLanguage,
@@ -235,8 +448,27 @@ export async function translateBlogFields(
     og_description: string;
     twitter_title: string;
     twitter_description: string;
-  }
-): Promise<{ title: string; excerpt: string; content_html: string; category: string; tags: string[]; cover_image_alt: string; seo_title: string; seo_description: string; seo_keywords: string[]; og_title: string; og_description: string; twitter_title: string; twitter_description: string } | null> {
+  },
+  options?: { contentId?: string }
+): Promise<TranslateFieldsResult<BlogFieldsTranslated>> {
+  const attemptId = newAttemptId();
+  const startTs = Date.now();
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  writeAttemptLog({
+    attemptId,
+    contentType: 'blog_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
   const textFields: Record<string, string> = {
     title: englishFields.title,
     excerpt: englishFields.excerpt,
@@ -252,51 +484,108 @@ export async function translateBlogFields(
     twitter_title: englishFields.twitter_title,
     twitter_description: englishFields.twitter_description,
   };
-  const translated = await callOpenRouterTranslation(targetLanguage, textFields, 30000);
-  if (!translated) return null;
+  const translated = await callOpenRouterTranslation(
+    { attemptId, contentType: 'blog_fields', contentId: options?.contentId, startTs, model },
+    targetLanguage,
+    textFields,
+    30000
+  );
+  if (translated.failure || !translated.fieldsOut) {
+    return { translatedFields: null, attemptId, failure: translated.failure };
+  }
   const splitTags = (csv: string) =>
     csv
       .split(/[,，、]/)
       .map((s) => s.trim())
       .filter(Boolean);
   return {
-    title: translated.title || englishFields.title,
-    excerpt: translated.excerpt || englishFields.excerpt,
-    content_html: translated.content_html || englishFields.content_html,
-    category: translated.category || englishFields.category,
-    tags: splitTags(translated.tags_csv || ''),
-    cover_image_alt: translated.cover_image_alt || englishFields.cover_image_alt,
-    seo_title: translated.seo_title || englishFields.seo_title,
-    seo_description: translated.seo_description || englishFields.seo_description,
-    seo_keywords: splitTags(translated.seo_keywords_csv || ''),
-    og_title: translated.og_title || englishFields.og_title,
-    og_description: translated.og_description || englishFields.og_description,
-    twitter_title: translated.twitter_title || englishFields.twitter_title,
-    twitter_description: translated.twitter_description || englishFields.twitter_description,
+    translatedFields: {
+      title: translated.fieldsOut.title || englishFields.title,
+      excerpt: translated.fieldsOut.excerpt || englishFields.excerpt,
+      content_html: translated.fieldsOut.content_html || englishFields.content_html,
+      category: translated.fieldsOut.category || englishFields.category,
+      tags: splitTags(translated.fieldsOut.tags_csv || ''),
+      cover_image_alt: translated.fieldsOut.cover_image_alt || englishFields.cover_image_alt,
+      seo_title: translated.fieldsOut.seo_title || englishFields.seo_title,
+      seo_description: translated.fieldsOut.seo_description || englishFields.seo_description,
+      seo_keywords: splitTags(translated.fieldsOut.seo_keywords_csv || ''),
+      og_title: translated.fieldsOut.og_title || englishFields.og_title,
+      og_description: translated.fieldsOut.og_description || englishFields.og_description,
+      twitter_title: translated.fieldsOut.twitter_title || englishFields.twitter_title,
+      twitter_description: translated.fieldsOut.twitter_description || englishFields.twitter_description,
+    },
+    attemptId,
+    failure: null,
   };
 }
 
 export async function translateFaqCategoryFields(
   targetLanguage: SupportedLanguage,
-  english: { name: string; description: string }
-): Promise<{ name: string; description: string } | null> {
+  english: { name: string; description: string },
+  options?: { contentId?: string }
+): Promise<TranslateFieldsResult<{ name: string; description: string }>> {
+  const attemptId = newAttemptId();
+  const startTs = Date.now();
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  writeAttemptLog({
+    attemptId,
+    contentType: 'faq_category_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
   const translated = await callOpenRouterTranslation(
+    { attemptId, contentType: 'faq_category_fields', contentId: options?.contentId, startTs, model },
     targetLanguage,
     { name: english.name, description: english.description },
     20000
   );
-  if (!translated) return null;
+  if (translated.failure || !translated.fieldsOut) {
+    return { translatedFields: null, attemptId, failure: translated.failure };
+  }
   return {
-    name: translated.name || english.name,
-    description: translated.description || english.description,
+    translatedFields: {
+      name: translated.fieldsOut.name || english.name,
+      description: translated.fieldsOut.description || english.description,
+    },
+    attemptId,
+    failure: null,
   };
 }
 
 export async function translateFaqItemFields(
   targetLanguage: SupportedLanguage,
-  english: { question: string; answer_html: string; keywords: string[] }
-): Promise<{ question: string; answer_html: string; keywords: string[] } | null> {
+  english: { question: string; answer_html: string; keywords: string[] },
+  options?: { contentId?: string }
+): Promise<TranslateFieldsResult<{ question: string; answer_html: string; keywords: string[] }>> {
+  const attemptId = newAttemptId();
+  const startTs = Date.now();
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  writeAttemptLog({
+    attemptId,
+    contentType: 'faq_item_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
   const translated = await callOpenRouterTranslation(
+    { attemptId, contentType: 'faq_item_fields', contentId: options?.contentId, startTs, model },
     targetLanguage,
     {
       question: english.question,
@@ -305,14 +594,20 @@ export async function translateFaqItemFields(
     },
     25000
   );
-  if (!translated) return null;
+  if (translated.failure || !translated.fieldsOut) {
+    return { translatedFields: null, attemptId, failure: translated.failure };
+  }
   return {
-    question: translated.question || english.question,
-    answer_html: translated.answer_html || english.answer_html,
-    keywords: (translated.keywords_csv || '')
-      .split(/[,，、]/)
-      .map((s) => s.trim())
-      .filter(Boolean),
+    translatedFields: {
+      question: translated.fieldsOut.question || english.question,
+      answer_html: translated.fieldsOut.answer_html || english.answer_html,
+      keywords: (translated.fieldsOut.keywords_csv || '')
+        .split(/[,，、]/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    },
+    attemptId,
+    failure: null,
   };
 }
 

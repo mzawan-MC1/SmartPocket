@@ -33,7 +33,16 @@ type WorkItem = {
 type CompletedWorkItem = WorkItem & {
   success: boolean;
   errorMessage: string | null;
+  attemptId: string;
+  errorStage: string | null;
 };
+
+function newAttemptId(): string {
+  const h = '0123456789abcdef';
+  let s = '';
+  for (let i = 0; i < 12; i++) s += h[Math.floor(Math.random() * 16)];
+  return 'txl_' + s;
+}
 
 function isValidWorkItem(v: unknown): v is WorkItem {
   if (!v || typeof v !== 'object') return false;
@@ -66,6 +75,8 @@ export async function POST(request: Request) {
     const language = item.language as SupportedLanguage;
     let success = false;
     let errorMessage: string | null = null;
+    let attemptId: string = newAttemptId();
+    let errorStage: string | null = null;
 
     try {
       const admin = createAdminClient();
@@ -96,24 +107,51 @@ export async function POST(request: Request) {
           twitter_description: page.twitter_description,
         });
         const result = await processOneBlogTranslation(admin, item.id, language, bundle);
+        attemptId = result.attemptId;
+        errorStage = result.errorStage;
         success = !result.errorMessage;
         errorMessage = result.errorMessage ?? null;
       } else if (item.type === 'faq_category') {
         const input = await loadFaqCategoryInputOrNull(admin, item.id);
         if (!input) throw new Error('FAQ category not found.');
         const result = await processOneFaqCategoryTranslation(admin, item.id, language, input);
+        attemptId = result.attemptId;
+        errorStage = result.errorStage;
         success = !result.errorMessage;
         errorMessage = result.errorMessage ?? null;
       } else if (item.type === 'faq_item') {
         const input = await loadFaqItemInputOrNull(admin, item.id);
         if (!input) throw new Error('FAQ item not found.');
         const result = await processOneFaqItemTranslation(admin, item.id, language, input);
+        attemptId = result.attemptId;
+        errorStage = result.errorStage;
         success = !result.errorMessage;
         errorMessage = result.errorMessage ?? null;
       }
     } catch (err: any) {
       success = false;
-      errorMessage = err instanceof Error ? String(err.message || 'Processing failed.') : 'Processing failed.';
+      const rawMsg = err instanceof Error ? String(err.message || 'Processing failed.') : 'Processing failed.';
+      if (!errorMessage) {
+        const stageFromMsg =
+          rawMsg.includes('provider_request_failed') ? 'provider_request_failed' :
+          rawMsg.includes('provider_returned_no_text') ? 'provider_returned_no_text' :
+          rawMsg.includes('invalid_json') ? 'invalid_json' :
+          rawMsg.includes('schema_validation_failed') ? 'schema_validation_failed' :
+          rawMsg.includes('unsupported_gateway_response_shape') ? 'unsupported_gateway_response_shape' :
+          rawMsg.includes('required_translation_fields_empty') ? 'required_translation_fields_empty' :
+          rawMsg.includes('disabled_or_empty_input') ? 'disabled_or_empty_input' :
+          rawMsg.includes('abort_or_timeout') ? 'abort_or_timeout' :
+          rawMsg.includes('database_upsert_failed') ? 'database_upsert_failed' :
+          null;
+        errorStage = errorStage || stageFromMsg || 'required_translation_fields_empty';
+        const attemptIdFromMsg = rawMsg.match(/\[txl_[0-9a-f]{12}\]/)?.[0]?.replace(/[\[\]]/g, '');
+        if (attemptIdFromMsg) attemptId = attemptIdFromMsg;
+        if (rawMsg.startsWith('[txl_')) {
+          errorMessage = rawMsg.slice(0, 500);
+        } else {
+          errorMessage = `[${attemptId}] ${errorStage}: ${rawMsg}`.slice(0, 500);
+        }
+      }
     }
 
     const completedItem: CompletedWorkItem = {
@@ -122,6 +160,8 @@ export async function POST(request: Request) {
       language: item.language,
       success,
       errorMessage,
+      attemptId,
+      errorStage,
     };
 
     return applySupabaseCookies(

@@ -11,6 +11,8 @@ import {
   translateBlogFields,
   type TranslationPerLang,
   type TranslationStatus,
+  writeAttemptLog,
+  type TranslationAttemptLog,
 } from '@/lib/content-translate-server';
 import { type SupportedLanguage } from '@/i18n/registry';
 
@@ -338,26 +340,50 @@ export async function scheduleBlogTranslations(
   };
 }
 
+export type ProcessOneBlogResult = TranslationPerLang<BlogEnglishSourceBundle> & {
+  attemptId: string;
+  errorStage: string | null;
+};
+
 export async function processOneBlogTranslation(
   admin: AdminClient,
   pageId: string,
   language: SupportedLanguage,
   bundle: BlogEnglishSourceBundle
-): Promise<TranslationPerLang<BlogEnglishSourceBundle>> {
+): Promise<ProcessOneBlogResult> {
   const sourceHash = computeBlogEnglishSourceHash(bundle);
-  let aiResult: Awaited<ReturnType<typeof translateBlogFields>> | null = null;
+  const enPayload = {
+    ...bundle,
+    tags: bundle.tags,
+    seo_keywords: normalizeCsvKeywordsToStrings(bundle.seo_keywords),
+  };
+  const aiTranslateResult = await translateBlogFields(language, enPayload as any, { contentId: pageId });
+  const attemptId = aiTranslateResult.attemptId;
+  let aiResult = aiTranslateResult.translatedFields;
+  let errorStage: string | null = aiTranslateResult.failure?.stage ?? null;
   let errorMsg: string | null = null;
-  try {
-    const enPayload = {
-      ...bundle,
-      tags: bundle.tags,
-      seo_keywords: normalizeCsvKeywordsToStrings(bundle.seo_keywords),
-    };
-    aiResult = await translateBlogFields(language, enPayload as any);
-    if (!aiResult) throw new Error('Empty AI translation result.');
-  } catch (err) {
-    errorMsg =
-      err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  if (aiTranslateResult.failure) {
+    errorMsg = `[${attemptId}] ${aiTranslateResult.failure.stage}: ${aiTranslateResult.failure.safeMessage}`;
+  } else {
+    try {
+      if (!aiResult) {
+        errorStage = 'required_translation_fields_empty';
+        throw new Error(`[${attemptId}] required_translation_fields_empty: Empty AI translation result.`);
+      }
+    } catch (err) {
+      errorMsg =
+        err instanceof Error ? String(err.message || 'Translation failed.') : 'Translation failed.';
+      if (errorStage === null) {
+        const msg = errorMsg;
+        if (msg.includes('provider_request_failed')) errorStage = 'provider_request_failed';
+        else if (msg.includes('provider_returned_no_text')) errorStage = 'provider_returned_no_text';
+        else if (msg.includes('invalid_json')) errorStage = 'invalid_json';
+        else if (msg.includes('schema_validation_failed')) errorStage = 'schema_validation_failed';
+        else if (msg.includes('unsupported_gateway_response_shape')) errorStage = 'unsupported_gateway_response_shape';
+        else errorStage = 'required_translation_fields_empty';
+      }
+    }
   }
 
   const priorRowFull = (
@@ -387,7 +413,8 @@ export async function processOneBlogTranslation(
     if (titleEmptyAfterFallback || contentEmptyAfterFallback) {
       effectivelyFailed = true;
       if (!errorMsg) {
-        errorMsg = `Translation produced empty core fields.${titleEmptyAfterFallback ? ' title' : ''}${contentEmptyAfterFallback ? ' content_html' : ''}`;
+        errorStage = 'schema_validation_failed';
+        errorMsg = `[${attemptId}] schema_validation_failed: Translation produced empty core fields.${titleEmptyAfterFallback ? ' title' : ''}${contentEmptyAfterFallback ? ' content_html' : ''}`;
       }
     }
   }
@@ -419,15 +446,34 @@ export async function processOneBlogTranslation(
       { onConflict: 'page_id,language_code' }
     );
     if (error) {
+      const dbErrMsg = error instanceof Error ? error.message : 'Failed to persist translation row.';
+      errorStage = 'database_upsert_failed';
+      errorMsg = `[${attemptId}] database_upsert_failed: ${dbErrMsg}`;
+      writeAttemptLog({
+        attemptId,
+        contentType: 'blog_fields',
+        contentId: pageId,
+        targetLanguage: language,
+        model,
+        providerStatus: null,
+        stage: 'database_upsert_failed',
+        responseShape: 'null',
+        candidateTextExists: false,
+        candidateTextLength: 0,
+        errorCategory: 'database_upsert_failed',
+        errorMessageSafe: dbErrMsg.slice(0, 300),
+        elapsedMs: 0,
+      });
       return {
         language,
         status: 'failed',
         result: undefined,
-        errorMessage:
-          error instanceof Error ? error.message : 'Failed to persist translation row.',
+        errorMessage: errorMsg.slice(0, 500),
+        attemptId,
+        errorStage,
       };
     }
-    return { language, status: 'current', result: bundle, errorMessage: undefined };
+    return { language, status: 'current', result: bundle, errorMessage: undefined, attemptId, errorStage: null };
   }
 
   const shouldPreservePrior = priorHasContent || priorSuccessfulWithMatchingHash;
@@ -466,6 +512,7 @@ export async function processOneBlogTranslation(
         source_version_hash: '',
         translation_status: 'failed' as TranslationStatus,
       };
+  const finalErrorMessage = String(errorMsg || `[${attemptId}] required_translation_fields_empty: Translation failed.`).slice(0, 500);
   const { error: persistErr } = await admin
     .from('cms_page_translations')
     .upsert(
@@ -474,19 +521,46 @@ export async function processOneBlogTranslation(
           page_id: pageId,
           language_code: language,
           ...preserve,
-          last_error_message: String(errorMsg || 'Translation failed.').slice(0, 500),
+          last_error_message: finalErrorMessage,
         },
       ],
       { onConflict: 'page_id,language_code' }
     );
   if (persistErr) {
-    errorMsg = `${errorMsg ?? ''} | persist: ${String(persistErr.message || persistErr)}`.slice(0, 500);
+    const persistMsg = `persist: ${String(persistErr.message || persistErr)}`;
+    const combinedMsg = finalErrorMessage + ' | ' + persistMsg;
+    writeAttemptLog({
+      attemptId,
+      contentType: 'blog_fields',
+      contentId: pageId,
+      targetLanguage: language,
+      model,
+      providerStatus: null,
+      stage: 'database_upsert_failed',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'database_upsert_failed',
+      errorMessageSafe: persistMsg.slice(0, 300),
+      elapsedMs: 0,
+    });
+    errorStage = 'database_upsert_failed';
+    return {
+      language,
+      status: (shouldPreservePrior ? 'outdated' : 'failed') as TranslationStatus,
+      result: undefined,
+      errorMessage: combinedMsg.slice(0, 500),
+      attemptId,
+      errorStage,
+    };
   }
   return {
     language,
     status: (shouldPreservePrior ? 'outdated' : 'failed') as TranslationStatus,
     result: undefined,
-    errorMessage: errorMsg || 'Translation failed.',
+    errorMessage: finalErrorMessage,
+    attemptId,
+    errorStage,
   };
 }
 

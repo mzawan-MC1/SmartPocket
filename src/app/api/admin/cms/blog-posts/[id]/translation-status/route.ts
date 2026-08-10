@@ -6,12 +6,12 @@ import { loadBlogTranslationStatus } from '@/lib/blog-translate-server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAdminRouteUser();
   if (!auth.ok) return auth.response;
 
-  const { id } = params;
+  const { id } = await params;
   const admin = auth.admin ?? createAdminClient();
 
   if (!admin) {
